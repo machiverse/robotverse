@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Hero from "@/components/Hero";
+import EnhancedHeader from "@/components/EnhancedHeader";
+import EnhancedHero from "@/components/EnhancedHero";
 import LiveStats from "@/components/LiveStats";
+import MarketplaceCategories from "@/components/MarketplaceCategories";
 import RobotListings from "@/components/RobotListings";
+import JobWork from "@/components/JobWork";
+import TrustIndicators from "@/components/TrustIndicators";
 import UserTypeSelector from "@/components/UserTypeSelector";
 import Dashboard from "@/components/Dashboard";
 
@@ -35,7 +38,7 @@ const Index = () => {
   if (selectedUserType) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <EnhancedHeader />
         <div className="container mx-auto px-4 py-4">
           <button 
             onClick={handleBackToSelection}
@@ -51,10 +54,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <Hero />
+      <EnhancedHeader />
+      <EnhancedHero />
+      <MarketplaceCategories />
       <LiveStats />
       <RobotListings />
+      <JobWork />
+      <TrustIndicators />
       <UserTypeSelector onSelect={handleUserTypeSelect} />
     </div>
   );
