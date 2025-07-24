@@ -77,8 +77,8 @@ const sampleJobs = [
 const JobWork = () => {
   const [activeTab, setActiveTab] = useState<"browse" | "post">("browse");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedLocation, setSelectedLocation] = useState("all");
 
   const JobCard = ({ job }: { job: typeof sampleJobs[0] }) => (
     <Card className="bg-card/80 backdrop-blur-sm border-border hover:scale-[1.02] transition-all duration-300">
@@ -257,7 +257,7 @@ const JobWork = () => {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {jobCategories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
@@ -270,7 +270,7 @@ const JobWork = () => {
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Locations</SelectItem>
+                    <SelectItem value="all">All Locations</SelectItem>
                     {locations.map((location) => (
                       <SelectItem key={location} value={location}>
                         {location}
