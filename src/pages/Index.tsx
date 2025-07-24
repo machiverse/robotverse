@@ -3,6 +3,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import LiveStats from "@/components/LiveStats";
+import RobotListings from "@/components/RobotListings";
 import UserTypeSelector from "@/components/UserTypeSelector";
 import Dashboard from "@/components/Dashboard";
 
@@ -51,6 +53,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <Hero />
+      <LiveStats />
+      <RobotListings />
       <UserTypeSelector onSelect={handleUserTypeSelect} />
     </div>
   );
