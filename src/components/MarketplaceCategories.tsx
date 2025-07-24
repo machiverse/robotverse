@@ -13,25 +13,25 @@ import {
 
 const marketplaceCategories = [
   {
-    id: "machinery",
-    title: "Used Machinery",
-    description: "Quality pre-owned industrial equipment",
+    id: "robots",
+    title: "Industrial Robots",
+    description: "Quality industrial robots and automation",
     icon: Bot,
     stats: {
-      listings: 2,
-      locations: 2
+      listings: 0,
+      locations: 0
     },
     gradient: "from-blue-500 to-cyan-600",
-    href: "/marketplace/machinery"
+    href: "/marketplace/robots"
   },
   {
     id: "parts",
     title: "Spare Parts",
-    description: "Genuine parts for your machines",
+    description: "Genuine parts for your robots",
     icon: Package,
     stats: {
-      listings: 1,
-      suppliers: "Multiple"
+      listings: 0,
+      suppliers: 0
     },
     gradient: "from-green-500 to-emerald-600",
     href: "/marketplace/parts"
@@ -42,23 +42,11 @@ const marketplaceCategories = [
     description: "Professional maintenance & repair",
     icon: Settings,
     stats: {
-      requests: 1,
+      requests: 0,
       providers: 0
     },
     gradient: "from-purple-500 to-violet-600",
     href: "/marketplace/services"
-  },
-  {
-    id: "jobwork",
-    title: "Job Work",
-    description: "Outsource manufacturing needs",
-    icon: Briefcase,
-    stats: {
-      opportunities: "1,200+",
-      coverage: "Pan-India"
-    },
-    gradient: "from-orange-500 to-red-600",
-    href: "/marketplace/jobwork"
   }
 ];
 
@@ -73,7 +61,7 @@ const MarketplaceCategories = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {marketplaceCategories.map((category) => {
             const Icon = category.icon;
             return (

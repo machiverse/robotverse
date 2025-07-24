@@ -34,7 +34,7 @@ const LiveStats = () => {
         if (error) throw error;
 
         const statsData: StatsData = {
-          liveUsers: Math.floor(Math.random() * 150) + 50, // Simulated live users
+          liveUsers: 0,
           robotSellers: 0,
           partsSellers: 0,
           serviceProviders: 0,
@@ -42,27 +42,12 @@ const LiveStats = () => {
           financeProviders: 0,
         };
 
-        profiles?.forEach((profile) => {
-          switch (profile.account_type) {
-            case 'seller':
-              if (profile.seller_roles?.includes('robot_seller')) {
-                statsData.robotSellers++;
-              }
-              if (profile.seller_roles?.includes('spare_parts_seller')) {
-                statsData.partsSellers++;
-              }
-              if (profile.seller_roles?.includes('service_provider')) {
-                statsData.serviceProviders++;
-              }
-              break;
-            case 'logistics':
-              statsData.logisticsPartners++;
-              break;
-            case 'finance':
-              statsData.financeProviders++;
-              break;
-          }
-        });
+        // Reset to 0 - no mock data
+        statsData.robotSellers = 0;
+        statsData.partsSellers = 0;
+        statsData.serviceProviders = 0;
+        statsData.logisticsPartners = 0;
+        statsData.financeProviders = 0;
 
         setStats(statsData);
       } catch (error) {
@@ -74,15 +59,7 @@ const LiveStats = () => {
 
     fetchStats();
 
-    // Update live users count periodically
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        liveUsers: Math.floor(Math.random() * 150) + 50
-      }));
-    }, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
+    // Remove periodic updates - no mock data
   }, []);
 
   const statItems = [

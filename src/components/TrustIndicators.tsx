@@ -36,19 +36,19 @@ const networkStats = [
   {
     icon: MapPin,
     label: "Pan-India Network",
-    value: "2+",
+    value: "0",
     description: "cities covered"
   },
   {
     icon: Users,
     label: "Trusted Community", 
-    value: "7+",
+    value: "0",
     description: "verified users"
   },
   {
     icon: TrendingUp,
-    label: "Comprehensive Inventory",
-    value: "1+",
+    label: "Robot Categories",
+    value: "0",
     description: "categories"
   },
   {
@@ -60,10 +60,10 @@ const networkStats = [
 ];
 
 const liveStats = [
-  { label: "Active Listings", value: "2+", color: "text-green-500" },
-  { label: "Verified Users", value: "7+", color: "text-blue-500" },
-  { label: "Service Providers", value: "0+", color: "text-purple-500" },
-  { label: "Customer Satisfaction", value: "98%", color: "text-orange-500" }
+  { label: "Active Listings", value: "0", color: "text-green-500" },
+  { label: "Verified Users", value: "0", color: "text-blue-500" },
+  { label: "Service Providers", value: "0", color: "text-purple-500" },
+  { label: "Customer Satisfaction", value: "0%", color: "text-orange-500" }
 ];
 
 const TrustIndicators = () => {

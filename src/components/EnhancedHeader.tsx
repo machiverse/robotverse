@@ -10,10 +10,9 @@ const EnhancedHeader = () => {
 
   const navigation = [
     { name: "Home", href: "/", icon: Home },
-    { name: "Machinery", href: "/machinery", icon: Bot },
+    { name: "Robots", href: "/robots", icon: Bot },
     { name: "Spare Parts", href: "/parts", icon: Package },
     { name: "Services", href: "/services", icon: Settings },
-    { name: "Job Work", href: "/jobwork", icon: Briefcase },
   ];
 
   return (
