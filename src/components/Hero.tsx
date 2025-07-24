@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Bot, Zap, Shield, Globe } from "lucide-react";
-import robotHero from "@/assets/robot-hero.jpg";
+import industrialRobotHero from "@/assets/industrial-robot-hero.jpg";
 
 const Hero = () => {
   return (
@@ -8,8 +8,8 @@ const Hero = () => {
       {/* Background Image */}
       <div className="absolute inset-0">
         <img 
-          src={robotHero} 
-          alt="Futuristic robot marketplace" 
+          src={industrialRobotHero} 
+          alt="Industrial robot automation factory" 
           className="w-full h-full object-cover opacity-30"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent"></div>
@@ -31,8 +31,7 @@ const Hero = () => {
           </h1>
 
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">
-            The ultimate marketplace for all types of robots, spare parts, and robotics services. 
-            Connect with buyers, sellers, and service providers in the robotics industry.
+            Buy, Sell & Support Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Place
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
