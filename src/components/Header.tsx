@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Bot, Menu, Search, User } from "lucide-react";
+import { Bot, Menu, Search, User, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
@@ -45,10 +48,24 @@ const Header = () => {
                 className="pl-10 pr-4 py-2 bg-input border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm w-64"
               />
             </div>
-            <Button variant="neon" size="sm">
-              <User className="w-4 h-4" />
-              Sign In
-            </Button>
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">
+                  Hello, {user.email?.split('@')[0]}
+                </span>
+                <Button variant="outline" size="sm" onClick={signOut}>
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button variant="neon" size="sm">
+                  <User className="w-4 h-4" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -77,10 +94,24 @@ const Header = () => {
                 About
               </a>
               <div className="pt-3 border-t border-border">
-                <Button variant="neon" size="sm" className="w-full">
-                  <User className="w-4 h-4" />
-                  Sign In
-                </Button>
+                {user ? (
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                      Hello, {user.email?.split('@')[0]}
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full" onClick={signOut}>
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <Link to="/auth">
+                    <Button variant="neon" size="sm" className="w-full">
+                      <User className="w-4 h-4" />
+                      Sign In
+                    </Button>
+                  </Link>
+                )}
               </div>
             </nav>
           </div>

@@ -1,13 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import UserTypeSelector from "@/components/UserTypeSelector";
 import Dashboard from "@/components/Dashboard";
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [selectedUserType, setSelectedUserType] = useState<'buyer' | 'seller' | 'service' | 'parts' | null>(null);
 
+  // Redirect to auth if not logged in and trying to select user type
+  useEffect(() => {
+    if (!loading && !user && selectedUserType) {
+      navigate('/auth');
+    }
+  }, [user, loading, selectedUserType, navigate]);
+
   const handleUserTypeSelect = (type: 'buyer' | 'seller' | 'service' | 'parts') => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
     setSelectedUserType(type);
   };
 
