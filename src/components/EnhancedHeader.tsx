@@ -22,7 +22,7 @@ const EnhancedHeader = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">M</span>
+              <span className="text-primary-foreground font-bold text-lg">R</span>
             </div>
             <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               RoboVerse
@@ -61,8 +61,14 @@ const EnhancedHeader = () => {
             {/* Auth Section */}
             {user ? (
               <div className="hidden md:flex items-center space-x-2">
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="sm">
+                    <User className="w-4 h-4 mr-1" />
+                    Dashboard
+                  </Button>
+                </Link>
                 <span className="text-sm text-muted-foreground">
-                  Hello, {user.email?.split('@')[0]}
+                  {user.email?.split('@')[0]}
                 </span>
                 <Button variant="outline" size="sm" onClick={signOut}>
                   <LogOut className="w-4 h-4" />
@@ -128,8 +134,14 @@ const EnhancedHeader = () => {
             <div className="pt-3 border-t border-border">
               {user ? (
                 <div className="space-y-2">
+                  <Link to="/dashboard">
+                    <Button variant="ghost" size="sm" className="w-full" onClick={() => setIsMenuOpen(false)}>
+                      <User className="w-4 h-4 mr-1" />
+                      Dashboard
+                    </Button>
+                  </Link>
                   <div className="text-sm text-muted-foreground">
-                    Hello, {user.email?.split('@')[0]}
+                    {user.email?.split('@')[0]}
                   </div>
                   <Button variant="outline" size="sm" className="w-full" onClick={signOut}>
                     <LogOut className="w-4 h-4" />

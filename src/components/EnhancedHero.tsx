@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { Link } from "react-router-dom";
 import industrialRobotHero from "@/assets/industrial-robot-hero.jpg";
 
 const heroContent = {
@@ -38,7 +39,8 @@ const EnhancedHero = () => {
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
 
   const handleSearch = () => {
-    console.log("Search:", { searchQuery, selectedCategory, selectedLocation });
+    // Navigate to robots page with search parameters
+    window.location.href = `/robots?search=${encodeURIComponent(searchQuery)}&category=${encodeURIComponent(selectedCategory)}&location=${encodeURIComponent(selectedLocation)}`;
   };
 
   return (
@@ -114,11 +116,11 @@ const EnhancedHero = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
-            <Button variant="hero" size="lg" className="text-lg px-8 py-6">
-              Explore Robots
+            <Button variant="hero" size="lg" className="text-lg px-8 py-6" asChild>
+              <Link to="/robots">Explore Robots</Link>
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-              Start Selling
+            <Button variant="outline" size="lg" className="text-lg px-8 py-6" asChild>
+              <Link to="/auth">Start Selling</Link>
             </Button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 import { 
   Bot, 
   Package, 
@@ -65,10 +66,10 @@ const MarketplaceCategories = () => {
           {marketplaceCategories.map((category) => {
             const Icon = category.icon;
             return (
-              <Card 
-                key={category.id}
-                className="group bg-card/80 backdrop-blur-sm border-border hover:scale-105 hover:shadow-glow transition-all duration-300 cursor-pointer"
-              >
+              <Link key={category.id} to={category.href}>
+                <Card 
+                  className="group bg-card/80 backdrop-blur-sm border-border hover:scale-105 hover:shadow-glow transition-all duration-300 cursor-pointer"
+                >
                 <CardContent className="p-6">
                   <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                     <Icon className="w-8 h-8 text-white" />
@@ -106,6 +107,7 @@ const MarketplaceCategories = () => {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             );
           })}
         </div>
