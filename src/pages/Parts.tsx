@@ -1,17 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, MapPin, Search, Grid, List, Star } from "lucide-react";
+import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+
+interface Part {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  location: string;
+  image: string;
+  partNumber: string;
+  compatibility: string;
+  rating: number;
+  availability: string;
+  quantity: number;
+}
 
 const Parts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [parts, setParts] = useState<Part[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const categories = [
     { value: "all", label: "All Parts" },
@@ -31,48 +48,74 @@ const Parts = () => {
     { value: "pune", label: "Pune" },
   ];
 
-  // Sample parts data
-  const parts = [
-    {
-      id: 1,
-      name: "ABB Servo Motor",
-      category: "Motors & Drives",
-      price: 45000,
-      location: "Mumbai",
-      image: "/placeholder.svg",
-      partNumber: "3HAC057346-001",
-      compatibility: "ABB IRB series",
-      rating: 4.8,
-      availability: "In Stock",
-      quantity: 15
-    },
-    {
-      id: 2,
-      name: "KUKA Controller Board",
-      category: "Controllers",
-      price: 125000,
-      location: "Bangalore",
-      image: "/placeholder.svg",
-      partNumber: "00-168-334",
-      compatibility: "KUKA KR series",
-      rating: 4.9,
-      availability: "Available",
-      quantity: 3
-    },
-    {
-      id: 3,
-      name: "Universal Robots Sensor Kit",
-      category: "Sensors",
-      price: 35000,
-      location: "Chennai",
-      image: "/placeholder.svg",
-      partNumber: "UR-SENSOR-01",
-      compatibility: "UR series",
-      rating: 4.7,
-      availability: "Limited Stock",
-      quantity: 8
-    },
-  ];
+  // Fetch real parts data
+  useEffect(() => {
+    const fetchParts = async () => {
+      try {
+        setLoading(true);
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/parts');
+        if (!response.ok) {
+          throw new Error('Failed to fetch parts');
+        }
+        const data = await response.json();
+        setParts(data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        setParts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchParts();
+  }, []);
+
+  // Filter parts based on search and selections
+  const filteredParts = parts.filter((part) => {
+    const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         part.compatibility.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === "all" || 
+                           part.category.toLowerCase().includes(selectedCategory.toLowerCase());
+    
+    const matchesLocation = selectedLocation === "all" || 
+                           part.location.toLowerCase() === selectedLocation.toLowerCase();
+
+    return matchesSearch && matchesCategory && matchesLocation;
+  });
+
+  const LoadingState = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Loader2 className="w-8 h-8 animate-spin mb-4" />
+      <p className="text-muted-foreground">Loading parts...</p>
+    </div>
+  );
+
+  const ErrorState = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Package className="w-16 h-16 text-muted-foreground mb-4" />
+      <h3 className="text-lg font-semibold mb-2">Unable to load parts</h3>
+      <p className="text-muted-foreground mb-4">{error}</p>
+      <Button onClick={() => window.location.reload()} variant="outline">
+        Try Again
+      </Button>
+    </div>
+  );
+
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Package className="w-16 h-16 text-muted-foreground mb-4" />
+      <h3 className="text-lg font-semibold mb-2">No parts available</h3>
+      <p className="text-muted-foreground">
+        {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
+          ? "No parts match your current filters."
+          : "Parts inventory is currently empty."}
+      </p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,9 +140,10 @@ const Parts = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
+                disabled={loading}
               />
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={loading}>
               <SelectTrigger>
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -111,7 +155,7 @@ const Parts = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation} disabled={loading}>
               <SelectTrigger>
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
@@ -128,6 +172,7 @@ const Parts = () => {
                 variant={viewMode === "grid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
+                disabled={loading}
               >
                 <Grid className="w-4 h-4" />
               </Button>
@@ -135,71 +180,100 @@ const Parts = () => {
                 variant={viewMode === "list" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("list")}
+                disabled={loading}
               >
                 <List className="w-4 h-4" />
               </Button>
             </div>
           </div>
+          
+          {/* Results count */}
+          {!loading && !error && (
+            <div className="text-sm text-muted-foreground">
+              {filteredParts.length} {filteredParts.length === 1 ? 'part' : 'parts'} found
+            </div>
+          )}
         </div>
 
-        {/* Results */}
-        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-          {parts.map((part) => (
-            <Card key={part.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                  <Package className="w-12 h-12 text-muted-foreground" />
-                </div>
-                <CardTitle className="text-lg">{part.name}</CardTitle>
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="w-fit">
-                    {part.category}
-                  </Badge>
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-muted-foreground">{part.rating}</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-primary">
-                      ₹{part.price.toLocaleString()}
-                    </span>
-                    <Badge variant={part.availability === "In Stock" ? "default" : "secondary"}>
-                      {part.availability}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{part.location}</span>
-                  </div>
-                  <div className="text-sm space-y-1">
-                    <p><span className="font-medium">Part #:</span> {part.partNumber}</p>
-                    <p><span className="font-medium">Compatible:</span> {part.compatibility}</p>
-                    <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
-                  </div>
-                  <div className="flex space-x-2 pt-2">
-                    <Button size="sm" className="flex-1">
-                      Add to Cart
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Contact Seller
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Content */}
+        {loading ? (
+          <LoadingState />
+        ) : error ? (
+          <ErrorState />
+        ) : filteredParts.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            {/* Results */}
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+              {filteredParts.map((part) => (
+                <Card key={part.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                      {part.image && part.image !== "/placeholder.svg" ? (
+                        <img 
+                          src={part.image} 
+                          alt={part.name}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Package className="w-12 h-12 text-muted-foreground" />
+                      )}
+                    </div>
+                    <CardTitle className="text-lg">{part.name}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="w-fit">
+                        {part.category}
+                      </Badge>
+                      <div className="flex items-center space-x-1">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-muted-foreground">{part.rating}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold text-primary">
+                          ₹{part.price.toLocaleString()}
+                        </span>
+                        <Badge variant={part.availability === "In Stock" ? "default" : "secondary"}>
+                          {part.availability}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span className="text-sm">{part.location}</span>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <p><span className="font-medium">Part #:</span> {part.partNumber}</p>
+                        <p><span className="font-medium">Compatible:</span> {part.compatibility}</p>
+                        <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
+                      </div>
+                      <div className="flex space-x-2 pt-2">
+                        <Button size="sm" className="flex-1">
+                          Add to Cart
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          Contact Seller
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-        {/* Load More */}
-        <div className="text-center mt-8">
-          <Button variant="outline" size="lg">
-            Load More Parts
-          </Button>
-        </div>
+            {/* Load More */}
+            {filteredParts.length > 0 && (
+              <div className="text-center mt-8">
+                <Button variant="outline" size="lg">
+                  Load More Parts
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
