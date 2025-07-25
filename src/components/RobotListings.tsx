@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface Robot {
 
 const RobotListings = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -171,7 +173,7 @@ const RobotListings = () => {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
                       <Eye className="w-3 h-3 mr-1" />
                       View Details
                     </Button>
@@ -210,7 +212,7 @@ const RobotListings = () => {
         
         {robots.length > 0 && (
           <div className="text-center mt-8">
-            <Button variant="outline" size="lg">
+            <Button variant="outline" size="lg" onClick={() => navigate('/robots')}>
               View All Robots
             </Button>
           </div>

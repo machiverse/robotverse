@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +14,9 @@ const Services = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const categories = [
     { value: "all", label: "All Services" },
@@ -31,51 +36,68 @@ const Services = () => {
     { value: "pune", label: "Pune" },
   ];
 
-  // Sample services data
-  const services = [
-    {
-      id: 1,
-      name: "Robot Maintenance & Calibration",
-      category: "Maintenance",
-      priceRange: "₹15,000 - ₹50,000",
-      location: "Mumbai",
-      provider: "TechBot Solutions",
-      image: "/placeholder.svg",
-      description: "Complete maintenance and calibration services for industrial robots",
-      rating: 4.9,
-      responseTime: "2-4 hours",
-      completedJobs: 150,
-      availability: "Available"
-    },
-    {
-      id: 2,
-      name: "Emergency Robot Repair",
-      category: "Repair",
-      priceRange: "₹25,000 - ₹100,000",
-      location: "Bangalore",
-      provider: "RoboFix Pro",
-      image: "/placeholder.svg",
-      description: "24/7 emergency repair services for critical robot breakdowns",
-      rating: 4.8,
-      responseTime: "1-2 hours",
-      completedJobs: 200,
-      availability: "24/7"
-    },
-    {
-      id: 3,
-      name: "Robot Programming Training",
-      category: "Training",
-      priceRange: "₹20,000 - ₹80,000",
-      location: "Chennai",
-      provider: "AutoSkill Academy",
-      image: "/placeholder.svg",
-      description: "Professional training programs for robot programming and operation",
-      rating: 4.7,
-      responseTime: "1-3 days",
-      completedJobs: 85,
-      availability: "Scheduled"
-    },
-  ];
+  // Fetch real services data from Supabase
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('services')
+          .select(`
+            *,
+            profiles!services_provider_id_fkey (
+              full_name,
+              company_name,
+              location
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Transform data to match interface
+        const transformedData = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          category: item.service_type,
+          priceRange: item.price_range || 'Contact for pricing',
+          location: item.location || item.profiles?.location || 'Location not specified',
+          provider: item.profiles?.company_name || item.profiles?.full_name || 'Service Provider',
+          image: "/placeholder.svg",
+          description: item.description || 'Professional service provider',
+          rating: 4.5, // Default rating
+          responseTime: "2-4 hours", // Default response time
+          completedJobs: Math.floor(Math.random() * 100) + 50, // Random for demo
+          availability: "Available"
+        }));
+        
+        setServices(transformedData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load services');
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  const filteredServices = services.filter((service) => {
+    const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         service.provider.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === "all" || 
+                           service.category.toLowerCase().includes(selectedCategory.toLowerCase());
+    
+    const matchesLocation = selectedLocation === "all" || 
+                           service.location.toLowerCase() === selectedLocation.toLowerCase();
+
+    return matchesSearch && matchesCategory && matchesLocation;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,9 +167,42 @@ const Services = () => {
           </div>
         </div>
 
-        {/* Results */}
-        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-          {services.map((service) => (
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mb-4" />
+            <p className="text-muted-foreground">Loading services...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Settings className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Unable to load services</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        ) : filteredServices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Settings className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No services available</h3>
+            <p className="text-muted-foreground">
+              {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
+                ? "No services match your current filters."
+                : "Service listings are currently empty."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Results */}
+            <div className="mb-4">
+              <p className="text-sm text-muted-foreground">
+                {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'} found
+              </p>
+            </div>
+            
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+              {filteredServices.map((service) => (
             <Card key={service.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
@@ -203,15 +258,19 @@ const Services = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+              ))}
+            </div>
 
-        {/* Load More */}
-        <div className="text-center mt-8">
-          <Button variant="outline" size="lg">
-            Load More Services
-          </Button>
-        </div>
+            {/* Load More */}
+            {filteredServices.length > 0 && (
+              <div className="text-center mt-8">
+                <Button variant="outline" size="lg">
+                  Load More Services
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

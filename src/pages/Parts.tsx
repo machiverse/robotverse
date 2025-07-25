@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react
 import EnhancedHeader from "@/components/EnhancedHeader";
 
 interface Part {
-  id: number;
+  id: string;
   name: string;
   category: string;
   price: number;
@@ -48,21 +49,45 @@ const Parts = () => {
     { value: "pune", label: "Pune" },
   ];
 
-  // Fetch real parts data
+  // Fetch real parts data from Supabase
   useEffect(() => {
     const fetchParts = async () => {
       try {
         setLoading(true);
-        // Replace with your actual API endpoint
-        const response = await fetch('/api/parts');
-        if (!response.ok) {
-          throw new Error('Failed to fetch parts');
-        }
-        const data = await response.json();
-        setParts(data);
+        const { data, error } = await supabase
+          .from('spare_parts')
+          .select(`
+            *,
+            profiles!spare_parts_seller_id_fkey (
+              full_name,
+              company_name,
+              location
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Transform data to match interface
+        const transformedData = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          category: item.category_tags?.[0] || 'Other',
+          price: item.price || 0,
+          location: item.location || item.profiles?.location || 'Location not specified',
+          image: item.images?.[0] || "/placeholder.svg",
+          partNumber: item.part_number || 'N/A',
+          compatibility: item.compatible_robots?.join(', ') || 'Universal',
+          rating: 4.5, // Default rating
+          availability: 'In Stock',
+          quantity: item.quantity
+        }));
+        
+        setParts(transformedData);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        console.error('Error fetching parts:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load spare parts');
         setParts([]);
       } finally {
         setLoading(false);
