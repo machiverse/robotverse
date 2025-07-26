@@ -45,7 +45,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const userType = userProfile?.user_type;
+  const userType = userProfile?.user_type || userProfile?.primary_user_type;
   const sellerRoles = userProfile?.seller_roles || [];
   const logisticsType = userProfile?.logistics_type;
   const financeType = userProfile?.finance_type;
@@ -393,9 +393,10 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   // Multi-Role Seller Dashboard
   const hasMultipleRoles = sellerRoles.length > 1;
   const isPrimaryRobotSeller = sellerRoles.includes('robot_seller') || userType === 'seller';
+  const isAnySeller = userType === 'seller' || sellerRoles.length > 0;
   
-  // If user is primarily a robot seller or has multiple roles, show enhanced interface
-  if (isPrimaryRobotSeller && userType === 'seller') {
+  // If user is any type of seller, show enhanced interface
+  if (isAnySeller && (userType === 'seller' || sellerRoles.length > 0)) {
     return (
       <div className="min-h-screen bg-background py-8">
         <div className="container mx-auto px-4">

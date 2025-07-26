@@ -11,16 +11,36 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
           .single();
         
-        setUserProfile(profile);
+        if (error) {
+          console.error('Profile fetch error:', error);
+          // If profile doesn't exist, create a basic one
+          if (error.code === 'PGRST116') {
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: user.id,
+                email: user.email,
+                full_name: user.user_metadata?.full_name || ''
+              })
+              .select()
+              .single();
+            setUserProfile(newProfile);
+          }
+        } else {
+          setUserProfile(profile);
+        }
       } catch (error) {
         console.error('Error fetching user profile:', error);
       } finally {
