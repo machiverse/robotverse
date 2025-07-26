@@ -5,6 +5,7 @@ import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
 import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
+import AdminDashboard from "@/components/dashboards/AdminDashboard";
 import UserTypeSelector from "@/components/UserTypeSelector";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,10 +99,17 @@ const DashboardPage = () => {
   };
 
   const renderDashboard = () => {
+    // Check if user is super admin
+    if (user?.email === 'mark.it@keyleerkorb.com') {
+      return <AdminDashboard userProfile={userProfile} />;
+    }
+
+    // If user doesn't have a user_type, show selector
     if (!userProfile?.user_type) {
       return <UserTypeSelector onSelect={handleUserTypeSelection} />;
     }
 
+    // Show dashboard based on user type
     switch (userProfile.user_type) {
       case 'buyer':
         return <BuyerDashboard userProfile={userProfile} />;
