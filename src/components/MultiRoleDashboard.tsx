@@ -125,15 +125,8 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
       }
 
       if (userType === 'buyer') {
-        // Fetch buyer-specific data
-        const { data: wishlist, error: wishlistError } = await supabase
-          .from('user_wishlist')
-          .select('id')
-          .eq('user_id', user.id);
-        
-        if (wishlistError) console.error('Wishlist fetch error:', wishlistError);
-        
-        data.wishlist.count = wishlist?.length || 0;
+        // TODO: Implement wishlist functionality when user_wishlist table is created
+        data.wishlist.count = 0;
       }
 
       console.log('Dashboard data fetched:', data);
