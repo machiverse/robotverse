@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Bot,
   Plus,
@@ -22,7 +23,10 @@ import {
   BarChart3,
   Upload,
   Download,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ShieldX,
+  AlertCircle,
+  UserX
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,16 +56,35 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // Check user permissions
+  const userType = userProfile?.user_type;
+  const sellerRoles = userProfile?.seller_roles || [];
+  const isRobotSeller = userType === 'seller' && sellerRoles.includes('robot_seller');
+  const hasRobotSellerAccess = isRobotSeller || userType === 'robot_seller';
+
+  // Debug logging
+  console.log('Robot Seller Dashboard Access Check:', {
+    userType,
+    sellerRoles,
+    isRobotSeller,
+    hasRobotSellerAccess,
+    userProfile
+  });
+
   useEffect(() => {
-    fetchRobots();
-  }, [user]);
+    if (hasRobotSellerAccess) {
+      fetchRobots();
+    } else {
+      setLoading(false);
+    }
+  }, [user, hasRobotSellerAccess]);
 
   useEffect(() => {
     filterRobots();
   }, [robots, searchQuery, filterStatus]);
 
   const fetchRobots = async () => {
-    if (!user) return;
+    if (!user || !hasRobotSellerAccess) return;
     
     try {
       const { data, error } = await supabase
@@ -121,6 +144,15 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   };
 
   const handleDeleteRobot = async (robotId: string) => {
+    if (!hasRobotSellerAccess) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to delete robot listings"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('robots')
@@ -147,12 +179,132 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   };
 
   const handleBulkAction = (action: string) => {
-    // TODO: Implement bulk actions
+    if (!hasRobotSellerAccess) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to perform bulk operations"
+      });
+      return;
+    }
+
     toast({
       title: "Coming Soon",
       description: `Bulk ${action} functionality will be available soon`
     });
   };
+
+  const handleAddRobot = () => {
+    if (!hasRobotSellerAccess) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You need robot seller permissions to add listings"
+      });
+      return;
+    }
+    setShowAddForm(true);
+  };
+
+  // Access denied screen for non-robot sellers
+  if (!hasRobotSellerAccess) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-700">
+              <ShieldX className="w-6 h-6" />
+              Access Restricted - Robot Seller Dashboard
+            </CardTitle>
+            <CardDescription className="text-red-600">
+              You need robot seller permissions to access this dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="w-4 h-4" />
+              <AlertDescription>
+                <strong>Current Status:</strong>
+                <br />
+                User Type: {userType || 'Not set'}
+                <br />
+                Seller Roles: {sellerRoles.length > 0 ? sellerRoles.join(', ') : 'None'}
+                <br />
+                <br />
+                <strong>Required Access:</strong> Robot Seller permissions
+              </AlertDescription>
+            </Alert>
+
+            <div className="mt-6 space-y-4">
+              <h3 className="font-semibold text-red-700">To access this dashboard, you need to:</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>Have user type set as 'Seller'</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>Include 'robot_seller' in your seller roles</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>Complete your seller profile setup</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.href = '/profile'}
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                >
+                  Update Profile
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.location.href = '/dashboard'}
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                >
+                  Go to Main Dashboard
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Show what they would see with proper access */}
+        <Card className="opacity-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserX className="w-6 h-6" />
+              Robot Seller Dashboard Preview
+            </CardTitle>
+            <CardDescription>
+              This is what you'll see once you have robot seller access
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { title: 'Robot Listings', icon: Bot },
+                { title: 'Revenue Tracking', icon: DollarSign },
+                { title: 'Sales Analytics', icon: TrendingUp },
+                { title: 'Performance Metrics', icon: BarChart3 }
+              ].map((feature, index) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={index} className="p-4 border rounded-lg bg-muted/50">
+                    <Icon className="w-8 h-8 text-muted-foreground mb-2" />
+                    <p className="font-medium text-muted-foreground">{feature.title}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const statsCards = [
     {
@@ -195,22 +347,43 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Access confirmation banner */}
+      <Alert className="border-green-200 bg-green-50">
+        <Bot className="w-4 h-4" />
+        <AlertDescription className="text-green-700">
+          <strong>Robot Seller Access Confirmed</strong> - You have full access to robot selling features
+        </AlertDescription>
+      </Alert>
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Robot Seller Dashboard</h1>
-          <p className="text-muted-foreground">Manage your robot inventory and sales</p>
+          <p className="text-muted-foreground">
+            Manage your robot inventory and sales - {userProfile?.full_name || user?.email}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => handleBulkAction('export')}>
+          <Button 
+            variant="outline" 
+            onClick={() => handleBulkAction('export')}
+            disabled={!hasRobotSellerAccess}
+          >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" onClick={() => handleBulkAction('import')}>
+          <Button 
+            variant="outline" 
+            onClick={() => handleBulkAction('import')}
+            disabled={!hasRobotSellerAccess}
+          >
             <Upload className="w-4 h-4 mr-2" />
             Import
           </Button>
-          <Button onClick={() => setShowAddForm(true)}>
+          <Button 
+            onClick={handleAddRobot}
+            disabled={!hasRobotSellerAccess}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Robot
           </Button>
@@ -242,13 +415,13 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
         })}
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Same as before but with access controls */}
       <Tabs defaultValue="inventory" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
+          <TabsTrigger value="bulk" disabled={!hasRobotSellerAccess}>Bulk Operations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory" className="mt-6">
@@ -297,7 +470,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                       : 'Start by adding your first robot listing'
                     }
                   </p>
-                  <Button onClick={() => setShowAddForm(true)}>
+                  <Button 
+                    onClick={handleAddRobot}
+                    disabled={!hasRobotSellerAccess}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Your First Robot
                   </Button>
@@ -360,13 +536,18 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                             <Button variant="ghost" size="sm">
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              disabled={!hasRobotSellerAccess}
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="sm"
                               onClick={() => handleDeleteRobot(robot.id)}
+                              disabled={!hasRobotSellerAccess}
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </Button>
@@ -381,6 +562,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           </Card>
         </TabsContent>
 
+        {/* Rest of the tabs remain the same but with access controls */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -462,15 +644,27 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" onClick={() => handleBulkAction('price-update')}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleBulkAction('price-update')}
+                  disabled={!hasRobotSellerAccess}
+                >
                   <DollarSign className="w-4 h-4 mr-2" />
                   Bulk Price Update
                 </Button>
-                <Button variant="outline" onClick={() => handleBulkAction('status-change')}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleBulkAction('status-change')}
+                  disabled={!hasRobotSellerAccess}
+                >
                   <Package className="w-4 h-4 mr-2" />
                   Status Change
                 </Button>
-                <Button variant="outline" onClick={() => handleBulkAction('image-management')}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleBulkAction('image-management')}
+                  disabled={!hasRobotSellerAccess}
+                >
                   <ImageIcon className="w-4 h-4 mr-2" />
                   Image Management
                 </Button>
@@ -480,8 +674,8 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
         </TabsContent>
       </Tabs>
 
-      {/* Add Robot Form Modal */}
-      {showAddForm && (
+      {/* Add Robot Form Modal - Only accessible to authorized users */}
+      {showAddForm && hasRobotSellerAccess && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
