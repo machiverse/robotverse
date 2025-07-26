@@ -86,11 +86,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Check user permissions
   const userType = userProfile?.user_type;
   const sellerRoles = userProfile?.seller_roles || [];
-  const isRobotSeller = userType === 'seller' && sellerRoles.includes('robot_seller');
-  const hasRobotSellerAccess = isRobotSeller || userType === 'robot_seller';
+  // Allow access if user_type is 'seller' or if they have 'robot_seller' role
+  const hasRobotSellerAccess = userType === 'seller' || sellerRoles.includes('robot_seller');
 
   useEffect(() => {
     if (hasRobotSellerAccess) {
