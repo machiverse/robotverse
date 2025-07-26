@@ -1,6 +1,11 @@
 import { useAuth } from "@/hooks/useAuth";
-import MultiRoleDashboard from "@/components/MultiRoleDashboard";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
+import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
+import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
+import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
+import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
+import UserTypeSelector from "@/components/UserTypeSelector";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,10 +72,56 @@ const DashboardPage = () => {
     );
   }
 
+  const handleUserTypeSelection = async (type: 'buyer' | 'seller' | 'service' | 'parts') => {
+    if (!user) return;
+
+    let userType: string = type;
+    if (type === 'service') userType = 'service_provider';
+    if (type === 'parts') userType = 'seller';
+
+    try {
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update({ user_type: userType })
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating user type:', error);
+      } else {
+        setUserProfile(updatedProfile);
+      }
+    } catch (error) {
+      console.error('Error updating user type:', error);
+    }
+  };
+
+  const renderDashboard = () => {
+    if (!userProfile?.user_type) {
+      return <UserTypeSelector onSelect={handleUserTypeSelection} />;
+    }
+
+    switch (userProfile.user_type) {
+      case 'buyer':
+        return <BuyerDashboard userProfile={userProfile} />;
+      case 'seller':
+        return <RobotSellerDashboard userProfile={userProfile} />;
+      case 'service_provider':
+        return <ServiceProviderDashboard userProfile={userProfile} />;
+      case 'logistics_provider':
+        return <LogisticsProviderDashboard userProfile={userProfile} />;
+      case 'finance_provider':
+        return <FinanceProviderDashboard userProfile={userProfile} />;
+      default:
+        return <UserTypeSelector onSelect={handleUserTypeSelection} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-      <MultiRoleDashboard userProfile={userProfile} />
+      {renderDashboard()}
     </div>
   );
 };
