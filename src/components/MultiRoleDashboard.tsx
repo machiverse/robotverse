@@ -27,6 +27,9 @@ import {
 } from "lucide-react";
 import BuyerDashboard from "./dashboards/BuyerDashboard";
 import RobotSellerDashboard from "./dashboards/RobotSellerDashboard";
+import ServiceProviderDashboard from "./dashboards/ServiceProviderDashboard";
+import LogisticsProviderDashboard from "./dashboards/LogisticsProviderDashboard";
+import FinanceProviderDashboard from "./dashboards/FinanceProviderDashboard";
 import RobotUpload from "./RobotUpload";
 import SpareParts from "./SpareParts";
 import ServiceListing from "./ServiceListing";
@@ -366,22 +369,37 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     );
   }
 
-  // Provider Dashboard - Simple overview
-  if (userType === 'logistics_provider' || userType === 'finance_provider') {
+  // Provider Dashboard - Use dedicated provider dashboards
+  if (userType === 'logistics_provider' || userType === 'logistics') {
     return (
       <div className="min-h-screen bg-background py-8">
         <div className="container mx-auto px-4">
-          {renderOverview()}
+          <LogisticsProviderDashboard userProfile={userProfile} />
           
           {/* Provider Form Popup */}
           {showProviderForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
               <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                {userType === 'logistics_provider' ? (
-                  <LogisticsProviderForm onComplete={() => setShowProviderForm(false)} />
-                ) : (
-                  <FinanceProviderForm onComplete={() => setShowProviderForm(false)} />
-                )}
+                <LogisticsProviderForm onComplete={() => setShowProviderForm(false)} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (userType === 'finance_provider' || userType === 'finance') {
+    return (
+      <div className="min-h-screen bg-background py-8">
+        <div className="container mx-auto px-4">
+          <FinanceProviderDashboard userProfile={userProfile} />
+          
+          {/* Provider Form Popup */}
+          {showProviderForm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <FinanceProviderForm onComplete={() => setShowProviderForm(false)} />
               </div>
             </div>
           )}
@@ -460,13 +478,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
 
               {sellerRoles.includes('service_provider') && (
                 <TabsContent value="services" className="mt-6">
-                  <div className="space-y-6">
-                    <div>
-                      <h2 className="text-2xl font-bold mb-2">Service Offerings</h2>
-                      <p className="text-muted-foreground">Manage your service listings</p>
-                    </div>
-                    <ServiceListing />
-                  </div>
+                  <ServiceProviderDashboard userProfile={userProfile} />
                 </TabsContent>
               )}
 
