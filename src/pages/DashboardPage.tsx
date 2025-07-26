@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const DashboardPage = () => {
+  // Force refresh to clear cached UserTypeSelector references
   const { user } = useAuth();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
