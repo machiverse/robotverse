@@ -22,7 +22,8 @@ import {
   Shield,
   Truck,
   CreditCard,
-  Home
+  Home,
+  AlertCircle
 } from "lucide-react";
 import RobotUpload from "./RobotUpload";
 import SpareParts from "./SpareParts";
@@ -40,11 +41,22 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   const [showProviderForm, setShowProviderForm] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const userType = userProfile?.user_type;
   const sellerRoles = userProfile?.seller_roles || [];
   const logisticsType = userProfile?.logistics_type;
   const financeType = userProfile?.finance_type;
+
+  // Debug logging
+  console.log('Dashboard Debug:', {
+    userType,
+    sellerRoles,
+    logisticsType,
+    financeType,
+    userProfile,
+    user: user?.id
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -58,10 +70,17 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   }, [userType, userProfile]);
 
   const fetchDashboardData = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
+      setError(null);
+      
+      console.log('Fetching data for user:', user.id, 'Type:', userType);
+      
       let data: any = {
         robots: { count: 0, revenue: 0 },
         parts: { count: 0, orders: 0 },
@@ -72,36 +91,64 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
 
       // Fetch real data based on user type
       if (userType === 'seller' || sellerRoles.includes('robot_seller')) {
-        const { data: robots } = await supabase
+        const { data: robots, error: robotError } = await supabase
           .from('robots')
           .select('id, price')
           .eq('seller_id', user.id);
+        
+        if (robotError) console.error('Robot fetch error:', robotError);
         
         data.robots.count = robots?.length || 0;
         data.robots.revenue = robots?.reduce((sum, robot) => sum + (robot.price || 0), 0) || 0;
       }
 
       if (userType === 'seller' || sellerRoles.includes('parts_seller')) {
-        const { data: parts } = await supabase
+        const { data: parts, error: partsError } = await supabase
           .from('spare_parts')
           .select('id, price')
           .eq('seller_id', user.id);
+        
+        if (partsError) console.error('Parts fetch error:', partsError);
         
         data.parts.count = parts?.length || 0;
       }
 
       if (userType === 'service_provider' || sellerRoles.includes('service_provider')) {
-        const { data: services } = await supabase
+        const { data: services, error: servicesError } = await supabase
           .from('services')
           .select('id')
           .eq('provider_id', user.id);
         
+        if (servicesError) console.error('Services fetch error:', servicesError);
+        
         data.services.count = services?.length || 0;
       }
 
+      if (userType === 'buyer') {
+        // Fetch buyer-specific data
+        const { data: wishlist, error: wishlistError } = await supabase
+          .from('user_wishlist')
+          .select('id')
+          .eq('user_id', user.id);
+        
+        if (wishlistError) console.error('Wishlist fetch error:', wishlistError);
+        
+        data.wishlist.count = wishlist?.length || 0;
+      }
+
+      console.log('Dashboard data fetched:', data);
       setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data');
+      // Set default data
+      setDashboardData({
+        robots: { count: 0, revenue: 0 },
+        parts: { count: 0, orders: 0 },
+        services: { count: 0, revenue: 0 },
+        orders: { count: 0, total: 0 },
+        wishlist: { count: 0 }
+      });
     } finally {
       setLoading(false);
     }
@@ -117,20 +164,20 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   const getSellerStats = () => {
     const stats = [];
     
-    if (sellerRoles.includes('robot_seller')) {
+    if (sellerRoles.includes('robot_seller') || userType === 'seller') {
       stats.push(
         { label: 'Robot Listings', value: dashboardData?.robots?.count || '0', icon: Bot, trend: 'Active' },
         { label: 'Robot Revenue', value: `₹${dashboardData?.robots?.revenue || 0}`, icon: DollarSign, trend: 'Total' }
       );
     }
     
-    if (sellerRoles.includes('parts_seller')) {
+    if (sellerRoles.includes('parts_seller') || userType === 'seller') {
       stats.push(
         { label: 'Parts in Stock', value: dashboardData?.parts?.count || '0', icon: Package, trend: 'Available' }
       );
     }
     
-    if (sellerRoles.includes('service_provider')) {
+    if (sellerRoles.includes('service_provider') || userType === 'seller') {
       stats.push(
         { label: 'Active Services', value: dashboardData?.services?.count || '0', icon: Settings, trend: 'Listed' }
       );
@@ -138,7 +185,8 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
 
     if (stats.length === 0) {
       stats.push(
-        { label: 'Get Started', value: 'Add', icon: Plus, trend: 'Listings' }
+        { label: 'Get Started', value: 'Add', icon: Plus, trend: 'Listings' },
+        { label: 'Total Revenue', value: '₹0', icon: DollarSign, trend: 'Pending' }
       );
     }
 
@@ -156,11 +204,11 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     { label: 'Browse Robots', icon: Bot, action: () => window.location.href = '/robots' },
     { label: 'Spare Parts', icon: Package, action: () => window.location.href = '/parts' },
     { label: 'Find Services', icon: Wrench, action: () => window.location.href = '/services' },
-    { label: 'My Wishlist', icon: Heart, action: () => {} },
-    { label: 'Loan Options', icon: CreditCard, action: () => {} },
-    { label: 'Insurance', icon: Shield, action: () => {} },
-    { label: 'Logistics', icon: Truck, action: () => {} },
-    { label: 'My Orders', icon: ShoppingCart, action: () => {} }
+    { label: 'My Wishlist', icon: Heart, action: () => setActiveTab('wishlist') },
+    { label: 'Loan Options', icon: CreditCard, action: () => window.location.href = '/finance' },
+    { label: 'Insurance', icon: Shield, action: () => window.location.href = '/insurance' },
+    { label: 'Logistics', icon: Truck, action: () => window.location.href = '/logistics' },
+    { label: 'My Orders', icon: ShoppingCart, action: () => setActiveTab('orders') }
   ];
 
   const renderOverview = () => {
@@ -179,16 +227,25 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
       quickActions = [];
       title = `${userType === 'logistics_provider' ? 'Logistics' : 'Finance'} Provider Dashboard`;
     } else {
-      stats = [];
+      stats = [
+        { label: 'Welcome', value: 'Setup', icon: Home, trend: 'Required' },
+        { label: 'Profile', value: 'Complete', icon: Users, trend: 'Your profile' }
+      ];
       quickActions = [];
-      title = 'Dashboard';
+      title = 'Dashboard Setup';
     }
 
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold mb-2">{title}</h2>
-          <p className="text-muted-foreground">Welcome back, {userProfile?.full_name || 'User'}</p>
+          <p className="text-muted-foreground">Welcome back, {userProfile?.full_name || user?.email || 'User'}</p>
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 mt-2">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -196,7 +253,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <Card key={index} className="bg-gradient-card border-border">
+              <Card key={index} className="bg-gradient-card border-border hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -231,7 +288,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
                     <Button 
                       key={index} 
                       variant="outline" 
-                      className="h-auto p-4 flex flex-col items-center space-y-2"
+                      className="h-auto p-4 flex flex-col items-center space-y-2 hover:bg-primary/10"
                       onClick={action.action}
                     >
                       <Icon className="w-6 h-6" />
@@ -243,10 +300,40 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
             </CardContent>
           </Card>
         )}
+
+        {/* Setup Guide for new users */}
+        {!userType && (
+          <Card className="bg-gradient-card border-border border-yellow-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                Complete Your Profile Setup
+              </CardTitle>
+              <CardDescription>Please select your user type to access your personalized dashboard.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button variant="outline" onClick={() => window.location.href = '/profile?type=buyer'}>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  I'm a Buyer
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = '/profile?type=seller'}>
+                  <Package className="w-4 h-4 mr-2" />
+                  I'm a Seller
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = '/profile?type=provider'}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  I'm a Provider
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   };
 
+  // Loading State
   if (loading) {
     return (
       <div className="min-h-screen bg-background py-8">
@@ -262,12 +349,106 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     );
   }
 
-  // Buyer Dashboard - Simple overview
-  if (userType === 'buyer') {
+  // Profile Setup Required
+  if (!userProfile || !userType) {
     return (
       <div className="min-h-screen bg-background py-8">
         <div className="container mx-auto px-4">
           {renderOverview()}
+        </div>
+      </div>
+    );
+  }
+
+  // Buyer Dashboard - Simple overview with navigation options
+  if (userType === 'buyer') {
+    return (
+      <div className="min-h-screen bg-background py-8">
+        <div className="container mx-auto px-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5">
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="robots" className="flex items-center gap-2">
+                <Bot className="w-4 h-4" />
+                Robots
+              </TabsTrigger>
+              <TabsTrigger value="parts" className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Parts
+              </TabsTrigger>
+              <TabsTrigger value="wishlist" className="flex items-center gap-2">
+                <Heart className="w-4 h-4" />
+                Wishlist
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                Orders
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="mt-6">
+              {renderOverview()}
+            </TabsContent>
+
+            <TabsContent value="robots" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Browse Robots</CardTitle>
+                  <CardDescription>Explore available industrial robots</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => window.location.href = '/robots'}>
+                    View All Robots
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="parts" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Spare Parts</CardTitle>
+                  <CardDescription>Find robot spare parts and components</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => window.location.href = '/parts'}>
+                    Browse Parts
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="wishlist" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Wishlist</CardTitle>
+                  <CardDescription>Items you've saved for later</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    You have {dashboardData?.wishlist?.count || 0} items in your wishlist.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="orders" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Orders</CardTitle>
+                  <CardDescription>Track your order history</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    You have {dashboardData?.orders?.count || 0} orders.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     );
@@ -297,7 +478,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     );
   }
 
-  // Seller Dashboard - Multi-role with tabs
+  // Seller Dashboard - Multi-role with tabs (always show all tabs)
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4">
@@ -308,67 +489,89 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
               Overview
             </TabsTrigger>
             
-            {sellerRoles.includes('robot_seller') && (
-              <TabsTrigger value="robots" className="flex items-center gap-2">
-                <Bot className="w-4 h-4" />
-                Robots
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="robots" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              Robots
+            </TabsTrigger>
             
-            {sellerRoles.includes('parts_seller') && (
-              <TabsTrigger value="parts" className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Parts
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="parts" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Parts
+            </TabsTrigger>
             
-            {sellerRoles.includes('service_provider') && (
-              <TabsTrigger value="services" className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Services
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="services" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Services
+            </TabsTrigger>
+
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart className="w-4 h-4" />
+              Analytics
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
             {renderOverview()}
           </TabsContent>
 
-          {sellerRoles.includes('robot_seller') && (
-            <TabsContent value="robots" className="mt-6">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">Robot Listings</h2>
-                  <p className="text-muted-foreground">Manage your robot inventory and listings</p>
-                </div>
-                <RobotUpload />
+          <TabsContent value="robots" className="mt-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Robot Listings</h2>
+                <p className="text-muted-foreground">Manage your robot inventory and listings</p>
               </div>
-            </TabsContent>
-          )}
+              <RobotUpload />
+            </div>
+          </TabsContent>
 
-          {sellerRoles.includes('parts_seller') && (
-            <TabsContent value="parts" className="mt-6">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">Spare Parts</h2>
-                  <p className="text-muted-foreground">Manage your spare parts inventory</p>
-                </div>
-                <SpareParts />
+          <TabsContent value="parts" className="mt-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Spare Parts</h2>
+                <p className="text-muted-foreground">Manage your spare parts inventory</p>
               </div>
-            </TabsContent>
-          )}
+              <SpareParts />
+            </div>
+          </TabsContent>
 
-          {sellerRoles.includes('service_provider') && (
-            <TabsContent value="services" className="mt-6">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">Service Offerings</h2>
-                  <p className="text-muted-foreground">Manage your service listings</p>
-                </div>
-                <ServiceListing />
+          <TabsContent value="services" className="mt-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Service Offerings</h2>
+                <p className="text-muted-foreground">Manage your service listings</p>
               </div>
-            </TabsContent>
-          )}
+              <ServiceListing />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Analytics & Reports</h2>
+                <p className="text-muted-foreground">View your sales performance and insights</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Sales Overview</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">₹{dashboardData?.robots?.revenue || 0}</p>
+                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Product Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">{(dashboardData?.robots?.count || 0) + (dashboardData?.parts?.count || 0)}</p>
+                    <p className="text-sm text-muted-foreground">Active Listings</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
