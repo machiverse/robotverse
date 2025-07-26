@@ -124,13 +124,8 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       if (error) throw error;
 
-      // Fetch recent activity
-      const { data: activity } = await supabase
-        .from('robot_activity')
-        .select('*')
-        .eq('seller_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Since robot_activity table doesn't exist, we'll use robot data for recent activity
+      const activity = robotsData?.slice(0, 10) || [];
 
       setRobots(robotsData || []);
       setRecentActivity(activity || []);
