@@ -1,12 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
-import Dashboard from "@/components/Dashboard";
+import MultiRoleDashboard from "@/components/MultiRoleDashboard";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const DashboardPage = () => {
   const { user } = useAuth();
-  const [userType, setUserType] = useState<'buyer' | 'seller' | 'service' | 'parts'>('buyer');
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,20 +16,11 @@ const DashboardPage = () => {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('user_type')
+          .select('*')
           .eq('user_id', user.id)
           .single();
         
-        if (profile?.user_type) {
-          // Map profile user_type to dashboard userType
-          const typeMapping: Record<string, 'buyer' | 'seller' | 'service' | 'parts'> = {
-            'buyer': 'buyer',
-            'seller': 'seller',
-            'service_provider': 'service',
-            'parts_provider': 'parts'
-          };
-          setUserType(typeMapping[profile.user_type] || 'buyer');
-        }
+        setUserProfile(profile);
       } catch (error) {
         console.error('Error fetching user profile:', error);
       } finally {
@@ -59,7 +50,7 @@ const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-      <Dashboard userType={userType} />
+      <MultiRoleDashboard userProfile={userProfile} />
     </div>
   );
 };
