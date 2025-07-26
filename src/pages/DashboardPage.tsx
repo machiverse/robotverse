@@ -6,6 +6,7 @@ import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDas
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
+import UserTypeSelector from "@/components/UserTypeSelector";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,18 +32,10 @@ const DashboardPage = () => {
         
         if (error) {
           console.error('Profile fetch error:', error);
-          // If profile doesn't exist, create a basic one
+          // If profile doesn't exist, we'll need to show UserTypeSelector
+          // Don't auto-create a profile without user input
           if (error.code === 'PGRST116') {
-            const { data: newProfile } = await supabase
-              .from('profiles')
-              .insert({
-                user_id: user.id,
-                email: user.email,
-                full_name: user.user_metadata?.full_name || ''
-              })
-              .select()
-              .single();
-            setUserProfile(newProfile);
+            setUserProfile(null);
           }
         } else {
           setUserProfile(profile);
@@ -73,14 +66,48 @@ const DashboardPage = () => {
     );
   }
 
+  const handleUserTypeSelection = async (type: 'buyer' | 'seller' | 'service' | 'parts') => {
+    if (!user) return;
+
+    let userType: string = type;
+    if (type === 'service') userType = 'service_provider';
+    if (type === 'parts') userType = 'seller';
+
+    try {
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || '',
+          user_type: userType
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating user type:', error);
+      } else {
+        setUserProfile(updatedProfile);
+      }
+    } catch (error) {
+      console.error('Error updating user type:', error);
+    }
+  };
+
   const renderDashboard = () => {
     // Check if user is super admin
     if (user?.email === 'mark.it@keyleerkorb.com') {
       return <AdminDashboard userProfile={userProfile} />;
     }
 
-    // Show dashboard based on user type - default to buyer if no type set
-    switch (userProfile?.user_type) {
+    // If user doesn't have a profile or user_type, show selector
+    if (!userProfile || !userProfile.user_type) {
+      return <UserTypeSelector onSelect={handleUserTypeSelection} />;
+    }
+
+    // Show dashboard based on user type
+    switch (userProfile.user_type) {
       case 'buyer':
         return <BuyerDashboard userProfile={userProfile} />;
       case 'seller':
@@ -92,8 +119,7 @@ const DashboardPage = () => {
       case 'finance_provider':
         return <FinanceProviderDashboard userProfile={userProfile} />;
       default:
-        // Default to buyer dashboard if no user_type is set
-        return <BuyerDashboard userProfile={userProfile} />;
+        return <UserTypeSelector onSelect={handleUserTypeSelection} />;
     }
   };
 
