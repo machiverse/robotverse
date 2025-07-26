@@ -24,7 +24,11 @@ interface RobotFormData {
   category_tags: string[];
 }
 
-const RobotUpload = () => {
+interface RobotUploadProps {
+  onSuccess?: () => void;
+}
+
+const RobotUpload = ({ onSuccess }: RobotUploadProps = {}) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
@@ -191,6 +195,11 @@ const RobotUpload = () => {
       });
       setImages([]);
       setImageUrls([]);
+
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
 
     } catch (error: any) {
       console.error('Error creating robot listing:', error);

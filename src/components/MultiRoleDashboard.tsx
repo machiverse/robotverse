@@ -25,6 +25,8 @@ import {
   Home,
   AlertCircle
 } from "lucide-react";
+import BuyerDashboard from "./dashboards/BuyerDashboard";
+import RobotSellerDashboard from "./dashboards/RobotSellerDashboard";
 import RobotUpload from "./RobotUpload";
 import SpareParts from "./SpareParts";
 import ServiceListing from "./ServiceListing";
@@ -353,95 +355,12 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     );
   }
 
-  // Buyer Dashboard - Simple overview with navigation options
+  // Buyer Dashboard - Use enhanced buyer dashboard
   if (userType === 'buyer') {
     return (
       <div className="min-h-screen bg-background py-8">
         <div className="container mx-auto px-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <Home className="w-4 h-4" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="robots" className="flex items-center gap-2">
-                <Bot className="w-4 h-4" />
-                Robots
-              </TabsTrigger>
-              <TabsTrigger value="parts" className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Parts
-              </TabsTrigger>
-              <TabsTrigger value="wishlist" className="flex items-center gap-2">
-                <Heart className="w-4 h-4" />
-                Wishlist
-              </TabsTrigger>
-              <TabsTrigger value="orders" className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Orders
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="mt-6">
-              {renderOverview()}
-            </TabsContent>
-
-            <TabsContent value="robots" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Browse Robots</CardTitle>
-                  <CardDescription>Explore available industrial robots</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => window.location.href = '/robots'}>
-                    View All Robots
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="parts" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Spare Parts</CardTitle>
-                  <CardDescription>Find robot spare parts and components</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => window.location.href = '/parts'}>
-                    Browse Parts
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="wishlist" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>My Wishlist</CardTitle>
-                  <CardDescription>Items you've saved for later</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    You have {dashboardData?.wishlist?.count || 0} items in your wishlist.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="orders" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>My Orders</CardTitle>
-                  <CardDescription>Track your order history</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    You have {dashboardData?.orders?.count || 0} orders.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <BuyerDashboard userProfile={userProfile} />
         </div>
       </div>
     );
@@ -471,7 +390,124 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     );
   }
 
-  // Seller Dashboard - Multi-role with tabs (always show all tabs)
+  // Multi-Role Seller Dashboard
+  const hasMultipleRoles = sellerRoles.length > 1;
+  const isPrimaryRobotSeller = sellerRoles.includes('robot_seller') || userType === 'seller';
+  
+  // If user is primarily a robot seller or has multiple roles, show enhanced interface
+  if (isPrimaryRobotSeller && userType === 'seller') {
+    return (
+      <div className="min-h-screen bg-background py-8">
+        <div className="container mx-auto px-4">
+          {hasMultipleRoles ? (
+            // Multi-role interface with tabs
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+                <TabsTrigger value="overview" className="flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  Overview
+                </TabsTrigger>
+                
+                {sellerRoles.includes('robot_seller') && (
+                  <TabsTrigger value="robots" className="flex items-center gap-2">
+                    <Bot className="w-4 h-4" />
+                    Robots
+                  </TabsTrigger>
+                )}
+                
+                {sellerRoles.includes('parts_seller') && (
+                  <TabsTrigger value="parts" className="flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Parts
+                  </TabsTrigger>
+                )}
+                
+                {sellerRoles.includes('service_provider') && (
+                  <TabsTrigger value="services" className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Services
+                  </TabsTrigger>
+                )}
+
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <BarChart className="w-4 h-4" />
+                  Analytics
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="mt-6">
+                {renderOverview()}
+              </TabsContent>
+
+              {sellerRoles.includes('robot_seller') && (
+                <TabsContent value="robots" className="mt-6">
+                  <RobotSellerDashboard userProfile={userProfile} />
+                </TabsContent>
+              )}
+
+              {sellerRoles.includes('parts_seller') && (
+                <TabsContent value="parts" className="mt-6">
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-2">Spare Parts</h2>
+                      <p className="text-muted-foreground">Manage your spare parts inventory</p>
+                    </div>
+                    <SpareParts />
+                  </div>
+                </TabsContent>
+              )}
+
+              {sellerRoles.includes('service_provider') && (
+                <TabsContent value="services" className="mt-6">
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-2">Service Offerings</h2>
+                      <p className="text-muted-foreground">Manage your service listings</p>
+                    </div>
+                    <ServiceListing />
+                  </div>
+                </TabsContent>
+              )}
+
+              <TabsContent value="analytics" className="mt-6">
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Analytics & Reports</h2>
+                    <p className="text-muted-foreground">View your sales performance and insights</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Sales Overview</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">₹{dashboardData?.robots?.revenue || 0}</p>
+                        <p className="text-sm text-muted-foreground">Total Revenue</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Product Performance</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-2xl font-bold">{(dashboardData?.robots?.count || 0) + (dashboardData?.parts?.count || 0)}</p>
+                        <p className="text-sm text-muted-foreground">Active Listings</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            // Single-role robot seller gets full dedicated dashboard
+            <RobotSellerDashboard userProfile={userProfile} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for other seller types or basic interface
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4">
