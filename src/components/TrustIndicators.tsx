@@ -72,7 +72,7 @@ const TrustIndicators = () => {
       <div className="container mx-auto px-4">
         {/* Why Choose Section */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">Why Choose RoboVerse?</h2>
+          <h2 className="text-4xl font-bold mb-4">Why Choose RoboNexus?</h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             The most trusted industrial machinery marketplace in India with cutting-edge technology and verified partners
           </p>
@@ -131,7 +131,7 @@ const TrustIndicators = () => {
         <div className="text-center mt-16">
           <h3 className="text-3xl font-bold mb-4">Ready to Get Started?</h3>
           <p className="text-xl text-muted-foreground mb-8">
-            Join thousands of businesses already using RoboVerse
+            Join thousands of businesses already using RoboNexus
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Badge variant="secondary" className="text-lg px-6 py-3 cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
