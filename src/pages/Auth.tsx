@@ -189,7 +189,7 @@ const Auth = () => {
         if (error) throw error;
 
         toast({
-          title: "Welcome to RoboNexus!",
+          title: "Welcome to RobotVerse!",
           description: "Your account has been successfully created.",
         });
         
@@ -221,7 +221,7 @@ const Auth = () => {
           <CardContent className="space-y-4">
             <div className="bg-muted/50 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                By proceeding, you agree to the RoboNexus MOU terms and partnership agreement. 
+                By proceeding, you agree to the RobotVerse MOU terms and partnership agreement. 
                 This includes our community guidelines, data usage policies, and marketplace terms.
               </p>
             </div>
@@ -251,7 +251,7 @@ const Auth = () => {
           className="inline-flex items-center space-x-2 text-primary hover:text-primary-glow transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to RoboNexus</span>
+          <span>Back to RobotVerse</span>
         </Link>
 
         <Card className="bg-card/80 backdrop-blur-lg border-border">
@@ -260,7 +260,7 @@ const Auth = () => {
               <Bot className="w-8 h-8 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl">
-              {isSignUp ? 'Join RoboNexus' : 'Welcome Back'}
+              {isSignUp ? 'Join RobotVerse' : 'Welcome Back'}
             </CardTitle>
             <CardDescription>
               {isSignUp 

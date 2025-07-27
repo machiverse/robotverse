@@ -44,7 +44,7 @@ const UserTypeSelector = ({ onSelect }: UserTypeSelectorProps) => {
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Choose Your Role in{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">RoboNexus</span>
+            <span className="bg-gradient-primary bg-clip-text text-transparent">RobotVerse</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Select your user type to access tailored features and dashboard

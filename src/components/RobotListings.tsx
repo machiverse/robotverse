@@ -68,7 +68,7 @@ const RobotListings = () => {
 
   const handleAnalyzeRobot = (robotId: string) => {
     if (!user) {
-      toast.error('Please sign in to use RoboNexus AI analysis');
+      toast.error('Please sign in to use RobotVerse AI analysis');
       return;
     }
     // This will be implemented with DeepSeek API integration
@@ -147,7 +147,7 @@ const RobotListings = () => {
           <div className="text-center py-12">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No robots listed yet</h3>
-            <p className="text-muted-foreground">Be the first to list your robots on RoboNexus!</p>
+            <p className="text-muted-foreground">Be the first to list your robots on RobotVerse!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

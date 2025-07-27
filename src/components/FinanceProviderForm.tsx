@@ -241,7 +241,7 @@ const FinanceProviderForm = ({ onComplete }: FinanceProviderFormProps) => {
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   By checking this box, I confirm that I have read and agree to the terms and conditions 
-                  for finance providers on the RoboNexus platform.
+                  for finance providers on the RobotVerse platform.
                 </p>
               </div>
             </div>
