@@ -219,7 +219,10 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setUserProfile(profile as UserProfile);
+      setUserProfile({
+        ...profile,
+        user_type: profile.user_type as UserProfile['user_type']
+      } as UserProfile);
       setShowProfileSetup(false);
       
       toast({
@@ -243,7 +246,7 @@ const Dashboard = () => {
   // Route to specialized dashboards based on user type and roles
   const renderSpecializedDashboard = () => {
     if (isAdmin) {
-      return <AdminDashboard userProfile={userProfile} />;
+      return <AdminDashboard userProfile={userProfile as any} />;
     }
 
     if (!userProfile) return null;
