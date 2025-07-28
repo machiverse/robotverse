@@ -52,7 +52,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import RobotUpload from '@/components/RobotUpload';
-
+import { UserProfile } from '@/types/user';
 interface RobotSellerDashboardProps {
   userProfile: any;
 }
@@ -173,7 +173,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       totalRevenue,
       totalViews: Math.floor(Math.random() * 1000), // Mock data
       avgPrice,
-      soldThisMonth: robotData.filter(r => r.availability === 'sold').length,
+      soldThisMonth: 0,
       inquiries: Math.floor(Math.random() * 50),
       conversationRate: Math.random() * 10,
       avgResponseTime: 2.3,
@@ -245,7 +245,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     console.log('✅ Opening add form');
   };
 
-  // Edit robot handler
+  // NEW: Edit robot handler
   const handleEditRobot = (robot: any) => {
     console.log('✏️ Edit Robot clicked:', robot.id);
     
@@ -399,13 +399,6 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       setSelectedRobots([]);
     } else {
       setSelectedRobots(filteredRobots.map(r => r.id));
-    }
-  };
-
-  // Handler for view mode change (TypeScript fix)
-  const handleViewModeChange = (value: string) => {
-    if (value === 'list' || value === 'grid') {
-      setViewMode(value);
     }
   };
 
@@ -945,7 +938,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           </Card>
         </TabsContent>
 
-        {/* Analytics Tab */}
+        {/* Other tabs... */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -968,112 +961,19 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                     </div>
                     <TrendingUp className="w-8 h-8 text-blue-600" />
                   </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Robots Sold</p>
-                      <p className="text-2xl font-bold">{dashboardStats.soldThisMonth}</p>
-                    </div>
-                    <Bot className="w-8 h-8 text-purple-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Total Views</p>
-                      <p className="text-2xl font-bold">{dashboardStats.totalViews}</p>
-                    </div>
-                    <Eye className="w-8 h-8 text-orange-600" />
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Inquiries</p>
-                      <p className="text-2xl font-bold">{dashboardStats.inquiries}</p>
-                    </div>
-                    <MessageCircle className="w-8 h-8 text-blue-600" />
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Conversion Rate</p>
-                      <p className="text-2xl font-bold">{dashboardStats.conversationRate.toFixed(1)}%</p>
-                    </div>
-                    <TrendingUp className="w-8 h-8 text-green-600" />
-                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Settings Tab with TypeScript fix */}
         <TabsContent value="settings" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Dashboard Settings</CardTitle>
-              <CardDescription>Configure your robot seller dashboard preferences</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Display Preferences</h3>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Default View Mode</p>
-                      <p className="text-sm text-muted-foreground">Choose how to display your robot inventory</p>
-                    </div>
-                    {/* TypeScript fix: Use the handler function instead of direct setViewMode */}
-                    <Select value={viewMode} onValueChange={handleViewModeChange}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="list">List View</SelectItem>
-                        <SelectItem value="grid">Grid View</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Profile Information</h3>
-                  <div className="p-4 border rounded-lg bg-muted/50">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="font-medium">User ID:</p>
-                        <p className="text-muted-foreground">{user?.id}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Email:</p>
-                        <p className="text-muted-foreground">{user?.email}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">User Type:</p>
-                        <p className="text-muted-foreground">{userType || 'Not set'}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Seller Roles:</p>
-                        <p className="text-muted-foreground">{sellerRoles.join(', ') || 'None'}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => window.location.href = '/profile'}>
-                    Update Profile
-                  </Button>
-                  <Button onClick={() => fetchDashboardData()}>
-                    Refresh Data
-                  </Button>
-                </div>
-              </div>
+              <p>Settings panel coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>

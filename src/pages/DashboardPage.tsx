@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, User, Briefcase, Settings } from 'lucide-react';
 import BuyerDashboard from '@/components/dashboards/BuyerDashboard';
-import RobotSellerDashboard from '@/components/dashboards/RobotSellerDashboard';
+import SellerDashboard from '@/components/dashboards/SellerDashboard';
 import ServiceProviderDashboard from '@/components/dashboards/ServiceProviderDashboard';
 import LogisticsProviderDashboard from '@/components/dashboards/LogisticsProviderDashboard';
 import FinanceProviderDashboard from '@/components/dashboards/FinanceProviderDashboard';
@@ -229,7 +229,7 @@ const DashboardPage = () => {
       
       case 'robot_seller':
       case 'parts_seller':
-        return <RobotSellerDashboard userProfile={userProfile} />;
+        return <SellerDashboard userProfile={userProfile} />;
       
       case 'service_provider':
         return <ServiceProviderDashboard userProfile={userProfile} />;
