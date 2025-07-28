@@ -109,6 +109,7 @@ const Auth = () => {
       mobile_number: mobileNumber,
       location: location,
       account_type: accountType,
+      user_type: accountType, // Set both account_type and user_type
     };
 
     if (accountType === 'seller') {
