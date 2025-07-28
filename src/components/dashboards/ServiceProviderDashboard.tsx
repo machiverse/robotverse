@@ -4,9 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Wrench,
   Clock,
@@ -25,7 +23,6 @@ import {
   Database,
   ExternalLink,
   TrendingUp,
-  Users,
   Settings
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,48 +37,12 @@ interface ServiceProviderDashboardProps {
   userProfile: Profile;
 }
 
-interface ServiceRequest {
-  id: string;
-  request_id: string;
-  service_id: string;
-  client_id: string;
-  client_name: string;
-  client_email?: string;
-  client_phone?: string;
-  service_type: string;
-  description: string;
-  status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
-  urgency: 'low' | 'medium' | 'high';
-  scheduled_date: string;
-  completion_date?: string;
-  location: string;
-  budget_range?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ServiceReview {
-  id: string;
-  service_request_id: string;
-  provider_id: string;
-  client_id: string;
-  rating: number;
-  review_text?: string;
-  response_time_rating?: number;
-  quality_rating?: number;
-  communication_rating?: number;
-  created_at: string;
-}
-
 interface DashboardStats {
   totalServices: number;
-  activeRequests: number;
-  completedJobs: number;
-  monthlyRevenue: number;
-  averageRating: number;
-  responseTime: number;
-  completionRate: number;
-  totalReviews: number;
+  activeServices: number;
+  serviceTypes: number;
+  avgPriceRange: string;
+  coverageAreas: number;
 }
 
 const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps) => {
@@ -89,26 +50,16 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
   const { toast } = useToast();
   
   const [services, setServices] = useState<Service[]>([]);
-  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
-  const [serviceReviews, setServiceReviews] = useState<ServiceReview[]>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalServices: 0,
-    activeRequests: 0,
-    completedJobs: 0,
-    monthlyRevenue: 0,
-    averageRating: 0,
-    responseTime: 0,
-    completionRate: 0,
-    totalReviews: 0
+    activeServices: 0,
+    serviceTypes: 0,
+    avgPriceRange: 'N/A',
+    coverageAreas: 0
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [tablesExist, setTablesExist] = useState({
-    service_requests: false,
-    service_reviews: false,
-    service_appointments: false
-  });
 
   // Check if user has service provider access
   const hasServiceAccess = (
@@ -116,15 +67,6 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     userProfile?.user_type === 'service_provider' ||
     userProfile?.service_categories?.length > 0
   );
-
-  const checkTableExists = async (tableName: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase.from(tableName).select('id').limit(1);
-      return !error;
-    } catch (error) {
-      return false;
-    }
-  };
 
   const fetchServices = useCallback(async () => {
     if (!user || !hasServiceAccess) return [];
@@ -144,105 +86,31 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     }
   }, [user, hasServiceAccess]);
 
-  const fetchServiceRequests = useCallback(async () => {
-    if (!user || !hasServiceAccess) return [];
-
-    try {
-      const tableExists = await checkTableExists('service_requests');
-      setTablesExist(prev => ({ ...prev, service_requests: tableExists }));
-      
-      if (!tableExists) {
-        return [];
-      }
-
-      const { data, error } = await supabase
-        .from('service_requests')
-        .select('*')
-        .eq('provider_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching service requests:', error);
-      return [];
-    }
-  }, [user, hasServiceAccess]);
-
-  const fetchServiceReviews = useCallback(async () => {
-    if (!user || !hasServiceAccess) return [];
-
-    try {
-      const tableExists = await checkTableExists('service_reviews');
-      setTablesExist(prev => ({ ...prev, service_reviews: tableExists }));
-      
-      if (!tableExists) {
-        return [];
-      }
-
-      const { data, error } = await supabase
-        .from('service_reviews')
-        .select('*')
-        .eq('provider_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching service reviews:', error);
-      return [];
-    }
-  }, [user, hasServiceAccess]);
-
-  const calculateRealStats = (
-    servicesData: Service[], 
-    requestsData: ServiceRequest[], 
-    reviewsData: ServiceReview[]
-  ) => {
+  const calculateRealStats = (servicesData: Service[]) => {
     const totalServices = servicesData.length;
-    const activeRequests = requestsData.filter(r => 
-      ['pending', 'accepted', 'in_progress'].includes(r.status)
-    ).length;
-    const completedJobs = requestsData.filter(r => r.status === 'completed').length;
+    const activeServices = servicesData.length; // All listed services are considered active
     
-    // Calculate real monthly revenue from completed requests this month
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    // Get unique service types
+    const uniqueServiceTypes = new Set(servicesData.map(s => s.service_type));
+    const serviceTypes = uniqueServiceTypes.size;
     
-    const monthlyCompletedRequests = requestsData.filter(r => {
-      if (r.status !== 'completed' || !r.completion_date) return false;
-      const completionDate = new Date(r.completion_date);
-      return completionDate.getMonth() === currentMonth && 
-             completionDate.getFullYear() === currentYear;
-    });
-
-    // For now, revenue calculation depends on your pricing model
-    // You might need to add a 'cost' or 'price' field to service_requests
-    const monthlyRevenue = 0; // Would be sum of completed request costs
-
-    // Calculate real average rating from reviews
-    const totalReviews = reviewsData.length;
-    const averageRating = totalReviews > 0 
-      ? reviewsData.reduce((sum, review) => sum + review.rating, 0) / totalReviews 
-      : 0;
-
-    // Calculate real response time (would need timestamps for when requests were responded to)
-    const responseTime = 0; // Would be calculated from actual response timestamps
-
-    // Calculate real completion rate
-    const completionRate = requestsData.length > 0 
-      ? (completedJobs / requestsData.length) * 100 
-      : 0;
+    // Get unique locations for coverage areas
+    const uniqueLocations = new Set(
+      servicesData
+        .map(s => s.location)
+        .filter(location => location !== null && location !== undefined)
+    );
+    const coverageAreas = uniqueLocations.size;
+    
+    // Calculate average price range (simplified)
+    const avgPriceRange = servicesData.length > 0 ? 'Contact for pricing' : 'N/A';
 
     return {
       totalServices,
-      activeRequests,
-      completedJobs,
-      monthlyRevenue,
-      averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
-      responseTime,
-      completionRate: Math.round(completionRate * 10) / 10, // Round to 1 decimal
-      totalReviews
+      activeServices,
+      serviceTypes,
+      avgPriceRange,
+      coverageAreas
     };
   };
 
@@ -256,17 +124,10 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const [servicesData, requestsData, reviewsData] = await Promise.all([
-        fetchServices(),
-        fetchServiceRequests(),
-        fetchServiceReviews()
-      ]);
-
+      const servicesData = await fetchServices();
       setServices(servicesData);
-      setServiceRequests(requestsData);
-      setServiceReviews(reviewsData);
 
-      const stats = calculateRealStats(servicesData, requestsData, reviewsData);
+      const stats = calculateRealStats(servicesData);
       setDashboardStats(stats);
 
       if (isRefresh) {
@@ -287,7 +148,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, hasServiceAccess, fetchServices, fetchServiceRequests, fetchServiceReviews, toast]);
+  }, [user, hasServiceAccess, fetchServices, toast]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -340,30 +201,6 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     );
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { variant: 'secondary' as const, label: 'Pending' },
-      accepted: { variant: 'default' as const, label: 'Accepted' },
-      in_progress: { variant: 'default' as const, label: 'In Progress' },
-      completed: { variant: 'outline' as const, label: 'Completed' },
-      cancelled: { variant: 'destructive' as const, label: 'Cancelled' }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const getUrgencyBadge = (urgency: string) => {
-    const urgencyConfig = {
-      low: { color: 'bg-green-100 text-green-800', label: 'Low' },
-      medium: { color: 'bg-yellow-100 text-yellow-800', label: 'Medium' },
-      high: { color: 'bg-red-100 text-red-800', label: 'High' }
-    };
-    
-    const config = urgencyConfig[urgency as keyof typeof urgencyConfig] || urgencyConfig.medium;
-    return <Badge className={config.color}>{config.label}</Badge>;
-  };
-
   // Filter services based on search
   const filteredServices = services.filter(service =>
     service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -376,41 +213,41 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       title: 'Total Services',
       value: dashboardStats.totalServices.toString(),
       icon: Wrench,
-      trend: 'Services listed',
+      trend: 'Listed services',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
-      title: 'Active Requests',
-      value: dashboardStats.activeRequests.toString(),
-      icon: Clock,
-      trend: 'Pending action',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
-    },
-    {
-      title: 'Completed Jobs',
-      value: dashboardStats.completedJobs.toString(),
-      icon: CheckCircle,
-      trend: 'All time',
+      title: 'Service Types',
+      value: dashboardStats.serviceTypes.toString(),
+      icon: Activity,
+      trend: 'Different categories',
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
-      title: 'Monthly Revenue',
-      value: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      trend: 'This month',
+      title: 'Coverage Areas',
+      value: dashboardStats.coverageAreas.toString(),
+      icon: MapPin,
+      trend: 'Locations served',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50'
+    },
+    {
+      title: 'Profile Categories',
+      value: (userProfile?.service_categories?.length || 0).toString(),
+      icon: Settings,
+      trend: 'Profile setup',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
     },
     {
-      title: 'Average Rating',
-      value: dashboardStats.averageRating > 0 ? dashboardStats.averageRating.toFixed(1) : '0.0',
-      icon: Star,
-      trend: `${dashboardStats.totalReviews} reviews`,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50'
+      title: 'Average Pricing',
+      value: dashboardStats.avgPriceRange,
+      icon: DollarSign,
+      trend: 'Contact based',
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50'
     }
   ];
 
@@ -421,7 +258,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <div>
             <p className="text-lg font-medium">Loading Service Dashboard</p>
-            <p className="text-sm text-muted-foreground">Fetching real database data...</p>
+            <p className="text-sm text-muted-foreground">Fetching your service data...</p>
           </div>
         </div>
       </div>
@@ -436,44 +273,58 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
         <Alert className="border-green-200 bg-green-50">
           <CheckCircle className="w-4 h-4" />
           <AlertDescription className="text-green-700">
-            <strong>✅ Service Provider Access Confirmed</strong> - Real data only mode active
+            <strong>✅ Service Provider Access Confirmed</strong> - Real data from services table
           </AlertDescription>
         </Alert>
+
+        {/* Service Categories Display */}
+        {userProfile?.service_categories && userProfile.service_categories.length > 0 && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <Wrench className="w-4 h-4" />
+            <AlertDescription className="text-blue-800">
+              <strong>🔧 Your Service Categories:</strong>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {userProfile.service_categories.map((category, index) => (
+                  <Badge key={index} variant="outline" className="bg-white">{category}</Badge>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Database Status */}
         <Alert className="border-blue-200 bg-blue-50">
           <Database className="w-4 h-4" />
           <AlertDescription className="text-blue-800">
-            <strong>📊 Database Status:</strong>
+            <strong>📊 Current Database Status:</strong>
             <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-              <div>• Services: ✅ Available ({services.length})</div>
-              <div>• Requests: {tablesExist.service_requests ? `✅ Available (${serviceRequests.length})` : '❌ Table missing'}</div>
-              <div>• Reviews: {tablesExist.service_reviews ? `✅ Available (${serviceReviews.length})` : '❌ Table missing'}</div>
+              <div>• Services: ✅ Available ({services.length} records)</div>
+              <div>• Service Requests: ❌ Table not created</div>
+              <div>• Service Reviews: ❌ Table not created</div>
             </div>
           </AlertDescription>
         </Alert>
 
-        {/* Tables Missing Notice */}
-        {(!tablesExist.service_requests || !tablesExist.service_reviews) && (
-          <Alert className="border-yellow-200 bg-yellow-50">
-            <Database className="w-4 h-4" />
-            <AlertDescription className="text-yellow-800">
-              <strong>⚠️ Missing Tables:</strong> Some features are limited because these tables don't exist:
-              <div className="mt-2 text-sm space-y-1">
-                {!tablesExist.service_requests && <div>• service_requests - Required for booking management</div>}
-                {!tablesExist.service_reviews && <div>• service_reviews - Required for ratings and feedback</div>}
-              </div>
-              <Button 
-                variant="link" 
-                className="p-0 mt-2 text-yellow-800 underline" 
-                onClick={() => window.open('#create-service-tables', '_blank')}
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                Create Missing Tables
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Enhancement Notice */}
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <Database className="w-4 h-4" />
+          <AlertDescription className="text-yellow-800">
+            <strong>🚀 Expand Your Service Management:</strong> Create additional tables to unlock advanced features:
+            <div className="mt-2 text-sm space-y-1">
+              <div>• <code>service_requests</code> - Track client service bookings and manage appointments</div>
+              <div>• <code>service_reviews</code> - Collect customer feedback and build reputation</div>
+              <div>• <code>service_appointments</code> - Schedule and calendar management</div>
+            </div>
+            <Button 
+              variant="link" 
+              className="p-0 mt-2 text-yellow-800 underline" 
+              onClick={() => window.open('/docs/service-tables-setup', '_blank')}
+            >
+              <ExternalLink className="w-3 h-3 mr-1" />
+              View Setup Guide
+            </Button>
+          </AlertDescription>
+        </Alert>
 
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -482,7 +333,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
               Service Provider Dashboard
             </h1>
             <p className="text-muted-foreground">
-              Real-time data from your service operations
+              Manage your service offerings with real database data
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -529,20 +380,16 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
           })}
         </div>
 
-        {/* Main Content Tabs */}
+        {/* Main Content */}
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="services" className="flex items-center gap-2">
               <Wrench className="w-4 h-4" />
-              Services ({services.length})
+              My Services ({services.length})
             </TabsTrigger>
-            <TabsTrigger value="requests" className="flex items-center gap-2">
+            <TabsTrigger value="categories" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
-              Requests ({serviceRequests.length})
-            </TabsTrigger>
-            <TabsTrigger value="reviews" className="flex items-center gap-2">
-              <Star className="w-4 h-4" />
-              Reviews ({serviceReviews.length})
+              Categories
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
@@ -559,7 +406,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                       <Wrench className="w-5 h-5" />
                       My Service Offerings
                     </CardTitle>
-                    <CardDescription>Real services from your database</CardDescription>
+                    <CardDescription>Real services from your database ({services.length} total)</CardDescription>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -581,7 +428,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                     </h3>
                     <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                       {services.length === 0 
-                        ? 'You haven\'t added any services to your profile yet.'
+                        ? 'You haven\'t added any services to the services table yet.'
                         : 'Try adjusting your search criteria to find services.'
                       }
                     </p>
@@ -637,6 +484,10 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                               <span>{service.location || 'Location not set'}</span>
                             </div>
                           </div>
+                          
+                          <div className="mt-3 text-xs text-muted-foreground">
+                            Created: {new Date(service.created_at).toLocaleDateString()}
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -646,193 +497,100 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
             </Card>
           </TabsContent>
 
-          <TabsContent value="requests" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  Service Requests
-                </CardTitle>
-                <CardDescription>Real service requests from your database</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!tablesExist.service_requests ? (
-                  <div className="text-center py-12">
-                    <Database className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">service_requests Table Not Found</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      Create the service_requests table to start tracking client service requests.
-                    </p>
-                    <Button variant="outline">
-                      <Database className="w-4 h-4 mr-2" />
-                      Create service_requests Table
-                    </Button>
-                  </div>
-                ) : serviceRequests.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Service Requests</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      No service requests found in your database. Requests will appear here when clients book your services.
-                    </p>
-                  </div>
-                ) : (
-                  <ScrollArea className="h-[400px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Request ID</TableHead>
-                          <TableHead>Client</TableHead>
-                          <TableHead>Service Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Urgency</TableHead>
-                          <TableHead>Scheduled Date</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {serviceRequests.map((request) => (
-                          <TableRow key={request.id}>
-                            <TableCell className="font-mono text-sm">{request.request_id}</TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{request.client_name}</p>
-                                {request.client_email && (
-                                  <p className="text-xs text-muted-foreground">{request.client_email}</p>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{request.service_type}</TableCell>
-                            <TableCell>{getStatusBadge(request.status)}</TableCell>
-                            <TableCell>{getUrgencyBadge(request.urgency)}</TableCell>
-                            <TableCell>{new Date(request.scheduled_date).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button size="sm" variant="outline">
-                                  View
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  Update
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reviews" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="w-5 h-5" />
-                  Customer Reviews
-                </CardTitle>
-                <CardDescription>Real reviews from your database</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!tablesExist.service_reviews ? (
-                  <div className="text-center py-12">
-                    <Database className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">service_reviews Table Not Found</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      Create the service_reviews table to start collecting customer feedback.
-                    </p>
-                    <Button variant="outline">
-                      <Database className="w-4 h-4 mr-2" />
-                      Create service_reviews Table
-                    </Button>
-                  </div>
-                ) : serviceReviews.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Star className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Reviews Yet</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      No customer reviews found in your database. Reviews will appear here after completed services.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {serviceReviews.map((review) => (
-                      <Card key={review.id} className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star 
-                                  key={star} 
-                                  className={`w-4 h-4 ${
-                                    star <= review.rating 
-                                      ? 'fill-yellow-400 text-yellow-400' 
-                                      : 'text-gray-300'
-                                  }`} 
-                                />
-                              ))}
-                            </div>
-                            <span className="font-medium">{review.rating}/5</span>
+          <TabsContent value="categories" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Service Categories</CardTitle>
+                  <CardDescription>Categories defined in your profile</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {userProfile?.service_categories && userProfile.service_categories.length > 0 ? (
+                    <div className="space-y-3">
+                      {userProfile.service_categories.map((category, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{category}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {services.filter(s => s.service_type === category).length} services
+                            </p>
                           </div>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(review.created_at).toLocaleDateString()}
-                          </span>
+                          <Badge variant="outline">Active</Badge>
                         </div>
-                        {review.review_text && (
-                          <p className="text-sm text-muted-foreground">{review.review_text}</p>
-                        )}
-                        {(review.response_time_rating || review.quality_rating || review.communication_rating) && (
-                          <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                            {review.response_time_rating && (
-                              <span>Response: {review.response_time_rating}/5</span>
-                            )}
-                            {review.quality_rating && (
-                              <span>Quality: {review.quality_rating}/5</span>
-                            )}
-                            {review.communication_rating && (
-                              <span>Communication: {review.communication_rating}/5</span>
-                            )}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-4">No service categories configured</p>
+                      <Button variant="outline" onClick={() => window.location.href = '/profile'}>
+                        <Settings className="w-4 h-4 mr-2" />
+                        Update Profile
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Types in Database</CardTitle>
+                  <CardDescription>Types from your actual services</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {services.length > 0 ? (
+                    <div className="space-y-3">
+                      {Array.from(new Set(services.map(s => s.service_type))).map((type, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{type}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {services.filter(s => s.service_type === type).length} services
+                            </p>
                           </div>
-                        )}
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                          <Badge>{services.filter(s => s.service_type === type).length}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Wrench className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No services found in database</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Real Performance Metrics</CardTitle>
+                  <CardTitle>Service Statistics</CardTitle>
+                  <CardDescription>Based on your services table data</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">Total Services Listed</p>
-                      <p className="text-sm text-muted-foreground">Active service offerings</p>
+                      <p className="text-sm text-muted-foreground">In services table</p>
                     </div>
                     <Badge>{dashboardStats.totalServices}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">Completion Rate</p>
-                      <p className="text-sm text-muted-foreground">Completed vs total requests</p>
+                      <p className="font-medium">Unique Service Types</p>
+                      <p className="text-sm text-muted-foreground">Different categories offered</p>
                     </div>
-                    <Badge variant="outline">{dashboardStats.completionRate}%</Badge>
+                    <Badge variant="outline">{dashboardStats.serviceTypes}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">Average Rating</p>
-                      <p className="text-sm text-muted-foreground">From customer reviews</p>
+                      <p className="font-medium">Coverage Areas</p>
+                      <p className="text-sm text-muted-foreground">Unique locations served</p>
                     </div>
-                    <Badge variant="secondary">
-                      {dashboardStats.averageRating > 0 ? `${dashboardStats.averageRating}/5` : 'No ratings yet'}
-                    </Badge>
+                    <Badge variant="secondary">{dashboardStats.coverageAreas}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -840,28 +598,29 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
               <Card>
                 <CardHeader>
                   <CardTitle>Database Summary</CardTitle>
+                  <CardDescription>Real data availability</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">Services in Database</p>
-                      <p className="text-sm text-muted-foreground">Your service listings</p>
+                      <p className="font-medium">Services Table</p>
+                      <p className="text-sm text-muted-foreground">✅ Available and populated</p>
                     </div>
-                    <Badge>{services.length}</Badge>
+                    <Badge>{services.length} records</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">Service Requests</p>
-                      <p className="text-sm text-muted-foreground">Total client requests</p>
+                      <p className="text-sm text-muted-foreground">❌ Table not created</p>
                     </div>
-                    <Badge variant="outline">{serviceRequests.length}</Badge>
+                    <Badge variant="outline">Missing</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="font-medium">Customer Reviews</p>
-                      <p className="text-sm text-muted-foreground">Feedback received</p>
+                      <p className="font-medium">Service Reviews</p>
+                      <p className="text-sm text-muted-foreground">❌ Table not created</p>
                     </div>
-                    <Badge variant="secondary">{serviceReviews.length}</Badge>
+                    <Badge variant="outline">Missing</Badge>
                   </div>
                 </CardContent>
               </Card>
