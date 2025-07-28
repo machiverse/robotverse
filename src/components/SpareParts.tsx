@@ -59,10 +59,7 @@ const SpareParts = () => {
       return;
     }
 
-    if (images.length + files.length < 3 && images.length === 0) {
-      toast.error('Minimum 3 images required');
-    }
-
+    // Removed the minimum 3 images check from here
     setImages(prev => [...prev, ...files]);
     
     files.forEach(file => {
@@ -132,8 +129,9 @@ const SpareParts = () => {
       return;
     }
 
-    if (images.length < 3) {
-      toast.error('Minimum 3 images required');
+    // Changed from 3 to 1 minimum image
+    if (images.length < 1) {
+      toast.error('Minimum 1 image required');
       return;
     }
 
@@ -199,7 +197,8 @@ const SpareParts = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Image Upload */}
           <div className="space-y-4">
-            <Label>Part Images (3-10 required)</Label>
+            {/* Changed label from (3-10 required) to (1-10 required) */}
+            <Label>Part Images (1-10 required)</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6">
               <div className="text-center">
                 <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
