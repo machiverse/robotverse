@@ -24,24 +24,46 @@ interface RobotFormData {
   category_tags: string[];
 }
 
-const RobotUpload = () => {
+interface RobotUploadProps {
+  onSuccess?: () => void;
+  editMode?: boolean;
+  robotData?: any;
+}
+
+const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   
-  const [formData, setFormData] = useState<RobotFormData>({
-    name: '',
-    model: '',
-    robot_type: '',
-    quantity: 1,
-    location: '',
-    price: null,
-    currency: 'INR',
-    description: '',
-    technical_specifications: {},
-    category_tags: [],
+  const [formData, setFormData] = useState<RobotFormData>(() => {
+    if (editMode && robotData) {
+      return {
+        name: robotData.name || '',
+        model: robotData.model || '',
+        robot_type: robotData.robot_type || '',
+        quantity: robotData.quantity || 1,
+        location: robotData.location || '',
+        price: robotData.price || null,
+        currency: robotData.currency || 'INR',
+        description: robotData.description || '',
+        technical_specifications: robotData.technical_specifications || {},
+        category_tags: robotData.category_tags || [],
+      };
+    }
+    return {
+      name: '',
+      model: '',
+      robot_type: '',
+      quantity: 1,
+      location: '',
+      price: null,
+      currency: 'INR',
+      description: '',
+      technical_specifications: {},
+      category_tags: [],
+    };
   });
 
   const robotTypes = [
@@ -137,7 +159,7 @@ const RobotUpload = () => {
       return;
     }
 
-    if (images.length < 3) {
+    if (!editMode && images.length < 3) {
       toast.error('Minimum 3 images required');
       return;
     }
@@ -150,14 +172,12 @@ const RobotUpload = () => {
     setLoading(true);
 
     try {
-      // Upload images
-      const uploadedImageUrls = await uploadImages();
-
-      // Create robot listing
-      const { error } = await supabase
-        .from('robots')
-        .insert({
-          seller_id: user.id,
+      // Upload new images if any
+      const uploadedImageUrls = images.length > 0 ? await uploadImages() : [];
+      
+      if (editMode && robotData) {
+        // Update existing robot listing
+        const updateData: any = {
           name: formData.name,
           model: formData.model,
           robot_type: formData.robot_type,
@@ -168,13 +188,43 @@ const RobotUpload = () => {
           description: formData.description,
           technical_specifications: formData.technical_specifications,
           category_tags: formData.category_tags,
-          images: uploadedImageUrls,
-          availability: 'available'
-        });
+        };
 
-      if (error) throw error;
+        // Only update images if new ones were uploaded
+        if (uploadedImageUrls.length > 0) {
+          updateData.images = uploadedImageUrls;
+        }
 
-      toast.success('Robot listing created successfully!');
+        const { error } = await supabase
+          .from('robots')
+          .update(updateData)
+          .eq('id', robotData.id);
+
+        if (error) throw error;
+        toast.success('Robot listing updated successfully!');
+      } else {
+        // Create new robot listing
+        const { error } = await supabase
+          .from('robots')
+          .insert({
+            seller_id: user.id,
+            name: formData.name,
+            model: formData.model,
+            robot_type: formData.robot_type,
+            quantity: formData.quantity,
+            location: formData.location,
+            price: formData.price,
+            currency: formData.currency,
+            description: formData.description,
+            technical_specifications: formData.technical_specifications,
+            category_tags: formData.category_tags,
+            images: uploadedImageUrls,
+            availability: 'available'
+          });
+
+        if (error) throw error;
+        toast.success('Robot listing created successfully!');
+      }
       
       // Reset form
       setFormData({
@@ -192,6 +242,11 @@ const RobotUpload = () => {
       setImages([]);
       setImageUrls([]);
 
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+
     } catch (error: any) {
       console.error('Error creating robot listing:', error);
       toast.error('Failed to create robot listing');
@@ -205,7 +260,7 @@ const RobotUpload = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Package className="w-5 h-5" />
-          Upload Robot Listing
+          {editMode ? 'Edit Robot Listing' : 'Upload Robot Listing'}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -408,7 +463,7 @@ const RobotUpload = () => {
                 <span>Creating Listing...</span>
               </div>
             ) : (
-              'Create Robot Listing'
+              editMode ? 'Update Robot Listing' : 'Create Robot Listing'
             )}
           </Button>
         </form>

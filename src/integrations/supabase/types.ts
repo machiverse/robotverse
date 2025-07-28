@@ -74,6 +74,9 @@ export type Database = {
           mou_agreed: boolean | null
           mou_agreed_at: string | null
           phone: string | null
+          primary_user_type:
+            | Database["public"]["Enums"]["user_type_enum"]
+            | null
           seller_roles: string[] | null
           target_audience: string[] | null
           transport_modes: string[] | null
@@ -100,6 +103,9 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          primary_user_type?:
+            | Database["public"]["Enums"]["user_type_enum"]
+            | null
           seller_roles?: string[] | null
           target_audience?: string[] | null
           transport_modes?: string[] | null
@@ -126,6 +132,9 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          primary_user_type?:
+            | Database["public"]["Enums"]["user_type_enum"]
+            | null
           seller_roles?: string[] | null
           target_audience?: string[] | null
           transport_modes?: string[] | null
@@ -318,7 +327,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      seller_role_enum: "robot_seller" | "parts_seller" | "service_provider"
+      user_type_enum:
+        | "buyer"
+        | "robot_seller"
+        | "parts_seller"
+        | "service_provider"
+        | "logistics_provider"
+        | "finance_provider"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -445,6 +461,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      seller_role_enum: ["robot_seller", "parts_seller", "service_provider"],
+      user_type_enum: [
+        "buyer",
+        "robot_seller",
+        "parts_seller",
+        "service_provider",
+        "logistics_provider",
+        "finance_provider",
+      ],
+    },
   },
 } as const

@@ -103,7 +103,7 @@ const RobotDetails = () => {
 
     try {
       setAnalysisLoading(true);
-      const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
+      const { data, error } = await supabase.functions.invoke('robotverse-ai-analyze', {
         body: {
           robotId: robot.id,
           userId: user.id
