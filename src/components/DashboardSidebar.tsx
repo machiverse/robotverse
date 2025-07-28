@@ -48,7 +48,7 @@ export function DashboardSidebar({ userProfile }: DashboardSidebarProps) {
     dashboardItems.push({ title: 'Overview', url: 'overview', icon: LayoutDashboard });
   }
 
-  const isActive = (path: string) => currentPath === path || currentPath.startsWith(path);
+  const isActive = (path: string) => currentPath === `/dashboard/${path}` || currentPath.startsWith(`/dashboard/${path}`);
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted/50';
 
