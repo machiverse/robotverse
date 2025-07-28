@@ -37,6 +37,10 @@ import {
   Phone
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+// Add at the top:
+import { UserProfile } from '@/types/user';
+
+// Remove any local UserProfile interface definition
 
 // Type definitions
 interface UserProfile {
