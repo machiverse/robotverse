@@ -43,18 +43,23 @@ import ServiceProviderDashboard from '@/components/dashboards/ServiceProviderDas
 import AdminDashboard from '@/components/dashboards/AdminDashboard';
 import MultiRoleSellerDashboard from '@/components/MultiRoleSellerDashboard';
 
+// Updated interface to match actual database schema
 interface UserProfile {
   id: string;
   user_id: string;
   email: string;
   full_name?: string;
-  user_type?: 'buyer' | 'seller' | 'service_provider' | 'logistics_provider' | 'finance_provider';
+  user_type?: string; // Changed to string to accept any value
+  account_type?: string;
   seller_roles?: string[];
   service_categories?: string[];
   company_name?: string;
   phone?: string;
   verification_status?: boolean;
   created_at: string;
+  updated_at: string; // Added missing property
+  // Add other properties that might exist in the actual schema
+  [key: string]: any; // Allow additional properties
 }
 
 interface DashboardStats {
@@ -62,9 +67,8 @@ interface DashboardStats {
   totalRobots?: number;
   totalRevenue?: number;
   activeListings?: number;
-  totalOrders?: number;
-  wishlistItems?: number;
-  recentActivity?: any[];
+  totalServices?: number;
+  totalParts?: number;
 }
 
 const ADMIN_EMAILS = ['mark.it@keyleerkorb.com', 'admin@robotmarketplace.com'];
@@ -109,8 +113,8 @@ const Dashboard = () => {
           throw profileError;
         }
       } else {
-        setUserProfile(profile);
-        await fetchStats(profile);
+        setUserProfile(profile as UserProfile);
+        await fetchStats(profile as UserProfile);
       }
 
     } catch (error) {
@@ -126,80 +130,96 @@ const Dashboard = () => {
     }
   }, [user, toast]);
 
-  // Fetch relevant stats based on user type
+  // Fetch relevant stats based on available tables
   const fetchStats = async (profile: UserProfile) => {
     try {
-      const userType = profile.user_type;
-      const sellerRoles = profile.seller_roles || [];
-
       let stats: DashboardStats = {};
 
       if (isAdmin) {
-        // Admin stats
-        const [usersResponse, robotsResponse] = await Promise.all([
+        // Admin stats - only query existing tables
+        const [usersResponse, robotsResponse, servicesResponse, partsResponse] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact' }),
-          supabase.from('robots').select('id, price', { count: 'exact' })
+          supabase.from('robots').select('id, price', { count: 'exact' }),
+          supabase.from('services').select('id', { count: 'exact' }),
+          supabase.from('spare_parts').select('id', { count: 'exact' })
         ]);
 
         stats = {
           totalUsers: usersResponse.count || 0,
           totalRobots: robotsResponse.count || 0,
+          totalServices: servicesResponse.count || 0,
+          totalParts: partsResponse.count || 0,
           totalRevenue: robotsResponse.data?.reduce((sum, r) => sum + (r.price || 0), 0) || 0,
           activeListings: robotsResponse.count || 0
         };
-      } else if (userType === 'buyer') {
-        // Buyer stats
-        const [ordersResponse, wishlistResponse] = await Promise.all([
-          supabase.from('orders').select('id, total_amount').eq('buyer_id', user.id),
-          supabase.from('user_wishlist').select('id').eq('user_id', user.id)
-        ]);
+      } else {
+        // For non-admin users, fetch basic stats from available tables
+        const userType = profile.user_type || profile.account_type;
+        const sellerRoles = profile.seller_roles || [];
 
-        stats = {
-          totalOrders: ordersResponse.data?.length || 0,
-          totalRevenue: ordersResponse.data?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0,
-          wishlistItems: wishlistResponse.data?.length || 0
-        };
-      } else if (userType === 'seller' || sellerRoles.length > 0) {
-        // Seller stats
-        const { data: robotsData } = await supabase
-          .from('robots')
-          .select('id, price, availability')
-          .eq('seller_id', user.id);
+        if (userType === 'seller' || sellerRoles.length > 0) {
+          // Seller stats - only from robots table
+          const { data: robotsData } = await supabase
+            .from('robots')
+            .select('id, price, availability')
+            .eq('seller_id', user.id);
 
-        stats = {
-          totalRobots: robotsData?.length || 0,
-          activeListings: robotsData?.filter(r => r.availability === 'available').length || 0,
-          totalRevenue: robotsData?.reduce((sum, r) => sum + (r.price || 0), 0) || 0
-        };
+          stats = {
+            totalRobots: robotsData?.length || 0,
+            activeListings: robotsData?.filter(r => r.availability === 'available').length || 0,
+            totalRevenue: robotsData?.reduce((sum, r) => sum + (r.price || 0), 0) || 0
+          };
+        } else {
+          // Basic stats for other user types
+          const { data: robotsData } = await supabase
+            .from('robots')
+            .select('id, price')
+            .limit(10);
+
+          stats = {
+            totalRobots: robotsData?.length || 0,
+            totalRevenue: 0 // Can't calculate user-specific revenue without orders table
+          };
+        }
       }
 
       setDashboardStats(stats);
     } catch (error) {
       console.error('Error fetching stats:', error);
+      // Set default stats on error
+      setDashboardStats({
+        totalUsers: 0,
+        totalRobots: 0,
+        totalRevenue: 0,
+        activeListings: 0
+      });
     }
   };
 
   // Profile setup handler
   const handleProfileSetup = async (userData: any) => {
     try {
+      const profileData = {
+        user_id: user?.id,
+        email: user?.email,
+        full_name: userData.fullName,
+        user_type: userData.userType,
+        seller_roles: userData.sellerRoles || [],
+        service_categories: userData.serviceCategories || [],
+        company_name: userData.companyName,
+        phone: userData.phone,
+        updated_at: new Date().toISOString()
+      };
+
       const { data: profile, error } = await supabase
         .from('profiles')
-        .insert({
-          user_id: user?.id,
-          email: user?.email,
-          full_name: userData.fullName,
-          user_type: userData.userType,
-          seller_roles: userData.sellerRoles || [],
-          service_categories: userData.serviceCategories || [],
-          company_name: userData.companyName,
-          phone: userData.phone
-        })
+        .insert(profileData)
         .select()
         .single();
 
       if (error) throw error;
 
-      setUserProfile(profile);
+      setUserProfile(profile as UserProfile);
       setShowProfileSetup(false);
       
       toast({
@@ -228,7 +248,7 @@ const Dashboard = () => {
 
     if (!userProfile) return null;
 
-    const userType = userProfile.user_type;
+    const userType = userProfile.user_type || userProfile.account_type;
     const sellerRoles = userProfile.seller_roles || [];
     const hasMultipleRoles = sellerRoles.length > 1;
 
@@ -237,7 +257,7 @@ const Dashboard = () => {
       return <MultiRoleSellerDashboard userProfile={userProfile} />;
     }
 
-    // Specialized dashboards
+    // Specialized dashboards with type checking
     switch (userType) {
       case 'buyer':
         return <BuyerDashboard userProfile={userProfile} />;
@@ -249,13 +269,19 @@ const Dashboard = () => {
       case 'service_provider':
         return <ServiceProviderDashboard userProfile={userProfile} />;
       default:
-        // Fallback to buyer dashboard
+        // Fallback to buyer dashboard for any unrecognized type
         return <BuyerDashboard userProfile={userProfile} />;
     }
   };
 
+  // Check if user has completed profile setup
+  const hasCompletedProfile = (profile: UserProfile | null): boolean => {
+    if (!profile) return false;
+    return !!(profile.user_type || profile.account_type) && !!profile.full_name;
+  };
+
   // Profile setup screen
-  if (showProfileSetup) {
+  if (showProfileSetup || (userProfile && !hasCompletedProfile(userProfile))) {
     return (
       <div className="min-h-screen bg-gray-50/50 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl">
@@ -294,7 +320,7 @@ const Dashboard = () => {
   }
 
   // If user has a profile and specialized dashboard should be shown
-  if (userProfile && (userProfile.user_type || userProfile.seller_roles?.length)) {
+  if (userProfile && hasCompletedProfile(userProfile)) {
     return renderSpecializedDashboard();
   }
 
@@ -328,6 +354,23 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
+
+        {/* Profile Completion Alert */}
+        {userProfile && !hasCompletedProfile(userProfile) && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-yellow-800">
+              <strong>Profile Incomplete:</strong> Please complete your profile setup to access all features.
+              <Button 
+                variant="link" 
+                className="p-0 ml-2 text-yellow-800 underline" 
+                onClick={() => navigate('/profile')}
+              >
+                Complete Now
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Platform Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -369,14 +412,14 @@ const Dashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-800">Total Value</p>
-                  <p className="text-2xl font-bold text-purple-900">₹{(dashboardStats.totalRevenue || 10000000).toLocaleString()}</p>
+                  <p className="text-sm font-medium text-purple-800">Services</p>
+                  <p className="text-2xl font-bold text-purple-900">{dashboardStats.totalServices || '200+'}</p>
                   <Badge variant="secondary" className="mt-1 text-xs">
-                    Marketplace value
+                    Available providers
                   </Badge>
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-purple-200 flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-purple-600" />
+                  <Wrench className="h-6 w-6 text-purple-600" />
                 </div>
               </div>
             </CardContent>
@@ -386,14 +429,14 @@ const Dashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-800">Success Rate</p>
-                  <p className="text-2xl font-bold text-orange-900">98%</p>
+                  <p className="text-sm font-medium text-orange-800">Spare Parts</p>
+                  <p className="text-2xl font-bold text-orange-900">{dashboardStats.totalParts || '1,000+'}</p>
                   <Badge variant="secondary" className="mt-1 text-xs">
-                    Satisfied customers
+                    In stock
                   </Badge>
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-orange-200 flex items-center justify-center">
-                  <Star className="h-6 w-6 text-orange-600" />
+                  <Package className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -586,6 +629,8 @@ const ProfileSetupForm = ({ onComplete }: { onComplete: (data: any) => void }) =
           <option value="buyer">Buyer</option>
           <option value="seller">Seller</option>
           <option value="service_provider">Service Provider</option>
+          <option value="logistics_provider">Logistics Provider</option>
+          <option value="finance_provider">Finance Provider</option>
         </select>
       </div>
 
