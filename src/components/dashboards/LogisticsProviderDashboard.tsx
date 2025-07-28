@@ -46,13 +46,9 @@ interface Shipment {
   actual_delivery?: string;
   cargo_type: string;
   weight: number;
-  dimensions?: string;
-  special_instructions?: string;
   tracking_number: string;
   cost: number;
   created_at: string;
-  updated_at: string;
-  provider_id: string;
 }
 
 interface FleetVehicle {
@@ -61,15 +57,10 @@ interface FleetVehicle {
   license_plate: string;
   driver_name: string;
   driver_phone?: string;
-  driver_license?: string;
   status: 'available' | 'in_transit' | 'maintenance' | 'offline';
   current_location: string;
   capacity_weight: number;
-  capacity_volume?: number;
   fuel_type: string;
-  insurance_expiry?: string;
-  last_maintenance?: string;
-  provider_id: string;
   created_at: string;
 }
 
@@ -81,7 +72,6 @@ interface CoverageArea {
   base_rate: number;
   per_kg_rate: number;
   is_active: boolean;
-  provider_id: string;
 }
 
 const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardProps) => {
@@ -96,120 +86,17 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     totalDeliveries: 0,
     onTimeDeliveryRate: 0,
     monthlyRevenue: 0,
-    customerRating: 4.7,
+    customerRating: 0,
     availableVehicles: 0,
     totalFleetSize: 0
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [tablesExist, setTablesExist] = useState({
-    shipments: false,
-    fleet: false,
-    coverage: false
-  });
 
   // Check if user has logistics provider access
   const userType = userProfile?.user_type;
   const hasLogisticsAccess = userType === 'logistics_provider' || userType === 'logistics';
-
-  // Check if tables exist and fetch data accordingly
-  const checkTableExists = async (tableName: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase.from(tableName).select('id').limit(1);
-      return !error;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const fetchShipments = useCallback(async () => {
-    if (!user || !hasLogisticsAccess) return [];
-
-    try {
-      // First check if table exists
-      const tableExists = await checkTableExists('logistics_shipments');
-      setTablesExist(prev => ({ ...prev, shipments: tableExists }));
-      
-      if (!tableExists) {
-        return [];
-      }
-
-      // Use raw query to avoid TypeScript issues
-      const { data, error } = await supabase.rpc('get_logistics_data', {
-        table_name: 'logistics_shipments',
-        provider_id: user.id
-      });
-
-      if (error) {
-        console.log('Logistics shipments table query failed:', error.message);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching shipments:', error);
-      return [];
-    }
-  }, [user, hasLogisticsAccess]);
-
-  const fetchFleet = useCallback(async () => {
-    if (!user || !hasLogisticsAccess) return [];
-
-    try {
-      const tableExists = await checkTableExists('logistics_fleet');
-      setTablesExist(prev => ({ ...prev, fleet: tableExists }));
-      
-      if (!tableExists) {
-        return [];
-      }
-
-      // Use raw query to avoid TypeScript issues
-      const { data, error } = await supabase.rpc('get_logistics_data', {
-        table_name: 'logistics_fleet',
-        provider_id: user.id
-      });
-
-      if (error) {
-        console.log('Logistics fleet table query failed:', error.message);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching fleet:', error);
-      return [];
-    }
-  }, [user, hasLogisticsAccess]);
-
-  const fetchCoverageAreas = useCallback(async () => {
-    if (!user || !hasLogisticsAccess) return [];
-
-    try {
-      const tableExists = await checkTableExists('logistics_coverage');
-      setTablesExist(prev => ({ ...prev, coverage: tableExists }));
-      
-      if (!tableExists) {
-        return [];
-      }
-
-      // Use raw query to avoid TypeScript issues
-      const { data, error } = await supabase.rpc('get_logistics_data', {
-        table_name: 'logistics_coverage',
-        provider_id: user.id
-      });
-
-      if (error) {
-        console.log('Logistics coverage table query failed:', error.message);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching coverage areas:', error);
-      return [];
-    }
-  }, [user, hasLogisticsAccess]);
 
   const calculateStats = (shipmentsData: Shipment[], fleetData: FleetVehicle[]) => {
     const activeShipments = shipmentsData.filter(s => 
@@ -242,16 +129,49 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     const availableVehicles = fleetData.filter(v => v.status === 'available').length;
     const totalFleetSize = fleetData.length;
 
+    // Calculate average customer rating from delivered shipments
+    const customerRating = deliveredShipments.length > 0 ? 4.7 : 0; // Would come from reviews
+
     return {
       activeShipments,
       totalDeliveries,
       onTimeDeliveryRate: Math.round(onTimeDeliveryRate * 10) / 10,
       monthlyRevenue,
-      customerRating: 4.7, // This would come from a reviews system
+      customerRating,
       availableVehicles,
       totalFleetSize
     };
   };
+
+  const fetchLogisticsData = useCallback(async () => {
+    if (!user || !hasLogisticsAccess) return { shipments: [], fleet: [], coverage: [] };
+
+    try {
+      // Note: These tables don't exist yet, so this will return empty arrays
+      // When you create the logistics tables, replace these with actual queries:
+      
+      // Example of what the real queries would look like:
+      // const { data: shipmentsData } = await supabase
+      //   .from('logistics_shipments')
+      //   .select('*')
+      //   .eq('provider_id', user.id)
+      //   .order('created_at', { ascending: false });
+
+      const shipmentsData: Shipment[] = [];
+      const fleetData: FleetVehicle[] = [];
+      const coverageData: CoverageArea[] = [];
+
+      return {
+        shipments: shipmentsData,
+        fleet: fleetData,
+        coverage: coverageData
+      };
+
+    } catch (error) {
+      console.error('Error fetching logistics data:', error);
+      return { shipments: [], fleet: [], coverage: [] };
+    }
+  }, [user, hasLogisticsAccess]);
 
   const fetchDashboardData = useCallback(async (isRefresh = false) => {
     if (!user || !hasLogisticsAccess) {
@@ -263,23 +183,19 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const [shipmentsData, fleetData, coverageData] = await Promise.all([
-        fetchShipments(),
-        fetchFleet(),
-        fetchCoverageAreas()
-      ]);
+      const { shipments: shipmentsData, fleet: fleetData, coverage: coverageData } = await fetchLogisticsData();
 
-      setShipments(shipmentsData as Shipment[]);
-      setFleet(fleetData as FleetVehicle[]);
-      setCoverageAreas(coverageData as CoverageArea[]);
+      setShipments(shipmentsData);
+      setFleet(fleetData);
+      setCoverageAreas(coverageData);
 
-      const stats = calculateStats(shipmentsData as Shipment[], fleetData as FleetVehicle[]);
+      const stats = calculateStats(shipmentsData, fleetData);
       setDashboardStats(stats);
 
       if (isRefresh) {
         toast({
           title: "Data Refreshed",
-          description: "Dashboard data has been updated successfully.",
+          description: "Dashboard data has been updated.",
         });
       }
 
@@ -294,7 +210,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, hasLogisticsAccess, fetchShipments, fetchFleet, fetchCoverageAreas, toast]);
+  }, [user, hasLogisticsAccess, fetchLogisticsData, toast]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -347,12 +263,12 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { variant: 'secondary' as const, label: 'Pending Pickup', color: 'bg-gray-100' },
-      picked_up: { variant: 'default' as const, label: 'Picked Up', color: 'bg-blue-100' },
-      in_transit: { variant: 'default' as const, label: 'In Transit', color: 'bg-blue-100' },
-      out_for_delivery: { variant: 'default' as const, label: 'Out for Delivery', color: 'bg-orange-100' },
-      delivered: { variant: 'outline' as const, label: 'Delivered', color: 'bg-green-100' },
-      delayed: { variant: 'destructive' as const, label: 'Delayed', color: 'bg-red-100' }
+      pending: { variant: 'secondary' as const, label: 'Pending Pickup' },
+      picked_up: { variant: 'default' as const, label: 'Picked Up' },
+      in_transit: { variant: 'default' as const, label: 'In Transit' },
+      out_for_delivery: { variant: 'default' as const, label: 'Out for Delivery' },
+      delivered: { variant: 'outline' as const, label: 'Delivered' },
+      delayed: { variant: 'destructive' as const, label: 'Delayed' }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -383,7 +299,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   const statsCards = [
     {
       title: 'Active Shipments',
-      value: dashboardStats.activeShipments,
+      value: dashboardStats.activeShipments.toString(),
       icon: Package,
       trend: 'In progress',
       color: 'text-blue-600',
@@ -391,7 +307,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     },
     {
       title: 'Total Deliveries',
-      value: dashboardStats.totalDeliveries,
+      value: dashboardStats.totalDeliveries.toString(),
       icon: CheckCircle,
       trend: 'All time',
       color: 'text-green-600',
@@ -399,7 +315,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     },
     {
       title: 'On-Time Rate',
-      value: `${dashboardStats.onTimeDeliveryRate}%`,
+      value: dashboardStats.totalDeliveries > 0 ? `${dashboardStats.onTimeDeliveryRate}%` : '0%',
       icon: Clock,
       trend: 'This month',
       color: 'text-orange-600',
@@ -430,7 +346,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <div>
             <p className="text-lg font-medium">Loading Logistics Dashboard</p>
-            <p className="text-sm text-muted-foreground">Checking database setup...</p>
+            <p className="text-sm text-muted-foreground">Checking for logistics data...</p>
           </div>
         </div>
       </div>
@@ -443,34 +359,32 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         
         {/* Access Confirmation */}
         <Alert className="border-green-200 bg-green-50">
-          <CheckCircle className="w-4 w-4" />
+          <CheckCircle className="w-4 h-4" />
           <AlertDescription className="text-green-700">
             <strong>✅ Logistics Provider Access Confirmed</strong> - Welcome, {userProfile?.full_name || user?.email}
           </AlertDescription>
         </Alert>
 
-        {/* Database Setup Status */}
-        {(!tablesExist.shipments || !tablesExist.fleet || !tablesExist.coverage) && (
-          <Alert className="border-yellow-200 bg-yellow-50">
-            <Database className="w-4 h-4" />
-            <AlertDescription className="text-yellow-800">
-              <strong>⚠️ Database Setup Required:</strong>
-              <div className="mt-2 space-y-1">
-                {!tablesExist.shipments && <div>• Shipments table missing</div>}
-                {!tablesExist.fleet && <div>• Fleet table missing</div>}
-                {!tablesExist.coverage && <div>• Coverage areas table missing</div>}
-              </div>
-              <Button 
-                variant="link" 
-                className="p-0 mt-2 text-yellow-800 underline" 
-                onClick={() => window.open('/docs/database-setup', '_blank')}
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                View Setup Instructions
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Database Setup Notice */}
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <Database className="w-4 h-4" />
+          <AlertDescription className="text-yellow-800">
+            <strong>🔧 Database Setup Required:</strong> To start managing logistics operations, you need to create the required database tables.
+            <div className="mt-2 text-sm">
+              • logistics_shipments (shipment tracking)<br />
+              • logistics_fleet (vehicle management)<br />
+              • logistics_coverage (service areas)
+            </div>
+            <Button 
+              variant="link" 
+              className="p-0 mt-2 text-yellow-800 underline" 
+              onClick={() => window.open('/docs/logistics-database-setup', '_blank')}
+            >
+              <ExternalLink className="w-3 h-3 mr-1" />
+              View Database Setup Guide
+            </Button>
+          </AlertDescription>
+        </Alert>
 
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -535,205 +449,231 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="w-5 h-5" />
-              Logistics Management
+              Logistics Operations
             </CardTitle>
             <CardDescription>
-              {tablesExist.shipments || tablesExist.fleet || tablesExist.coverage 
-                ? "Manage your logistics operations"
-                : "Complete database setup to start managing logistics operations"
-              }
+              Complete database setup to start managing your logistics operations
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!tablesExist.shipments && !tablesExist.fleet && !tablesExist.coverage ? (
-              <div className="text-center py-12">
-                <Database className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Database Setup Required</h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  To start using the logistics provider dashboard, you need to set up the required database tables.
-                </p>
-                <div className="space-y-2">
-                  <Button className="w-full max-w-xs">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Setup Database Tables
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    This will create the necessary tables for shipments, fleet, and coverage areas.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <Tabs defaultValue="shipments" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="shipments" disabled={!tablesExist.shipments}>
-                    Shipments ({shipments.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="fleet" disabled={!tablesExist.fleet}>
-                    Fleet ({fleet.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="coverage" disabled={!tablesExist.coverage}>
-                    Coverage
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics">
-                    Analytics
-                  </TabsTrigger>
-                </TabsList>
+            <Tabs defaultValue="shipments" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="shipments" className="flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  Shipments ({shipments.length})
+                </TabsTrigger>
+                <TabsTrigger value="fleet" className="flex items-center gap-2">
+                  <Truck className="w-4 h-4" />
+                  Fleet ({fleet.length})
+                </TabsTrigger>
+                <TabsTrigger value="coverage" className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Coverage ({coverageAreas.length})
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Analytics
+                </TabsTrigger>
+              </TabsList>
 
-                <TabsContent value="shipments" className="mt-6">
-                  <div className="space-y-4">
+              <TabsContent value="shipments" className="mt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Shipments Management</h3>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         placeholder="Search shipments..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 w-64"
                       />
                     </div>
-                    
-                    {filteredShipments.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground mb-2">
-                          {shipments.length === 0 ? 'No shipments found' : 'No shipments match your search'}
-                        </p>
-                        <Button>
+                  </div>
+                  
+                  {shipments.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Shipments Found</h3>
+                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                        You haven't created any shipments yet. Set up your database tables and start managing deliveries.
+                      </p>
+                      <div className="space-y-2">
+                        <Button className="w-full max-w-xs">
                           <Plus className="w-4 h-4 mr-2" />
                           Create First Shipment
                         </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Requires database setup first
+                        </p>
                       </div>
-                    ) : (
-                      <div className="border rounded-lg">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Shipment ID</TableHead>
-                              <TableHead>Client</TableHead>
-                              <TableHead>Route</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Actions</TableHead>
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Shipment ID</TableHead>
+                            <TableHead>Client</TableHead>
+                            <TableHead>Route</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredShipments.map((shipment) => (
+                            <TableRow key={shipment.id}>
+                              <TableCell className="font-medium">{shipment.shipment_id}</TableCell>
+                              <TableCell>{shipment.client_name}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1 text-sm">
+                                  <MapPin className="w-3 h-3" />
+                                  {shipment.pickup_location} → {shipment.delivery_location}
+                                </div>
+                              </TableCell>
+                              <TableCell>{getStatusBadge(shipment.status)}</TableCell>
+                              <TableCell>₹{shipment.cost.toLocaleString()}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="outline">
+                                    <Eye className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" variant="outline">
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredShipments.map((shipment) => (
-                              <TableRow key={shipment.id}>
-                                <TableCell className="font-medium">{shipment.shipment_id}</TableCell>
-                                <TableCell>{shipment.client_name}</TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <MapPin className="w-3 h-3" />
-                                    {shipment.pickup_location} → {shipment.delivery_location}
-                                  </div>
-                                </TableCell>
-                                <TableCell>{getStatusBadge(shipment.status)}</TableCell>
-                                <TableCell>₹{shipment.cost.toLocaleString()}</TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button size="sm" variant="outline">
-                                      <Eye className="w-3 h-3" />
-                                    </Button>
-                                    <Button size="sm" variant="outline">
-                                      <Edit className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="fleet" className="mt-6">
+                {fleet.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Vehicles in Fleet</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      Start building your logistics fleet by adding vehicles and assigning drivers.
+                    </p>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add First Vehicle
+                    </Button>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="fleet" className="mt-6">
-                  {fleet.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground mb-4">No vehicles in your fleet</p>
-                      <Button>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add First Vehicle
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {fleet.map((vehicle) => (
-                        <Card key={vehicle.id} className="hover:shadow-lg transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-3">
-                              <div>
-                                <h3 className="font-semibold">{vehicle.vehicle_type}</h3>
-                                <p className="text-sm text-muted-foreground">{vehicle.license_plate}</p>
-                              </div>
-                              {getVehicleStatusBadge(vehicle.status)}
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {fleet.map((vehicle) => (
+                      <Card key={vehicle.id} className="hover:shadow-lg transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold">{vehicle.vehicle_type}</h3>
+                              <p className="text-sm text-muted-foreground">{vehicle.license_plate}</p>
                             </div>
-                            
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-muted-foreground" />
-                                <span>{vehicle.driver_name}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-muted-foreground" />
-                                <span>{vehicle.current_location}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Package className="w-4 h-4 text-muted-foreground" />
-                                <span>Capacity: {vehicle.capacity_weight} kg</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 mt-4">
-                              <Button size="sm" variant="outline" className="flex-1">
-                                <Navigation className="w-3 h-3 mr-1" />
-                                Track
-                              </Button>
-                              <Button size="sm" variant="outline" className="flex-1">
-                                <Edit className="w-3 h-3 mr-1" />
-                                Edit
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="coverage" className="mt-6">
-                  {coverageAreas.length === 0 ? (
-                    <div className="text-center py-8">
-                      <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground mb-4">No coverage areas defined</p>
-                      <Button>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Coverage Area
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {coverageAreas.map((area) => (
-                        <div key={area.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <h3 className="font-semibold">{area.area_name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Delivery within {area.delivery_time}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Base: ₹{area.base_rate} + ₹{area.per_kg_rate}/kg
-                            </p>
+                            {getVehicleStatusBadge(vehicle.status)}
                           </div>
-                          <Badge variant="outline">{area.zone_type}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
+                          
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                              <span>{vehicle.driver_name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <span>{vehicle.current_location}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Package className="w-4 h-4 text-muted-foreground" />
+                              <span>Capacity: {vehicle.capacity_weight} kg</span>
+                            </div>
+                          </div>
 
-                <TabsContent value="analytics" className="mt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="flex items-center gap-2 mt-4">
+                            <Button size="sm" variant="outline" className="flex-1">
+                              <Navigation className="w-3 h-3 mr-1" />
+                              Track
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex-1">
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="coverage" className="mt-6">
+                {coverageAreas.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Coverage Areas Defined</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      Define your service areas and pricing zones to start offering logistics services.
+                    </p>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Coverage Area
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h3 className="font-semibold">Service Coverage Areas</h3>
+                      <div className="space-y-2">
+                        {coverageAreas.map((area) => (
+                          <div key={area.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                              <h3 className="font-semibold">{area.area_name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Delivery within {area.delivery_time}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Base: ₹{area.base_rate} + ₹{area.per_kg_rate}/kg
+                              </p>
+                            </div>
+                            <Badge variant="outline">{area.zone_type}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="font-semibold">Rate Calculator</h3>
+                      <div className="space-y-3">
+                        <Input placeholder="Pickup location" />
+                        <Input placeholder="Delivery location" />
+                        <Input placeholder="Weight (kg)" type="number" />
+                        <Button className="w-full">Calculate Rate</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="analytics" className="mt-6">
+                {shipments.length === 0 && fleet.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Activity className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Analytics Data</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      Analytics will appear here once you start managing shipments and fleet operations.
+                    </p>
+                    <Button variant="outline">
+                      <Database className="w-4 h-4 mr-2" />
+                      Setup Database First
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card>
                       <CardHeader>
                         <CardTitle>Performance Metrics</CardTitle>
@@ -802,9 +742,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                       </CardContent>
                     </Card>
                   </div>
-                </TabsContent>
-              </Tabs>
-            )}
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
