@@ -211,7 +211,7 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
       const servicesData = servicesResponse.data || [];
       const sparePartsData = sparePartsResponse.data || [];
 
-      setUsers(usersData);
+      setUsers(usersData as UserProfile[]);
       setRobots(robotsData);
       setServices(servicesData);
       setSpareParts(sparePartsData);
@@ -224,7 +224,8 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
         new Date(user.created_at) >= thisMonth
       ).length;
       
-      const verifiedUsers = usersData.filter(user => user.verification_status).length;
+      // Note: verification_status doesn't exist in current schema, defaulting to 0
+      const verifiedUsers = 0;
       
       const activeListings = robotsData.filter(robot => 
         robot.availability === 'available'
