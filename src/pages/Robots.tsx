@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, MapPin, DollarSign, Search, Filter, Grid, List, Phone, MessageCircle } from "lucide-react";
+import { Bot, MapPin, DollarSign, Search, Filter, Grid, List } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 
 const Robots = () => {
@@ -50,9 +50,7 @@ const Robots = () => {
             profiles!robots_seller_id_fkey (
               full_name,
               company_name,
-              location,
-              phone,
-              mobile_number
+              location
             )
           `)
           .eq('availability', 'available')
@@ -75,32 +73,6 @@ const Robots = () => {
   const formatPrice = (price: number, currency: string) => {
     const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
     return `${currencySymbol}${price.toLocaleString()}`;
-  };
-
-  const handleContactSeller = (robot: any, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
-    
-    if (!phone) {
-      alert('Contact information not available for this seller');
-      return;
-    }
-
-    const phoneNumber = phone.replace(/\D/g, ''); // Remove non-digits
-    const message = `Hi! I'm interested in your robot: ${robot.name} (${robot.model}). Can you please provide more details?`;
-    
-    // Create options for WhatsApp or Phone call
-    const choice = window.confirm(
-      'Choose contact method:\n\nOK = WhatsApp Message\nCancel = Phone Call'
-    );
-    
-    if (choice) {
-      // WhatsApp
-      window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-    } else {
-      // Phone call
-      window.location.href = `tel:+91${phoneNumber}`;
-    }
   };
 
   const filteredRobots = robots.filter((robot) => {
@@ -269,14 +241,8 @@ const Robots = () => {
                         <Button size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
                           View Details
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={(e) => handleContactSeller(robot, e)}
-                          disabled={!robot.profiles?.phone && !robot.profiles?.mobile_number}
-                        >
-                          <MessageCircle className="w-3 h-3 mr-1" />
-                          Contact
+                        <Button variant="outline" size="sm">
+                          Contact Seller
                         </Button>
                       </div>
                     </div>

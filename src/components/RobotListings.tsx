@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Package, Eye, Brain, IndianRupee, MessageCircle } from "lucide-react";
+import { MapPin, Package, Eye, Brain, IndianRupee } from "lucide-react";
 import { toast } from "sonner";
 
 interface Robot {
@@ -24,8 +24,6 @@ interface Robot {
   profiles: {
     company_name: string;
     full_name: string;
-    phone: string;
-    mobile_number: string;
   };
 }
 
@@ -44,9 +42,7 @@ const RobotListings = () => {
             *,
             profiles!robots_seller_id_fkey (
               company_name,
-              full_name,
-              phone,
-              mobile_number
+              full_name
             )
           `)
           .eq('availability', 'available')
@@ -68,37 +64,11 @@ const RobotListings = () => {
 
   const handleAnalyzeRobot = (robotId: string) => {
     if (!user) {
-      toast.error('Please sign in to use RobotVerse AI analysis');
+      toast.error('Please sign in to use RoboVerse AI analysis');
       return;
     }
     // This will be implemented with DeepSeek API integration
     toast.info('AI Analysis feature coming soon!');
-  };
-
-  const handleContactSeller = (robot: Robot, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
-    
-    if (!phone) {
-      toast.error('Contact information not available for this seller');
-      return;
-    }
-
-    const phoneNumber = phone.replace(/\D/g, ''); // Remove non-digits
-    const message = `Hi! I'm interested in your robot: ${robot.name} (${robot.model}). Can you please provide more details?`;
-    
-    // Create options for WhatsApp or Phone call
-    const choice = window.confirm(
-      'Choose contact method:\n\nOK = WhatsApp Message\nCancel = Phone Call'
-    );
-    
-    if (choice) {
-      // WhatsApp
-      window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-    } else {
-      // Phone call
-      window.location.href = `tel:+91${phoneNumber}`;
-    }
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -147,7 +117,7 @@ const RobotListings = () => {
           <div className="text-center py-12">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No robots listed yet</h3>
-            <p className="text-muted-foreground">Be the first to list your robots on RobotVerse!</p>
+            <p className="text-muted-foreground">Be the first to list your robots on RoboVerse!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -202,23 +172,11 @@ const RobotListings = () => {
                     )}
                   </div>
                   
-                  <div className="flex gap-2 mb-2">
+                  <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
                       <Eye className="w-3 h-3 mr-1" />
                       View Details
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => handleContactSeller(robot, e)}
-                      disabled={!robot.profiles?.phone && !robot.profiles?.mobile_number}
-                    >
-                      <MessageCircle className="w-3 h-3 mr-1" />
-                      Contact
-                    </Button>
-                  </div>
-                  
-                  <div className="flex gap-2">
                     {user ? (
                       <Button 
                         variant="default" 

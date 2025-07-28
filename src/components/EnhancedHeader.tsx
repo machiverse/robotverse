@@ -25,7 +25,7 @@ const EnhancedHeader = () => {
               <span className="text-primary-foreground font-bold text-lg">R</span>
             </div>
             <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              RobotVerse
+              RoboVerse
             </span>
           </Link>
 
