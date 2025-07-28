@@ -40,23 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 // Add at the top:
 import { UserProfile } from '@/types/user';
 
-// Remove any local UserProfile interface definition
-
 // Type definitions
-interface UserProfile {
-  id: string;
-  user_id: string;
-  email: string;
-  full_name?: string;
-  user_type?: 'buyer' | 'seller' | 'service_provider' | 'logistics_provider' | 'finance_provider';
-  seller_roles?: string[];
-  service_categories?: string[];
-  company_name?: string;
-  phone?: string;
-  verification_status?: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 interface Robot {
   id: string;
