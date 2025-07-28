@@ -101,48 +101,7 @@ const Auth = () => {
     }
   };
 
-  // Enhanced validation function
-  const validateSignUpForm = () => {
-    const errors = [];
-    
-    if (!fullName.trim()) errors.push("Full name is required");
-    if (!companyName.trim()) errors.push("Company name is required");
-    if (!mobileNumber.trim()) errors.push("Mobile number is required");
-    if (!location.trim()) errors.push("Location is required");
-    if (!accountType) errors.push("Account type is required");
-    
-    if (accountType === 'seller' && sellerRoles.length === 0) {
-      errors.push("Please select at least one seller role");
-    }
-    
-    if (accountType === 'logistics') {
-      if (!logisticsType) errors.push("Logistics type is required");
-      if (!logisticsRegion.trim()) errors.push("Logistics region is required");
-      if (transportModes.length === 0) errors.push("Please select at least one transport mode");
-    }
-    
-    if (accountType === 'finance') {
-      if (financeType.length === 0) errors.push("Please select at least one finance type");
-      if (financingFor.length === 0) errors.push("Please select what you provide financing for");
-      if (targetAudience.length === 0) errors.push("Please select your target audience");
-    }
-    
-    if (errors.length > 0) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: errors.join(", "),
-      });
-      return false;
-    }
-    
-    return true;
-  };
-
-  // Enhanced profile update function
   const updateUserProfile = async (userId: string) => {
-    console.log('Updating profile for user:', userId);
-    
     const profileData: any = {
       user_id: userId,
       full_name: fullName,
@@ -150,9 +109,7 @@ const Auth = () => {
       mobile_number: mobileNumber,
       location: location,
       account_type: accountType,
-      user_type: accountType, // This ensures both fields are set
-      primary_type: accountType, // Add this for the dashboard
-      updated_at: new Date().toISOString()
+      user_type: accountType, // Set both account_type and user_type
     };
 
     if (accountType === 'seller') {
@@ -172,27 +129,17 @@ const Auth = () => {
       profileData.government_scheme_support = governmentSchemeSupport;
     }
 
-    console.log('Profile data to update:', profileData);
-
-    // Use upsert instead of update to ensure data is created if it doesn't exist
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
-      .upsert(profileData, { 
-        onConflict: 'user_id',
-        ignoreDuplicates: false 
-      })
-      .select(); // Add select to get the updated data back
+      .update(profileData)
+      .eq('user_id', userId);
 
     if (error) {
       console.error('Error updating profile:', error);
-      throw new Error(`Failed to update profile: ${error.message}`);
+      throw error;
     }
-
-    console.log('Profile updated successfully:', data);
-    return data;
   };
 
-  // Enhanced form submission handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -200,31 +147,26 @@ const Auth = () => {
     try {
       let result;
       if (isSignUp) {
-        // Validate form before submission
-        if (!validateSignUpForm()) {
+        if (!accountType) {
+          toast({
+            variant: "destructive",
+            title: "Account Type Required",
+            description: "Please select an account type to continue.",
+          });
           setLoading(false);
           return;
         }
 
         result = await signUp(email, password, fullName);
         
-        if (!result.error && result.data?.user) {
-          console.log('User created successfully:', result.data.user.id);
+        if (!result.error) {
+          // Get the user from the auth result
+          const { data: { user: newUser } } = await supabase.auth.getUser();
           
-          // Wait a bit for the user to be fully created, then update profile
-          setTimeout(async () => {
-            try {
-              await updateUserProfile(result.data.user.id);
-              setShowMouModal(true);
-            } catch (profileError: any) {
-              console.error('Profile update error:', profileError);
-              toast({
-                variant: "destructive",
-                title: "Profile Update Error",
-                description: "Account created but profile update failed. Please contact support.",
-              });
-            }
-          }, 1000);
+          if (newUser) {
+            await updateUserProfile(newUser.id);
+            setShowMouModal(true);
+          }
         }
       } else {
         result = await signIn(email, password);
@@ -243,7 +185,6 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      console.error('Authentication error:', error);
       toast({
         variant: "destructive",
         title: "Authentication Error",
@@ -254,15 +195,11 @@ const Auth = () => {
     }
   };
 
-  // Enhanced MOU agreement handler
   const handleMouAgreement = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
       if (currentUser) {
-        console.log('Updating MOU agreement for user:', currentUser.id);
-        
-        // Only update MOU fields, don't overwrite other data
         const { error } = await supabase
           .from('profiles')
           .update({
@@ -271,10 +208,7 @@ const Auth = () => {
           })
           .eq('user_id', currentUser.id);
 
-        if (error) {
-          console.error('MOU update error:', error);
-          throw error;
-        }
+        if (error) throw error;
 
         toast({
           title: "Welcome to RobotVerse!",
@@ -285,7 +219,6 @@ const Auth = () => {
         navigate('/');
       }
     } catch (error: any) {
-      console.error('MOU agreement error:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -364,7 +297,7 @@ const Auth = () => {
               {/* Common Fields */}
               {isSignUp && (
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Label htmlFor="fullName">Full Name</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -382,7 +315,7 @@ const Auth = () => {
 
               {isSignUp && (
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name *</Label>
+                  <Label htmlFor="companyName">Company Name</Label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -399,7 +332,7 @@ const Auth = () => {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -415,7 +348,7 @@ const Auth = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -434,7 +367,7 @@ const Auth = () => {
               {isSignUp && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="mobileNumber">Mobile Number *</Label>
+                    <Label htmlFor="mobileNumber">Mobile Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
@@ -450,7 +383,7 @@ const Auth = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="location">Location *</Label>
+                    <Label htmlFor="location">Location</Label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
@@ -466,7 +399,7 @@ const Auth = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Account Type *</Label>
+                    <Label>Account Type</Label>
                     <Select value={accountType} onValueChange={(value: any) => setAccountType(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Choose account type" />
@@ -483,7 +416,7 @@ const Auth = () => {
                   {/* Seller Role Logic */}
                   {accountType === 'seller' && (
                     <div className="space-y-2">
-                      <Label>Seller Roles (Select all that apply) *</Label>
+                      <Label>Seller Roles (Select all that apply)</Label>
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <Checkbox
@@ -550,7 +483,7 @@ const Auth = () => {
                   {accountType === 'logistics' && (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Type of Logistics *</Label>
+                        <Label>Type of Logistics</Label>
                         <Select value={logisticsType} onValueChange={setLogisticsType}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select logistics type" />
@@ -564,7 +497,7 @@ const Auth = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="logisticsRegion">Region of Service *</Label>
+                        <Label htmlFor="logisticsRegion">Region of Service</Label>
                         <Input
                           id="logisticsRegion"
                           value={logisticsRegion}
@@ -574,7 +507,7 @@ const Auth = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Transport Modes *</Label>
+                        <Label>Transport Modes</Label>
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -618,7 +551,7 @@ const Auth = () => {
                   {accountType === 'finance' && (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Type of Service *</Label>
+                        <Label>Type of Service</Label>
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -648,7 +581,7 @@ const Auth = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Financing For *</Label>
+                        <Label>Financing For</Label>
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -686,7 +619,7 @@ const Auth = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Target Audience *</Label>
+                        <Label>Target Audience</Label>
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <Checkbox
