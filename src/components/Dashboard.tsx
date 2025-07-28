@@ -319,8 +319,8 @@ const Dashboard = ({ userProfile }: DashboardProps) => {
     const { title, data, type } = selectedDetail;
 
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 h-full">
+        <div className="flex items-center justify-between sticky top-0 bg-white z-10 pb-2 border-b">
           <div>
             <h3 className="text-lg font-semibold">{title}</h3>
             <p className="text-sm text-muted-foreground">{data.length} items</p>
@@ -334,8 +334,8 @@ const Dashboard = ({ userProfile }: DashboardProps) => {
           </Button>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-200px)] w-full">
-          <div className="pr-4">
+        <ScrollArea className="flex-1 h-[calc(100vh-180px)]">
+          <div className="pr-2 space-y-2">
             {data.length === 0 ? (
               <div className="text-center py-8">
                 <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -345,28 +345,28 @@ const Dashboard = ({ userProfile }: DashboardProps) => {
               <Accordion type="single" collapsible className="w-full space-y-2">
                 {data.map((item, index) => (
                   <AccordionItem key={index} value={`item-${index}`} className="border rounded-lg bg-card">
-                    <AccordionTrigger className="px-4 hover:bg-muted/50">
+                    <AccordionTrigger className="px-3 py-2 hover:bg-muted/50">
                       <div className="flex items-center space-x-3 w-full">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <Bot className="w-5 h-5 text-primary" />
+                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Bot className="w-4 h-4 text-primary" />
                         </div>
-                        <div className="text-left flex-1">
-                          <p className="font-medium truncate">{item.name || `Robot ${index + 1}`}</p>
+                        <div className="text-left flex-1 min-w-0">
+                          <p className="font-medium truncate text-sm">{item.name || `Robot ${index + 1}`}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant={item.availability === 'available' ? 'default' : 'secondary'} className="text-xs">
                               {item.availability || 'Unknown'}
                             </Badge>
-                            <span className="text-sm font-medium text-primary">
+                            <span className="text-xs font-medium text-primary">
                               ₹{item.price?.toLocaleString() || '0'}
                             </span>
                           </div>
                         </div>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
-                      <div className="space-y-4">
+                    <AccordionContent className="px-3 pb-3">
+                      <div className="space-y-3">
                         {/* Robot Details Grid */}
-                        <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
                           <div className="p-2 bg-muted/50 rounded">
                             <span className="font-medium text-muted-foreground">Type:</span>
                             <p className="font-medium">{item.robot_type || 'N/A'}</p>
@@ -390,29 +390,14 @@ const Dashboard = ({ userProfile }: DashboardProps) => {
                         
                         {/* Description */}
                         {item.description && (
-                          <div className="p-3 bg-muted/50 rounded">
-                            <span className="font-medium text-muted-foreground block mb-1">Description:</span>
-                            <p className="text-sm">{item.description}</p>
-                          </div>
-                        )}
-
-                        {/* Specifications */}
-                        {item.specifications && Object.keys(item.specifications).length > 0 && (
-                          <div className="p-3 bg-muted/50 rounded">
-                            <span className="font-medium text-muted-foreground block mb-2">Specifications:</span>
-                            <div className="grid grid-cols-1 gap-1 text-xs">
-                              {Object.entries(item.specifications).map(([key, value]) => (
-                                <div key={key} className="flex justify-between">
-                                  <span className="capitalize">{key.replace('_', ' ')}:</span>
-                                  <span className="font-medium">{String(value)}</span>
-                                </div>
-                              ))}
-                            </div>
+                          <div className="p-2 bg-muted/50 rounded">
+                            <span className="font-medium text-muted-foreground block mb-1 text-xs">Description:</span>
+                            <p className="text-xs">{item.description}</p>
                           </div>
                         )}
 
                         {/* Created Date */}
-                        <div className="p-2 bg-muted/50 rounded text-sm">
+                        <div className="p-2 bg-muted/50 rounded text-xs">
                           <span className="font-medium text-muted-foreground">Listed:</span>
                           <p className="font-medium flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
@@ -422,22 +407,22 @@ const Dashboard = ({ userProfile }: DashboardProps) => {
                         
                         {/* Action Buttons */}
                         <div className="flex gap-2 pt-2">
-                          <Button size="sm" variant="default" className="flex-1">
+                          <Button size="sm" variant="default" className="flex-1 text-xs">
                             <Eye className="w-3 h-3 mr-1" />
-                            View Full Details
+                            View
                           </Button>
-                          <Button size="sm" variant="outline" className="flex-1">
+                          <Button size="sm" variant="outline" className="flex-1 text-xs">
                             <Edit className="w-3 h-3 mr-1" />
-                            Edit Robot
+                            Edit
                           </Button>
                         </div>
 
                         {/* Images Preview */}
                         {item.images && item.images.length > 0 && (
                           <div className="space-y-2">
-                            <span className="font-medium text-muted-foreground text-sm">Images:</span>
-                            <div className="grid grid-cols-2 gap-2">
-                              {item.images.slice(0, 4).map((image: string, imgIndex: number) => (
+                            <span className="font-medium text-muted-foreground text-xs">Images:</span>
+                            <div className="grid grid-cols-2 gap-1">
+                              {item.images.slice(0, 2).map((image: string, imgIndex: number) => (
                                 <div key={imgIndex} className="aspect-video bg-muted rounded overflow-hidden">
                                   <img 
                                     src={image} 
@@ -447,9 +432,9 @@ const Dashboard = ({ userProfile }: DashboardProps) => {
                                 </div>
                               ))}
                             </div>
-                            {item.images.length > 4 && (
+                            {item.images.length > 2 && (
                               <p className="text-xs text-muted-foreground">
-                                +{item.images.length - 4} more images
+                                +{item.images.length - 2} more images
                               </p>
                             )}
                           </div>
@@ -467,245 +452,247 @@ const Dashboard = ({ userProfile }: DashboardProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 flex">
-      {/* Left Detail Panel - Fixed Position */}
+    <div className="h-screen bg-gray-50/50 flex overflow-hidden">
+      {/* Left Detail Panel - Fixed Position with proper constraints */}
       {isDetailOpen && (
-        <div className="w-80 bg-white border-r shadow-lg flex-shrink-0 z-10">
-          <div className="p-6 h-full">
+        <div className="w-72 lg:w-80 bg-white border-r shadow-lg flex-shrink-0 z-10 flex flex-col">
+          <div className="p-4 h-full overflow-hidden">
             {renderDetailView()}
           </div>
         </div>
       )}
 
-      {/* Main Content - Adjusts based on detail panel */}
-      <div className={`flex-1 transition-all duration-300 ${isDetailOpen ? 'ml-0' : ''}`}>
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-          
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {data.title}
-              </h1>
-              <p className="text-muted-foreground">{data.subtitle}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={fetchRealTimeData}
-                disabled={loading}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats Grid - Clickable Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {data.stats.map((stat, index) => {
-              const Icon = stat.icon;
-              const hasDetails = stat.details && stat.details.length > 0;
-              
-              return (
-                <Card 
-                  key={index} 
-                  className={`hover:shadow-lg transition-all duration-200 border-0 shadow-sm ${
-                    hasDetails ? 'cursor-pointer hover:scale-105' : ''
-                  } ${selectedDetail?.title === stat.label ? 'ring-2 ring-primary' : ''}`}
-                  onClick={() => hasDetails && handleStatClick(stat)}
+      {/* Main Content - Properly constrained */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-4 lg:p-6 space-y-6 min-h-full">
+            
+            {/* Header - More compact */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent truncate">
+                  {data.title}
+                </h1>
+                <p className="text-muted-foreground text-sm lg:text-base">{data.subtitle}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={fetchRealTimeData}
+                  disabled={loading}
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                          {stat.label}
-                        </p>
-                        <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {stat.trend}
-                          </Badge>
-                          {hasDetails && (
-                            <Badge variant="outline" className="text-xs">
-                              <Eye className="w-3 h-3 mr-1" />
-                              Details
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Filter</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Stats Grid - Better responsive design */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+              {data.stats.map((stat, index) => {
+                const Icon = stat.icon;
+                const hasDetails = stat.details && stat.details.length > 0;
+                
+                return (
+                  <Card 
+                    key={index} 
+                    className={`hover:shadow-lg transition-all duration-200 border-0 shadow-sm ${
+                      hasDetails ? 'cursor-pointer hover:scale-[1.02]' : ''
+                    } ${selectedDetail?.title === stat.label ? 'ring-2 ring-primary' : ''}`}
+                    onClick={() => hasDetails && handleStatClick(stat)}
+                  >
+                    <CardContent className="p-4 lg:p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs lg:text-sm font-medium text-muted-foreground uppercase tracking-wide truncate">
+                            {stat.label}
+                          </p>
+                          <p className="text-lg lg:text-2xl font-bold mt-1 truncate">{stat.value}</p>
+                          <div className="flex items-center gap-1 lg:gap-2 mt-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {stat.trend}
                             </Badge>
+                            {hasDetails && (
+                              <Badge variant="outline" className="text-xs hidden sm:flex">
+                                <Eye className="w-3 h-3 mr-1" />
+                                Details
+                              </Badge>
+                            )}
+                          </div>
+                          {stat.description && (
+                            <p className="text-xs text-muted-foreground mt-1 hidden lg:block">
+                              {stat.description}
+                            </p>
                           )}
                         </div>
-                        {stat.description && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {stat.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
-                          <Icon className={`w-6 h-6 ${stat.color || 'text-primary'}`} />
+                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-muted flex items-center justify-center">
+                            <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${stat.color || 'text-primary'}`} />
+                          </div>
+                          {hasDetails && (
+                            <ChevronLeft className="w-3 h-3 lg:w-4 lg:h-4 text-muted-foreground" />
+                          )}
                         </div>
-                        {hasDetails && (
-                          <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Quick Actions - More compact grid */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Zap className="w-5 h-5" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription className="text-sm">Frequently used features and shortcuts</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {data.quickActions.map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        className="h-auto p-3 flex flex-col items-center space-y-2 hover:bg-primary/10 group transition-all"
+                        onClick={() => {
+                          if (action.path) {
+                            window.location.href = action.path;
+                          } else if (action.onClick) {
+                            action.onClick();
+                          }
+                        }}
+                      >
+                        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                          <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-xs lg:text-sm">{action.label}</p>
+                          {action.description && (
+                            <p className="text-xs text-muted-foreground hidden lg:block">{action.description}</p>
+                          )}
+                        </div>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Performance Analytics - Simplified for better fit */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BarChart className="w-5 h-5" />
+                  Performance Analytics
+                </CardTitle>
+                <CardDescription className="text-sm">Detailed breakdown of your performance metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="sales-analytics">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-green-600" />
+                        Sales Analytics
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-3 lg:p-4 bg-green-50 rounded-lg">
+                          <h4 className="font-semibold text-green-800 text-sm">Total Revenue</h4>
+                          <p className="text-xl lg:text-2xl font-bold text-green-600">₹{dashboardStats.totalRevenue?.toLocaleString() || '0'}</p>
+                          <p className="text-sm text-green-600">From all sales</p>
+                        </div>
+                        <div className="p-3 lg:p-4 bg-blue-50 rounded-lg">
+                          <h4 className="font-semibold text-blue-800 text-sm">Average Price</h4>
+                          <p className="text-xl lg:text-2xl font-bold text-blue-600">₹{Math.floor(dashboardStats.avgPrice || 0).toLocaleString()}</p>
+                          <p className="text-sm text-blue-600">Per robot sold</p>
+                        </div>
+                        <div className="p-3 lg:p-4 bg-purple-50 rounded-lg">
+                          <h4 className="font-semibold text-purple-800 text-sm">Conversion Rate</h4>
+                          <p className="text-xl lg:text-2xl font-bold text-purple-600">{dashboardStats.conversationRate?.toFixed(1) || '0'}%</p>
+                          <p className="text-sm text-purple-600">Views to inquiries</p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                  
+                  <AccordionItem value="inventory-status">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-blue-600" />
+                        Inventory Status
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
+                          <span>Active Listings</span>
+                          <Badge variant="default">{dashboardStats.activeListings || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
+                          <span>Total Robots</span>
+                          <Badge variant="outline">{dashboardStats.totalRobots || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
+                          <span>Pending Approval</span>
+                          <Badge variant="secondary">0</Badge>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="recent-activity">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-orange-600" />
+                        Recent Activity
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3">
+                        {[
+                          { action: 'Added new robot listing', time: '2 hours ago', type: 'success' },
+                          { action: 'Received inquiry from buyer', time: '4 hours ago', type: 'info' },
+                          { action: 'Updated pricing for 3 robots', time: '1 day ago', type: 'warning' }
+                        ].map((item, index) => (
+                          <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              item.type === 'success' ? 'bg-green-100 text-green-600' :
+                              item.type === 'info' ? 'bg-blue-100 text-blue-600' :
+                              'bg-orange-100 text-orange-600'
+                            }`}>
+                              <Bot className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{item.action}</p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {item.time}
+                              </p>
+                            </div>
+                            <Button variant="ghost" size="sm">
+                              <ArrowUpRight className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
           </div>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                Quick Actions
-              </CardTitle>
-              <CardDescription>Frequently used features and shortcuts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {data.quickActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      className="h-auto p-4 flex flex-col items-center space-y-2 hover:bg-primary/10 group transition-all"
-                      onClick={() => {
-                        if (action.path) {
-                          window.location.href = action.path;
-                        } else if (action.onClick) {
-                          action.onClick();
-                        }
-                      }}
-                    >
-                      <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-sm">{action.label}</p>
-                        {action.description && (
-                          <p className="text-xs text-muted-foreground">{action.description}</p>
-                        )}
-                      </div>
-                    </Button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Performance Analytics with Accordion */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart className="w-5 h-5" />
-                Performance Analytics
-              </CardTitle>
-              <CardDescription>Detailed breakdown of your performance metrics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="sales-analytics">
-                  <AccordionTrigger>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-green-600" />
-                      Sales Analytics
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 bg-green-50 rounded-lg">
-                        <h4 className="font-semibold text-green-800">Total Revenue</h4>
-                        <p className="text-2xl font-bold text-green-600">₹{dashboardStats.totalRevenue?.toLocaleString() || '0'}</p>
-                        <p className="text-sm text-green-600">From all sales</p>
-                      </div>
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <h4 className="font-semibold text-blue-800">Average Price</h4>
-                        <p className="text-2xl font-bold text-blue-600">₹{Math.floor(dashboardStats.avgPrice || 0).toLocaleString()}</p>
-                        <p className="text-sm text-blue-600">Per robot sold</p>
-                      </div>
-                      <div className="p-4 bg-purple-50 rounded-lg">
-                        <h4 className="font-semibold text-purple-800">Conversion Rate</h4>
-                        <p className="text-2xl font-bold text-purple-600">{dashboardStats.conversationRate?.toFixed(1) || '0'}%</p>
-                        <p className="text-sm text-purple-600">Views to inquiries</p>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="inventory-status">
-                  <AccordionTrigger>
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-blue-600" />
-                      Inventory Status
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
-                        <span>Active Listings</span>
-                        <Badge variant="default">{dashboardStats.activeListings || 0}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
-                        <span>Total Robots</span>
-                        <Badge variant="outline">{dashboardStats.totalRobots || 0}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-muted/50 rounded">
-                        <span>Pending Approval</span>
-                        <Badge variant="secondary">0</Badge>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="recent-activity">
-                  <AccordionTrigger>
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-orange-600" />
-                      Recent Activity
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3">
-                      {[
-                        { action: 'Added new robot listing', time: '2 hours ago', type: 'success' },
-                        { action: 'Received inquiry from buyer', time: '4 hours ago', type: 'info' },
-                        { action: 'Updated pricing for 3 robots', time: '1 day ago', type: 'warning' }
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            item.type === 'success' ? 'bg-green-100 text-green-600' :
-                            item.type === 'info' ? 'bg-blue-100 text-blue-600' :
-                            'bg-orange-100 text-orange-600'
-                          }`}>
-                            <Bot className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{item.action}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {item.time}
-                            </p>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <ArrowUpRight className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );
