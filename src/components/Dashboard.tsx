@@ -224,7 +224,7 @@ const Dashboard = () => {
   // Route to specialized dashboards
   const renderSpecializedDashboard = () => {
     if (isAdmin) {
-      return <AdminDashboard userProfile={userProfile!} />;
+      return <AdminDashboard userProfile={userProfile} />;
     }
 
     if (!userProfile) return null;
