@@ -173,32 +173,10 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
         setLoading(true);
       }
 
-      // Fetch wishlist items
-      const { data: wishlist, error: wishlistError } = await supabase
-        .from('user_wishlist')
-        .select(`
-          id,
-          item_type,
-          item_id,
-          created_at,
-          robots (name, price, images, robot_type, availability),
-          spare_parts (name, price, category)
-        `)
-        .eq('user_id', user.id);
-
-      // Fetch orders
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('buyer_id', user.id)
-        .order('created_at', { ascending: false });
-
-      // Fetch inquiries
-      const { data: inquiriesData, error: inquiriesError } = await supabase
-        .from('inquiries')
-        .select('*')
-        .eq('buyer_id', user.id)
-        .order('created_at', { ascending: false });
+      // Use mock data for now since these tables don't exist yet
+      const wishlist: WishlistItem[] = [];
+      const orders: Order[] = [];
+      const inquiriesData: Inquiry[] = [];
 
       // Fetch recommended robots
       const { data: robots, error: robotsError } = await supabase
@@ -209,15 +187,6 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
         .limit(8);
 
       // Handle errors gracefully
-      if (wishlistError && wishlistError.code !== 'PGRST116') {
-        console.error('Wishlist fetch error:', wishlistError);
-      }
-      if (ordersError && ordersError.code !== 'PGRST116') {
-        console.error('Orders fetch error:', ordersError);
-      }
-      if (inquiriesError && inquiriesError.code !== 'PGRST116') {
-        console.error('Inquiries fetch error:', inquiriesError);
-      }
       if (robotsError) {
         console.error('Robots fetch error:', robotsError);
       }
@@ -228,7 +197,9 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
       const activeOrders = orders?.filter(order => 
         ['pending', 'processing', 'shipped'].includes(order.status)
       ).length || 0;
-      const completedOrders = orders?.filter(order => order.status === 'completed').length || 0;
+      const completedOrders = orders?.filter(order => 
+        order.status === 'delivered'
+      ).length || 0;
       const totalSpent = orders?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
       const pendingInquiries = inquiriesData?.filter(inquiry => inquiry.status === 'pending').length || 0;
 
@@ -311,36 +282,13 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
     }
   }, [user, isBuyer, toast]);
 
-  // Handle wishlist removal
+  // Handle wishlist removal - mock function for now
   const handleWishlistRemove = async (wishlistId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_wishlist')
-        .delete()
-        .eq('id', wishlistId)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      setWishlistItems(prev => prev.filter(item => item.id !== wishlistId));
-      setDashboardStats(prev => ({
-        ...prev,
-        wishlistCount: prev.wishlistCount - 1,
-        savedItems: prev.savedItems - 1
-      }));
-
-      toast({
-        title: "Success",
-        description: "Item removed from wishlist"
-      });
-    } catch (error) {
-      console.error('Error removing from wishlist:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to remove item from wishlist"
-      });
-    }
+    // TODO: Implement when wishlist table is created
+    toast({
+      title: "Feature Coming Soon",
+      description: "Wishlist functionality will be available soon"
+    });
   };
 
   // Enhanced quick actions with counts
