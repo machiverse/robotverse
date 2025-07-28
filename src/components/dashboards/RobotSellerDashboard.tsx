@@ -3,15 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Bot,
   Plus,
@@ -48,45 +46,20 @@ import {
   FileText,
   Camera,
   MapPin,
-  Zap,
-  FileSpreadsheet,
-  Link,
-  ExternalLink,
-  CloudUpload
+  Zap
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import Papa from 'papaparse'; // For CSV parsing
-import * as XLSX from 'xlsx'; // For Excel parsing
+import RobotUpload from '@/components/RobotUpload';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
 }
 
-interface BulkUploadData {
-  name: string;
-  robot_type: string;
-  brand: string;
-  model: string;
-  price: number;
-  currency: string;
-  description: string;
-  specifications: any;
-  images: string[];
-  availability: string;
-  condition: string;
-  location: string;
-  year_manufactured: number;
-  warranty_info: string;
-  [key: string]: any;
-}
-
 const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  // Existing states
   const [robots, setRobots] = useState<any[]>([]);
   const [filteredRobots, setFilteredRobots] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,41 +68,6 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedRobots, setSelectedRobots] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Enhanced inventory management states
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [showImageUrlDialog, setShowImageUrlDialog] = useState(false);
-  const [bulkUploadData, setBulkUploadData] = useState<BulkUploadData[]>([]);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
-
-  // Single robot form states
-  const [singleRobotForm, setSingleRobotForm] = useState({
-    name: '',
-    robot_type: '',
-    brand: '',
-    model: '',
-    price: '',
-    currency: 'INR',
-    description: '',
-    specifications: '',
-    image_urls: [''],
-    availability: 'available',
-    condition: 'new',
-    location: '',
-    year_manufactured: new Date().getFullYear(),
-    warranty_info: ''
-  });
-
-  // Image URL states
-  const [imageUrls, setImageUrls] = useState<string[]>(['']);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
-  const [validatingImages, setValidatingImages] = useState(false);
-
   const [dashboardStats, setDashboardStats] = useState({
     totalRobots: 0,
     activeListings: 0,
@@ -142,10 +80,17 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     avgResponseTime: 0,
     topPerforming: null as any
   });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingRobot, setEditingRobot] = useState<any>(null);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Access control
   const userType = userProfile?.user_type;
   const sellerRoles = userProfile?.seller_roles || [];
+  
   const hasRobotSellerAccess = 
     userType === 'seller' || 
     userType === 'robot_seller' || 
@@ -156,6 +101,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     userType,
     sellerRoles,
     hasRobotSellerAccess,
+    userProfile: userProfile ? 'Present' : 'Missing',
     userId: user?.id
   });
 
@@ -189,6 +135,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       const robots = robotsData || [];
       setRobots(robots);
       calculateEnhancedStats(robots);
+      setRecentActivity(robots.slice(0, 5));
       setLoading(false);
       setRefreshing(false);
       
@@ -263,57 +210,18 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     setFilteredRobots(filtered);
   };
 
-  // Enhanced image URL validation
-  const validateImageUrl = async (url: string): Promise<boolean> => {
-    if (!url || !url.startsWith('http')) return false;
+  const handleAddRobot = () => {
+    console.log('🚀 Add Robot clicked - Access:', hasRobotSellerAccess);
     
-    try {
-      const response = await fetch(url, { method: 'HEAD' });
-      const contentType = response.headers.get('content-type');
-      return response.ok && contentType?.startsWith('image/');
-    } catch {
-      return false;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Not Logged In",
+        description: "Please log in to add robot listings"
+      });
+      return;
     }
-  };
 
-  const handleImageUrlChange = async (index: number, url: string) => {
-    const newUrls = [...imageUrls];
-    newUrls[index] = url;
-    setImageUrls(newUrls);
-
-    if (url && url.startsWith('http')) {
-      setValidatingImages(true);
-      const isValid = await validateImageUrl(url);
-      
-      const newPreviews = [...imagePreviewUrls];
-      newPreviews[index] = isValid ? url : '';
-      setImagePreviewUrls(newPreviews);
-      setValidatingImages(false);
-
-      if (!isValid && url.length > 10) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Image URL",
-          description: "Please provide a valid image URL"
-        });
-      }
-    }
-  };
-
-  const addImageUrlField = () => {
-    setImageUrls([...imageUrls, '']);
-    setImagePreviewUrls([...imagePreviewUrls, '']);
-  };
-
-  const removeImageUrlField = (index: number) => {
-    if (imageUrls.length > 1) {
-      setImageUrls(imageUrls.filter((_, i) => i !== index));
-      setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index));
-    }
-  };
-
-  // Enhanced single robot add
-  const handleAddSingleRobot = async () => {
     if (!hasRobotSellerAccess) {
       toast({
         variant: "destructive",
@@ -322,267 +230,165 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       });
       return;
     }
+    
+    setShowAddForm(true);
+    console.log('✅ Opening add form');
+  };
 
-    if (!singleRobotForm.name || !singleRobotForm.price) {
+  const handleEditRobot = (robot: any) => {
+    console.log('✏️ Edit Robot clicked:', robot.id);
+    
+    if (!hasRobotSellerAccess) {
       toast({
         variant: "destructive",
-        title: "Missing Information",
-        description: "Please fill in name and price"
+        title: "Access Denied",
+        description: "You don't have permission to edit robot listings"
+      });
+      return;
+    }
+
+    setEditingRobot(robot);
+    setShowEditForm(true);
+    console.log('✅ Opening edit form for:', robot.name);
+  };
+
+  const handleDeleteRobot = async (robotId: string) => {
+    if (!hasRobotSellerAccess) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to delete robot listings"
+      });
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this robot listing?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('robots')
+        .delete()
+        .eq('id', robotId)
+        .eq('seller_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Robot listing deleted successfully"
+      });
+
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error deleting robot:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete robot listing"
+      });
+    }
+  };
+
+  const handleBulkAction = async (action: string) => {
+    if (!hasRobotSellerAccess) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to perform bulk operations"
+      });
+      return;
+    }
+
+    if (selectedRobots.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Selection",
+        description: "Please select robots to perform bulk operations"
       });
       return;
     }
 
     try {
-      setUploading(true);
-      
-      // Filter out empty image URLs
-      const validImageUrls = imageUrls.filter(url => url && url.startsWith('http'));
-      
-      const robotData = {
-        name: singleRobotForm.name,
-        robot_type: singleRobotForm.robot_type,
-        brand: singleRobotForm.brand,
-        model: singleRobotForm.model,
-        price: parseFloat(singleRobotForm.price),
-        currency: singleRobotForm.currency,
-        description: singleRobotForm.description,
-        specifications: singleRobotForm.specifications ? JSON.parse(singleRobotForm.specifications) : {},
-        images: validImageUrls,
-        availability: singleRobotForm.availability,
-        condition: singleRobotForm.condition,
-        location: singleRobotForm.location,
-        year_manufactured: singleRobotForm.year_manufactured,
-        warranty_info: singleRobotForm.warranty_info,
-        seller_id: user?.id
-      };
+      switch (action) {
+        case 'delete':
+          if (!confirm(`Delete ${selectedRobots.length} selected robots?`)) return;
+          
+          const { error } = await supabase
+            .from('robots')
+            .delete()
+            .in('id', selectedRobots)
+            .eq('seller_id', user?.id);
 
-      const { error } = await supabase
-        .from('robots')
-        .insert([robotData]);
+          if (error) throw error;
+          
+          toast({
+            title: "Success",
+            description: `${selectedRobots.length} robots deleted successfully`
+          });
+          break;
 
-      if (error) throw error;
+        case 'export':
+          const selectedRobotsData = robots.filter(r => selectedRobots.includes(r.id));
+          const csvContent = convertToCSV(selectedRobotsData);
+          downloadCSV(csvContent, 'selected-robots.csv');
+          
+          toast({
+            title: "Success",
+            description: `${selectedRobots.length} robots exported successfully`
+          });
+          break;
 
-      toast({
-        title: "Success!",
-        description: "Robot added successfully"
-      });
+        default:
+          toast({
+            title: "Coming Soon",
+            description: `Bulk ${action} functionality will be available soon`
+          });
+      }
 
-      // Reset form
-      setSingleRobotForm({
-        name: '',
-        robot_type: '',
-        brand: '',
-        model: '',
-        price: '',
-        currency: 'INR',
-        description: '',
-        specifications: '',
-        image_urls: [''],
-        availability: 'available',
-        condition: 'new',
-        location: '',
-        year_manufactured: new Date().getFullYear(),
-        warranty_info: ''
-      });
-      setImageUrls(['']);
-      setImagePreviewUrls(['']);
-      setShowAddForm(false);
+      setSelectedRobots([]);
+      setShowBulkDialog(false);
       fetchDashboardData();
-
     } catch (error) {
-      console.error('Error adding robot:', error);
+      console.error('Bulk action error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add robot"
+        description: `Failed to perform bulk ${action}`
       });
-    } finally {
-      setUploading(false);
     }
   };
 
-  // Enhanced bulk upload functionality
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+  const convertToCSV = (data: any[]) => {
+    const headers = ['Name', 'Type', 'Brand', 'Model', 'Price', 'Status', 'Created'];
+    const rows = data.map(robot => [
+      robot.name || '',
+      robot.robot_type || '',
+      robot.brand || '',
+      robot.model || '',
+      robot.price || '',
+      robot.availability || '',
+      new Date(robot.created_at).toLocaleDateString()
+    ]);
     
-    if (fileExtension === 'csv') {
-      Papa.parse(file, {
-        header: true,
-        complete: (results) => {
-          processBulkData(results.data as any[]);
-        },
-        error: (error) => {
-          toast({
-            variant: "destructive",
-            title: "CSV Parse Error",
-            description: error.message
-          });
-        }
-      });
-    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-          processBulkData(jsonData as any[]);
-        } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Excel Parse Error",
-            description: "Failed to parse Excel file"
-          });
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Invalid File Type",
-        description: "Please upload a CSV or Excel file"
-      });
-    }
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
   };
 
-  const processBulkData = (data: any[]) => {
-    if (!data || data.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Empty File",
-        description: "The uploaded file contains no data"
-      });
-      return;
-    }
-
-    const processedData: BulkUploadData[] = data.map((row, index) => {
-      // Handle image URLs - split by comma if multiple URLs
-      const imageUrls = row.image_urls || row.images || row.image_url || '';
-      const imagesArray = typeof imageUrls === 'string' 
-        ? imageUrls.split(',').map((url: string) => url.trim()).filter((url: string) => url)
-        : [imageUrls].filter(Boolean);
-
-      return {
-        name: row.name || row.robot_name || `Robot ${index + 1}`,
-        robot_type: row.robot_type || row.type || 'industrial',
-        brand: row.brand || '',
-        model: row.model || '',
-        price: parseFloat(row.price) || 0,
-        currency: row.currency || 'INR',
-        description: row.description || '',
-        specifications: row.specifications ? 
-          (typeof row.specifications === 'string' ? JSON.parse(row.specifications) : row.specifications) 
-          : {},
-        images: imagesArray,
-        availability: row.availability || 'available',
-        condition: row.condition || 'new',
-        location: row.location || '',
-        year_manufactured: parseInt(row.year_manufactured) || new Date().getFullYear(),
-        warranty_info: row.warranty_info || ''
-      };
-    });
-
-    setBulkUploadData(processedData);
-    setShowBulkUpload(true);
-
-    toast({
-      title: "File Processed",
-      description: `${processedData.length} robots ready for upload`
-    });
-  };
-
-  const handleBulkUpload = async () => {
-    if (!hasRobotSellerAccess) {
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "You need robot seller permissions to upload robots"
-      });
-      return;
-    }
-
-    if (bulkUploadData.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "No Data",
-        description: "No robot data to upload"
-      });
-      return;
-    }
-
-    setUploading(true);
-    setUploadProgress(0);
-    setUploadErrors([]);
-
-    const errors: string[] = [];
-    const batchSize = 10; // Upload in batches to avoid overwhelming the database
-    
-    for (let i = 0; i < bulkUploadData.length; i += batchSize) {
-      const batch = bulkUploadData.slice(i, i + batchSize);
-      
-      try {
-        const robotsToInsert = batch.map(robot => ({
-          ...robot,
-          seller_id: user?.id
-        }));
-
-        const { error } = await supabase
-          .from('robots')
-          .insert(robotsToInsert);
-
-        if (error) {
-          errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`);
-        }
-
-        setUploadProgress(((i + batchSize) / bulkUploadData.length) * 100);
-        
-      } catch (error) {
-        errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error}`);
-      }
-    }
-
-    setUploadErrors(errors);
-    setUploading(false);
-
-    if (errors.length === 0) {
-      toast({
-        title: "Success!",
-        description: `${bulkUploadData.length} robots uploaded successfully`
-      });
-      setShowBulkUpload(false);
-      setBulkUploadData([]);
-      fetchDashboardData();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Upload Completed with Errors",
-        description: `${errors.length} batches failed`
-      });
-    }
-  };
-
-  // Download CSV template
-  const downloadTemplate = () => {
-    const template = `name,robot_type,brand,model,price,currency,description,image_urls,availability,condition,location,year_manufactured,warranty_info
-ABB IRB 6600,industrial,ABB,IRB 6600,500000,INR,High payload industrial robot,"https://example.com/image1.jpg,https://example.com/image2.jpg",available,new,Mumbai,2023,2 years warranty
-KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://example.com/kuka-image.jpg,available,used,Delhi,2022,1 year warranty`;
-    
-    const blob = new Blob([template], { type: 'text/csv' });
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'robot-upload-template.csv';
+    a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
 
-    toast({
-      title: "Template Downloaded",
-      description: "Use this template to format your robot data"
-    });
+  const handleSelectAll = () => {
+    if (selectedRobots.length === filteredRobots.length) {
+      setSelectedRobots([]);
+    } else {
+      setSelectedRobots(filteredRobots.map(r => r.id));
+    }
   };
 
   if (loading) {
@@ -603,16 +409,67 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
               <ShieldX className="w-6 h-6" />
               Access Restricted - Robot Seller Dashboard
             </CardTitle>
+            <CardDescription className="text-red-600">
+              You need robot seller permissions to access this dashboard
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Alert className="border-red-200 bg-red-50 mb-4">
               <AlertCircle className="w-4 h-4" />
               <AlertDescription>
-                <strong>Debug Information:</strong><br />
-                User Type: {userType || 'Not set'}<br />
+                <strong>Debug Information:</strong>
+                <br />
+                User Type: {userType || 'Not set'}
+                <br />
                 Seller Roles: {sellerRoles.length > 0 ? sellerRoles.join(', ') : 'None'}
+                <br />
+                User ID: {user?.id || 'Not logged in'}
+                <br />
+                Profile Status: {userProfile ? 'Present' : 'Missing'}
               </AlertDescription>
             </Alert>
+
+            <div className="mt-6 space-y-4">
+              <h3 className="font-semibold text-red-700">To access this dashboard, you need ONE of:</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>User type set as 'seller'</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>User type set as 'robot_seller'</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>'robot_seller' in your seller roles array</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.href = '/profile'}
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                >
+                  Update Profile
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.location.href = '/dashboard'}
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                >
+                  Go to Main Dashboard
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => fetchDashboardData()}
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                >
+                  Retry Access
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -626,7 +483,8 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
       icon: Bot,
       trend: `${dashboardStats.activeListings} active`,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      bgColor: 'bg-blue-50',
+      change: '+5%'
     },
     {
       title: 'Total Revenue',
@@ -634,7 +492,8 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
       icon: DollarSign,
       trend: `Avg: ₹${dashboardStats.avgPrice.toLocaleString()}`,
       color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      bgColor: 'bg-green-50',
+      change: '+12%'
     },
     {
       title: 'Total Views',
@@ -642,7 +501,8 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
       icon: Eye,
       trend: 'All listings',
       color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
+      bgColor: 'bg-orange-50',
+      change: '+8%'
     },
     {
       title: 'Conversion Rate',
@@ -650,42 +510,35 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
       icon: TrendingUp,
       trend: 'Views to inquiries',
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      bgColor: 'bg-purple-50',
+      change: '+3%'
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Access confirmation banner */}
+      {/* SIMPLIFIED Welcome Banner - Only shows "Welcome, [Name]!" */}
       <Alert className="border-green-200 bg-green-50">
         <CheckCircle className="w-4 h-4" />
         <AlertDescription className="text-green-700">
-          <strong>✅ Robot Seller Access Confirmed</strong> - You have full access to robot selling features. 
-          Welcome, {userProfile?.full_name || user?.email}!
+          <strong>Welcome, {userProfile?.full_name || user?.email || 'User'}!</strong>
         </AlertDescription>
       </Alert>
 
-      {/* Enhanced Header with inventory management buttons */}
+      {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Enhanced Robot Inventory Management
+            Robot Seller Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Add single robots, bulk upload via CSV/Excel, and manage your inventory
+            Manage your robot inventory and track performance
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             size="sm"
-            onClick={downloadTemplate}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            CSV Template
-          </Button>
-          <Button 
-            variant="outline" 
             onClick={() => fetchDashboardData()}
             disabled={refreshing}
           >
@@ -693,31 +546,27 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
             Refresh
           </Button>
           <Button 
-            variant="outline"
-            onClick={() => setShowImageUrlDialog(true)}
+            variant="outline" 
+            onClick={() => handleBulkAction('export')}
           >
-            <Link className="w-4 h-4 mr-2" />
-            Image URLs
+            <Download className="w-4 h-4 mr-2" />
+            Export All
           </Button>
           <Button 
-            onClick={() => setShowAddForm(true)}
-            className="bg-gradient-to-r from-green-600 to-blue-600"
+            variant="outline" 
+            onClick={() => setShowBulkDialog(true)}
+            disabled={selectedRobots.length === 0}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Bulk Actions ({selectedRobots.length})
+          </Button>
+          <Button 
+            onClick={handleAddRobot}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Single Robot
+            Add New Robot
           </Button>
-          <div className="relative">
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={handleFileUpload}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <Button className="bg-gradient-to-r from-purple-600 to-red-600">
-              <CloudUpload className="w-4 h-4 mr-2" />
-              Bulk Upload
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -726,15 +575,20 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
         {enhancedStatsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-200">
+            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground font-medium">{stat.title}</p>
                     <p className="text-3xl font-bold mt-1">{stat.value}</p>
-                    <Badge variant="secondary" className="text-xs mt-2">
-                      {stat.trend}
-                    </Badge>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {stat.trend}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs text-green-600">
+                        {stat.change}
+                      </Badge>
+                    </div>
                   </div>
                   <div className={`w-14 h-14 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
                     <Icon className={`w-7 h-7 ${stat.color}`} />
@@ -746,470 +600,458 @@ KUKA KR 10,assembly,KUKA,KR 10,300000,INR,Precision assembly robot,https://examp
         })}
       </div>
 
-      {/* Robot Inventory Display (simplified for space) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            Robot Inventory ({filteredRobots.length})
-          </CardTitle>
-          <CardDescription>Your complete robot inventory with enhanced management</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {robots.length === 0 ? (
-            <div className="text-center py-12">
-              <Bot className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No robots in inventory</h3>
-              <p className="text-muted-foreground mb-4">
-                Start by adding robots individually or upload in bulk
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button 
-                  onClick={() => setShowAddForm(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Single Robot
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={downloadTemplate}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Get Template
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {robots.length} robots in inventory. Use the buttons above to add more robots or manage existing ones.
-              </p>
-              {/* Simplified robot list */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {robots.slice(0, 6).map((robot) => (
-                  <Card key={robot.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                        {robot.images && robot.images.length > 0 ? (
-                          <img 
-                            src={robot.images[0]} 
-                            alt={robot.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Bot className="w-8 h-8 text-muted-foreground" />
-                        )}
-                      </div>
-                      <h3 className="font-semibold truncate mb-1">{robot.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{robot.brand} {robot.model}</p>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline">{robot.robot_type}</Badge>
-                        <p className="font-bold">₹{robot.price?.toLocaleString()}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              {robots.length > 6 && (
-                <p className="text-center text-sm text-muted-foreground">
-                  And {robots.length - 6} more robots...
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Main Content */}
+      <Tabs defaultValue="inventory" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 h-12">
+          <TabsTrigger value="inventory" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Inventory ({filteredRobots.length})
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Settings
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Single Robot Add Form Dialog */}
-      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              Add Single Robot
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 p-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Robot Name *</Label>
-                <Input
-                  id="name"
-                  value={singleRobotForm.name}
-                  onChange={(e) => setSingleRobotForm({...singleRobotForm, name: e.target.value})}
-                  placeholder="e.g., ABB IRB 6600"
-                />
-              </div>
-              <div>
-                <Label htmlFor="robot_type">Robot Type</Label>
-                <Select
-                  value={singleRobotForm.robot_type}
-                  onValueChange={(value) => setSingleRobotForm({...singleRobotForm, robot_type: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="industrial">Industrial</SelectItem>
-                    <SelectItem value="collaborative">Collaborative</SelectItem>
-                    <SelectItem value="assembly">Assembly</SelectItem>
-                    <SelectItem value="welding">Welding</SelectItem>
-                    <SelectItem value="painting">Painting</SelectItem>
-                    <SelectItem value="pick_and_place">Pick and Place</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="brand">Brand</Label>
-                <Input
-                  id="brand"
-                  value={singleRobotForm.brand}
-                  onChange={(e) => setSingleRobotForm({...singleRobotForm, brand: e.target.value})}
-                  placeholder="e.g., ABB, KUKA, Fanuc"
-                />
-              </div>
-              <div>
-                <Label htmlFor="model">Model</Label>
-                <Input
-                  id="model"
-                  value={singleRobotForm.model}
-                  onChange={(e) => setSingleRobotForm({...singleRobotForm, model: e.target.value})}
-                  placeholder="e.g., IRB 6600"
-                />
-              </div>
-              <div>
-                <Label htmlFor="price">Price *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={singleRobotForm.price}
-                  onChange={(e) => setSingleRobotForm({...singleRobotForm, price: e.target.value})}
-                  placeholder="500000"
-                />
-              </div>
-              <div>
-                <Label htmlFor="currency">Currency</Label>
-                <Select
-                  value={singleRobotForm.currency}
-                  onValueChange={(value) => setSingleRobotForm({...singleRobotForm, currency: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INR">INR (₹)</SelectItem>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Image URLs Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Label>Image URLs</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addImageUrlField}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Image
-                </Button>
-              </div>
-              
-              {imageUrls.map((url, index) => (
-                <div key={index} className="flex gap-2 items-start">
-                  <div className="flex-1">
+        <TabsContent value="inventory" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    Robot Inventory ({filteredRobots.length})
+                  </CardTitle>
+                  <CardDescription>Manage your robot listings and inventory</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                      value={url}
-                      onChange={(e) => handleImageUrlChange(index, e.target.value)}
-                      placeholder="https://example.com/robot-image.jpg"
+                      placeholder="Search robots..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 w-64"
                     />
                   </div>
-                  {imagePreviewUrls[index] && (
-                    <div className="w-16 h-16 border rounded overflow-hidden">
-                      <img 
-                        src={imagePreviewUrls[index]} 
-                        alt="Preview" 
-                        className="w-full h-full object-cover"
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="sold">Sold</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex border rounded-lg">
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                    >
+                      <List className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <Grid className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredRobots.length === 0 ? (
+                <div className="text-center py-12">
+                  <Bot className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">
+                    {robots.length === 0 ? 'No robots in inventory' : 'No robots match your filters'}
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchQuery || filterStatus !== 'all' 
+                      ? 'Try adjusting your search or filter criteria'
+                      : 'Start by adding your first robot listing'
+                    }
+                  </p>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleAddRobot}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Your First Robot
+                    </Button>
+                    {(searchQuery || filterStatus !== 'all') && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setFilterStatus('all');
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Selection Controls */}
+                  <div className="flex items-center justify-between mb-4 p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selectedRobots.length === filteredRobots.length}
+                        onCheckedChange={handleSelectAll}
                       />
+                      <span className="text-sm font-medium">
+                        {selectedRobots.length > 0 
+                          ? `${selectedRobots.length} selected`
+                          : 'Select all'
+                        }
+                      </span>
+                    </div>
+                    {selectedRobots.length > 0 && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleBulkAction('export')}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Export
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowBulkDialog(true)}
+                        >
+                          <Settings className="w-4 h-4 mr-1" />
+                          Actions
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Robot List/Grid */}
+                  {viewMode === 'list' ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">
+                            <Checkbox
+                              checked={selectedRobots.length === filteredRobots.length}
+                              onCheckedChange={handleSelectAll}
+                            />
+                          </TableHead>
+                          <TableHead>Robot</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredRobots.map((robot) => (
+                          <TableRow key={robot.id} className="hover:bg-muted/50">
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedRobots.includes(robot.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedRobots([...selectedRobots, robot.id]);
+                                  } else {
+                                    setSelectedRobots(selectedRobots.filter(id => id !== robot.id));
+                                  }
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                                  {robot.images && robot.images.length > 0 ? (
+                                    <img 
+                                      src={robot.images[0]} 
+                                      alt={robot.name}
+                                      className="w-full h-full object-cover rounded-lg"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <Bot className="w-6 h-6 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{robot.name || 'Unnamed Robot'}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {robot.brand} {robot.model}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{robot.robot_type || 'Unknown'}</Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              ₹{robot.price?.toLocaleString() || '0'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={robot.availability === 'available' ? 'default' : 'secondary'}
+                              >
+                                {robot.availability || 'unknown'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(robot.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button variant="ghost" size="sm" title="View Details">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleEditRobot(robot)}
+                                  title="Edit Robot"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleDeleteRobot(robot.id)}
+                                  title="Delete Robot"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {filteredRobots.map((robot) => (
+                        <Card key={robot.id} className="hover:shadow-lg transition-shadow">
+                          <CardContent className="p-4">
+                            <div className="relative">
+                              <Checkbox
+                                className="absolute top-2 left-2 z-10 bg-white"
+                                checked={selectedRobots.includes(robot.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedRobots([...selectedRobots, robot.id]);
+                                  } else {
+                                    setSelectedRobots(selectedRobots.filter(id => id !== robot.id));
+                                  }
+                                }}
+                              />
+                              <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                                {robot.images && robot.images.length > 0 ? (
+                                  <img 
+                                    src={robot.images[0]} 
+                                    alt={robot.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Bot className="w-8 h-8 text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                            <h3 className="font-semibold truncate mb-1">{robot.name || 'Unnamed Robot'}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {robot.brand} {robot.model}
+                            </p>
+                            <div className="flex items-center justify-between mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {robot.robot_type || 'Unknown'}
+                              </Badge>
+                              <Badge 
+                                variant={robot.availability === 'available' ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {robot.availability || 'unknown'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="font-bold text-lg">₹{robot.price?.toLocaleString() || '0'}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="flex-1">
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => handleEditRobot(robot)}
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleDeleteRobot(robot.id)}
+                              >
+                                <Trash2 className="w-3 h-3 text-red-600" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   )}
-                  {imageUrls.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeImageUrlField(index)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              
-              {validatingImages && (
-                <p className="text-sm text-muted-foreground">Validating image URLs...</p>
+                </>
               )}
-            </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={singleRobotForm.description}
-                onChange={(e) => setSingleRobotForm({...singleRobotForm, description: e.target.value})}
-                placeholder="Detailed description of the robot..."
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="availability">Availability</Label>
-                <Select
-                  value={singleRobotForm.availability}
-                  onValueChange={(value) => setSingleRobotForm({...singleRobotForm, availability: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="sold">Sold</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="condition">Condition</Label>
-                <Select
-                  value={singleRobotForm.condition}
-                  onValueChange={(value) => setSingleRobotForm({...singleRobotForm, condition: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="used">Used</SelectItem>
-                    <SelectItem value="refurbished">Refurbished</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="year_manufactured">Year</Label>
-                <Input
-                  id="year_manufactured"
-                  type="number"
-                  value={singleRobotForm.year_manufactured}
-                  onChange={(e) => setSingleRobotForm({...singleRobotForm, year_manufactured: parseInt(e.target.value)})}
-                  min="1980"
-                  max={new Date().getFullYear()}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={singleRobotForm.location}
-                onChange={(e) => setSingleRobotForm({...singleRobotForm, location: e.target.value})}
-                placeholder="e.g., Mumbai, Delhi"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowAddForm(false)}
-                disabled={uploading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleAddSingleRobot}
-                disabled={uploading || !singleRobotForm.name || !singleRobotForm.price}
-                className="bg-gradient-to-r from-blue-600 to-purple-600"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Robot
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bulk Upload Dialog */}
-      <Dialog open={showBulkUpload} onOpenChange={setShowBulkUpload}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CloudUpload className="w-5 h-5" />
-              Bulk Upload Preview ({bulkUploadData.length} robots)
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {uploadErrors.length > 0 && (
-              <Alert className="border-red-200 bg-red-50">
-                <AlertCircle className="w-4 h-4" />
-                <AlertDescription>
-                  <strong>Upload Errors:</strong>
-                  <ul className="mt-2 space-y-1">
-                    {uploadErrors.map((error, index) => (
-                      <li key={index} className="text-sm">• {error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {uploading && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Upload Progress</span>
-                  <span>{Math.round(uploadProgress)}%</span>
+        <TabsContent value="analytics" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sales Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-medium">Total Revenue</p>
+                      <p className="text-2xl font-bold">₹{dashboardStats.totalRevenue.toLocaleString()}</p>
+                    </div>
+                    <DollarSign className="w-8 h-8 text-green-600" />
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-medium">Average Price</p>
+                      <p className="text-2xl font-bold">₹{dashboardStats.avgPrice.toLocaleString()}</p>
+                    </div>
+                    <TrendingUp className="w-8 h-8 text-blue-600" />
+                  </div>
                 </div>
-                <Progress value={uploadProgress} className="h-2" />
-              </div>
-            )}
-
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Images</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bulkUploadData.slice(0, 10).map((robot, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{robot.name}</TableCell>
-                      <TableCell>{robot.robot_type}</TableCell>
-                      <TableCell>{robot.brand}</TableCell>
-                      <TableCell>₹{robot.price?.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {robot.images.slice(0, 2).map((img, i) => (
-                            <div key={i} className="w-8 h-8 bg-muted rounded flex items-center justify-center">
-                              <ImageIcon className="w-3 h-3" />
-                            </div>
-                          ))}
-                          {robot.images.length > 2 && (
-                            <span className="text-xs text-muted-foreground">+{robot.images.length - 2}</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Ready</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {bulkUploadData.length > 10 && (
-              <p className="text-sm text-muted-foreground text-center">
-                And {bulkUploadData.length - 10} more robots...
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowBulkUpload(false)}
-                disabled={uploading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleBulkUpload}
-                disabled={uploading || bulkUploadData.length === 0}
-                className="bg-gradient-to-r from-purple-600 to-red-600"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <CloudUpload className="w-4 h-4 mr-2" />
-                    Upload {bulkUploadData.length} Robots
-                  </>
-                )}
-              </Button>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        </DialogContent>
-      </Dialog>
+        </TabsContent>
 
-      {/* Image URL Helper Dialog */}
-      <Dialog open={showImageUrlDialog} onOpenChange={setShowImageUrlDialog}>
-        <DialogContent className="max-w-2xl">
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dashboard Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Settings panel coming soon...</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Bulk Actions Dialog */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link className="w-5 h-5" />
-              Image URL Guidelines
-            </DialogTitle>
+            <DialogTitle>Bulk Actions</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Alert>
-              <ImageIcon className="w-4 h-4" />
-              <AlertDescription>
-                <strong>Supported Image URLs:</strong>
-                <ul className="mt-2 space-y-1 text-sm">
-                  <li>• Direct image links (ending in .jpg, .png, .webp, etc.)</li>
-                  <li>• CDN URLs (Cloudinary, AWS S3, etc.)</li>
-                  <li>• Public image hosting services</li>
-                  <li>• HTTPS URLs are recommended for security</li>
-                </ul>
-              </AlertDescription>
-            </Alert>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold">Example URLs:</h3>
-              <div className="bg-muted p-3 rounded text-sm font-mono">
-                <p>✅ https://example.com/robot-image.jpg</p>
-                <p>✅ https://cdn.example.com/images/robot.png</p>
-                <p>✅ https://storage.googleapis.com/bucket/robot.webp</p>
-                <p>❌ https://example.com/page-with-image</p>
-                <p>❌ http://insecure-url.com/image.jpg</p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold">For CSV/Excel Upload:</h3>
-              <p className="text-sm text-muted-foreground">
-                Separate multiple image URLs with commas in the image_urls column:
-              </p>
-              <div className="bg-muted p-3 rounded text-sm font-mono">
-                "https://example.com/front.jpg,https://example.com/side.jpg,https://example.com/back.jpg"
-              </div>
+            <p className="text-sm text-muted-foreground">
+              Performing actions on {selectedRobots.length} selected robots
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => handleBulkAction('export')}
+                className="justify-start"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Selected
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => handleBulkAction('delete')}
+                className="justify-start text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Selected
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add Robot Form Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Add New Robot</h2>
+                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
+                  ×
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <RobotUpload onSuccess={() => {
+                setShowAddForm(false);
+                fetchDashboardData();
+                toast({
+                  title: "Success!",
+                  description: "Robot added successfully"
+                });
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Robot Form Modal */}
+      {showEditForm && editingRobot && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Edit Robot: {editingRobot.name}</h2>
+                <Button variant="ghost" onClick={() => {
+                  setShowEditForm(false);
+                  setEditingRobot(null);
+                }}>
+                  ×
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <RobotUpload 
+                editMode={true}
+                robotData={editingRobot}
+                onSuccess={() => {
+                  setShowEditForm(false);
+                  setEditingRobot(null);
+                  fetchDashboardData();
+                  toast({
+                    title: "Success!",
+                    description: "Robot updated successfully"
+                  });
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
