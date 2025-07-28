@@ -39,7 +39,7 @@ interface MarketStats {
     totalListings: number;
     activeListings: number;
     avgPrice: number;
-    topBrands: string[];
+    topTypes: string[]; // Changed from topBrands to topTypes
     locations: number;
     recentlyAdded: number;
     totalValue: number;
@@ -48,9 +48,9 @@ interface MarketStats {
     totalListings: number;
     inStock: number;
     suppliers: number;
-    categories: number;
     avgPrice: number;
     locations: number;
+    topPartNumbers: string[]; // Changed from categories to topPartNumbers
   };
   services: {
     totalProviders: number;
@@ -58,7 +58,7 @@ interface MarketStats {
     completedJobs: number;
     avgRating: number;
     serviceTypes: number;
-    coverageAreas: number;
+    locations: number; // Changed from coverageAreas to locations
   };
   overall: {
     totalUsers: number;
@@ -76,7 +76,7 @@ const MarketplaceCategories = () => {
       totalListings: 0,
       activeListings: 0,
       avgPrice: 0,
-      topBrands: [],
+      topTypes: [],
       locations: 0,
       recentlyAdded: 0,
       totalValue: 0
@@ -85,9 +85,9 @@ const MarketplaceCategories = () => {
       totalListings: 0,
       inStock: 0,
       suppliers: 0,
-      categories: 0,
       avgPrice: 0,
-      locations: 0
+      locations: 0,
+      topPartNumbers: []
     },
     services: {
       totalProviders: 0,
@@ -95,7 +95,7 @@ const MarketplaceCategories = () => {
       completedJobs: 0,
       avgRating: 0,
       serviceTypes: 0,
-      coverageAreas: 0
+      locations: 0
     },
     overall: {
       totalUsers: 0,
@@ -143,40 +143,39 @@ const MarketplaceCategories = () => {
         console.error('Error fetching data:', { robotsError, partsError, servicesError, profilesError });
       }
 
-      // Calculate robot statistics
+      // Calculate robot statistics using actual schema properties
       const robots = robotsData || [];
       const activeRobots = robots.filter(r => r.availability === 'available');
       const robotLocations = [...new Set(robots.map(r => r.location).filter(Boolean))];
-      const robotBrands = [...new Set(robots.map(r => r.brand).filter(Boolean))];
+      const robotTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))]; // Using robot_type instead of brand
       const recentRobots = robots.filter(r => {
         const createdAt = new Date(r.created_at);
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         return createdAt > weekAgo;
       });
 
-      // Calculate parts statistics  
+      // Calculate parts statistics using actual schema properties
       const parts = partsData || [];
       const inStockParts = parts.filter(p => (p.quantity || 0) > 0);
       const partSuppliers = [...new Set(parts.map(p => p.seller_id).filter(Boolean))];
-      const partCategories = [...new Set(parts.map(p => p.category).filter(Boolean))];
+      const topPartNumbers = [...new Set(parts.map(p => p.part_number).filter(Boolean))]; // Using part_number instead of category
       const partLocations = [...new Set(parts.map(p => p.location).filter(Boolean))];
 
-      // Calculate services statistics
+      // Calculate services statistics using actual schema properties
       const services = servicesData || [];
       const serviceProviders = [...new Set(services.map(s => s.provider_id).filter(Boolean))];
       const serviceTypes = [...new Set(services.map(s => s.service_type).filter(Boolean))];
-      const serviceCoverage = [...new Set(services.map(s => s.coverage_area).filter(Boolean))];
+      const serviceLocations = [...new Set(services.map(s => s.location).filter(Boolean))]; // Using location instead of coverage_area
 
       // Calculate overall statistics
       const profiles = profilesData || [];
-      const userLocations = [...new Set(profiles.map(p => p.location).filter(Boolean))];
 
       setStats({
         robots: {
           totalListings: robots.length,
           activeListings: activeRobots.length,
           avgPrice: robots.length > 0 ? robots.reduce((sum, r) => sum + (r.price || 0), 0) / robots.length : 0,
-          topBrands: robotBrands.slice(0, 3),
+          topTypes: robotTypes.slice(0, 3), // Top robot types instead of brands
           locations: robotLocations.length,
           recentlyAdded: recentRobots.length,
           totalValue: robots.reduce((sum, r) => sum + (r.price || 0), 0)
@@ -185,9 +184,9 @@ const MarketplaceCategories = () => {
           totalListings: parts.length,
           inStock: inStockParts.length,
           suppliers: partSuppliers.length,
-          categories: partCategories.length,
           avgPrice: parts.length > 0 ? parts.reduce((sum, p) => sum + (p.price || 0), 0) / parts.length : 0,
-          locations: partLocations.length
+          locations: partLocations.length,
+          topPartNumbers: topPartNumbers.slice(0, 5) // Top part numbers
         },
         services: {
           totalProviders: serviceProviders.length,
@@ -195,7 +194,7 @@ const MarketplaceCategories = () => {
           completedJobs: Math.floor(services.length * 0.7), // Estimated completion rate
           avgRating: 4.6, // Will be calculated from real reviews
           serviceTypes: serviceTypes.length,
-          coverageAreas: serviceCoverage.length
+          locations: serviceLocations.length // Using service locations
         },
         overall: {
           totalUsers: profiles.length,
@@ -250,10 +249,10 @@ const MarketplaceCategories = () => {
           color: 'text-purple-600'
         },
         { 
-          label: 'Total Value', 
-          value: `₹${(stats.robots.totalValue/10000000).toFixed(1)}Cr`, 
+          label: 'Robot Types', 
+          value: stats.robots.topTypes.length, 
           icon: Award,
-          trend: 'Inventory value',
+          trend: 'Different types',
           color: 'text-orange-600'
         }
       ],
@@ -286,10 +285,10 @@ const MarketplaceCategories = () => {
           color: 'text-blue-600'
         },
         { 
-          label: 'Categories', 
-          value: stats.parts.categories, 
+          label: 'Part Numbers', 
+          value: stats.parts.topPartNumbers.length, 
           icon: Settings,
-          trend: 'Part types',
+          trend: 'Unique parts',
           color: 'text-purple-600'
         },
         { 
@@ -336,10 +335,10 @@ const MarketplaceCategories = () => {
           color: 'text-purple-600'
         },
         { 
-          label: 'Avg Rating', 
-          value: `${stats.services.avgRating}★`, 
-          icon: Star,
-          trend: 'Customer satisfaction',
+          label: 'Service Areas', 
+          value: `${stats.services.locations}`, 
+          icon: MapPin,
+          trend: 'Coverage locations',
           color: 'text-orange-600'
         }
       ],
@@ -400,7 +399,7 @@ const MarketplaceCategories = () => {
             </div>
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border">
               <div className="text-2xl font-bold text-purple-600">
-                {stats.robots.locations + stats.parts.locations + stats.services.coverageAreas}
+                {stats.robots.locations + stats.parts.locations + stats.services.locations}
               </div>
               <div className="text-sm text-muted-foreground">Locations</div>
             </div>
