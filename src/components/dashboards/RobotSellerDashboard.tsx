@@ -87,142 +87,34 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const [editingRobot, setEditingRobot] = useState<any>(null);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [localProfile, setLocalProfile] = useState(userProfile);
-  const [profileLoading, setProfileLoading] = useState(!userProfile);
-  const [emergencyAccess, setEmergencyAccess] = useState(false);
-  const [dbConnected, setDbConnected] = useState(true);
 
-  // Enhanced debugging and access control
-  const currentProfile = localProfile || userProfile;
-  const userType = currentProfile?.user_type || currentProfile?.account_type;
-  const sellerRoles = currentProfile?.seller_roles || [];
+  // Enhanced access control - more permissive
+  const userType = userProfile?.user_type;
+  const sellerRoles = userProfile?.seller_roles || [];
   
-  // More comprehensive access control
+  // Allow access if:
+  // 1. user_type is 'seller' (any seller can sell robots)
+  // 2. user_type is 'robot_seller' (dedicated robot seller)
+  // 3. seller_roles includes 'robot_seller'
   const hasRobotSellerAccess = 
     userType === 'seller' || 
     userType === 'robot_seller' || 
     sellerRoles.includes('robot_seller') ||
-    sellerRoles.includes('seller') ||
-    // Fallback conditions
-    (currentProfile && !userType) || // Profile exists but userType not set
-    (!currentProfile && user) || // Just logged in user
-    emergencyAccess; // Emergency access granted
+    sellerRoles.includes('seller'); // Additional fallback
 
-  // Enhanced debugging
+  // Debug logging
   console.log('🤖 Robot Seller Dashboard Debug:', {
-    user: user ? 'Present' : 'Missing',
-    userId: user?.id,
+    userType,
+    sellerRoles,
+    hasRobotSellerAccess,
     userProfile: userProfile ? 'Present' : 'Missing',
-    localProfile: localProfile ? 'Present' : 'Missing',
-    currentProfile: currentProfile ? 'Present' : 'Missing',
-    userType: userType,
-    accountType: currentProfile?.account_type, 
-    sellerRoles: sellerRoles,
-    primaryType: currentProfile?.primary_type,
-    hasRobotSellerAccess: hasRobotSellerAccess,
-    emergencyAccess: emergencyAccess,
-    fullProfile: currentProfile
+    userId: user?.id
   });
 
-  // Test database connection
   useEffect(() => {
-    const testDatabaseConnection = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('count')
-          .limit(1);
-          
-        if (error) {
-          console.error('❌ Database connection failed:', error);
-          setDbConnected(false);
-          toast({
-            variant: "destructive",
-            title: "Database Error",
-            description: "Cannot connect to database. Please check your connection."
-          });
-        } else {
-          console.log('✅ Database connection successful');
-          setDbConnected(true);
-        }
-      } catch (error) {
-        console.error('❌ Database test failed:', error);
-        setDbConnected(false);
-      }
-    };
-    
-    testDatabaseConnection();
-  }, []);
-
-  // Ensure profile exists
-  useEffect(() => {
-    const ensureProfile = async () => {
-      if (!user || currentProfile) {
-        setProfileLoading(false);
-        return;
-      }
-      
-      try {
-        setProfileLoading(true);
-        console.log('🔍 Fetching/creating profile for user:', user.id);
-        
-        // Try to fetch existing profile
-        let { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (error && error.code === 'PGRST116') {
-          // Profile doesn't exist, create a basic one
-          console.log('📝 Creating missing profile...');
-          
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              user_id: user.id,
-              full_name: user.user_metadata?.full_name || user.email,
-              user_type: 'seller', // Default to seller
-              account_type: 'seller',
-              primary_type: 'seller',
-              seller_roles: ['robot_seller'], // Default robot seller role
-              created_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-            
-          if (createError) {
-            console.error('❌ Error creating profile:', createError);
-          } else {
-            profile = newProfile;
-            console.log('✅ Profile created successfully:', profile);
-            toast({
-              title: "Profile Created",
-              description: "A default seller profile has been created for you."
-            });
-          }
-        } else if (error) {
-          console.error('❌ Error fetching profile:', error);
-        } else {
-          console.log('✅ Profile fetched successfully:', profile);
-        }
-        
-        setLocalProfile(profile);
-        setProfileLoading(false);
-      } catch (error) {
-        console.error('❌ Profile fetch/create error:', error);
-        setProfileLoading(false);
-      }
-    };
-    
-    ensureProfile();
-  }, [user, currentProfile]);
-
-  useEffect(() => {
-    if (!profileLoading) {
-      fetchDashboardData();
-    }
-  }, [user, profileLoading]);
+    // Always try to fetch data first, then check access
+    fetchDashboardData();
+  }, [user]);
 
   useEffect(() => {
     filterAndSortRobots();
@@ -236,7 +128,6 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     
     try {
       setRefreshing(true);
-      console.log('📊 Fetching dashboard data for user:', user.id);
       
       // Fetch robots with basic query first
       const { data: robotsData, error } = await supabase
@@ -246,21 +137,20 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching robots:', error);
+        console.error('Error fetching robots:', error);
         // Don't throw error, just log it and continue
       }
 
       const robots = robotsData || [];
-      console.log('✅ Fetched robots:', robots.length);
-      
       setRobots(robots);
       calculateEnhancedStats(robots);
       setRecentActivity(robots.slice(0, 5)); // Use robot data as recent activity
       setLoading(false);
       setRefreshing(false);
       
+      console.log('✅ Fetched robots:', robots.length);
     } catch (error) {
-      console.error('❌ Error fetching robots:', error);
+      console.error('Error fetching robots:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -342,7 +232,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       return;
     }
 
-    if (!hasRobotSellerAccess && !emergencyAccess) {
+    if (!hasRobotSellerAccess) {
       toast({
         variant: "destructive",
         title: "Access Denied",
@@ -355,11 +245,11 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     console.log('✅ Opening add form');
   };
 
-  // Enhanced edit robot handler
+  // Edit robot handler
   const handleEditRobot = (robot: any) => {
     console.log('✏️ Edit Robot clicked:', robot.id);
     
-    if (!hasRobotSellerAccess && !emergencyAccess) {
+    if (!hasRobotSellerAccess) {
       toast({
         variant: "destructive",
         title: "Access Denied",
@@ -374,7 +264,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   };
 
   const handleDeleteRobot = async (robotId: string) => {
-    if (!hasRobotSellerAccess && !emergencyAccess) {
+    if (!hasRobotSellerAccess) {
       toast({
         variant: "destructive",
         title: "Access Denied",
@@ -401,7 +291,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       fetchDashboardData();
     } catch (error) {
-      console.error('❌ Error deleting robot:', error);
+      console.error('Error deleting robot:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -411,7 +301,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   };
 
   const handleBulkAction = async (action: string) => {
-    if (!hasRobotSellerAccess && !emergencyAccess) {
+    if (!hasRobotSellerAccess) {
       toast({
         variant: "destructive",
         title: "Access Denied",
@@ -470,7 +360,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       setShowBulkDialog(false);
       fetchDashboardData();
     } catch (error) {
-      console.error('❌ Bulk action error:', error);
+      console.error('Bulk action error:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -512,8 +402,15 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     }
   };
 
+  // Handler for view mode change (TypeScript fix)
+  const handleViewModeChange = (value: string) => {
+    if (value === 'list' || value === 'grid') {
+      setViewMode(value);
+    }
+  };
+
   // Show loading state
-  if (loading || profileLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -522,23 +419,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     );
   }
 
-  // Database connection error
-  if (!dbConnected) {
-    return (
-      <div className="space-y-6">
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="w-4 h-4" />
-          <AlertDescription className="text-red-700">
-            <strong>Database Connection Error</strong>
-            <br />
-            Unable to connect to the database. Please check your internet connection or try again later.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // Enhanced access denied screen with emergency access
+  // Enhanced access denied screen
   if (!hasRobotSellerAccess) {
     return (
       <div className="space-y-6">
@@ -556,7 +437,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             <Alert className="border-red-200 bg-red-50 mb-4">
               <AlertCircle className="w-4 h-4" />
               <AlertDescription>
-                <strong>🔍 Debug Information:</strong>
+                <strong>Debug Information:</strong>
                 <br />
                 User Type: {userType || 'Not set'}
                 <br />
@@ -564,9 +445,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 <br />
                 User ID: {user?.id || 'Not logged in'}
                 <br />
-                Profile Status: {currentProfile ? 'Present' : 'Missing'}
-                <br />
-                Has Access: {hasRobotSellerAccess ? 'Yes' : 'No'}
+                Profile Status: {userProfile ? 'Present' : 'Missing'}
               </AlertDescription>
             </Alert>
 
@@ -608,20 +487,6 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                   className="border-red-200 text-red-700 hover:bg-red-50"
                 >
                   Retry Access
-                </Button>
-                
-                {/* Emergency Access for Testing */}
-                <Button 
-                  variant="destructive"
-                  onClick={() => {
-                    setEmergencyAccess(true);
-                    toast({
-                      title: "🚨 Emergency Access Granted",
-                      description: "This is for testing only. Please fix your profile settings."
-                    });
-                  }}
-                >
-                  🚨 Emergency Access (Testing)
                 </Button>
               </div>
             </div>
@@ -677,12 +542,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
         <CheckCircle className="w-4 h-4" />
         <AlertDescription className="text-green-700">
           <strong>✅ Robot Seller Access Confirmed</strong> - You have full access to robot selling features. 
-          Welcome, {currentProfile?.full_name || user?.email}!
+          Welcome, {userProfile?.full_name || user?.email}!
           <br />
-          <small>
-            Access Level: {userType} | Roles: {sellerRoles.join(', ') || 'None'}
-            {emergencyAccess && ' | 🚨 Emergency Access Active'}
-          </small>
+          <small>Access Level: {userType} | Roles: {sellerRoles.join(', ') || 'None'}</small>
         </AlertDescription>
       </Alert>
 
@@ -1150,6 +1012,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           </div>
         </TabsContent>
 
+        {/* Settings Tab with TypeScript fix */}
         <TabsContent value="settings" className="mt-6">
           <Card>
             <CardHeader>
@@ -1165,7 +1028,8 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                       <p className="font-medium">Default View Mode</p>
                       <p className="text-sm text-muted-foreground">Choose how to display your robot inventory</p>
                     </div>
-                    <Select value={viewMode} onValueChange={setViewMode}>
+                    {/* TypeScript fix: Use the handler function instead of direct setViewMode */}
+                    <Select value={viewMode} onValueChange={handleViewModeChange}>
                       <SelectTrigger className="w-32">
                         <SelectValue />
                       </SelectTrigger>
@@ -1198,14 +1062,6 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                         <p className="text-muted-foreground">{sellerRoles.join(', ') || 'None'}</p>
                       </div>
                     </div>
-                    {emergencyAccess && (
-                      <Alert className="mt-4 border-red-200 bg-red-50">
-                        <AlertCircle className="w-4 h-4" />
-                        <AlertDescription className="text-red-700">
-                          <strong>🚨 Emergency Access Active</strong> - This is for testing purposes only. Please update your profile to set proper permissions.
-                        </AlertDescription>
-                      </Alert>
-                    )}
                   </div>
                 </div>
 
