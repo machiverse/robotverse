@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { 
   Bot, 
   ShoppingCart, 
@@ -16,403 +17,546 @@ import {
   DollarSign,
   Settings,
   BarChart,
-  CheckCircle,
-  AlertCircle,
-  Crown,
-  Zap,
+  ChevronRight,
   Eye,
-  Heart,
   Calendar,
-  Award,
+  Clock,
+  ArrowUpRight,
+  Filter,
+  Search,
   RefreshCw,
-  ArrowRight,
-  Wrench,
-  Shield,
-  CreditCard,
-  Truck
+  MoreHorizontal,
+  Maximize2
 } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { UserProfile } from '@/types/user';
 
-// Import centralized types
-import { UserProfile, DatabaseProfile, convertToUserProfile } from '@/types/user';
-
-// Import specialized dashboard components
-import BuyerDashboard from '@/components/dashboards/BuyerDashboard';
-import RobotSellerDashboard from '@/components/dashboards/RobotSellerDashboard';
-import ServiceProviderDashboard from '@/components/dashboards/ServiceProviderDashboard';
-import AdminDashboard from '@/components/dashboards/AdminDashboard';
-import MultiRoleSellerDashboard from '@/components/MultiRoleSellerDashboard';
-
-interface DashboardStats {
-  totalUsers?: number;
-  totalRobots?: number;
-  totalRevenue?: number;
-  activeListings?: number;
-  totalServices?: number;
-  totalParts?: number;
+interface DashboardProps {
+  userProfile: UserProfile;
 }
 
-const ADMIN_EMAILS = ['mark.it@keyleerkorb.com', 'admin@robotmarketplace.com'];
+interface StatItem {
+  label: string;
+  value: string;
+  icon: any;
+  trend: string;
+  description?: string;
+  details?: any[];
+  color?: string;
+}
 
-const Dashboard = () => {
+interface QuickAction {
+  label: string;
+  icon: any;
+  onClick?: () => void;
+  description?: string;
+  path?: string;
+}
+
+interface DetailViewProps {
+  title: string;
+  data: any[];
+  type: 'orders' | 'robots' | 'services' | 'analytics';
+}
+
+const Dashboard = ({ userProfile }: DashboardProps) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({});
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [selectedDetail, setSelectedDetail] = useState<DetailViewProps | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [realTimeData, setRealTimeData] = useState<any>({});
 
-  // Check if user is admin
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+  // Determine user type from profile
+  const userType = userProfile?.user_type || 'buyer';
+  const sellerRoles = userProfile?.seller_roles || [];
 
-  // Fetch user profile and dashboard data
-  const fetchDashboardData = useCallback(async (isRefresh = false) => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+  // Fetch real-time data
+  const fetchRealTimeData = useCallback(async () => {
+    if (!user) return;
 
     try {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
-
-      // Fetch user profile from database
-      const { data: dbProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileError) {
-        if (profileError.code === 'PGRST116') {
-          setShowProfileSetup(true);
-        } else {
-          throw profileError;
-        }
-      } else {
-        // Convert database profile to UserProfile using centralized function
-        const convertedProfile = convertToUserProfile(dbProfile as DatabaseProfile);
-        setUserProfile(convertedProfile);
-        await fetchStats(convertedProfile);
+      setLoading(true);
+      
+      // Fetch data based on user type
+      if (userType === 'seller' || sellerRoles.length > 0) {
+        const { data: robots } = await supabase
+          .from('robots')
+          .select('*')
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        setRealTimeData(prev => ({ ...prev, robots: robots || [] }));
+      } else if (userType === 'buyer') {
+        // Fetch buyer-specific data
+        setRealTimeData(prev => ({ ...prev, orders: [], wishlist: [] }));
       }
-
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load dashboard data"
-      });
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [user, toast]);
-
-  // Fetch relevant stats based on available tables
-  const fetchStats = async (profile: UserProfile) => {
-    try {
-      let stats: DashboardStats = {};
-
-      if (isAdmin) {
-        const [usersResponse, robotsResponse, servicesResponse, partsResponse] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact' }),
-          supabase.from('robots').select('id, price', { count: 'exact' }),
-          supabase.from('services').select('id', { count: 'exact' }),
-          supabase.from('spare_parts').select('id', { count: 'exact' })
-        ]);
-
-        stats = {
-          totalUsers: usersResponse.count || 0,
-          totalRobots: robotsResponse.count || 0,
-          totalServices: servicesResponse.count || 0,
-          totalParts: partsResponse.count || 0,
-          totalRevenue: robotsResponse.data?.reduce((sum, r) => sum + (r.price || 0), 0) || 0,
-          activeListings: robotsResponse.count || 0
-        };
-      } else {
-        const userType = profile.user_type || profile.account_type;
-        const sellerRoles = profile.seller_roles || [];
-
-        if (userType === 'seller' || sellerRoles.length > 0) {
-          const { data: robotsData } = await supabase
-            .from('robots')
-            .select('id, price, availability')
-            .eq('seller_id', user.id);
-
-          stats = {
-            totalRobots: robotsData?.length || 0,
-            activeListings: robotsData?.filter(r => r.availability === 'available').length || 0,
-            totalRevenue: robotsData?.reduce((sum, r) => sum + (r.price || 0), 0) || 0
-          };
-        } else {
-          const { data: robotsData } = await supabase
-            .from('robots')
-            .select('id, price')
-            .limit(10);
-
-          stats = {
-            totalRobots: robotsData?.length || 0,
-            totalRevenue: 0
-          };
-        }
-      }
-
-      setDashboardStats(stats);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      setDashboardStats({
-        totalUsers: 0,
-        totalRobots: 0,
-        totalRevenue: 0,
-        activeListings: 0
-      });
-    }
-  };
-
-  // Profile setup handler
-  const handleProfileSetup = async (userData: any) => {
-    try {
-      const profileData = {
-        user_id: user?.id,
-        email: user?.email,
-        full_name: userData.fullName,
-        user_type: userData.userType,
-        seller_roles: userData.sellerRoles || [],
-        service_categories: userData.serviceCategories || [],
-        company_name: userData.companyName,
-        phone: userData.phone,
-        updated_at: new Date().toISOString()
-      };
-
-      const { data: dbProfile, error } = await supabase
-        .from('profiles')
-        .insert(profileData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const convertedProfile = convertToUserProfile(dbProfile as DatabaseProfile);
-      setUserProfile(convertedProfile);
-      setShowProfileSetup(false);
-      
-      toast({
-        title: "Profile Setup Complete",
-        description: "Welcome to the Robot Marketplace!"
-      });
-    } catch (error) {
-      console.error('Error setting up profile:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to setup profile"
-      });
-    }
-  };
+  }, [user, userType, sellerRoles]);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    fetchRealTimeData();
+  }, [fetchRealTimeData]);
 
-  // Route to specialized dashboards
-  const renderSpecializedDashboard = () => {
-    if (isAdmin) {
-      return <AdminDashboard userProfile={userProfile} />;
-    }
-
-    if (!userProfile) return null;
-
-    const userType = userProfile.user_type;
-    const sellerRoles = userProfile.seller_roles || [];
-    const hasMultipleRoles = sellerRoles.length > 1;
-
-    if ((userType === 'seller' || sellerRoles.length > 0) && hasMultipleRoles) {
-      return <MultiRoleSellerDashboard userProfile={userProfile} />;
-    }
+  // Get dashboard data based on user type
+  const getDashboardData = (): { title: string; subtitle: string; stats: StatItem[]; quickActions: QuickAction[] } => {
+    const robotCount = realTimeData.robots?.length || 0;
+    const activeRobots = realTimeData.robots?.filter((r: any) => r.availability === 'available').length || 0;
+    const totalRevenue = realTimeData.robots?.reduce((sum: number, r: any) => sum + (r.price || 0), 0) || 0;
 
     switch (userType) {
       case 'buyer':
-        return <BuyerDashboard userProfile={userProfile} />;
+        return {
+          title: 'Buyer Dashboard',
+          subtitle: 'Manage your robot purchases and marketplace activity',
+          stats: [
+            { 
+              label: 'Total Orders', 
+              value: '12', 
+              icon: ShoppingCart, 
+              trend: '+15%',
+              description: 'Orders placed this month',
+              details: realTimeData.orders || [],
+              color: 'text-blue-600'
+            },
+            { 
+              label: 'Saved Robots', 
+              value: '28', 
+              icon: Bot, 
+              trend: '+8%',
+              description: 'Items in your wishlist',
+              details: realTimeData.wishlist || [],
+              color: 'text-green-600'
+            },
+            { 
+              label: 'Active Bids', 
+              value: '5', 
+              icon: TrendingUp, 
+              trend: '+25%',
+              description: 'Pending bid responses',
+              color: 'text-orange-600'
+            },
+            { 
+              label: 'Reviews Given', 
+              value: '9', 
+              icon: Star, 
+              trend: '+12%',
+              description: 'Product reviews submitted',
+              color: 'text-purple-600'
+            }
+          ],
+          quickActions: [
+            { label: 'Browse Marketplace', icon: Bot, path: '/robots' },
+            { label: 'My Orders', icon: Package, path: '/orders' },
+            { label: 'Wishlist', icon: Star, path: '/wishlist' },
+            { label: 'Messages', icon: Users, path: '/messages' }
+          ]
+        };
+
       case 'seller':
-        if (sellerRoles.includes('robot_seller')) {
-          return <RobotSellerDashboard userProfile={userProfile} />;
-        }
-        return <MultiRoleSellerDashboard userProfile={userProfile} />;
+        return {
+          title: 'Seller Dashboard',
+          subtitle: 'Manage your robot listings and track sales performance',
+          stats: [
+            { 
+              label: 'Total Revenue', 
+              value: `₹${totalRevenue.toLocaleString()}`, 
+              icon: DollarSign, 
+              trend: '+22%',
+              description: 'Revenue from all sales',
+              details: realTimeData.robots || [],
+              color: 'text-green-600'
+            },
+            { 
+              label: 'Active Listings', 
+              value: activeRobots.toString(), 
+              icon: Bot, 
+              trend: '+5%',
+              description: 'Currently available robots',
+              details: realTimeData.robots?.filter((r: any) => r.availability === 'available') || [],
+              color: 'text-blue-600'
+            },
+            { 
+              label: 'Total Robots', 
+              value: robotCount.toString(), 
+              icon: Package, 
+              trend: '+35%',
+              description: 'All listed robots',
+              details: realTimeData.robots || [],
+              color: 'text-orange-600'
+            },
+            { 
+              label: 'Rating', 
+              value: '4.8', 
+              icon: Star, 
+              trend: '+0.1',
+              description: 'Average seller rating',
+              color: 'text-purple-600'
+            }
+          ],
+          quickActions: [
+            { label: 'Add New Robot', icon: Plus, path: '/dashboard/robots' },
+            { label: 'Manage Listings', icon: Package, path: '/dashboard/inventory' },  
+            { label: 'Sales Analytics', icon: BarChart, path: '/dashboard/analytics' },
+            { label: 'Customer Messages', icon: Users, path: '/messages' }
+          ]
+        };
+
       case 'service_provider':
-        return <ServiceProviderDashboard userProfile={userProfile} />;
-      case 'logistics_provider':
-      case 'finance_provider':
-        return <BuyerDashboard userProfile={userProfile} />;
+        return {
+          title: 'Service Provider Dashboard',
+          subtitle: 'Manage your robotics services and client relationships',
+          stats: [
+            { 
+              label: 'Active Services', 
+              value: '15', 
+              icon: Settings, 
+              trend: '+18%',
+              description: 'Currently active service contracts',
+              color: 'text-blue-600'
+            },
+            { 
+              label: 'Monthly Revenue', 
+              value: '₹12,850', 
+              icon: DollarSign, 
+              trend: '+28%',
+              description: 'This month\'s service revenue',
+              color: 'text-green-600'
+            },
+            { 
+              label: 'Pending Requests', 
+              value: '8', 
+              icon: Activity, 
+              trend: '+12%',
+              description: 'Service requests awaiting response',
+              color: 'text-orange-600'
+            },
+            { 
+              label: 'Client Rating', 
+              value: '4.9', 
+              icon: Star, 
+              trend: '+0.2',
+              description: 'Average service rating',
+              color: 'text-purple-600'
+            }
+          ],
+          quickActions: [
+            { label: 'Add Service', icon: Plus, path: '/dashboard/services' },
+            { label: 'Schedule Calendar', icon: Calendar, path: '/calendar' },
+            { label: 'Client Management', icon: Users, path: '/clients' },
+            { label: 'Service Reports', icon: BarChart, path: '/reports' }
+          ]
+        };
+
       default:
-        return <BuyerDashboard userProfile={userProfile} />;
+        return {
+          title: 'Dashboard',
+          subtitle: 'Welcome to your marketplace dashboard',
+          stats: [],
+          quickActions: []
+        };
     }
   };
 
-  const hasCompletedProfile = (profile: UserProfile | null): boolean => {
-    if (!profile) return false;
-    return !!profile.user_type && !!profile.full_name;
+  const data = getDashboardData();
+
+  // Handle stat card click to open details
+  const handleStatClick = (stat: StatItem) => {
+    if (stat.details && stat.details.length > 0) {
+      setSelectedDetail({
+        title: stat.label,
+        data: stat.details,
+        type: stat.label.toLowerCase().includes('order') ? 'orders' : 
+              stat.label.toLowerCase().includes('robot') ? 'robots' :
+              stat.label.toLowerCase().includes('service') ? 'services' : 'analytics'
+      });
+      setIsDetailOpen(true);
+    } else {
+      toast({
+        title: "No Details Available",
+        description: `No detailed data available for ${stat.label}`,
+      });
+    }
   };
 
-  // Profile setup screen
-  if (showProfileSetup || (userProfile && !hasCompletedProfile(userProfile))) {
-    return (
-      <div className="min-h-screen bg-gray-50/50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-6 w-6" />
-              Complete Your Profile Setup
-            </CardTitle>
-            <CardDescription>
-              Welcome! Let's set up your profile to get started.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProfileSetupForm onComplete={handleProfileSetup} />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Render detail view based on type
+  const renderDetailView = () => {
+    if (!selectedDetail) return null;
 
-  // Loading state
-  if (loading) {
+    const { title, data, type } = selectedDetail;
+
     return (
-      <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-lg font-medium">Loading Dashboard</p>
-            <p className="text-sm text-muted-foreground">
-              Setting up your personalized experience...
-            </p>
+            <h3 className="text-lg font-semibold">{title}</h3>
+            <p className="text-sm text-muted-foreground">{data.length} items</p>
           </div>
+          <Button variant="outline" size="sm">
+            <Maximize2 className="w-4 h-4 mr-2" />
+            View Full Page
+          </Button>
         </div>
+
+        <ScrollArea className="h-[400px] w-full">
+          <div className="space-y-3">
+            {data.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No data available</p>
+              </div>
+            ) : (
+              data.map((item, index) => (
+                <Card key={index} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    {type === 'robots' ? (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                          <Bot className="w-6 h-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.name}</h4>
+                          <p className="text-sm text-muted-foreground">{item.robot_type}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={item.availability === 'available' ? 'default' : 'secondary'}>
+                              {item.availability}
+                            </Badge>
+                            <span className="text-sm font-medium">₹{item.price?.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : type === 'orders' ? (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium">Order #{item.id?.slice(-6)}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">₹{item.total?.toLocaleString()}</p>
+                          <Badge variant="outline">{item.status}</Badge>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium">{item.name || `Item ${index + 1}`}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {item.description || 'No description'}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <ArrowUpRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </ScrollArea>
       </div>
     );
-  }
+  };
 
-  // If user has a profile and specialized dashboard should be shown
-  if (userProfile && hasCompletedProfile(userProfile)) {
-    return renderSpecializedDashboard();
-  }
-
-  // Generic dashboard (rest of your existing code)
   return (
     <div className="min-h-screen bg-gray-50/50">
+      {/* Screen-fitted container */}
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        
+        {/* Enhanced Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Welcome to Robot Marketplace
+              {data.title}
             </h1>
-            <p className="text-muted-foreground">
-              {userProfile?.full_name ? `Hello ${userProfile.full_name}!` : 'Your industrial robotics platform'}
-            </p>
+            <p className="text-muted-foreground">{data.subtitle}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
-              onClick={() => fetchDashboardData(true)}
-              disabled={refreshing}
+              size="sm"
+              onClick={fetchRealTimeData}
+              disabled={loading}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button onClick={() => navigate('/profile')}>
-              <Settings className="h-4 w-4 mr-2" />
-              Complete Setup
+            <Button variant="outline" size="sm">
+              <Filter className="w-4 h-4 mr-2" />
+              Filter
             </Button>
           </div>
         </div>
 
-        {/* Add the rest of your existing JSX here */}
-        <Alert className="border-yellow-200 bg-yellow-50">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-yellow-800">
-            Complete your profile setup to access specialized dashboard features.
-          </AlertDescription>
-        </Alert>
+        {/* Enhanced Stats Grid - Clickable */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {data.stats.map((stat, index) => {
+            const Icon = stat.icon;
+            const hasDetails = stat.details && stat.details.length > 0;
+            
+            return (
+              <Card 
+                key={index} 
+                className={`hover:shadow-lg transition-all duration-200 border-0 shadow-sm ${
+                  hasDetails ? 'cursor-pointer hover:scale-105' : ''
+                }`}
+                onClick={() => hasDetails && handleStatClick(stat)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        {stat.label}
+                      </p>
+                      <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {stat.trend}
+                        </Badge>
+                        {hasDetails && (
+                          <Badge variant="outline" className="text-xs">
+                            <Eye className="w-3 h-3 mr-1" />
+                            View Details
+                          </Badge>
+                        )}
+                      </div>
+                      {stat.description && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {stat.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className={`w-12 h-12 rounded-xl bg-muted flex items-center justify-center`}>
+                        <Icon className={`w-6 h-6 ${stat.color || 'text-primary'}`} />
+                      </div>
+                      {hasDetails && (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Enhanced Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Quick Actions
+            </CardTitle>
+            <CardDescription>Frequently used features and shortcuts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {data.quickActions.map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="h-auto p-4 flex flex-col items-center space-y-2 hover:bg-primary/10 group transition-all"
+                    onClick={() => {
+                      if (action.path) {
+                        window.location.href = action.path;
+                      } else if (action.onClick) {
+                        action.onClick();
+                      }
+                    }}
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-sm">{action.label}</p>
+                      {action.description && (
+                        <p className="text-xs text-muted-foreground">{action.description}</p>
+                      )}
+                    </div>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Enhanced Recent Activity */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>Your latest actions and updates</CardDescription>
+              </div>
+              <Button variant="outline" size="sm">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[
+                { action: 'Added new robot listing', time: '2 hours ago', type: 'success' },
+                { action: 'Received inquiry from buyer', time: '4 hours ago', type: 'info' },
+                { action: 'Updated pricing for 3 robots', time: '1 day ago', type: 'warning' }
+              ].map((item, index) => (
+                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    item.type === 'success' ? 'bg-green-100 text-green-600' :
+                    item.type === 'info' ? 'bg-blue-100 text-blue-600' :
+                    'bg-orange-100 text-orange-600'
+                  }`}>
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{item.action}</p>
+                    <p className="text-xs text-muted-foreground">{item.time}</p>
+                  </div>
+                  <Button variant="ghost" size="sm">
+                    <ArrowUpRight className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Detail View Sheet - Opens from the side */}
+      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <SheetContent className="w-full sm:w-[600px] sm:max-w-[600px]">
+          <SheetHeader>
+            <SheetTitle>
+              {selectedDetail?.title} Details
+            </SheetTitle>
+            <SheetDescription>
+              Detailed view of your {selectedDetail?.title.toLowerCase()}
+            </SheetDescription>
+          </SheetHeader>
+          <Separator className="my-4" />
+          {renderDetailView()}
+        </SheetContent>
+      </Sheet>
     </div>
-  );
-};
-
-// Profile setup form
-const ProfileSetupForm = ({ onComplete }: { onComplete: (data: any) => void }) => {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    userType: '',
-    companyName: '',
-    phone: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onComplete(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1">Full Name</label>
-        <input
-          type="text"
-          value={formData.fullName}
-          onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-          className="w-full p-2 border rounded-md"
-          required
-        />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium mb-1">I am a</label>
-        <select
-          value={formData.userType}
-          onChange={(e) => setFormData({...formData, userType: e.target.value})}
-          className="w-full p-2 border rounded-md"
-          required
-        >
-          <option value="">Select user type</option>
-          <option value="buyer">Buyer</option>
-          <option value="seller">Seller</option>
-          <option value="service_provider">Service Provider</option>
-          <option value="logistics_provider">Logistics Provider</option>
-          <option value="finance_provider">Finance Provider</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Company Name (Optional)</label>
-        <input
-          type="text"
-          value={formData.companyName}
-          onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-          className="w-full p-2 border rounded-md"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Phone Number</label>
-        <input
-          type="tel"
-          value={formData.phone}
-          onChange={(e) => setFormData({...formData, phone: e.target.value})}
-          className="w-full p-2 border rounded-md"
-        />
-      </div>
-
-      <Button type="submit" className="w-full">
-        Complete Setup
-      </Button>
-    </form>
   );
 };
 
