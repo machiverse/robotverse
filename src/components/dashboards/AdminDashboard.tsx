@@ -19,7 +19,7 @@ import {
   Search, Filter, Download, Upload, Plus, MoreHorizontal, 
   Shield, ShieldCheck, AlertTriangle, RefreshCw, Eye, 
   UserX, UserPlus, Crown, Ban, CheckCircle, XCircle,
-  Bot, Wrench, Truck, DollarSign, FileText, Database,
+  Bot, Wrench, Truck, DollarSign, FileText, Database as DatabaseIcon,
   Activity, TrendingUp, Calendar, Clock, MapPin, Phone,
   Mail, Building, Star, ThumbsUp, MessageSquare, Zap,
   Grid, List, ArrowUpDown, ExternalLink, Copy, Share,
@@ -27,13 +27,16 @@ import {
   ShoppingCart, Briefcase, Globe, Award, Flame
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/integrations/supabase/types";
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
-type Robot = Database['public']['Tables']['robots']['Row'];
-type Service = Database['public']['Tables']['services']['Row'];
-type SparePart = Database['public']['Tables']['spare_parts']['Row'];
-type UserTypeEnum = Database['public']['Enums']['user_type_enum'];
+// Import Database type with alias to avoid conflicts
+import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
+
+// Use the aliased type throughout
+type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
+type Robot = SupabaseDatabase['public']['Tables']['robots']['Row'];
+type Service = SupabaseDatabase['public']['Tables']['services']['Row'];
+type SparePart = SupabaseDatabase['public']['Tables']['spare_parts']['Row'];
+type UserTypeEnum = SupabaseDatabase['public']['Enums']['user_type_enum'];
 
 interface AdminDashboardProps {
   userProfile: Profile;
@@ -76,7 +79,7 @@ interface DashboardStats {
   };
 }
 
-const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
+const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
   // Data states
   const [users, setUsers] = useState<Profile[]>([]);
   const [robots, setRobots] = useState<any[]>([]);
@@ -425,6 +428,26 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
     return [headers.join(','), ...rows].join('\n');
   };
 
+  const handleSelectAll = (type: string) => {
+    const currentSelected = type === 'users' ? selectedUsers :
+                           type === 'robots' ? selectedRobots :
+                           type === 'services' ? selectedServices : selectedParts;
+    
+    const allItems = type === 'users' ? users :
+                    type === 'robots' ? robots :
+                    type === 'services' ? services : spareParts;
+
+    const setSelected = type === 'users' ? setSelectedUsers :
+                       type === 'robots' ? setSelectedRobots :
+                       type === 'services' ? setSelectedServices : setSelectedParts;
+
+    if (currentSelected.length === allItems.length) {
+      setSelected([]);
+    } else {
+      setSelected(allItems.map(item => item.id));
+    }
+  };
+
   // Access control
   if (!isAdmin) {
     return (
@@ -502,13 +525,50 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
     }
   ];
 
+  // Filter data based on search
+  const filteredUsers = users.filter(user => 
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.user_type?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredRobots = robots.filter(robot =>
+    robot.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    robot.robot_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    robot.model?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredServices = services.filter(service =>
+    service.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    service.service_type?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredParts = spareParts.filter(part =>
+    part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    part.part_number?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getUserTypeColor = (userType: string | null) => {
+    if (!userType) return 'bg-gray-100 text-gray-800';
+    
+    const colors: Record<string, string> = {
+      buyer: 'bg-blue-100 text-blue-800',
+      robot_seller: 'bg-green-100 text-green-800',
+      parts_seller: 'bg-yellow-100 text-yellow-800',
+      service_provider: 'bg-purple-100 text-purple-800',
+      logistics_provider: 'bg-orange-100 text-orange-800',
+      finance_provider: 'bg-indigo-100 text-indigo-800'
+    };
+    return colors[userType] || 'bg-gray-100 text-gray-800';
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-red-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Comprehensive Admin Control Center
+            Admin Control Center
           </h1>
           <p className="text-muted-foreground text-lg">
             Complete platform management • Equipment • Users • Services • Analytics
@@ -519,7 +579,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
               Super Admin Access
             </Badge>
             <Badge variant="outline">
-              <Database className="w-3 h-3 mr-1" />
+              <DatabaseIcon className="w-3 h-3 mr-1" />
               Full Database Control
             </Badge>
           </div>
@@ -546,6 +606,19 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
             Quick Actions
           </Button>
         </div>
+      </div>
+
+      {/* Admin Access Confirmed Banner */}
+      <div className="mb-6">
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-green-700">
+              <Crown className="w-5 h-5" />
+              <span className="font-semibold">✅ Admin Access Confirmed</span>
+              <span className="text-sm">- Welcome, {userProfile?.full_name || userProfile?.email}</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Comprehensive Stats Grid */}
@@ -635,19 +708,19 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Users ({users.length})
+            Users ({filteredUsers.length})
           </TabsTrigger>
           <TabsTrigger value="robots" className="flex items-center gap-2">
             <Bot className="w-4 h-4" />
-            Robots ({robots.length})
+            Robots ({filteredRobots.length})
           </TabsTrigger>
           <TabsTrigger value="parts" className="flex items-center gap-2">
             <Cog className="w-4 h-4" />
-            Parts ({spareParts.length})
+            Parts ({filteredParts.length})
           </TabsTrigger>
           <TabsTrigger value="services" className="flex items-center gap-2">
             <Wrench className="w-4 h-4" />
-            Services ({services.length})
+            Services ({filteredServices.length})
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -769,16 +842,10 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      if (selectedUsers.length === users.length) {
-                        setSelectedUsers([]);
-                      } else {
-                        setSelectedUsers(users.map(u => u.id));
-                      }
-                    }}
+                    onClick={() => handleSelectAll('users')}
                     size="sm"
                   >
-                    {selectedUsers.length === users.length ? 'Deselect All' : 'Select All'}
+                    {selectedUsers.length === filteredUsers.length ? 'Deselect All' : 'Select All'}
                   </Button>
                   {selectedUsers.length > 0 && (
                     <Button
@@ -805,14 +872,8 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedUsers.length === users.length}
-                        onCheckedChange={() => {
-                          if (selectedUsers.length === users.length) {
-                            setSelectedUsers([]);
-                          } else {
-                            setSelectedUsers(users.map(u => u.id));
-                          }
-                        }}
+                        checked={selectedUsers.length === filteredUsers.length}
+                        onCheckedChange={() => handleSelectAll('users')}
                       />
                     </TableHead>
                     <TableHead>User Details</TableHead>
@@ -824,7 +885,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <Checkbox
@@ -852,12 +913,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <Badge className={`text-xs ${
-                            user.user_type === 'buyer' ? 'bg-blue-100 text-blue-800' :
-                            user.user_type === 'robot_seller' ? 'bg-green-100 text-green-800' :
-                            user.user_type === 'service_provider' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                          <Badge className={getUserTypeColor(user.user_type)}>
                             {user.user_type || 'Not Set'}
                           </Badge>
                           {ADMIN_EMAILS.includes(user.email || '') && (
@@ -905,7 +961,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                               setDeleteTarget({type: 'user', id: user.id, name: user.full_name || user.email || 'User'});
                               setShowDeleteDialog(true);
                             }}
-                            disabled={ADMIN_EMAILS.includes(user.email || '')}
+                            disabled={ADMIN_EMAILS.includes(user.email || '')} // Prevent deleting admin users
                             title="Delete User"
                           >
                             <Trash2 className="w-4 h-4 text-red-600" />
@@ -932,16 +988,10 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      if (selectedRobots.length === robots.length) {
-                        setSelectedRobots([]);
-                      } else {
-                        setSelectedRobots(robots.map(r => r.id));
-                      }
-                    }}
+                    onClick={() => handleSelectAll('robots')}
                     size="sm"
                   >
-                    {selectedRobots.length === robots.length ? 'Deselect All' : 'Select All'}
+                    {selectedRobots.length === filteredRobots.length ? 'Deselect All' : 'Select All'}
                   </Button>
                   {selectedRobots.length > 0 && (
                     <Button
@@ -965,14 +1015,8 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
-                          checked={selectedRobots.length === robots.length}
-                          onCheckedChange={() => {
-                            if (selectedRobots.length === robots.length) {
-                              setSelectedRobots([]);
-                            } else {
-                              setSelectedRobots(robots.map(r => r.id));
-                            }
-                          }}
+                          checked={selectedRobots.length === filteredRobots.length}
+                          onCheckedChange={() => handleSelectAll('robots')}
                         />
                       </TableHead>
                       <TableHead>Robot Details</TableHead>
@@ -984,7 +1028,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {robots.map((robot) => (
+                    {filteredRobots.map((robot) => (
                       <TableRow key={robot.id}>
                         <TableCell>
                           <Checkbox
@@ -1081,7 +1125,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 </Table>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {robots.map((robot) => (
+                  {filteredRobots.map((robot) => (
                     <Card key={robot.id} className="hover:shadow-lg transition-shadow">
                       <CardContent className="p-4">
                         <div className="relative mb-3">
@@ -1161,16 +1205,10 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      if (selectedServices.length === services.length) {
-                        setSelectedServices([]);
-                      } else {
-                        setSelectedServices(services.map(s => s.id));
-                      }
-                    }}
+                    onClick={() => handleSelectAll('services')}
                     size="sm"
                   >
-                    {selectedServices.length === services.length ? 'Deselect All' : 'Select All'}
+                    {selectedServices.length === filteredServices.length ? 'Deselect All' : 'Select All'}
                   </Button>
                   {selectedServices.length > 0 && (
                     <Button
@@ -1193,14 +1231,8 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedServices.length === services.length}
-                        onCheckedChange={() => {
-                          if (selectedServices.length === services.length) {
-                            setSelectedServices([]);
-                          } else {
-                            setSelectedServices(services.map(s => s.id));
-                          }
-                        }}
+                        checked={selectedServices.length === filteredServices.length}
+                        onCheckedChange={() => handleSelectAll('services')}
                       />
                     </TableHead>
                     <TableHead>Service Details</TableHead>
@@ -1212,7 +1244,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {services.map((service) => (
+                  {filteredServices.map((service) => (
                     <TableRow key={service.id}>
                       <TableCell>
                         <Checkbox
@@ -1329,16 +1361,10 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      if (selectedParts.length === spareParts.length) {
-                        setSelectedParts([]);
-                      } else {
-                        setSelectedParts(spareParts.map(p => p.id));
-                      }
-                    }}
+                    onClick={() => handleSelectAll('parts')}
                     size="sm"
                   >
-                    {selectedParts.length === spareParts.length ? 'Deselect All' : 'Select All'}
+                    {selectedParts.length === filteredParts.length ? 'Deselect All' : 'Select All'}
                   </Button>
                   {selectedParts.length > 0 && (
                     <Button
@@ -1361,14 +1387,8 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedParts.length === spareParts.length}
-                        onCheckedChange={() => {
-                          if (selectedParts.length === spareParts.length) {
-                            setSelectedParts([]);
-                          } else {
-                            setSelectedParts(spareParts.map(p => p.id));
-                          }
-                        }}
+                        checked={selectedParts.length === filteredParts.length}
+                        onCheckedChange={() => handleSelectAll('parts')}
                       />
                     </TableHead>
                     <TableHead>Part Details</TableHead>
@@ -1380,7 +1400,7 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {spareParts.map((part) => (
+                  {filteredParts.map((part) => (
                     <TableRow key={part.id}>
                       <TableCell>
                         <Checkbox
@@ -1722,8 +1742,30 @@ const ComprehensiveAdminDashboard = ({ userProfile }: AdminDashboardProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={showItemForm} onOpenChange={setShowItemForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Edit functionality coming soon for: {editingItem?.type || 'item'}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowItemForm(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => setShowItemForm(false)}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default ComprehensiveAdminDashboard;
+export default AdminDashboard;
