@@ -35,7 +35,7 @@ const trustFeatures = [
   },
   {
     icon: CheckCircle,
-    title: "Quality Assured",
+    title: "Quality Assured", 
     description: "Every machine undergoes quality inspection with detailed specifications, high-resolution images, and performance reports.",
     gradient: "from-blue-500 to-cyan-600"
   },
@@ -66,14 +66,14 @@ const TrustIndicators = () => {
     try {
       setError(null);
       
-      // Fetch all data in parallel
+      // Fetch all data in parallel - using only confirmed column names
       const [
         profilesResult,
         robotsResult,
         servicesResult,
         sparePartsResult
       ] = await Promise.allSettled([
-        supabase.from('profiles').select('user_type, location, email_verified, company_name'),
+        supabase.from('profiles').select('user_type, full_name, email, phone, company_name, created_at'),
         supabase.from('robots').select('availability, robot_type, location').eq('availability', 'available'),
         supabase.from('services').select('service_type, location'),
         supabase.from('spare_parts').select('quantity').gt('quantity', 0)
@@ -85,30 +85,39 @@ const TrustIndicators = () => {
       const services = servicesResult.status === 'fulfilled' ? servicesResult.value.data || [] : [];
       const spareParts = sparePartsResult.status === 'fulfilled' ? sparePartsResult.value.data || [] : [];
 
-      // Calculate real statistics
+      // Calculate real statistics using existing fields
       const totalUsers = profiles.length;
-      const verifiedUsers = profiles.filter(p => p.email_verified || p.company_name).length;
+      
+      // Calculate verified users based on profile completeness (using existing fields)
+      const verifiedUsers = profiles.filter(p => 
+        p.full_name && 
+        p.email && 
+        (p.phone || p.company_name) // Consider verified if they have name, email, and either phone or company
+      ).length;
+      
       const activeListings = robots.length + spareParts.length;
       
       // Count unique robot categories
       const robotTypes = new Set(robots.map(r => r.robot_type).filter(Boolean));
       const robotCategories = robotTypes.size;
 
-      // Count service providers
+      // Count service providers using actual user_type field
       const serviceProviders = profiles.filter(p => p.user_type === 'service_provider').length + services.length;
 
-      // Count unique cities/locations
+      // Count unique cities/locations (extract from available location fields)
       const allLocations = [
-        ...profiles.map(p => p.location),
         ...robots.map(r => r.location),
         ...services.map(s => s.location)
       ].filter(Boolean);
-      const uniqueCities = new Set(allLocations.map(loc => 
-        typeof loc === 'string' ? loc.split(',')[0].trim() : ''
-      ).filter(Boolean));
+      
+      const uniqueCities = new Set(
+        allLocations
+          .map(loc => typeof loc === 'string' ? loc.split(',')[0].trim() : '')
+          .filter(Boolean)
+      );
       const citiesCovered = uniqueCities.size;
 
-      // Calculate customer satisfaction (based on verified users ratio)
+      // Calculate customer satisfaction based on profile completion rate
       const customerSatisfaction = totalUsers > 0 ? Math.round((verifiedUsers / totalUsers) * 100) : 0;
 
       const statsData: RealStatsData = {
@@ -183,7 +192,7 @@ const TrustIndicators = () => {
       icon: Users,
       label: "Trusted Community", 
       value: realStats.totalUsers.toString(),
-      description: "verified users"
+      description: "registered users"
     },
     {
       icon: TrendingUp,
@@ -217,7 +226,7 @@ const TrustIndicators = () => {
       color: "text-purple-500" 
     },
     { 
-      label: "Customer Satisfaction", 
+      label: "Profile Completion", 
       value: `${realStats.customerSatisfaction}%`, 
       color: "text-orange-500" 
     }
@@ -340,11 +349,11 @@ const TrustIndicators = () => {
             </div>
             <div className="w-px h-4 bg-border"></div>
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-blue-500">{realStats.verifiedUsers}</span> verified sellers
+              <span className="font-semibold text-blue-500">{realStats.verifiedUsers}</span> verified users
             </div>
             <div className="w-px h-4 bg-border"></div>
             <div className="text-sm text-muted-foreground">
-              <span className="font-semibold text-orange-500">{realStats.customerSatisfaction}%</span> satisfaction
+              <span className="font-semibold text-orange-500">{realStats.customerSatisfaction}%</span> completion rate
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
