@@ -1203,3 +1203,64 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
               onClick={() => {
                 if (deleteTarget) {
                   switch (deleteTarget.type) {
+                    case 'user':
+                      handleDeleteUser(deleteTarget.id);
+                      break;
+                    case 'robot':
+                      handleDeleteRobot(deleteTarget.id);
+                      break;
+                    case 'service':
+                      handleDeleteService(deleteTarget.id);
+                      break;
+                    case 'part':
+                      handleDeleteSparePart(deleteTarget.id);
+                      break;
+                  }
+                }
+                setShowDeleteDialog(false);
+                setDeleteTarget(null);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Actions Dialog */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Actions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choose an action to perform on selected {bulkAction}
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleBulkAction('export', bulkAction)}
+                className="justify-start"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Selected
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleBulkAction('delete', bulkAction)}
+                className="justify-start text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Selected
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AdminDashboard;
