@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import {
   Truck,
   Package,
@@ -19,221 +26,396 @@ import {
   Edit,
   Eye,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  Filter,
+  RefreshCw,
+  Download,
+  Upload,
+  Settings,
+  Shield,
+  PhoneCall,
+  Mail,
+  Calendar,
+  Route,
+  Fuel,
+  Wrench,
+  AlertCircle,
+  TrendingUp,
+  BarChart3,
+  PieChart,
+  Globe,
+  Building
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
+
+type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
+type UserTypeEnum = SupabaseDatabase['public']['Enums']['user_type_enum'];
 
 interface LogisticsProviderDashboardProps {
-  userProfile: any;
+  userProfile: Profile;
+}
+
+interface DashboardStats {
+  activeQuotes: number;
+  completedDeliveries: number;
+  onTimeDeliveryRate: number;
+  monthlyRevenue: number;
+  customerRating: number;
+  serviceRequests: number;
+  coverage_areas: string[];
+  profileCompletion: number;
+}
+
+interface ServiceArea {
+  id: string;
+  area_name: string;
+  coverage_radius: number;
+  active: boolean;
 }
 
 const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardProps) => {
   const { user } = useAuth();
-  const [shipments, setShipments] = useState<any[]>([]);
-  const [fleet, setFleet] = useState<any[]>([]);
-  const [dashboardStats, setDashboardStats] = useState({
-    activeShipments: 0,
-    totalDeliveries: 0,
+  const { toast } = useToast();
+  
+  // States
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  // Data states
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    activeQuotes: 0,
+    completedDeliveries: 0,
     onTimeDeliveryRate: 0,
     monthlyRevenue: 0,
-    customerRating: 4.7
+    customerRating: 0,
+    serviceRequests: 0,
+    coverage_areas: [],
+    profileCompletion: 0
   });
-  const [loading, setLoading] = useState(true);
+  
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+  const [recentInquiries, setRecentInquiries] = useState<any[]>([]);
+  const [serviceCapabilities, setServiceCapabilities] = useState<string[]>([]);
+  
+  // Modal states
+  const [showAddAreaForm, setShowAddAreaForm] = useState(false);
+  const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
+
+  // Enhanced access check for logistics providers
+  const userType = userProfile?.user_type || userProfile?.primary_user_type;
+  const isLogisticsProvider = userType === 'logistics_provider';
+
+  console.log('🚛 Logistics Dashboard Debug:', {
+    userType,
+    isLogisticsProvider,
+    userProfile: userProfile ? 'Present' : 'Missing',
+    userId: user?.id
+  });
 
   useEffect(() => {
-    fetchDashboardData();
+    if (user) {
+      fetchRealDashboardData();
+    }
   }, [user]);
 
-  const fetchDashboardData = async () => {
-    if (!user) return;
+  const fetchRealDashboardData = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
-      // Mock shipments data (until we create shipments table)
-      const mockShipments = [
-        {
-          id: 'SH001',
-          client_name: 'Industrial Corp',
-          pickup_location: 'Mumbai',
-          delivery_location: 'Delhi',
-          status: 'in_transit',
-          estimated_delivery: '2024-02-15',
-          cargo_type: 'Industrial Robot',
-          weight: '500 kg'
-        },
-        {
-          id: 'SH002',
-          client_name: 'Tech Solutions',
-          pickup_location: 'Bangalore',
-          delivery_location: 'Chennai',
-          status: 'picked_up',
-          estimated_delivery: '2024-02-14',
-          cargo_type: 'Spare Parts',
-          weight: '50 kg'
-        },
-        {
-          id: 'SH003',
-          client_name: 'Auto Industries',
-          pickup_location: 'Pune',
-          delivery_location: 'Hyderabad',
-          status: 'delivered',
-          estimated_delivery: '2024-02-10',
-          cargo_type: 'Robot Components',
-          weight: '200 kg'
-        }
-      ];
+      setRefreshing(true);
+      
+      // For now, we'll use the user's profile data and calculate real metrics
+      // In the future, you can add dedicated logistics tables
+      
+      // Calculate real profile completion
+      const profileCompletion = calculateProfileCompletion(userProfile);
+      
+      // Extract service capabilities from profile
+      const capabilities = [
+        ...(userProfile?.logistics_vehicle_types || []),
+        ...(userProfile?.coverage_areas || [])
+      ].filter(Boolean);
+      
+      setServiceCapabilities(capabilities);
+      
+      // Set real coverage areas from profile
+      const coverageAreas = userProfile?.coverage_areas || [];
+      const serviceAreaData = coverageAreas.map((area, index) => ({
+        id: `area_${index}`,
+        area_name: area,
+        coverage_radius: 50, // Default radius
+        active: true
+      }));
+      
+      setServiceAreas(serviceAreaData);
+      
+      // Calculate real stats based on profile data
+      const realStats: DashboardStats = {
+        activeQuotes: 0, // TODO: Count from actual quotes when table exists
+        completedDeliveries: 0, // TODO: Count from actual deliveries
+        onTimeDeliveryRate: 0, // TODO: Calculate from delivery history
+        monthlyRevenue: 0, // TODO: Calculate from actual bookings
+        customerRating: 0, // TODO: Calculate from reviews
+        serviceRequests: 0, // TODO: Count from service requests
+        coverage_areas: coverageAreas,
+        profileCompletion
+      };
+      
+      setDashboardStats(realStats);
+      
+      // Set recent inquiries as empty for now (real data when tables exist)
+      setRecentInquiries([]);
+      
+      console.log('✅ Fetched real logistics data:', realStats);
+      
+    } catch (error) {
+      console.error('Error fetching logistics dashboard data:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load dashboard data"
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user, userProfile, toast]);
 
-      // Mock fleet data
-      const mockFleet = [
-        {
-          id: 'VH001',
-          vehicle_type: 'Heavy Truck',
-          license_plate: 'MH-12-AB-1234',
-          driver_name: 'Rajesh Kumar',
-          status: 'available',
-          current_location: 'Mumbai',
-          capacity: '10 tons'
-        },
-        {
-          id: 'VH002',
-          vehicle_type: 'Medium Truck',
-          license_plate: 'DL-8-CD-5678',
-          driver_name: 'Amit Singh',
-          status: 'in_transit',
-          current_location: 'Delhi-Mumbai Highway',
-          capacity: '5 tons'
-        }
-      ];
+  const calculateProfileCompletion = (profile: any): number => {
+    if (!profile) return 0;
+    
+    const logisticsFields = [
+      'full_name', 'email', 'phone', 'company_name', 
+      'location', 'user_type', 'logistics_vehicle_types',
+      'coverage_areas', 'logistics_certifications'
+    ];
+    
+    const completedFields = logisticsFields.filter(field => {
+      const value = profile[field];
+      if (Array.isArray(value)) return value.length > 0;
+      return value && value !== '' && value !== null && value !== undefined;
+    });
+    
+    return Math.round((completedFields.length / logisticsFields.length) * 100);
+  };
+
+  const handleAddServiceArea = async (areaData: Partial<ServiceArea>) => {
+    try {
+      // For now, we'll update the profile's coverage_areas
+      const updatedAreas = [...(userProfile?.coverage_areas || []), areaData.area_name];
       
-      setShipments(mockShipments);
-      setFleet(mockFleet);
-      
-      setDashboardStats({
-        activeShipments: mockShipments.filter(s => s.status !== 'delivered').length,
-        totalDeliveries: 156, // Mock data
-        onTimeDeliveryRate: 94.5, // Mock data
-        monthlyRevenue: 285000, // Mock data
-        customerRating: 4.7
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          coverage_areas: updatedAreas 
+        })
+        .eq('id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Service area added successfully"
       });
       
-      setLoading(false);
+      setShowAddAreaForm(false);
+      fetchRealDashboardData();
     } catch (error) {
-      console.error('Error fetching logistics provider data:', error);
-      setLoading(false);
+      console.error('Error adding service area:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add service area"
+      });
     }
   };
 
+  // Enhanced stats cards with real data focus
+  const enhancedStatsCards = [
+    {
+      title: 'Profile Completion',
+      value: `${dashboardStats.profileCompletion}%`,
+      icon: User,
+      trend: 'Setup progress',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      title: 'Service Areas',
+      value: dashboardStats.coverage_areas.length,
+      icon: MapPin,
+      trend: 'Coverage locations',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
+    },
+    {
+      title: 'Vehicle Types',
+      value: serviceCapabilities.length,
+      icon: Truck,
+      trend: 'Service capabilities',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50'
+    },
+    {
+      title: 'Account Status',
+      value: isLogisticsProvider ? 'Verified' : 'Pending',
+      icon: Shield,
+      trend: 'Provider status',
+      color: isLogisticsProvider ? 'text-green-600' : 'text-yellow-600',
+      bgColor: isLogisticsProvider ? 'bg-green-50' : 'bg-yellow-50'
+    }
+  ];
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { variant: 'secondary' as const, label: 'Pending Pickup' },
-      picked_up: { variant: 'default' as const, label: 'Picked Up' },
-      in_transit: { variant: 'default' as const, label: 'In Transit' },
-      out_for_delivery: { variant: 'default' as const, label: 'Out for Delivery' },
-      delivered: { variant: 'outline' as const, label: 'Delivered' },
-      delayed: { variant: 'destructive' as const, label: 'Delayed' }
+      pending: { variant: 'secondary' as const, label: 'Pending' },
+      active: { variant: 'default' as const, label: 'Active' },
+      completed: { variant: 'outline' as const, label: 'Completed' },
+      cancelled: { variant: 'destructive' as const, label: 'Cancelled' }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getVehicleStatusBadge = (status: string) => {
-    const statusConfig = {
-      available: { color: 'bg-green-100 text-green-800', label: 'Available' },
-      in_transit: { color: 'bg-blue-100 text-blue-800', label: 'In Transit' },
-      maintenance: { color: 'bg-yellow-100 text-yellow-800', label: 'Maintenance' },
-      offline: { color: 'bg-gray-100 text-gray-800', label: 'Offline' }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.available;
-    return <Badge className={config.color}>{config.label}</Badge>;
-  };
-
-  const statsCards = [
-    {
-      title: 'Active Shipments',
-      value: dashboardStats.activeShipments,
-      icon: Package,
-      trend: 'In progress',
-      color: 'text-blue-600'
-    },
-    {
-      title: 'Total Deliveries',
-      value: dashboardStats.totalDeliveries,
-      icon: CheckCircle,
-      trend: 'All time',
-      color: 'text-green-600'
-    },
-    {
-      title: 'On-Time Rate',
-      value: `${dashboardStats.onTimeDeliveryRate}%`,
-      icon: Clock,
-      trend: 'This month',
-      color: 'text-orange-600'
-    },
-    {
-      title: 'Monthly Revenue',
-      value: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      trend: 'This month',
-      color: 'text-purple-600'
-    },
-    {
-      title: 'Customer Rating',
-      value: dashboardStats.customerRating,
-      icon: Star,
-      trend: 'Average rating',
-      color: 'text-yellow-600'
-    }
-  ];
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading logistics dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Access control
+  if (!isLogisticsProvider) {
+    return (
+      <div className="space-y-6">
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertDescription className="text-orange-700">
+            <strong>⚠️ Logistics Provider Access Required</strong>
+            <br />
+            Your account type is currently "{userType || 'not set'}". To access the logistics provider dashboard, 
+            please update your profile to "logistics_provider" type.
+            <br />
+            <small>User ID: {user?.id} | Profile: {userProfile ? 'Present' : 'Missing'}</small>
+          </AlertDescription>
+        </Alert>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Become a Logistics Provider</CardTitle>
+            <CardDescription>Join our network of trusted logistics partners</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">What You'll Get:</h3>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• Access to shipping requests</li>
+                  <li>• Fleet management tools</li>
+                  <li>• Route optimization</li>
+                  <li>• Payment processing</li>
+                  <li>• Customer ratings system</li>
+                </ul>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">Requirements:</h3>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• Valid transport license</li>
+                  <li>• Fleet registration</li>
+                  <li>• Insurance coverage</li>
+                  <li>• Background verification</li>
+                  <li>• Service area coverage</li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={() => window.location.href = '/profile'}>
+                Update Profile
+              </Button>
+              <Button variant="outline" onClick={() => window.location.href = '/contact'}>
+                Contact Support
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Access Confirmed Banner */}
+      <Alert className="border-green-200 bg-green-50">
+        <CheckCircle className="w-4 h-4" />
+        <AlertDescription className="text-green-700">
+          <strong>✅ Logistics Provider Access Confirmed</strong> - Welcome to your logistics dashboard, {userProfile?.full_name || user?.email}!
+        </AlertDescription>
+      </Alert>
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Logistics Provider Dashboard</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+            Logistics Provider Dashboard
+          </h1>
           <p className="text-muted-foreground">
-            Manage shipments, fleet, and delivery operations
+            Manage your logistics services, coverage areas, and business operations
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Vehicle
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => fetchRealDashboardData()}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-          <Button className="flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            New Shipment
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export Data
+          </Button>
+          <Button onClick={() => setShowAddAreaForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Service Area
           </Button>
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {statsCards.map((stat, index) => {
+      {/* Enhanced Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {enhancedStatsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
+            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <Badge variant="secondary" className="mt-1 text-xs">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                    <Badge variant="secondary" className="mt-2 text-xs">
                       {stat.trend}
                     </Badge>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg bg-muted flex items-center justify-center ${stat.color}`}>
-                    <Icon className="w-6 h-6" />
+                  <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                    <Icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
                 </div>
               </CardContent>
@@ -243,63 +425,170 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="shipments" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="shipments">Active Shipments</TabsTrigger>
-          <TabsTrigger value="fleet">Fleet Management</TabsTrigger>
-          <TabsTrigger value="coverage">Coverage Areas</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-5 h-12">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Truck className="w-4 h-4" />
+            Services
+          </TabsTrigger>
+          <TabsTrigger value="coverage" className="flex items-center gap-2">
+            <MapPin className="w-4 h-4" />
+            Coverage ({serviceAreas.length})
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Profile Setup
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="shipments" className="mt-6">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Business Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dashboardStats.profileCompletion < 100 ? (
+                  <div className="space-y-4">
+                    <Alert className="border-blue-200 bg-blue-50">
+                      <AlertCircle className="w-4 h-4" />
+                      <AlertDescription className="text-blue-700">
+                        Complete your profile to start receiving logistics requests
+                      </AlertDescription>
+                    </Alert>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Profile Completion</span>
+                        <span>{dashboardStats.profileCompletion}%</span>
+                      </div>
+                      <Progress value={dashboardStats.profileCompletion} className="h-2" />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => window.location.href = '/profile'}
+                    >
+                      Complete Profile Setup
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Profile Complete!</h3>
+                    <p className="text-muted-foreground mb-4">
+                      You're ready to receive logistics requests
+                    </p>
+                    <Button>Start Receiving Requests</Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Service Capabilities
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {serviceCapabilities.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                      No service capabilities added yet
+                    </p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => window.location.href = '/profile'}
+                    >
+                      Add Vehicle Types
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {serviceCapabilities.map((capability, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Truck className="w-5 h-5 text-blue-600" />
+                          <span className="font-medium">{capability}</span>
+                        </div>
+                        <Badge variant="outline">Active</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Truck className="w-5 h-5" />
-                Active Shipments Tracking
+                Service Requests & Bookings
               </CardTitle>
-              <CardDescription>Monitor and manage ongoing deliveries</CardDescription>
+              <CardDescription>Manage incoming logistics requests</CardDescription>
             </CardHeader>
             <CardContent>
-              {shipments.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No active shipments</p>
+              {recentInquiries.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Service Requests Yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Complete your profile to start receiving logistics requests from customers
+                  </p>
+                  <div className="space-y-2">
+                    <Button onClick={() => window.location.href = '/profile'}>
+                      Complete Profile Setup
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Profile completion: {dashboardStats.profileCompletion}%
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Shipment ID</TableHead>
+                      <TableHead>Request ID</TableHead>
                       <TableHead>Client</TableHead>
+                      <TableHead>Service Type</TableHead>
                       <TableHead>Route</TableHead>
-                      <TableHead>Cargo</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Delivery Date</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {shipments.map((shipment) => (
-                      <TableRow key={shipment.id}>
-                        <TableCell className="font-medium">{shipment.id}</TableCell>
-                        <TableCell>{shipment.client_name}</TableCell>
+                    {recentInquiries.map((inquiry) => (
+                      <TableRow key={inquiry.id}>
+                        <TableCell className="font-medium">{inquiry.id}</TableCell>
+                        <TableCell>{inquiry.client_name}</TableCell>
+                        <TableCell>{inquiry.service_type}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-3 h-3" />
                             <span className="text-sm">
-                              {shipment.pickup_location} → {shipment.delivery_location}
+                              {inquiry.pickup} → {inquiry.delivery}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{shipment.cargo_type}</p>
-                            <p className="text-sm text-muted-foreground">{shipment.weight}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(shipment.status)}</TableCell>
-                        <TableCell>{shipment.estimated_delivery}</TableCell>
+                        <TableCell>{getStatusBadge(inquiry.status)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Button size="sm" variant="outline">
@@ -319,106 +608,164 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </Card>
         </TabsContent>
 
-        <TabsContent value="fleet" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="w-5 h-5" />
-                Fleet Management
-              </CardTitle>
-              <CardDescription>Monitor vehicles and driver assignments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {fleet.map((vehicle) => (
-                  <Card key={vehicle.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold">{vehicle.vehicle_type}</h3>
-                          <p className="text-sm text-muted-foreground">{vehicle.license_plate}</p>
-                        </div>
-                        {getVehicleStatusBadge(vehicle.status)}
-                      </div>
-                      
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span>{vehicle.driver_name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span>{vehicle.current_location}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-muted-foreground" />
-                          <span>Capacity: {vehicle.capacity}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 mt-4">
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <Navigation className="w-3 h-3 mr-1" />
-                          Track
-                        </Button>
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <Edit className="w-3 h-3 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
+        {/* Coverage Areas Tab */}
         <TabsContent value="coverage" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Coverage Area Management
-              </CardTitle>
-              <CardDescription>Manage service areas and pricing zones</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Service Coverage Areas
+                  </CardTitle>
+                  <CardDescription>Manage your service delivery locations</CardDescription>
+                </div>
+                <Button onClick={() => setShowAddAreaForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Area
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Service Coverage</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">Mumbai Metropolitan</p>
-                        <p className="text-sm text-muted-foreground">Local delivery within 24 hours</p>
-                      </div>
-                      <Badge variant="outline">Zone A</Badge>
+              {serviceAreas.length === 0 ? (
+                <div className="text-center py-12">
+                  <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Coverage Areas</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Add service areas to let customers know where you operate
+                  </p>
+                  <Button onClick={() => setShowAddAreaForm(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Your First Area
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {serviceAreas.map((area) => (
+                    <Card key={area.id} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-blue-600" />
+                            <h3 className="font-semibold">{area.area_name}</h3>
+                          </div>
+                          <Badge variant={area.active ? "default" : "secondary"}>
+                            {area.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Navigation className="w-3 h-3" />
+                            <span>Radius: {area.coverage_radius} km</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Edit className="w-3 h-3 mr-1" />
+                            Edit
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Profile Setup Tab */}
+        <TabsContent value="profile" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Profile Setup & Verification
+              </CardTitle>
+              <CardDescription>Complete your logistics provider profile</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h3 className="font-semibold">Profile Completion</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {dashboardStats.profileCompletion}% complete
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-20 bg-muted rounded-full h-2 mb-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${dashboardStats.profileCompletion}%` }}
+                      />
                     </div>
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">Maharashtra State</p>
-                        <p className="text-sm text-muted-foreground">Interstate delivery 2-3 days</p>
-                      </div>
-                      <Badge variant="outline">Zone B</Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">Western India</p>
-                        <p className="text-sm text-muted-foreground">Regional delivery 3-5 days</p>
-                      </div>
-                      <Badge variant="outline">Zone C</Badge>
-                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.location.href = '/profile'}
+                    >
+                      Update Profile
+                    </Button>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Rate Calculator</h3>
-                  <div className="space-y-3">
-                    <Input placeholder="Pickup location" />
-                    <Input placeholder="Delivery location" />
-                    <Input placeholder="Weight (kg)" type="number" />
-                    <Button className="w-full">Calculate Rate</Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
+                      <Building className="w-4 h-4" />
+                      Business Information
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Company Name:</span>
+                        <span className={userProfile?.company_name ? 'text-green-600' : 'text-red-600'}>
+                          {userProfile?.company_name ? '✓' : '✗'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Contact Info:</span>
+                        <span className={userProfile?.phone && userProfile?.email ? 'text-green-600' : 'text-red-600'}>
+                          {userProfile?.phone && userProfile?.email ? '✓' : '✗'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Location:</span>
+                        <span className={userProfile?.location ? 'text-green-600' : 'text-red-600'}>
+                          {userProfile?.location ? '✓' : '✗'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Service Capabilities
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Vehicle Types:</span>
+                        <span className={serviceCapabilities.length > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {serviceCapabilities.length > 0 ? '✓' : '✗'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Coverage Areas:</span>
+                        <span className={dashboardStats.coverage_areas.length > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {dashboardStats.coverage_areas.length > 0 ? '✓' : '✗'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Certifications:</span>
+                        <span className={userProfile?.logistics_certifications?.length > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {userProfile?.logistics_certifications?.length > 0 ? '✓' : '✗'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -426,68 +773,89 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </Card>
         </TabsContent>
 
+        {/* Analytics Tab */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <PieChart className="w-5 h-5" />
+                  Business Metrics
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">On-Time Delivery Rate</p>
-                    <p className="text-sm text-muted-foreground">Deliveries within promised time</p>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center p-8">
+                    <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      Analytics will be available once you start receiving service requests
+                    </p>
                   </div>
-                  <Badge>94.5%</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Average Delivery Time</p>
-                    <p className="text-sm text-muted-foreground">From pickup to delivery</p>
-                  </div>
-                  <Badge variant="outline">2.3 days</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Customer Satisfaction</p>
-                    <p className="text-sm text-muted-foreground">Average client rating</p>
-                  </div>
-                  <Badge variant="secondary">4.7/5.0</Badge>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Revenue Analytics</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Performance Insights
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Monthly Revenue</p>
-                    <p className="text-sm text-muted-foreground">February 2024</p>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center p-8">
+                    <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      Performance data will appear as you complete deliveries
+                    </p>
                   </div>
-                  <Badge>₹2,85,000</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Average Order Value</p>
-                    <p className="text-sm text-muted-foreground">Per shipment</p>
-                  </div>
-                  <Badge variant="outline">₹4,850</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Growth Rate</p>
-                    <p className="text-sm text-muted-foreground">Month over month</p>
-                  </div>
-                  <Badge variant="secondary">+12.5%</Badge>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Add Service Area Dialog */}
+      <Dialog open={showAddAreaForm} onOpenChange={setShowAddAreaForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Service Area</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="area_name">Area Name</Label>
+              <Input
+                id="area_name"
+                placeholder="e.g., Mumbai, Delhi NCR, Bangalore"
+              />
+            </div>
+            <div>
+              <Label htmlFor="coverage_radius">Coverage Radius (km)</Label>
+              <Input
+                id="coverage_radius"
+                type="number"
+                placeholder="50"
+                defaultValue="50"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAddAreaForm(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                const areaName = (document.getElementById('area_name') as HTMLInputElement)?.value;
+                if (areaName) {
+                  handleAddServiceArea({ area_name: areaName, coverage_radius: 50, active: true });
+                }
+              }}>
+                Add Area
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
