@@ -11,6 +11,7 @@ import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, Credi
 import { useToast } from '@/hooks/use-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import ServiceCategorySelector from '@/components/ServiceCategorySelector';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -22,6 +23,8 @@ const Auth = () => {
   const [location, setLocation] = useState('');
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
   const [sellerRoles, setSellerRoles] = useState<string[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<string[]>([]);
+  const [showServiceCategorySelector, setShowServiceCategorySelector] = useState(false);
   const [logisticsType, setLogisticsType] = useState('');
   const [logisticsRegion, setLogisticsRegion] = useState('');
   const [transportModes, setTransportModes] = useState<string[]>([]);
@@ -45,10 +48,25 @@ const Auth = () => {
 
   const handleSellerRoleChange = (role: string, checked: boolean) => {
     if (checked) {
-      setSellerRoles([...sellerRoles, role]);
+      const newRoles = [...sellerRoles, role];
+      setSellerRoles(newRoles);
+      
+      // If service provider is selected, show service category selector
+      if (role === 'service_provider') {
+        setShowServiceCategorySelector(true);
+      }
     } else {
       setSellerRoles(sellerRoles.filter(r => r !== role));
+      
+      // If service provider is deselected, clear service categories
+      if (role === 'service_provider') {
+        setServiceCategories([]);
+      }
     }
+  };
+
+  const handleServiceCategoriesSelect = (categories: string[]) => {
+    setServiceCategories(categories);
   };
 
   const handleTransportModeChange = (mode: string, checked: boolean) => {
@@ -95,6 +113,9 @@ const Auth = () => {
 
     if (accountType === 'seller') {
       profileData.seller_roles = sellerRoles;
+      if (sellerRoles.includes('service_provider')) {
+        profileData.service_categories = serviceCategories;
+      }
     } else if (accountType === 'logistics') {
       profileData.logistics_type = logisticsType;
       profileData.logistics_region = logisticsRegion;
@@ -419,12 +440,45 @@ const Auth = () => {
                             onCheckedChange={(checked) => handleSellerRoleChange('service_provider', !!checked)}
                           />
                           <Label htmlFor="service_provider">Service/Installation Provider</Label>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                         </div>
+                       </div>
+                     </div>
+                   )}
 
-                  {/* Logistics Partner Fields */}
+                   {/* Service Category Selector Modal */}
+                   <ServiceCategorySelector
+                     open={showServiceCategorySelector}
+                     onClose={() => setShowServiceCategorySelector(false)}
+                     onConfirm={handleServiceCategoriesSelect}
+                     selectedCategories={serviceCategories}
+                   />
+
+                   {/* Show selected service categories */}
+                   {sellerRoles.includes('service_provider') && serviceCategories.length > 0 && (
+                     <div className="space-y-2">
+                       <Label>Selected Service Categories</Label>
+                       <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-muted/50">
+                         {serviceCategories.map((category) => (
+                           <span 
+                             key={category} 
+                             className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-md"
+                           >
+                             {category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                           </span>
+                         ))}
+                       </div>
+                       <Button 
+                         type="button"
+                         variant="outline" 
+                         size="sm" 
+                         onClick={() => setShowServiceCategorySelector(true)}
+                       >
+                         Modify Categories
+                       </Button>
+                     </div>
+                   )}
+
+                   {/* Logistics Partner Fields */}
                   {accountType === 'logistics' && (
                     <div className="space-y-4">
                       <div className="space-y-2">

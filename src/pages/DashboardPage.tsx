@@ -6,6 +6,7 @@ import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDas
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
+import MultiRoleSellerDashboard from "@/components/MultiRoleSellerDashboard";
 
 
 import { useEffect, useState } from "react";
@@ -82,17 +83,29 @@ const DashboardPage = () => {
       return <AdminDashboard userProfile={userProfile} />;
     }
 
+    // Check if user has multiple seller roles or any seller roles
+    const sellerRoles = userProfile?.seller_roles || [];
+    const hasMultipleSellerRoles = sellerRoles.length > 1;
+    const hasAnySellerRole = sellerRoles.length > 0;
+    
+    // If user has seller roles, use the multi-role dashboard
+    if (userProfile?.account_type === 'seller' || hasAnySellerRole) {
+      return <MultiRoleSellerDashboard userProfile={userProfile} />;
+    }
+
     // Show dashboard based on user type, default to buyer if no type set
-    switch (userProfile?.user_type) {
+    switch (userProfile?.user_type || userProfile?.account_type) {
       case 'buyer':
         return <BuyerDashboard userProfile={userProfile} />;
       case 'seller':
-        return <RobotSellerDashboard userProfile={userProfile} />;
+        return <MultiRoleSellerDashboard userProfile={userProfile} />;
       case 'service_provider':
         return <ServiceProviderDashboard userProfile={userProfile} />;
       case 'logistics_provider':
+      case 'logistics':
         return <LogisticsProviderDashboard userProfile={userProfile} />;
       case 'finance_provider':
+      case 'finance':
         return <FinanceProviderDashboard userProfile={userProfile} />;
       default:
         // Default to buyer dashboard if no user_type is set

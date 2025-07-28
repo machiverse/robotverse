@@ -78,6 +78,7 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           seller_roles: string[] | null
+          service_categories: string[] | null
           target_audience: string[] | null
           transport_modes: string[] | null
           updated_at: string
@@ -107,6 +108,7 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           seller_roles?: string[] | null
+          service_categories?: string[] | null
           target_audience?: string[] | null
           transport_modes?: string[] | null
           updated_at?: string
@@ -136,6 +138,7 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           seller_roles?: string[] | null
+          service_categories?: string[] | null
           target_audience?: string[] | null
           transport_modes?: string[] | null
           updated_at?: string
