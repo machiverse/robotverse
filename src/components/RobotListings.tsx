@@ -43,10 +43,10 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Fixed Robot interface to match actual database schema
 interface Robot {
   id: string;
   name: string;
-  brand: string;
   model: string;
   robot_type: string;
   quantity: number;
@@ -57,15 +57,17 @@ interface Robot {
   images: string[];
   category_tags: string[];
   seller_id: string;
-  condition: string;
-  year_manufactured: number;
-  payload_capacity: number;
   created_at: string;
   description: string;
-  applications: string[];
-  certification_standards: string[];
-  training_included: boolean;
-  warranty_info: string;
+  // Optional enhanced properties (may not exist in all records)
+  brand?: string;
+  condition?: string;
+  year_manufactured?: number;
+  payload_capacity?: number;
+  applications?: string[];
+  certification_standards?: string[];
+  training_included?: boolean;
+  warranty_info?: string;
   profiles: {
     company_name: string;
     full_name: string;
@@ -92,20 +94,18 @@ const RobotListings = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [displayCount, setDisplayCount] = useState(8);
 
   // Enhanced stats
   const [marketStats, setMarketStats] = useState({
     totalListings: 0,
     avgPrice: 0,
-    topBrands: [],
-    trendingTypes: []
+    topBrands: [] as string[],
+    trendingTypes: [] as string[]
   });
 
   useEffect(() => {
     fetchRobots();
-    loadUserFavorites();
   }, []);
 
   useEffect(() => {
@@ -133,7 +133,7 @@ const RobotListings = () => {
 
       if (error) throw error;
       
-      const robotsData = data || [];
+      const robotsData = (data || []) as Robot[];
       setRobots(robotsData);
       calculateMarketStats(robotsData);
       
@@ -187,22 +187,6 @@ const RobotListings = () => {
       topBrands,
       trendingTypes
     });
-  };
-
-  const loadUserFavorites = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_favorites')
-        .select('robot_id')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      setFavorites(data?.map(f => f.robot_id) || []);
-    } catch (error) {
-      console.error('Error loading favorites:', error);
-    }
   };
 
   const filterAndSortRobots = () => {
@@ -287,7 +271,6 @@ const RobotListings = () => {
       return;
     }
     
-    // Enhanced AI analysis placeholder
     toast({
       title: "AI Analysis Starting",
       description: "DeepSeek AI is analyzing robot specifications, market data, and compatibility..."
@@ -313,66 +296,14 @@ const RobotListings = () => {
     const phoneNumber = phone.replace(/\D/g, '');
     const message = `Hi ${robot.profiles?.company_name || robot.profiles?.full_name}! I'm interested in your robot: ${robot.name} (${robot.model}). Price: ${formatPrice(robot.price, robot.currency)}. Can you please provide more details?`;
     
-    // Enhanced contact options
-    const contactOptions = [
-      { label: 'WhatsApp Message', action: () => window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank') },
-      { label: 'Phone Call', action: () => window.location.href = `tel:+91${phoneNumber}` },
-      { label: 'Email', action: () => robot.profiles?.email && (window.location.href = `mailto:${robot.profiles.email}?subject=Inquiry about ${robot.name}&body=${encodeURIComponent(message)}`) }
-    ];
-
-    // Create a custom contact dialog
     const choice = window.confirm(
       `Contact ${robot.profiles?.company_name || robot.profiles?.full_name}:\n\nOK = WhatsApp\nCancel = Phone Call`
     );
     
-    contactOptions[choice ? 0 : 1].action();
-  };
-
-  const handleToggleFavorite = async (robotId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Sign In Required",
-        description: "Please sign in to save favorites"
-      });
-      return;
-    }
-
-    try {
-      const isFavorite = favorites.includes(robotId);
-      
-      if (isFavorite) {
-        await supabase
-          .from('user_favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('robot_id', robotId);
-        
-        setFavorites(prev => prev.filter(id => id !== robotId));
-        toast({
-          title: "Removed from favorites",
-          description: "Robot removed from your favorites list"
-        });
-      } else {
-        await supabase
-          .from('user_favorites')
-          .insert({ user_id: user.id, robot_id: robotId });
-        
-        setFavorites(prev => [...prev, robotId]);
-        toast({
-          title: "Added to favorites",
-          description: "Robot saved to your favorites list"
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update favorites"
-      });
+    if (choice) {
+      window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+    } else {
+      window.location.href = `tel:+91${phoneNumber}`;
     }
   };
 
@@ -419,8 +350,8 @@ const RobotListings = () => {
       <section className="py-16 bg-gradient-to-br from-background to-muted/20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <div className="h-8 bg-muted rounded w-64 mx-auto mb-4"></div>
-            <div className="h-4 bg-muted rounded w-96 mx-auto"></div>
+            <div className="h-8 bg-muted rounded w-64 mx-auto mb-4 animate-pulse"></div>
+            <div className="h-4 bg-muted rounded w-96 mx-auto animate-pulse"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array(8).fill(0).map((_, i) => (
@@ -705,25 +636,12 @@ const RobotListings = () => {
 
                   {/* Overlay badges */}
                   <div className="absolute top-2 left-2">
-                    <Badge className={getConditionColor(robot.condition)}>
+                    <Badge className={getConditionColor(robot.condition || 'used')}>
                       {robot.condition?.replace('_', ' ') || 'Used'}
                     </Badge>
                   </div>
 
                   <div className="absolute top-2 right-2 flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
-                      onClick={(e) => handleToggleFavorite(robot.id, e)}
-                    >
-                      <Heart 
-                        className={`w-4 h-4 ${favorites.includes(robot.id) 
-                          ? 'fill-red-500 text-red-500' 
-                          : 'text-gray-600'
-                        }`} 
-                      />
-                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -753,7 +671,7 @@ const RobotListings = () => {
                         {robot.name}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <span className="font-medium">{robot.brand}</span>
+                        <span className="font-medium">{robot.brand || 'Unknown Brand'}</span>
                         {robot.model && (
                           <>
                             <span>•</span>
@@ -799,16 +717,16 @@ const RobotListings = () => {
                     </div>
 
                     {/* Applications & Tags */}
-                    {robot.applications && robot.applications.length > 0 && (
+                    {robot.category_tags && robot.category_tags.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {robot.applications.slice(0, 2).map((app, index) => (
+                        {robot.category_tags.slice(0, 2).map((tag, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
-                            {app}
+                            {tag}
                           </Badge>
                         ))}
-                        {robot.applications.length > 2 && (
+                        {robot.category_tags.length > 2 && (
                           <Badge variant="outline" className="text-xs">
-                            +{robot.applications.length - 2}
+                            +{robot.category_tags.length - 2}
                           </Badge>
                         )}
                       </div>
