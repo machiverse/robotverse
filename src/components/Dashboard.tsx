@@ -43,13 +43,13 @@ import ServiceProviderDashboard from '@/components/dashboards/ServiceProviderDas
 import AdminDashboard from '@/components/dashboards/AdminDashboard';
 import MultiRoleSellerDashboard from '@/components/MultiRoleSellerDashboard';
 
-// Updated interface to match actual database schema
+// Define the main UserProfile interface to match what the dashboard components expect
 interface UserProfile {
   id: string;
   user_id: string;
   email: string;
   full_name?: string;
-  user_type?: string; // Changed to string to accept any value
+  user_type?: 'buyer' | 'seller' | 'service_provider' | 'logistics_provider' | 'finance_provider';
   account_type?: string;
   seller_roles?: string[];
   service_categories?: string[];
@@ -57,9 +57,25 @@ interface UserProfile {
   phone?: string;
   verification_status?: boolean;
   created_at: string;
-  updated_at: string; // Added missing property
-  // Add other properties that might exist in the actual schema
-  [key: string]: any; // Allow additional properties
+  updated_at?: string;
+}
+
+// Database profile interface for raw data from Supabase
+interface DatabaseProfile {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name?: string;
+  user_type?: string; // This can be any string from database
+  account_type?: string;
+  seller_roles?: string[];
+  service_categories?: string[];
+  company_name?: string;
+  phone?: string;
+  verification_status?: boolean;
+  created_at: string;
+  updated_at?: string;
+  [key: string]: any; // Allow additional properties from database
 }
 
 interface DashboardStats {
@@ -72,6 +88,52 @@ interface DashboardStats {
 }
 
 const ADMIN_EMAILS = ['mark.it@keyleerkorb.com', 'admin@robotmarketplace.com'];
+
+// Helper function to convert database profile to UserProfile
+const convertToUserProfile = (dbProfile: DatabaseProfile): UserProfile => {
+  // Validate and convert user_type to the expected union type
+  const validUserTypes: Array<'buyer' | 'seller' | 'service_provider' | 'logistics_provider' | 'finance_provider'> = 
+    ['buyer', 'seller', 'service_provider', 'logistics_provider', 'finance_provider'];
+  
+  let userType: UserProfile['user_type'] = undefined;
+  
+  // Check user_type first, then account_type as fallback
+  const typeToCheck = dbProfile.user_type || dbProfile.account_type;
+  if (typeToCheck && validUserTypes.includes(typeToCheck as any)) {
+    userType = typeToCheck as UserProfile['user_type'];
+  } else if (typeToCheck) {
+    // Default mapping for common variations
+    switch (typeToCheck.toLowerCase()) {
+      case 'logistics':
+        userType = 'logistics_provider';
+        break;
+      case 'finance':
+        userType = 'finance_provider';
+        break;
+      case 'service':
+        userType = 'service_provider';
+        break;
+      default:
+        userType = 'buyer'; // Default fallback
+    }
+  }
+
+  return {
+    id: dbProfile.id,
+    user_id: dbProfile.user_id,
+    email: dbProfile.email,
+    full_name: dbProfile.full_name,
+    user_type: userType,
+    account_type: dbProfile.account_type,
+    seller_roles: dbProfile.seller_roles || [],
+    service_categories: dbProfile.service_categories || [],
+    company_name: dbProfile.company_name,
+    phone: dbProfile.phone,
+    verification_status: dbProfile.verification_status,
+    created_at: dbProfile.created_at,
+    updated_at: dbProfile.updated_at
+  };
+};
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -98,8 +160,8 @@ const Dashboard = () => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
 
-      // Fetch user profile
-      const { data: profile, error: profileError } = await supabase
+      // Fetch user profile from database
+      const { data: dbProfile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
@@ -113,8 +175,10 @@ const Dashboard = () => {
           throw profileError;
         }
       } else {
-        setUserProfile(profile as UserProfile);
-        await fetchStats(profile as UserProfile);
+        // Convert database profile to UserProfile
+        const convertedProfile = convertToUserProfile(dbProfile as DatabaseProfile);
+        setUserProfile(convertedProfile);
+        await fetchStats(convertedProfile);
       }
 
     } catch (error) {
@@ -178,7 +242,7 @@ const Dashboard = () => {
 
           stats = {
             totalRobots: robotsData?.length || 0,
-            totalRevenue: 0 // Can't calculate user-specific revenue without orders table
+            totalRevenue: 0
           };
         }
       }
@@ -211,7 +275,7 @@ const Dashboard = () => {
         updated_at: new Date().toISOString()
       };
 
-      const { data: profile, error } = await supabase
+      const { data: dbProfile, error } = await supabase
         .from('profiles')
         .insert(profileData)
         .select()
@@ -219,7 +283,9 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setUserProfile(profile as UserProfile);
+      // Convert database profile to UserProfile
+      const convertedProfile = convertToUserProfile(dbProfile as DatabaseProfile);
+      setUserProfile(convertedProfile);
       setShowProfileSetup(false);
       
       toast({
@@ -248,7 +314,7 @@ const Dashboard = () => {
 
     if (!userProfile) return null;
 
-    const userType = userProfile.user_type || userProfile.account_type;
+    const userType = userProfile.user_type;
     const sellerRoles = userProfile.seller_roles || [];
     const hasMultipleRoles = sellerRoles.length > 1;
 
@@ -257,7 +323,7 @@ const Dashboard = () => {
       return <MultiRoleSellerDashboard userProfile={userProfile} />;
     }
 
-    // Specialized dashboards with type checking
+    // Specialized dashboards with proper type checking
     switch (userType) {
       case 'buyer':
         return <BuyerDashboard userProfile={userProfile} />;
@@ -268,6 +334,10 @@ const Dashboard = () => {
         return <MultiRoleSellerDashboard userProfile={userProfile} />;
       case 'service_provider':
         return <ServiceProviderDashboard userProfile={userProfile} />;
+      case 'logistics_provider':
+        return <BuyerDashboard userProfile={userProfile} />; // Fallback
+      case 'finance_provider':
+        return <BuyerDashboard userProfile={userProfile} />; // Fallback
       default:
         // Fallback to buyer dashboard for any unrecognized type
         return <BuyerDashboard userProfile={userProfile} />;
@@ -277,7 +347,7 @@ const Dashboard = () => {
   // Check if user has completed profile setup
   const hasCompletedProfile = (profile: UserProfile | null): boolean => {
     if (!profile) return false;
-    return !!(profile.user_type || profile.account_type) && !!profile.full_name;
+    return !!profile.user_type && !!profile.full_name;
   };
 
   // Profile setup screen
