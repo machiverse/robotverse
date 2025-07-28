@@ -57,7 +57,7 @@ interface DashboardPageState {
 // Constants
 const ADMIN_EMAILS = ['mark.it@keyleerkorb.com', 'admin@robotmarketplace.com'];
 const MAX_RETRY_ATTEMPTS = 3;
-const DEFAULT_USER_TYPE = 'buyer';
+const DEFAULT_USER_TYPE = 'buyer' as const;
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -84,7 +84,7 @@ const DashboardPage = () => {
         user_id: user.id,
         email: user.email || '',
         full_name: user.user_metadata?.full_name || '',
-        user_type: DEFAULT_USER_TYPE as const,
+        user_type: DEFAULT_USER_TYPE,
         verification_status: false,
         seller_roles: [],
         service_categories: []
@@ -103,7 +103,7 @@ const DashboardPage = () => {
         description: "Your profile has been created. You can update it anytime in settings.",
       });
 
-      return newProfile;
+      return newProfile as UserProfile;
     } catch (error) {
       console.error('Error creating default profile:', error);
       throw new Error('Failed to create user profile');
@@ -145,7 +145,7 @@ const DashboardPage = () => {
       } else {
         setState(prev => ({ 
           ...prev, 
-          userProfile: profile, 
+          userProfile: profile as UserProfile, 
           loading: false, 
           error: null,
           retryCount: 0 
