@@ -55,7 +55,6 @@ interface UserProfile {
   phone?: string;
   verification_status?: boolean;
   created_at: string;
-  updated_at: string;
 }
 
 interface DashboardStats {
@@ -110,8 +109,8 @@ const Dashboard = () => {
           throw profileError;
         }
       } else {
-        setUserProfile(profile as UserProfile);
-        await fetchStats(profile as UserProfile);
+        setUserProfile(profile);
+        await fetchStats(profile);
       }
 
     } catch (error) {
@@ -149,11 +148,16 @@ const Dashboard = () => {
           activeListings: robotsResponse.count || 0
         };
       } else if (userType === 'buyer') {
-        // Buyer stats - using mock data since orders and wishlist tables don't exist yet
+        // Buyer stats
+        const [ordersResponse, wishlistResponse] = await Promise.all([
+          supabase.from('orders').select('id, total_amount').eq('buyer_id', user.id),
+          supabase.from('user_wishlist').select('id').eq('user_id', user.id)
+        ]);
+
         stats = {
-          totalOrders: 0,
-          totalRevenue: 0,
-          wishlistItems: 0
+          totalOrders: ordersResponse.data?.length || 0,
+          totalRevenue: ordersResponse.data?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0,
+          wishlistItems: wishlistResponse.data?.length || 0
         };
       } else if (userType === 'seller' || sellerRoles.length > 0) {
         // Seller stats
@@ -195,7 +199,7 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setUserProfile(profile as UserProfile);
+      setUserProfile(profile);
       setShowProfileSetup(false);
       
       toast({
