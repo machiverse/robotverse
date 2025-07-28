@@ -132,11 +132,11 @@ const DashboardPage = () => {
 
         <main className="flex-1 p-6">
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard/overview" replace />} />
-            <Route path="/profile" element={<DashboardProfile userProfile={userProfile} onProfileUpdate={fetchUserProfile} />} />
-            <Route path="/settings" element={<DashboardSettings userProfile={userProfile} />} />
-            <Route path="/overview" element={renderDashboardContent()} />
-            <Route path="/robots" element={
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="profile" element={<DashboardProfile userProfile={userProfile} onProfileUpdate={fetchUserProfile} />} />
+            <Route path="settings" element={<DashboardSettings userProfile={userProfile} />} />
+            <Route path="overview" element={renderDashboardContent()} />
+            <Route path="robots" element={
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-bold">Robot Seller Dashboard</h1>
@@ -145,7 +145,7 @@ const DashboardPage = () => {
                 <RobotUpload onSuccess={fetchUserProfile} />
               </div>
             } />
-            <Route path="/parts" element={
+            <Route path="parts" element={
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-bold">Spare Parts Dashboard</h1>
@@ -154,7 +154,7 @@ const DashboardPage = () => {
                 <SpareParts />
               </div>
             } />
-            <Route path="/services" element={
+            <Route path="services" element={
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-bold">Service Provider Dashboard</h1>

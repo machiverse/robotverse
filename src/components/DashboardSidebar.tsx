@@ -27,25 +27,25 @@ export function DashboardSidebar({ userProfile }: DashboardSidebarProps) {
 
   // Main navigation items
   const mainItems = [
-    { title: 'Profile', url: '/dashboard/profile', icon: User },
-    { title: 'Settings', url: '/dashboard/settings', icon: Settings },
+    { title: 'Profile', url: 'profile', icon: User },
+    { title: 'Settings', url: 'settings', icon: Settings },
   ];
 
   // Dashboard sub-items based on seller roles
   const dashboardItems = [];
   if (hasRobotSeller) {
-    dashboardItems.push({ title: 'Robot Seller', url: '/dashboard/robots', icon: Bot });
+    dashboardItems.push({ title: 'Robot Seller', url: 'robots', icon: Bot });
   }
   if (hasPartsSeller) {
-    dashboardItems.push({ title: 'Spare Parts', url: '/dashboard/parts', icon: Package });
+    dashboardItems.push({ title: 'Spare Parts', url: 'parts', icon: Package });
   }
   if (hasServiceProvider) {
-    dashboardItems.push({ title: 'Service Provider', url: '/dashboard/services', icon: Wrench });
+    dashboardItems.push({ title: 'Service Provider', url: 'services', icon: Wrench });
   }
 
   // If no seller roles, default to overview
   if (dashboardItems.length === 0) {
-    dashboardItems.push({ title: 'Overview', url: '/dashboard/overview', icon: LayoutDashboard });
+    dashboardItems.push({ title: 'Overview', url: 'overview', icon: LayoutDashboard });
   }
 
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path);
