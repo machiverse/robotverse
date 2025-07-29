@@ -98,6 +98,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   /*───────────────────────────────────────────────────────────────────────
     Auth helpers
   ────────────────────────────────────────────────────────────────────────*/
+  
+  // ✅ Updated signUp to return both user and error as expected by Auth.tsx
   const signUp = useCallback(
     async (email: string, password: string, fullName = '') => {
       try {
@@ -131,6 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
         }
 
+        // ✅ Return both user and error as expected by Auth.tsx
         return { user: data.user, error: null };
       } catch (error) {
         console.error('❌ Signup exception:', error);
