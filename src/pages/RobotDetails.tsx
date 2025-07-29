@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, TrendingUp, AlertCircle, CheckCircle, Star, Target, Zap } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
 
 interface Robot {
   id: string;
@@ -35,13 +37,85 @@ interface Robot {
   };
 }
 
-interface AIAnalysisResult {
+// ✅ Updated interface to match enhanced Edge Function response
+interface EnhancedAIAnalysisResult {
+  robot: {
+    marketInsights: {
+      priceRange: string;
+      location: string;
+      sellerInfo: any;
+    };
+  };
   analysis: string;
-  recommendations: {
-    spareParts: any[];
-    services: any[];
-    logistics: any[];
-    finance: any[];
+  marketEcosystem: {
+    spareParts: {
+      total: number;
+      nearby: number;
+      suppliers: Array<{
+        id: string;
+        name: string;
+        company: string;
+        location: string;
+        proximity: number;
+        price: string;
+        partNumber: string;
+        specifications: any;
+      }>;
+    };
+    services: {
+      total: number;
+      nearby: number;
+      providers: Array<{
+        id: string;
+        name: string;
+        company: string;
+        location: string;
+        proximity: number;
+        serviceType: string;
+        priceRange: string;
+        specializations: string[];
+      }>;
+    };
+    logistics: {
+      total: number;
+      providers: Array<{
+        id: string;
+        company: string;
+        location: string;
+        proximity: number;
+        logisticsType: string;
+        transportModes: string[];
+        warehouseStorage: boolean;
+        serviceRegion: string;
+      }>;
+    };
+    finance: {
+      total: number;
+      providers: Array<{
+        id: string;
+        company: string;
+        location: string;
+        proximity: number;
+        financeTypes: string[];
+        financingFor: string[];
+        targetAudience: string[];
+        governmentSchemeSupport: boolean;
+      }>;
+    };
+  };
+  locationInsights: {
+    userLocation: string;
+    robotLocation: string;
+    proximityFactors: {
+      nearbySuppliers: number;
+      nearbyServices: number;
+      logisticsAvailability: number;
+    };
+  };
+  actionableRecommendations: {
+    immediateActions: string[];
+    costOptimization: string[];
+    riskMitigation: string[];
   };
 }
 
@@ -53,7 +127,7 @@ const RobotDetails = () => {
   
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<EnhancedAIAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,22 +177,29 @@ const RobotDetails = () => {
 
     try {
       setAnalysisLoading(true);
-      const { data, error } = await supabase.functions.invoke('robotverse-ai-analyze', {
+      console.log('🤖 Starting AI analysis for robot:', robot.id);
+      
+      const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
         body: {
           robotId: robot.id,
           userId: user.id
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw error;
+      }
+
+      console.log('✅ AI Analysis response:', data);
       setAiAnalysis(data);
       
       toast({
-        title: "AI Analysis Complete",
-        description: "Smart recommendations generated successfully",
+        title: "🎯 Smart Analysis Complete!",
+        description: `Found ${data.marketEcosystem.spareParts.total} suppliers, ${data.marketEcosystem.services.total} service providers`,
       });
     } catch (err) {
-      console.error('Error getting AI analysis:', err);
+      console.error('❌ Error getting AI analysis:', err);
       toast({
         title: "Analysis Failed",
         description: err instanceof Error ? err.message : 'Failed to generate AI analysis',
@@ -132,6 +213,18 @@ const RobotDetails = () => {
   const formatPrice = (price: number, currency: string) => {
     const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
     return `${currencySymbol}${price.toLocaleString()}`;
+  };
+
+  const getProximityColor = (proximity: number) => {
+    if (proximity >= 80) return "text-green-600";
+    if (proximity >= 50) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getProximityLabel = (proximity: number) => {
+    if (proximity >= 80) return "Very Close";
+    if (proximity >= 50) return "Nearby";
+    return "Distant";
   };
 
   if (loading) {
@@ -283,148 +376,378 @@ const RobotDetails = () => {
               </Card>
             )}
 
-            {/* AI Analysis Section */}
+            {/* Enhanced AI Analysis Section */}
             {user && (
-              <Card>
+              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/50">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Brain className="w-5 h-5 mr-2" />
-                    Smart AI Analysis
+                    <Brain className="w-5 h-5 mr-2 text-blue-600" />
+                    🎯 Smart Market Analysis & Recommendations
                   </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    AI-powered insights with location-based supplier matching and market analysis
+                  </p>
                 </CardHeader>
                 <CardContent>
                   {!aiAnalysis ? (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground mb-4">
-                        Get AI-powered recommendations for spare parts, services, financing, and logistics for this robot.
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Brain className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Unlock Smart Insights</h3>
+                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                        Get comprehensive market analysis, location-based supplier matching, pricing insights, 
+                        and personalized recommendations for spare parts, services, logistics, and financing.
                       </p>
                       <Button 
                         onClick={handleAIAnalysis}
                         disabled={analysisLoading}
                         size="lg"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                       >
                         {analysisLoading ? (
                           <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Analyzing...
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Analyzing Market...
                           </>
                         ) : (
                           <>
-                            <Brain className="w-4 h-4 mr-2" />
-                            Smart AI Analysis – Show All Matching Resources
+                            <Zap className="w-5 h-5 mr-2" />
+                            Generate Smart Analysis
                           </>
                         )}
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
+                      {/* Market Overview */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-4 bg-white rounded-lg border">
+                          <div className="text-2xl font-bold text-blue-600">{aiAnalysis.marketEcosystem.spareParts.total}</div>
+                          <div className="text-sm text-muted-foreground">Spare Parts Suppliers</div>
+                          <div className="text-xs text-green-600">{aiAnalysis.marketEcosystem.spareParts.nearby} nearby</div>
+                        </div>
+                        <div className="text-center p-4 bg-white rounded-lg border">
+                          <div className="text-2xl font-bold text-green-600">{aiAnalysis.marketEcosystem.services.total}</div>
+                          <div className="text-sm text-muted-foreground">Service Providers</div>
+                          <div className="text-xs text-green-600">{aiAnalysis.marketEcosystem.services.nearby} nearby</div>
+                        </div>
+                        <div className="text-center p-4 bg-white rounded-lg border">
+                          <div className="text-2xl font-bold text-orange-600">{aiAnalysis.marketEcosystem.logistics.total}</div>
+                          <div className="text-sm text-muted-foreground">Logistics Partners</div>
+                        </div>
+                        <div className="text-center p-4 bg-white rounded-lg border">
+                          <div className="text-2xl font-bold text-purple-600">{aiAnalysis.marketEcosystem.finance.total}</div>
+                          <div className="text-sm text-muted-foreground">Finance Providers</div>
+                        </div>
+                      </div>
+
+                      {/* Location Insights */}
+                      {aiAnalysis.locationInsights.userLocation && (
+                        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+                          <CardHeader>
+                            <CardTitle className="flex items-center text-green-700">
+                              <MapPin className="w-5 h-5 mr-2" />
+                              Location-Based Insights
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Your Location:</span>
+                                <p className="text-muted-foreground">{aiAnalysis.locationInsights.userLocation}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium">Robot Location:</span>
+                                <p className="text-muted-foreground">{aiAnalysis.locationInsights.robotLocation}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium">Local Ecosystem:</span>
+                                <p className="text-green-600">
+                                  {aiAnalysis.locationInsights.proximityFactors.nearbySuppliers + 
+                                   aiAnalysis.locationInsights.proximityFactors.nearbyServices} nearby resources
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* AI Analysis */}
                       <div>
-                        <h4 className="font-semibold mb-2">AI Analysis</h4>
-                        <p className="text-muted-foreground whitespace-pre-wrap">{aiAnalysis.analysis}</p>
+                        <h4 className="font-semibold mb-3 flex items-center">
+                          <TrendingUp className="w-4 h-4 mr-2" />
+                          Comprehensive Market Analysis
+                        </h4>
+                        <div className="bg-white p-6 rounded-lg border">
+                          <div className="prose prose-sm max-w-none">
+                            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
+                              {aiAnalysis.analysis}
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actionable Recommendations */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="border-green-200 bg-green-50">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm flex items-center text-green-700">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Immediate Actions
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-1 text-xs">
+                              {aiAnalysis.actionableRecommendations.immediateActions.map((action, index) => (
+                                <li key={index} className="flex items-start">
+                                  <span className="w-1 h-1 bg-green-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                  {action}
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-blue-200 bg-blue-50">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm flex items-center text-blue-700">
+                              <DollarSign className="w-4 h-4 mr-2" />
+                              Cost Optimization
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-1 text-xs">
+                              {aiAnalysis.actionableRecommendations.costOptimization.map((tip, index) => (
+                                <li key={index} className="flex items-start">
+                                  <span className="w-1 h-1 bg-blue-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                  {tip}
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-red-200 bg-red-50">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm flex items-center text-red-700">
+                              <AlertCircle className="w-4 h-4 mr-2" />
+                              Risk Mitigation
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-1 text-xs">
+                              {aiAnalysis.actionableRecommendations.riskMitigation.map((risk, index) => (
+                                <li key={index} className="flex items-start">
+                                  <span className="w-1 h-1 bg-red-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                  {risk}
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
                       </div>
                       
                       <Separator />
                       
+                      {/* Enhanced Recommendations Tabs */}
                       <Tabs defaultValue="parts" className="w-full">
                         <TabsList className="grid w-full grid-cols-4">
-                          <TabsTrigger value="parts">Spare Parts ({aiAnalysis.recommendations.spareParts.length})</TabsTrigger>
-                          <TabsTrigger value="services">Services ({aiAnalysis.recommendations.services.length})</TabsTrigger>
-                          <TabsTrigger value="logistics">Logistics ({aiAnalysis.recommendations.logistics.length})</TabsTrigger>
-                          <TabsTrigger value="finance">Finance ({aiAnalysis.recommendations.finance.length})</TabsTrigger>
+                          <TabsTrigger value="parts" className="text-xs">
+                            Spare Parts ({aiAnalysis.marketEcosystem.spareParts.suppliers.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="services" className="text-xs">
+                            Services ({aiAnalysis.marketEcosystem.services.providers.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="logistics" className="text-xs">
+                            Logistics ({aiAnalysis.marketEcosystem.logistics.providers.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="finance" className="text-xs">
+                            Finance ({aiAnalysis.marketEcosystem.finance.providers.length})
+                          </TabsTrigger>
                         </TabsList>
                         
-                        <TabsContent value="parts" className="mt-4">
-                          <div className="space-y-3">
-                            {aiAnalysis.recommendations.spareParts.map((part, index) => (
-                              <Card key={index}>
+                        <TabsContent value="parts" className="mt-6">
+                          <div className="space-y-4">
+                            {aiAnalysis.marketEcosystem.spareParts.suppliers.map((part, index) => (
+                              <Card key={index} className="hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div>
-                                      <h5 className="font-medium">{part.name}</h5>
-                                      <p className="text-sm text-muted-foreground">{part.profiles?.company_name}</p>
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <h5 className="font-medium">{part.name}</h5>
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline" className="text-xs">
+                                            {part.price}
+                                          </Badge>
+                                          <div className={`text-xs ${getProximityColor(part.proximity)}`}>
+                                            <MapPin className="w-3 h-3 inline mr-1" />
+                                            {getProximityLabel(part.proximity)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">{part.company}</p>
+                                      <p className="text-xs text-muted-foreground">{part.location}</p>
+                                      {part.partNumber && (
+                                        <p className="text-xs text-blue-600 mt-1">Part #: {part.partNumber}</p>
+                                      )}
+                                      <Progress value={part.proximity} className="h-1 mt-2" />
                                     </div>
-                                    <Button size="sm" onClick={() => navigate('/parts')}>
+                                    <Button size="sm" variant="outline" onClick={() => navigate('/parts')}>
                                       <Wrench className="w-4 h-4 mr-1" />
-                                      View Spare Parts
+                                      Contact
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.recommendations.spareParts.length === 0 && (
-                              <p className="text-muted-foreground text-center py-4">No matching spare parts found</p>
+                            {aiAnalysis.marketEcosystem.spareParts.suppliers.length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Wrench className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p>No matching spare parts suppliers found</p>
+                              </div>
                             )}
                           </div>
                         </TabsContent>
                         
-                        <TabsContent value="services" className="mt-4">
-                          <div className="space-y-3">
-                            {aiAnalysis.recommendations.services.map((service, index) => (
-                              <Card key={index}>
+                        <TabsContent value="services" className="mt-6">
+                          <div className="space-y-4">
+                            {aiAnalysis.marketEcosystem.services.providers.map((service, index) => (
+                              <Card key={index} className="hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div>
-                                      <h5 className="font-medium">{service.name}</h5>
-                                      <p className="text-sm text-muted-foreground">{service.profiles?.company_name}</p>
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <h5 className="font-medium">{service.name}</h5>
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline" className="text-xs">
+                                            {service.priceRange || 'Contact for pricing'}
+                                          </Badge>
+                                          <div className={`text-xs ${getProximityColor(service.proximity)}`}>
+                                            <MapPin className="w-3 h-3 inline mr-1" />
+                                            {getProximityLabel(service.proximity)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">{service.company}</p>
+                                      <p className="text-xs text-muted-foreground">{service.location}</p>
+                                      <div className="flex items-center gap-1 mt-2">
+                                        <Badge variant="secondary" className="text-xs">{service.serviceType}</Badge>
+                                        {service.specializations?.slice(0, 2).map((spec, idx) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">{spec}</Badge>
+                                        ))}
+                                      </div>
+                                      <Progress value={service.proximity} className="h-1 mt-2" />
                                     </div>
-                                    <Button size="sm" onClick={() => navigate('/services')}>
+                                    <Button size="sm" variant="outline" onClick={() => navigate('/services')}>
                                       <Settings className="w-4 h-4 mr-1" />
-                                      Find Service Providers
+                                      Contact
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.recommendations.services.length === 0 && (
-                              <p className="text-muted-foreground text-center py-4">No matching services found</p>
+                            {aiAnalysis.marketEcosystem.services.providers.length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Settings className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p>No matching service providers found</p>
+                              </div>
                             )}
                           </div>
                         </TabsContent>
                         
-                        <TabsContent value="logistics" className="mt-4">
-                          <div className="space-y-3">
-                            {aiAnalysis.recommendations.logistics.map((provider, index) => (
-                              <Card key={index}>
+                        <TabsContent value="logistics" className="mt-6">
+                          <div className="space-y-4">
+                            {aiAnalysis.marketEcosystem.logistics.providers.map((provider, index) => (
+                              <Card key={index} className="hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div>
-                                      <h5 className="font-medium">{provider.company_name || provider.full_name}</h5>
-                                      <p className="text-sm text-muted-foreground">{provider.location}</p>
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <h5 className="font-medium">{provider.company}</h5>
+                                        <div className={`text-xs ${getProximityColor(provider.proximity)}`}>
+                                          <MapPin className="w-3 h-3 inline mr-1" />
+                                          {getProximityLabel(provider.proximity)}
+                                        </div>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">{provider.location}</p>
+                                      <p className="text-xs text-blue-600">Region: {provider.serviceRegion}</p>
+                                      <div className="flex items-center gap-1 mt-2">
+                                        <Badge variant="secondary" className="text-xs">{provider.logisticsType}</Badge>
+                                        {provider.transportModes?.map((mode, idx) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">{mode}</Badge>
+                                        ))}
+                                        {provider.warehouseStorage && (
+                                          <Badge variant="outline" className="text-xs">Warehouse</Badge>
+                                        )}
+                                      </div>
+                                      <Progress value={provider.proximity} className="h-1 mt-2" />
                                     </div>
-                                    <Button size="sm" disabled>
+                                    <Button size="sm" variant="outline" disabled>
                                       <Truck className="w-4 h-4 mr-1" />
-                                      Logistics Options
+                                      Contact
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.recommendations.logistics.length === 0 && (
-                              <p className="text-muted-foreground text-center py-4">No logistics providers found</p>
+                            {aiAnalysis.marketEcosystem.logistics.providers.length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p>No logistics providers found</p>
+                              </div>
                             )}
                           </div>
                         </TabsContent>
                         
-                        <TabsContent value="finance" className="mt-4">
-                          <div className="space-y-3">
-                            {aiAnalysis.recommendations.finance.map((provider, index) => (
-                              <Card key={index}>
+                        <TabsContent value="finance" className="mt-6">
+                          <div className="space-y-4">
+                            {aiAnalysis.marketEcosystem.finance.providers.map((provider, index) => (
+                              <Card key={index} className="hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div>
-                                      <h5 className="font-medium">{provider.company_name || provider.full_name}</h5>
-                                      <p className="text-sm text-muted-foreground">{provider.location}</p>
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <h5 className="font-medium">{provider.company}</h5>
+                                        <div className="flex items-center gap-2">
+                                          {provider.governmentSchemeSupport && (
+                                            <Badge variant="outline" className="text-xs text-green-600">
+                                              <Star className="w-3 h-3 mr-1" />
+                                              Govt. Schemes
+                                            </Badge>
+                                          )}
+                                          <div className={`text-xs ${getProximityColor(provider.proximity)}`}>
+                                            <MapPin className="w-3 h-3 inline mr-1" />
+                                            {getProximityLabel(provider.proximity)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">{provider.location}</p>
+                                      <div className="flex items-center gap-1 mt-2">
+                                        {provider.financeTypes?.slice(0, 3).map((type, idx) => (
+                                          <Badge key={idx} variant="secondary" className="text-xs">{type}</Badge>
+                                        ))}
+                                      </div>
+                                      <div className="flex items-center gap-1 mt-1">
+                                        {provider.targetAudience?.slice(0, 2).map((audience, idx) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">{audience}</Badge>
+                                        ))}
+                                      </div>
+                                      <Progress value={provider.proximity} className="h-1 mt-2" />
                                     </div>
-                                    <Button size="sm" disabled>
+                                    <Button size="sm" variant="outline" disabled>
                                       <DollarSign className="w-4 h-4 mr-1" />
-                                      Get Loan Support
+                                      Contact
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.recommendations.finance.length === 0 && (
-                              <p className="text-muted-foreground text-center py-4">No finance providers found</p>
+                            {aiAnalysis.marketEcosystem.finance.providers.length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p>No finance providers found</p>
+                              </div>
                             )}
                           </div>
                         </TabsContent>
@@ -509,6 +832,38 @@ const RobotDetails = () => {
                     <Button variant="outline" className="w-full">
                       Add to Watchlist
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quick Insights */}
+            {aiAnalysis && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center text-blue-700">
+                    <Target className="w-4 h-4 mr-2" />
+                    Quick Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span>Market Position:</span>
+                      <Badge variant="outline" className="text-xs">Competitive</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Supply Chain:</span>
+                      <Badge variant="outline" className="text-xs">
+                        {aiAnalysis.marketEcosystem.spareParts.nearby > 3 ? 'Strong' : 'Limited'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Local Support:</span>
+                      <Badge variant="outline" className="text-xs">
+                        {aiAnalysis.marketEcosystem.services.nearby > 2 ? 'Available' : 'Limited'}
+                      </Badge>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
