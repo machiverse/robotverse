@@ -1,17 +1,19 @@
 import EnhancedHeader from "@/components/EnhancedHeader";
 import EnhancedHero from "@/components/EnhancedHero";
-import RobotListings from "@/components/RobotListings";
+import LiveStats from "@/components/LiveStats";
 import MarketplaceCategories from "@/components/MarketplaceCategories";
-import PlatformServices from "@/components/PlatformServices";
+import RobotListings from "@/components/RobotListings";
+import TrustIndicators from "@/components/TrustIndicators";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
       <EnhancedHero />
-      <RobotListings />
       <MarketplaceCategories />
-      <PlatformServices />
+      <LiveStats />
+      <RobotListings />
+      <TrustIndicators />
     </div>
   );
 };

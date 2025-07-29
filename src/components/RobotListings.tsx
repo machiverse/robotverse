@@ -94,7 +94,7 @@ const RobotListings = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [displayCount, setDisplayCount] = useState(6); // Show fewer robots on home page
+  const [displayCount, setDisplayCount] = useState(8);
 
   // Enhanced stats
   const [marketStats, setMarketStats] = useState({
@@ -380,26 +380,38 @@ const RobotListings = () => {
         {/* Enhanced Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Explore Robot Market
+            Robot Marketplace
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Discover cutting-edge industrial robots from verified sellers worldwide
           </p>
           
-          {/* Compact Market Stats */}
-          <div className="flex justify-center gap-8 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-600">{marketStats.totalListings}</div>
-              <div className="text-sm text-muted-foreground">Available Robots</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-600">₹{(marketStats.avgPrice/100000).toFixed(1)}L</div>
-              <div className="text-sm text-muted-foreground">Avg Price</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-600">{uniqueLocations.length}</div>
-              <div className="text-sm text-muted-foreground">Cities</div>
-            </div>
+          {/* Market Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mt-8">
+            <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-blue-800">{marketStats.totalListings}</div>
+                <div className="text-sm text-blue-600">Active Listings</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-green-800">₹{(marketStats.avgPrice/100000).toFixed(1)}L</div>
+                <div className="text-sm text-green-600">Avg Price</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-purple-800">{marketStats.topBrands.length}</div>
+                <div className="text-sm text-purple-600">Top Brands</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-orange-800">{uniqueLocations.length}</div>
+                <div className="text-sm text-orange-600">Cities</div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
@@ -779,17 +791,27 @@ const RobotListings = () => {
           </div>
         )}
         
-        {/* View All Robots Button */}
+        {/* Load More / View All */}
         {filteredRobots.length > displayCount && (
           <div className="text-center mt-8">
             <Button 
               variant="outline" 
               size="lg"
-              onClick={() => navigate('/robots')}
-              className="px-8"
+              onClick={() => setDisplayCount(prev => prev + 8)}
             >
-              View All {filteredRobots.length} Robots
-              <ArrowUpDown className="w-4 h-4 ml-2" />
+              Load More Robots
+            </Button>
+          </div>
+        )}
+
+        {filteredRobots.length > 0 && (
+          <div className="text-center mt-8">
+            <Button 
+              size="lg"
+              onClick={() => navigate('/robots')}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              View All {marketStats.totalListings} Robots
             </Button>
           </div>
         )}

@@ -34,7 +34,7 @@ const LiveStats = () => {
         if (error) throw error;
 
         const statsData: StatsData = {
-          liveUsers: profiles?.length || 0,
+          liveUsers: 0,
           robotSellers: 0,
           partsSellers: 0,
           serviceProviders: 0,
@@ -42,26 +42,12 @@ const LiveStats = () => {
           financeProviders: 0,
         };
 
-        // Count different types of users based on actual data
-        if (profiles) {
-          profiles.forEach(profile => {
-            if (profile.account_type === 'seller' && profile.seller_roles) {
-              if (profile.seller_roles.includes('robot_seller')) {
-                statsData.robotSellers++;
-              }
-              if (profile.seller_roles.includes('spare_parts_seller')) {
-                statsData.partsSellers++;
-              }
-              if (profile.seller_roles.includes('service_provider')) {
-                statsData.serviceProviders++;
-              }
-            } else if (profile.account_type === 'logistics') {
-              statsData.logisticsPartners++;
-            } else if (profile.account_type === 'finance') {
-              statsData.financeProviders++;
-            }
-          });
-        }
+        // Reset to 0 - no mock data
+        statsData.robotSellers = 0;
+        statsData.partsSellers = 0;
+        statsData.serviceProviders = 0;
+        statsData.logisticsPartners = 0;
+        statsData.financeProviders = 0;
 
         setStats(statsData);
       } catch (error) {

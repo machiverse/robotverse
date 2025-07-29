@@ -91,25 +91,21 @@ const Auth = () => {
       mobile_number: mobileNumber,
       location: location,
       account_type: accountType,
-      email: email
     };
 
     if (accountType === 'seller') {
-      profileData.seller_roles = sellerRoles.length > 0 ? sellerRoles : [];
-      console.log('Saving seller roles:', sellerRoles);
+      profileData.seller_roles = sellerRoles;
     } else if (accountType === 'logistics') {
       profileData.logistics_type = logisticsType;
       profileData.logistics_region = logisticsRegion;
-      profileData.transport_modes = transportModes.length > 0 ? transportModes : [];
+      profileData.transport_modes = transportModes;
       profileData.warehouse_storage = warehouseStorage;
     } else if (accountType === 'finance') {
-      profileData.finance_type = financeType.length > 0 ? financeType : [];
-      profileData.financing_for = financingFor.length > 0 ? financingFor : [];
-      profileData.target_audience = targetAudience.length > 0 ? targetAudience : [];
+      profileData.finance_type = financeType;
+      profileData.financing_for = financingFor;
+      profileData.target_audience = targetAudience;
       profileData.government_scheme_support = governmentSchemeSupport;
     }
-
-    console.log('Updating profile with data:', profileData);
 
     const { error } = await supabase
       .from('profiles')
@@ -118,15 +114,8 @@ const Auth = () => {
 
     if (error) {
       console.error('Error updating profile:', error);
-      toast({
-        variant: "destructive",
-        title: "Profile Update Error",
-        description: `Failed to save profile data: ${error.message}`,
-      });
       throw error;
     }
-
-    console.log('Profile updated successfully');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,19 +134,6 @@ const Auth = () => {
           setLoading(false);
           return;
         }
-
-        // Validate seller roles if seller account
-        if (accountType === 'seller' && sellerRoles.length === 0) {
-          toast({
-            variant: "destructive",
-            title: "Seller Roles Required",
-            description: "Please select at least one seller role to continue.",
-          });
-          setLoading(false);
-          return;
-        }
-
-        console.log('Form validation passed. Account type:', accountType, 'Seller roles:', sellerRoles);
 
         result = await signUp(email, password, fullName);
         
