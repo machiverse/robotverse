@@ -17,33 +17,26 @@ const Robots = () => {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const categories = [
-    { value: "all", label: "All Categories" },
-    { value: "industrial", label: "Industrial Robots" },
-    { value: "articulated", label: "Articulated Robots" },
-    { value: "scara", label: "SCARA Robots" },
-    { value: "delta", label: "Delta Robots" },
-    { value: "collaborative", label: "Collaborative Robots" },
-  ];
-
-  const locations = [
-    { value: "all", label: "All Locations" },
-    { value: "mumbai", label: "Mumbai" },
-    { value: "delhi", label: "Delhi" },
-    { value: "bangalore", label: "Bangalore" },
-    { value: "chennai", label: "Chennai" },
-    { value: "pune", label: "Pune" },
-  ];
+  // ✅ Dynamic arrays populated from database
+  const [categories, setCategories] = useState([
+    { value: "all", label: "All Categories" }
+  ]);
+  
+  const [locations, setLocations] = useState([
+    { value: "all", label: "All Locations" }
+  ]);
 
   const [robots, setRobots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRobots = async () => {
+    const fetchRobotsAndFilters = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        
+        // Fetch robots data
+        const { data: robotsData, error: robotsError } = await supabase
           .from('robots')
           .select(`
             *,
@@ -58,10 +51,67 @@ const Robots = () => {
           .eq('availability', 'available')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setRobots(data || []);
+        if (robotsError) throw robotsError;
+        setRobots(robotsData || []);
+
+        // ✅ Extract unique categories from database
+        const uniqueCategories = new Set<string>();
+        robotsData?.forEach(robot => {
+          // Add robot_type
+          if (robot.robot_type) {
+            uniqueCategories.add(robot.robot_type);
+          }
+          
+          // Add category_tags
+          if (robot.category_tags && Array.isArray(robot.category_tags)) {
+            robot.category_tags.forEach(tag => {
+              if (tag && tag.trim()) {
+                uniqueCategories.add(tag.trim());
+              }
+            });
+          }
+        });
+
+        // Convert to dropdown format
+        const categoryOptions = [
+          { value: "all", label: "All Categories" },
+          ...Array.from(uniqueCategories)
+            .sort()
+            .map(category => ({
+              value: category.toLowerCase().replace(/\s+/g, '-'),
+              label: category
+            }))
+        ];
+        setCategories(categoryOptions);
+
+        // ✅ Extract unique locations from database
+        const uniqueLocations = new Set<string>();
+        robotsData?.forEach(robot => {
+          // Add robot location
+          if (robot.location) {
+            uniqueLocations.add(robot.location.trim());
+          }
+          
+          // Add profile location
+          if (robot.profiles?.location) {
+            uniqueLocations.add(robot.profiles.location.trim());
+          }
+        });
+
+        // Convert to dropdown format
+        const locationOptions = [
+          { value: "all", label: "All Locations" },
+          ...Array.from(uniqueLocations)
+            .sort()
+            .map(location => ({
+              value: location.toLowerCase().replace(/\s+/g, '-'),
+              label: location
+            }))
+        ];
+        setLocations(locationOptions);
+
       } catch (err) {
-        console.error('Error fetching robots:', err);
+        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load robots');
         setRobots([]);
       } finally {
@@ -69,7 +119,7 @@ const Robots = () => {
       }
     };
 
-    fetchRobots();
+    fetchRobotsAndFilters();
   }, []);
 
   const formatPrice = (price: number, currency: string) => {
@@ -103,17 +153,47 @@ const Robots = () => {
     }
   };
 
+  // ✅ Enhanced filtering logic for dynamic data
   const filteredRobots = robots.filter((robot) => {
     const matchesSearch = robot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          robot.robot_type.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesCategory = selectedCategory === "all" || 
-                           robot.robot_type.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-                           robot.category_tags?.some((tag: string) => tag.toLowerCase().includes(selectedCategory.toLowerCase()));
+    const matchesCategory = selectedCategory === "all" || (() => {
+      const selectedCategoryLabel = categories.find(cat => cat.value === selectedCategory)?.label;
+      if (!selectedCategoryLabel) return false;
+      
+      // Check robot_type
+      if (robot.robot_type && robot.robot_type.toLowerCase() === selectedCategoryLabel.toLowerCase()) {
+        return true;
+      }
+      
+      // Check category_tags
+      if (robot.category_tags && Array.isArray(robot.category_tags)) {
+        return robot.category_tags.some((tag: string) => 
+          tag.toLowerCase() === selectedCategoryLabel.toLowerCase()
+        );
+      }
+      
+      return false;
+    })();
     
-    const matchesLocation = selectedLocation === "all" || 
-                           robot.location?.toLowerCase() === selectedLocation.toLowerCase();
+    const matchesLocation = selectedLocation === "all" || (() => {
+      const selectedLocationLabel = locations.find(loc => loc.value === selectedLocation)?.label;
+      if (!selectedLocationLabel) return false;
+      
+      // Check robot location
+      if (robot.location && robot.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
+        return true;
+      }
+      
+      // Check profile location
+      if (robot.profiles?.location && robot.profiles.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
+        return true;
+      }
+      
+      return false;
+    })();
 
     return matchesSearch && matchesCategory && matchesLocation;
   });
@@ -143,6 +223,8 @@ const Robots = () => {
                 className="pl-10"
               />
             </div>
+            
+            {/* ✅ Dynamic Categories Dropdown */}
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="Category" />
@@ -155,6 +237,8 @@ const Robots = () => {
                 ))}
               </SelectContent>
             </Select>
+            
+            {/* ✅ Dynamic Locations Dropdown */}
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger>
                 <SelectValue placeholder="Location" />
@@ -167,6 +251,7 @@ const Robots = () => {
                 ))}
               </SelectContent>
             </Select>
+            
             <div className="flex space-x-2">
               <Button
                 variant={viewMode === "grid" ? "default" : "outline"}
@@ -184,13 +269,20 @@ const Robots = () => {
               </Button>
             </div>
           </div>
+          
+          {/* ✅ Filter Summary */}
+          {!loading && (
+            <div className="text-sm text-muted-foreground">
+              {categories.length - 1} categories • {locations.length - 1} locations available
+            </div>
+          )}
         </div>
 
         {/* Loading State */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading robots...</p>
+            <p className="text-muted-foreground">Loading robots and filters...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-12">
@@ -217,6 +309,16 @@ const Robots = () => {
             <div className="mb-4">
               <p className="text-sm text-muted-foreground">
                 {filteredRobots.length} {filteredRobots.length === 1 ? 'robot' : 'robots'} found
+                {selectedCategory !== "all" && (
+                  <span className="ml-2">
+                    • Category: <strong>{categories.find(cat => cat.value === selectedCategory)?.label}</strong>
+                  </span>
+                )}
+                {selectedLocation !== "all" && (
+                  <span className="ml-2">
+                    • Location: <strong>{locations.find(loc => loc.value === selectedLocation)?.label}</strong>
+                  </span>
+                )}
               </p>
             </div>
             
