@@ -1,160 +1,168 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+/* src/hooks/useAuth.tsx */
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  ReactNode,
+  useMemo,
+} from 'react';
+import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+/*───────────────────────────────────────────────────────────────────────────
+  Types
+───────────────────────────────────────────────────────────────────────────*/
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  /** Create an email-password user; returns any Supabase error */
+  signUp: (
+    email: string,
+    password: string,
+    fullName?: string
+  ) => Promise<AuthError | null>;
+  /** Traditional email-password sign-in; returns any Supabase error */
+  signIn: (email: string, password: string) => Promise<AuthError | null>;
+  /** Passwordless “magic-link” sign-in; returns any Supabase error */
+  signInWithMagicLink: (email: string) => Promise<AuthError | null>;
+  /** OAuth sign-in; provider example: 'google' | 'github' */
+  signInWithOAuth: (provider: Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider']) => Promise<AuthError | null>;
+  /** Global sign-out (removes all local storage artefacts) */
   signOut: () => Promise<void>;
-  cleanupAuthState: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const cleanupAuthState = () => {
-  // Remove standard auth tokens
-  localStorage.removeItem('supabase.auth.token');
-  
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
+/*───────────────────────────────────────────────────────────────────────────
+  Utilities
+───────────────────────────────────────────────────────────────────────────*/
+const purgeSupabaseCaches = () => {
+  // Remove Supabase keys in both localStorage & sessionStorage
+  [localStorage, sessionStorage].forEach((store) => {
+    if (!store) return;
+    Object.keys(store).forEach((k) => {
+      if (k.startsWith('supabase.auth.') || k.includes('sb-')) store.removeItem(k);
+    });
   });
 };
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+/*───────────────────────────────────────────────────────────────────────────
+  Context
+───────────────────────────────────────────────────────────────────────────*/
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser]       = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  /* ───── Establish one-time listener ───── */
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    // Get initial session snapshot
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    });
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // React to all auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName?: string) => {
-    try {
-      // Clean up existing state
-      cleanupAuthState();
-      
-      // Attempt global sign out
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-      }
+  /*───────────────────────────────────────────────────────────────────────
+    Auth helpers
+  ────────────────────────────────────────────────────────────────────────*/
+  const signUp = useCallback(
+    async (email: string, password: string, fullName = '') => {
+      purgeSupabaseCaches();
 
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName || ''
-          }
-        }
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: { full_name: fullName },
+        },
       });
-      
-      return { error };
-    } catch (error) {
-      return { error };
-    }
-  };
+      return error;
+    },
+    []
+  );
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      // Clean up existing state
-      cleanupAuthState();
-      
-      // Attempt global sign out
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-      }
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      purgeSupabaseCaches();
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return error;
+    },
+    []
+  );
+
+  const signInWithMagicLink = useCallback(
+    async (email: string) => {
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
-      
-      if (error) throw error;
-      
-      if (data.user) {
-        // Force page reload for clean state
-        window.location.href = '/';
-      }
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
-  };
+      return error;
+    },
+    []
+  );
 
-  const signOut = async () => {
-    try {
-      // Clean up auth state
-      cleanupAuthState();
-      
-      // Attempt global sign out
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Ignore errors
-      }
-      
-      // Force page reload for a clean state
-      window.location.href = '/auth';
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
+  const signInWithOAuth = useCallback(
+    async (
+      provider: Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider']
+    ) => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      return error;
+    },
+    []
+  );
 
-  const value = {
-    user,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    cleanupAuthState,
-  };
+  const signOut = useCallback(async () => {
+    purgeSupabaseCaches();
+    await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+    window.location.replace('/auth');
+  }, []);
+
+  /*───────────────────────────────────────────────────────────────────────
+    Memoized context value
+  ────────────────────────────────────────────────────────────────────────*/
+  const value: AuthContextType = useMemo(
+    () => ({
+      user,
+      session,
+      loading,
+      signUp,
+      signIn,
+      signInWithMagicLink,
+      signInWithOAuth,
+      signOut,
+    }),
+    [user, session, loading, signUp, signIn, signInWithMagicLink, signInWithOAuth, signOut]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+/*───────────────────────────────────────────────────────────────────────────
+  Hook
+───────────────────────────────────────────────────────────────────────────*/
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
+};
