@@ -62,10 +62,15 @@ const Auth = () => {
 
   // Handler functions for multi-select checkboxes
   const handleSellerRoleChange = (role: string, checked: boolean) => {
+    console.log(`🔄 Seller role change: ${role} = ${checked}`);
     if (checked) {
-      setSellerRoles([...sellerRoles, role]);
+      const newRoles = [...sellerRoles, role];
+      setSellerRoles(newRoles);
+      console.log('✅ Updated seller roles:', newRoles);
     } else {
-      setSellerRoles(sellerRoles.filter(r => r !== role));
+      const newRoles = sellerRoles.filter(r => r !== role);
+      setSellerRoles(newRoles);
+      console.log('✅ Updated seller roles:', newRoles);
     }
   };
 
@@ -101,21 +106,22 @@ const Auth = () => {
     }
   };
 
-  // Enhanced profile creation function with detailed logging
+  // Enhanced profile creation function with detailed seller role logging
   const createUserProfile = async (userId: string) => {
     try {
       console.log('👤 Creating profile for user ID:', userId);
       console.log('📋 Account type:', accountType);
       
       const profileData: any = {
-        id: userId,
+        user_id: userId,
+        email: email.trim(),
         full_name: fullName.trim(),
         company_name: companyName.trim(),
         mobile_number: mobileNumber.trim(),
+        phone: mobileNumber.trim(),
         location: location.trim(),
         user_type: accountType,
         account_type: accountType,
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
@@ -124,7 +130,19 @@ const Auth = () => {
         profileData.seller_roles = sellerRoles;
         profileData.user_roles = sellerRoles;
         profileData.primary_role = sellerRoles[0] || 'seller';
-        console.log('🏪 Seller roles:', sellerRoles);
+        
+        // Enhanced logging for seller roles
+        console.log('🏪 Seller roles selected:', sellerRoles);
+        console.log('📝 Roles being saved to database:');
+        console.log('   - seller_roles:', profileData.seller_roles);
+        console.log('   - user_roles:', profileData.user_roles);
+        console.log('   - primary_role:', profileData.primary_role);
+        
+        // Verify each role
+        sellerRoles.forEach((role, index) => {
+          console.log(`   ${index + 1}. ${role}`);
+        });
+        
       } else if (accountType === 'logistics') {
         profileData.logistics_type = logisticsType;
         profileData.logistics_region = logisticsRegion;
@@ -133,6 +151,7 @@ const Auth = () => {
         profileData.user_roles = ['logistics_provider'];
         profileData.primary_role = 'logistics_provider';
         console.log('🚚 Logistics type:', logisticsType, 'Region:', logisticsRegion);
+        console.log('🚛 Transport modes:', transportModes);
       } else if (accountType === 'finance') {
         profileData.finance_type = financeType;
         profileData.financing_for = financingFor;
@@ -141,6 +160,8 @@ const Auth = () => {
         profileData.user_roles = ['finance_provider'];
         profileData.primary_role = 'finance_provider';
         console.log('💰 Finance types:', financeType);
+        console.log('💳 Financing for:', financingFor);
+        console.log('🎯 Target audience:', targetAudience);
       } else if (accountType === 'buyer') {
         profileData.user_roles = ['buyer'];
         profileData.primary_role = 'buyer';
@@ -149,11 +170,10 @@ const Auth = () => {
 
       console.log('📝 Final profile data:', profileData);
 
-      // Use UPSERT to handle profile creation
       const { data, error } = await supabase
         .from('profiles')
         .upsert(profileData, { 
-          onConflict: 'id',
+          onConflict: 'user_id',
           ignoreDuplicates: false 
         })
         .select();
@@ -165,6 +185,14 @@ const Auth = () => {
       }
 
       console.log('✅ Profile created successfully:', data);
+      
+      // Log the saved roles for verification
+      if (data && data[0] && accountType === 'seller') {
+        console.log('✅ Verified saved seller roles:', data[0].seller_roles);
+        console.log('✅ Verified saved user roles:', data[0].user_roles);
+        console.log('✅ Verified primary role:', data[0].primary_role);
+      }
+      
       return data;
 
     } catch (error: any) {
@@ -245,6 +273,16 @@ const Auth = () => {
             description: "Please select at least one seller role.",
           });
           return;
+        }
+
+        // Log selected seller roles before submission
+        if (accountType === 'seller') {
+          console.log('🔍 Final seller roles validation:');
+          console.log('   - Selected roles count:', sellerRoles.length);
+          console.log('   - Selected roles:', sellerRoles);
+          sellerRoles.forEach((role, index) => {
+            console.log(`   ${index + 1}. ${role}`);
+          });
         }
 
         if (accountType === 'logistics') {
@@ -345,7 +383,7 @@ const Auth = () => {
     }
   };
 
-  // Handle MOU agreement
+  // Handle MOU agreement - updated to work with your table structure
   const handleMouAgreement = async () => {
     try {
       console.log('📜 Processing MOU agreement...');
@@ -361,9 +399,10 @@ const Auth = () => {
         .update({
           mou_agreed: true,
           mou_agreed_at: new Date().toISOString(),
-          registration_complete: true
+          registration_complete: true,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', currentUser.id);
+        .eq('user_id', currentUser.id);
 
       if (error) {
         console.error('❌ MOU update error:', error);
@@ -658,6 +697,9 @@ const Auth = () => {
 
                   <div className="space-y-2">
                     <Label>Select Your Seller Roles (Choose all that apply) *</Label>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Selected roles ({sellerRoles.length}): {sellerRoles.join(', ') || 'None'}
+                    </div>
                     <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
                       <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                         <Checkbox
