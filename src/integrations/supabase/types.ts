@@ -55,6 +55,170 @@ export type Database = {
           },
         ]
       }
+      logistics_coverage: {
+        Row: {
+          area_name: string
+          base_rate: number
+          created_at: string | null
+          delivery_time: string
+          id: string
+          is_active: boolean | null
+          per_kg_rate: number
+          provider_id: string | null
+          updated_at: string | null
+          zone_type: string
+        }
+        Insert: {
+          area_name: string
+          base_rate: number
+          created_at?: string | null
+          delivery_time: string
+          id?: string
+          is_active?: boolean | null
+          per_kg_rate: number
+          provider_id?: string | null
+          updated_at?: string | null
+          zone_type: string
+        }
+        Update: {
+          area_name?: string
+          base_rate?: number
+          created_at?: string | null
+          delivery_time?: string
+          id?: string
+          is_active?: boolean | null
+          per_kg_rate?: number
+          provider_id?: string | null
+          updated_at?: string | null
+          zone_type?: string
+        }
+        Relationships: []
+      }
+      logistics_fleet: {
+        Row: {
+          capacity_volume: number | null
+          capacity_weight: number
+          created_at: string | null
+          current_location: string | null
+          driver_license: string | null
+          driver_name: string
+          driver_phone: string | null
+          fuel_type: string | null
+          id: string
+          insurance_expiry: string | null
+          last_maintenance: string | null
+          license_plate: string
+          provider_id: string | null
+          status: string | null
+          updated_at: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          capacity_volume?: number | null
+          capacity_weight: number
+          created_at?: string | null
+          current_location?: string | null
+          driver_license?: string | null
+          driver_name: string
+          driver_phone?: string | null
+          fuel_type?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          last_maintenance?: string | null
+          license_plate: string
+          provider_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          capacity_volume?: number | null
+          capacity_weight?: number
+          created_at?: string | null
+          current_location?: string | null
+          driver_license?: string | null
+          driver_name?: string
+          driver_phone?: string | null
+          fuel_type?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          last_maintenance?: string | null
+          license_plate?: string
+          provider_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_type?: string
+        }
+        Relationships: []
+      }
+      logistics_shipments: {
+        Row: {
+          actual_delivery: string | null
+          cargo_type: string
+          client_email: string | null
+          client_name: string
+          cost: number
+          created_at: string | null
+          currency: string | null
+          delivery_location: string
+          estimated_delivery: string
+          id: string
+          pickup_location: string
+          provider_id: string
+          shipment_id: string
+          status: string | null
+          tracking_number: string
+          updated_at: string | null
+          weight: number
+        }
+        Insert: {
+          actual_delivery?: string | null
+          cargo_type: string
+          client_email?: string | null
+          client_name: string
+          cost: number
+          created_at?: string | null
+          currency?: string | null
+          delivery_location: string
+          estimated_delivery: string
+          id?: string
+          pickup_location: string
+          provider_id: string
+          shipment_id?: string
+          status?: string | null
+          tracking_number?: string
+          updated_at?: string | null
+          weight: number
+        }
+        Update: {
+          actual_delivery?: string | null
+          cargo_type?: string
+          client_email?: string | null
+          client_name?: string
+          cost?: number
+          created_at?: string | null
+          currency?: string | null
+          delivery_location?: string
+          estimated_delivery?: string
+          id?: string
+          pickup_location?: string
+          provider_id?: string
+          shipment_id?: string
+          status?: string | null
+          tracking_number?: string
+          updated_at?: string | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logistics_shipments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_type: string | null
@@ -78,10 +242,12 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           seller_roles: string[] | null
+          service_categories: string[] | null
           target_audience: string[] | null
           transport_modes: string[] | null
           updated_at: string
           user_id: string
+          user_roles: string[] | null
           user_type: string | null
           warehouse_storage: boolean | null
         }
@@ -107,10 +273,12 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           seller_roles?: string[] | null
+          service_categories?: string[] | null
           target_audience?: string[] | null
           transport_modes?: string[] | null
           updated_at?: string
           user_id: string
+          user_roles?: string[] | null
           user_type?: string | null
           warehouse_storage?: boolean | null
         }
@@ -136,10 +304,12 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           seller_roles?: string[] | null
+          service_categories?: string[] | null
           target_audience?: string[] | null
           transport_modes?: string[] | null
           updated_at?: string
           user_id?: string
+          user_roles?: string[] | null
           user_type?: string | null
           warehouse_storage?: boolean | null
         }
@@ -207,6 +377,219 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      service_appointments: {
+        Row: {
+          appointment_date: string
+          client_id: string | null
+          created_at: string | null
+          duration_hours: number | null
+          id: string
+          location: string | null
+          notes: string | null
+          provider_id: string | null
+          service_request_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          client_id?: string | null
+          created_at?: string | null
+          duration_hours?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          provider_id?: string | null
+          service_request_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          client_id?: string | null
+          created_at?: string | null
+          duration_hours?: number | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          provider_id?: string | null
+          service_request_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_appointments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_appointments_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          budget_range: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          client_phone: string | null
+          completion_date: string | null
+          created_at: string | null
+          description: string
+          id: string
+          location: string
+          provider_id: string | null
+          request_id: string
+          scheduled_date: string | null
+          service_id: string | null
+          service_type: string
+          special_requirements: string | null
+          status: string | null
+          updated_at: string | null
+          urgency: string | null
+        }
+        Insert: {
+          budget_range?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          client_phone?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          location: string
+          provider_id?: string | null
+          request_id?: string
+          scheduled_date?: string | null
+          service_id?: string | null
+          service_type: string
+          special_requirements?: string | null
+          status?: string | null
+          updated_at?: string | null
+          urgency?: string | null
+        }
+        Update: {
+          budget_range?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          client_phone?: string | null
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          location?: string
+          provider_id?: string | null
+          request_id?: string
+          scheduled_date?: string | null
+          service_id?: string | null
+          service_type?: string
+          special_requirements?: string | null
+          status?: string | null
+          updated_at?: string | null
+          urgency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_requests_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_requests_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reviews: {
+        Row: {
+          client_id: string | null
+          communication_rating: number | null
+          created_at: string | null
+          id: string
+          provider_id: string | null
+          quality_rating: number | null
+          rating: number | null
+          response_time_rating: number | null
+          review_text: string | null
+          service_request_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          communication_rating?: number | null
+          created_at?: string | null
+          id?: string
+          provider_id?: string | null
+          quality_rating?: number | null
+          rating?: number | null
+          response_time_rating?: number | null
+          review_text?: string | null
+          service_request_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          communication_rating?: number | null
+          created_at?: string | null
+          id?: string
+          provider_id?: string | null
+          quality_rating?: number | null
+          rating?: number | null
+          response_time_rating?: number | null
+          review_text?: string | null
+          service_request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_reviews_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -324,7 +707,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_random_string: {
+        Args: { length: number }
+        Returns: string
+      }
+      get_logistics_data: {
+        Args: { table_name: string; provider_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       seller_role_enum: "robot_seller" | "parts_seller" | "service_provider"

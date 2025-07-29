@@ -11,6 +11,7 @@ import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, Credi
 import { useToast } from '@/hooks/use-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import MultiRoleSelector, { UserRole } from '@/components/MultiRoleSelector';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -20,8 +21,7 @@ const Auth = () => {
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [location, setLocation] = useState('');
-  const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
-  const [sellerRoles, setSellerRoles] = useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([]);
   const [logisticsType, setLogisticsType] = useState('');
   const [logisticsRegion, setLogisticsRegion] = useState('');
   const [transportModes, setTransportModes] = useState<string[]>([]);
@@ -43,13 +43,6 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const handleSellerRoleChange = (role: string, checked: boolean) => {
-    if (checked) {
-      setSellerRoles([...sellerRoles, role]);
-    } else {
-      setSellerRoles(sellerRoles.filter(r => r !== role));
-    }
-  };
 
   const handleTransportModeChange = (mode: string, checked: boolean) => {
     if (checked) {
@@ -90,22 +83,25 @@ const Auth = () => {
       company_name: companyName,
       mobile_number: mobileNumber,
       location: location,
-      account_type: accountType,
+      user_roles: selectedRoles,
     };
 
-    if (accountType === 'seller') {
-      profileData.seller_roles = sellerRoles;
-    } else if (accountType === 'logistics') {
+    // Set legacy fields for backwards compatibility
+    if (selectedRoles.includes('logistics_provider')) {
       profileData.logistics_type = logisticsType;
       profileData.logistics_region = logisticsRegion;
       profileData.transport_modes = transportModes;
       profileData.warehouse_storage = warehouseStorage;
-    } else if (accountType === 'finance') {
+    }
+
+    if (selectedRoles.includes('finance_provider')) {
       profileData.finance_type = financeType;
       profileData.financing_for = financingFor;
       profileData.target_audience = targetAudience;
       profileData.government_scheme_support = governmentSchemeSupport;
     }
+
+    console.log('Updating profile with data:', profileData);
 
     const { error } = await supabase
       .from('profiles')
@@ -125,11 +121,11 @@ const Auth = () => {
     try {
       let result;
       if (isSignUp) {
-        if (!accountType) {
+        if (selectedRoles.length === 0) {
           toast({
             variant: "destructive",
-            title: "Account Type Required",
-            description: "Please select an account type to continue.",
+            title: "User Roles Required",
+            description: "Please select at least one role to continue.",
           });
           setLoading(false);
           return;
@@ -376,56 +372,15 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Account Type</Label>
-                    <Select value={accountType} onValueChange={(value: any) => setAccountType(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose account type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="buyer">👥 Buyer</SelectItem>
-                        <SelectItem value="seller">🏭 Seller</SelectItem>
-                        <SelectItem value="logistics">🚚 Logistics Partner</SelectItem>
-                        <SelectItem value="finance">💰 Loan/Finance Provider</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Seller Role Logic */}
-                  {accountType === 'seller' && (
-                    <div className="space-y-2">
-                      <Label>Seller Roles (Select all that apply)</Label>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="robot_seller"
-                            checked={sellerRoles.includes('robot_seller')}
-                            onCheckedChange={(checked) => handleSellerRoleChange('robot_seller', !!checked)}
-                          />
-                          <Label htmlFor="robot_seller">Robot Seller</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="spare_parts_seller"
-                            checked={sellerRoles.includes('spare_parts_seller')}
-                            onCheckedChange={(checked) => handleSellerRoleChange('spare_parts_seller', !!checked)}
-                          />
-                          <Label htmlFor="spare_parts_seller">Spare Parts Seller</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="service_provider"
-                            checked={sellerRoles.includes('service_provider')}
-                            onCheckedChange={(checked) => handleSellerRoleChange('service_provider', !!checked)}
-                          />
-                          <Label htmlFor="service_provider">Service/Installation Provider</Label>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Multi-Role Selector */}
+                  <MultiRoleSelector
+                    selectedRoles={selectedRoles}
+                    onRolesChange={setSelectedRoles}
+                    className="space-y-4"
+                  />
 
                   {/* Logistics Partner Fields */}
-                  {accountType === 'logistics' && (
+                  {selectedRoles.includes('logistics_provider') && (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label>Type of Logistics</Label>
@@ -493,7 +448,7 @@ const Auth = () => {
                   )}
 
                   {/* Finance Provider Fields */}
-                  {accountType === 'finance' && (
+                  {selectedRoles.includes('finance_provider') && (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label>Type of Service</Label>

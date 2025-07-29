@@ -6,7 +6,7 @@ import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDas
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
-
+import MultiRoleDashboard from "@/components/MultiRoleDashboard";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,8 +82,16 @@ const DashboardPage = () => {
       return <AdminDashboard userProfile={userProfile} />;
     }
 
-    // Show dashboard based on user type, default to buyer if no type set
-    switch (userProfile?.user_type) {
+    // Get user roles from new user_roles array or fallback to legacy fields
+    const userRoles = userProfile?.user_roles || [];
+    
+    // If user has user_roles defined, use multi-role dashboard
+    if (userRoles.length > 0) {
+      return <MultiRoleDashboard userProfile={userProfile} />;
+    }
+
+    // Fallback to legacy single-role dashboard logic
+    switch (userProfile?.user_type || userProfile?.account_type) {
       case 'buyer':
         return <BuyerDashboard userProfile={userProfile} />;
       case 'seller':
@@ -91,8 +99,10 @@ const DashboardPage = () => {
       case 'service_provider':
         return <ServiceProviderDashboard userProfile={userProfile} />;
       case 'logistics_provider':
+      case 'logistics':
         return <LogisticsProviderDashboard userProfile={userProfile} />;
       case 'finance_provider':
+      case 'finance':
         return <FinanceProviderDashboard userProfile={userProfile} />;
       default:
         // Default to buyer dashboard if no user_type is set
