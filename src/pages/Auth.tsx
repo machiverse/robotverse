@@ -11,6 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
+
+// ✅ Use exact types from your schema
+type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+type UserTypeEnum = Database['public']['Enums']['user_type_enum'];
 
 const Auth = () => {
   // Form state
@@ -44,7 +49,6 @@ const Auth = () => {
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
-  const [pendingUserData, setPendingUserData] = useState<any>(null);
   
   // Hooks
   const { signUp, signIn, user } = useAuth();
@@ -111,7 +115,7 @@ const Auth = () => {
   };
 
   // ✅ Save user data to localStorage for email confirmation flow
-  const saveUserDataToStorage = (userData: any) => {
+  const saveUserDataToStorage = (userData: SupabaseUser) => {
     const dataToSave = {
       email,
       fullName,
@@ -141,24 +145,6 @@ const Auth = () => {
     if (saved) {
       const data = JSON.parse(saved);
       console.log('📥 Loading saved user data from localStorage');
-      
-      // Restore form state
-      setEmail(data.email || '');
-      setFullName(data.fullName || '');
-      setCompanyName(data.companyName || '');
-      setMobileNumber(data.mobileNumber || '');
-      setLocation(data.location || '');
-      setAccountType(data.accountType || '');
-      setSellerRoles(data.sellerRoles || []);
-      setLogisticsType(data.logisticsType || '');
-      setLogisticsRegion(data.logisticsRegion || '');
-      setTransportModes(data.transportModes || []);
-      setWarehouseStorage(data.warehouseStorage || false);
-      setFinanceType(data.financeType || []);
-      setFinancingFor(data.financingFor || []);
-      setTargetAudience(data.targetAudience || []);
-      setGovernmentSchemeSupport(data.governmentSchemeSupport || false);
-      
       return data;
     }
     return null;
@@ -205,46 +191,80 @@ const Auth = () => {
     checkEmailConfirmation();
   }, []);
 
-  // ✅ Create profile from saved data after email confirmation
+  // ✅ Create profile using exact TypeScript types from your schema
   const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Creating profile from saved data for user:', user.id);
+      console.log('📋 Saved data:', savedData);
       
-      const profileData: any = {
+      // ✅ Build profile data using exact schema types
+      const profileData: ProfileInsert = {
+        // Required field
         user_id: user.id,
+        
+        // Basic information - using exact field names from schema
         email: user.email || savedData.email,
         full_name: savedData.fullName || null,
         company_name: savedData.companyName || null,
         mobile_number: savedData.mobileNumber || null,
-        phone: savedData.mobileNumber || null,
+        phone: savedData.mobileNumber || null, // Populate both phone fields
         location: savedData.location || null,
         user_type: savedData.accountType || null,
         account_type: savedData.accountType || null,
         updated_at: new Date().toISOString(),
+        
+        // Initialize nullable fields
+        avatar_url: null,
+        mou_agreed: null,
+        mou_agreed_at: null,
       };
 
-      // Add role-specific data
+      // ✅ Add role-specific data based on account type
       if (savedData.accountType === 'seller') {
         profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
-        profileData.primary_user_type = savedData.sellerRoles?.[0] || 'robot_seller';
+        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
+        
+        console.log('🏪 Seller data:', {
+          seller_roles: profileData.seller_roles,
+          primary_user_type: profileData.primary_user_type
+        });
+        
       } else if (savedData.accountType === 'logistics') {
         profileData.logistics_type = savedData.logisticsType || null;
         profileData.logistics_region = savedData.logisticsRegion || null;
         profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
-        profileData.warehouse_storage = savedData.warehouseStorage;
+        profileData.warehouse_storage = savedData.warehouseStorage || null;
         profileData.primary_user_type = 'logistics_provider';
+        
+        console.log('🚚 Logistics data:', {
+          logistics_type: profileData.logistics_type,
+          logistics_region: profileData.logistics_region,
+          transport_modes: profileData.transport_modes,
+          warehouse_storage: profileData.warehouse_storage
+        });
+        
       } else if (savedData.accountType === 'finance') {
         profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
         profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
         profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
-        profileData.government_scheme_support = savedData.governmentSchemeSupport;
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
         profileData.primary_user_type = 'finance_provider';
+        
+        console.log('💰 Finance data:', {
+          finance_type: profileData.finance_type,
+          financing_for: profileData.financing_for,
+          target_audience: profileData.target_audience,
+          government_scheme_support: profileData.government_scheme_support
+        });
+        
       } else if (savedData.accountType === 'buyer') {
         profileData.primary_user_type = 'buyer';
+        console.log('🛒 Buyer data added');
       }
 
-      console.log('📋 Profile data from saved data:', JSON.stringify(profileData, null, 2));
+      console.log('📋 Final profile data (type-safe):', JSON.stringify(profileData, null, 2));
 
+      // ✅ Insert with type safety
       const { data, error } = await supabase
         .from('profiles')
         .insert(profileData)
@@ -252,10 +272,38 @@ const Auth = () => {
 
       if (error) {
         console.error('❌ Profile creation error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw new Error(`Profile creation failed: ${error.message}`);
       }
 
-      console.log('✅ Profile created successfully from saved data:', data[0]);
+      if (!data || data.length === 0) {
+        throw new Error('No data returned from profile creation');
+      }
+
+      console.log('✅ Profile created successfully:', data[0]);
+      
+      // ✅ Verify all fields were saved
+      const savedProfile = data[0];
+      console.log('🔍 Verification - What was actually saved:');
+      console.log('  ✓ user_id:', savedProfile.user_id);
+      console.log('  ✓ email:', savedProfile.email);
+      console.log('  ✓ full_name:', savedProfile.full_name);
+      console.log('  ✓ company_name:', savedProfile.company_name);
+      console.log('  ✓ mobile_number:', savedProfile.mobile_number);
+      console.log('  ✓ phone:', savedProfile.phone);
+      console.log('  ✓ location:', savedProfile.location);
+      console.log('  ✓ user_type:', savedProfile.user_type);
+      console.log('  ✓ account_type:', savedProfile.account_type);
+      console.log('  ✓ seller_roles:', savedProfile.seller_roles);
+      console.log('  ✓ primary_user_type:', savedProfile.primary_user_type);
+      console.log('  ✓ logistics_type:', savedProfile.logistics_type);
+      console.log('  ✓ finance_type:', savedProfile.finance_type);
+
       return data;
 
     } catch (error: any) {
@@ -283,7 +331,7 @@ const Auth = () => {
     });
   };
 
-  // ✅ Modified form submission with agreement first
+  // ✅ Form submission with validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -299,8 +347,16 @@ const Auth = () => {
         }
 
         console.log('📝 Registration process initiated');
+        console.log('📋 Form data before validation:');
+        console.log('  - Email:', email);
+        console.log('  - Full Name:', fullName);
+        console.log('  - Company Name:', companyName);
+        console.log('  - Mobile Number:', mobileNumber);
+        console.log('  - Location:', location);
+        console.log('  - Account Type:', accountType);
+        console.log('  - Seller Roles:', sellerRoles);
         
-        // Validation (existing validation code)
+        // Comprehensive validation
         if (!email.trim()) {
           throw new Error('Email is required');
         }
@@ -392,8 +448,9 @@ const Auth = () => {
           return;
         }
 
+        console.log('✅ All validation passed, creating user account...');
+
         // ✅ Create user account with email confirmation
-        console.log('👤 Creating user account with email confirmation...');
         const { user: newUser, error: signUpError } = await signUp(email, password, fullName);
         
         if (signUpError) {
@@ -582,7 +639,7 @@ const Auth = () => {
     );
   }
 
-  // Main Authentication Form (rest of your existing form code remains the same)
+  // Main Authentication Form
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
@@ -866,8 +923,204 @@ const Auth = () => {
                 </div>
               )}
 
-              {/* Include all your existing logistics and finance fields here */}
-              {/* [Previous logistics and finance sections remain unchanged] */}
+              {/* Logistics Provider Fields */}
+              {isSignUp && accountType === 'logistics' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Logistics Details</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Type of Logistics Service *</Label>
+                      <Select value={logisticsType} onValueChange={setLogisticsType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select logistics type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">🏠 Local Delivery</SelectItem>
+                          <SelectItem value="interstate">🛣️ Interstate Transport</SelectItem>
+                          <SelectItem value="international">🌍 International Shipping</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="logisticsRegion">Primary Service Region *</Label>
+                      <Input
+                        id="logisticsRegion"
+                        value={logisticsRegion}
+                        onChange={(e) => setLogisticsRegion(e.target.value)}
+                        placeholder="e.g., North India, Maharashtra, etc."
+                        required={accountType === 'logistics'}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Available Transport Modes</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="road"
+                          checked={transportModes.includes('road')}
+                          onCheckedChange={(checked) => handleTransportModeChange('road', !!checked)}
+                        />
+                        <Label htmlFor="road" className="font-medium cursor-pointer">🚛 Road Transport</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="sea"
+                          checked={transportModes.includes('sea')}
+                          onCheckedChange={(checked) => handleTransportModeChange('sea', !!checked)}
+                        />
+                        <Label htmlFor="sea" className="font-medium cursor-pointer">🚢 Sea Freight</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="air"
+                          checked={transportModes.includes('air')}
+                          onCheckedChange={(checked) => handleTransportModeChange('air', !!checked)}
+                        />
+                        <Label htmlFor="air" className="font-medium cursor-pointer">✈️ Air Cargo</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="warehouse"
+                      checked={warehouseStorage}
+                      onCheckedChange={(checked) => setWarehouseStorage(!!checked)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="warehouse" className="font-medium cursor-pointer">🏭 Warehouse & Storage Facilities</Label>
+                      <p className="text-xs text-muted-foreground">We provide temporary storage and warehousing services</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Finance Provider Fields */}
+              {isSignUp && accountType === 'finance' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Financial Services</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Types of Financial Services Offered *</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="loan"
+                          checked={financeType.includes('loan')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('loan', !!checked)}
+                        />
+                        <Label htmlFor="loan" className="font-medium cursor-pointer">💰 Business Loans</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="lease"
+                          checked={financeType.includes('lease')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('lease', !!checked)}
+                        />
+                        <Label htmlFor="lease" className="font-medium cursor-pointer">📋 Equipment Leasing</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="emi"
+                          checked={financeType.includes('emi')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('emi', !!checked)}
+                        />
+                        <Label htmlFor="emi" className="font-medium cursor-pointer">💳 EMI Financing</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Financing Available For</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="robots"
+                          checked={financingFor.includes('robots')}
+                          onCheckedChange={(checked) => handleFinancingForChange('robots', !!checked)}
+                        />
+                        <Label htmlFor="robots" className="text-sm cursor-pointer">🤖 Robots</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="parts"
+                          checked={financingFor.includes('parts')}
+                          onCheckedChange={(checked) => handleFinancingForChange('parts', !!checked)}
+                        />
+                        <Label htmlFor="parts" className="text-sm cursor-pointer">🔧 Parts</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="setup"
+                          checked={financingFor.includes('setup')}
+                          onCheckedChange={(checked) => handleFinancingForChange('setup', !!checked)}
+                        />
+                        <Label htmlFor="setup" className="text-sm cursor-pointer">⚙️ Setup</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="services"
+                          checked={financingFor.includes('services')}
+                          onCheckedChange={(checked) => handleFinancingForChange('services', !!checked)}
+                        />
+                        <Label htmlFor="services" className="text-sm cursor-pointer">🛠️ Services</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Target Business Segments</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="b2b"
+                          checked={targetAudience.includes('b2b')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('b2b', !!checked)}
+                        />
+                        <Label htmlFor="b2b" className="font-medium cursor-pointer">🏢 Large Enterprises (B2B)</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="msme"
+                          checked={targetAudience.includes('msme')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('msme', !!checked)}
+                        />
+                        <Label htmlFor="msme" className="font-medium cursor-pointer">🏭 MSME Businesses</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="startup"
+                          checked={targetAudience.includes('startup')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('startup', !!checked)}
+                        />
+                        <Label htmlFor="startup" className="font-medium cursor-pointer">🚀 Startups & Scale-ups</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="government_scheme"
+                      checked={governmentSchemeSupport}
+                      onCheckedChange={(checked) => setGovernmentSchemeSupport(!!checked)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="government_scheme" className="font-medium cursor-pointer">🏛️ Government Scheme Support</Label>
+                      <p className="text-xs text-muted-foreground">We assist with government subsidies and scheme applications</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Submit Button */}
               <Button 
