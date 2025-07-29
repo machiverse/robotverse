@@ -6,63 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, ShoppingCart, Package, Settings, Truck, CreditCard } from 'lucide-react';
+import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, CreditCard, Package, Settings, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-
-// Complete role configuration for multi-selection
-const AVAILABLE_ROLES = [
-  {
-    key: 'buyer',
-    label: 'Buyer',
-    icon: ShoppingCart,
-    description: 'Browse and purchase robots, parts, and services',
-    category: 'marketplace',
-    color: 'bg-blue-100 text-blue-800'
-  },
-  {
-    key: 'robot_seller',
-    label: 'Robot Seller',
-    icon: Bot,
-    description: 'Sell industrial robots and automation equipment',
-    category: 'seller',
-    color: 'bg-green-100 text-green-800'
-  },
-  {
-    key: 'spare_parts_seller',
-    label: 'Spare Parts Seller',
-    icon: Package,
-    description: 'Sell robot components and spare parts',
-    category: 'seller',
-    color: 'bg-purple-100 text-purple-800'
-  },
-  {
-    key: 'service_provider',
-    label: 'Service Provider',
-    icon: Settings,
-    description: 'Offer maintenance, installation, and repair services',
-    category: 'service',
-    color: 'bg-orange-100 text-orange-800'
-  },
-  {
-    key: 'logistics_provider',
-    label: 'Logistics Provider',
-    icon: Truck,
-    description: 'Provide shipping and delivery services for robotics',
-    category: 'provider',
-    color: 'bg-indigo-100 text-indigo-800'
-  },
-  {
-    key: 'finance_provider',
-    label: 'Finance Provider',
-    icon: CreditCard,
-    description: 'Offer loans, leasing, and financial services',
-    category: 'provider',
-    color: 'bg-pink-100 text-pink-800'
-  }
-];
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -72,12 +19,8 @@ const Auth = () => {
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [location, setLocation] = useState('');
-  
-  // Multi-role selection state
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [primaryRole, setPrimaryRole] = useState<string>('');
-  
-  // Role-specific fields (only show when relevant roles are selected)
+  const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
+  const [sellerRoles, setSellerRoles] = useState<string[]>([]);
   const [logisticsType, setLogisticsType] = useState('');
   const [logisticsRegion, setLogisticsRegion] = useState('');
   const [transportModes, setTransportModes] = useState<string[]>([]);
@@ -86,7 +29,6 @@ const Auth = () => {
   const [financingFor, setFinancingFor] = useState<string[]>([]);
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [governmentSchemeSupport, setGovernmentSchemeSupport] = useState(false);
-  
   const [loading, setLoading] = useState(false);
   const [showMouModal, setShowMouModal] = useState(false);
   const { signUp, signIn, user } = useAuth();
@@ -100,27 +42,14 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  // Multi-role selection handler
-  const handleRoleChange = (roleKey: string, checked: boolean) => {
+  const handleSellerRoleChange = (role: string, checked: boolean) => {
     if (checked) {
-      setSelectedRoles([...selectedRoles, roleKey]);
-      // Auto-set primary role if it's the first selection
-      if (selectedRoles.length === 0) {
-        setPrimaryRole(roleKey);
-      }
+      setSellerRoles([...sellerRoles, role]);
     } else {
-      const newRoles = selectedRoles.filter(r => r !== roleKey);
-      setSelectedRoles(newRoles);
-      // If removing the primary role, set a new one
-      if (primaryRole === roleKey && newRoles.length > 0) {
-        setPrimaryRole(newRoles[0]);
-      } else if (newRoles.length === 0) {
-        setPrimaryRole('');
-      }
+      setSellerRoles(sellerRoles.filter(r => r !== role));
     }
   };
 
-  // Helper functions for role-specific fields
   const handleTransportModeChange = (mode: string, checked: boolean) => {
     if (checked) {
       setTransportModes([...transportModes, mode]);
@@ -153,46 +82,49 @@ const Auth = () => {
     }
   };
 
-  // Profile creation with multi-role support
+  // Fixed profile creation function
   const createUserProfile = async (userId: string) => {
     try {
-      // Determine seller roles and all user roles
-      const sellerRoles = selectedRoles.filter(role => 
-        ['robot_seller', 'spare_parts_seller', 'service_provider'].includes(role)
-      );
-      
+      // Prepare base profile data
       const profileData: any = {
-        id: userId,
+        id: userId, // Use 'id' not 'user_id'
         full_name: fullName,
         company_name: companyName,
         mobile_number: mobileNumber,
         location: location,
-        user_roles: selectedRoles, // All selected roles
-        primary_role: primaryRole, // Main role for dashboard
-        seller_roles: sellerRoles, // Only selling-related roles
-        user_type: primaryRole, // For compatibility
-        account_type: primaryRole, // For compatibility
+        user_type: accountType,
+        account_type: accountType,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      // Add role-specific data based on selected roles
-      if (selectedRoles.includes('logistics_provider')) {
+      // Add role-specific data
+      if (accountType === 'seller') {
+        profileData.seller_roles = sellerRoles;
+        profileData.user_roles = sellerRoles; // For multi-role system
+        profileData.primary_role = sellerRoles[0] || 'seller';
+      } else if (accountType === 'logistics') {
         profileData.logistics_type = logisticsType;
         profileData.logistics_region = logisticsRegion;
         profileData.transport_modes = transportModes;
         profileData.warehouse_storage = warehouseStorage;
-      }
-
-      if (selectedRoles.includes('finance_provider')) {
+        profileData.user_roles = ['logistics_provider'];
+        profileData.primary_role = 'logistics_provider';
+      } else if (accountType === 'finance') {
         profileData.finance_type = financeType;
         profileData.financing_for = financingFor;
         profileData.target_audience = targetAudience;
         profileData.government_scheme_support = governmentSchemeSupport;
+        profileData.user_roles = ['finance_provider'];
+        profileData.primary_role = 'finance_provider';
+      } else if (accountType === 'buyer') {
+        profileData.user_roles = ['buyer'];
+        profileData.primary_role = 'buyer';
       }
 
-      console.log('Creating multi-role profile:', profileData);
+      console.log('Creating profile with data:', profileData);
 
+      // Use UPSERT to handle profile creation properly
       const { data, error } = await supabase
         .from('profiles')
         .upsert(profileData, { 
@@ -201,9 +133,12 @@ const Auth = () => {
         })
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating profile:', error);
+        throw error;
+      }
 
-      console.log('✅ Multi-role profile created successfully:', data);
+      console.log('✅ Profile created successfully:', data);
       return data;
 
     } catch (error) {
@@ -217,23 +152,14 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      let result;
       if (isSignUp) {
-        // Multi-role validation
-        if (selectedRoles.length === 0) {
+        // Validation
+        if (!accountType) {
           toast({
             variant: "destructive",
-            title: "Role Selection Required",
-            description: "Please select at least one role to continue.",
-          });
-          setLoading(false);
-          return;
-        }
-
-        if (!primaryRole) {
-          toast({
-            variant: "destructive", 
-            title: "Primary Role Required",
-            description: "Please select a primary role.",
+            title: "Account Type Required",
+            description: "Please select an account type to continue.",
           });
           setLoading(false);
           return;
@@ -259,43 +185,55 @@ const Auth = () => {
           return;
         }
 
-        // Role-specific validation
-        if (selectedRoles.includes('logistics_provider') && !logisticsType) {
+        if (accountType === 'seller' && sellerRoles.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "Seller Role Required",
+            description: "Please select at least one seller role.",
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (accountType === 'logistics' && !logisticsType) {
           toast({
             variant: "destructive",
             title: "Logistics Type Required",
-            description: "Please select your logistics service type.",
+            description: "Please select your logistics type.",
           });
           setLoading(false);
           return;
         }
 
-        if (selectedRoles.includes('finance_provider') && financeType.length === 0) {
+        if (accountType === 'finance' && financeType.length === 0) {
           toast({
             variant: "destructive",
-            title: "Finance Type Required", 
-            description: "Please select at least one finance service type.",
+            title: "Finance Type Required",
+            description: "Please select at least one finance type.",
           });
           setLoading(false);
           return;
         }
 
-        // Proceed with signup
-        const result = await signUp(email, password, fullName);
+        // Handle signup and profile creation
+        result = await signUp(email, password, fullName);
         
         if (result.error) {
           throw new Error(result.error.message);
         }
 
-        // FIXED: Handle the signup result properly
-        const newUser = result.data?.user || result.user;
+        // Get user ID from signup result
+        const newUser = result.data?.user;
         
         if (newUser?.id) {
+          console.log('New user created with ID:', newUser.id);
+          
+          // Create profile with all registration data
           await createUserProfile(newUser.id);
           
           toast({
-            title: "✅ Multi-Role Registration Successful!",
-            description: `Account created with ${selectedRoles.length} role(s): ${selectedRoles.join(', ')}`,
+            title: "Registration Successful!",
+            description: "Your account has been created successfully.",
           });
           
           setShowMouModal(true);
@@ -304,7 +242,8 @@ const Auth = () => {
         }
       } else {
         // Sign in
-        const result = await signIn(email, password);
+        result = await signIn(email, password);
+        
         if (result.error) {
           throw new Error(result.error.message);
         }
@@ -339,8 +278,8 @@ const Auth = () => {
         if (error) throw error;
 
         toast({
-          title: "🎉 Welcome to RobotVerse!",
-          description: `Your multi-role account is ready with ${selectedRoles.length} roles.`,
+          title: "Welcome to RobotVerse!",
+          description: "Your account has been successfully created.",
         });
         
         setShowMouModal(false);
@@ -355,15 +294,6 @@ const Auth = () => {
     }
   };
 
-  // Group roles by category for better organization
-  const rolesByCategory = AVAILABLE_ROLES.reduce((acc, role) => {
-    if (!acc[role.category]) {
-      acc[role.category] = [];
-    }
-    acc[role.category].push(role);
-    return acc;
-  }, {} as Record<string, typeof AVAILABLE_ROLES>);
-
   if (showMouModal) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
@@ -372,43 +302,27 @@ const Auth = () => {
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Bot className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold">🎉 Multi-Role Account Ready!</CardTitle>
+            <CardTitle className="text-2xl font-bold">MOU Agreement</CardTitle>
             <CardDescription>
-              Your account has been created with {selectedRoles.length} role(s)
+              Please review and accept our partnership terms
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-muted/50 p-4 rounded-lg border">
-              <h4 className="font-semibold mb-2">Your Selected Roles:</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedRoles.map(roleKey => {
-                  const role = AVAILABLE_ROLES.find(r => r.key === roleKey);
-                  return (
-                    <div key={roleKey} className={`px-2 py-1 rounded text-xs font-medium ${role?.color}`}>
-                      {role?.label}
-                      {primaryRole === roleKey && <span className="ml-1">👑</span>}
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Primary Role: <strong>{AVAILABLE_ROLES.find(r => r.key === primaryRole)?.label}</strong>
-              </p>
-            </div>
-            <div className="bg-muted/50 p-4 rounded-lg border">
-              <p className="text-sm text-muted-foreground">
-                By proceeding, you agree to the RobotVerse terms and partnership agreement.
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                By proceeding, you agree to the RobotVerse MOU terms and partnership agreement. 
+                This includes our community guidelines, data usage policies, and marketplace terms.
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1">
-                📄 Read Agreement
+              <Button variant="outline" className="flex-1 hover:bg-muted/50">
+                📄 Read Full Agreement
               </Button>
               <Button 
                 onClick={handleMouAgreement}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-                ✔️ Agree & Continue
+                ✔️ Agree & Proceed
               </Button>
             </div>
           </CardContent>
@@ -419,7 +333,8 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-2xl">
+        {/* Back to Home */}
         <Link 
           to="/" 
           className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors mb-6 group"
@@ -438,7 +353,7 @@ const Auth = () => {
             </CardTitle>
             <CardDescription className="text-lg mt-2">
               {isSignUp 
-                ? 'Create your multi-role account for the robotics marketplace' 
+                ? 'Create your account to start your robotics journey' 
                 : 'Sign in to access your robot marketplace'
               }
             </CardDescription>
@@ -446,7 +361,7 @@ const Auth = () => {
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information */}
+              {/* Basic Information Section */}
               {isSignUp && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
@@ -560,281 +475,319 @@ const Auth = () => {
                 </div>
               </div>
 
-              {/* Multi-Role Selection Section */}
+              {/* Account Type Selection */}
               {isSignUp && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Settings className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Select Your Roles</h3>
-                    <div className="text-sm text-muted-foreground">
-                      (Choose all that apply - you can have multiple roles)
+                    <h3 className="text-lg font-semibold">Account Type</h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Select Your Account Type *</Label>
+                    <Select value={accountType} onValueChange={(value: any) => setAccountType(value)}>
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Choose your account type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="buyer" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <ShoppingCart className="w-5 h-5 text-blue-600" />
+                            <div>
+                              <div className="font-medium">Buyer</div>
+                              <div className="text-xs text-muted-foreground">Browse and purchase robots</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="seller" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <Building className="w-5 h-5 text-green-600" />
+                            <div>
+                              <div className="font-medium">Seller</div>
+                              <div className="text-xs text-muted-foreground">Sell robots, parts, or services</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="logistics" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <Truck className="w-5 h-5 text-orange-600" />
+                            <div>
+                              <div className="font-medium">Logistics Partner</div>
+                              <div className="text-xs text-muted-foreground">Provide shipping services</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="finance" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <CreditCard className="w-5 h-5 text-purple-600" />
+                            <div>
+                              <div className="font-medium">Finance Provider</div>
+                              <div className="text-xs text-muted-foreground">Offer financial services</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Seller Role Selection */}
+              {isSignUp && accountType === 'seller' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Seller Specializations</h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Select Your Seller Roles (Choose all that apply) *</Label>
+                    <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="robot_seller"
+                          checked={sellerRoles.includes('robot_seller')}
+                          onCheckedChange={(checked) => handleSellerRoleChange('robot_seller', !!checked)}
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          <Bot className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <Label htmlFor="robot_seller" className="font-medium cursor-pointer">Robot Seller</Label>
+                            <p className="text-xs text-muted-foreground">Sell industrial robots and automation equipment</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="spare_parts_seller"
+                          checked={sellerRoles.includes('spare_parts_seller')}
+                          onCheckedChange={(checked) => handleSellerRoleChange('spare_parts_seller', !!checked)}
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          <Package className="w-5 h-5 text-green-600" />
+                          <div>
+                            <Label htmlFor="spare_parts_seller" className="font-medium cursor-pointer">Spare Parts Seller</Label>
+                            <p className="text-xs text-muted-foreground">Sell robot components and spare parts</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="service_provider"
+                          checked={sellerRoles.includes('service_provider')}
+                          onCheckedChange={(checked) => handleSellerRoleChange('service_provider', !!checked)}
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          <Settings className="w-5 h-5 text-purple-600" />
+                          <div>
+                            <Label htmlFor="service_provider" className="font-medium cursor-pointer">Service Provider</Label>
+                            <p className="text-xs text-muted-foreground">Offer maintenance, installation, and repair services</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Logistics Provider Fields */}
+              {isSignUp && accountType === 'logistics' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Logistics Details</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Type of Logistics Service *</Label>
+                      <Select value={logisticsType} onValueChange={setLogisticsType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select logistics type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">🏠 Local Delivery</SelectItem>
+                          <SelectItem value="interstate">🛣️ Interstate Transport</SelectItem>
+                          <SelectItem value="international">🌍 International Shipping</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="logisticsRegion">Primary Service Region *</Label>
+                      <Input
+                        id="logisticsRegion"
+                        value={logisticsRegion}
+                        onChange={(e) => setLogisticsRegion(e.target.value)}
+                        placeholder="e.g., North India, Maharashtra, etc."
+                        required={accountType === 'logistics'}
+                      />
                     </div>
                   </div>
 
-                  {/* Selected Roles Summary */}
-                  {selectedRoles.length > 0 && (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-semibold text-green-800 mb-2">
-                        ✅ Selected Roles ({selectedRoles.length}):
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedRoles.map(roleKey => {
-                          const role = AVAILABLE_ROLES.find(r => r.key === roleKey);
-                          return (
-                            <div key={roleKey} className={`px-3 py-1 rounded-full text-sm font-medium ${role?.color}`}>
-                              {role?.label}
-                              {primaryRole === roleKey && <span className="ml-1">👑 Primary</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Role Selection by Category */}
-                  {Object.entries(rolesByCategory).map(([category, roles]) => (
-                    <div key={category} className="space-y-3">
-                      <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                        {category} Roles
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {roles.map((role) => {
-                          const Icon = role.icon;
-                          const isSelected = selectedRoles.includes(role.key);
-                          return (
-                            <div 
-                              key={role.key} 
-                              className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                                isSelected 
-                                  ? 'border-primary bg-primary/5 shadow-sm' 
-                                  : 'border-border hover:border-primary/50'
-                              }`}
-                              onClick={() => handleRoleChange(role.key, !isSelected)}
-                            >
-                              <div className="flex items-start gap-3">
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={(checked) => handleRoleChange(role.key, !!checked)}
-                                  className="mt-1"
-                                />
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Icon className="w-5 h-5 text-primary" />
-                                    <span className="font-semibold">{role.label}</span>
-                                    {isSelected && primaryRole === role.key && (
-                                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                                        👑 Primary
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    {role.description}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Primary Role Selection */}
-                  {selectedRoles.length > 1 && (
-                    <div className="space-y-3">
-                      <Label>Primary Role (Main dashboard focus) *</Label>
-                      <Select value={primaryRole} onValueChange={setPrimaryRole}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose your primary role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectedRoles.map(roleKey => {
-                            const role = AVAILABLE_ROLES.find(r => r.key === roleKey);
-                            const RoleIcon = role?.icon;
-                            return (
-                              <SelectItem key={roleKey} value={roleKey}>
-                                <div className="flex items-center gap-2">
-                                  {RoleIcon && <RoleIcon className="w-4 h-4" />}
-                                  {role?.label}
-                                </div>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">
-                        Your primary role determines your default dashboard view. You can switch between roles anytime.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Role-specific fields (show only when relevant roles are selected) */}
-                  {selectedRoles.includes('logistics_provider') && (
-                    <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <Truck className="w-4 h-4" />
-                        Logistics Provider Details
-                      </h4>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Logistics Service Type *</Label>
-                          <Select value={logisticsType} onValueChange={setLogisticsType}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select service type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="local">🏠 Local Delivery</SelectItem>
-                              <SelectItem value="interstate">🛣️ Interstate Transport</SelectItem>
-                              <SelectItem value="international">🌍 International Shipping</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Primary Service Region</Label>
-                          <Input
-                            value={logisticsRegion}
-                            onChange={(e) => setLogisticsRegion(e.target.value)}
-                            placeholder="e.g., North India, Maharashtra"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Available Transport Modes</Label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={transportModes.includes('road')}
-                              onCheckedChange={(checked) => handleTransportModeChange('road', !!checked)}
-                            />
-                            <span className="text-sm">🚛 Road</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={transportModes.includes('sea')}
-                              onCheckedChange={(checked) => handleTransportModeChange('sea', !!checked)}
-                            />
-                            <span className="text-sm">🚢 Sea</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={transportModes.includes('air')}
-                              onCheckedChange={(checked) => handleTransportModeChange('air', !!checked)}
-                            />
-                            <span className="text-sm">✈️ Air</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      <label className="flex items-center space-x-2">
+                  <div className="space-y-3">
+                    <Label>Available Transport Modes</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                         <Checkbox
-                          checked={warehouseStorage}
-                          onCheckedChange={(checked) => setWarehouseStorage(!!checked)}
+                          id="road"
+                          checked={transportModes.includes('road')}
+                          onCheckedChange={(checked) => handleTransportModeChange('road', !!checked)}
                         />
-                        <span className="text-sm">🏭 Warehouse & Storage Facilities Available</span>
-                      </label>
-                    </div>
-                  )}
-
-                  {selectedRoles.includes('finance_provider') && (
-                    <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        Finance Provider Details
-                      </h4>
-
-                      <div className="space-y-3">
-                        <Label>Financial Services Offered *</Label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={financeType.includes('loan')}
-                              onCheckedChange={(checked) => handleFinanceTypeChange('loan', !!checked)}
-                            />
-                            <span className="text-sm">💰 Loans</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={financeType.includes('lease')}
-                              onCheckedChange={(checked) => handleFinanceTypeChange('lease', !!checked)}
-                            />
-                            <span className="text-sm">📋 Leasing</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={financeType.includes('emi')}
-                              onCheckedChange={(checked) => handleFinanceTypeChange('emi', !!checked)}
-                            />
-                            <span className="text-sm">💳 EMI</span>
-                          </label>
-                        </div>
+                        <Label htmlFor="road" className="font-medium cursor-pointer">🚛 Road Transport</Label>
                       </div>
-
-                      <div className="space-y-3">
-                        <Label>Financing Available For</Label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={financingFor.includes('robots')}
-                              onCheckedChange={(checked) => handleFinancingForChange('robots', !!checked)}
-                            />
-                            <span className="text-sm">🤖 Robots</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={financingFor.includes('parts')}
-                              onCheckedChange={(checked) => handleFinancingForChange('parts', !!checked)}
-                            />
-                            <span className="text-sm">🔧 Parts</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={financingFor.includes('services')}
-                              onCheckedChange={(checked) => handleFinancingForChange('services', !!checked)}
-                            />
-                            <span className="text-sm">🛠️ Services</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <Label>Target Business Segments</Label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={targetAudience.includes('b2b')}
-                              onCheckedChange={(checked) => handleTargetAudienceChange('b2b', !!checked)}
-                            />
-                            <span className="text-sm">🏢 B2B</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={targetAudience.includes('msme')}
-                              onCheckedChange={(checked) => handleTargetAudienceChange('msme', !!checked)}
-                            />
-                            <span className="text-sm">🏭 MSME</span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={targetAudience.includes('startup')}
-                              onCheckedChange={(checked) => handleTargetAudienceChange('startup', !!checked)}
-                            />
-                            <span className="text-sm">🚀 Startups</span>
-                          </label>
-                        </div>
-                      </div>
-
-                      <label className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                         <Checkbox
-                          checked={governmentSchemeSupport}
-                          onCheckedChange={(checked) => setGovernmentSchemeSupport(!!checked)}
+                          id="sea"
+                          checked={transportModes.includes('sea')}
+                          onCheckedChange={(checked) => handleTransportModeChange('sea', !!checked)}
                         />
-                        <span className="text-sm">🏛️ Government Scheme Support Available</span>
-                      </label>
+                        <Label htmlFor="sea" className="font-medium cursor-pointer">🚢 Sea Freight</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="air"
+                          checked={transportModes.includes('air')}
+                          onCheckedChange={(checked) => handleTransportModeChange('air', !!checked)}
+                        />
+                        <Label htmlFor="air" className="font-medium cursor-pointer">✈️ Air Cargo</Label>
+                      </div>
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="warehouse"
+                      checked={warehouseStorage}
+                      onCheckedChange={(checked) => setWarehouseStorage(!!checked)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="warehouse" className="font-medium cursor-pointer">🏭 Warehouse & Storage Facilities</Label>
+                      <p className="text-xs text-muted-foreground">We provide temporary storage and warehousing services</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Finance Provider Fields */}
+              {isSignUp && accountType === 'finance' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Financial Services</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Types of Financial Services Offered *</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="loan"
+                          checked={financeType.includes('loan')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('loan', !!checked)}
+                        />
+                        <Label htmlFor="loan" className="font-medium cursor-pointer">💰 Business Loans</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="lease"
+                          checked={financeType.includes('lease')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('lease', !!checked)}
+                        />
+                        <Label htmlFor="lease" className="font-medium cursor-pointer">📋 Equipment Leasing</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="emi"
+                          checked={financeType.includes('emi')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('emi', !!checked)}
+                        />
+                        <Label htmlFor="emi" className="font-medium cursor-pointer">💳 EMI Financing</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Financing Available For</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="robots"
+                          checked={financingFor.includes('robots')}
+                          onCheckedChange={(checked) => handleFinancingForChange('robots', !!checked)}
+                        />
+                        <Label htmlFor="robots" className="text-sm cursor-pointer">🤖 Robots</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="parts"
+                          checked={financingFor.includes('parts')}
+                          onCheckedChange={(checked) => handleFinancingForChange('parts', !!checked)}
+                        />
+                        <Label htmlFor="parts" className="text-sm cursor-pointer">🔧 Parts</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="setup"
+                          checked={financingFor.includes('setup')}
+                          onCheckedChange={(checked) => handleFinancingForChange('setup', !!checked)}
+                        />
+                        <Label htmlFor="setup" className="text-sm cursor-pointer">⚙️ Setup</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="services"
+                          checked={financingFor.includes('services')}
+                          onCheckedChange={(checked) => handleFinancingForChange('services', !!checked)}
+                        />
+                        <Label htmlFor="services" className="text-sm cursor-pointer">🛠️ Services</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Target Business Segments</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="b2b"
+                          checked={targetAudience.includes('b2b')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('b2b', !!checked)}
+                        />
+                        <Label htmlFor="b2b" className="font-medium cursor-pointer">🏢 Large Enterprises (B2B)</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="msme"
+                          checked={targetAudience.includes('msme')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('msme', !!checked)}
+                        />
+                        <Label htmlFor="msme" className="font-medium cursor-pointer">🏭 MSME Businesses</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="startup"
+                          checked={targetAudience.includes('startup')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('startup', !!checked)}
+                        />
+                        <Label htmlFor="startup" className="font-medium cursor-pointer">🚀 Startups & Scale-ups</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="government_scheme"
+                      checked={governmentSchemeSupport}
+                      onCheckedChange={(checked) => setGovernmentSchemeSupport(!!checked)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="government_scheme" className="font-medium cursor-pointer">🏛️ Government Scheme Support</Label>
+                      <p className="text-xs text-muted-foreground">We assist with government subsidies and scheme applications</p>
+                    </div>
+                  </div>
                 </div>
               )}
               
@@ -847,19 +800,14 @@ const Auth = () => {
                 {loading ? (
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>{isSignUp ? 'Creating Multi-Role Account...' : 'Signing You In...'}</span>
+                    <span>{isSignUp ? 'Creating Your Account...' : 'Signing You In...'}</span>
                   </div>
                 ) : (
                   <>
                     {isSignUp ? (
                       <>
                         <Bot className="w-5 h-5 mr-2" />
-                        Create Multi-Role Account
-                        {selectedRoles.length > 0 && (
-                          <span className="ml-2 px-2 py-1 bg-white/20 rounded-full text-sm">
-                            {selectedRoles.length} roles
-                          </span>
-                        )}
+                        Create My RobotVerse Account
                       </>
                     ) : (
                       <>
