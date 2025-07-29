@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, CreditCard, Package, Settings, ShoppingCart } from 'lucide-react';
+import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, CreditCard, Package, Settings, ShoppingCart, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -31,6 +32,7 @@ const Auth = () => {
   const [governmentSchemeSupport, setGovernmentSchemeSupport] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showMouModal, setShowMouModal] = useState(false);
+  
   const { signUp, signIn, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -42,6 +44,12 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  // Handler functions
   const handleSellerRoleChange = (role: string, checked: boolean) => {
     if (checked) {
       setSellerRoles([...sellerRoles, role]);
@@ -82,12 +90,11 @@ const Auth = () => {
     }
   };
 
-  // Fixed profile creation function
+  // Profile creation function
   const createUserProfile = async (userId: string) => {
     try {
-      // Prepare base profile data
       const profileData: any = {
-        id: userId, // Use 'id' not 'user_id'
+        id: userId,
         full_name: fullName,
         company_name: companyName,
         mobile_number: mobileNumber,
@@ -101,7 +108,7 @@ const Auth = () => {
       // Add role-specific data
       if (accountType === 'seller') {
         profileData.seller_roles = sellerRoles;
-        profileData.user_roles = sellerRoles; // For multi-role system
+        profileData.user_roles = sellerRoles;
         profileData.primary_role = sellerRoles[0] || 'seller';
       } else if (accountType === 'logistics') {
         profileData.logistics_type = logisticsType;
@@ -124,7 +131,6 @@ const Auth = () => {
 
       console.log('Creating profile with data:', profileData);
 
-      // Use UPSERT to handle profile creation properly
       const { data, error } = await supabase
         .from('profiles')
         .upsert(profileData, { 
@@ -147,12 +153,12 @@ const Auth = () => {
     }
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      let result;
       if (isSignUp) {
         // Validation
         if (!accountType) {
@@ -215,15 +221,15 @@ const Auth = () => {
           return;
         }
 
-        // Handle signup and profile creation
-        result = await signUp(email, password, fullName);
+        // Handle signup with revised API
+        const signUpError = await signUp(email, password, fullName);
         
-        if (result.error) {
-          throw new Error(result.error.message);
+        if (signUpError) {
+          throw new Error(signUpError.message);
         }
 
-        // Get user ID from signup result
-        const newUser = result.data?.user;
+        // Get current user after successful signup
+        const { data: { user: newUser } } = await supabase.auth.getUser();
         
         if (newUser?.id) {
           console.log('New user created with ID:', newUser.id);
@@ -241,12 +247,17 @@ const Auth = () => {
           throw new Error('Failed to get user ID after signup');
         }
       } else {
-        // Sign in
-        result = await signIn(email, password);
+        // Handle sign in with revised API
+        const signInError = await signIn(email, password);
         
-        if (result.error) {
-          throw new Error(result.error.message);
+        if (signInError) {
+          throw new Error(signInError.message);
         }
+
+        toast({
+          title: "Welcome back!",
+          description: "You have been signed in successfully.",
+        });
       }
 
     } catch (error: any) {
@@ -261,6 +272,7 @@ const Auth = () => {
     }
   };
 
+  // Handle MOU agreement
   const handleMouAgreement = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -294,6 +306,7 @@ const Auth = () => {
     }
   };
 
+  // MOU Modal
   if (showMouModal) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
@@ -331,6 +344,7 @@ const Auth = () => {
     );
   }
 
+  // Main Auth Form
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
@@ -457,21 +471,39 @@ const Auth = () => {
                   </div>
                 </div>
                 
+                {/* Password Field with Show/Hide Toggle */}
                 <div className="space-y-2">
                   <Label htmlFor="password">Password *</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 pr-12"
                       placeholder="Enter your password"
                       required
                       minLength={6}
                     />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
+                  {password && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Password strength: {password.length >= 8 ? '🟢 Strong' : password.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
+                    </div>
+                  )}
                 </div>
               </div>
 
