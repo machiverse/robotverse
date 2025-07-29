@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
+  // Form state
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,18 +22,27 @@ const Auth = () => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [location, setLocation] = useState('');
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
+  
+  // Seller state
   const [sellerRoles, setSellerRoles] = useState<string[]>([]);
+  
+  // Logistics state
   const [logisticsType, setLogisticsType] = useState('');
   const [logisticsRegion, setLogisticsRegion] = useState('');
   const [transportModes, setTransportModes] = useState<string[]>([]);
   const [warehouseStorage, setWarehouseStorage] = useState(false);
+  
+  // Finance state
   const [financeType, setFinanceType] = useState<string[]>([]);
   const [financingFor, setFinancingFor] = useState<string[]>([]);
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [governmentSchemeSupport, setGovernmentSchemeSupport] = useState(false);
+  
+  // UI state
   const [loading, setLoading] = useState(false);
   const [showMouModal, setShowMouModal] = useState(false);
   
+  // Hooks
   const { signUp, signIn, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -40,6 +50,7 @@ const Auth = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
+      console.log('✅ User already authenticated, redirecting to home');
       navigate('/');
     }
   }, [user, navigate]);
@@ -49,7 +60,7 @@ const Auth = () => {
     setShowPassword(!showPassword);
   };
 
-  // Handler functions
+  // Handler functions for multi-select checkboxes
   const handleSellerRoleChange = (role: string, checked: boolean) => {
     if (checked) {
       setSellerRoles([...sellerRoles, role]);
@@ -90,26 +101,30 @@ const Auth = () => {
     }
   };
 
-  // Profile creation function
+  // Enhanced profile creation function with detailed logging
   const createUserProfile = async (userId: string) => {
     try {
+      console.log('👤 Creating profile for user ID:', userId);
+      console.log('📋 Account type:', accountType);
+      
       const profileData: any = {
         id: userId,
-        full_name: fullName,
-        company_name: companyName,
-        mobile_number: mobileNumber,
-        location: location,
+        full_name: fullName.trim(),
+        company_name: companyName.trim(),
+        mobile_number: mobileNumber.trim(),
+        location: location.trim(),
         user_type: accountType,
         account_type: accountType,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      // Add role-specific data
+      // Add role-specific data based on account type
       if (accountType === 'seller') {
         profileData.seller_roles = sellerRoles;
         profileData.user_roles = sellerRoles;
         profileData.primary_role = sellerRoles[0] || 'seller';
+        console.log('🏪 Seller roles:', sellerRoles);
       } else if (accountType === 'logistics') {
         profileData.logistics_type = logisticsType;
         profileData.logistics_region = logisticsRegion;
@@ -117,6 +132,7 @@ const Auth = () => {
         profileData.warehouse_storage = warehouseStorage;
         profileData.user_roles = ['logistics_provider'];
         profileData.primary_role = 'logistics_provider';
+        console.log('🚚 Logistics type:', logisticsType, 'Region:', logisticsRegion);
       } else if (accountType === 'finance') {
         profileData.finance_type = financeType;
         profileData.financing_for = financingFor;
@@ -124,13 +140,16 @@ const Auth = () => {
         profileData.government_scheme_support = governmentSchemeSupport;
         profileData.user_roles = ['finance_provider'];
         profileData.primary_role = 'finance_provider';
+        console.log('💰 Finance types:', financeType);
       } else if (accountType === 'buyer') {
         profileData.user_roles = ['buyer'];
         profileData.primary_role = 'buyer';
+        console.log('🛒 Buyer account');
       }
 
-      console.log('Creating profile with data:', profileData);
+      console.log('📝 Final profile data:', profileData);
 
+      // Use UPSERT to handle profile creation
       const { data, error } = await supabase
         .from('profiles')
         .upsert(profileData, { 
@@ -140,34 +159,45 @@ const Auth = () => {
         .select();
 
       if (error) {
-        console.error('Error creating profile:', error);
-        throw error;
+        console.error('❌ Profile creation error:', error);
+        console.error('❌ Error details:', error.message, error.details, error.hint);
+        throw new Error(`Profile creation failed: ${error.message}`);
       }
 
       console.log('✅ Profile created successfully:', data);
       return data;
 
-    } catch (error) {
-      console.error('❌ Failed to create profile:', error);
+    } catch (error: any) {
+      console.error('❌ Profile creation exception:', error);
       throw error;
     }
   };
 
-  // Handle form submission
+  // Enhanced form submission with comprehensive validation and error handling
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    console.log('🚀 Form submission started');
 
     try {
       if (isSignUp) {
-        // Validation
+        console.log('📝 Registration process initiated');
+        
+        // Basic validation
+        if (!email.trim()) {
+          throw new Error('Email is required');
+        }
+        
+        if (!password || password.length < 6) {
+          throw new Error('Password must be at least 6 characters long');
+        }
+
         if (!accountType) {
           toast({
             variant: "destructive",
             title: "Account Type Required",
             description: "Please select an account type to continue.",
           });
-          setLoading(false);
           return;
         }
 
@@ -177,7 +207,6 @@ const Auth = () => {
             title: "Full Name Required",
             description: "Please enter your full name.",
           });
-          setLoading(false);
           return;
         }
 
@@ -187,28 +216,54 @@ const Auth = () => {
             title: "Company Name Required",
             description: "Please enter your company name.",
           });
-          setLoading(false);
           return;
         }
 
+        if (!mobileNumber.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Mobile Number Required",
+            description: "Please enter your mobile number.",
+          });
+          return;
+        }
+
+        if (!location.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Location Required",
+            description: "Please enter your location.",
+          });
+          return;
+        }
+
+        // Role-specific validation
         if (accountType === 'seller' && sellerRoles.length === 0) {
           toast({
             variant: "destructive",
             title: "Seller Role Required",
             description: "Please select at least one seller role.",
           });
-          setLoading(false);
           return;
         }
 
-        if (accountType === 'logistics' && !logisticsType) {
-          toast({
-            variant: "destructive",
-            title: "Logistics Type Required",
-            description: "Please select your logistics type.",
-          });
-          setLoading(false);
-          return;
+        if (accountType === 'logistics') {
+          if (!logisticsType) {
+            toast({
+              variant: "destructive",
+              title: "Logistics Type Required",
+              description: "Please select your logistics type.",
+            });
+            return;
+          }
+          if (!logisticsRegion.trim()) {
+            toast({
+              variant: "destructive",
+              title: "Service Region Required",
+              description: "Please enter your primary service region.",
+            });
+            return;
+          }
         }
 
         if (accountType === 'finance' && financeType.length === 0) {
@@ -217,43 +272,60 @@ const Auth = () => {
             title: "Finance Type Required",
             description: "Please select at least one finance type.",
           });
-          setLoading(false);
           return;
         }
 
-        // Handle signup with revised API
-        const signUpError = await signUp(email, password, fullName);
+        // Attempt user creation
+        console.log('👤 Creating user account...');
+        const { user: newUser, error: signUpError } = await signUp(email, password, fullName);
         
         if (signUpError) {
+          console.error('❌ User creation failed:', signUpError);
           throw new Error(signUpError.message);
         }
 
-        // Get current user after successful signup
-        const { data: { user: newUser } } = await supabase.auth.getUser();
-        
-        if (newUser?.id) {
-          console.log('New user created with ID:', newUser.id);
-          
-          // Create profile with all registration data
-          await createUserProfile(newUser.id);
-          
-          toast({
-            title: "Registration Successful!",
-            description: "Your account has been created successfully.",
-          });
-          
-          setShowMouModal(true);
-        } else {
-          throw new Error('Failed to get user ID after signup');
+        if (!newUser) {
+          console.error('❌ No user object returned');
+          throw new Error('Failed to create user account - no user returned');
         }
+
+        console.log('✅ User account created:', newUser.id);
+
+        // Small delay to ensure user is fully created in the system
+        console.log('⏳ Waiting for user creation to complete...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Create user profile
+        console.log('📋 Creating user profile...');
+        await createUserProfile(newUser.id);
+        
+        toast({
+          title: "Registration Successful!",
+          description: "Your account has been created successfully.",
+        });
+        
+        setShowMouModal(true);
+
       } else {
-        // Handle sign in with revised API
+        // Sign in process
+        console.log('🔐 Sign in process initiated');
+        
+        if (!email.trim()) {
+          throw new Error('Email is required');
+        }
+        
+        if (!password) {
+          throw new Error('Password is required');
+        }
+
         const signInError = await signIn(email, password);
         
         if (signInError) {
+          console.error('❌ Sign in failed:', signInError);
           throw new Error(signInError.message);
         }
 
+        console.log('✅ Sign in successful');
         toast({
           title: "Welcome back!",
           description: "You have been signed in successfully.",
@@ -261,52 +333,63 @@ const Auth = () => {
       }
 
     } catch (error: any) {
-      console.error('Authentication error:', error);
+      console.error('❌ Form submission error:', error);
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: error.message || "An unexpected error occurred.",
+        description: error.message || "An unexpected error occurred. Please try again.",
       });
     } finally {
       setLoading(false);
+      console.log('🏁 Form submission completed');
     }
   };
 
   // Handle MOU agreement
   const handleMouAgreement = async () => {
     try {
+      console.log('📜 Processing MOU agreement...');
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
-      if (currentUser) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            mou_agreed: true,
-            mou_agreed_at: new Date().toISOString(),
-            registration_complete: true
-          })
-          .eq('id', currentUser.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Welcome to RobotVerse!",
-          description: "Your account has been successfully created.",
-        });
-        
-        setShowMouModal(false);
-        navigate('/dashboard');
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
       }
+
+      console.log('✍️ Updating MOU agreement for user:', currentUser.id);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          mou_agreed: true,
+          mou_agreed_at: new Date().toISOString(),
+          registration_complete: true
+        })
+        .eq('id', currentUser.id);
+
+      if (error) {
+        console.error('❌ MOU update error:', error);
+        throw error;
+      }
+
+      console.log('✅ MOU agreement completed');
+      toast({
+        title: "Welcome to RobotVerse!",
+        description: "Your account has been successfully created.",
+      });
+      
+      setShowMouModal(false);
+      navigate('/dashboard');
+      
     } catch (error: any) {
+      console.error('❌ MOU agreement error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to complete registration. Please try again.",
+        description: error.message || "Failed to complete registration. Please try again.",
       });
     }
   };
 
-  // MOU Modal
+  // MOU Modal Component
   if (showMouModal) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
@@ -344,11 +427,11 @@ const Auth = () => {
     );
   }
 
-  // Main Auth Form
+  // Main Authentication Form
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
-        {/* Back to Home */}
+        {/* Back to Home Link */}
         <Link 
           to="/" 
           className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors mb-6 group"
@@ -375,7 +458,7 @@ const Auth = () => {
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information Section */}
+              {/* Basic Information Section - Only for Sign Up */}
               {isSignUp && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
@@ -453,7 +536,7 @@ const Auth = () => {
                 </div>
               )}
               
-              {/* Login Fields */}
+              {/* Email and Password Fields */}
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address *</Label>
@@ -499,6 +582,7 @@ const Auth = () => {
                       )}
                     </button>
                   </div>
+                  {/* Password Strength Indicator */}
                   {password && (
                     <div className="text-xs text-muted-foreground mt-1">
                       Password strength: {password.length >= 8 ? '🟢 Strong' : password.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
@@ -507,7 +591,7 @@ const Auth = () => {
                 </div>
               </div>
 
-              {/* Account Type Selection */}
+              {/* Account Type Selection - Only for Sign Up */}
               {isSignUp && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
@@ -852,6 +936,7 @@ const Auth = () => {
               </Button>
             </form>
             
+            {/* Toggle between Sign Up and Sign In */}
             <div className="mt-8 text-center">
               <button
                 type="button"
