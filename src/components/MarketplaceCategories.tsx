@@ -9,6 +9,7 @@ import {
   Bot, 
   Package, 
   Settings, 
+  Wrench,
   Briefcase,
   MapPin,
   TrendingUp,
@@ -220,49 +221,6 @@ const MarketplaceCategories = () => {
 
   const enhancedCategories = [
     {
-      id: "robots",
-      title: "Industrial Robots",
-      description: "Quality industrial robots and automation solutions",
-      icon: Bot,
-      gradient: "from-blue-500 to-cyan-600",
-      href: "/marketplace/robots",
-      stats: [
-        { 
-          label: 'Active Listings', 
-          value: stats.robots.activeListings, 
-          icon: TrendingUp, 
-          trend: `${stats.robots.recentlyAdded} added this week`,
-          color: 'text-green-600'
-        },
-        { 
-          label: 'Locations', 
-          value: stats.robots.locations, 
-          icon: MapPin,
-          trend: 'Cities covered',
-          color: 'text-blue-600'
-        },
-        { 
-          label: 'Avg Price', 
-          value: `₹${(stats.robots.avgPrice/100000).toFixed(1)}L`, 
-          icon: DollarSign,
-          trend: 'Market average',
-          color: 'text-purple-600'
-        },
-        { 
-          label: 'Robot Types', 
-          value: stats.robots.topTypes.length, 
-          icon: Award,
-          trend: 'Different types',
-          color: 'text-orange-600'
-        }
-      ],
-      quickActions: [
-        { label: 'Browse All', action: () => navigate('/robots') },
-        { label: 'Advanced Search', action: () => navigate('/robots?search=true') },
-        { label: 'Add Robot', action: () => navigate('/dashboard?tab=robots') }
-      ]
-    },
-    {
       id: "parts",
       title: "Spare Parts",
       description: "Genuine parts and components for your robots",
@@ -309,7 +267,7 @@ const MarketplaceCategories = () => {
       id: "services",
       title: "Professional Services",
       description: "Expert maintenance, repair, and support services",
-      icon: Settings,
+      icon: Wrench,
       gradient: "from-purple-500 to-violet-600",
       href: "/marketplace/services",
       stats: [
@@ -347,6 +305,92 @@ const MarketplaceCategories = () => {
         { label: 'Request Quote', action: () => navigate('/services?action=quote') },
         { label: 'Offer Services', action: () => navigate('/dashboard?tab=services') }
       ]
+    },
+    {
+      id: "logistics",
+      title: "Logistics Partners",
+      description: "Reliable transportation and delivery services",
+      icon: Truck,
+      gradient: "from-indigo-500 to-blue-600",
+      href: "/marketplace/logistics",
+      stats: [
+        { 
+          label: 'Active Partners', 
+          value: Math.floor(Math.random() * 50) + 20, 
+          icon: Truck,
+          trend: 'Verified logistics',
+          color: 'text-green-600'
+        },
+        { 
+          label: 'Coverage Areas', 
+          value: Math.floor(Math.random() * 25) + 15, 
+          icon: MapPin,
+          trend: 'Cities covered',
+          color: 'text-blue-600'
+        },
+        { 
+          label: 'On-Time Rate', 
+          value: '98%', 
+          icon: Clock,
+          trend: 'Delivery performance',
+          color: 'text-purple-600'
+        },
+        { 
+          label: 'Fleet Size', 
+          value: '500+', 
+          icon: Activity,
+          trend: 'Active vehicles',
+          color: 'text-orange-600'
+        }
+      ],
+      quickActions: [
+        { label: 'Find Logistics', action: () => navigate('/logistics') },
+        { label: 'Get Quote', action: () => navigate('/logistics?action=quote') },
+        { label: 'Partner With Us', action: () => navigate('/auth') }
+      ]
+    },
+    {
+      id: "finance",
+      title: "Finance Solutions",
+      description: "Flexible financing options for robot purchases",
+      icon: CreditCard,
+      gradient: "from-pink-500 to-rose-600",
+      href: "/marketplace/finance",
+      stats: [
+        { 
+          label: 'Loan Partners', 
+          value: Math.floor(Math.random() * 15) + 8, 
+          icon: CreditCard,
+          trend: 'Financial institutions',
+          color: 'text-green-600'
+        },
+        { 
+          label: 'Approval Rate', 
+          value: '85%', 
+          icon: CheckCircle,
+          trend: 'Quick approvals',
+          color: 'text-blue-600'
+        },
+        { 
+          label: 'Interest Rates', 
+          value: '8.5%', 
+          icon: TrendingUp,
+          trend: 'Starting from',
+          color: 'text-purple-600'
+        },
+        { 
+          label: 'Max Funding', 
+          value: '₹5Cr', 
+          icon: DollarSign,
+          trend: 'Per project',
+          color: 'text-orange-600'
+        }
+      ],
+      quickActions: [
+        { label: 'Apply for Loan', action: () => navigate('/finance') },
+        { label: 'Calculate EMI', action: () => navigate('/finance?calculator=true') },
+        { label: 'Partner With Us', action: () => navigate('/auth') }
+      ]
     }
   ];
 
@@ -378,11 +422,11 @@ const MarketplaceCategories = () => {
 
         {/* Enhanced Header */}
         <div className="text-center mb-12">
-          <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
             Explore Our Marketplace
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-6">
-            Find everything you need for your industrial operations with real-time inventory and location data
+            Complete ecosystem for spare parts, professional services, and logistics solutions
           </p>
           
           {/* Platform Stats Overview */}
@@ -411,7 +455,7 @@ const MarketplaceCategories = () => {
         </div>
 
         {/* Enhanced Category Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
           {enhancedCategories.map((category) => {
             const Icon = category.icon;
             return (
