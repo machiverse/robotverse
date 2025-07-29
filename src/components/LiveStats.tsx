@@ -66,7 +66,7 @@ const STAT_CONFIG = [
   },
 ];
 
-// Helper function to safely extract and normalize all role fields
+// Helper function to safely extract and normalize role fields (ONLY existing fields)
 function extractUserRoles(profile: any): string[] {
   const roles: string[] = [];
   
@@ -79,11 +79,11 @@ function extractUserRoles(profile: any): string[] {
     }
   };
 
-  // Extract from all possible role fields
+  // ONLY extract from fields that exist in your schema
   addRole(profile?.account_type);
   addRole(profile?.user_type);
   addRole(profile?.seller_roles);
-  addRole(profile?.roles);
+  // Removed profile?.roles since it doesn't exist
 
   // Normalize to lowercase for consistent matching
   return roles.map(role => role.toLowerCase().trim()).filter(Boolean);
@@ -116,10 +116,11 @@ const LiveStats = () => {
       setRefreshing(true);
       setError(null);
 
-      // Fetch all profile data needed for role calculation
+      // FIXED: Only select fields that exist in your schema
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, account_type, user_type, seller_roles, roles');
+        .select('id, account_type, user_type, seller_roles');
+        // Removed 'roles' from select since it doesn't exist
 
       if (error) throw error;
 
