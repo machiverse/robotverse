@@ -28,7 +28,7 @@ const DashboardPage = () => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id)  // FIXED: Use 'id' not 'user_id'
+          .eq('user_id', user.id)
           .single();
         
         if (error) {
@@ -38,8 +38,7 @@ const DashboardPage = () => {
             const { data: newProfile } = await supabase
               .from('profiles')
               .insert({
-                id: user.id,  // Primary key
-                user_id: user.id,  // Required field
+                user_id: user.id,
                 email: user.email,
                 full_name: user.user_metadata?.full_name || '',
                 user_type: 'buyer' // Default to buyer

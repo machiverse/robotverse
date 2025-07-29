@@ -289,23 +289,23 @@ const Auth = () => {
           throw new Error(result.error.message);
         }
 
-        // Since signup was successful, get the current user from Supabase
-        const { data: { user: newUser }, error: userError } = await supabase.auth.getUser();
+        // FIXED: Only access data if there's no error
+        const newUser = result.data?.user;
         
-        if (userError || !newUser?.id) {
+        if (newUser?.id) {
+          console.log('New user created with ID:', newUser.id);
+          
+          await createUserProfile(newUser.id);
+          
+          toast({
+            title: "✅ Multi-Role Registration Successful!",
+            description: `Account created with ${selectedRoles.length} role(s): ${selectedRoles.join(', ')}`,
+          });
+          
+          setShowMouModal(true);
+        } else {
           throw new Error('Failed to get user ID after signup');
         }
-
-        console.log('New user created with ID:', newUser.id);
-        
-        await createUserProfile(newUser.id);
-        
-        toast({
-          title: "✅ Multi-Role Registration Successful!",
-          description: `Account created with ${selectedRoles.length} role(s): ${selectedRoles.join(', ')}`,
-        });
-        
-        setShowMouModal(true);
       } else {
         // Sign in
         const result = await signIn(email, password);
