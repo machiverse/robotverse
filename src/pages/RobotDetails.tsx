@@ -704,9 +704,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         </div>
       </div>
 
-      {/* ✅ Loading Modal - Matching Image 2 Design */}
+      {/* ✅ Loading Modal - Fixed TypeScript Error */}
       <Dialog open={analysisLoading} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" hideCloseButton>
+        <DialogContent className="sm:max-w-md">
           <div className="text-center py-8">
             <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <Activity className="w-10 h-10 text-white animate-pulse" />
