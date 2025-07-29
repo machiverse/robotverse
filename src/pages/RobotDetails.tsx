@@ -183,6 +183,7 @@ const RobotDetails = () => {
     setIsInWatchlist(watchlist.includes(robotId));
   };
 
+  // ✅ Working Contact Seller - Call Phone Number
   const handleContactSeller = () => {
     if (!robot?.profiles?.phone) {
       toast({
@@ -200,6 +201,7 @@ const RobotDetails = () => {
     });
   };
 
+  // ✅ Working Request Quote - Send Email
   const handleRequestQuote = () => {
     if (!robot?.profiles?.email) {
       toast({
@@ -248,6 +250,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     });
   };
 
+  // ✅ Working Add to Watchlist using localStorage
   const handleAddToWatchlist = async () => {
     if (!user) {
       toast({
@@ -298,7 +301,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     }
   };
 
-  // ✅ AI Analysis with Progress Animation (Image 2 Loading State)
+  // ✅ AI Analysis with Progress Animation
   const handleAIAnalysis = async () => {
     if (!robot || !user) {
       toast({
@@ -313,7 +316,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       setAnalysisLoading(true);
       setAnalysisProgress(0);
       
-      // Simulate progress animation like in Image 2
+      // Simulate progress animation
       const progressInterval = setInterval(() => {
         setAnalysisProgress(prev => {
           if (prev >= 90) {
@@ -433,7 +436,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content - Matching Image 1 Layout */}
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Robot Images */}
             <Card className="shadow-sm border-gray-200">
@@ -465,44 +468,55 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </CardContent>
             </Card>
 
-            {/* Robot Information - Clean Layout like Image 1 */}
+            {/* ✅ ROBOT INFORMATION - WHITE TEXT ON DARK BACKGROUNDS */}
             <Card className="shadow-sm border-gray-200">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{robot.name}</h1>
-                    <p className="text-xl text-gray-600">{robot.model}</p>
-                    <div className="flex items-center space-x-4 mt-3">
-                      <Badge variant="outline" className="text-blue-700">
-                        {robot.robot_type}
-                      </Badge>
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span>{robot.location}</span>
+                    {/* ✅ TITLE - WHITE TEXT ON DARK BACKGROUND */}
+                    <div className="bg-gradient-to-r from-gray-900 to-blue-900 p-4 rounded-lg mb-4">
+                      <h1 className="text-3xl font-bold text-white mb-2">{robot.name}</h1>
+                      <p className="text-xl text-gray-200">{robot.model}</p>
+                      <div className="flex items-center space-x-4 mt-3">
+                        <Badge variant="outline" className="text-white border-white bg-transparent">
+                          {robot.robot_type}
+                        </Badge>
+                        <div className="flex items-center text-gray-200">
+                          <MapPin className="w-4 h-4 mr-1 text-white" />
+                          <span className="text-white">{robot.location}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-green-600 mb-2">
-                      {robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
+                    <div className="bg-gradient-to-r from-green-700 to-green-900 p-4 rounded-lg">
+                      <div className="text-3xl font-bold text-white mb-2">
+                        {robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
+                      </div>
+                      <Badge variant="secondary" className="text-white bg-green-600">
+                        {robot.availability}
+                      </Badge>
                     </div>
-                    <Badge variant={robot.availability === 'available' ? 'default' : 'secondary'}>
-                      {robot.availability}
-                    </Badge>
                   </div>
                 </div>
 
+                {/* ✅ DESCRIPTION - WHITE TEXT ON DARK BACKGROUND */}
                 {robot.description && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-gray-900">Description</h3>
-                    <p className="text-gray-700 leading-relaxed">{robot.description}</p>
+                    <div className="bg-gradient-to-r from-blue-900 to-purple-900 p-6 rounded-lg">
+                      <h3 className="text-lg font-semibold mb-3 text-white flex items-center">
+                        <FileText className="w-5 h-5 mr-2 text-white" />
+                        Description
+                      </h3>
+                      <p className="text-white leading-relaxed font-medium">{robot.description}</p>
+                    </div>
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-semibold text-gray-900">Quantity Available:</span>
-                    <p className="text-gray-700">{robot.quantity} units</p>
+                  <div className="bg-gray-800 p-4 rounded-lg">
+                    <span className="font-semibold text-white">Quantity Available:</span>
+                    <p className="text-gray-200">{robot.quantity} units</p>
                   </div>
                 </div>
               </CardContent>
@@ -529,7 +543,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </Card>
             )}
 
-            {/* AI Analysis Section - Matching Image 1 Design */}
+            {/* AI Analysis Section */}
             {user && (
               <Card className="shadow-sm border-gray-200">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
@@ -605,40 +619,40 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Seller Information */}
+            {/* ✅ SELLER INFORMATION - WHITE TEXT ON DARK BACKGROUND */}
             {user && robot.profiles && (
               <Card className="shadow-sm border-gray-200">
-                <CardHeader>
-                  <CardTitle className="text-lg font-bold text-gray-900">Seller Information</CardTitle>
+                <CardHeader className="bg-gradient-to-r from-gray-900 to-blue-900">
+                  <CardTitle className="text-lg font-bold text-white">Seller Information</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-gray-900">{robot.profiles.full_name}</span>
+                <CardContent className="bg-gray-800 text-white">
+                  <div className="space-y-3 p-4">
+                    <div className="flex items-center bg-gray-700 p-3 rounded-lg">
+                      <User className="w-4 h-4 mr-2 text-white" />
+                      <span className="text-white font-medium">{robot.profiles.full_name}</span>
                     </div>
                     {robot.profiles.company_name && (
-                      <div className="flex items-center">
-                        <Building className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-gray-900">{robot.profiles.company_name}</span>
+                      <div className="flex items-center bg-gray-700 p-3 rounded-lg">
+                        <Building className="w-4 h-4 mr-2 text-white" />
+                        <span className="text-white font-medium">{robot.profiles.company_name}</span>
                       </div>
                     )}
                     {robot.profiles.phone && (
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-gray-900">{robot.profiles.phone}</span>
+                      <div className="flex items-center bg-gray-700 p-3 rounded-lg">
+                        <Phone className="w-4 h-4 mr-2 text-white" />
+                        <span className="text-white font-medium">{robot.profiles.phone}</span>
                       </div>
                     )}
                     {robot.profiles.email && (
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-sm text-gray-900">{robot.profiles.email}</span>
+                      <div className="flex items-center bg-gray-700 p-3 rounded-lg">
+                        <Mail className="w-4 h-4 mr-2 text-white" />
+                        <span className="text-sm text-white font-medium">{robot.profiles.email}</span>
                       </div>
                     )}
                     {robot.profiles.location && (
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-gray-900">{robot.profiles.location}</span>
+                      <div className="flex items-center bg-gray-700 p-3 rounded-lg">
+                        <MapPin className="w-4 h-4 mr-2 text-white" />
+                        <span className="text-white font-medium">{robot.profiles.location}</span>
                       </div>
                     )}
                   </div>
@@ -739,18 +753,18 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         </DialogContent>
       </Dialog>
 
-      {/* ✅ AI Analysis Results Modal - Matching Image 3 Design */}
+      {/* ✅ AI Analysis Results Modal */}
       <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
         <DialogContent className="max-w-7xl max-h-[90vh] p-0">
-          <DialogHeader className="bg-gradient-to-r from-blue-900 to-purple-900 text-white p-6">
+          <DialogHeader className="bg-gradient-to-r from-gray-900 to-blue-900 text-white p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="p-2 bg-white/20 rounded-lg">
                   <PieChart className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <DialogTitle className="text-2xl font-bold">Market Intelligence Report</DialogTitle>
-                  <DialogDescription className="text-blue-100">
+                  <DialogTitle className="text-2xl font-bold text-white">Market Intelligence Report</DialogTitle>
+                  <DialogDescription className="text-gray-200">
                     Comprehensive analysis for {robot?.name} • Generated {new Date().toLocaleDateString()}
                   </DialogDescription>
                 </div>
@@ -819,25 +833,25 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     </Card>
                   </div>
 
-                  {/* Location Intelligence */}
+                  {/* ✅ Location Intelligence - WHITE TEXT */}
                   {aiAnalysis.locationInsights.userLocation && (
-                    <Card className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <MapPin className="w-5 h-5 mr-2 text-emerald-600" />
+                    <Card className="p-6 bg-gradient-to-r from-emerald-800 to-teal-800 border-emerald-200">
+                      <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                        <MapPin className="w-5 h-5 mr-2 text-white" />
                         Location Intelligence
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="text-center p-4 bg-white rounded-lg">
-                          <div className="text-sm font-medium text-gray-600">Your Location</div>
-                          <div className="font-bold text-gray-900">{aiAnalysis.locationInsights.userLocation}</div>
+                        <div className="text-center p-4 bg-gray-800 rounded-lg">
+                          <div className="text-sm font-medium text-gray-300">Your Location</div>
+                          <div className="font-bold text-white">{aiAnalysis.locationInsights.userLocation}</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg">
-                          <div className="text-sm font-medium text-gray-600">Robot Location</div>
-                          <div className="font-bold text-gray-900">{aiAnalysis.locationInsights.robotLocation}</div>
+                        <div className="text-center p-4 bg-gray-800 rounded-lg">
+                          <div className="text-sm font-medium text-gray-300">Robot Location</div>
+                          <div className="font-bold text-white">{aiAnalysis.locationInsights.robotLocation}</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg">
-                          <div className="text-sm font-medium text-gray-600">Nearby Resources</div>
-                          <div className="font-bold text-emerald-600">
+                        <div className="text-center p-4 bg-gray-800 rounded-lg">
+                          <div className="text-sm font-medium text-gray-300">Nearby Resources</div>
+                          <div className="font-bold text-white">
                             {aiAnalysis.locationInsights.proximityFactors.nearbySuppliers + 
                              aiAnalysis.locationInsights.proximityFactors.nearbyServices} partners
                           </div>
@@ -846,14 +860,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     </Card>
                   )}
 
-                  {/* AI Analysis Report */}
-                  <Card className="p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                      <BookOpen className="w-5 h-5 mr-2" />
+                  {/* ✅ AI Analysis Report - WHITE TEXT */}
+                  <Card className="p-6 bg-gradient-to-r from-gray-900 to-blue-900">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                      <BookOpen className="w-5 h-5 mr-2 text-white" />
                       Executive Analysis
                     </h3>
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                      <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    <div className="bg-gray-800 p-6 rounded-lg">
+                      <div className="text-white leading-relaxed whitespace-pre-wrap font-medium">
                         {aiAnalysis.analysis}
                       </div>
                     </div>
