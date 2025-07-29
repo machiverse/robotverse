@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, TrendingUp, AlertCircle, CheckCircle, Star, Target, Zap } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, TrendingUp, AlertCircle, CheckCircle, Star, Target, Zap, Heart, PhoneCall, Send } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,7 +37,6 @@ interface Robot {
   };
 }
 
-// ✅ Updated interface to match enhanced Edge Function response
 interface EnhancedAIAnalysisResult {
   robot: {
     marketInsights: {
@@ -130,6 +129,8 @@ const RobotDetails = () => {
   const [aiAnalysis, setAiAnalysis] = useState<EnhancedAIAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [watchlistLoading, setWatchlistLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -154,6 +155,11 @@ const RobotDetails = () => {
 
         if (error) throw error;
         setRobot(data);
+        
+        // Check if robot is in user's watchlist
+        if (user) {
+          checkWatchlistStatus(data.id);
+        }
       } catch (err) {
         console.error('Error fetching robot:', err);
         setError(err instanceof Error ? err.message : 'Failed to load robot details');
@@ -163,7 +169,144 @@ const RobotDetails = () => {
     };
 
     fetchRobot();
-  }, [id]);
+  }, [id, user]);
+
+  // ✅ Check if robot is in watchlist
+  const checkWatchlistStatus = async (robotId: string) => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('user_watchlist')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('robot_id', robotId)
+        .single();
+        
+      setIsInWatchlist(!!data);
+    } catch (error) {
+      // Robot not in watchlist
+      setIsInWatchlist(false);
+    }
+  };
+
+  // ✅ Handle contact seller (call phone number)
+  const handleContactSeller = () => {
+    if (robot?.profiles?.phone) {
+      const phoneNumber = robot.profiles.phone.replace(/[^\d+]/g, '');
+      window.open(`tel:${phoneNumber}`, '_self');
+      
+      toast({
+        title: "📞 Calling Seller",
+        description: `Calling ${robot.profiles.full_name} at ${robot.profiles.phone}`,
+      });
+    } else {
+      toast({
+        title: "Phone Not Available",
+        description: "Seller's phone number is not available",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ✅ Handle request quote (send email)
+  const handleRequestQuote = () => {
+    if (robot?.profiles?.email) {
+      const subject = encodeURIComponent(`Quote Request for ${robot.name}`);
+      const body = encodeURIComponent(`Hello ${robot.profiles.full_name},
+
+I am interested in getting a quote for the following robot:
+
+Robot: ${robot.name}
+Model: ${robot.model}
+Type: ${robot.robot_type}
+Location: ${robot.location}
+
+Please provide me with:
+1. Best pricing details
+2. Availability timeline
+3. Installation and support options
+4. Any bulk purchase discounts
+
+Thank you!
+
+Best regards,
+${user?.user_metadata?.full_name || 'Interested Buyer'}`);
+
+      const mailtoUrl = `mailto:${robot.profiles.email}?subject=${subject}&body=${body}`;
+      window.open(mailtoUrl, '_blank');
+      
+      toast({
+        title: "📧 Email Opened",
+        description: `Quote request email opened for ${robot.profiles.company_name}`,
+      });
+    } else {
+      toast({
+        title: "Email Not Available",
+        description: "Seller's email address is not available",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ✅ Handle add to watchlist
+  const handleToggleWatchlist = async () => {
+    if (!user || !robot) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to add items to your watchlist",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setWatchlistLoading(true);
+
+    try {
+      if (isInWatchlist) {
+        // Remove from watchlist
+        const { error } = await supabase
+          .from('user_watchlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('robot_id', robot.id);
+
+        if (error) throw error;
+
+        setIsInWatchlist(false);
+        toast({
+          title: "❤️ Removed from Watchlist",
+          description: `${robot.name} has been removed from your watchlist`,
+        });
+      } else {
+        // Add to watchlist
+        const { error } = await supabase
+          .from('user_watchlist')
+          .insert({
+            user_id: user.id,
+            robot_id: robot.id,
+            created_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+
+        setIsInWatchlist(true);
+        toast({
+          title: "💖 Added to Watchlist",
+          description: `${robot.name} has been added to your watchlist`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Watchlist error:', error);
+      toast({
+        title: "Watchlist Error",
+        description: error.message || "Failed to update watchlist",
+        variant: "destructive",
+      });
+    } finally {
+      setWatchlistLoading(false);
+    }
+  };
 
   const handleAIAnalysis = async () => {
     if (!robot || !user) {
@@ -210,14 +353,20 @@ const RobotDetails = () => {
     }
   };
 
+  // ✅ Function to format AI analysis into concise sections
+  const formatAIAnalysis = (analysis: string) => {
+    const sections = analysis.split(/\*\*|\d+\.\s+\*\*/).filter(section => section.trim());
+    return sections.slice(0, 4).map(section => section.trim().substring(0, 200) + '...');
+  };
+
   const formatPrice = (price: number, currency: string) => {
     const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
     return `${currencySymbol}${price.toLocaleString()}`;
   };
 
   const getProximityColor = (proximity: number) => {
-    if (proximity >= 80) return "text-green-600";
-    if (proximity >= 50) return "text-yellow-600";
+    if (proximity >= 80) return "text-emerald-700";
+    if (proximity >= 50) return "text-amber-600";
     return "text-red-600";
   };
 
@@ -229,12 +378,12 @@ const RobotDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
         <EnhancedHeader />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin mr-2" />
-            <span>Loading robot details...</span>
+            <Loader2 className="w-8 h-8 animate-spin mr-2 text-blue-600" />
+            <span className="text-gray-700">Loading robot details...</span>
           </div>
         </div>
       </div>
@@ -243,13 +392,13 @@ const RobotDetails = () => {
 
   if (error || !robot) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
         <EnhancedHeader />
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center py-12">
-            <Bot className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Robot Not Found</h3>
-            <p className="text-muted-foreground mb-4">{error || 'The requested robot could not be found.'}</p>
+            <Bot className="w-16 h-16 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold mb-2 text-gray-900">Robot Not Found</h3>
+            <p className="text-gray-600 mb-4">{error || 'The requested robot could not be found.'}</p>
             <Button onClick={() => navigate('/robots')} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Robots
@@ -261,7 +410,7 @@ const RobotDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <EnhancedHeader />
       
       <div className="container mx-auto px-4 py-8">
@@ -269,7 +418,7 @@ const RobotDetails = () => {
         <Button 
           variant="ghost" 
           onClick={() => navigate('/robots')}
-          className="mb-6"
+          className="mb-6 text-gray-700 hover:text-gray-900"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Robots
@@ -279,23 +428,23 @@ const RobotDetails = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Robot Images */}
-            <Card>
+            <Card className="shadow-lg border-0">
               <CardContent className="p-6">
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mb-4">
                   {robot.images && robot.images.length > 0 ? (
                     <img 
                       src={robot.images[0]} 
                       alt={robot.name}
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-cover rounded-xl"
                     />
                   ) : (
-                    <Bot className="w-24 h-24 text-muted-foreground" />
+                    <Bot className="w-24 h-24 text-gray-400" />
                   )}
                 </div>
                 {robot.images && robot.images.length > 1 && (
                   <div className="grid grid-cols-4 gap-2">
                     {robot.images.slice(1, 5).map((image, index) => (
-                      <div key={index} className="aspect-square bg-muted rounded-lg flex items-center justify-center">
+                      <div key={index} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
                         <img 
                           src={image} 
                           alt={`${robot.name} ${index + 2}`}
@@ -309,18 +458,18 @@ const RobotDetails = () => {
             </Card>
 
             {/* Robot Information */}
-            <Card>
+            <Card className="shadow-lg border-0">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-2xl">{robot.name}</CardTitle>
-                    <p className="text-lg text-muted-foreground">{robot.model}</p>
+                    <CardTitle className="text-3xl text-gray-900">{robot.name}</CardTitle>
+                    <p className="text-xl text-gray-600 mt-1">{robot.model}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-primary">
+                    <div className="text-3xl font-bold text-blue-600">
                       {robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
                     </div>
-                    <Badge variant={robot.availability === 'available' ? 'default' : 'secondary'}>
+                    <Badge variant={robot.availability === 'available' ? 'default' : 'secondary'} className="mt-2">
                       {robot.availability}
                     </Badge>
                   </div>
@@ -329,28 +478,28 @@ const RobotDetails = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{robot.robot_type}</Badge>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{robot.robot_type}</Badge>
                     {robot.category_tags?.map((tag, index) => (
-                      <Badge key={index} variant="secondary">{tag}</Badge>
+                      <Badge key={index} variant="secondary" className="bg-gray-100 text-gray-700">{tag}</Badge>
                     ))}
                   </div>
                   
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    <span>{robot.location}</span>
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-5 h-5 mr-2" />
+                    <span className="text-lg">{robot.location}</span>
                   </div>
 
                   {robot.description && (
                     <div>
-                      <h4 className="font-semibold mb-2">Description</h4>
-                      <p className="text-muted-foreground">{robot.description}</p>
+                      <h4 className="font-semibold mb-2 text-gray-900">Description</h4>
+                      <p className="text-gray-700 leading-relaxed">{robot.description}</p>
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium">Quantity Available:</span>
-                      <p>{robot.quantity}</p>
+                      <span className="font-medium text-gray-900">Quantity Available:</span>
+                      <p className="text-gray-700">{robot.quantity}</p>
                     </div>
                   </div>
                 </div>
@@ -359,16 +508,16 @@ const RobotDetails = () => {
 
             {/* Technical Specifications */}
             {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 && (
-              <Card>
+              <Card className="shadow-lg border-0">
                 <CardHeader>
-                  <CardTitle>Technical Specifications</CardTitle>
+                  <CardTitle className="text-gray-900">Technical Specifications</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     {Object.entries(robot.technical_specifications).map(([key, value]) => (
                       <div key={key}>
-                        <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
-                        <p className="text-muted-foreground">{String(value)}</p>
+                        <span className="font-medium capitalize text-gray-900">{key.replace(/_/g, ' ')}:</span>
+                        <p className="text-gray-700">{String(value)}</p>
                       </div>
                     ))}
                   </div>
@@ -376,34 +525,34 @@ const RobotDetails = () => {
               </Card>
             )}
 
-            {/* Enhanced AI Analysis Section */}
+            {/* ✅ Professional AI Analysis Section */}
             {user && (
-              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Brain className="w-5 h-5 mr-2 text-blue-600" />
-                    🎯 Smart Market Analysis & Recommendations
+              <Card className="shadow-xl border-0 bg-gradient-to-r from-white to-blue-50">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center text-xl">
+                    <Brain className="w-6 h-6 mr-3" />
+                    Smart Market Intelligence
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-blue-100 mt-2">
                     AI-powered insights with location-based supplier matching and market analysis
                   </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-8">
                   {!aiAnalysis ? (
                     <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Brain className="w-8 h-8 text-white" />
+                      <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Brain className="w-10 h-10 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">Unlock Smart Insights</h3>
-                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                        Get comprehensive market analysis, location-based supplier matching, pricing insights, 
-                        and personalized recommendations for spare parts, services, logistics, and financing.
+                      <h3 className="text-2xl font-bold text-gray-900 mb-3">Unlock Market Intelligence</h3>
+                      <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+                        Get comprehensive market analysis, supplier matching, pricing insights, 
+                        and personalized recommendations.
                       </p>
                       <Button 
                         onClick={handleAIAnalysis}
                         disabled={analysisLoading}
                         size="lg"
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8 py-3 text-lg shadow-lg"
                       >
                         {analysisLoading ? (
                           <>
@@ -420,50 +569,50 @@ const RobotDetails = () => {
                     </div>
                   ) : (
                     <div className="space-y-8">
-                      {/* Market Overview */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-blue-600">{aiAnalysis.marketEcosystem.spareParts.total}</div>
-                          <div className="text-sm text-muted-foreground">Spare Parts Suppliers</div>
-                          <div className="text-xs text-green-600">{aiAnalysis.marketEcosystem.spareParts.nearby} nearby</div>
+                      {/* ✅ Market Overview with Professional Design */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="text-center p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                          <div className="text-3xl font-bold text-blue-600 mb-1">{aiAnalysis.marketEcosystem.spareParts.total}</div>
+                          <div className="text-sm font-medium text-gray-700">Spare Parts</div>
+                          <div className="text-xs text-emerald-600 mt-1">{aiAnalysis.marketEcosystem.spareParts.nearby} nearby</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-green-600">{aiAnalysis.marketEcosystem.services.total}</div>
-                          <div className="text-sm text-muted-foreground">Service Providers</div>
-                          <div className="text-xs text-green-600">{aiAnalysis.marketEcosystem.services.nearby} nearby</div>
+                        <div className="text-center p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                          <div className="text-3xl font-bold text-emerald-600 mb-1">{aiAnalysis.marketEcosystem.services.total}</div>
+                          <div className="text-sm font-medium text-gray-700">Services</div>
+                          <div className="text-xs text-emerald-600 mt-1">{aiAnalysis.marketEcosystem.services.nearby} nearby</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-orange-600">{aiAnalysis.marketEcosystem.logistics.total}</div>
-                          <div className="text-sm text-muted-foreground">Logistics Partners</div>
+                        <div className="text-center p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                          <div className="text-3xl font-bold text-orange-600 mb-1">{aiAnalysis.marketEcosystem.logistics.total}</div>
+                          <div className="text-sm font-medium text-gray-700">Logistics</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-purple-600">{aiAnalysis.marketEcosystem.finance.total}</div>
-                          <div className="text-sm text-muted-foreground">Finance Providers</div>
+                        <div className="text-center p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                          <div className="text-3xl font-bold text-purple-600 mb-1">{aiAnalysis.marketEcosystem.finance.total}</div>
+                          <div className="text-sm font-medium text-gray-700">Finance</div>
                         </div>
                       </div>
 
-                      {/* Location Insights */}
+                      {/* ✅ Location Insights with Better Design */}
                       {aiAnalysis.locationInsights.userLocation && (
-                        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+                        <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-md">
                           <CardHeader>
-                            <CardTitle className="flex items-center text-green-700">
+                            <CardTitle className="flex items-center text-emerald-800">
                               <MapPin className="w-5 h-5 mr-2" />
-                              Location-Based Insights
+                              Location Intelligence
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                               <div>
-                                <span className="font-medium">Your Location:</span>
-                                <p className="text-muted-foreground">{aiAnalysis.locationInsights.userLocation}</p>
+                                <span className="font-medium text-gray-900">Your Location:</span>
+                                <p className="text-gray-700">{aiAnalysis.locationInsights.userLocation}</p>
                               </div>
                               <div>
-                                <span className="font-medium">Robot Location:</span>
-                                <p className="text-muted-foreground">{aiAnalysis.locationInsights.robotLocation}</p>
+                                <span className="font-medium text-gray-900">Robot Location:</span>
+                                <p className="text-gray-700">{aiAnalysis.locationInsights.robotLocation}</p>
                               </div>
                               <div>
-                                <span className="font-medium">Local Ecosystem:</span>
-                                <p className="text-green-600">
+                                <span className="font-medium text-gray-900">Local Ecosystem:</span>
+                                <p className="text-emerald-700 font-medium">
                                   {aiAnalysis.locationInsights.proximityFactors.nearbySuppliers + 
                                    aiAnalysis.locationInsights.proximityFactors.nearbyServices} nearby resources
                                 </p>
@@ -473,35 +622,37 @@ const RobotDetails = () => {
                         </Card>
                       )}
 
-                      {/* AI Analysis */}
+                      {/* ✅ Concise AI Analysis */}
                       <div>
-                        <h4 className="font-semibold mb-3 flex items-center">
-                          <TrendingUp className="w-4 h-4 mr-2" />
-                          Comprehensive Market Analysis
+                        <h4 className="font-bold mb-4 flex items-center text-gray-900 text-lg">
+                          <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
+                          Key Market Insights
                         </h4>
-                        <div className="bg-white p-6 rounded-lg border">
-                          <div className="prose prose-sm max-w-none">
-                            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
-                              {aiAnalysis.analysis}
-                            </pre>
+                        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                          <div className="space-y-4">
+                            {formatAIAnalysis(aiAnalysis.analysis).map((section, index) => (
+                              <div key={index} className="text-gray-700 text-sm leading-relaxed bg-gray-50 p-4 rounded-lg">
+                                {section}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
 
-                      {/* Actionable Recommendations */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="border-green-200 bg-green-50">
+                      {/* ✅ Professional Action Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md">
                           <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center text-green-700">
+                            <CardTitle className="text-sm flex items-center text-emerald-800">
                               <CheckCircle className="w-4 h-4 mr-2" />
                               Immediate Actions
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <ul className="space-y-1 text-xs">
-                              {aiAnalysis.actionableRecommendations.immediateActions.map((action, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="w-1 h-1 bg-green-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                            <ul className="space-y-2 text-xs">
+                              {aiAnalysis.actionableRecommendations.immediateActions.slice(0, 3).map((action, index) => (
+                                <li key={index} className="flex items-start text-gray-700">
+                                  <span className="w-2 h-2 bg-emerald-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
                                   {action}
                                 </li>
                               ))}
@@ -509,18 +660,18 @@ const RobotDetails = () => {
                           </CardContent>
                         </Card>
 
-                        <Card className="border-blue-200 bg-blue-50">
+                        <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md">
                           <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center text-blue-700">
+                            <CardTitle className="text-sm flex items-center text-blue-800">
                               <DollarSign className="w-4 h-4 mr-2" />
                               Cost Optimization
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <ul className="space-y-1 text-xs">
-                              {aiAnalysis.actionableRecommendations.costOptimization.map((tip, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="w-1 h-1 bg-blue-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                            <ul className="space-y-2 text-xs">
+                              {aiAnalysis.actionableRecommendations.costOptimization.slice(0, 3).map((tip, index) => (
+                                <li key={index} className="flex items-start text-gray-700">
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
                                   {tip}
                                 </li>
                               ))}
@@ -528,18 +679,18 @@ const RobotDetails = () => {
                           </CardContent>
                         </Card>
 
-                        <Card className="border-red-200 bg-red-50">
+                        <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md">
                           <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center text-red-700">
+                            <CardTitle className="text-sm flex items-center text-amber-800">
                               <AlertCircle className="w-4 h-4 mr-2" />
                               Risk Mitigation
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <ul className="space-y-1 text-xs">
-                              {aiAnalysis.actionableRecommendations.riskMitigation.map((risk, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="w-1 h-1 bg-red-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                            <ul className="space-y-2 text-xs">
+                              {aiAnalysis.actionableRecommendations.riskMitigation.slice(0, 3).map((risk, index) => (
+                                <li key={index} className="flex items-start text-gray-700">
+                                  <span className="w-2 h-2 bg-amber-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
                                   {risk}
                                 </li>
                               ))}
@@ -548,52 +699,52 @@ const RobotDetails = () => {
                         </Card>
                       </div>
                       
-                      <Separator />
+                      <Separator className="my-8" />
                       
-                      {/* Enhanced Recommendations Tabs */}
+                      {/* ✅ Enhanced Recommendations Tabs */}
                       <Tabs defaultValue="parts" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4">
-                          <TabsTrigger value="parts" className="text-xs">
+                        <TabsList className="grid w-full grid-cols-4 bg-gray-100 rounded-xl p-1">
+                          <TabsTrigger value="parts" className="text-xs rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                             Spare Parts ({aiAnalysis.marketEcosystem.spareParts.suppliers.length})
                           </TabsTrigger>
-                          <TabsTrigger value="services" className="text-xs">
+                          <TabsTrigger value="services" className="text-xs rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                             Services ({aiAnalysis.marketEcosystem.services.providers.length})
                           </TabsTrigger>
-                          <TabsTrigger value="logistics" className="text-xs">
+                          <TabsTrigger value="logistics" className="text-xs rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                             Logistics ({aiAnalysis.marketEcosystem.logistics.providers.length})
                           </TabsTrigger>
-                          <TabsTrigger value="finance" className="text-xs">
+                          <TabsTrigger value="finance" className="text-xs rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                             Finance ({aiAnalysis.marketEcosystem.finance.providers.length})
                           </TabsTrigger>
                         </TabsList>
                         
                         <TabsContent value="parts" className="mt-6">
                           <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.spareParts.suppliers.map((part, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
+                            {aiAnalysis.marketEcosystem.spareParts.suppliers.slice(0, 3).map((part, index) => (
+                              <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
+                                <CardContent className="p-5">
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
                                       <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{part.name}</h5>
+                                        <h5 className="font-semibold text-gray-900">{part.name}</h5>
                                         <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-xs">
+                                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                                             {part.price}
                                           </Badge>
-                                          <div className={`text-xs ${getProximityColor(part.proximity)}`}>
+                                          <div className={`text-xs font-medium ${getProximityColor(part.proximity)}`}>
                                             <MapPin className="w-3 h-3 inline mr-1" />
                                             {getProximityLabel(part.proximity)}
                                           </div>
                                         </div>
                                       </div>
-                                      <p className="text-sm text-muted-foreground">{part.company}</p>
-                                      <p className="text-xs text-muted-foreground">{part.location}</p>
+                                      <p className="text-sm text-gray-700 font-medium">{part.company}</p>
+                                      <p className="text-xs text-gray-500">{part.location}</p>
                                       {part.partNumber && (
-                                        <p className="text-xs text-blue-600 mt-1">Part #: {part.partNumber}</p>
+                                        <p className="text-xs text-blue-600 mt-1 font-mono">Part #: {part.partNumber}</p>
                                       )}
-                                      <Progress value={part.proximity} className="h-1 mt-2" />
+                                      <Progress value={part.proximity} className="h-2 mt-3 bg-gray-100" />
                                     </div>
-                                    <Button size="sm" variant="outline" onClick={() => navigate('/parts')}>
+                                    <Button size="sm" className="ml-4 bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/parts')}>
                                       <Wrench className="w-4 h-4 mr-1" />
                                       Contact
                                     </Button>
@@ -602,9 +753,9 @@ const RobotDetails = () => {
                               </Card>
                             ))}
                             {aiAnalysis.marketEcosystem.spareParts.suppliers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Wrench className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No matching spare parts suppliers found</p>
+                              <div className="text-center py-12 text-gray-500">
+                                <Wrench className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                                <p className="text-lg">No matching spare parts suppliers found</p>
                               </div>
                             )}
                           </div>
@@ -612,34 +763,34 @@ const RobotDetails = () => {
                         
                         <TabsContent value="services" className="mt-6">
                           <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.services.providers.map((service, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
+                            {aiAnalysis.marketEcosystem.services.providers.slice(0, 3).map((service, index) => (
+                              <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
+                                <CardContent className="p-5">
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
                                       <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{service.name}</h5>
+                                        <h5 className="font-semibold text-gray-900">{service.name}</h5>
                                         <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-xs">
+                                          <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
                                             {service.priceRange || 'Contact for pricing'}
                                           </Badge>
-                                          <div className={`text-xs ${getProximityColor(service.proximity)}`}>
+                                          <div className={`text-xs font-medium ${getProximityColor(service.proximity)}`}>
                                             <MapPin className="w-3 h-3 inline mr-1" />
                                             {getProximityLabel(service.proximity)}
                                           </div>
                                         </div>
                                       </div>
-                                      <p className="text-sm text-muted-foreground">{service.company}</p>
-                                      <p className="text-xs text-muted-foreground">{service.location}</p>
-                                      <div className="flex items-center gap-1 mt-2">
-                                        <Badge variant="secondary" className="text-xs">{service.serviceType}</Badge>
-                                        {service.specializations?.slice(0, 2).map((spec, idx) => (
-                                          <Badge key={idx} variant="outline" className="text-xs">{spec}</Badge>
+                                      <p className="text-sm text-gray-700 font-medium">{service.company}</p>
+                                      <p className="text-xs text-gray-500">{service.location}</p>
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">{service.serviceType}</Badge>
+                                        {service.specializations?.slice(0, 1).map((spec, idx) => (
+                                          <Badge key={idx} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">{spec}</Badge>
                                         ))}
                                       </div>
-                                      <Progress value={service.proximity} className="h-1 mt-2" />
+                                      <Progress value={service.proximity} className="h-2 mt-3 bg-gray-100" />
                                     </div>
-                                    <Button size="sm" variant="outline" onClick={() => navigate('/services')}>
+                                    <Button size="sm" className="ml-4 bg-emerald-600 hover:bg-emerald-700" onClick={() => navigate('/services')}>
                                       <Settings className="w-4 h-4 mr-1" />
                                       Contact
                                     </Button>
@@ -648,9 +799,9 @@ const RobotDetails = () => {
                               </Card>
                             ))}
                             {aiAnalysis.marketEcosystem.services.providers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Settings className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No matching service providers found</p>
+                              <div className="text-center py-12 text-gray-500">
+                                <Settings className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                                <p className="text-lg">No matching service providers found</p>
                               </div>
                             )}
                           </div>
@@ -658,32 +809,32 @@ const RobotDetails = () => {
                         
                         <TabsContent value="logistics" className="mt-6">
                           <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.logistics.providers.map((provider, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
+                            {aiAnalysis.marketEcosystem.logistics.providers.slice(0, 3).map((provider, index) => (
+                              <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
+                                <CardContent className="p-5">
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
                                       <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{provider.company}</h5>
-                                        <div className={`text-xs ${getProximityColor(provider.proximity)}`}>
+                                        <h5 className="font-semibold text-gray-900">{provider.company}</h5>
+                                        <div className={`text-xs font-medium ${getProximityColor(provider.proximity)}`}>
                                           <MapPin className="w-3 h-3 inline mr-1" />
                                           {getProximityLabel(provider.proximity)}
                                         </div>
                                       </div>
-                                      <p className="text-xs text-muted-foreground">{provider.location}</p>
-                                      <p className="text-xs text-blue-600">Region: {provider.serviceRegion}</p>
+                                      <p className="text-xs text-gray-500">{provider.location}</p>
+                                      <p className="text-xs text-blue-600 font-medium">Region: {provider.serviceRegion}</p>
                                       <div className="flex items-center gap-1 mt-2">
-                                        <Badge variant="secondary" className="text-xs">{provider.logisticsType}</Badge>
-                                        {provider.transportModes?.map((mode, idx) => (
+                                        <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">{provider.logisticsType}</Badge>
+                                        {provider.transportModes?.slice(0, 2).map((mode, idx) => (
                                           <Badge key={idx} variant="outline" className="text-xs">{mode}</Badge>
                                         ))}
                                         {provider.warehouseStorage && (
-                                          <Badge variant="outline" className="text-xs">Warehouse</Badge>
+                                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Warehouse</Badge>
                                         )}
                                       </div>
-                                      <Progress value={provider.proximity} className="h-1 mt-2" />
+                                      <Progress value={provider.proximity} className="h-2 mt-3 bg-gray-100" />
                                     </div>
-                                    <Button size="sm" variant="outline" disabled>
+                                    <Button size="sm" variant="outline" className="ml-4" disabled>
                                       <Truck className="w-4 h-4 mr-1" />
                                       Contact
                                     </Button>
@@ -692,9 +843,9 @@ const RobotDetails = () => {
                               </Card>
                             ))}
                             {aiAnalysis.marketEcosystem.logistics.providers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No logistics providers found</p>
+                              <div className="text-center py-12 text-gray-500">
+                                <Truck className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                                <p className="text-lg">No logistics providers found</p>
                               </div>
                             )}
                           </div>
@@ -702,30 +853,30 @@ const RobotDetails = () => {
                         
                         <TabsContent value="finance" className="mt-6">
                           <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.finance.providers.map((provider, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
+                            {aiAnalysis.marketEcosystem.finance.providers.slice(0, 3).map((provider, index) => (
+                              <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-md">
+                                <CardContent className="p-5">
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
                                       <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{provider.company}</h5>
+                                        <h5 className="font-semibold text-gray-900">{provider.company}</h5>
                                         <div className="flex items-center gap-2">
                                           {provider.governmentSchemeSupport && (
-                                            <Badge variant="outline" className="text-xs text-green-600">
+                                            <Badge variant="outline" className="text-xs text-emerald-700 bg-emerald-50 border-emerald-200">
                                               <Star className="w-3 h-3 mr-1" />
                                               Govt. Schemes
                                             </Badge>
                                           )}
-                                          <div className={`text-xs ${getProximityColor(provider.proximity)}`}>
+                                          <div className={`text-xs font-medium ${getProximityColor(provider.proximity)}`}>
                                             <MapPin className="w-3 h-3 inline mr-1" />
                                             {getProximityLabel(provider.proximity)}
                                           </div>
                                         </div>
                                       </div>
-                                      <p className="text-xs text-muted-foreground">{provider.location}</p>
+                                      <p className="text-xs text-gray-500">{provider.location}</p>
                                       <div className="flex items-center gap-1 mt-2">
-                                        {provider.financeTypes?.slice(0, 3).map((type, idx) => (
-                                          <Badge key={idx} variant="secondary" className="text-xs">{type}</Badge>
+                                        {provider.financeTypes?.slice(0, 2).map((type, idx) => (
+                                          <Badge key={idx} variant="secondary" className="text-xs bg-purple-100 text-purple-700">{type}</Badge>
                                         ))}
                                       </div>
                                       <div className="flex items-center gap-1 mt-1">
@@ -733,9 +884,9 @@ const RobotDetails = () => {
                                           <Badge key={idx} variant="outline" className="text-xs">{audience}</Badge>
                                         ))}
                                       </div>
-                                      <Progress value={provider.proximity} className="h-1 mt-2" />
+                                      <Progress value={provider.proximity} className="h-2 mt-3 bg-gray-100" />
                                     </div>
-                                    <Button size="sm" variant="outline" disabled>
+                                    <Button size="sm" variant="outline" className="ml-4" disabled>
                                       <DollarSign className="w-4 h-4 mr-1" />
                                       Contact
                                     </Button>
@@ -744,9 +895,9 @@ const RobotDetails = () => {
                               </Card>
                             ))}
                             {aiAnalysis.marketEcosystem.finance.providers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No finance providers found</p>
+                              <div className="text-center py-12 text-gray-500">
+                                <DollarSign className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                                <p className="text-lg">No finance providers found</p>
                               </div>
                             )}
                           </div>
@@ -763,38 +914,38 @@ const RobotDetails = () => {
           <div className="space-y-6">
             {/* Seller Information */}
             {user && robot.profiles && (
-              <Card>
+              <Card className="shadow-lg border-0">
                 <CardHeader>
-                  <CardTitle>Seller Information</CardTitle>
+                  <CardTitle className="text-gray-900">Seller Information</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <span>{robot.profiles.full_name}</span>
+                      <User className="w-5 h-5 mr-3 text-gray-500" />
+                      <span className="text-gray-900 font-medium">{robot.profiles.full_name}</span>
                     </div>
                     {robot.profiles.company_name && (
                       <div className="flex items-center">
-                        <Building className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.company_name}</span>
+                        <Building className="w-5 h-5 mr-3 text-gray-500" />
+                        <span className="text-gray-700">{robot.profiles.company_name}</span>
                       </div>
                     )}
                     {robot.profiles.phone && (
                       <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.phone}</span>
+                        <Phone className="w-5 h-5 mr-3 text-gray-500" />
+                        <span className="text-gray-700">{robot.profiles.phone}</span>
                       </div>
                     )}
                     {robot.profiles.email && (
                       <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{robot.profiles.email}</span>
+                        <Mail className="w-5 h-5 mr-3 text-gray-500" />
+                        <span className="text-sm text-gray-700">{robot.profiles.email}</span>
                       </div>
                     )}
                     {robot.profiles.location && (
                       <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.location}</span>
+                        <MapPin className="w-5 h-5 mr-3 text-gray-500" />
+                        <span className="text-gray-700">{robot.profiles.location}</span>
                       </div>
                     )}
                   </div>
@@ -803,34 +954,58 @@ const RobotDetails = () => {
             )}
 
             {!user && (
-              <Card>
+              <Card className="shadow-lg border-0">
                 <CardHeader>
-                  <CardTitle>Login Required</CardTitle>
+                  <CardTitle className="text-gray-900">Login Required</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-gray-600 mb-4">
                     Please log in to view seller information and access AI analysis features.
                   </p>
-                  <Button onClick={() => navigate('/auth')} className="w-full">
+                  <Button onClick={() => navigate('/auth')} className="w-full bg-blue-600 hover:bg-blue-700">
                     Login / Sign Up
                   </Button>
                 </CardContent>
               </Card>
             )}
 
-            {/* Contact Actions */}
+            {/* ✅ Working Contact Actions */}
             {user && (
-              <Card>
+              <Card className="shadow-lg border-0">
                 <CardContent className="p-6">
                   <div className="space-y-3">
-                    <Button className="w-full" size="lg">
-                      Contact Seller
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3" 
+                      size="lg"
+                      onClick={handleContactSeller}
+                    >
+                      <PhoneCall className="w-5 h-5 mr-2" />
+                      Call Seller
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-3"
+                      onClick={handleRequestQuote}
+                    >
+                      <Send className="w-5 h-5 mr-2" />
                       Request Quote
                     </Button>
-                    <Button variant="outline" className="w-full">
-                      Add to Watchlist
+                    <Button 
+                      variant="outline" 
+                      className={`w-full font-medium py-3 ${
+                        isInWatchlist 
+                          ? 'border-red-600 text-red-600 hover:bg-red-50' 
+                          : 'border-pink-600 text-pink-600 hover:bg-pink-50'
+                      }`}
+                      onClick={handleToggleWatchlist}
+                      disabled={watchlistLoading}
+                    >
+                      {watchlistLoading ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <Heart className={`w-5 h-5 mr-2 ${isInWatchlist ? 'fill-current' : ''}`} />
+                      )}
+                      {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
                     </Button>
                   </div>
                 </CardContent>
@@ -839,28 +1014,28 @@ const RobotDetails = () => {
 
             {/* Quick Insights */}
             {aiAnalysis && (
-              <Card className="border-blue-200 bg-blue-50">
+              <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50">
                 <CardHeader>
-                  <CardTitle className="text-sm flex items-center text-blue-700">
+                  <CardTitle className="text-sm flex items-center text-blue-800">
                     <Target className="w-4 h-4 mr-2" />
                     Quick Insights
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 text-xs">
+                  <div className="space-y-3 text-sm">
                     <div className="flex items-center justify-between">
-                      <span>Market Position:</span>
-                      <Badge variant="outline" className="text-xs">Competitive</Badge>
+                      <span className="text-gray-700">Market Position:</span>
+                      <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-300">Competitive</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Supply Chain:</span>
-                      <Badge variant="outline" className="text-xs">
+                      <span className="text-gray-700">Supply Chain:</span>
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300">
                         {aiAnalysis.marketEcosystem.spareParts.nearby > 3 ? 'Strong' : 'Limited'}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Local Support:</span>
-                      <Badge variant="outline" className="text-xs">
+                      <span className="text-gray-700">Local Support:</span>
+                      <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-300">
                         {aiAnalysis.marketEcosystem.services.nearby > 2 ? 'Available' : 'Limited'}
                       </Badge>
                     </div>
