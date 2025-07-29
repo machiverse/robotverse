@@ -97,6 +97,7 @@ const MultiRoleSelector = ({ selectedRoles, onRolesChange, className }: MultiRol
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={(checked) => handleRoleToggle(role.id, !!checked)}
+                      onClick={(e) => e.stopPropagation()}
                       className="mt-1"
                     />
                     <div className="flex-1">
