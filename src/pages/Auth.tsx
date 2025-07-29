@@ -10,6 +10,7 @@ import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, Credi
 import { useToast } from '@/hooks/use-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const Auth = () => {
   // Form state
@@ -106,55 +107,15 @@ const Auth = () => {
     }
   };
 
-  // ✅ Schema-compliant profile creation function
-  const createUserProfile = async (userId: string) => {
+  // ✅ Fixed profile creation - uses user object directly, no session verification
+  const createUserProfile = async (user: SupabaseUser) => {
     try {
-      console.log('👤 Creating profile for user ID:', userId);
-      console.log('📋 DEBUGGING - Current form state:');
-      console.log('  - Email:', email);
-      console.log('  - Full Name:', fullName);
-      console.log('  - Company Name:', companyName);
-      console.log('  - Mobile Number:', mobileNumber);
-      console.log('  - Location:', location);
-      console.log('  - Account Type:', accountType);
-      console.log('  - Seller Roles:', sellerRoles);
+      console.log('👤 Creating profile for user:', user.id);
+      console.log('📧 User email:', user.email);
       
-      // Verify user authentication
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser || currentUser.id !== userId) {
-        throw new Error('User authentication failed');
-      }
-      
-      // ✅ Create profile data matching your EXACT schema
-      const profileData: {
-        user_id: string;
-        email?: string | null;
-        full_name?: string | null;
-        company_name?: string | null;
-        mobile_number?: string | null;
-        phone?: string | null;
-        location?: string | null;
-        user_type?: string | null;
-        account_type?: string | null;
-        updated_at?: string;
-        // Role-specific fields that EXIST in your schema
-        seller_roles?: string[] | null;
-        primary_user_type?: "buyer" | "robot_seller" | "parts_seller" | "service_provider" | "logistics_provider" | "finance_provider" | null;
-        logistics_type?: string | null;
-        logistics_region?: string | null;
-        transport_modes?: string[] | null;
-        warehouse_storage?: boolean | null;
-        finance_type?: string[] | null;
-        financing_for?: string[] | null;
-        target_audience?: string[] | null;
-        government_scheme_support?: boolean | null;
-        mou_agreed?: boolean | null;
-      } = {
-        // Required field
-        user_id: userId,
-        
-        // Basic information
-        email: email.trim() || null,
+      const profileData: any = {
+        user_id: user.id, // Use user from signup directly
+        email: user.email || email.trim(),
         full_name: fullName.trim() || null,
         company_name: companyName.trim() || null,
         mobile_number: mobileNumber.trim() || null,
@@ -165,71 +126,44 @@ const Auth = () => {
         updated_at: new Date().toISOString(),
       };
 
-      // ✅ Add role-specific data based on account type (using correct schema fields)
+      // Add role-specific data
       if (accountType === 'seller') {
         profileData.seller_roles = sellerRoles.length > 0 ? sellerRoles : null;
-        // Use primary_user_type instead of primary_role (matching your schema)
         profileData.primary_user_type = (sellerRoles[0] as any) || 'robot_seller';
-        
-        console.log('🏪 Seller data added:', {
-          seller_roles: profileData.seller_roles,
-          primary_user_type: profileData.primary_user_type
-        });
-        
+        console.log('🏪 Seller data:', { roles: sellerRoles, primary: profileData.primary_user_type });
       } else if (accountType === 'logistics') {
         profileData.logistics_type = logisticsType || null;
         profileData.logistics_region = logisticsRegion || null;
         profileData.transport_modes = transportModes.length > 0 ? transportModes : null;
         profileData.warehouse_storage = warehouseStorage;
         profileData.primary_user_type = 'logistics_provider';
-        
         console.log('🚚 Logistics data added');
-        
       } else if (accountType === 'finance') {
         profileData.finance_type = financeType.length > 0 ? financeType : null;
         profileData.financing_for = financingFor.length > 0 ? financingFor : null;
         profileData.target_audience = targetAudience.length > 0 ? targetAudience : null;
         profileData.government_scheme_support = governmentSchemeSupport;
         profileData.primary_user_type = 'finance_provider';
-        
         console.log('💰 Finance data added');
-        
       } else if (accountType === 'buyer') {
         profileData.primary_user_type = 'buyer';
         console.log('🛒 Buyer data added');
       }
 
-      console.log('📋 FINAL profile data (schema-compliant):');
-      console.log(JSON.stringify(profileData, null, 2));
+      console.log('📋 Final profile data:', JSON.stringify(profileData, null, 2));
 
-      // ✅ Insert using schema-compliant data
+      // ✅ Insert profile without additional session checks
       const { data, error } = await supabase
         .from('profiles')
         .insert(profileData)
         .select();
 
       if (error) {
-        console.error('❌ Database error:', error);
+        console.error('❌ Profile creation error:', error);
         throw new Error(`Profile creation failed: ${error.message}`);
       }
 
       console.log('✅ Profile created successfully:', data[0]);
-      
-      // Verify what was actually saved
-      const savedProfile = data[0];
-      console.log('🔍 VERIFICATION - What was saved:');
-      console.log('  ✓ User ID:', savedProfile.user_id);
-      console.log('  ✓ Email:', savedProfile.email);
-      console.log('  ✓ Full name:', savedProfile.full_name);
-      console.log('  ✓ Company:', savedProfile.company_name);
-      console.log('  ✓ Mobile:', savedProfile.mobile_number);
-      console.log('  ✓ Phone:', savedProfile.phone);
-      console.log('  ✓ Location:', savedProfile.location);
-      console.log('  ✓ Account type:', savedProfile.account_type);
-      console.log('  ✓ User type:', savedProfile.user_type);
-      console.log('  ✓ Seller roles:', savedProfile.seller_roles);
-      console.log('  ✓ Primary user type:', savedProfile.primary_user_type);
-      
       return data;
 
     } catch (error: any) {
@@ -238,7 +172,7 @@ const Auth = () => {
     }
   };
 
-  // Enhanced form submission with comprehensive validation and error handling
+  // ✅ Fixed form submission - no authentication loss
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -248,7 +182,7 @@ const Auth = () => {
       if (isSignUp) {
         console.log('📝 Registration process initiated');
         
-        // ✅ Comprehensive validation
+        // Validation
         if (!email.trim()) {
           throw new Error('Email is required');
         }
@@ -312,16 +246,6 @@ const Auth = () => {
           return;
         }
 
-        // Log selected seller roles before submission
-        if (accountType === 'seller') {
-          console.log('🔍 Final seller roles validation:');
-          console.log('   - Selected roles count:', sellerRoles.length);
-          console.log('   - Selected roles:', sellerRoles);
-          sellerRoles.forEach((role, index) => {
-            console.log(`   ${index + 1}. ${role}`);
-          });
-        }
-
         if (accountType === 'logistics') {
           if (!logisticsType) {
             toast({
@@ -366,18 +290,9 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // ✅ Enhanced delay and verification
-        console.log('⏳ Waiting for user authentication to complete...');
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Increased to 3 seconds
-
-        // ✅ Verify user is still authenticated before creating profile
-        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
-        if (!verifiedUser) {
-          throw new Error('User authentication lost - please try again');
-        }
-
-        console.log('✅ User authentication verified, creating profile...');
-        await createUserProfile(newUser.id);
+        // ✅ Create profile immediately using the user object (no session verification)
+        console.log('📋 Creating user profile...');
+        await createUserProfile(newUser);
         
         toast({
           title: "Registration Successful!",
