@@ -28,7 +28,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const cleanupAuthState = () => {
   console.log('🧹 Cleaning up auth caches...');
-  // Only remove specific problematic keys, not all auth data
   const keysToRemove = ['supabase.auth.token'];
   keysToRemove.forEach(key => {
     localStorage.removeItem(key);
@@ -44,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     console.log('🚀 Initializing auth state...');
     
-    // Get initial session first
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) {
         console.error('❌ Error getting initial session:', error);
@@ -56,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('🔄 Auth state change:', event, session ? 'User logged in' : 'User logged out');
@@ -74,18 +71,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // ✅ Fixed signUp - maintains session properly
+  // ✅ Modified signUp for email confirmation
   const signUp = useCallback(
     async (email: string, password: string, fullName?: string) => {
       try {
-        console.log('🚀 Starting signup process for:', email);
+        console.log('🚀 Starting signup with email confirmation for:', email);
         
-        // ✅ NO cleanup before signup to maintain session
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${window.location.origin}/auth`, // Redirect back to auth page
             data: {
               full_name: fullName || ''
             }
@@ -101,9 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('✅ User created successfully:', data.user.id);
           console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
           
-          // ✅ Update local state immediately
-          setUser(data.user);
-          setSession(data.session);
+          // Don't update local state until email is confirmed
+          if (data.user.email_confirmed_at) {
+            setUser(data.user);
+            setSession(data.session);
+          }
         }
 
         return { user: data.user, error: null };
