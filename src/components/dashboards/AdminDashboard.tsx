@@ -24,7 +24,7 @@ import {
   Mail, Building, Star, ThumbsUp, MessageSquare, Zap,
   Grid, List, ArrowUpDown, ExternalLink, Copy, Share,
   PieChart, LineChart, Target, Layers, Cpu, Cog,
-  ShoppingCart, Briefcase, Globe, Award, Flame
+  ShoppingCart, Briefcase, Globe, Award, Flame, Save
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -118,6 +118,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [bulkAction, setBulkAction] = useState<string>('');
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Form states for editing
+  const [editFormData, setEditFormData] = useState<any>({});
 
   const { toast } = useToast();
 
@@ -251,38 +255,109 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
     });
   };
 
-  // CRUD Operations
-  const handleEditItem = async (itemData: any, type: string) => {
+  // FIXED: Proper edit form initialization
+  const handleEditClick = (item: any, type: string) => {
+    setEditingItem({...item, type});
+    
+    // Initialize form data based on type
+    if (type === 'user') {
+      setEditFormData({
+        full_name: item.full_name || '',
+        email: item.email || '',
+        company_name: item.company_name || '',
+        mobile_number: item.mobile_number || '',
+        location: item.location || '',
+        user_type: item.user_type || '',
+        account_type: item.account_type || ''
+      });
+    } else if (type === 'robot') {
+      setEditFormData({
+        name: item.name || '',
+        model: item.model || '',
+        robot_type: item.robot_type || '',
+        price: item.price || '',
+        availability: item.availability || 'available',
+        description: item.description || '',
+        location: item.location || '',
+        quantity: item.quantity || 1
+      });
+    } else if (type === 'service') {
+      setEditFormData({
+        name: item.name || '',
+        service_type: item.service_type || '',
+        description: item.description || '',
+        price_range: item.price_range || '',
+        location: item.location || '',
+        specializations: item.specializations || []
+      });
+    } else if (type === 'part') {
+      setEditFormData({
+        name: item.name || '',
+        part_number: item.part_number || '',
+        price: item.price || '',
+        quantity: item.quantity || 0,
+        description: item.description || '',
+        location: item.location || '',
+        compatible_robots: item.compatible_robots || []
+      });
+    }
+    
+    setShowItemForm(true);
+  };
+
+  // FIXED: Actual edit implementation
+  const handleSaveEdit = async () => {
+    if (!editingItem || !editFormData) return;
+
     try {
-      const tableName = type === 'user' ? 'profiles' :
-                      type === 'robot' ? 'robots' :
-                      type === 'service' ? 'services' : 'spare_parts';
+      setSaving(true);
+      
+      const tableName = editingItem.type === 'user' ? 'profiles' :
+                      editingItem.type === 'robot' ? 'robots' :
+                      editingItem.type === 'service' ? 'services' : 'spare_parts';
+
+      // Prepare update data
+      const updateData = { ...editFormData };
+      
+      // Convert numeric fields
+      if (editingItem.type === 'robot' || editingItem.type === 'part') {
+        if (updateData.price) updateData.price = parseFloat(updateData.price);
+        if (updateData.quantity) updateData.quantity = parseInt(updateData.quantity);
+      }
+
+      console.log('Updating item:', { tableName, id: editingItem.id, updateData });
 
       const { error } = await supabase
         .from(tableName)
-        .update(itemData)
+        .update(updateData)
         .eq('id', editingItem.id);
 
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: `${type} updated successfully`,
+        title: "✅ Success",
+        description: `${editingItem.type} updated successfully`,
       });
       
-      setEditingItem(null);
+      // Close modal and refresh data
       setShowItemForm(false);
+      setEditingItem(null);
+      setEditFormData({});
       fetchAllData();
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error updating item:', error);
       toast({
-        title: "Error",
-        description: `Failed to update ${type}`,
+        title: "❌ Error",
+        description: `Failed to update ${editingItem.type}: ${error.message}`,
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
+  // CRUD Operations
   const handleDeleteItem = async (type: string, id: string) => {
     try {
       const tableName = type === 'user' ? 'profiles' :
@@ -448,6 +523,325 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
     }
   };
 
+  // Helper function to render edit form fields based on type
+  const renderEditForm = () => {
+    if (!editingItem || !editFormData) return null;
+
+    const { type } = editingItem;
+
+    return (
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {type === 'user' && (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  value={editFormData.full_name}
+                  onChange={(e) => setEditFormData({...editFormData, full_name: e.target.value})}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                  placeholder="Enter email"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="company_name">Company Name</Label>
+                <Input
+                  id="company_name"
+                  value={editFormData.company_name}
+                  onChange={(e) => setEditFormData({...editFormData, company_name: e.target.value})}
+                  placeholder="Enter company name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mobile_number">Mobile Number</Label>
+                <Input
+                  id="mobile_number"
+                  value={editFormData.mobile_number}
+                  onChange={(e) => setEditFormData({...editFormData, mobile_number: e.target.value})}
+                  placeholder="Enter mobile number"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={editFormData.location}
+                  onChange={(e) => setEditFormData({...editFormData, location: e.target.value})}
+                  placeholder="Enter location"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user_type">User Type</Label>
+                <Select 
+                  value={editFormData.user_type} 
+                  onValueChange={(value) => setEditFormData({...editFormData, user_type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="buyer">Buyer</SelectItem>
+                    <SelectItem value="robot_seller">Robot Seller</SelectItem>
+                    <SelectItem value="parts_seller">Parts Seller</SelectItem>
+                    <SelectItem value="service_provider">Service Provider</SelectItem>
+                    <SelectItem value="logistics_provider">Logistics Provider</SelectItem>
+                    <SelectItem value="finance_provider">Finance Provider</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </>
+        )}
+
+        {type === 'robot' && (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Robot Name</Label>
+                <Input
+                  id="name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  placeholder="Enter robot name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="model">Model</Label>
+                <Input
+                  id="model"
+                  value={editFormData.model}
+                  onChange={(e) => setEditFormData({...editFormData, model: e.target.value})}
+                  placeholder="Enter model"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="robot_type">Robot Type</Label>
+                <Select 
+                  value={editFormData.robot_type} 
+                  onValueChange={(value) => setEditFormData({...editFormData, robot_type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select robot type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="industrial">Industrial</SelectItem>
+                    <SelectItem value="service">Service</SelectItem>
+                    <SelectItem value="collaborative">Collaborative</SelectItem>
+                    <SelectItem value="autonomous">Autonomous</SelectItem>
+                    <SelectItem value="humanoid">Humanoid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="availability">Availability</Label>
+                <Select 
+                  value={editFormData.availability} 
+                  onValueChange={(value) => setEditFormData({...editFormData, availability: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select availability" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="sold">Sold</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (₹)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={editFormData.price}
+                  onChange={(e) => setEditFormData({...editFormData, price: e.target.value})}
+                  placeholder="Enter price"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={editFormData.quantity}
+                  onChange={(e) => setEditFormData({...editFormData, quantity: e.target.value})}
+                  placeholder="Enter quantity"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={editFormData.location}
+                onChange={(e) => setEditFormData({...editFormData, location: e.target.value})}
+                placeholder="Enter location"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                placeholder="Enter description"
+                rows={3}
+              />
+            </div>
+          </>
+        )}
+
+        {type === 'service' && (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Service Name</Label>
+                <Input
+                  id="name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  placeholder="Enter service name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="service_type">Service Type</Label>
+                <Select 
+                  value={editFormData.service_type} 
+                  onValueChange={(value) => setEditFormData({...editFormData, service_type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select service type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="repair">Repair</SelectItem>
+                    <SelectItem value="installation">Installation</SelectItem>
+                    <SelectItem value="consultation">Consultation</SelectItem>
+                    <SelectItem value="training">Training</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price_range">Price Range</Label>
+                <Input
+                  id="price_range"
+                  value={editFormData.price_range}
+                  onChange={(e) => setEditFormData({...editFormData, price_range: e.target.value})}
+                  placeholder="e.g., ₹10,000 - ₹50,000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={editFormData.location}
+                  onChange={(e) => setEditFormData({...editFormData, location: e.target.value})}
+                  placeholder="Enter location"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                placeholder="Enter service description"
+                rows={3}
+              />
+            </div>
+          </>
+        )}
+
+        {type === 'part' && (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Part Name</Label>
+                <Input
+                  id="name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  placeholder="Enter part name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="part_number">Part Number</Label>
+                <Input
+                  id="part_number"
+                  value={editFormData.part_number}
+                  onChange={(e) => setEditFormData({...editFormData, part_number: e.target.value})}
+                  placeholder="Enter part number"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (₹)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={editFormData.price}
+                  onChange={(e) => setEditFormData({...editFormData, price: e.target.value})}
+                  placeholder="Enter price"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity in Stock</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={editFormData.quantity}
+                  onChange={(e) => setEditFormData({...editFormData, quantity: e.target.value})}
+                  placeholder="Enter quantity"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={editFormData.location}
+                onChange={(e) => setEditFormData({...editFormData, location: e.target.value})}
+                placeholder="Enter location"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                placeholder="Enter part description"
+                rows={3}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   // Access control
   if (!isAdmin) {
     return (
@@ -582,6 +976,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
               <DatabaseIcon className="w-3 h-3 mr-1" />
               Full Database Control
             </Badge>
+            <Badge className="bg-blue-100 text-blue-800">
+              <Edit className="w-3 h-3 mr-1" />
+              ✅ Edit Enabled
+            </Badge>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -616,6 +1014,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
               <Crown className="w-5 h-5" />
               <span className="font-semibold">✅ Admin Access Confirmed</span>
               <span className="text-sm">- Welcome, {userProfile?.full_name || userProfile?.email}</span>
+              <Badge className="bg-green-200 text-green-800 ml-auto">
+                <Edit className="w-3 h-3 mr-1" />
+                Full Edit Access
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -838,6 +1240,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   Complete User Management
+                  <Badge className="bg-green-100 text-green-800">
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit Enabled
+                  </Badge>
                 </CardTitle>
                 <div className="flex gap-2">
                   <Button
@@ -907,7 +1313,7 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                           <div>
                             <p className="font-medium">{user.full_name || 'No Name'}</p>
                             <p className="text-sm text-muted-foreground">{user.email}</p>
-                            <p className="text-xs text-muted-foreground">{user.phone}</p>
+                            <p className="text-xs text-muted-foreground">{user.mobile_number}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -946,11 +1352,9 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => {
-                              setEditingItem(user);
-                              setShowItemForm(true);
-                            }}
+                            onClick={() => handleEditClick(user, 'user')}
                             title="Edit User"
+                            className="text-blue-600 hover:text-blue-700"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -984,6 +1388,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <CardTitle className="flex items-center gap-2">
                   <Bot className="w-5 h-5" />
                   Robot Equipment Management
+                  <Badge className="bg-green-100 text-green-800">
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit Enabled
+                  </Badge>
                 </CardTitle>
                 <div className="flex gap-2">
                   <Button
@@ -1098,11 +1506,9 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => {
-                                setEditingItem({...robot, type: 'robot'});
-                                setShowItemForm(true);
-                              }}
+                              onClick={() => handleEditClick(robot, 'robot')}
                               title="Edit Robot"
+                              className="text-blue-600 hover:text-blue-700"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -1174,11 +1580,8 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="flex-1"
-                            onClick={() => {
-                              setEditingItem({...robot, type: 'robot'});
-                              setShowItemForm(true);
-                            }}
+                            className="flex-1 text-blue-600 hover:text-blue-700"
+                            onClick={() => handleEditClick(robot, 'robot')}
                           >
                             <Edit className="w-3 h-3 mr-1" />
                             Edit
@@ -1201,6 +1604,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <CardTitle className="flex items-center gap-2">
                   <Wrench className="w-5 h-5" />
                   Service Provider Management
+                  <Badge className="bg-green-100 text-green-800">
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit Enabled
+                  </Badge>
                 </CardTitle>
                 <div className="flex gap-2">
                   <Button
@@ -1320,11 +1727,9 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => {
-                              setEditingItem({...service, type: 'service'});
-                              setShowItemForm(true);
-                            }}
+                            onClick={() => handleEditClick(service, 'service')}
                             title="Edit Service"
+                            className="text-blue-600 hover:text-blue-700"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -1357,6 +1762,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                 <CardTitle className="flex items-center gap-2">
                   <Cog className="w-5 h-5" />
                   Spare Parts Inventory Management
+                  <Badge className="bg-green-100 text-green-800">
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit Enabled
+                  </Badge>
                 </CardTitle>
                 <div className="flex gap-2">
                   <Button
@@ -1484,11 +1893,9 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => {
-                              setEditingItem({...part, type: 'part'});
-                              setShowItemForm(true);
-                            }}
+                            onClick={() => handleEditClick(part, 'part')}
                             title="Edit Part"
+                            className="text-blue-600 hover:text-blue-700"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -1743,22 +2150,50 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Item Dialog */}
+      {/* FIXED: Comprehensive Edit Item Dialog */}
       <Dialog open={showItemForm} onOpenChange={setShowItemForm}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5" />
+              Edit {editingItem?.type || 'Item'}
+              <Badge className="bg-blue-100 text-blue-800">
+                ✅ Live Edit
+              </Badge>
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Edit functionality coming soon for: {editingItem?.type || 'item'}
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowItemForm(false)}>
+          <div className="space-y-6">
+            {/* Render appropriate form based on type */}
+            {renderEditForm()}
+            
+            {/* Action buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowItemForm(false);
+                  setEditingItem(null);
+                  setEditFormData({});
+                }}
+              >
                 Cancel
               </Button>
-              <Button onClick={() => setShowItemForm(false)}>
-                Save Changes
+              <Button 
+                onClick={handleSaveEdit}
+                disabled={saving}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
               </Button>
             </div>
           </div>
