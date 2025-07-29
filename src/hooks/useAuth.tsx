@@ -26,12 +26,14 @@ interface AuthContextType {
   ) => Promise<AuthError | null>;
   /** Traditional email-password sign-in; returns any Supabase error */
   signIn: (email: string, password: string) => Promise<AuthError | null>;
-  /** Passwordless “magic-link” sign-in; returns any Supabase error */
+  /** Passwordless "magic-link" sign-in; returns any Supabase error */
   signInWithMagicLink: (email: string) => Promise<AuthError | null>;
   /** OAuth sign-in; provider example: 'google' | 'github' */
   signInWithOAuth: (provider: Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider']) => Promise<AuthError | null>;
   /** Global sign-out (removes all local storage artefacts) */
   signOut: () => Promise<void>;
+  /** Manual cleanup function */
+  cleanupAuthState: () => void;
 }
 
 /*───────────────────────────────────────────────────────────────────────────
@@ -42,7 +44,9 @@ const purgeSupabaseCaches = () => {
   [localStorage, sessionStorage].forEach((store) => {
     if (!store) return;
     Object.keys(store).forEach((k) => {
-      if (k.startsWith('supabase.auth.') || k.includes('sb-')) store.removeItem(k);
+      if (k.startsWith('supabase.auth.') || k.includes('sb-')) {
+        store.removeItem(k);
+      }
     });
   });
 };
@@ -54,7 +58,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser]       = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   /* ───── Establish one-time listener ───── */
@@ -83,38 +87,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ────────────────────────────────────────────────────────────────────────*/
   const signUp = useCallback(
     async (email: string, password: string, fullName = '') => {
-      purgeSupabaseCaches();
+      try {
+        purgeSupabaseCaches();
 
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: { full_name: fullName },
-        },
-      });
-      return error;
+        // Attempt global sign out first
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch (err) {
+          // Continue even if this fails
+        }
+
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: { full_name: fullName },
+          },
+        });
+        return error;
+      } catch (error) {
+        return error as AuthError;
+      }
     },
     []
   );
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      purgeSupabaseCaches();
+      try {
+        purgeSupabaseCaches();
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return error;
+        // Attempt global sign out first
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch (err) {
+          // Continue even if this fails
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({ 
+          email, 
+          password 
+        });
+        return error;
+      } catch (error) {
+        return error as AuthError;
+      }
     },
     []
   );
 
   const signInWithMagicLink = useCallback(
     async (email: string) => {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
-      return error;
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        return error;
+      } catch (error) {
+        return error as AuthError;
+      }
     },
     []
   );
@@ -123,19 +156,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async (
       provider: Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider']
     ) => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
-      return error;
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo: `${window.location.origin}/auth/callback` },
+        });
+        return error;
+      } catch (error) {
+        return error as AuthError;
+      }
     },
     []
   );
 
   const signOut = useCallback(async () => {
+    try {
+      purgeSupabaseCaches();
+      await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+      window.location.replace('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Force redirect even if signOut fails
+      window.location.replace('/auth');
+    }
+  }, []);
+
+  const cleanupAuthState = useCallback(() => {
     purgeSupabaseCaches();
-    await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
-    window.location.replace('/auth');
   }, []);
 
   /*───────────────────────────────────────────────────────────────────────
@@ -151,8 +198,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signInWithMagicLink,
       signInWithOAuth,
       signOut,
+      cleanupAuthState,
     }),
-    [user, session, loading, signUp, signIn, signInWithMagicLink, signInWithOAuth, signOut]
+    [user, session, loading, signUp, signIn, signInWithMagicLink, signInWithOAuth, signOut, cleanupAuthState]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -166,3 +214,6 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 };
+
+// Export cleanup function for external use
+export const cleanupAuthState = purgeSupabaseCaches;
