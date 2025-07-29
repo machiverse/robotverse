@@ -12,7 +12,6 @@ const Index = () => {
       <EnhancedHero />
       <RobotListings />
       <MarketplaceCategories />
-      <LiveStats />
       <TrustIndicators />
     </div>
   );
