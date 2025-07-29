@@ -106,98 +106,106 @@ const Auth = () => {
     }
   };
 
-  // ✅ Fixed profile creation function with proper TypeScript handling
+  // ✅ Schema-compliant profile creation function
   const createUserProfile = async (userId: string) => {
     try {
       console.log('👤 Creating profile for user ID:', userId);
-      console.log('📋 Account type:', accountType);
+      console.log('📋 DEBUGGING - Current form state:');
+      console.log('  - Email:', email);
+      console.log('  - Full Name:', fullName);
+      console.log('  - Company Name:', companyName);
+      console.log('  - Mobile Number:', mobileNumber);
+      console.log('  - Location:', location);
+      console.log('  - Account Type:', accountType);
+      console.log('  - Seller Roles:', sellerRoles);
       
-      // Create base profile object with required fields
-      const baseProfile = {
+      // Verify user authentication
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser || currentUser.id !== userId) {
+        throw new Error('User authentication failed');
+      }
+      
+      // ✅ Create profile data matching your EXACT schema
+      const profileData: {
+        user_id: string;
+        email?: string | null;
+        full_name?: string | null;
+        company_name?: string | null;
+        mobile_number?: string | null;
+        phone?: string | null;
+        location?: string | null;
+        user_type?: string | null;
+        account_type?: string | null;
+        updated_at?: string;
+        // Role-specific fields that EXIST in your schema
+        seller_roles?: string[] | null;
+        primary_user_type?: "buyer" | "robot_seller" | "parts_seller" | "service_provider" | "logistics_provider" | "finance_provider" | null;
+        logistics_type?: string | null;
+        logistics_region?: string | null;
+        transport_modes?: string[] | null;
+        warehouse_storage?: boolean | null;
+        finance_type?: string[] | null;
+        financing_for?: string[] | null;
+        target_audience?: string[] | null;
+        government_scheme_support?: boolean | null;
+        mou_agreed?: boolean | null;
+      } = {
+        // Required field
         user_id: userId,
-        email: email.trim(),
-        full_name: fullName.trim(),
-        company_name: companyName.trim(),
-        mobile_number: mobileNumber.trim(),
-        phone: mobileNumber.trim(),
-        location: location.trim(),
-        user_type: accountType,
-        account_type: accountType,
+        
+        // Basic information
+        email: email.trim() || null,
+        full_name: fullName.trim() || null,
+        company_name: companyName.trim() || null,
+        mobile_number: mobileNumber.trim() || null,
+        phone: mobileNumber.trim() || null,
+        location: location.trim() || null,
+        user_type: accountType || null,
+        account_type: accountType || null,
         updated_at: new Date().toISOString(),
-        registration_complete: false,
       };
 
-      // Add role-specific fields
-      let roleSpecificData = {};
-      
+      // ✅ Add role-specific data based on account type (using correct schema fields)
       if (accountType === 'seller') {
-        roleSpecificData = {
-          seller_roles: sellerRoles,
-          user_roles: sellerRoles,
-          primary_role: sellerRoles[0] || 'seller',
-          primary_user_type: sellerRoles[0] || 'seller',
-        };
+        profileData.seller_roles = sellerRoles.length > 0 ? sellerRoles : null;
+        // Use primary_user_type instead of primary_role (matching your schema)
+        profileData.primary_user_type = (sellerRoles[0] as any) || 'robot_seller';
         
-        console.log('🏪 Seller data:');
-        console.log('  - Seller roles:', sellerRoles);
-        console.log('  - Primary role:', sellerRoles[0] || 'seller');
+        console.log('🏪 Seller data added:', {
+          seller_roles: profileData.seller_roles,
+          primary_user_type: profileData.primary_user_type
+        });
         
       } else if (accountType === 'logistics') {
-        roleSpecificData = {
-          logistics_type: logisticsType,
-          logistics_region: logisticsRegion,
-          transport_modes: transportModes,
-          warehouse_storage: warehouseStorage,
-          user_roles: ['logistics_provider'],
-          primary_role: 'logistics_provider',
-          primary_user_type: 'logistics_provider',
-        };
+        profileData.logistics_type = logisticsType || null;
+        profileData.logistics_region = logisticsRegion || null;
+        profileData.transport_modes = transportModes.length > 0 ? transportModes : null;
+        profileData.warehouse_storage = warehouseStorage;
+        profileData.primary_user_type = 'logistics_provider';
         
-        console.log('🚚 Logistics data:');
-        console.log('  - Type:', logisticsType);
-        console.log('  - Region:', logisticsRegion);
-        console.log('  - Transport modes:', transportModes);
-        console.log('  - Warehouse:', warehouseStorage);
+        console.log('🚚 Logistics data added');
         
       } else if (accountType === 'finance') {
-        roleSpecificData = {
-          finance_type: financeType,
-          financing_for: financingFor,
-          target_audience: targetAudience,
-          government_scheme_support: governmentSchemeSupport,
-          user_roles: ['finance_provider'],
-          primary_role: 'finance_provider',
-          primary_user_type: 'finance_provider',
-        };
+        profileData.finance_type = financeType.length > 0 ? financeType : null;
+        profileData.financing_for = financingFor.length > 0 ? financingFor : null;
+        profileData.target_audience = targetAudience.length > 0 ? targetAudience : null;
+        profileData.government_scheme_support = governmentSchemeSupport;
+        profileData.primary_user_type = 'finance_provider';
         
-        console.log('💰 Finance data:');
-        console.log('  - Types:', financeType);
-        console.log('  - Financing for:', financingFor);
-        console.log('  - Target audience:', targetAudience);
-        console.log('  - Gov support:', governmentSchemeSupport);
+        console.log('💰 Finance data added');
         
       } else if (accountType === 'buyer') {
-        roleSpecificData = {
-          user_roles: ['buyer'],
-          primary_role: 'buyer',
-          primary_user_type: 'buyer',
-        };
-        console.log('🛒 Buyer account setup');
+        profileData.primary_user_type = 'buyer';
+        console.log('🛒 Buyer data added');
       }
 
-      // Combine base and role-specific data
-      const profileData = { ...baseProfile, ...roleSpecificData };
-
-      console.log('📋 Complete profile data:');
+      console.log('📋 FINAL profile data (schema-compliant):');
       console.log(JSON.stringify(profileData, null, 2));
 
-      // ✅ Insert with type assertion to bypass strict typing
+      // ✅ Insert using schema-compliant data
       const { data, error } = await supabase
         .from('profiles')
-        .upsert(profileData as any, { 
-          onConflict: 'user_id',
-          ignoreDuplicates: false 
-        })
+        .insert(profileData)
         .select();
 
       if (error) {
@@ -205,26 +213,23 @@ const Auth = () => {
         throw new Error(`Profile creation failed: ${error.message}`);
       }
 
-      if (!data || data.length === 0) {
-        throw new Error('No data returned from profile creation');
-      }
-
       console.log('✅ Profile created successfully:', data[0]);
       
-      // ✅ Verify all fields were saved correctly with safe access
-      const savedProfile = data[0] as any;
-      console.log('🔍 Verification - Fields saved:');
+      // Verify what was actually saved
+      const savedProfile = data[0];
+      console.log('🔍 VERIFICATION - What was saved:');
+      console.log('  ✓ User ID:', savedProfile.user_id);
       console.log('  ✓ Email:', savedProfile.email);
       console.log('  ✓ Full name:', savedProfile.full_name);
       console.log('  ✓ Company:', savedProfile.company_name);
       console.log('  ✓ Mobile:', savedProfile.mobile_number);
       console.log('  ✓ Phone:', savedProfile.phone);
       console.log('  ✓ Location:', savedProfile.location);
-      console.log('  ✓ User type:', savedProfile.user_type);
       console.log('  ✓ Account type:', savedProfile.account_type);
-      console.log('  ✓ User roles:', savedProfile.user_roles);
-      console.log('  ✓ Primary role:', savedProfile.primary_role || 'Not set');
-
+      console.log('  ✓ User type:', savedProfile.user_type);
+      console.log('  ✓ Seller roles:', savedProfile.seller_roles);
+      console.log('  ✓ Primary user type:', savedProfile.primary_user_type);
+      
       return data;
 
     } catch (error: any) {
@@ -361,12 +366,17 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // ✅ Small delay for user creation to complete
-        console.log('⏳ Waiting for user creation to complete...');
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // ✅ Enhanced delay and verification
+        console.log('⏳ Waiting for user authentication to complete...');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Increased to 3 seconds
 
-        // ✅ Create user profile
-        console.log('📋 Creating user profile...');
+        // ✅ Verify user is still authenticated before creating profile
+        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+        if (!verifiedUser) {
+          throw new Error('User authentication lost - please try again');
+        }
+
+        console.log('✅ User authentication verified, creating profile...');
         await createUserProfile(newUser.id);
         
         toast({
@@ -431,7 +441,6 @@ const Auth = () => {
         .update({
           mou_agreed: true,
           mou_agreed_at: new Date().toISOString(),
-          registration_complete: true,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', currentUser.id);
