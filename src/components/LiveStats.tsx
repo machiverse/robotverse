@@ -1,51 +1,55 @@
 import { useState, useEffect } from "react";
-import { Users, Settings, Package, Truck, CreditCard, Bot, Info } from "lucide-react";
+import { Users, Settings, Package, Truck, CreditCard, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-// Stat card metadata for pro-level tooltips and labels
 const STAT_META = {
   liveUsers: {
     label: "Live Users Online",
-    desc: "Registered users (all types) currently active in the platform",
+    desc: "Registered users (all types) present in the platform",
     icon: Users,
     gradient: "from-green-500 to-emerald-600"
   },
   robotSellers: {
     label: "Robot Sellers",
-    desc: "Companies or users listing industrial robots for sale",
+    desc: "Companies or individuals offering robots for sale",
     icon: Bot,
     gradient: "from-blue-500 to-cyan-600"
   },
   partsSellers: {
     label: "Spare Parts Sellers",
-    desc: "Sellers providing spare parts inventory",
+    desc: "Sellers listing/exchanging robot spare parts",
     icon: Package,
     gradient: "from-purple-500 to-violet-600"
   },
   serviceProviders: {
     label: "Service Providers",
-    desc: "Companies or professionals offering maintenance or automation services",
+    desc: "Companies or persons offering installation, maintenance, or support",
     icon: Settings,
     gradient: "from-orange-500 to-red-600"
   },
   logisticsPartners: {
     label: "Logistics Partners",
-    desc: "Verified logistics/shipping partners for robotic deliveries",
+    desc: "Verified shipping/delivery partners on the platform",
     icon: Truck,
     gradient: "from-indigo-500 to-blue-600"
   },
   financeProviders: {
     label: "Finance Providers",
-    desc: "Entities offering loans, leases, or financial service products for robotics",
+    desc: "Entities offering loans, leases, or finance for robots/parts",
     icon: CreditCard,
     gradient: "from-pink-500 to-rose-600"
   }
 };
 
+// Strong typing
 type StatsKeys = keyof typeof STAT_META;
-
 interface StatsData {
   liveUsers: number;
   robotSellers: number;
@@ -55,19 +59,22 @@ interface StatsData {
   financeProviders: number;
 }
 
+// Helper for safe extracting/normalizing all possible role fields
 function parseRoles(profile: any): string[] {
-  // Collect all possible "roles" fields, handle strings & arrays
-  const roleFields: string[] = [];
-  if (Array.isArray(profile.seller_roles)) roleFields.push(...profile.seller_roles);
-  else if (typeof profile.seller_roles === "string") roleFields.push(profile.seller_roles);
+  const result: string[] = [];
 
-  if (Array.isArray(profile.roles)) roleFields.push(...profile.roles);
-  else if (typeof profile.roles === "string") roleFields.push(profile.roles);
+  // Helper to add a value or array of values
+  function add(r: any) {
+    if (Array.isArray(r)) result.push(...r);
+    else if (typeof r === "string") result.push(r);
+  }
 
-  if (profile.user_type) roleFields.push(profile.user_type);
-  if (profile.account_type) roleFields.push(profile.account_type);
+  add(profile?.seller_roles);
+  add(profile?.roles);
+  add(profile?.user_type);
+  add(profile?.account_type);
 
-  return roleFields.map((r) => (typeof r === "string" ? r.toLowerCase() : "")).filter(Boolean);
+  return result.map((r) => (typeof r === "string" ? r.toLowerCase() : "")).filter(Boolean);
 }
 
 export default function LiveStats() {
@@ -77,15 +84,16 @@ export default function LiveStats() {
     partsSellers: 0,
     serviceProviders: 0,
     logisticsPartners: 0,
-    financeProviders: 0
+    financeProviders: 0,
   });
   const [loading, setLoading] = useState(true);
 
-  // Professional: Refresh stats every 2 minutes (120,000ms)
   useEffect(() => {
     fetchStats();
+
     const interval = setInterval(fetchStats, 120000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line
   }, []);
 
   async function fetchStats() {
@@ -93,12 +101,17 @@ export default function LiveStats() {
     try {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, account_type, user_type, seller_roles, roles");
-      if (error) throw error;
+        .select("id, seller_roles, roles, user_type, account_type");
+      if (error || !Array.isArray(profiles)) throw error || "No profile data";
 
       const usersSet = new Set<string>();
-      let robotSellers = 0, partsSellers = 0, serviceProviders = 0, logisticsPartners = 0, financeProviders = 0;
-      (profiles || []).forEach((profile) => {
+      let robotSellers = 0,
+        partsSellers = 0,
+        serviceProviders = 0,
+        logisticsPartners = 0,
+        financeProviders = 0;
+
+      profiles.forEach((profile) => {
         if (profile.id) usersSet.add(profile.id);
         const roles = parseRoles(profile);
         if (
@@ -108,7 +121,12 @@ export default function LiveStats() {
         ) robotSellers++;
         if (
           roles.some((r) =>
-            ["parts_seller", "spare_parts_seller", "partsseller"].includes(r)
+            [
+              "parts_seller",
+              "spare_parts_seller",
+              "partsseller",
+              "partseller",
+            ].includes(r)
           )
         ) partsSellers++;
         if (
@@ -145,7 +163,7 @@ export default function LiveStats() {
         logisticsPartners: 0,
         financeProviders: 0
       });
-      // Optionally, you can show a toast error here
+      // Optionally: show a toast or notification
       console.error("Error fetching live stats:", error);
     } finally {
       setLoading(false);
@@ -157,7 +175,9 @@ export default function LiveStats() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold mb-2">Live Marketplace Stats</h2>
-          <p className="text-muted-foreground">Real-time stats from our growing robotics marketplace</p>
+          <p className="text-muted-foreground">
+            Real-time stats from our growing robotics B2B marketplace
+          </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {(Object.keys(STAT_META) as StatsKeys[]).map((key) => {
@@ -175,7 +195,11 @@ export default function LiveStats() {
                           <Icon className="w-5 h-5 text-white" />
                         </div>
                         <div className="text-2xl font-bold text-foreground mb-1 tabular-nums">
-                          {loading ? <span className="opacity-60">—</span> : stats[key as StatsKeys].toLocaleString()}
+                          {loading ? (
+                            <span className="opacity-60">—</span>
+                          ) : (
+                            stats[key as StatsKeys].toLocaleString()
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground font-medium">
                           {label}
@@ -199,4 +223,3 @@ export default function LiveStats() {
     </section>
   );
 }
-export default LiveStats;
