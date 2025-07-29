@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, TrendingUp, AlertCircle, CheckCircle, Star, Target, Zap } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/integrations/supabase/types";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Robot {
   id: string;
@@ -37,85 +37,13 @@ interface Robot {
   };
 }
 
-// ✅ Updated interface to match enhanced Edge Function response
-interface EnhancedAIAnalysisResult {
-  robot: {
-    marketInsights: {
-      priceRange: string;
-      location: string;
-      sellerInfo: any;
-    };
-  };
+interface AIAnalysisResult {
   analysis: string;
-  marketEcosystem: {
-    spareParts: {
-      total: number;
-      nearby: number;
-      suppliers: Array<{
-        id: string;
-        name: string;
-        company: string;
-        location: string;
-        proximity: number;
-        price: string;
-        partNumber: string;
-        specifications: any;
-      }>;
-    };
-    services: {
-      total: number;
-      nearby: number;
-      providers: Array<{
-        id: string;
-        name: string;
-        company: string;
-        location: string;
-        proximity: number;
-        serviceType: string;
-        priceRange: string;
-        specializations: string[];
-      }>;
-    };
-    logistics: {
-      total: number;
-      providers: Array<{
-        id: string;
-        company: string;
-        location: string;
-        proximity: number;
-        logisticsType: string;
-        transportModes: string[];
-        warehouseStorage: boolean;
-        serviceRegion: string;
-      }>;
-    };
-    finance: {
-      total: number;
-      providers: Array<{
-        id: string;
-        company: string;
-        location: string;
-        proximity: number;
-        financeTypes: string[];
-        financingFor: string[];
-        targetAudience: string[];
-        governmentSchemeSupport: boolean;
-      }>;
-    };
-  };
-  locationInsights: {
-    userLocation: string;
-    robotLocation: string;
-    proximityFactors: {
-      nearbySuppliers: number;
-      nearbyServices: number;
-      logisticsAvailability: number;
-    };
-  };
-  actionableRecommendations: {
-    immediateActions: string[];
-    costOptimization: string[];
-    riskMitigation: string[];
+  recommendations: {
+    spareParts: any[];
+    services: any[];
+    logistics: any[];
+    finance: any[];
   };
 }
 
@@ -127,9 +55,17 @@ const RobotDetails = () => {
   
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [aiAnalysis, setAiAnalysis] = useState<EnhancedAIAnalysisResult | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // ✅ New states for enhanced functionality
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [quoteMessage, setQuoteMessage] = useState('');
+  const [addingToWatchlist, setAddingToWatchlist] = useState(false);
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -154,6 +90,12 @@ const RobotDetails = () => {
 
         if (error) throw error;
         setRobot(data);
+        
+        // Check watchlist status
+        if (user) {
+          const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
+          setIsInWatchlist(watchlist.includes(data.id));
+        }
       } catch (err) {
         console.error('Error fetching robot:', err);
         setError(err instanceof Error ? err.message : 'Failed to load robot details');
@@ -163,7 +105,140 @@ const RobotDetails = () => {
     };
 
     fetchRobot();
-  }, [id]);
+  }, [id, user]);
+
+  // ✅ Working Contact Seller Function
+  const handleContactSeller = () => {
+    if (!robot?.profiles?.phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Seller's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = robot.profiles.phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Seller",
+      description: `Calling ${robot.profiles.full_name} at ${robot.profiles.phone}`,
+    });
+  };
+
+  // ✅ Working Request Quote Function
+  const handleRequestQuote = () => {
+    if (!robot?.profiles?.email) {
+      toast({
+        title: "Email Not Available",
+        description: "Seller's email address is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowQuoteModal(true);
+  };
+
+  const sendQuoteEmail = () => {
+    if (!robot?.profiles?.email) return;
+    const subject = `Quote Request for ${robot.name} - ${robot.model}`;
+    const body = `Dear ${robot.profiles.full_name},
+
+I am interested in the following robot:
+
+Robot: ${robot.name}
+Model: ${robot.model}
+Type: ${robot.robot_type}
+Listed Price: ${robot.price ? `${robot.currency} ${robot.price}` : 'Price on Request'}
+
+${quoteMessage ? `Additional Message:\n${quoteMessage}` : ''}
+
+Please provide me with:
+1. Best price quote
+2. Availability and delivery timeline
+3. Technical specifications
+4. Warranty and support details
+5. Installation and training options
+
+Best regards,
+${user?.user_metadata?.full_name || 'Interested Buyer'}`;
+
+    const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+    
+    setShowQuoteModal(false);
+    setQuoteMessage('');
+    
+    toast({
+      title: "Quote Request Sent",
+      description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
+    });
+  };
+
+  // ✅ Working Add to Watchlist Function
+  const handleAddToWatchlist = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to add items to your watchlist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setAddingToWatchlist(true);
+      const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
+      
+      if (isInWatchlist) {
+        // Remove from watchlist
+        const newWatchlist = watchlist.filter((robotId: string) => robotId !== robot!.id);
+        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(newWatchlist));
+        setIsInWatchlist(false);
+        toast({
+          title: "Removed from Watchlist",
+          description: `${robot!.name} has been removed from your watchlist.`,
+        });
+      } else {
+        // Add to watchlist
+        if (watchlist.includes(robot!.id)) {
+          toast({
+            title: "Already in Watchlist",
+            description: "This robot is already in your watchlist.",
+          });
+          return;
+        }
+        watchlist.push(robot!.id);
+        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(watchlist));
+        setIsInWatchlist(true);
+        toast({
+          title: "Added to Watchlist",
+          description: `${robot!.name} has been added to your watchlist.`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating watchlist:', error);
+      toast({
+        title: "Failed to Update",
+        description: "Could not update watchlist. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToWatchlist(false);
+    }
+  };
+
+  // ✅ Image Navigation Functions
+  const nextImage = () => {
+    if (robot?.images && robot.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % robot.images.length);
+    }
+  };
+
+  const prevImage = () => {
+    if (robot?.images && robot.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + robot.images.length) % robot.images.length);
+    }
+  };
 
   const handleAIAnalysis = async () => {
     if (!robot || !user) {
@@ -177,29 +252,22 @@ const RobotDetails = () => {
 
     try {
       setAnalysisLoading(true);
-      console.log('🤖 Starting AI analysis for robot:', robot.id);
-      
-      const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
+      const { data, error } = await supabase.functions.invoke('robotverse-ai-analyze', {
         body: {
           robotId: robot.id,
           userId: user.id
         }
       });
 
-      if (error) {
-        console.error('❌ Edge function error:', error);
-        throw error;
-      }
-
-      console.log('✅ AI Analysis response:', data);
+      if (error) throw error;
       setAiAnalysis(data);
       
       toast({
-        title: "🎯 Smart Analysis Complete!",
-        description: `Found ${data.marketEcosystem.spareParts.total} suppliers, ${data.marketEcosystem.services.total} service providers`,
+        title: "AI Analysis Complete",
+        description: "Smart recommendations generated successfully",
       });
     } catch (err) {
-      console.error('❌ Error getting AI analysis:', err);
+      console.error('Error getting AI analysis:', err);
       toast({
         title: "Analysis Failed",
         description: err instanceof Error ? err.message : 'Failed to generate AI analysis',
@@ -213,18 +281,6 @@ const RobotDetails = () => {
   const formatPrice = (price: number, currency: string) => {
     const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
     return `${currencySymbol}${price.toLocaleString()}`;
-  };
-
-  const getProximityColor = (proximity: number) => {
-    if (proximity >= 80) return "text-green-600";
-    if (proximity >= 50) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getProximityLabel = (proximity: number) => {
-    if (proximity >= 80) return "Very Close";
-    if (proximity >= 50) return "Nearby";
-    return "Distant";
   };
 
   if (loading) {
@@ -278,27 +334,77 @@ const RobotDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Robot Images */}
+            {/* ✅ Enhanced Robot Images with Navigation and Fullscreen */}
             <Card>
               <CardContent className="p-6">
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                <div className="relative aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
                   {robot.images && robot.images.length > 0 ? (
-                    <img 
-                      src={robot.images[0]} 
-                      alt={robot.name}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
+                    <>
+                      <img 
+                        src={robot.images[currentImageIndex]} 
+                        alt={`${robot.name} ${currentImageIndex + 1}`}
+                        className="w-full h-full object-cover rounded-lg cursor-pointer"
+                        onClick={() => setShowFullscreen(true)}
+                      />
+                      
+                      {/* Navigation Arrows */}
+                      {robot.images.length > 1 && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                            onClick={prevImage}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                            onClick={nextImage}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                      
+                      {/* Fullscreen Button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                        onClick={() => setShowFullscreen(true)}
+                      >
+                        <Maximize2 className="w-4 h-4" />
+                      </Button>
+                      
+                      {/* Image Counter */}
+                      {robot.images.length > 1 && (
+                        <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+                          {currentImageIndex + 1} / {robot.images.length}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <Bot className="w-24 h-24 text-muted-foreground" />
                   )}
                 </div>
+                
+                {/* ✅ Scrollable Thumbnail Gallery */}
                 {robot.images && robot.images.length > 1 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {robot.images.slice(1, 5).map((image, index) => (
-                      <div key={index} className="aspect-square bg-muted rounded-lg flex items-center justify-center">
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {robot.images.map((image, index) => (
+                      <div 
+                        key={index} 
+                        className={`flex-shrink-0 aspect-square w-20 h-20 bg-muted rounded-lg flex items-center justify-center cursor-pointer border-2 ${
+                          index === currentImageIndex ? 'border-primary' : 'border-transparent'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
                         <img 
                           src={image} 
-                          alt={`${robot.name} ${index + 2}`}
+                          alt={`${robot.name} ${index + 1}`}
                           className="w-full h-full object-cover rounded-lg"
                         />
                       </div>
@@ -376,34 +482,60 @@ const RobotDetails = () => {
               </Card>
             )}
 
-            {/* Enhanced AI Analysis Section */}
+            {/* ✅ Enhanced AI Analysis Section with New Theme */}
             {user && (
-              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Brain className="w-5 h-5 mr-2 text-blue-600" />
-                    🎯 Smart Market Analysis & Recommendations
+              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center text-xl">
+                    <Brain className="w-6 h-6 mr-2" />
+                    🚀 Advanced AI Market Intelligence
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    AI-powered insights with location-based supplier matching and market analysis
+                  <p className="text-blue-100 text-sm">
+                    Discover suppliers, services, financing & logistics with AI-powered recommendations
                   </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   {!aiAnalysis ? (
                     <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Brain className="w-8 h-8 text-white" />
+                      <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Brain className="w-10 h-10 text-white" />
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">Unlock Smart Insights</h3>
-                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                        Get comprehensive market analysis, location-based supplier matching, pricing insights, 
-                        and personalized recommendations for spare parts, services, logistics, and financing.
+                      <h3 className="text-xl font-bold text-gray-800 mb-3">
+                        Unlock Smart Market Insights
+                      </h3>
+                      <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
+                        Get AI-powered recommendations for spare parts, services, financing, and logistics 
+                        specifically matched to this robot with intelligent market analysis.
                       </p>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
+                          <Wrench className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-gray-700">Spare Parts</div>
+                          <div className="text-xs text-gray-500">Smart Matching</div>
+                        </div>
+                        <div className="p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                          <Settings className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-gray-700">Services</div>
+                          <div className="text-xs text-gray-500">Expert Providers</div>
+                        </div>
+                        <div className="p-4 bg-white rounded-xl border border-orange-200 shadow-sm">
+                          <Truck className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-gray-700">Logistics</div>
+                          <div className="text-xs text-gray-500">Delivery Options</div>
+                        </div>
+                        <div className="p-4 bg-white rounded-xl border border-purple-200 shadow-sm">
+                          <DollarSign className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-gray-700">Finance</div>
+                          <div className="text-xs text-gray-500">Funding Solutions</div>
+                        </div>
+                      </div>
+                      
                       <Button 
                         onClick={handleAIAnalysis}
                         disabled={analysisLoading}
                         size="lg"
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                       >
                         {analysisLoading ? (
                           <>
@@ -412,342 +544,132 @@ const RobotDetails = () => {
                           </>
                         ) : (
                           <>
-                            <Zap className="w-5 h-5 mr-2" />
+                            <Brain className="w-5 h-5 mr-2" />
                             Generate Smart Analysis
                           </>
                         )}
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-8">
-                      {/* Market Overview */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-blue-600">{aiAnalysis.marketEcosystem.spareParts.total}</div>
-                          <div className="text-sm text-muted-foreground">Spare Parts Suppliers</div>
-                          <div className="text-xs text-green-600">{aiAnalysis.marketEcosystem.spareParts.nearby} nearby</div>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-green-600">{aiAnalysis.marketEcosystem.services.total}</div>
-                          <div className="text-sm text-muted-foreground">Service Providers</div>
-                          <div className="text-xs text-green-600">{aiAnalysis.marketEcosystem.services.nearby} nearby</div>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-orange-600">{aiAnalysis.marketEcosystem.logistics.total}</div>
-                          <div className="text-sm text-muted-foreground">Logistics Partners</div>
-                        </div>
-                        <div className="text-center p-4 bg-white rounded-lg border">
-                          <div className="text-2xl font-bold text-purple-600">{aiAnalysis.marketEcosystem.finance.total}</div>
-                          <div className="text-sm text-muted-foreground">Finance Providers</div>
-                        </div>
-                      </div>
-
-                      {/* Location Insights */}
-                      {aiAnalysis.locationInsights.userLocation && (
-                        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-                          <CardHeader>
-                            <CardTitle className="flex items-center text-green-700">
-                              <MapPin className="w-5 h-5 mr-2" />
-                              Location-Based Insights
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <span className="font-medium">Your Location:</span>
-                                <p className="text-muted-foreground">{aiAnalysis.locationInsights.userLocation}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Robot Location:</span>
-                                <p className="text-muted-foreground">{aiAnalysis.locationInsights.robotLocation}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Local Ecosystem:</span>
-                                <p className="text-green-600">
-                                  {aiAnalysis.locationInsights.proximityFactors.nearbySuppliers + 
-                                   aiAnalysis.locationInsights.proximityFactors.nearbyServices} nearby resources
-                                </p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* AI Analysis */}
-                      <div>
-                        <h4 className="font-semibold mb-3 flex items-center">
-                          <TrendingUp className="w-4 h-4 mr-2" />
-                          Comprehensive Market Analysis
+                    <div className="space-y-6">
+                      <div className="bg-white p-6 rounded-xl border border-blue-200 shadow-sm">
+                        <h4 className="font-semibold mb-3 text-gray-800 flex items-center">
+                          <Brain className="w-5 h-5 mr-2 text-blue-600" />
+                          AI Market Analysis
                         </h4>
-                        <div className="bg-white p-6 rounded-lg border">
-                          <div className="prose prose-sm max-w-none">
-                            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
-                              {aiAnalysis.analysis}
-                            </pre>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actionable Recommendations */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="border-green-200 bg-green-50">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center text-green-700">
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Immediate Actions
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <ul className="space-y-1 text-xs">
-                              {aiAnalysis.actionableRecommendations.immediateActions.map((action, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="w-1 h-1 bg-green-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                  {action}
-                                </li>
-                              ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
-
-                        <Card className="border-blue-200 bg-blue-50">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center text-blue-700">
-                              <DollarSign className="w-4 h-4 mr-2" />
-                              Cost Optimization
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <ul className="space-y-1 text-xs">
-                              {aiAnalysis.actionableRecommendations.costOptimization.map((tip, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="w-1 h-1 bg-blue-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                  {tip}
-                                </li>
-                              ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
-
-                        <Card className="border-red-200 bg-red-50">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center text-red-700">
-                              <AlertCircle className="w-4 h-4 mr-2" />
-                              Risk Mitigation
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <ul className="space-y-1 text-xs">
-                              {aiAnalysis.actionableRecommendations.riskMitigation.map((risk, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="w-1 h-1 bg-red-600 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                  {risk}
-                                </li>
-                              ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
+                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{aiAnalysis.analysis}</p>
                       </div>
                       
                       <Separator />
                       
-                      {/* Enhanced Recommendations Tabs */}
                       <Tabs defaultValue="parts" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4">
-                          <TabsTrigger value="parts" className="text-xs">
-                            Spare Parts ({aiAnalysis.marketEcosystem.spareParts.suppliers.length})
+                        <TabsList className="grid w-full grid-cols-4 bg-white border border-gray-200">
+                          <TabsTrigger value="parts" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
+                            Spare Parts ({aiAnalysis.recommendations.spareParts.length})
                           </TabsTrigger>
-                          <TabsTrigger value="services" className="text-xs">
-                            Services ({aiAnalysis.marketEcosystem.services.providers.length})
+                          <TabsTrigger value="services" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700">
+                            Services ({aiAnalysis.recommendations.services.length})
                           </TabsTrigger>
-                          <TabsTrigger value="logistics" className="text-xs">
-                            Logistics ({aiAnalysis.marketEcosystem.logistics.providers.length})
+                          <TabsTrigger value="logistics" className="data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700">
+                            Logistics ({aiAnalysis.recommendations.logistics.length})
                           </TabsTrigger>
-                          <TabsTrigger value="finance" className="text-xs">
-                            Finance ({aiAnalysis.marketEcosystem.finance.providers.length})
+                          <TabsTrigger value="finance" className="data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700">
+                            Finance ({aiAnalysis.recommendations.finance.length})
                           </TabsTrigger>
                         </TabsList>
                         
-                        <TabsContent value="parts" className="mt-6">
-                          <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.spareParts.suppliers.map((part, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
+                        <TabsContent value="parts" className="mt-4">
+                          <div className="space-y-3">
+                            {aiAnalysis.recommendations.spareParts.map((part, index) => (
+                              <Card key={index} className="border border-blue-200 hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{part.name}</h5>
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-xs">
-                                            {part.price}
-                                          </Badge>
-                                          <div className={`text-xs ${getProximityColor(part.proximity)}`}>
-                                            <MapPin className="w-3 h-3 inline mr-1" />
-                                            {getProximityLabel(part.proximity)}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-muted-foreground">{part.company}</p>
-                                      <p className="text-xs text-muted-foreground">{part.location}</p>
-                                      {part.partNumber && (
-                                        <p className="text-xs text-blue-600 mt-1">Part #: {part.partNumber}</p>
-                                      )}
-                                      <Progress value={part.proximity} className="h-1 mt-2" />
+                                    <div>
+                                      <h5 className="font-medium text-gray-800">{part.name}</h5>
+                                      <p className="text-sm text-muted-foreground">{part.profiles?.company_name}</p>
                                     </div>
-                                    <Button size="sm" variant="outline" onClick={() => navigate('/parts')}>
+                                    <Button size="sm" onClick={() => navigate('/parts')} className="bg-blue-600 hover:bg-blue-700">
                                       <Wrench className="w-4 h-4 mr-1" />
-                                      Contact
+                                      View Parts
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.marketEcosystem.spareParts.suppliers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Wrench className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No matching spare parts suppliers found</p>
-                              </div>
+                            {aiAnalysis.recommendations.spareParts.length === 0 && (
+                              <p className="text-muted-foreground text-center py-4">No matching spare parts found</p>
                             )}
                           </div>
                         </TabsContent>
                         
-                        <TabsContent value="services" className="mt-6">
-                          <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.services.providers.map((service, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
+                        <TabsContent value="services" className="mt-4">
+                          <div className="space-y-3">
+                            {aiAnalysis.recommendations.services.map((service, index) => (
+                              <Card key={index} className="border border-green-200 hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{service.name}</h5>
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-xs">
-                                            {service.priceRange || 'Contact for pricing'}
-                                          </Badge>
-                                          <div className={`text-xs ${getProximityColor(service.proximity)}`}>
-                                            <MapPin className="w-3 h-3 inline mr-1" />
-                                            {getProximityLabel(service.proximity)}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <p className="text-sm text-muted-foreground">{service.company}</p>
-                                      <p className="text-xs text-muted-foreground">{service.location}</p>
-                                      <div className="flex items-center gap-1 mt-2">
-                                        <Badge variant="secondary" className="text-xs">{service.serviceType}</Badge>
-                                        {service.specializations?.slice(0, 2).map((spec, idx) => (
-                                          <Badge key={idx} variant="outline" className="text-xs">{spec}</Badge>
-                                        ))}
-                                      </div>
-                                      <Progress value={service.proximity} className="h-1 mt-2" />
+                                    <div>
+                                      <h5 className="font-medium text-gray-800">{service.name}</h5>
+                                      <p className="text-sm text-muted-foreground">{service.profiles?.company_name}</p>
                                     </div>
-                                    <Button size="sm" variant="outline" onClick={() => navigate('/services')}>
+                                    <Button size="sm" onClick={() => navigate('/services')} className="bg-green-600 hover:bg-green-700">
                                       <Settings className="w-4 h-4 mr-1" />
-                                      Contact
+                                      Find Services
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.marketEcosystem.services.providers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Settings className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No matching service providers found</p>
-                              </div>
+                            {aiAnalysis.recommendations.services.length === 0 && (
+                              <p className="text-muted-foreground text-center py-4">No matching services found</p>
                             )}
                           </div>
                         </TabsContent>
                         
-                        <TabsContent value="logistics" className="mt-6">
-                          <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.logistics.providers.map((provider, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
+                        <TabsContent value="logistics" className="mt-4">
+                          <div className="space-y-3">
+                            {aiAnalysis.recommendations.logistics.map((provider, index) => (
+                              <Card key={index} className="border border-orange-200 hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{provider.company}</h5>
-                                        <div className={`text-xs ${getProximityColor(provider.proximity)}`}>
-                                          <MapPin className="w-3 h-3 inline mr-1" />
-                                          {getProximityLabel(provider.proximity)}
-                                        </div>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">{provider.location}</p>
-                                      <p className="text-xs text-blue-600">Region: {provider.serviceRegion}</p>
-                                      <div className="flex items-center gap-1 mt-2">
-                                        <Badge variant="secondary" className="text-xs">{provider.logisticsType}</Badge>
-                                        {provider.transportModes?.map((mode, idx) => (
-                                          <Badge key={idx} variant="outline" className="text-xs">{mode}</Badge>
-                                        ))}
-                                        {provider.warehouseStorage && (
-                                          <Badge variant="outline" className="text-xs">Warehouse</Badge>
-                                        )}
-                                      </div>
-                                      <Progress value={provider.proximity} className="h-1 mt-2" />
+                                    <div>
+                                      <h5 className="font-medium text-gray-800">{provider.company_name || provider.full_name}</h5>
+                                      <p className="text-sm text-muted-foreground">{provider.location}</p>
                                     </div>
-                                    <Button size="sm" variant="outline" disabled>
+                                    <Button size="sm" disabled className="bg-orange-600">
                                       <Truck className="w-4 h-4 mr-1" />
-                                      Contact
+                                      Logistics
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.marketEcosystem.logistics.providers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No logistics providers found</p>
-                              </div>
+                            {aiAnalysis.recommendations.logistics.length === 0 && (
+                              <p className="text-muted-foreground text-center py-4">No logistics providers found</p>
                             )}
                           </div>
                         </TabsContent>
                         
-                        <TabsContent value="finance" className="mt-6">
-                          <div className="space-y-4">
-                            {aiAnalysis.marketEcosystem.finance.providers.map((provider, index) => (
-                              <Card key={index} className="hover:shadow-md transition-shadow">
+                        <TabsContent value="finance" className="mt-4">
+                          <div className="space-y-3">
+                            {aiAnalysis.recommendations.finance.map((provider, index) => (
+                              <Card key={index} className="border border-purple-200 hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
                                   <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <h5 className="font-medium">{provider.company}</h5>
-                                        <div className="flex items-center gap-2">
-                                          {provider.governmentSchemeSupport && (
-                                            <Badge variant="outline" className="text-xs text-green-600">
-                                              <Star className="w-3 h-3 mr-1" />
-                                              Govt. Schemes
-                                            </Badge>
-                                          )}
-                                          <div className={`text-xs ${getProximityColor(provider.proximity)}`}>
-                                            <MapPin className="w-3 h-3 inline mr-1" />
-                                            {getProximityLabel(provider.proximity)}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">{provider.location}</p>
-                                      <div className="flex items-center gap-1 mt-2">
-                                        {provider.financeTypes?.slice(0, 3).map((type, idx) => (
-                                          <Badge key={idx} variant="secondary" className="text-xs">{type}</Badge>
-                                        ))}
-                                      </div>
-                                      <div className="flex items-center gap-1 mt-1">
-                                        {provider.targetAudience?.slice(0, 2).map((audience, idx) => (
-                                          <Badge key={idx} variant="outline" className="text-xs">{audience}</Badge>
-                                        ))}
-                                      </div>
-                                      <Progress value={provider.proximity} className="h-1 mt-2" />
+                                    <div>
+                                      <h5 className="font-medium text-gray-800">{provider.company_name || provider.full_name}</h5>
+                                      <p className="text-sm text-muted-foreground">{provider.location}</p>
                                     </div>
-                                    <Button size="sm" variant="outline" disabled>
+                                    <Button size="sm" disabled className="bg-purple-600">
                                       <DollarSign className="w-4 h-4 mr-1" />
-                                      Contact
+                                      Finance
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             ))}
-                            {aiAnalysis.marketEcosystem.finance.providers.length === 0 && (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <DollarSign className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>No finance providers found</p>
-                              </div>
+                            {aiAnalysis.recommendations.finance.length === 0 && (
+                              <p className="text-muted-foreground text-center py-4">No finance providers found</p>
                             )}
                           </div>
                         </TabsContent>
@@ -818,52 +740,40 @@ const RobotDetails = () => {
               </Card>
             )}
 
-            {/* Contact Actions */}
+            {/* ✅ Working Contact Actions */}
             {user && (
               <Card>
                 <CardContent className="p-6">
                   <div className="space-y-3">
-                    <Button className="w-full" size="lg">
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700" 
+                      size="lg"
+                      onClick={handleContactSeller}
+                    >
+                      <PhoneCall className="w-4 h-4 mr-2" />
                       Contact Seller
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+                      onClick={handleRequestQuote}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
                       Request Quote
                     </Button>
-                    <Button variant="outline" className="w-full">
-                      Add to Watchlist
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                      onClick={handleAddToWatchlist}
+                      disabled={addingToWatchlist}
+                    >
+                      {addingToWatchlist ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Heart className={`w-4 h-4 mr-2 ${isInWatchlist ? 'fill-current' : ''}`} />
+                      )}
+                      {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Insights */}
-            {aiAnalysis && (
-              <Card className="border-blue-200 bg-blue-50">
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center text-blue-700">
-                    <Target className="w-4 h-4 mr-2" />
-                    Quick Insights
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span>Market Position:</span>
-                      <Badge variant="outline" className="text-xs">Competitive</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Supply Chain:</span>
-                      <Badge variant="outline" className="text-xs">
-                        {aiAnalysis.marketEcosystem.spareParts.nearby > 3 ? 'Strong' : 'Limited'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Local Support:</span>
-                      <Badge variant="outline" className="text-xs">
-                        {aiAnalysis.marketEcosystem.services.nearby > 2 ? 'Available' : 'Limited'}
-                      </Badge>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -871,6 +781,81 @@ const RobotDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* ✅ Fullscreen Image Modal */}
+      <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
+        <DialogContent className="max-w-7xl max-h-[90vh] p-0">
+          <div className="relative">
+            <img 
+              src={robot?.images?.[currentImageIndex]} 
+              alt={`${robot?.name} ${currentImageIndex + 1}`}
+              className="w-full h-full object-contain max-h-[90vh]"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
+              onClick={() => setShowFullscreen(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            
+            {/* Navigation in fullscreen */}
+            {robot?.images && robot.images.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                  onClick={prevImage}
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </Button>
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded">
+                  {currentImageIndex + 1} / {robot.images.length}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ Quote Request Modal */}
+      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Quote</DialogTitle>
+            <DialogDescription>
+              Send a quote request to {robot?.profiles?.company_name || robot?.profiles?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Add any specific requirements or questions..."
+              value={quoteMessage}
+              onChange={(e) => setQuoteMessage(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuoteModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={sendQuoteEmail}>
+              <Mail className="w-4 h-4 mr-2" />
+              Send Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
