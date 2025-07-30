@@ -9,51 +9,43 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Settings, MapPin, Search, Grid, List, Star, Clock, Users } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 
+const SERVICE_TYPE_OPTIONS = [
+  "Installation",
+  "Maintenance",
+  "Repair",
+  "Inspection",
+  "Calibration",
+  "Training",
+  "Upgrades",
+  "Consulting",
+];
+
 const Services = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [services, setServices] = useState<any[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch categories and locations on mount
+  // Fetch locations on mount
   useEffect(() => {
-    async function fetchFilterData() {
+    async function fetchLocations() {
       try {
-        // Get service categories from the service_categories table
-        const { data: categoryData, error: categoryError } = await supabase
-          .from("service_categories")
+        const { data, error } = await supabase
+          .from("states")
           .select("id, name")
           .order("name");
-
-        if (categoryError) throw categoryError;
-        setCategories([{ id: "all", name: "All Services" }, ...(categoryData || [])]);
-
-        // Use hardcoded Indian states for now since states table has typing issues
-        const indianStates = [
-          { id: "andhra-pradesh", name: "Andhra Pradesh" },
-          { id: "assam", name: "Assam" },
-          { id: "bihar", name: "Bihar" },
-          { id: "gujarat", name: "Gujarat" },
-          { id: "haryana", name: "Haryana" },
-          { id: "karnataka", name: "Karnataka" },
-          { id: "kerala", name: "Kerala" },
-          { id: "maharashtra", name: "Maharashtra" },
-          { id: "tamil-nadu", name: "Tamil Nadu" },
-          { id: "uttar-pradesh", name: "Uttar Pradesh" },
-          { id: "west-bengal", name: "West Bengal" }
-        ];
-        setLocations([{ id: "all", name: "All Locations" }, ...indianStates]);
+        if (error) throw error;
+        setLocations([{ id: "all", name: "All Locations" }, ...(data ?? [])]);
       } catch (err: any) {
-        console.error("Error fetching filters data", err);
-        setError("Failed to load filters data");
+        console.error("Error fetching locations", err);
+        setError("Failed to load locations");
       }
     }
-    fetchFilterData();
+    fetchLocations();
   }, []);
 
   // Fetch services data
@@ -71,31 +63,25 @@ const Services = () => {
 
         if (error) throw error;
 
+        // Transform services: parse service_type CSV string into array of lowercased strings
         const transformed = (data ?? []).map((item: any) => {
-          // Determine location ID either from service or profile (assuming IDs)
-          const locationId = item.location || item.profiles?.location || null;
-          const locationName =
-            locations.find((l) => l.id === locationId)?.name ||
-            item.location ||
-            item.profiles?.location ||
-            "Location not specified";
+          const serviceTypes = item.service_type
+            ? item.service_type.split(",").map((t: string) => t.trim().toLowerCase())
+            : [];
 
-          // Find category name by ID
-          const categoryName =
-            categories.find((c) => c.id === item.service_type)?.name || item.service_type;
+          const locationName =
+            item.location || item.profiles?.location || "Location not specified";
 
           return {
             id: item.id,
             name: item.name,
-            categoryId: item.service_type, // category ID for filtering
-            categoryName,
+            serviceTypes, // array of lowercased service types
             priceRange: item.price_range || "Contact for pricing",
-            locationId, // location ID for filtering
-            locationName,
+            location: locationName,
             provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
             image: "/placeholder.svg",
             description: item.description || "Professional service provider",
-            rating: 4.5, // default rating
+            rating: 4.5, // default
             responseTime: "2-4 hours", // default
             completedJobs: Math.floor(Math.random() * 100) + 50, // dummy data
             availability: "Available",
@@ -111,25 +97,28 @@ const Services = () => {
         setLoading(false);
       }
     }
+    fetchServices();
+  }, []);
 
-    // Only fetch services after categories and locations have been fetched, because services transformation depends on them
-    // So, check that categories and locations are loaded first
-    if (categories.length > 0 && locations.length > 0) {
-      fetchServices();
-    }
-  }, [categories, locations]);
+  // Normalize selectedCategory for comparison
+  const selectedCategoryNormalized = selectedCategory.toLowerCase();
 
   const filteredServices = services.filter((service) => {
+    // Search matching
     const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.provider.toLowerCase().includes(searchQuery.toLowerCase());
 
+    // Category filtering: check if selected category is present in serviceTypes array or "all"
     const matchesCategory =
-      selectedCategory === "all" || service.categoryId === selectedCategory;
+      selectedCategory === "all" || service.serviceTypes.includes(selectedCategoryNormalized);
 
+    // Location filtering
     const matchesLocation =
-      selectedLocation === "all" || service.locationId === selectedLocation;
+      selectedLocation === "all" ||
+      service.location.toLowerCase() ===
+        (locations.find((l) => l.id === selectedLocation)?.name.toLowerCase() ?? "");
 
     return matchesSearch && matchesCategory && matchesLocation;
   });
@@ -143,8 +132,7 @@ const Services = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Robot Services</h1>
           <p className="text-xl text-muted-foreground">
-            Connect with certified professionals for robot maintenance, repair,
-            and training services
+            Connect with certified professionals for robot maintenance, repair, and training services
           </p>
         </div>
 
@@ -161,19 +149,22 @@ const Services = () => {
               />
             </div>
 
+            {/* Service Type Filter */}
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="Service Type" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                <SelectItem value="all">All Services</SelectItem>
+                {SERVICE_TYPE_OPTIONS.map((type) => (
+                  <SelectItem key={type} value={type.toLowerCase()}>
+                    {type}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
+            {/* Location Filter */}
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger>
                 <SelectValue placeholder="Location" />
@@ -205,7 +196,6 @@ const Services = () => {
             </div>
           </div>
 
-          {/* Loading state */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin mb-4" />
@@ -213,7 +203,6 @@ const Services = () => {
             </div>
           )}
 
-          {/* Error state */}
           {error && (
             <div className="flex flex-col items-center justify-center py-12">
               <Settings className="w-16 h-16 text-muted-foreground mb-4" />
@@ -225,7 +214,6 @@ const Services = () => {
             </div>
           )}
 
-          {/* No results */}
           {!loading && !error && filteredServices.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12">
               <Settings className="w-16 h-16 text-muted-foreground mb-4" />
@@ -238,20 +226,13 @@ const Services = () => {
             </div>
           )}
 
-          {/* Services list */}
           {!loading && !error && filteredServices.length > 0 && (
             <>
               <p className="mb-4 text-sm text-muted-foreground">
                 {filteredServices.length} service{filteredServices.length > 1 ? "s" : ""} found
               </p>
 
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    : "space-y-4"
-                }
-              >
+              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
                 {filteredServices.map((service) => (
                   <Card key={service.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
@@ -260,8 +241,9 @@ const Services = () => {
                       </div>
                       <CardTitle className="text-lg">{service.name}</CardTitle>
                       <div className="flex items-center justify-between">
-                        <Badge variant="secondary" className="w-fit">
-                          {service.categoryName}
+                        <Badge variant="secondary" className="w-fit capitalize">
+                          {/* Display all service types, comma separated, capitalized */}
+                          {service.serviceTypes.map((t: string) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ")}
                         </Badge>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -280,7 +262,7 @@ const Services = () => {
                         </div>
                         <div className="flex items-center text-muted-foreground">
                           <MapPin className="w-5 h-5 mr-1" />
-                          <span>{service.locationName}</span>
+                          <span>{service.location}</span>
                         </div>
                         <p className="text-sm text-muted-foreground">{service.description}</p>
 
