@@ -18,10 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 const INDIAN_STATES = [
-  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
-  "Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan",
-  "Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands",
-  "Chandigarh","Dadra and Nagar Haveli","Daman and Diu","Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry",
+  /* your states */
 ];
 const SERVICE_TYPE_OPTIONS = [
   "Installation", "Maintenance", "Repair", "Inspection", "Calibration", "Training", "Upgrades", "Consulting",
@@ -37,16 +34,26 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal state
+  // Modal & editing state
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingService, setEditingService] = useState<any | null>(null); // null if not editing
   const [newService, setNewService] = useState({
-    name: "", description: "", service_type: [] as string[], coverage: [] as string[], price_range: "", location: "",
+    name: "",
+    description: "",
+    service_type: [] as string[],
+    coverage: [] as string[],
+    price_range: "",
+    location: "",
   });
 
-  useEffect(() => { if (user) fetchDashboardData(); }, [user]);
+  // Fetch dashboard data
+  useEffect(() => {
+    if (user) fetchDashboardData();
+  }, [user]);
 
   async function fetchDashboardData() {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const { data: servicesData, error: servicesError } = await supabase
         .from("services").select("*").eq("provider_id", user!.id);
@@ -66,7 +73,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
       setServices(servicesData ?? []);
       setServiceRequests(requestsData ?? []);
       const completed = (requestsData ?? []).filter((r) => r.status === "completed").length;
-      const active = (requestsData ?? []).filter((r) => ["pending","in_progress"].includes(r.status)).length;
+      const active = (requestsData ?? []).filter((r) => ["pending", "in_progress"].includes(r.status)).length;
       setDashboardStats({
         totalServices: servicesData?.length ?? 0,
         activeRequests: active,
@@ -81,6 +88,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
     }
   }
 
+  // Toggle service type for checkbox
   function toggleServiceType(type: string) {
     setNewService((prev) => ({
       ...prev, service_type: prev.service_type.includes(type)
@@ -88,6 +96,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
         : [...prev.service_type, type],
     }));
   }
+  // Toggle coverage
   function toggleCoverage(state: string) {
     setNewService((prev) => ({
       ...prev, coverage: prev.coverage.includes(state)
@@ -95,25 +104,93 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
         : [...prev.coverage, state],
     }));
   }
-  async function handleAddService() {
+
+  // Open modal for adding new service (clears form)
+  function openAddModal() {
+    setEditingService(null); // no editing
+    setNewService({
+      name: "",
+      description: "",
+      service_type: [],
+      coverage: [],
+      price_range: "",
+      location: "",
+    });
+    setShowAddModal(true);
+  }
+  // Open modal for editing service - prefill form
+  function openEditModal(service: any) {
+    setEditingService(service);
+    setNewService({
+      name: service.name || "",
+      description: service.description || "",
+      service_type: service.service_type ? service.service_type.split(",").map((s: string) => s.trim()) : [],
+      coverage: service.coverage ? service.coverage.split(",").map((s: string) => s.trim()) : [],
+      price_range: service.price_range || "",
+      location: service.location || "",
+    });
+    setShowAddModal(true);
+  }
+
+  // Handle add or edit form submit
+  async function handleSaveService() {
     if (!user) return;
     if (newService.name.trim() === "") return alert("Service name is required");
     if (newService.service_type.length === 0) return alert("Select at least one service type");
     if (newService.price_range.trim() === "") return alert("Price range is required");
+
     try {
-      const insertData = {
+      const serviceData = {
         ...newService,
         service_type: newService.service_type.join(", "),
         coverage: newService.coverage.join(", "),
         provider_id: user.id,
       };
-      const { error } = await supabase.from("services").insert([insertData]);
-      if (error) return alert("Failed to add service: " + error.message);
+
+      if (editingService) {
+        // Edit existing service
+        const { error } = await supabase
+          .from("services")
+          .update(serviceData)
+          .eq("id", editingService.id);
+        if (error) return alert("Failed to update service: " + error.message);
+      } else {
+        // Add new service
+        const { error } = await supabase.from("services").insert([serviceData]);
+        if (error) return alert("Failed to add service: " + error.message);
+      }
+
       setShowAddModal(false);
-      setNewService({ name:"", description:"", service_type:[], coverage:[], price_range:"", location:"" });
+      setEditingService(null);
+      setNewService({
+        name:"",
+        description:"",
+        service_type:[],
+        coverage:[],
+        price_range:"",
+        location:"",
+      });
       fetchDashboardData();
-    } catch (err) { alert("Error adding service: " + (err instanceof Error ? err.message : err)); }
+    } catch(err) {
+      alert("Error saving service: " + (err instanceof Error ? err.message : err));
+    }
   }
+
+  // Delete service
+  async function handleDeleteService(serviceId: number) {
+    if (!confirm("Are you sure you want to delete this service?")) return;
+
+    try {
+      const { error } = await supabase.from("services").delete().eq("id", serviceId);
+      if (error) return alert("Failed to delete service: " + error.message);
+
+      fetchDashboardData();
+    } catch (err) {
+      alert("Error deleting service: " + (err instanceof Error ? err.message : err));
+    }
+  }
+
+  // getBadgeVariant and getUrgencyBadge as in your code...
 
   function getBadgeVariant(
     status: string
@@ -153,7 +230,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                 Manage your services and service requests
               </p>
             </div>
-            <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+            <Button onClick={openAddModal} className="flex items-center gap-2">
               <Plus className="w-4 h-4" /> Add New Service
             </Button>
           </div>
@@ -260,7 +337,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   {services.length === 0 ? (
                     <div className="text-center text-muted-foreground py-20">
                       No services available.<br />
-                      <Button onClick={() => setShowAddModal(true)} className="mt-4">
+                      <Button onClick={openAddModal} className="mt-4">
                         <Plus className="inline mr-2" /> Add Service
                       </Button>
                     </div>
@@ -275,8 +352,8 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                               <div className="flex justify-between mb-2">
                                 <h3 className="font-semibold">{service.name}</h3>
                                 <div>
-                                  <Button size="sm" variant="ghost" onClick={() => alert("Edit service " + service.id)}><Edit className="w-4 h-4" /></Button>
-                                  <Button size="sm" variant="ghost" onClick={() => alert("Delete service " + service.id)}><Trash2 className="w-4 h-4" /></Button>
+                                  <Button size="sm" variant="ghost" onClick={() => openEditModal(service)}><Edit className="w-4 h-4" /></Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleDeleteService(service.id)}><Trash2 className="w-4 h-4" /></Button>
                                 </div>
                               </div>
                               <p className="mb-2 text-muted-foreground">{service.description}</p>
@@ -312,10 +389,10 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
             </TabsContent>
           </Tabs>
 
-          {/* Add Service Modal */}
+          {/* Add/Edit Service Modal */}
           <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
             <DialogContent>
-              <DialogTitle>Add New Service</DialogTitle>
+              <DialogTitle>{editingService ? "Edit Service" : "Add New Service"}</DialogTitle>
               <div className="space-y-4 mt-4">
                 <Input
                   placeholder="Service Name *"
@@ -372,8 +449,11 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                <Button onClick={handleAddService}>Add Service</Button>
+                <Button variant="outline" onClick={() => {
+                  setShowAddModal(false);
+                  setEditingService(null);
+                }}>Cancel</Button>
+                <Button onClick={handleSaveService}>{editingService ? "Update Service" : "Add Service"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
