@@ -450,6 +450,27 @@ export type Database = {
           },
         ]
       }
+      service_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       service_requests: {
         Row: {
           budget_range: string | null
@@ -601,6 +622,7 @@ export type Database = {
       }
       services: {
         Row: {
+          coverage: string | null
           created_at: string
           description: string | null
           id: string
@@ -613,6 +635,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          coverage?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -625,6 +648,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          coverage?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -707,6 +731,21 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      states: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id?: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
