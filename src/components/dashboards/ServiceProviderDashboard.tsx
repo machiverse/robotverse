@@ -113,7 +113,8 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
 
       setLoading(false);
     } catch (e: any) {
-      setError('Failed to load dashboard data');
+      console.error('DASHBOARD ERROR:', e);
+      setError('Failed to load dashboard data: ' + (e.message || JSON.stringify(e) || String(e)));
       setLoading(false);
     }
   };
