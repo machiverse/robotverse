@@ -12,13 +12,16 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Wrench, Clock, Star, DollarSign, Calendar, MapPin, Plus, Edit, Trash2, CheckCircle, AlertCircle, Activity, Loader2,
+  Wrench, Clock, Star, DollarSign, Calendar, MapPin, Plus, Edit, Trash2, CheckCircle, Activity, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 const INDIAN_STATES = [
-  /* your states */
+  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
+  "Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan",
+  "Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands",
+  "Chandigarh","Dadra and Nagar Haveli","Daman and Diu","Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry",
 ];
 const SERVICE_TYPE_OPTIONS = [
   "Installation", "Maintenance", "Repair", "Inspection", "Calibration", "Training", "Upgrades", "Consulting",
@@ -36,7 +39,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
 
   // Modal & editing state
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingService, setEditingService] = useState<any | null>(null); // null if not editing
+  const [editingService, setEditingService] = useState<any | null>(null);
   const [newService, setNewService] = useState({
     name: "",
     description: "",
@@ -46,7 +49,6 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
     location: "",
   });
 
-  // Fetch dashboard data
   useEffect(() => {
     if (user) fetchDashboardData();
   }, [user]);
@@ -88,7 +90,6 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
     }
   }
 
-  // Toggle service type for checkbox
   function toggleServiceType(type: string) {
     setNewService((prev) => ({
       ...prev, service_type: prev.service_type.includes(type)
@@ -96,7 +97,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
         : [...prev.service_type, type],
     }));
   }
-  // Toggle coverage
+
   function toggleCoverage(state: string) {
     setNewService((prev) => ({
       ...prev, coverage: prev.coverage.includes(state)
@@ -105,20 +106,12 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
     }));
   }
 
-  // Open modal for adding new service (clears form)
   function openAddModal() {
-    setEditingService(null); // no editing
-    setNewService({
-      name: "",
-      description: "",
-      service_type: [],
-      coverage: [],
-      price_range: "",
-      location: "",
-    });
+    setEditingService(null);
+    setNewService({ name: "", description: "", service_type: [], coverage: [], price_range: "", location: "" });
     setShowAddModal(true);
   }
-  // Open modal for editing service - prefill form
+
   function openEditModal(service: any) {
     setEditingService(service);
     setNewService({
@@ -132,7 +125,6 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
     setShowAddModal(true);
   }
 
-  // Handle add or edit form submit
   async function handleSaveService() {
     if (!user) return;
     if (newService.name.trim() === "") return alert("Service name is required");
@@ -148,53 +140,37 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
       };
 
       if (editingService) {
-        // Edit existing service
         const { error } = await supabase
           .from("services")
           .update(serviceData)
           .eq("id", editingService.id);
         if (error) return alert("Failed to update service: " + error.message);
       } else {
-        // Add new service
         const { error } = await supabase.from("services").insert([serviceData]);
         if (error) return alert("Failed to add service: " + error.message);
       }
 
       setShowAddModal(false);
       setEditingService(null);
-      setNewService({
-        name:"",
-        description:"",
-        service_type:[],
-        coverage:[],
-        price_range:"",
-        location:"",
-      });
+      setNewService({ name: "", description: "", service_type: [], coverage: [], price_range: "", location: "" });
       fetchDashboardData();
-    } catch(err) {
+    } catch (err) {
       alert("Error saving service: " + (err instanceof Error ? err.message : err));
     }
   }
 
-  // Delete service
-  async function handleDeleteService(serviceId: string) {
+  async function handleDeleteService(serviceId: number | string) {
     if (!confirm("Are you sure you want to delete this service?")) return;
-
     try {
-      const { error } = await supabase.from("services").delete().eq("id", serviceId);
+      const { error } = await supabase.from("services").delete().eq("id", String(serviceId));
       if (error) return alert("Failed to delete service: " + error.message);
-
       fetchDashboardData();
     } catch (err) {
       alert("Error deleting service: " + (err instanceof Error ? err.message : err));
     }
   }
 
-  // getBadgeVariant and getUrgencyBadge as in your code...
-
-  function getBadgeVariant(
-    status: string
-  ): "default" | "destructive" | "outline" | "secondary" {
+  function getBadgeVariant(status: string): "default" | "destructive" | "outline" | "secondary" {
     switch (status) {
       case "pending": return "secondary";
       case "in_progress": return "default";
@@ -203,6 +179,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
       default: return "secondary";
     }
   }
+
   function getUrgencyBadge(status: string) {
     const variants = {
       low: "bg-green-100 text-green-800",
@@ -221,38 +198,35 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
       ) : error ? (
         <div className="text-center text-red-600 my-20">{error}</div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 md:px-0 max-w-7xl mx-auto">
           {/* Header and Stats */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">Service Provider Dashboard</h1>
-              <p className="text-muted-foreground">
-                Manage your services and service requests
-              </p>
+              <p className="text-muted-foreground">Manage your services and service requests</p>
             </div>
-            <Button onClick={openAddModal} className="flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add New Service
+            <Button onClick={openAddModal} className="flex items-center gap-2" size="lg" variant="secondary">
+              <Plus className="w-5 h-5" /> Add New Service
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {/* Stats Cards */}
-            {[
-              { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600",},
-              { title: "Active Requests", val: dashboardStats.activeRequests, icon: Clock, variant: "secondary", color: "text-orange-600",},
-              { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600",},
-              { title: "Monthly Revenue", val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, variant: "secondary", color: "text-purple-600",},
-              { title: "Average Rating", val: dashboardStats.averageRating, icon: Star, variant: "secondary", color: "text-yellow-600",},
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {[ 
+              { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600" },
+              { title: "Active Requests", val: dashboardStats.activeRequests, icon: Clock, variant: "secondary", color: "text-orange-600" },
+              { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600" },
+              { title: "Monthly Revenue", val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, variant: "secondary", color: "text-purple-600" },
+              { title: "Average Rating", val: dashboardStats.averageRating, icon: Star, variant: "secondary", color: "text-yellow-600" },
             ].map(({ title, val, icon: Icon, variant, color }, idx) => (
-              <Card key={idx}>
+              <Card key={idx} className="border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-muted-foreground mb-2">{title}</p>
-                      <h2 className="text-xl font-semibold">{val}</h2>
-                      <Badge variant={variant as any} />
+                      <p className="text-muted-foreground mb-1 text-sm">{title}</p>
+                      <h2 className="text-2xl font-semibold">{val}</h2>
+                      <Badge variant={variant as any} className="mt-1" />
                     </div>
                     <div className={`p-3 rounded-lg ${color}`}>
-                      <Icon className="w-8 h-8" />
+                      <Icon className="w-8 h-8" aria-hidden="true" />
                     </div>
                   </div>
                 </CardContent>
@@ -260,32 +234,28 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
             ))}
           </div>
           {/* Tabs */}
-          <Tabs defaultValue="services">
+          <Tabs defaultValue="services" className="mt-6">
             <TabsList className="grid grid-cols-4">
               <TabsTrigger value="requests">Requests</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="calendar">Calendar</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="calendar" isDisabled>Calendar</TabsTrigger>
+              <TabsTrigger value="analytics" isDisabled>Analytics</TabsTrigger>
             </TabsList>
             {/* Service Requests Tab */}
             <TabsContent value="requests">
-              <Card>
+              <Card className="mt-6">
                 <CardHeader>
-                  <CardTitle>
-                    <Activity className="inline mr-2" /> Service Requests
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                    <Activity className="w-5 h-5 text-primary" aria-hidden="true" /> Service Requests
                   </CardTitle>
-                  <CardDescription>
-                    Manage incoming service requests
-                  </CardDescription>
+                  <CardDescription>Manage incoming service requests</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {serviceRequests.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-20">
-                      No service requests
-                    </div>
+                    <p className="text-center text-muted-foreground py-24 text-lg">No service requests</p>
                   ) : (
-                    <Table>
-                      <TableHeader>
+                    <Table className="shadow-sm rounded-lg overflow-hidden border border-gray-200">
+                      <TableHeader className="bg-gray-50">
                         <TableRow>
                           <TableHead>Client</TableHead>
                           <TableHead>Service Type</TableHead>
@@ -298,25 +268,35 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                       </TableHeader>
                       <TableBody>
                         {serviceRequests.map((req: any) => (
-                          <TableRow key={req.id}>
+                          <TableRow key={req.id} className="hover:bg-gray-100 cursor-pointer" tabIndex={0} role="button" aria-label={`Request from ${req.client_name}`}>
                             <TableCell>{req.client_name || "N/A"}</TableCell>
-                            <TableCell>{req.service_type || "N/A"}</TableCell>
+                            <TableCell className="capitalize">{req.service_type || "N/A"}</TableCell>
                             <TableCell>{req.scheduled_date || "N/A"}</TableCell>
                             <TableCell>
-                              <Badge variant={getBadgeVariant(req.status)}>
+                              <Badge variant={getBadgeVariant(req.status)} className="capitalize">
                                 {req.status}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              {getUrgencyBadge(req.urgency)}
+                            <TableCell>{getUrgencyBadge(req.urgency)}</TableCell>
+                            <TableCell className="flex items-center space-x-1 text-sm text-muted-foreground">
+                              <MapPin className="inline w-4 h-4" aria-hidden="true" />
+                              <span>{req.location || "N/A"}</span>
                             </TableCell>
-                            <TableCell>
-                              <MapPin className="inline mr-1" />
-                              {req.location || "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              <Button size="sm" className="mr-2" onClick={() => alert(`Accept request ${req.id}`)}>Accept</Button>
-                              <Button size="sm" variant="ghost" onClick={() => alert(`View details for request ${req.id}`)}>Details</Button>
+                            <TableCell className="space-x-2">
+                              <Button 
+                                size="sm" 
+                                className="bg-green-600 text-white hover:bg-green-700"
+                                aria-label={`Accept request ${req.id}`}
+                                onClick={() => alert(`Accept request ${req.id}`)}>
+                                Accept
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                aria-label={`View details for request ${req.id}`}
+                                onClick={() => alert(`View details for request ${req.id}`)}>
+                                Details
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -328,54 +308,76 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
             </TabsContent>
             {/* Services Tab */}
             <TabsContent value="services">
-              <Card>
-                <CardHeader>
-                  <CardTitle><Wrench className="inline mr-2" /> Your Services</CardTitle>
-                  <CardDescription>Your service listings</CardDescription>
+              <Card className="mt-6 border border-gray-200 rounded-lg shadow-sm">
+                <CardHeader className="px-6 py-4">
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <Wrench className="w-6 h-6 text-primary" aria-hidden="true" /> Your Services
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground px-0">Manage and edit your active service listings</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-6 py-6">
                   {services.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-20">
+                    <div className="text-center text-muted-foreground py-24 text-lg">
                       No services available.<br />
-                      <Button onClick={openAddModal} className="mt-4">
+                      <Button onClick={openAddModal} className="mt-4" size="lg" variant="secondary">
                         <Plus className="inline mr-2" /> Add Service
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {services.map((service: any) => {
                         const serviceTypes = service.service_type ? service.service_type.split(",").map((x: string) => x.trim()) : [];
                         const coverage = service.coverage ? service.coverage.split(",").map((x: string) => x.trim()) : [];
                         return (
-                          <Card key={service.id}>
-                            <CardContent>
-                              <div className="flex justify-between mb-2">
-                                <h3 className="font-semibold">{service.name}</h3>
-                                <div>
-                                  <Button size="sm" variant="ghost" onClick={() => openEditModal(service)}><Edit className="w-4 h-4" /></Button>
-                                  <Button size="sm" variant="ghost" onClick={() => handleDeleteService(service.id)}><Trash2 className="w-4 h-4" /></Button>
+                          <Card
+                            key={service.id}
+                            className="border border-gray-200 rounded-lg shadow-sm transition-shadow hover:shadow-lg"
+                            aria-label={`Service: ${service.name}`}
+                          >
+                            <CardContent className="p-5">
+                              <div className="flex justify-between items-start mb-3">
+                                <h3 className="text-lg font-semibold text-primary">{service.name}</h3>
+                                <div className="flex space-x-2">
+                                  <Button
+                                    size="sm" variant="ghost" aria-label={`Edit ${service.name}`}
+                                    onClick={() => openEditModal(service)}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <Edit className="w-5 h-5" />
+                                  </Button>
+                                  <Button
+                                    size="sm" variant="ghost" aria-label={`Delete ${service.name}`}
+                                    onClick={() => handleDeleteService(service.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 className="w-5 h-5" />
+                                  </Button>
                                 </div>
                               </div>
-                              <p className="mb-2 text-muted-foreground">{service.description}</p>
-                              <div className="mb-2">
-                                {serviceTypes.map(type => (
-                                  <Badge key={type}>{type}</Badge>
+                              <p className="mb-4 text-gray-600 text-sm min-h-[3rem]">{service.description}</p>
+                              <div className="mb-3 flex flex-wrap gap-2">
+                                {serviceTypes.map((type) => (
+                                  <Badge key={type} variant="outline" className="text-xs font-medium">
+                                    {type}
+                                  </Badge>
                                 ))}
                               </div>
-                              <div className="mb-2 flex flex-wrap gap-1">
-                                {coverage.length > 0
-                                  ? coverage.map(state => (
-                                      <Badge key={state} variant="outline">
-                                        {state}
-                                      </Badge>
-                                    ))
-                                  : <span className="text-xs text-muted-foreground">No coverage selected</span>}
+                              <div className="mb-3 flex flex-wrap gap-2">
+                                {coverage.length > 0 ? (
+                                  coverage.map((state) => (
+                                    <Badge key={state} variant="secondary" className="text-xs font-medium">
+                                      {state}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">No coverage selected</span>
+                                )}
                               </div>
-                              <div className="flex justify-between items-center">
-                                <span>{service.price_range}</span>
-                                <div className="flex items-center text-muted-foreground text-sm">
-                                  <MapPin className="mr-1" />
-                                  {service.location || "N/A"}
+                              <div className="flex justify-between items-center mt-6">
+                                <span className="font-semibold text-lg text-primary">{service.price_range}</span>
+                                <div className="flex items-center space-x-1 text-gray-500 text-sm">
+                                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                                  <span>{service.location || "N/A"}</span>
                                 </div>
                               </div>
                             </CardContent>
@@ -390,7 +392,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </Tabs>
 
           {/* Add/Edit Service Modal */}
-          <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+          <Dialog open={showAddModal} onOpenChange={() => { setShowAddModal(false); setEditingService(null); }}>
             <DialogContent>
               <DialogTitle>{editingService ? "Edit Service" : "Add New Service"}</DialogTitle>
               <div className="space-y-4 mt-4">
@@ -399,6 +401,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   value={newService.name}
                   onChange={(e) => setNewService({ ...newService, name: e.target.value })}
                   required
+                  autoFocus
                 />
                 <Textarea
                   placeholder="Description"
@@ -410,7 +413,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   <label className="block mb-1 font-semibold">Select Service Types *</label>
                   <div className="max-h-36 overflow-y-auto border rounded p-2 grid grid-cols-2 gap-2">
                     {SERVICE_TYPE_OPTIONS.map((type) => (
-                      <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                      <label key={type} className="flex items-center space-x-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={newService.service_type.includes(type)}
@@ -425,7 +428,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   <label className="block mb-1 font-semibold">Select Coverage States *</label>
                   <div className="max-h-40 overflow-y-auto border rounded p-2 grid grid-cols-3 gap-1">
                     {INDIAN_STATES.map((state) => (
-                      <label key={state} className="flex items-center space-x-2 cursor-pointer">
+                      <label key={state} className="flex items-center space-x-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={newService.coverage.includes(state)}
@@ -449,11 +452,12 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  setShowAddModal(false);
-                  setEditingService(null);
-                }}>Cancel</Button>
-                <Button onClick={handleSaveService}>{editingService ? "Update Service" : "Add Service"}</Button>
+                <Button variant="outline" onClick={() => { setShowAddModal(false); setEditingService(null); }}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveService}>
+                  {editingService ? "Update Service" : "Add Service"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
