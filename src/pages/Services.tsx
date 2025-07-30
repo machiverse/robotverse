@@ -26,26 +26,35 @@ const Services = () => {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [services, setServices] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch locations on mount
+  // Fetch categories and locations on mount
   useEffect(() => {
-    async function fetchLocations() {
+    async function fetchFilterData() {
       try {
-        const { data, error } = await supabase
+        const { data: categoryData, error: categoryError } = await supabase
+          .from("service_categories")
+          .select("id, name")
+          .order("name");
+
+        if (categoryError) throw categoryError;
+        setCategories([{ id: "all", name: "All Services" }, ...(categoryData ?? [])]);
+
+        const { data: locationData, error: locationError } = await supabase
           .from("states")
           .select("id, name")
           .order("name");
-        if (error) throw error;
-        setLocations([{ id: "all", name: "All Locations" }, ...(data ?? [])]);
+        if (locationError) throw locationError;
+        setLocations([{ id: "all", name: "All Locations" }, ...(locationData ?? [])]);
       } catch (err: any) {
-        console.error("Error fetching locations", err);
-        setError("Failed to load locations");
+        console.error("Error fetching filters data", err);
+        setError("Failed to load filters data");
       }
     }
-    fetchLocations();
+    fetchFilterData();
   }, []);
 
   // Fetch services data
@@ -57,13 +66,18 @@ const Services = () => {
           .from("services")
           .select(`
             *,
-            profiles!services_provider_id_fkey (full_name, company_name, location)
+            profiles!services_provider_id_fkey (
+              full_name,
+              company_name,
+              location,
+              phone,
+              email
+            )
           `)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
 
-        // Transform services, parsing CSV service_type and normalize location
         const transformed = (data ?? []).map((item: any) => {
           const serviceTypes = item.service_type
             ? item.service_type.split(",").map((t: string) => t.trim().toLowerCase())
@@ -82,12 +96,14 @@ const Services = () => {
             location: locationName,    // original location for display
             locationNormalized,        // normalized location for filtering
             provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
+            providerPhone: item.profiles?.phone || "",
+            providerEmail: item.profiles?.email || "",
             image: "/placeholder.svg",
             description: item.description || "Professional service provider",
-            rating: 4.5, // default
-            responseTime: "2-4 hours", // default
-            completedJobs: Math.floor(Math.random() * 100) + 50, // dummy data
-            availability: "Available",
+            rating: 4.5,               // default rating
+            responseTime: "2-4 hours", // default response time
+            completedJobs: Math.floor(Math.random() * 100) + 50, // dummy job count
+            availability: "Available", // hardcoded for now
           };
         });
 
@@ -103,27 +119,22 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // Normalize selectedCategory for comparison (already lowercased options)
   const selectedCategoryNormalized = selectedCategory.toLowerCase();
 
-  // Normalize selected location name for comparison
   const selectedLocationNormalized =
     selectedLocation === "all"
       ? ""
       : locations.find((l) => l.id === selectedLocation)?.name.toLowerCase() || "";
 
   const filteredServices = services.filter((service) => {
-    // Search matching
     const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.provider.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Category filtering - check if selectedCategory is included in serviceTypes or 'all'
     const matchesCategory =
       selectedCategory === "all" || service.serviceTypes.includes(selectedCategoryNormalized);
 
-    // Location filtering - match normalized locations or 'all'
     const matchesLocation =
       selectedLocation === "all" || service.locationNormalized === selectedLocationNormalized;
 
@@ -190,6 +201,7 @@ const Services = () => {
                 variant={viewMode === "grid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
               >
                 <Grid className="w-4 h-4" />
               </Button>
@@ -197,6 +209,7 @@ const Services = () => {
                 variant={viewMode === "list" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("list")}
+                aria-label="List view"
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -243,13 +256,7 @@ const Services = () => {
                 {filteredServices.length} service{filteredServices.length > 1 ? "s" : ""} found
               </p>
 
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    : "space-y-4"
-                }
-              >
+              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
                 {filteredServices.map((service) => (
                   <Card key={service.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
@@ -259,10 +266,7 @@ const Services = () => {
                       <CardTitle className="text-lg">{service.name}</CardTitle>
                       <div className="flex items-center justify-between">
                         <Badge variant="secondary" className="w-fit capitalize">
-                          {/* Show all service types capitalized */}
-                          {service.serviceTypes
-                            .map((t: string) => t.charAt(0).toUpperCase() + t.slice(1))
-                            .join(", ")}
+                          {service.serviceTypes.map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ")}
                         </Badge>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -296,14 +300,33 @@ const Services = () => {
                               <span>{service.completedJobs} jobs</span>
                             </div>
                           </div>
-                          <p>
-                            <span className="font-medium">Provider:</span> {service.provider}
-                          </p>
+                          <p><span className="font-medium">Provider:</span> {service.provider}</p>
                         </div>
 
                         <div className="flex space-x-2 mt-4">
-                          <Button className="flex-1">Request Quote</Button>
-                          <Button variant="outline" className="flex-1">
+                          <Button
+                            className="flex-1"
+                            onClick={() => {
+                              if (!service.providerEmail) {
+                                alert("Provider email not available");
+                                return;
+                              }
+                              window.location.href = `mailto:${service.providerEmail}`;
+                            }}
+                          >
+                            Request Quote
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              if (!service.providerPhone) {
+                                alert("Provider phone number not available");
+                                return;
+                              }
+                              window.location.href = `tel:${service.providerPhone}`;
+                            }}
+                          >
                             Contact Provider
                           </Button>
                         </div>
@@ -318,7 +341,7 @@ const Services = () => {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      // Implement load more / pagination here if needed
+                      // Implement load more or pagination logic here if needed
                     }}
                   >
                     Load More
@@ -334,3 +357,4 @@ const Services = () => {
 };
 
 export default Services;
+
