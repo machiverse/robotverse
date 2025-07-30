@@ -175,16 +175,21 @@ export default function ServiceListing() {
   // Fetch Indian states once
   useEffect(() => {
     async function fetchStates() {
-      const { data, error } = await supabase
-        .from("states" as any)  // use "as any" if typing issue exists, update your DB and types soon
-        .select("id, name")
-        .order("name", { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from("states")
+          .select("id, name")
+          .order("name", { ascending: true });
 
-      if (error) {
-        console.error("Failed to fetch states:", error.message);
+        if (error) {
+          console.error("Failed to fetch states:", error.message);
+          setStates([]);
+        } else {
+          setStates(data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch states:", err);
         setStates([]);
-      } else {
-        setStates(data || []);
       }
     }
     fetchStates();
@@ -440,7 +445,7 @@ export default function ServiceListing() {
           </div>
 
           {formCompletion < 80 && (
-            <Alert variant="warning" className="mb-4">
+            <Alert variant="default" className="mb-4">
               <AlertCircle className="mr-2" />
               <AlertDescription>
                 Complete your profile to attract more clients.
@@ -466,13 +471,10 @@ export default function ServiceListing() {
             <div>
               <Label htmlFor="service-type">Service Type *</Label>
               <Select
-                id="service-type"
                 value={formData.service_type}
                 onValueChange={(v) => setField("service_type", v)}
-                required
-                className={errors.service_type ? "border-red-600" : ""}
               >
-                <SelectTrigger>
+                <SelectTrigger className={errors.service_type ? "border-red-600" : ""}>
                   <SelectValue placeholder="Select service type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -494,18 +496,15 @@ export default function ServiceListing() {
             <div>
               <Label htmlFor="location">Service Location *</Label>
               <Select
-                id="location"
                 value={formData.location}
                 onValueChange={(v) => setField("location", v)}
-                required
-                className={errors.location ? "border-red-600" : ""}
               >
-                <SelectTrigger>
+                <SelectTrigger className={errors.location ? "border-red-600" : ""}>
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
                   {states.length === 0 ? (
-                    <SelectItem disabled>Loading locations...</SelectItem>
+                    <SelectItem disabled value="loading">Loading locations...</SelectItem>
                   ) : (
                     states.map((state) => (
                       <SelectItem key={state.id} value={state.name}>
@@ -541,13 +540,10 @@ export default function ServiceListing() {
             <div>
               <Label htmlFor="price-range">Price Range *</Label>
               <Select
-                id="price-range"
                 value={formData.price_range}
                 onValueChange={(v) => setField("price_range", v)}
-                required
-                className={errors.price_range ? "border-red-600" : ""}
               >
-                <SelectTrigger>
+                <SelectTrigger className={errors.price_range ? "border-red-600" : ""}>
                   <SelectValue placeholder="Select a price range" />
                 </SelectTrigger>
                 <SelectContent>
@@ -565,7 +561,6 @@ export default function ServiceListing() {
             <div>
               <Label htmlFor="response-time">Response Time</Label>
               <Select
-                id="response-time"
                 value={formData.response_time}
                 onValueChange={(v) => setField("response_time", v)}
               >
@@ -587,7 +582,7 @@ export default function ServiceListing() {
               <Label>Availability</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {availabilityOptions.map((option) => (
-                  <div key={option} className="flex items-centerspace-x-2">
+                  <div key={option} className="flex items-center space-x-2">
                     <Checkbox
                       id={`avail-${option.replace(/\s+/g, "-")}`}
                       checked={formData.availability.includes(option)}
@@ -674,7 +669,6 @@ export default function ServiceListing() {
                 <Select
                   value={newLanguage}
                   onValueChange={(v) => setNewLanguage(v)}
-                  className="flex-grow"
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Add language" />

@@ -24,20 +24,25 @@ const Services = () => {
   useEffect(() => {
     async function fetchFilterData() {
       try {
-        const { data: categoryData, error: categoryError } = await supabase
-          .from("service_categories")
-          .select("id, name")
-          .order("name");
+        // Get unique service types from services table instead of non-existent service_categories table
+        const { data: servicesData, error: servicesError } = await supabase
+          .from("services")
+          .select("service_type")
+          .order("service_type");
 
-        if (categoryError) throw categoryError;
-        setCategories([{ id: "all", name: "All Services" }, ...(categoryData ?? [])]);
+        if (servicesError) throw servicesError;
+        
+        const uniqueCategories = Array.from(new Set(servicesData?.map(s => s.service_type) || []))
+          .map(type => ({ id: type, name: type }));
+        setCategories([{ id: "all", name: "All Services" }, ...uniqueCategories]);
 
+        // Get states with proper typing
         const { data: locationData, error: locationError } = await supabase
           .from("states")
           .select("id, name")
           .order("name");
         if (locationError) throw locationError;
-        setLocations([{ id: "all", name: "All Locations" }, ...(locationData ?? [])]);
+        setLocations([{ id: "all", name: "All Locations" }, ...(locationData || [])]);
       } catch (err: any) {
         console.error("Error fetching filters data", err);
         setError("Failed to load filters data");
