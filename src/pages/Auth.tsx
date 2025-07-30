@@ -213,20 +213,33 @@ const Auth = () => {
         account_type: savedData.accountType || null,
         updated_at: new Date().toISOString(),
         
-        // Initialize nullable fields
+        // Set registration as complete and MOU agreed
+        registration_complete: true,
+        mou_agreed: true,
+        mou_agreed_at: new Date().toISOString(),
+        
+        // Initialize other nullable fields
         avatar_url: null,
-        mou_agreed: null,
-        mou_agreed_at: null,
       };
 
       // ✅ Add role-specific data based on account type
       if (savedData.accountType === 'seller') {
         profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
+        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
         profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
+        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
+        
+        // Set service categories for service providers
+        if (savedData.sellerRoles?.includes('service_provider')) {
+          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
+        }
         
         console.log('🏪 Seller data:', {
           seller_roles: profileData.seller_roles,
-          primary_user_type: profileData.primary_user_type
+          user_roles: profileData.user_roles,
+          primary_user_type: profileData.primary_user_type,
+          primary_role: profileData.primary_role,
+          service_categories: profileData.service_categories
         });
         
       } else if (savedData.accountType === 'logistics') {
@@ -235,12 +248,17 @@ const Auth = () => {
         profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
         profileData.warehouse_storage = savedData.warehouseStorage || null;
         profileData.primary_user_type = 'logistics_provider';
+        profileData.primary_role = 'logistics_provider';
+        profileData.user_roles = ['logistics_provider'];
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
         
         console.log('🚚 Logistics data:', {
           logistics_type: profileData.logistics_type,
           logistics_region: profileData.logistics_region,
           transport_modes: profileData.transport_modes,
-          warehouse_storage: profileData.warehouse_storage
+          warehouse_storage: profileData.warehouse_storage,
+          user_roles: profileData.user_roles,
+          target_audience: profileData.target_audience
         });
         
       } else if (savedData.accountType === 'finance') {
@@ -249,17 +267,25 @@ const Auth = () => {
         profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
         profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
         profileData.primary_user_type = 'finance_provider';
+        profileData.primary_role = 'finance_provider';
+        profileData.user_roles = ['finance_provider'];
         
         console.log('💰 Finance data:', {
           finance_type: profileData.finance_type,
           financing_for: profileData.financing_for,
           target_audience: profileData.target_audience,
-          government_scheme_support: profileData.government_scheme_support
+          government_scheme_support: profileData.government_scheme_support,
+          user_roles: profileData.user_roles
         });
         
       } else if (savedData.accountType === 'buyer') {
         profileData.primary_user_type = 'buyer';
-        console.log('🛒 Buyer data added');
+        profileData.primary_role = 'buyer';
+        profileData.user_roles = ['buyer'];
+        console.log('🛒 Buyer data:', {
+          primary_user_type: profileData.primary_user_type,
+          user_roles: profileData.user_roles
+        });
       }
 
       console.log('📋 Final profile data (type-safe):', JSON.stringify(profileData, null, 2));
@@ -299,10 +325,21 @@ const Auth = () => {
       console.log('  ✓ location:', savedProfile.location);
       console.log('  ✓ user_type:', savedProfile.user_type);
       console.log('  ✓ account_type:', savedProfile.account_type);
+      console.log('  ✓ user_roles:', savedProfile.user_roles);
       console.log('  ✓ seller_roles:', savedProfile.seller_roles);
       console.log('  ✓ primary_user_type:', savedProfile.primary_user_type);
+      console.log('  ✓ primary_role:', savedProfile.primary_role);
       console.log('  ✓ logistics_type:', savedProfile.logistics_type);
+      console.log('  ✓ logistics_region:', savedProfile.logistics_region);
+      console.log('  ✓ transport_modes:', savedProfile.transport_modes);
+      console.log('  ✓ warehouse_storage:', savedProfile.warehouse_storage);
       console.log('  ✓ finance_type:', savedProfile.finance_type);
+      console.log('  ✓ financing_for:', savedProfile.financing_for);
+      console.log('  ✓ target_audience:', savedProfile.target_audience);
+      console.log('  ✓ government_scheme_support:', savedProfile.government_scheme_support);
+      console.log('  ✓ service_categories:', savedProfile.service_categories);
+      console.log('  ✓ mou_agreed:', savedProfile.mou_agreed);
+      console.log('  ✓ registration_complete:', savedProfile.registration_complete);
 
       return data;
 
