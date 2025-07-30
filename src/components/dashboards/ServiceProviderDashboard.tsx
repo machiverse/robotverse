@@ -177,7 +177,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
   }
 
   // Delete service
-  async function handleDeleteService(serviceId: number) {
+  async function handleDeleteService(serviceId: string) {
     if (!confirm("Are you sure you want to delete this service?")) return;
 
     try {
