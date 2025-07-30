@@ -238,8 +238,8 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
             <TabsList className="grid grid-cols-4">
               <TabsTrigger value="requests">Requests</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="calendar" isDisabled>Calendar</TabsTrigger>
-              <TabsTrigger value="analytics" isDisabled>Analytics</TabsTrigger>
+              <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
+              <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
             </TabsList>
             {/* Service Requests Tab */}
             <TabsContent value="requests">
