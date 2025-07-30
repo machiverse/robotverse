@@ -1,31 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
-  DialogTitle
-} from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
-} from '@/components/ui/table';
+  TableRow,
+} from "@/components/ui/table";
 import {
   Wrench,
   Clock,
@@ -40,18 +40,49 @@ import {
   CheckCircle,
   AlertCircle,
   Activity,
-  Loader2
-} from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+  Loader2,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
-  "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
-  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan",
-  "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli",
+  "Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
 ];
 
 const SERVICE_TYPE_OPTIONS = [
@@ -62,7 +93,7 @@ const SERVICE_TYPE_OPTIONS = [
   "Calibration",
   "Training",
   "Upgrades",
-  "Consulting"
+  "Consulting",
 ];
 
 interface ServiceProviderDashboardProps {
@@ -73,7 +104,6 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // States
   const [services, setServices] = useState<any[]>([]);
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState({
@@ -81,20 +111,20 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     activeRequests: 0,
     completedJobs: 0,
     monthlyRevenue: 0,
-    averageRating: 4.8
+    averageRating: 4.8,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal & Form state
+  // Modal and form state
   const [showAddModal, setShowAddModal] = useState(false);
   const [newService, setNewService] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     service_type: [] as string[],
     coverage: [] as string[],
-    price_range: '',
-    location: ''
+    price_range: "",
+    location: "",
   });
 
   useEffect(() => {
@@ -108,26 +138,28 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     setError(null);
 
     try {
-      // Fetch services for current provider
+      // Fetch services created by provider
       const { data: servicesData, error: servicesError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('provider_id', user!.id);
+        .from("services")
+        .select("*")
+        .eq("provider_id", user!.id);
 
-      // Fetch service requests for current provider
+      // Fetch service requests linked to provider
       const { data: requestsData, error: requestsError } = await supabase
-        .from('service_requests')
+        .from("service_requests")
         .select(
-          `id,
-           status,
-           urgency,
-           scheduled_date,
-           completed_at,
-           amount_paid,
-           client:profiles!service_requests_client_id_fkey(id, full_name),
-           service:services(id, name, service_type, coverage, price_range, location)`
+          `
+          id,
+          status,
+          urgency,
+          scheduled_date,
+          completed_at,
+          amount_paid,
+          client:profiles!service_requests_client_id_fkey(id, full_name),
+          service:services(id, name, service_type, coverage, price_range, location)
+          `
         )
-        .eq('provider_id', user!.id);
+        .eq("provider_id", user!.id);
 
       if (servicesError) throw servicesError;
       if (requestsError) throw requestsError;
@@ -135,15 +167,22 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       setServices(servicesData ?? []);
       setServiceRequests(requestsData ?? []);
 
-      // Calculate stats
-      const completedCount = (requestsData ?? []).filter(r => r.status === 'completed').length;
-      const activeCount = (requestsData ?? []).filter(r => ['pending', 'in_progress'].includes(r.status)).length;
+      // Compute stats
+      const completedCount = (requestsData ?? []).filter(
+        (r) => r.status === "completed"
+      ).length;
+      const activeCount = (requestsData ?? []).filter((r) =>
+        ["pending", "in_progress"].includes(r.status)
+      ).length;
 
-      // Calculate monthly revenue (sum amount_paid for completed jobs this month)
       const monthStart = new Date();
       monthStart.setDate(1);
-      const monthRevenue = (requestsData ?? []).reduce((sum, r) => {
-        if (r.status === 'completed' && r.completed_at && new Date(r.completed_at) >= monthStart) {
+      const monthlyRevenue = (requestsData ?? []).reduce((sum, r) => {
+        if (
+          r.status === "completed" &&
+          r.completed_at &&
+          new Date(r.completed_at) >= monthStart
+        ) {
           return sum + (r.amount_paid ?? 0);
         }
         return sum;
@@ -153,82 +192,107 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
         totalServices: servicesData?.length ?? 0,
         activeRequests: activeCount,
         completedJobs: completedCount,
-        monthlyRevenue: monthRevenue,
-        averageRating: userProfile?.average_rating ?? 4.8
+        monthlyRevenue,
+        averageRating: userProfile?.average_rating ?? 4.8,
       });
-    } catch (e: any) {
-      setError(`Failed to load data: ${e.message ?? e.toString()}`);
+    } catch (err: any) {
+      setError(`Failed to load data: ${err?.message ?? String(err)}`);
     } finally {
       setLoading(false);
     }
   }
 
-  // Toggle multi-select for service types
   function toggleServiceType(type: string) {
-    setNewService(prev => {
-      const updated = prev.service_type.includes(type)
-        ? prev.service_type.filter(t => t !== type)
+    setNewService((prev) => {
+      const exists = prev.service_type.includes(type);
+      const updated = exists
+        ? prev.service_type.filter((t) => t !== type)
         : [...prev.service_type, type];
       return { ...prev, service_type: updated };
     });
   }
 
-  // Toggle multi-select for coverage states
-  function toggleCoverageState(state: string) {
-    setNewService(prev => {
-      const updated = prev.coverage.includes(state)
-        ? prev.coverage.filter(s => s !== state)
+  function toggleCoverage(state: string) {
+    setNewService((prev) => {
+      const exists = prev.coverage.includes(state);
+      const updated = exists
+        ? prev.coverage.filter((s) => s !== state)
         : [...prev.coverage, state];
       return { ...prev, coverage: updated };
     });
   }
 
-  // Add Service Handler
   async function handleAddService() {
     if (!user) return;
     if (!newService.name.trim()) {
-      alert('Service name is required.');
+      alert("Service name is required");
       return;
     }
-    if (!newService.service_type.length) {
-      alert('Select at least one service type.');
+    if (newService.service_type.length === 0) {
+      alert("Select at least one service type");
       return;
     }
     if (!newService.price_range.trim()) {
-      alert('Price range is required.');
+      alert("Price range is required");
       return;
     }
 
-    const insertData = {
-      ...newService,
-      service_type: newService.service_type.join(', '),  // Storing as comma separated string
-      coverage: newService.coverage.join(', '),          // Same for coverage
-      provider_id: user.id,
-    };
-
     try {
-      const { error } = await supabase.from('services').insert([insertData]);
+      // Save service_type and coverage as comma-separated strings
+      const insertData = {
+        ...newService,
+        service_type: newService.service_type.join(", "),
+        coverage: newService.coverage.join(", "),
+        provider_id: user.id,
+      };
+
+      const { error } = await supabase.from("services").insert([insertData]);
       if (error) {
         alert(`Failed to add service: ${error.message}`);
         return;
       }
       setShowAddModal(false);
-      setNewService({ name: '', description: '', service_type: [], coverage: [], price_range: '', location: '' });
+      setNewService({
+        name: "",
+        description: "",
+        service_type: [],
+        coverage: [],
+        price_range: "",
+        location: "",
+      });
       fetchDashboardData();
     } catch (err) {
       alert(`Error adding service: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  function getBadgeVariant(status: string): 'default' | 'destructive' | 'outline' | 'secondary' {
+  function getBadgeVariant(
+    status: string
+  ): "default" | "destructive" | "outline" | "secondary" {
     switch (status) {
-      case 'pending': return 'secondary';
-      case 'in_progress': return 'default';
-      case 'completed': return 'outline';
-      case 'cancelled': return 'destructive';
-      default: return 'secondary';
+      case "pending":
+        return "secondary";
+      case "in_progress":
+        return "default";
+      case "completed":
+        return "outline";
+      case "cancelled":
+        return "destructive";
+      default:
+        return "secondary";
     }
   }
+
+  const getUrgencyBadge = (urgency: string) => {
+    const options: Record<string, string> = {
+      low: "bg-green-100 text-green-800",
+      medium: "bg-yellow-100 text-yellow-800",
+      high: "bg-red-100 text-red-800",
+    };
+    return (
+      <Badge className={options[urgency] || options["medium"]}>{urgency}</Badge>
+    );
+  };
 
   return (
     <>
@@ -244,9 +308,14 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">Service Provider Dashboard</h1>
-              <p className="text-muted-foreground">Manage your services and client requests</p>
+              <p className="text-muted-foreground">
+                Manage your services and service requests
+              </p>
             </div>
-            <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2"
+            >
               <Plus className="w-4 h-4" /> Add New Service
             </Button>
           </div>
@@ -255,55 +324,51 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
               {
-                title: 'Total Services',
+                title: "Total Services",
                 val: dashboardStats.totalServices,
                 icon: Wrench,
-                variant: 'secondary',
-                color: 'text-blue-600',
+                variant: "secondary",
+                color: "text-blue-600",
               },
               {
-                title: 'Active Requests',
+                title: "Active Requests",
                 val: dashboardStats.activeRequests,
                 icon: Clock,
-                variant: 'secondary',
-                color: 'text-orange-600',
+                variant: "secondary",
+                color: "text-orange-600",
               },
               {
-                title: 'Completed Jobs',
+                title: "Completed Jobs",
                 val: dashboardStats.completedJobs,
                 icon: CheckCircle,
-                variant: 'outline',
-                color: 'text-green-600',
+                variant: "outline",
+                color: "text-green-600",
               },
               {
-                title: 'Monthly Revenue',
+                title: "Monthly Revenue",
                 val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`,
                 icon: DollarSign,
-                variant: 'secondary',
-                color: 'text-purple-600',
+                variant: "secondary",
+                color: "text-purple-600",
               },
               {
-                title: 'Average Rating',
+                title: "Average Rating",
                 val: dashboardStats.averageRating,
                 icon: Star,
-                variant: 'secondary',
-                color: 'text-yellow-600',
+                variant: "secondary",
+                color: "text-yellow-600",
               },
-            ].map((item, i) => (
-              <Card key={i}>
+            ].map(({ title, val, icon: Icon, variant, color }, idx) => (
+              <Card key={idx}>
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-muted-foreground mb-2">{item.title}</p>
-                      <div className="flex items-center space-x-2">
-                        <h2 className="text-xl font-semibold">{item.val}</h2>
-                        <Badge variant={item.variant as any} className={item.color}>
-                          {/* Optionally place trend or extra text */}
-                        </Badge>
-                      </div>
+                      <p className="text-muted-foreground mb-2">{title}</p>
+                      <h2 className="text-xl font-semibold">{val}</h2>
+                      <Badge variant={variant as any} />
                     </div>
-                    <div className={`p-3 rounded-lg ${item.color}`}>
-                      <item.icon className="w-8 h-8" />
+                    <div className={`p-3 rounded-lg ${color}`}>
+                      <Icon className="w-8 h-8" />
                     </div>
                   </div>
                 </CardContent>
@@ -327,11 +392,13 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                   <CardTitle>
                     <Activity className="inline mr-2" /> Service Requests
                   </CardTitle>
-                  <CardDescription>Manage your incoming requests</CardDescription>
+                  <CardDescription>
+                    Manage incoming service requests
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {serviceRequests.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-20">
+                    <div className="py-20 text-center text-muted-foreground">
                       No service requests
                     </div>
                   ) : (
@@ -348,17 +415,38 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {serviceRequests.map(req => (
+                        {serviceRequests.map((req) => (
                           <TableRow key={req.id}>
-                            <TableCell>{req.client?.full_name ?? 'N/A'}</TableCell>
-                            <TableCell>{req.service?.service_type ?? 'N/A'}</TableCell>
-                            <TableCell>{req.scheduled_date ?? 'N/A'}</TableCell>
-                            <TableCell>{getBadgeVariant(req.status) && <Badge variant={getBadgeVariant(req.status)}>{req.status}</Badge>}</TableCell>
-                            <TableCell>{getBadgeVariant(req.urgency) && <Badge>{req.urgency}</Badge>}</TableCell>
-                            <TableCell><MapPin className="inline mr-1" />{req.service?.location ?? 'N/A'}</TableCell>
+                            <TableCell>{req.client?.full_name ?? "N/A"}</TableCell>
                             <TableCell>
-                              <Button size="sm" className="mr-2" onClick={() => alert('Accept request: ' + req.id)}>Accept</Button>
-                              <Button size="sm" variant="ghost" onClick={() => alert('View details: ' + req.id)}>Details</Button>
+                              {req.service?.service_type ?? "N/A"}
+                            </TableCell>
+                            <TableCell>{req.scheduled_date ?? "N/A"}</TableCell>
+                            <TableCell>
+                              <Badge variant={getBadgeVariant(req.status)}>
+                                {req.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{getUrgencyBadge(req.urgency)}</TableCell>
+                            <TableCell>
+                              <MapPin className="inline mr-1" />
+                              {req.service?.location ?? "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                className="mr-2"
+                                onClick={() => alert(`Accept request ${req.id}`)}
+                              >
+                                Accept
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => alert(`Details for request ${req.id}`)}
+                              >
+                                Details
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -376,63 +464,93 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                   <CardTitle>
                     <Wrench className="inline mr-2" /> Your Services
                   </CardTitle>
-                  <CardDescription>Your service offerings</CardDescription>
+                  <CardDescription>Your listed services</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {services.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-20">
-                      No services listed
+                    <div className="py-20 text-center text-muted-foreground">
+                      No services listed.
                       <br />
-                      <Button className="mt-4" onClick={() => setShowAddModal(true)}>
-                        <Plus className="inline mr-2" /> Add your first service
+                      <Button
+                        onClick={() => setShowAddModal(true)}
+                        className="mt-4"
+                      >
+                        <Plus className="inline mr-2" /> Add Service
                       </Button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {services.map(service => {
-                        const serviceTypesList = Array.isArray(service.service_type)
-                          ? service.service_type
-                          : typeof service.service_type === 'string'
-                          ? service.service_type.split(',').map((s: string) => s.trim())
-                          : [];
+                      {services.map((service) => {
+                        const serviceList: string[] =
+                          typeof service.service_type === "string"
+                            ? service.service_type.split(",").map((s) => s.trim())
+                            : Array.isArray(service.service_type)
+                            ? service.service_type
+                            : [];
 
-                        const coverageList = Array.isArray(service.coverage)
-                          ? service.coverage
-                          : typeof service.coverage === 'string'
-                          ? service.coverage.split(',').map((s: string) => s.trim())
-                          : [];
+                        const coverageList: string[] =
+                          typeof service.coverage === "string"
+                            ? service.coverage.split(",").map((s) => s.trim())
+                            : Array.isArray(service.coverage)
+                            ? service.coverage
+                            : [];
 
                         return (
                           <Card key={service.id}>
                             <CardContent>
-                              <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-semibold text-lg">{service.name}</h3>
-                                <div className="space-x-2">
-                                  <Button size="sm" variant="ghost" onClick={() => alert(`Edit service ${service.id}`)}>
+                              <div className="flex justify-between mb-2">
+                                <h3 className="font-semibold text-lg">
+                                  {service.name}
+                                </h3>
+                                <div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      alert(`Edit service ${service.id}`)
+                                    }
+                                  >
                                     <Edit className="w-4 h-4" />
                                   </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => alert(`Delete service ${service.id}`)}>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      alert(`Delete service ${service.id}`)
+                                    }
+                                  >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
                                 </div>
                               </div>
-                              <p className="mb-2 text-muted-foreground">{service.description ?? ''}</p>
-                              <div className="flex flex-wrap gap-2 mb-2">
-                                {serviceTypesList.map(type => (
-                                  <Badge key={type} variant="secondary">{type}</Badge>
+                              <p className="mb-2 text-muted-foreground">
+                                {service.description ?? ""}
+                              </p>
+                              <div className="mb-2">
+                                {serviceList.map((type) => (
+                                  <Badge key={type} className="mr-1">
+                                    {type}
+                                  </Badge>
                                 ))}
                               </div>
-                              <div className="flex flex-wrap gap-2 mb-2">
-                                {coverageList.length > 0 ? coverageList.map(state => (
-                                  <Badge key={state} variant="outline">{state}</Badge>
-                                )) : (
-                                  <span className="text-xs text-muted-foreground">No coverage selected</span>
+                              <div className="mb-2 flex flex-wrap gap-1">
+                                {coverageList.length > 0 ? (
+                                  coverageList.map((state) => (
+                                    <Badge key={state} variant="outline">
+                                      {state}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    No coverage selected
+                                  </span>
                                 )}
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="font-bold">{service.price_range ?? 'N/A'}</span>
+                                <span>{service.price_range ?? "N/A"}</span>
                                 <div className="flex items-center text-muted-foreground text-sm">
-                                  <MapPin className="mr-1" /> {service.location ?? 'N/A'}
+                                  <MapPin className="mr-1" />
+                                  {service.location ?? "N/A"}
                                 </div>
                               </div>
                             </CardContent>
@@ -445,21 +563,28 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
               </Card>
             </TabsContent>
 
-            {/* Calendar Tab */}
+            {/* Calendar Tab (coming soon) */}
             <TabsContent value="calendar">
               <Card>
                 <CardHeader>
-                  <CardTitle><Calendar className="inline mr-2"/> Calendar (Coming Soon)</CardTitle>
-                  <CardDescription>Manage your calendar</CardDescription>
+                  <CardTitle>
+                    <Calendar className="inline mr-2" />
+                    Calendar (Coming Soon)
+                  </CardTitle>
+                  <CardDescription>Manage your schedule</CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <p className="text-muted-foreground my-10">Feature coming soon</p>
-                  <Button onClick={() => alert('Calendar feature not yet implemented')}>View Calendar</Button>
+                  <p className="py-20 text-muted-foreground">
+                    Calendar functionality coming soon.
+                  </p>
+                  <Button onClick={() => alert("Coming soon!")}>
+                    View Calendar
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Analytics Tab */}
+            {/* Analytics Tab (placeholder) */}
             <TabsContent value="analytics">
               <Card>
                 <CardHeader>
@@ -473,50 +598,68 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
           </Tabs>
 
           {/* Add Service Modal */}
-          <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+          <Dialog
+            open={showAddModal}
+            onOpenChange={(open) => {
+              if (!open) setShowAddModal(false);
+            }}
+          >
             <DialogContent>
-              <DialogTitle>Add a New Service</DialogTitle>
+              <DialogTitle>Add New Service</DialogTitle>
               <div className="space-y-4 mt-4">
                 <Input
                   placeholder="Service Name *"
                   value={newService.name}
-                  onChange={e => setNewService({...newService, name: e.target.value})}
+                  onChange={(e) =>
+                    setNewService({ ...newService, name: e.target.value })
+                  }
                   required
                 />
                 <Textarea
                   placeholder="Description"
                   value={newService.description}
-                  onChange={e => setNewService({...newService, description: e.target.value})}
+                  onChange={(e) =>
+                    setNewService({ ...newService, description: e.target.value })
+                  }
+                  rows={3}
                 />
                 <div>
-                  <label className="block mb-1 font-semibold">Service Types *</label>
-                  <div className="max-h-40 overflow-y-auto border rounded p-2 flex flex-wrap gap-2">
-                    {SERVICE_TYPE_OPTIONS.map(type => (
-                      <label key={type} className="inline-flex items-center cursor-pointer">
+                  <label className="block mb-1 font-semibold">
+                    Select Service Types *
+                  </label>
+                  <div className="max-h-36 overflow-y-auto border rounded p-2 grid grid-cols-2 gap-2">
+                    {SERVICE_TYPE_OPTIONS.map((type) => (
+                      <label
+                        key={type}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
                         <input
                           type="checkbox"
                           checked={newService.service_type.includes(type)}
                           onChange={() => toggleServiceType(type)}
-                          className="mr-2"
                         />
-                        {type}
+                        <span>{type}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block mb-1 font-semibold">Coverage States (Select all) *</label>
-                  <div className="max-h-40 overflow-y-auto border rounded p-2 flex flex-wrap gap-2">
-                    {INDIAN_STATES.map(state => (
-                      <label key={state} className="inline-flex items-center cursor-pointer">
+                  <label className="block mb-1 font-semibold">
+                    Select Coverage States *
+                  </label>
+                  <div className="max-h-40 overflow-y-auto border rounded p-2 grid grid-cols-3 gap-1">
+                    {INDIAN_STATES.map((state) => (
+                      <label
+                        key={state}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
                         <input
                           type="checkbox"
                           checked={newService.coverage.includes(state)}
-                          onChange={() => toggleCoverageState(state)}
-                          className="mr-2"
+                          onChange={() => toggleCoverage(state)}
                         />
-                        {state}
+                        <span>{state}</span>
                       </label>
                     ))}
                   </div>
@@ -525,23 +668,28 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                 <Input
                   placeholder="Price Range *"
                   value={newService.price_range}
-                  onChange={e => setNewService({...newService, price_range: e.target.value})}
+                  onChange={(e) =>
+                    setNewService({ ...newService, price_range: e.target.value })
+                  }
                   required
                 />
-
                 <Input
                   placeholder="Location (City, Region)"
                   value={newService.location}
-                  onChange={e => setNewService({...newService, location: e.target.value})}
+                  onChange={(e) =>
+                    setNewService({ ...newService, location: e.target.value })
+                  }
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </Button>
                 <Button onClick={handleAddService}>Add Service</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </>
+        </div>
       )}
     </>
   );
