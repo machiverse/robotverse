@@ -5,9 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Settings, MapPin, Search, Grid, List, Star, Clock, Users } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import {
+  Settings,
+  MapPin,
+  Search,
+  Grid,
+  List,
+  Star,
+  Clock,
+  Users,
+} from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const SERVICE_TYPE_OPTIONS = [
   "Installation",
@@ -31,6 +52,10 @@ const Services = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // State for service details modal
+  const [selectedService, setSelectedService] = useState<any | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   // Fetch categories and locations on mount
   useEffect(() => {
     async function fetchFilterData() {
@@ -47,6 +72,7 @@ const Services = () => {
           .from("states")
           .select("id, name")
           .order("name");
+
         if (locationError) throw locationError;
         setLocations([{ id: "all", name: "All Locations" }, ...(locationData ?? [])]);
       } catch (err: any) {
@@ -80,7 +106,9 @@ const Services = () => {
 
         const transformed = (data ?? []).map((item: any) => {
           const serviceTypes = item.service_type
-            ? item.service_type.split(",").map((t: string) => t.trim().toLowerCase())
+            ? item.service_type
+                .split(",")
+                .map((t: string) => t.trim().toLowerCase())
             : [];
 
           const locationName =
@@ -91,19 +119,22 @@ const Services = () => {
           return {
             id: item.id,
             name: item.name,
-            serviceTypes,              // array of lowercased service types for filtering
+            serviceTypes, // array of lowercased service types for filtering
             priceRange: item.price_range || "Contact for pricing",
-            location: locationName,    // original location for display
-            locationNormalized,        // normalized location for filtering
-            provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
+            location: locationName, // original location for display
+            locationNormalized, // normalized location for filtering
+            provider:
+              item.profiles?.company_name ||
+              item.profiles?.full_name ||
+              "Service Provider",
             providerPhone: item.profiles?.phone || "",
             providerEmail: item.profiles?.email || "",
             image: "/placeholder.svg",
             description: item.description || "Professional service provider",
-            rating: 4.5,               // default rating
-            responseTime: "2-4 hours", // default response time
-            completedJobs: Math.floor(Math.random() * 100) + 50, // dummy job count
-            availability: "Available", // hardcoded for now
+            rating: 4.5, // default
+            responseTime: "2-4 hours", // default
+            completedJobs: Math.floor(Math.random() * 100) + 50, // dummy data
+            availability: "Available",
           };
         });
 
@@ -141,6 +172,12 @@ const Services = () => {
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
+  // Open service details modal
+  function openDetailsModal(service: any) {
+    setSelectedService(service);
+    setShowDetailsModal(true);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
@@ -150,7 +187,8 @@ const Services = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Robot Services</h1>
           <p className="text-xl text-muted-foreground">
-            Connect with certified professionals for robot maintenance, repair, and training services
+            Connect with certified professionals for robot maintenance, repair,
+            and training services
           </p>
         </div>
 
@@ -167,7 +205,6 @@ const Services = () => {
               />
             </div>
 
-            {/* Service Type Filter */}
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="Service Type" />
@@ -182,7 +219,6 @@ const Services = () => {
               </SelectContent>
             </Select>
 
-            {/* Location Filter */}
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger>
                 <SelectValue placeholder="Location" />
@@ -256,9 +292,22 @@ const Services = () => {
                 {filteredServices.length} service{filteredServices.length > 1 ? "s" : ""} found
               </p>
 
-              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    : "space-y-4"
+                }
+              >
                 {filteredServices.map((service) => (
-                  <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={service.id}
+                    className="hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => openDetailsModal(service)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`View details for ${service.name}`}
+                  >
                     <CardHeader>
                       <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
                         <Settings className="w-12 h-12 text-muted-foreground" />
@@ -266,7 +315,9 @@ const Services = () => {
                       <CardTitle className="text-lg">{service.name}</CardTitle>
                       <div className="flex items-center justify-between">
                         <Badge variant="secondary" className="w-fit capitalize">
-                          {service.serviceTypes.map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ")}
+                          {service.serviceTypes
+                            .map((t: string) => t.charAt(0).toUpperCase() + t.slice(1))
+                            .join(", ")}
                         </Badge>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -300,13 +351,16 @@ const Services = () => {
                               <span>{service.completedJobs} jobs</span>
                             </div>
                           </div>
-                          <p><span className="font-medium">Provider:</span> {service.provider}</p>
+                          <p>
+                            <span className="font-medium">Provider:</span> {service.provider}
+                          </p>
                         </div>
 
                         <div className="flex space-x-2 mt-4">
                           <Button
                             className="flex-1"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               if (!service.providerEmail) {
                                 alert("Provider email not available");
                                 return;
@@ -319,9 +373,10 @@ const Services = () => {
                           <Button
                             variant="outline"
                             className="flex-1"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               if (!service.providerPhone) {
-                                alert("Provider phone number not available");
+                                alert("Provider phone not available");
                                 return;
                               }
                               window.location.href = `tel:${service.providerPhone}`;
@@ -341,7 +396,7 @@ const Services = () => {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      // Implement load more or pagination logic here if needed
+                      // Implement load more / pagination logic here
                     }}
                   >
                     Load More
@@ -352,9 +407,50 @@ const Services = () => {
           )}
         </div>
       </div>
+
+      {/* Service Details Modal */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent>
+          <DialogTitle>{selectedService?.name}</DialogTitle>
+          <div className="space-y-4 mt-2">
+            <p>
+              <strong>Categories: </strong>
+              {selectedService?.serviceTypes
+                .map((t: string) => t.charAt(0).toUpperCase() + t.slice(1))
+                .join(", ")}
+            </p>
+            <p>
+              <strong>Price Range: </strong> {selectedService?.priceRange}
+            </p>
+            <p>
+              <strong>Location: </strong> {selectedService?.location}
+            </p>
+            <p>
+              <strong>Provider: </strong> {selectedService?.provider}
+            </p>
+            <p>
+              <strong>Description: </strong> {selectedService?.description}
+            </p>
+            <p>
+              <strong>Rating: </strong> {selectedService?.rating}
+            </p>
+            <p>
+              <strong>Response Time: </strong> {selectedService?.responseTime}
+            </p>
+            <p>
+              <strong>Completed Jobs: </strong> {selectedService?.completedJobs}
+            </p>
+            <p>
+              <strong>Availability: </strong> {selectedService?.availability}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowDetailsModal(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default Services;
-
