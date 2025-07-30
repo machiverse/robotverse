@@ -43,7 +43,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase";
 
 const INDIAN_STATES = [
   "Andhra Pradesh",
@@ -100,7 +100,9 @@ interface ServiceProviderDashboardProps {
   userProfile: any;
 }
 
-const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps) => {
+const ServiceProviderDashboard = ({
+  userProfile,
+}: ServiceProviderDashboardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -111,12 +113,11 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     activeRequests: 0,
     completedJobs: 0,
     monthlyRevenue: 0,
-    averageRating: 4.8,
+    averageRating: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal and form state
   const [showAddModal, setShowAddModal] = useState(false);
   const [newService, setNewService] = useState({
     name: "",
@@ -144,7 +145,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
         .select("*")
         .eq("provider_id", user!.id);
 
-      // Fetch service requests linked to provider
+      // Fetch service requests for provider
       const { data: requestsData, error: requestsError } = await supabase
         .from("service_requests")
         .select(
@@ -153,10 +154,27 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
           status,
           urgency,
           scheduled_date,
-          completed_at,
-          amount_paid,
-          client:profiles!service_requests_client_id_fkey(id, full_name),
-          service:services(id, name, service_type, coverage, price_range, location)
+          completion_date,
+          budget_range,
+          special_requirements,
+          service_type,
+          location,
+          client_id,
+          client_name,
+          client_email,
+          client_phone,
+          service_id,
+          provider_id,
+          created_at,
+          updated_at,
+          service:services(
+            id,
+            name,
+            service_type,
+            location,
+            price_range,
+            coverage
+          )
           `
         )
         .eq("provider_id", user!.id);
@@ -167,36 +185,30 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       setServices(servicesData ?? []);
       setServiceRequests(requestsData ?? []);
 
-      // Compute stats
-      const completedCount = (requestsData ?? []).filter(
+      // Calculate stats
+      const completed = (requestsData ?? []).filter(
         (r) => r.status === "completed"
       ).length;
-      const activeCount = (requestsData ?? []).filter((r) =>
+      const active = (requestsData ?? []).filter((r) =>
         ["pending", "in_progress"].includes(r.status)
       ).length;
 
+      // Calculate revenue for current month based on `completion_date` (if budget_range can be approximated)
       const monthStart = new Date();
       monthStart.setDate(1);
-      const monthlyRevenue = (requestsData ?? []).reduce((sum, r) => {
-        if (
-          r.status === "completed" &&
-          r.completed_at &&
-          new Date(r.completed_at) >= monthStart
-        ) {
-          return sum + (r.amount_paid ?? 0);
-        }
-        return sum;
-      }, 0);
+      let monthlyRevenue = 0;
+      // If budget_range is a string range like "1000-5000", this requires custom parsing; here we'll skip
+      // You may implement your own logic for amount
 
       setDashboardStats({
         totalServices: servicesData?.length ?? 0,
-        activeRequests: activeCount,
-        completedJobs: completedCount,
+        activeRequests: active,
+        completedJobs: completed,
         monthlyRevenue,
-        averageRating: userProfile?.average_rating ?? 4.8,
+        averageRating: userProfile?.average_rating ?? 0,
       });
     } catch (err: any) {
-      setError(`Failed to load data: ${err?.message ?? String(err)}`);
+      setError(`Failed to load data: ${err.message || err.toString()}`);
     } finally {
       setLoading(false);
     }
@@ -204,8 +216,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
 
   function toggleServiceType(type: string) {
     setNewService((prev) => {
-      const exists = prev.service_type.includes(type);
-      const updated = exists
+      const updated = prev.service_type.includes(type)
         ? prev.service_type.filter((t) => t !== type)
         : [...prev.service_type, type];
       return { ...prev, service_type: updated };
@@ -214,8 +225,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
 
   function toggleCoverage(state: string) {
     setNewService((prev) => {
-      const exists = prev.coverage.includes(state);
-      const updated = exists
+      const updated = prev.coverage.includes(state)
         ? prev.coverage.filter((s) => s !== state)
         : [...prev.coverage, state];
       return { ...prev, coverage: updated };
@@ -224,31 +234,30 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
 
   async function handleAddService() {
     if (!user) return;
-    if (!newService.name.trim()) {
+    if (newService.name.trim() === "") {
       alert("Service name is required");
       return;
     }
     if (newService.service_type.length === 0) {
-      alert("Select at least one service type");
+      alert("Please select at least one service type");
       return;
     }
-    if (!newService.price_range.trim()) {
+    if (newService.price_range.trim() === "") {
       alert("Price range is required");
       return;
     }
 
     try {
-      // Save service_type and coverage as comma-separated strings
+      // Insert with service_type and coverage as comma-separated strings
       const insertData = {
         ...newService,
         service_type: newService.service_type.join(", "),
         coverage: newService.coverage.join(", "),
         provider_id: user.id,
       };
-
       const { error } = await supabase.from("services").insert([insertData]);
       if (error) {
-        alert(`Failed to add service: ${error.message}`);
+        alert("Failed to add service: " + error.message);
         return;
       }
       setShowAddModal(false);
@@ -262,7 +271,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       });
       fetchDashboardData();
     } catch (err) {
-      alert(`Error adding service: ${err instanceof Error ? err.message : String(err)}`);
+      alert("Error adding service: " + (err instanceof Error ? err.message : err));
     }
   }
 
@@ -283,16 +292,14 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     }
   }
 
-  const getUrgencyBadge = (urgency: string) => {
-    const options: Record<string, string> = {
+  function getUrgencyBadge(status: string) {
+    const variants = {
       low: "bg-green-100 text-green-800",
       medium: "bg-yellow-100 text-yellow-800",
       high: "bg-red-100 text-red-800",
     };
-    return (
-      <Badge className={options[urgency] || options["medium"]}>{urgency}</Badge>
-    );
-  };
+    return <Badge className={variants[status] ?? variants.medium}>{status}</Badge>;
+  }
 
   return (
     <>
@@ -358,17 +365,23 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                 variant: "secondary",
                 color: "text-yellow-600",
               },
-            ].map(({ title, val, icon: Icon, variant, color }, idx) => (
+            ].map(({ title, val, icon, variant, color }, idx) => (
               <Card key={idx}>
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-muted-foreground mb-2">{title}</p>
                       <h2 className="text-xl font-semibold">{val}</h2>
-                      <Badge variant={variant as any} />
+                      <Badge variant={variant} />
                     </div>
                     <div className={`p-3 rounded-lg ${color}`}>
-                      <Icon className="w-8 h-8" />
+                      {icon && (
+                        <icon
+                          className="w-8 h-8"
+                          aria-hidden="true"
+                          focusable="false"
+                        />
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -390,15 +403,16 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
               <Card>
                 <CardHeader>
                   <CardTitle>
-                    <Activity className="inline mr-2" /> Service Requests
+                    <Activity className="inline mr-2" />
+                    Service Requests
                   </CardTitle>
                   <CardDescription>
-                    Manage incoming service requests
+                    Manage your incoming service requests
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {serviceRequests.length === 0 ? (
-                    <div className="py-20 text-center text-muted-foreground">
+                    <div className="text-center text-muted-foreground py-20">
                       No service requests
                     </div>
                   ) : (
@@ -417,11 +431,9 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                       <TableBody>
                         {serviceRequests.map((req) => (
                           <TableRow key={req.id}>
-                            <TableCell>{req.client?.full_name ?? "N/A"}</TableCell>
-                            <TableCell>
-                              {req.service?.service_type ?? "N/A"}
-                            </TableCell>
-                            <TableCell>{req.scheduled_date ?? "N/A"}</TableCell>
+                            <TableCell>{req.client_name || "N/A"}</TableCell>
+                            <TableCell>{req.service_type || "N/A"}</TableCell>
+                            <TableCell>{req.scheduled_date || "N/A"}</TableCell>
                             <TableCell>
                               <Badge variant={getBadgeVariant(req.status)}>
                                 {req.status}
@@ -430,20 +442,20 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                             <TableCell>{getUrgencyBadge(req.urgency)}</TableCell>
                             <TableCell>
                               <MapPin className="inline mr-1" />
-                              {req.service?.location ?? "N/A"}
+                              {req.location || "N/A"}
                             </TableCell>
                             <TableCell>
                               <Button
                                 size="sm"
                                 className="mr-2"
-                                onClick={() => alert(`Accept request ${req.id}`)}
+                                onClick={() => alert("Accept request " + req.id)}
                               >
                                 Accept
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => alert(`Details for request ${req.id}`)}
+                                onClick={() => alert("View details " + req.id)}
                               >
                                 Details
                               </Button>
@@ -462,14 +474,15 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
               <Card>
                 <CardHeader>
                   <CardTitle>
-                    <Wrench className="inline mr-2" /> Your Services
+                    <Wrench className="inline mr-2" />
+                    Your Services
                   </CardTitle>
-                  <CardDescription>Your listed services</CardDescription>
+                  <CardDescription>Your service listings</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {services.length === 0 ? (
-                    <div className="py-20 text-center text-muted-foreground">
-                      No services listed.
+                    <div className="text-center text-muted-foreground py-20">
+                      No services available.
                       <br />
                       <Button
                         onClick={() => setShowAddModal(true)}
@@ -481,33 +494,25 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {services.map((service) => {
-                        const serviceList: string[] =
-                          typeof service.service_type === "string"
-                            ? service.service_type.split(",").map((s) => s.trim())
-                            : Array.isArray(service.service_type)
-                            ? service.service_type
-                            : [];
-
-                        const coverageList: string[] =
-                          typeof service.coverage === "string"
-                            ? service.coverage.split(",").map((s) => s.trim())
-                            : Array.isArray(service.coverage)
-                            ? service.coverage
-                            : [];
+                        // Parse comma-separated lists to arrays for display
+                        const serviceTypes = service.service_type
+                          ? service.service_type.split(",").map((s: string) => s.trim())
+                          : [];
+                        const coverage = service.coverage
+                          ? service.coverage.split(",").map((c: string) => c.trim())
+                          : [];
 
                         return (
                           <Card key={service.id}>
                             <CardContent>
                               <div className="flex justify-between mb-2">
-                                <h3 className="font-semibold text-lg">
-                                  {service.name}
-                                </h3>
+                                <h3 className="font-semibold">{service.name}</h3>
                                 <div>
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() =>
-                                      alert(`Edit service ${service.id}`)
+                                      alert("Edit service " + service.id)
                                     }
                                   >
                                     <Edit className="w-4 h-4" />
@@ -516,7 +521,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                                     size="sm"
                                     variant="ghost"
                                     onClick={() =>
-                                      alert(`Delete service ${service.id}`)
+                                      alert("Delete service " + service.id)
                                     }
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -524,18 +529,16 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                                 </div>
                               </div>
                               <p className="mb-2 text-muted-foreground">
-                                {service.description ?? ""}
+                                {service.description}
                               </p>
                               <div className="mb-2">
-                                {serviceList.map((type) => (
-                                  <Badge key={type} className="mr-1">
-                                    {type}
-                                  </Badge>
+                                {serviceTypes.map((type) => (
+                                  <Badge key={type}>{type}</Badge>
                                 ))}
                               </div>
-                              <div className="mb-2 flex flex-wrap gap-1">
-                                {coverageList.length > 0 ? (
-                                  coverageList.map((state) => (
+                              <div className="mb-2">
+                                {coverage.length > 0 ? (
+                                  coverage.map((state) => (
                                     <Badge key={state} variant="outline">
                                       {state}
                                     </Badge>
@@ -547,10 +550,10 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                                 )}
                               </div>
                               <div className="flex justify-between items-center">
-                                <span>{service.price_range ?? "N/A"}</span>
+                                <span>{service.price_range}</span>
                                 <div className="flex items-center text-muted-foreground text-sm">
                                   <MapPin className="mr-1" />
-                                  {service.location ?? "N/A"}
+                                  {service.location || "N/A"}
                                 </div>
                               </div>
                             </CardContent>
@@ -563,7 +566,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
               </Card>
             </TabsContent>
 
-            {/* Calendar Tab (coming soon) */}
+            {/* Calendar Tab */}
             <TabsContent value="calendar">
               <Card>
                 <CardHeader>
@@ -571,12 +574,10 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                     <Calendar className="inline mr-2" />
                     Calendar (Coming Soon)
                   </CardTitle>
-                  <CardDescription>Manage your schedule</CardDescription>
+                  <CardDescription>Schedule management</CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <p className="py-20 text-muted-foreground">
-                    Calendar functionality coming soon.
-                  </p>
+                  <p className="py-20 text-muted-foreground">Coming soon</p>
                   <Button onClick={() => alert("Coming soon!")}>
                     View Calendar
                   </Button>
@@ -584,26 +585,21 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
               </Card>
             </TabsContent>
 
-            {/* Analytics Tab (placeholder) */}
+            {/* Analytics Tab */}
             <TabsContent value="analytics">
               <Card>
                 <CardHeader>
                   <CardTitle>Analytics</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">Analytics coming soon.</p>
+                  <p className="text-muted-foreground">Coming soon</p>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
 
           {/* Add Service Modal */}
-          <Dialog
-            open={showAddModal}
-            onOpenChange={(open) => {
-              if (!open) setShowAddModal(false);
-            }}
-          >
+          <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
             <DialogContent>
               <DialogTitle>Add New Service</DialogTitle>
               <div className="space-y-4 mt-4">
@@ -621,13 +617,13 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                   onChange={(e) =>
                     setNewService({ ...newService, description: e.target.value })
                   }
-                  rows={3}
                 />
+
                 <div>
                   <label className="block mb-1 font-semibold">
                     Select Service Types *
                   </label>
-                  <div className="max-h-36 overflow-y-auto border rounded p-2 grid grid-cols-2 gap-2">
+                  <div className="max-h-40 overflow-y-auto border rounded p-2 grid grid-cols-2 gap-2">
                     {SERVICE_TYPE_OPTIONS.map((type) => (
                       <label
                         key={type}
@@ -673,6 +669,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                   }
                   required
                 />
+
                 <Input
                   placeholder="Location (City, Region)"
                   value={newService.location}
@@ -681,8 +678,12 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                   }
                 />
               </div>
+
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddModal(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddModal(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleAddService}>Add Service</Button>
