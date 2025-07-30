@@ -40,58 +40,79 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
     averageRating: 4.8
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch real dashboard data
   useEffect(() => {
     fetchDashboardData();
+    // Optionally: add real-time subs here for supabase if desired
+    // return () => { unsubscribe... };
+    // eslint-disable-next-line
   }, [user]);
 
   const fetchDashboardData = async () => {
     if (!user) return;
-    
+    setLoading(true);
+    setError(null);
+
     try {
-      // Fetch services
-      const { data: servicesData } = await supabase
+      // 1. Fetch provider's services
+      const { data: servicesData, error: servicesError } = await supabase
         .from('services')
         .select('*')
         .eq('provider_id', user.id);
 
+      // 2. Fetch all service requests tied to the provider
+      // We'll assume your `service_requests` has a provider_id or service.provider_id reference
+      const { data: requestsData, error: requestsError } = await supabase
+        .from('service_requests')
+        .select(`
+          *,
+          client:profiles (
+            full_name
+          ),
+          service:services (
+            name,
+            service_type,
+            price_range,
+            location
+          )
+        `)
+        .eq('provider_id', user.id);
+
+      if (servicesError) throw servicesError;
+      if (requestsError) throw requestsError;
+
       setServices(servicesData || []);
-      
-      // Mock service requests data (until we create service_requests table)
-      const mockRequests = [
-        {
-          id: 1,
-          client_name: 'ABC Manufacturing',
-          service_type: 'Robot Maintenance',
-          status: 'pending',
-          scheduled_date: '2024-02-15',
-          urgency: 'medium',
-          location: 'Mumbai'
-        },
-        {
-          id: 2,
-          client_name: 'Tech Industries',
-          service_type: 'Installation',
-          status: 'in_progress',
-          scheduled_date: '2024-02-12',
-          urgency: 'high',
-          location: 'Delhi'
-        }
-      ];
-      
-      setServiceRequests(mockRequests);
-      
+      setServiceRequests(requestsData || []);
+
+      // Get dashboard metrics from real data
+      const completedRequests = (requestsData || []).filter((r: any) => r.status === 'completed');
+      const activeRequests = (requestsData || []).filter((r: any) =>
+        r.status === 'pending' || r.status === 'in_progress'
+      );
+      // Calculate monthly revenue (this month, only for completed jobs)
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      const thisMonthRequests = completedRequests.filter((r: any) =>
+        r.completed_at && new Date(r.completed_at) >= monthStart
+      );
+      const monthlyRevenue = thisMonthRequests.reduce(
+        (sum: number, r: any) => sum + (r.amount_paid || 0),
+        0
+      );
+
       setDashboardStats({
         totalServices: servicesData?.length || 0,
-        activeRequests: mockRequests.filter(r => r.status !== 'completed').length,
-        completedJobs: 25, // Mock data
-        monthlyRevenue: 150000, // Mock data
-        averageRating: 4.8
+        activeRequests: activeRequests.length,
+        completedJobs: completedRequests.length,
+        monthlyRevenue,
+        averageRating: userProfile?.average_rating || 4.8
       });
-      
+
       setLoading(false);
-    } catch (error) {
-      console.error('Error fetching service provider data:', error);
+    } catch (e: any) {
+      setError('Failed to load dashboard data');
       setLoading(false);
     }
   };
@@ -103,7 +124,6 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       completed: { variant: 'outline' as const, label: 'Completed' },
       cancelled: { variant: 'destructive' as const, label: 'Cancelled' }
     };
-    
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -114,7 +134,6 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       medium: { color: 'bg-yellow-100 text-yellow-800', label: 'Medium' },
       high: { color: 'bg-red-100 text-red-800', label: 'High' }
     };
-    
     const config = urgencyConfig[urgency as keyof typeof urgencyConfig] || urgencyConfig.medium;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
@@ -160,7 +179,16 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <AlertCircle className="w-8 h-8 mr-2 text-red-500" />
+        <span>{error}</span>
       </div>
     );
   }
@@ -171,9 +199,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Service Provider Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage your services and client requests
-          </p>
+          <p className="text-muted-foreground">Manage your services and client requests</p>
         </div>
         <Button className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -192,9 +218,7 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                   <div>
                     <p className="text-sm text-muted-foreground">{stat.title}</p>
                     <p className="text-2xl font-bold">{stat.value}</p>
-                    <Badge variant="secondary" className="mt-1 text-xs">
-                      {stat.trend}
-                    </Badge>
+                    <Badge variant="secondary" className="mt-1 text-xs">{stat.trend}</Badge>
                   </div>
                   <div className={`w-12 h-12 rounded-lg bg-muted flex items-center justify-center ${stat.color}`}>
                     <Icon className="w-6 h-6" />
@@ -244,25 +268,21 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {serviceRequests.map((request) => (
+                    {serviceRequests.map((request: any) => (
                       <TableRow key={request.id}>
-                        <TableCell className="font-medium">{request.client_name}</TableCell>
-                        <TableCell>{request.service_type}</TableCell>
-                        <TableCell>{request.scheduled_date}</TableCell>
+                        <TableCell className="font-medium">{request.client?.full_name || '---'}</TableCell>
+                        <TableCell>{request.service?.service_type || request.service_type || '---'}</TableCell>
+                        <TableCell>{request.scheduled_date || '---'}</TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>
                         <TableCell>{getUrgencyBadge(request.urgency)}</TableCell>
                         <TableCell className="flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
-                          {request.location}
+                          {request.service?.location || request.location || '---'}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline">
-                              Accept
-                            </Button>
-                            <Button size="sm" variant="ghost">
-                              Details
-                            </Button>
+                            <Button size="sm" variant="outline">Accept</Button>
+                            <Button size="sm" variant="ghost">Details</Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -295,27 +315,23 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {services.map((service) => (
+                  {services.map((service: any) => (
                     <Card key={service.id} className="hover:shadow-lg transition-shadow">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <h3 className="font-semibold">{service.name}</h3>
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost">
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button size="sm" variant="ghost">
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            <Button size="sm" variant="ghost"><Edit className="w-3 h-3" /></Button>
+                            <Button size="sm" variant="ghost"><Trash2 className="w-3 h-3" /></Button>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{service.description}</p>
                         <Badge variant="secondary" className="mb-2">{service.service_type}</Badge>
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-primary">{service.price_range}</span>
+                          <span className="font-bold text-primary">{service.price_range || 'N/A'}</span>
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <MapPin className="w-3 h-3" />
-                            <span>{service.location}</span>
+                            <span>{service.location || '---'}</span>
                           </div>
                         </div>
                       </CardContent>
@@ -364,48 +380,31 @@ const ServiceProviderDashboard = ({ userProfile }: ServiceProviderDashboardProps
                 </div>
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <p className="font-medium">Customer Satisfaction</p>
-                    <p className="text-sm text-muted-foreground">Average client rating</p>
+                    <p className="font-medium">Completion Rate</p>
+                    <p className="text-sm text-muted-foreground">Successful completed jobs</p>
                   </div>
-                  <Badge>4.8/5.0</Badge>
+                  <Badge variant="outline">
+                    {dashboardStats.completedJobs}/{dashboardStats.activeRequests + dashboardStats.completedJobs}
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <p className="font-medium">First-time Fix Rate</p>
-                    <p className="text-sm text-muted-foreground">Jobs completed in one visit</p>
+                    <p className="font-medium">Average Rating</p>
+                    <p className="text-sm text-muted-foreground">Based on client reviews</p>
                   </div>
-                  <Badge variant="secondary">92%</Badge>
+                  <Badge variant="outline">{dashboardStats.averageRating} ★</Badge>
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
-                <CardTitle>Recent Reviews</CardTitle>
+                <CardTitle>Revenue Trend</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-3 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                    <span className="text-sm text-muted-foreground">ABC Manufacturing</span>
-                  </div>
-                  <p className="text-sm">"Excellent service and quick response time. Very professional."</p>
-                </div>
-                <div className="p-3 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className={`w-4 h-4 ${star <= 4 ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                      ))}
-                    </div>
-                    <span className="text-sm text-muted-foreground">Tech Industries</span>
-                  </div>
-                  <p className="text-sm">"Good work, but could improve communication during the job."</p>
-                </div>
+              <CardContent>
+                {/* Here you could render a chart in the future */}
+                <div className="text-4xl font-bold text-primary mb-2">₹{dashboardStats.monthlyRevenue.toLocaleString()}</div>
+                <p className="text-muted-foreground mb-2">Revenue (this month) from completed jobs.</p>
+                <div className="bg-gray-200 rounded-lg p-6 text-center text-gray-600">Chart integration coming soon.</div>
               </CardContent>
             </Card>
           </div>
