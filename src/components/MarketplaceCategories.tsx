@@ -14,7 +14,21 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const marketplaceCategoriesInitial = [
+interface CategoryStats {
+  [key: string]: number;
+}
+
+interface MarketplaceCategory {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  stats: CategoryStats;
+  gradient: string;
+  href: string;
+}
+
+const marketplaceCategoriesInitial: MarketplaceCategory[] = [
   {
     id: "robots",
     title: "Industrial Robots",
@@ -69,25 +83,25 @@ const MarketplaceCategories = () => {
         // Count distinct locations for robots
         const { data: robotLocationsData, error: robotLocError } = await supabase
           .from("robots")
-          .select("location", { count: "exact", head: true });
+          .select("location");
         if (robotLocError) throw robotLocError;
-        // Note: This count is total entries, for distinct count, you may need to fetch distinct locations instead.
-
-        const robotLocationsCount = robotLocationsData ?? 0;
+        const uniqueLocations = new Set(robotLocationsData?.map(item => item.location).filter(Boolean) || []);
+        const robotLocationsCount = uniqueLocations.size;
 
         // === Spare Parts ===
         const { data: partsData, error: partsError } = await supabase
-          .from("parts")
+          .from("spare_parts")
           .select("id");
         if (partsError) throw partsError;
         const partsListingsCount = partsData?.length ?? 0;
 
-        // Suppliers count (assuming a table suppliers exists)
+        // Suppliers count (distinct sellers from spare_parts)
         const { data: suppliersData, error: suppliersError } = await supabase
-          .from("suppliers")
-          .select("id");
+          .from("spare_parts")
+          .select("seller_id");
         if (suppliersError) throw suppliersError;
-        const suppliersCount = suppliersData?.length ?? 0;
+        const uniqueSellerIds = new Set(suppliersData?.map(item => item.seller_id) || []);
+        const suppliersCount = uniqueSellerIds.size;
 
         // === Services ===
         const { data: serviceRequestsData, error: serviceReqError } = await supabase
@@ -96,12 +110,13 @@ const MarketplaceCategories = () => {
         if (serviceReqError) throw serviceReqError;
         const activeRequestsCount = serviceRequestsData?.length ?? 0;
 
-        // Service Providers count
+        // Service Providers count (distinct providers from services)
         const { data: serviceProvidersData, error: serviceProvError } = await supabase
-          .from("service_providers")
-          .select("id");
+          .from("services")
+          .select("provider_id");
         if (serviceProvError) throw serviceProvError;
-        const serviceProvidersCount = serviceProvidersData?.length ?? 0;
+        const uniqueProviderIds = new Set(serviceProvidersData?.map(item => item.provider_id) || []);
+        const serviceProvidersCount = uniqueProviderIds.size;
 
         // Update categoriesData state with fetched counts
         setCategoriesData((prev) =>
