@@ -63,7 +63,7 @@ const Services = () => {
 
         if (error) throw error;
 
-        // Transform services: parse service_type CSV string into array of lowercased strings
+        // Transform services, parsing CSV service_type and normalize location
         const transformed = (data ?? []).map((item: any) => {
           const serviceTypes = item.service_type
             ? item.service_type.split(",").map((t: string) => t.trim().toLowerCase())
@@ -72,12 +72,15 @@ const Services = () => {
           const locationName =
             item.location || item.profiles?.location || "Location not specified";
 
+          const locationNormalized = locationName.toLowerCase();
+
           return {
             id: item.id,
             name: item.name,
-            serviceTypes, // array of lowercased service types
+            serviceTypes,              // array of lowercased service types for filtering
             priceRange: item.price_range || "Contact for pricing",
-            location: locationName,
+            location: locationName,    // original location for display
+            locationNormalized,        // normalized location for filtering
             provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
             image: "/placeholder.svg",
             description: item.description || "Professional service provider",
@@ -100,8 +103,14 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // Normalize selectedCategory for comparison
+  // Normalize selectedCategory for comparison (already lowercased options)
   const selectedCategoryNormalized = selectedCategory.toLowerCase();
+
+  // Normalize selected location name for comparison
+  const selectedLocationNormalized =
+    selectedLocation === "all"
+      ? ""
+      : locations.find((l) => l.id === selectedLocation)?.name.toLowerCase() || "";
 
   const filteredServices = services.filter((service) => {
     // Search matching
@@ -110,15 +119,13 @@ const Services = () => {
       service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.provider.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Category filtering: check if selected category is present in serviceTypes array or "all"
+    // Category filtering - check if selectedCategory is included in serviceTypes or 'all'
     const matchesCategory =
       selectedCategory === "all" || service.serviceTypes.includes(selectedCategoryNormalized);
 
-    // Location filtering
+    // Location filtering - match normalized locations or 'all'
     const matchesLocation =
-      selectedLocation === "all" ||
-      service.location.toLowerCase() ===
-        (locations.find((l) => l.id === selectedLocation)?.name.toLowerCase() ?? "");
+      selectedLocation === "all" || service.locationNormalized === selectedLocationNormalized;
 
     return matchesSearch && matchesCategory && matchesLocation;
   });
@@ -196,6 +203,7 @@ const Services = () => {
             </div>
           </div>
 
+          {/* Loading state */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin mb-4" />
@@ -203,6 +211,7 @@ const Services = () => {
             </div>
           )}
 
+          {/* Error state */}
           {error && (
             <div className="flex flex-col items-center justify-center py-12">
               <Settings className="w-16 h-16 text-muted-foreground mb-4" />
@@ -214,6 +223,7 @@ const Services = () => {
             </div>
           )}
 
+          {/* No results */}
           {!loading && !error && filteredServices.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12">
               <Settings className="w-16 h-16 text-muted-foreground mb-4" />
@@ -226,13 +236,20 @@ const Services = () => {
             </div>
           )}
 
+          {/* Services list */}
           {!loading && !error && filteredServices.length > 0 && (
             <>
               <p className="mb-4 text-sm text-muted-foreground">
                 {filteredServices.length} service{filteredServices.length > 1 ? "s" : ""} found
               </p>
 
-              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    : "space-y-4"
+                }
+              >
                 {filteredServices.map((service) => (
                   <Card key={service.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
@@ -242,8 +259,10 @@ const Services = () => {
                       <CardTitle className="text-lg">{service.name}</CardTitle>
                       <div className="flex items-center justify-between">
                         <Badge variant="secondary" className="w-fit capitalize">
-                          {/* Display all service types, comma separated, capitalized */}
-                          {service.serviceTypes.map((t: string) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ")}
+                          {/* Show all service types capitalized */}
+                          {service.serviceTypes
+                            .map((t: string) => t.charAt(0).toUpperCase() + t.slice(1))
+                            .join(", ")}
                         </Badge>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -299,7 +318,7 @@ const Services = () => {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      // Implement load more / pagination logic here in future if needed
+                      // Implement load more / pagination here if needed
                     }}
                   >
                     Load More
