@@ -15,8 +15,8 @@ const Services = () => {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [services, setServices] = useState<any[]>([]);
-  const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
-  const [locations, setLocations] = useState<{ id: string, name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,20 +61,36 @@ const Services = () => {
 
         if (error) throw error;
 
-        const transformed = (data ?? []).map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          category: item.service_type,
-          priceRange: item.price_range || "Contact for pricing",
-          location: item.location || item.profiles?.location || "Location not specified",
-          provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
-          image: "/placeholder.svg",
-          description: item.description || "Professional service provider",
-          rating: 4.5, // default
-          responseTime: "2-4 hours", // default
-          completedJobs: Math.floor(Math.random() * 100) + 50, // dummy data
-          availability: "Available"
-        }));
+        const transformed = (data ?? []).map((item: any) => {
+          // Determine location ID either from service or profile (assuming IDs)
+          const locationId = item.location || item.profiles?.location || null;
+          const locationName =
+            locations.find((l) => l.id === locationId)?.name ||
+            item.location ||
+            item.profiles?.location ||
+            "Location not specified";
+
+          // Find category name by ID
+          const categoryName =
+            categories.find((c) => c.id === item.service_type)?.name || item.service_type;
+
+          return {
+            id: item.id,
+            name: item.name,
+            categoryId: item.service_type, // category ID for filtering
+            categoryName,
+            priceRange: item.price_range || "Contact for pricing",
+            locationId, // location ID for filtering
+            locationName,
+            provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
+            image: "/placeholder.svg",
+            description: item.description || "Professional service provider",
+            rating: 4.5, // default rating
+            responseTime: "2-4 hours", // default
+            completedJobs: Math.floor(Math.random() * 100) + 50, // dummy data
+            availability: "Available",
+          };
+        });
 
         setServices(transformed);
         setError(null);
@@ -85,8 +101,13 @@ const Services = () => {
         setLoading(false);
       }
     }
-    fetchServices();
-  }, []);
+
+    // Only fetch services after categories and locations have been fetched, because services transformation depends on them
+    // So, check that categories and locations are loaded first
+    if (categories.length > 0 && locations.length > 0) {
+      fetchServices();
+    }
+  }, [categories, locations]);
 
   const filteredServices = services.filter((service) => {
     const matchesSearch =
@@ -95,15 +116,10 @@ const Services = () => {
       service.provider.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === "all" ||
-      service.category.toLowerCase().includes(
-        categories.find(c => c.id === selectedCategory)?.name.toLowerCase() ?? ""
-      );
+      selectedCategory === "all" || service.categoryId === selectedCategory;
 
     const matchesLocation =
-      selectedLocation === "all" ||
-      service.location.toLowerCase() ===
-        (locations.find(l => l.id === selectedLocation)?.name.toLowerCase() ?? "");
+      selectedLocation === "all" || service.locationId === selectedLocation;
 
     return matchesSearch && matchesCategory && matchesLocation;
   });
@@ -216,10 +232,16 @@ const Services = () => {
           {!loading && !error && filteredServices.length > 0 && (
             <>
               <p className="mb-4 text-sm text-muted-foreground">
-                {filteredServices.length} service{filteredServices.length > 1 ? 's' : ''} found
+                {filteredServices.length} service{filteredServices.length > 1 ? "s" : ""} found
               </p>
 
-              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    : "space-y-4"
+                }
+              >
                 {filteredServices.map((service) => (
                   <Card key={service.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
@@ -229,7 +251,7 @@ const Services = () => {
                       <CardTitle className="text-lg">{service.name}</CardTitle>
                       <div className="flex items-center justify-between">
                         <Badge variant="secondary" className="w-fit">
-                          {service.category}
+                          {service.categoryName}
                         </Badge>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -241,16 +263,14 @@ const Services = () => {
                     <CardContent>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-primary">
-                            {service.priceRange}
-                          </span>
+                          <span className="text-lg font-bold text-primary">{service.priceRange}</span>
                           <Badge variant={service.availability === "24/7" ? "default" : "secondary"}>
                             {service.availability}
                           </Badge>
                         </div>
                         <div className="flex items-center text-muted-foreground">
                           <MapPin className="w-5 h-5 mr-1" />
-                          <span>{service.location}</span>
+                          <span>{service.locationName}</span>
                         </div>
                         <p className="text-sm text-muted-foreground">{service.description}</p>
 
@@ -265,12 +285,16 @@ const Services = () => {
                               <span>{service.completedJobs} jobs</span>
                             </div>
                           </div>
-                          <p><span className="font-medium">Provider:</span> {service.provider}</p>
+                          <p>
+                            <span className="font-medium">Provider:</span> {service.provider}
+                          </p>
                         </div>
 
                         <div className="flex space-x-2 mt-4">
                           <Button className="flex-1">Request Quote</Button>
-                          <Button variant="outline" className="flex-1">Contact Provider</Button>
+                          <Button variant="outline" className="flex-1">
+                            Contact Provider
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -278,11 +302,14 @@ const Services = () => {
                 ))}
               </div>
 
-              {(filteredServices.length > 6) && (
+              {filteredServices.length > 6 && (
                 <div className="mt-8 flex justify-center">
-                  <Button variant="outline" onClick={() => {
-                    // Implement load more or pagination logic here
-                  }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // Implement load more / pagination logic here in future if needed
+                    }}
+                  >
                     Load More
                   </Button>
                 </div>
