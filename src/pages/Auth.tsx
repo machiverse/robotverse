@@ -1,144 +1,121 @@
-import {
-  useState,
-  useEffect,
-  useCallback
-} from 'react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem
-} from '@/components/ui/select';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  Bot,
-  User,
-  Mail,
-  Lock,
-  Building,
-  Phone,
-  MapPin,
-  ArrowLeft,
-  Package,
-  Truck,
-  CreditCard,
-  ShoppingCart,
-  Eye,
-  EyeOff,
-  FileText,
-  CheckCircle,
-  Settings,
-  Plus
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, CreditCard, Package, Settings, ShoppingCart, Eye, EyeOff, FileText, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 
+// ✅ Use exact types from your schema
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 type UserTypeEnum = Database['public']['Enums']['user_type_enum'];
 
-const INDIAN_STATES = [
-  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand',
-  'Karnataka','Kerala','Madhya Pradesh','Maharashtra','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana',
-  'Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman and Nicobar Islands','Chandigarh','Dadra and Nagar Haveli',
-  'Daman and Diu','Delhi','Jammu and Kashmir','Ladakh','Lakshadweep','Puducherry'
-];
-
-const SERVICE_TYPE_OPTIONS = [
-  'Installation',
-  'Maintenance',
-  'Repair',
-  'Inspection',
-  'Calibration',
-  'Training',
-  'Upgrades',
-  'Consulting'
-];
-
 const Auth = () => {
-  // Form states
+  // Form state
   const [isSignUp, setIsSignUp] = useState(false);
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [location, setLocation] = useState('');
-
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
+  
+  // Seller state
   const [sellerRoles, setSellerRoles] = useState<string[]>([]);
-
-  // Logistics fields
+  
+  // Logistics state
   const [logisticsType, setLogisticsType] = useState('');
   const [logisticsRegion, setLogisticsRegion] = useState('');
   const [transportModes, setTransportModes] = useState<string[]>([]);
   const [warehouseStorage, setWarehouseStorage] = useState(false);
-
-  // Finance fields
+  
+  // Finance state
   const [financeType, setFinanceType] = useState<string[]>([]);
   const [financingFor, setFinancingFor] = useState<string[]>([]);
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [governmentSchemeSupport, setGovernmentSchemeSupport] = useState(false);
-
-  // UI states
+  
+  // UI state
   const [loading, setLoading] = useState(false);
-  const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
-
-  const { user, signUp, signIn } = useAuth();
-  const navigate = useNavigate();
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
+  
+  // Hooks
+  const { signUp, signIn, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Redirect if logged in
+  // Redirect if already logged in
   useEffect(() => {
-    if (user) navigate('/');
+    if (user) {
+      console.log('✅ User already authenticated, redirecting to home');
+      navigate('/');
+    }
   }, [user, navigate]);
 
   // Toggle password visibility
-  const togglePasswordVisibility = () => setShowPassword(prev => !prev);
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
-  // Handler functions for checkbox toggles
-  const toggleArrayValue = (arr: string[], val: string) =>
-    arr.includes(val)
-      ? arr.filter(v => v !== val)
-      : [...arr, val];
-
+  // Handler functions for multi-select checkboxes
   const handleSellerRoleChange = (role: string, checked: boolean) => {
-    setSellerRoles(prev => checked ? [...prev, role] : prev.filter(r => r !== role));
-  };
-  const handleTransportModeChange = (mode: string, checked: boolean) => {
-    setTransportModes(prev => checked ? [...prev, mode] : prev.filter(m => m !== mode));
-  };
-  const handleFinanceTypeChange = (type: string, checked: boolean) => {
-    setFinanceType(prev => checked ? [...prev, type] : prev.filter(t => t !== type));
-  };
-  const handleFinancingForChange = (val: string, checked: boolean) => {
-    setFinancingFor(prev => checked ? [...prev, val] : prev.filter(f => f !== val));
-  };
-  const handleTargetAudienceChange = (val: string, checked: boolean) => {
-    setTargetAudience(prev => checked ? [...prev, val] : prev.filter(a => a !== val));
+    console.log(`🔄 Seller role change: ${role} = ${checked}`);
+    if (checked) {
+      const newRoles = [...sellerRoles, role];
+      setSellerRoles(newRoles);
+      console.log('✅ Updated seller roles:', newRoles);
+    } else {
+      const newRoles = sellerRoles.filter(r => r !== role);
+      setSellerRoles(newRoles);
+      console.log('✅ Updated seller roles:', newRoles);
+    }
   };
 
-  // Save form data temporarily to localStorage before email confirmation
-  const saveUserDataToStorage = (savedUser: SupabaseUser) => {
+  const handleTransportModeChange = (mode: string, checked: boolean) => {
+    if (checked) {
+      setTransportModes([...transportModes, mode]);
+    } else {
+      setTransportModes(transportModes.filter(m => m !== mode));
+    }
+  };
+
+  const handleFinanceTypeChange = (type: string, checked: boolean) => {
+    if (checked) {
+      setFinanceType([...financeType, type]);
+    } else {
+      setFinanceType(financeType.filter(t => t !== type));
+    }
+  };
+
+  const handleFinancingForChange = (type: string, checked: boolean) => {
+    if (checked) {
+      setFinancingFor([...financingFor, type]);
+    } else {
+      setFinancingFor(financingFor.filter(t => t !== type));
+    }
+  };
+
+  const handleTargetAudienceChange = (audience: string, checked: boolean) => {
+    if (checked) {
+      setTargetAudience([...targetAudience, audience]);
+    } else {
+      setTargetAudience(targetAudience.filter(a => a !== audience));
+    }
+  };
+
+  // ✅ Save user data to localStorage for email confirmation flow
+  const saveUserDataToStorage = (userData: SupabaseUser) => {
     const dataToSave = {
       email,
       fullName,
@@ -155,166 +132,610 @@ const Auth = () => {
       financingFor,
       targetAudience,
       governmentSchemeSupport,
-      userId: savedUser.id,
+      userId: userData.id,
       timestamp: Date.now()
     };
     localStorage.setItem('robotverse_pending_profile', JSON.stringify(dataToSave));
-    console.log('User data saved to localStorage for post-confirmation processing.');
+    console.log('💾 User data saved to localStorage for email confirmation');
   };
 
-  // Load saved user data from localStorage after confirmation
+  // ✅ Load user data from localStorage after email confirmation
   const loadUserDataFromStorage = () => {
     const saved = localStorage.getItem('robotverse_pending_profile');
-    if (!saved) return null;
+    if (saved) {
+      const data = JSON.parse(saved);
+      console.log('📥 Loading saved user data from localStorage');
+      return data;
+    }
+    return null;
+  };
+
+  // ✅ Clear saved user data after successful profile creation
+  const clearSavedUserData = () => {
+    localStorage.removeItem('robotverse_pending_profile');
+    console.log('🗑️ Cleared saved user data from localStorage');
+  };
+
+  // ✅ Check for email confirmation on component mount and auth state changes
+  useEffect(() => {
+    const checkEmailConfirmation = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (currentUser && currentUser.email_confirmed_at) {
+        // Check if profile already exists and is complete
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('registration_complete, company_name, mobile_number')
+          .eq('user_id', currentUser.id)
+          .single();
+
+        // If profile exists but is incomplete (missing company_name or mobile_number)
+        if (existingProfile && (!existingProfile.registration_complete || !existingProfile.company_name || !existingProfile.mobile_number)) {
+          const savedData = loadUserDataFromStorage();
+          
+          if (savedData && savedData.userId === currentUser.id) {
+            console.log('✅ Email confirmed and user data found, updating incomplete profile...');
+            try {
+              // Update the existing profile instead of creating a new one
+              await updateUserProfileFromSavedData(currentUser, savedData);
+              clearSavedUserData();
+              
+              toast({
+                title: "Welcome to RobotVerse!",
+                description: "Your account has been verified and profile updated successfully.",
+              });
+              
+              navigate('/dashboard');
+            } catch (error: any) {
+              console.error('❌ Error updating profile after email confirmation:', error);
+              toast({
+                variant: "destructive",
+                title: "Profile Update Error",
+                description: "Failed to update your profile. Please try again.",
+              });
+            }
+          }
+        } else if (!existingProfile) {
+          // No profile exists, create one
+          const savedData = loadUserDataFromStorage();
+          
+          if (savedData && savedData.userId === currentUser.id) {
+            console.log('✅ Email confirmed and user data found, creating profile...');
+            try {
+              await createUserProfileFromSavedData(currentUser, savedData);
+              clearSavedUserData();
+              
+              toast({
+                title: "Welcome to RobotVerse!",
+                description: "Your account has been verified and profile created successfully.",
+              });
+              
+              navigate('/dashboard');
+            } catch (error: any) {
+              console.error('❌ Error creating profile after email confirmation:', error);
+              toast({
+                variant: "destructive",
+                title: "Profile Creation Error",
+                description: "Failed to create your profile. Please try again.",
+              });
+            }
+          }
+        }
+      }
+    };
+
+    checkEmailConfirmation();
+
+    // Also listen for auth state changes to catch email confirmations
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+        console.log('🔄 Auth state change detected: user signed in with confirmed email');
+        await checkEmailConfirmation();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ✅ Update existing profile with complete data
+  const updateUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
-      return JSON.parse(saved);
-    } catch {
-      return null;
+      console.log('👤 Updating profile from saved data for user:', user.id);
+      console.log('📋 Saved data:', savedData);
+      
+      // ✅ Build profile update data using exact schema types
+      const profileData: Partial<ProfileInsert> = {
+        // Basic information - using exact field names from schema
+        company_name: savedData.companyName || null,
+        mobile_number: savedData.mobileNumber || null,
+        phone: savedData.mobileNumber || null, // Populate both phone fields
+        location: savedData.location || null,
+        user_type: savedData.accountType || null,
+        account_type: savedData.accountType || null,
+        updated_at: new Date().toISOString(),
+        
+        // Set registration as complete and MOU agreed
+        registration_complete: true,
+        mou_agreed: true,
+        mou_agreed_at: new Date().toISOString(),
+      };
+
+      // ✅ Add role-specific data based on account type
+      if (savedData.accountType === 'seller') {
+        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
+        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
+        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
+        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
+        
+        // Set service categories for service providers
+        if (savedData.sellerRoles?.includes('service_provider')) {
+          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
+        }
+        
+      } else if (savedData.accountType === 'logistics') {
+        profileData.logistics_type = savedData.logisticsType || null;
+        profileData.logistics_region = savedData.logisticsRegion || null;
+        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
+        profileData.warehouse_storage = savedData.warehouseStorage || null;
+        profileData.primary_user_type = 'logistics_provider';
+        profileData.primary_role = 'logistics_provider';
+        profileData.user_roles = ['logistics_provider'];
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        
+      } else if (savedData.accountType === 'finance') {
+        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
+        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
+        profileData.primary_user_type = 'finance_provider';
+        profileData.primary_role = 'finance_provider';
+        profileData.user_roles = ['finance_provider'];
+        
+      } else if (savedData.accountType === 'buyer') {
+        profileData.primary_user_type = 'buyer';
+        profileData.primary_role = 'buyer';
+        profileData.user_roles = ['buyer'];
+      }
+
+      console.log('📋 Profile update data:', JSON.stringify(profileData, null, 2));
+
+      // ✅ Update the existing profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('user_id', user.id)
+        .select();
+
+      if (error) {
+        console.error('❌ Profile update error:', error);
+        throw new Error(`Profile update failed: ${error.message}`);
+      }
+
+      console.log('✅ Profile updated successfully:', data[0]);
+      return data;
+
+    } catch (error: any) {
+      console.error('❌ Profile update exception:', error);
+      throw error;
     }
   };
 
-  // Clear saved data
-  const clearSavedUserData = () => localStorage.removeItem('robotverse_pending_profile');
+  // ✅ Create profile using exact TypeScript types from your schema
+  const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
+    try {
+      console.log('👤 Creating profile from saved data for user:', user.id);
+      console.log('📋 Saved data:', savedData);
+      
+      // ✅ Build profile data using exact schema types
+      const profileData: ProfileInsert = {
+        // Required field
+        user_id: user.id,
+        
+        // Basic information - using exact field names from schema
+        email: user.email || savedData.email,
+        full_name: savedData.fullName || null,
+        company_name: savedData.companyName || null,
+        mobile_number: savedData.mobileNumber || null,
+        phone: savedData.mobileNumber || null, // Populate both phone fields
+        location: savedData.location || null,
+        user_type: savedData.accountType || null,
+        account_type: savedData.accountType || null,
+        updated_at: new Date().toISOString(),
+        
+        // Set registration as complete and MOU agreed
+        registration_complete: true,
+        mou_agreed: true,
+        mou_agreed_at: new Date().toISOString(),
+        
+        // Initialize other nullable fields
+        avatar_url: null,
+      };
 
-  // Signup / Signin form submit handler
+      // ✅ Add role-specific data based on account type
+      if (savedData.accountType === 'seller') {
+        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
+        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
+        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
+        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
+        
+        // Set service categories for service providers
+        if (savedData.sellerRoles?.includes('service_provider')) {
+          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
+        }
+        
+        console.log('🏪 Seller data:', {
+          seller_roles: profileData.seller_roles,
+          user_roles: profileData.user_roles,
+          primary_user_type: profileData.primary_user_type,
+          primary_role: profileData.primary_role,
+          service_categories: profileData.service_categories
+        });
+        
+      } else if (savedData.accountType === 'logistics') {
+        profileData.logistics_type = savedData.logisticsType || null;
+        profileData.logistics_region = savedData.logisticsRegion || null;
+        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
+        profileData.warehouse_storage = savedData.warehouseStorage || null;
+        profileData.primary_user_type = 'logistics_provider';
+        profileData.primary_role = 'logistics_provider';
+        profileData.user_roles = ['logistics_provider'];
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        
+        console.log('🚚 Logistics data:', {
+          logistics_type: profileData.logistics_type,
+          logistics_region: profileData.logistics_region,
+          transport_modes: profileData.transport_modes,
+          warehouse_storage: profileData.warehouse_storage,
+          user_roles: profileData.user_roles,
+          target_audience: profileData.target_audience
+        });
+        
+      } else if (savedData.accountType === 'finance') {
+        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
+        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
+        profileData.primary_user_type = 'finance_provider';
+        profileData.primary_role = 'finance_provider';
+        profileData.user_roles = ['finance_provider'];
+        
+        console.log('💰 Finance data:', {
+          finance_type: profileData.finance_type,
+          financing_for: profileData.financing_for,
+          target_audience: profileData.target_audience,
+          government_scheme_support: profileData.government_scheme_support,
+          user_roles: profileData.user_roles
+        });
+        
+      } else if (savedData.accountType === 'buyer') {
+        profileData.primary_user_type = 'buyer';
+        profileData.primary_role = 'buyer';
+        profileData.user_roles = ['buyer'];
+        console.log('🛒 Buyer data:', {
+          primary_user_type: profileData.primary_user_type,
+          user_roles: profileData.user_roles
+        });
+      }
+
+      console.log('📋 Final profile data (type-safe):', JSON.stringify(profileData, null, 2));
+
+      // ✅ Insert with type safety
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert(profileData)
+        .select();
+
+      if (error) {
+        console.error('❌ Profile creation error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw new Error(`Profile creation failed: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('No data returned from profile creation');
+      }
+
+      console.log('✅ Profile created successfully:', data[0]);
+      
+      // ✅ Verify all fields were saved
+      const savedProfile = data[0];
+      console.log('🔍 Verification - What was actually saved:');
+      console.log('  ✓ user_id:', savedProfile.user_id);
+      console.log('  ✓ email:', savedProfile.email);
+      console.log('  ✓ full_name:', savedProfile.full_name);
+      console.log('  ✓ company_name:', savedProfile.company_name);
+      console.log('  ✓ mobile_number:', savedProfile.mobile_number);
+      console.log('  ✓ phone:', savedProfile.phone);
+      console.log('  ✓ location:', savedProfile.location);
+      console.log('  ✓ user_type:', savedProfile.user_type);
+      console.log('  ✓ account_type:', savedProfile.account_type);
+      console.log('  ✓ user_roles:', savedProfile.user_roles);
+      console.log('  ✓ seller_roles:', savedProfile.seller_roles);
+      console.log('  ✓ primary_user_type:', savedProfile.primary_user_type);
+      console.log('  ✓ primary_role:', savedProfile.primary_role);
+      console.log('  ✓ logistics_type:', savedProfile.logistics_type);
+      console.log('  ✓ logistics_region:', savedProfile.logistics_region);
+      console.log('  ✓ transport_modes:', savedProfile.transport_modes);
+      console.log('  ✓ warehouse_storage:', savedProfile.warehouse_storage);
+      console.log('  ✓ finance_type:', savedProfile.finance_type);
+      console.log('  ✓ financing_for:', savedProfile.financing_for);
+      console.log('  ✓ target_audience:', savedProfile.target_audience);
+      console.log('  ✓ government_scheme_support:', savedProfile.government_scheme_support);
+      console.log('  ✓ service_categories:', savedProfile.service_categories);
+      console.log('  ✓ mou_agreed:', savedProfile.mou_agreed);
+      console.log('  ✓ registration_complete:', savedProfile.registration_complete);
+
+      return data;
+
+    } catch (error: any) {
+      console.error('❌ Profile creation exception:', error);
+      throw error;
+    }
+  };
+
+  // ✅ Handle agreement acceptance
+  const handleAgreementAccept = () => {
+    setAgreementAccepted(true);
+    setShowAgreementModal(false);
+    console.log('✅ Agreement accepted, proceeding with signup');
+  };
+
+  // ✅ Handle agreement decline
+  const handleAgreementDecline = () => {
+    setShowAgreementModal(false);
+    setAgreementAccepted(false);
+    console.log('❌ Agreement declined');
+    toast({
+      variant: "destructive",
+      title: "Agreement Required",
+      description: "You must accept the agreement to create an account.",
+    });
+  };
+
+  // ✅ Form submission with validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    console.log('🚀 Form submission started');
 
     try {
       if (isSignUp) {
+        // ✅ Show agreement modal first if not accepted
         if (!agreementAccepted) {
           setLoading(false);
           setShowAgreementModal(true);
           return;
         }
 
-        // Basic validation
-        if (!email.trim()) throw new Error('Email is required');
-        if (!password || password.length < 6) throw new Error('Password must be at least 6 characters');
-        if (!accountType) throw new Error('Please select an account type');
-        if (!fullName.trim()) throw new Error('Full name is required');
-        if (!companyName.trim()) throw new Error('Company name is required');
-        if (!mobileNumber.trim()) throw new Error('Mobile number is required');
-        if (!location.trim()) throw new Error('Location is required');
-        if (accountType === 'seller' && sellerRoles.length === 0) throw new Error('Select at least one seller role');
-        if (accountType === 'logistics' && (!logisticsType || !logisticsRegion.trim())) throw new Error('Logistics details are required');
-        if (accountType === 'finance' && financeType.length === 0) throw new Error('Select at least one finance type');
+        console.log('📝 Registration process initiated');
+        console.log('📋 Form data before validation:');
+        console.log('  - Email:', email);
+        console.log('  - Full Name:', fullName);
+        console.log('  - Company Name:', companyName);
+        console.log('  - Mobile Number:', mobileNumber);
+        console.log('  - Location:', location);
+        console.log('  - Account Type:', accountType);
+        console.log('  - Seller Roles:', sellerRoles);
+        
+        // Comprehensive validation
+        if (!email.trim()) {
+          throw new Error('Email is required');
+        }
+        
+        if (!password || password.length < 6) {
+          throw new Error('Password must be at least 6 characters long');
+        }
 
-        // Call signUp function provided by auth context
-        const { user: newUser, error } = await signUp(email, password, fullName);
-        if (error) throw error;
-        if (!newUser) throw new Error('Failed to create user');
+        if (!accountType) {
+          toast({
+            variant: "destructive",
+            title: "Account Type Required",
+            description: "Please select an account type to continue.",
+          });
+          return;
+        }
 
-        // Save data to localStorage pending email confirmation
+        if (!fullName.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Full Name Required",
+            description: "Please enter your full name.",
+          });
+          return;
+        }
+
+        if (!companyName.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Company Name Required",
+            description: "Please enter your company name.",
+          });
+          return;
+        }
+
+        if (!mobileNumber.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Mobile Number Required",
+            description: "Please enter your mobile number.",
+          });
+          return;
+        }
+
+        if (!location.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Location Required",
+            description: "Please enter your location.",
+          });
+          return;
+        }
+
+        // Role-specific validation
+        if (accountType === 'seller' && sellerRoles.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "Seller Role Required",
+            description: "Please select at least one seller role.",
+          });
+          return;
+        }
+
+        if (accountType === 'logistics') {
+          if (!logisticsType) {
+            toast({
+              variant: "destructive",
+              title: "Logistics Type Required",
+              description: "Please select your logistics type.",
+            });
+            return;
+          }
+          if (!logisticsRegion.trim()) {
+            toast({
+              variant: "destructive",
+              title: "Service Region Required",
+              description: "Please enter your primary service region.",
+            });
+            return;
+          }
+        }
+
+        if (accountType === 'finance' && financeType.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "Finance Type Required",
+            description: "Please select at least one finance type.",
+          });
+          return;
+        }
+
+        console.log('✅ All validation passed, creating user account...');
+
+        // ✅ Create user account with email confirmation
+        const { user: newUser, error: signUpError } = await signUp(email, password, fullName);
+        
+        if (signUpError) {
+          console.error('❌ User creation failed:', signUpError);
+          throw new Error(signUpError.message);
+        }
+
+        if (!newUser) {
+          console.error('❌ No user returned from signup');
+          throw new Error('Failed to create user account');
+        }
+
+        console.log('✅ User account created:', newUser.id);
+
+        // ✅ Save user data for after email confirmation
         saveUserDataToStorage(newUser);
+
+        // ✅ Show email confirmation modal
         setShowEmailConfirmationModal(true);
 
       } else {
-        // Signin flow
-        if (!email.trim()) throw new Error('Email is required');
-        if (!password) throw new Error('Password is required');
+        // Sign in process
+        console.log('🔐 Sign in process initiated');
+        
+        if (!email.trim()) {
+          throw new Error('Email is required');
+        }
+        
+        if (!password) {
+          throw new Error('Password is required');
+        }
 
-        const error = await signIn(email, password);
-        if (error) throw error;
+        const signInError = await signIn(email, password);
+        
+        if (signInError) {
+          console.error('❌ Sign in failed:', signInError);
+          throw new Error(signInError.message);
+        }
 
-        toast({ title: "Welcome back!", description: "Successfully signed in" });
+        console.log('✅ Sign in successful');
+        toast({
+          title: "Welcome back!",
+          description: "You have been signed in successfully.",
+        });
       }
+
     } catch (error: any) {
+      console.error('❌ Form submission error:', error);
       toast({
-        title: 'Error',
-        description: error.message || 'Authentication failed',
-        variant: 'destructive'
+        variant: "destructive",
+        title: "Authentication Error",
+        description: error.message || "An unexpected error occurred. Please try again.",
       });
     } finally {
       setLoading(false);
+      console.log('🏁 Form submission completed');
     }
   };
 
-  // Agreement modal acceptance and decline handlers
-  const handleAgreementAccept = () => {
-    setAgreementAccepted(true);
-    setShowAgreementModal(false);
-  };
-  const handleAgreementDecline = () => {
-    setShowAgreementModal(false);
-    toast({
-      title: 'Agreement Required',
-      description: 'You must accept the terms and conditions to proceed',
-      variant: 'destructive'
-    });
-  };
-
-  // Toggle password visibility
-  const togglePassword = () => setShowPassword(v => !v);
-
-  // Switch between Sign Up + Login modes
-  const switchMode = () => {
-    setIsSignUp(v => !v);
-    // Reset agreement when switching
-    setAgreementAccepted(false);
-  };
-
-  // Agreement Modal JSX
+  // ✅ Agreement Modal Component
   if (showAgreementModal) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 p-4">
-        <Card className="w-full max-w-xl backdrop-blur-lg bg-card/90 rounded-lg border border-border shadow-lg">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl bg-card/90 backdrop-blur-lg border-border shadow-2xl">
           <CardHeader className="text-center">
-            <div className="mx-auto my-4 w-16 h-16 flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
               <FileText className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold">Terms and Conditions</CardTitle>
-            <CardDescription>Please accept our terms and conditions to create your account.</CardDescription>
+            <CardTitle className="text-2xl font-bold">Terms & Conditions Agreement</CardTitle>
+            <CardDescription>
+              Please review and accept our terms to create your RobotVerse account
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="max-h-64 overflow-y-auto border rounded p-4 bg-muted/50 mb-4">
-              <p><strong>1. Account Creation:</strong> Provide accurate data and check your email.</p>
-              <p><strong>2. Responsibilities:</strong> Keep your account credentials safe.</p>
-              <p><strong>3. Usage:</strong> Follow laws and guidelines; no fraudulent activity.</p>
-              <p><strong>4. Privacy:</strong> We respect your data privacy as per policy.</p>
-              <p><strong>5. Marketplace Terms:</strong> Products/services and purchasing rules apply.</p>
-              <p><strong>6. Email:</strong> You consent to receiving notification emails.</p>
-              <p><strong>7. Termination:</strong> Accounts may be suspended for violations.</p>
+          <CardContent className="space-y-6">
+            <div className="bg-muted/50 p-6 rounded-lg border max-h-96 overflow-y-auto">
+              <h3 className="text-lg font-semibold mb-4">RobotVerse Partnership Agreement</h3>
+              <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  <strong>1. Account Creation & Verification:</strong> By creating an account, you agree to provide accurate information and verify your email address. Your account will be activated only after email confirmation.
+                </p>
+                <p>
+                  <strong>2. User Responsibilities:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.
+                </p>
+                <p>
+                  <strong>3. Platform Usage:</strong> You agree to use RobotVerse marketplace in accordance with our community guidelines and applicable laws. Prohibited activities include fraud, spam, or misrepresentation.
+                </p>
+                <p>
+                  <strong>4. Data Privacy:</strong> We collect and process your personal information in accordance with our Privacy Policy. Your data will be used to provide marketplace services and improve user experience.
+                </p>
+                <p>
+                  <strong>5. Marketplace Terms:</strong> For sellers, you agree to provide accurate product/service descriptions. For buyers, you agree to our purchase and return policies.
+                </p>
+                <p>
+                  <strong>6. Email Communication:</strong> By signing up, you consent to receive important account-related emails including verification, security alerts, and service updates.
+                </p>
+                <p>
+                  <strong>7. Account Termination:</strong> We reserve the right to suspend or terminate accounts that violate our terms of service.
+                </p>
+              </div>
             </div>
-            <div className="flex gap-4">
-              <Button variant="outline" className="flex-1" onClick={handleAgreementDecline}>Decline</Button>
-              <Button className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700" onClick={handleAgreementAccept}>Accept & Continue</Button>
+            
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1 hover:bg-muted/50"
+                onClick={handleAgreementDecline}
+              >
+                ❌ Decline
+              </Button>
+              <Button 
+                onClick={handleAgreementAccept}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                ✅ Accept & Continue
+              </Button>
             </div>
-            <p className="text-center text-xs pt-4 text-muted-foreground">Acceptance triggers a verification email.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Email Confirmation Modal JSX
-  if (showEmailConfirmationModal) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background to-muted/20 p-4">
-        <Card className="max-w-md w-full bg-card/90 backdrop-blur-lg border border-border rounded-lg shadow-lg">
-          <CardHeader className="text-center">
-            <div className="mx-auto my-6 w-20 h-20 flex items-center justify-center bg-gradient-to-r from-green-600 to-blue-600 rounded-full shadow-lg">
-              <CheckCircle className="w-12 h-12 text-white" />
-            </div>
-            <CardTitle className="text-3xl font-bold">Confirm Your Email</CardTitle>
-            <CardDescription className="mb-6">A verification link was sent to <strong>{email}</strong>.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-6 text-center text-sm text-muted-foreground">Please check your inbox and click the link to activate your account.</p>
-            <Button onClick={() => {
-              setShowEmailConfirmationModal(false);
-              setIsSignUp(false); // Switch to login
-            }} className="w-full">
-              I've Verified - Sign In
-            </Button>
-            <button onClick={() => setShowEmailConfirmationModal(false)} className="mt-4 w-full text-center text-sm text-primary hover:text-primary/80">
-              Close & Continue Later
-            </button>
-            <p className="mt-6 text-center text-xs space-y-1 text-muted-foreground">
-              <span>• Check spam if email not found</span>
-              <span>• Link expires in 24hrs</span>
-              <span>• Profile info saved until confirmation</span>
+            
+            <p className="text-xs text-center text-muted-foreground">
+              By accepting, you agree to receive a verification email to complete your registration.
             </p>
           </CardContent>
         </Card>
@@ -322,242 +743,597 @@ const Auth = () => {
     );
   }
 
-  // Main Auth Form JSX
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-6">
-      <div className="max-w-lg w-full">
-        <Link to="/" className="inline-flex items-center mb-6 text-primary hover:text-primary/80 group transition-colors">
-          <ArrowLeft className="mr-2 w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to RobotVerse</span>
-        </Link>
-
-        <Card className="p-8 bg-card/90 backdrop-blur-lg border border-border rounded-lg shadow-lg">
-          <CardHeader className="text-center mb-6">
-            <div className="mx-auto w-20 h-20 p-4 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
-              <Bot className="w-12 h-12 text-white" />
+  // ✅ Email Confirmation Modal Component
+  if (showEmailConfirmationModal) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-card/90 backdrop-blur-lg border-border shadow-2xl">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Mail className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              {isSignUp ? 'Join RobotVerse' : 'Welcome Back'}
-            </CardTitle>
-            <CardDescription className="mt-2 text-lg">
-              {isSignUp ? 'Create your RobotVerse account' : 'Sign in to your RobotVerse account'}
+            <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
+            <CardDescription>
+              We've sent a verification link to your email address
             </CardDescription>
           </CardHeader>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {isSignUp && (
-              <>
-                <div>
-                  <Label htmlFor="fullName" className="mb-1 block font-semibold">Full Name *</Label>
-                  <Input id="fullName" value={fullName} onChange={e => setFullName(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="companyName" className="mb-1 block font-semibold">Company Name *</Label>
-                  <Input id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="mobileNumber" className="mb-1 block font-semibold">Mobile Number *</Label>
-                  <Input id="mobileNumber" type="tel" value={mobileNumber} onChange={e => setMobileNumber(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="location" className="mb-1 block font-semibold">Location *</Label>
-                  <Input id="location" value={location} onChange={e => setLocation(e.target.value)} required />
-                </div>
-              </>
-            )}
-
-            <div>
-              <Label htmlFor="email" className="mb-1 block font-semibold">Email Address *</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <CardContent className="space-y-6">
+            <div className="bg-muted/50 p-4 rounded-lg border text-center">
+              <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+              <p className="text-sm font-medium mb-2">Verification Email Sent!</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                We've sent a verification email to <strong>{email}</strong>. 
+                Please check your inbox and click the verification link to activate your account.
+              </p>
             </div>
-
-            <div>
-              <Label htmlFor="password" className="mb-1 block font-semibold">Password *</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  minLength={6}
-                  required
-                />
+            
+            <div className="space-y-3">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-3">
+                  After verifying your email, you can sign in to complete your profile setup.
+                </p>
+              </div>
+              
+              <Button 
+                onClick={() => {
+                  setShowEmailConfirmationModal(false);
+                  setIsSignUp(false); // Switch to sign in mode
+                }}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                ✉️ I've Verified - Let me Sign In
+              </Button>
+              
+              <div className="text-center">
                 <button
-                  type="button"
-                  onClick={togglePassword}
-                  className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowEmailConfirmationModal(false)}
+                  className="text-sm text-primary hover:text-primary/80 transition-colors"
                 >
-                  {showPassword ? <EyeOff /> : <Eye />}
+                  Close & Continue Later
                 </button>
               </div>
             </div>
+            
+            <div className="text-xs text-center text-muted-foreground space-y-1">
+              <p>• Check your spam folder if you don't see the email</p>
+              <p>• The verification link expires in 24 hours</p>
+              <p>• Your profile data is saved and will be created after verification</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-            {isSignUp && (
-              <div>
-                <Label htmlFor="accountType" className="mb-1 block font-semibold">Account Type *</Label>
-                <Select id="accountType" value={accountType} onValueChange={value => setAccountType(value as any)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Account Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="buyer">Buyer</SelectItem>
-                    <SelectItem value="seller">Seller</SelectItem>
-                    <SelectItem value="logistics">Logistics</SelectItem>
-                    <SelectItem value="finance">Finance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+  // Main Authentication Form
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        {/* Back to Home Link */}
+        <Link 
+          to="/" 
+          className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors mb-6 group"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span>Back to RobotVerse</span>
+        </Link>
 
-            {/* Seller roles selection if seller */}
-            {isSignUp && accountType === 'seller' && (
-              <div>
-                <Label className="mb-1 block font-semibold">Seller Roles</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'robot_seller', label: 'Robot Seller' },
-                    { id: 'spare_parts_seller', label: 'Spare Parts Seller' },
-                    { id: 'service_provider', label: 'Service Provider' }
-                  ].map(({ id, label }) => (
-                    <Checkbox
-                      key={id}
-                      id={id}
-                      checked={sellerRoles.includes(id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) setSellerRoles([...sellerRoles, id]);
-                        else setSellerRoles(sellerRoles.filter(r => r !== id));
-                      }}
-                      label={label}
+        <Card className="bg-card/90 backdrop-blur-lg border-border shadow-2xl">
+          <CardHeader className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <Bot className="w-10 h-10 text-white" />
+            </div>
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {isSignUp ? 'Join RobotVerse' : 'Welcome Back'}
+            </CardTitle>
+            <CardDescription className="text-lg mt-2">
+              {isSignUp 
+                ? 'Create your account to start your robotics journey' 
+                : 'Sign in to access your robot marketplace'
+              }
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Information Section - Only for Sign Up */}
+              {isSignUp && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <User className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Basic Information</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name *</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="fullName"
+                          type="text"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your full name"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">Company Name *</Label>
+                      <div className="relative">
+                        <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="companyName"
+                          type="text"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your company name"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="mobileNumber">Mobile Number *</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="mobileNumber"
+                          type="tel"
+                          value={mobileNumber}
+                          onChange={(e) => setMobileNumber(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your mobile number"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="location"
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your location"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Email and Password Fields */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      placeholder="Enter your email"
+                      required
                     />
-                  ))}
+                  </div>
+                </div>
+                
+                {/* Password Field with Show/Hide Toggle */}
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10 pr-12"
+                      placeholder="Enter your password"
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {/* Password Strength Indicator */}
+                  {password && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Password strength: {password.length >= 8 ? '🟢 Strong' : password.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Logistics inputs */}
-            {isSignUp && accountType === 'logistics' && (
-              <div>
-                <Label className="mb-1 block font-semibold">Logistics Info</Label>
-                <Select
-                  value={logisticsType}
-                  onValueChange={v => setLogisticsType(v)}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select Logistics Type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="local">Local Delivery</SelectItem>
-                    <SelectItem value="interstate">Interstate Transport</SelectItem>
-                    <SelectItem value="international">International Shipping</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="Service Region"
-                  value={logisticsRegion}
-                  onChange={e => setLogisticsRegion(e.target.value)}
-                  className="mt-2"
-                />
-                <Label className="block mt-4 font-semibold">Transport Modes</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['road', 'sea', 'air'].map(mode => (
-                    <Checkbox
-                      key={mode}
-                      id={mode}
-                      checked={transportModes.includes(mode)}
-                      onCheckedChange={checked =>
-                        checked
-                          ? setTransportModes([...transportModes, mode])
-                          : setTransportModes(transportModes.filter(m => m !== mode))
-                      }
-                      label={mode.charAt(0).toUpperCase() + mode.slice(1)}
-                    />
-                  ))}
-                </div>
-                <Checkbox
-                  checked={warehouseStorage}
-                  onCheckedChange={setWarehouseStorage}
-                  label="Warehouse & Storage"
-                  className="mt-4"
-                />
-              </div>
-            )}
+              {/* Account Type Selection - Only for Sign Up */}
+              {isSignUp && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Account Type</h3>
+                  </div>
 
-            {/* Finance inputs */}
-            {isSignUp && accountType === 'finance' && (
-              <div>
-                <Label className="mb-1 block font-semibold">Finance Services</Label>
-                <Label>Finance Types</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['loan', 'lease', 'emi'].map(type => (
-                    <Checkbox
-                      key={type}
-                      id={type}
-                      checked={financeType.includes(type)}
-                      onCheckedChange={checked =>
-                        checked
-                          ? setFinanceType([...financeType, type])
-                          : setFinanceType(financeType.filter(t => t !== type))
-                      }
-                      label={type.toUpperCase()}
-                    />
-                  ))}
+                  <div className="space-y-2">
+                    <Label>Select Your Account Type *</Label>
+                    <Select value={accountType} onValueChange={(value: any) => setAccountType(value)}>
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Choose your account type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="buyer" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <ShoppingCart className="w-5 h-5 text-blue-600" />
+                            <div>
+                              <div className="font-medium">Buyer</div>
+                              <div className="text-xs text-muted-foreground">Browse and purchase robots</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="seller" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <Building className="w-5 h-5 text-green-600" />
+                            <div>
+                              <div className="font-medium">Seller</div>
+                              <div className="text-xs text-muted-foreground">Sell robots, parts, or services</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="logistics" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <Truck className="w-5 h-5 text-orange-600" />
+                            <div>
+                              <div className="font-medium">Logistics Partner</div>
+                              <div className="text-xs text-muted-foreground">Provide shipping services</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="finance" className="h-12">
+                          <div className="flex items-center gap-3">
+                            <CreditCard className="w-5 h-5 text-purple-600" />
+                            <div>
+                              <div className="font-medium">Finance Provider</div>
+                              <div className="text-xs text-muted-foreground">Offer financial services</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <Label className="mt-4">Financing For</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['robots', 'parts', 'setup', 'services'].map(finance => (
-                    <Checkbox
-                      key={finance}
-                      id={finance}
-                      checked={financingFor.includes(finance)}
-                      onCheckedChange={checked =>
-                        checked
-                          ? setFinancingFor([...financingFor, finance])
-                          : setFinancingFor(financingFor.filter(f => f !== finance))
-                      }
-                      label={finance.charAt(0).toUpperCase() + finance.slice(1)}
-                    />
-                  ))}
-                </div>
-                <Label className="mt-4">Target Audience</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['b2b', 'msme', 'startup'].map(audience => (
-                    <Checkbox
-                      key={audience}
-                      id={audience}
-                      checked={targetAudience.includes(audience)}
-                      onCheckedChange={checked =>
-                        checked
-                          ? setTargetAudience([...targetAudience, audience])
-                          : setTargetAudience(targetAudience.filter(t => t !== audience))
-                      }
-                      label={audience.toUpperCase()}
-                    />
-                  ))}
-                </div>
-                <Checkbox
-                  checked={governmentSchemeSupport}
-                  onCheckedChange={setGovernmentSchemeSupport}
-                  label="Government Scheme Support"
-                  className="mt-4"
-                />
-              </div>
-            )}
+              )}
 
-            <Button type="submit" disabled={loading} className="w-full mt-8 h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              {loading
-                ? (isSignUp ? 'Creating Account...' : 'Signing In...')
-                : (isSignUp ? 'Create RobotVerse Account' : 'Sign In')}
-            </Button>
-          </form>
+              {/* Seller Role Selection */}
+              {isSignUp && accountType === 'seller' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Seller Specializations</h3>
+                  </div>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={switchMode}
-              className="text-primary hover:text-primary/80 transition-colors font-medium"
-              aria-label="Switch authentication mode"
-            >
-              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Join RobotVerse"}
-            </button>
-          </div>
+                  <div className="space-y-2">
+                    <Label>Select Your Seller Roles (Choose all that apply) *</Label>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Selected roles ({sellerRoles.length}): {sellerRoles.join(', ') || 'None'}
+                    </div>
+                    <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="robot_seller"
+                          checked={sellerRoles.includes('robot_seller')}
+                          onCheckedChange={(checked) => handleSellerRoleChange('robot_seller', !!checked)}
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          <Bot className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <Label htmlFor="robot_seller" className="font-medium cursor-pointer">Robot Seller</Label>
+                            <p className="text-xs text-muted-foreground">Sell industrial robots and automation equipment</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="spare_parts_seller"
+                          checked={sellerRoles.includes('spare_parts_seller')}
+                          onCheckedChange={(checked) => handleSellerRoleChange('spare_parts_seller', !!checked)}
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          <Package className="w-5 h-5 text-green-600" />
+                          <div>
+                            <Label htmlFor="spare_parts_seller" className="font-medium cursor-pointer">Spare Parts Seller</Label>
+                            <p className="text-xs text-muted-foreground">Sell robot components and spare parts</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="service_provider"
+                          checked={sellerRoles.includes('service_provider')}
+                          onCheckedChange={(checked) => handleSellerRoleChange('service_provider', !!checked)}
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          <Settings className="w-5 h-5 text-purple-600" />
+                          <div>
+                            <Label htmlFor="service_provider" className="font-medium cursor-pointer">Service Provider</Label>
+                            <p className="text-xs text-muted-foreground">Offer maintenance, installation, and repair services</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Logistics Provider Fields */}
+              {isSignUp && accountType === 'logistics' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Logistics Details</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Type of Logistics Service *</Label>
+                      <Select value={logisticsType} onValueChange={setLogisticsType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select logistics type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">🏠 Local Delivery</SelectItem>
+                          <SelectItem value="interstate">🛣️ Interstate Transport</SelectItem>
+                          <SelectItem value="international">🌍 International Shipping</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="logisticsRegion">Primary Service Region *</Label>
+                      <Input
+                        id="logisticsRegion"
+                        value={logisticsRegion}
+                        onChange={(e) => setLogisticsRegion(e.target.value)}
+                        placeholder="e.g., North India, Maharashtra, etc."
+                        required={accountType === 'logistics'}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Available Transport Modes</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="road"
+                          checked={transportModes.includes('road')}
+                          onCheckedChange={(checked) => handleTransportModeChange('road', !!checked)}
+                        />
+                        <Label htmlFor="road" className="font-medium cursor-pointer">🚛 Road Transport</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="sea"
+                          checked={transportModes.includes('sea')}
+                          onCheckedChange={(checked) => handleTransportModeChange('sea', !!checked)}
+                        />
+                        <Label htmlFor="sea" className="font-medium cursor-pointer">🚢 Sea Freight</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="air"
+                          checked={transportModes.includes('air')}
+                          onCheckedChange={(checked) => handleTransportModeChange('air', !!checked)}
+                        />
+                        <Label htmlFor="air" className="font-medium cursor-pointer">✈️ Air Cargo</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="warehouse"
+                      checked={warehouseStorage}
+                      onCheckedChange={(checked) => setWarehouseStorage(!!checked)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="warehouse" className="font-medium cursor-pointer">🏭 Warehouse & Storage Facilities</Label>
+                      <p className="text-xs text-muted-foreground">We provide temporary storage and warehousing services</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Finance Provider Fields */}
+              {isSignUp && accountType === 'finance' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Financial Services</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Types of Financial Services Offered *</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="loan"
+                          checked={financeType.includes('loan')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('loan', !!checked)}
+                        />
+                        <Label htmlFor="loan" className="font-medium cursor-pointer">💰 Business Loans</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="lease"
+                          checked={financeType.includes('lease')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('lease', !!checked)}
+                        />
+                        <Label htmlFor="lease" className="font-medium cursor-pointer">📋 Equipment Leasing</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="emi"
+                          checked={financeType.includes('emi')}
+                          onCheckedChange={(checked) => handleFinanceTypeChange('emi', !!checked)}
+                        />
+                        <Label htmlFor="emi" className="font-medium cursor-pointer">💳 EMI Financing</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Financing Available For</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="robots"
+                          checked={financingFor.includes('robots')}
+                          onCheckedChange={(checked) => handleFinancingForChange('robots', !!checked)}
+                        />
+                        <Label htmlFor="robots" className="text-sm cursor-pointer">🤖 Robots</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="parts"
+                          checked={financingFor.includes('parts')}
+                          onCheckedChange={(checked) => handleFinancingForChange('parts', !!checked)}
+                        />
+                        <Label htmlFor="parts" className="text-sm cursor-pointer">🔧 Parts</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="setup"
+                          checked={financingFor.includes('setup')}
+                          onCheckedChange={(checked) => handleFinancingForChange('setup', !!checked)}
+                        />
+                        <Label htmlFor="setup" className="text-sm cursor-pointer">⚙️ Setup</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
+                        <Checkbox
+                          id="services"
+                          checked={financingFor.includes('services')}
+                          onCheckedChange={(checked) => handleFinancingForChange('services', !!checked)}
+                        />
+                        <Label htmlFor="services" className="text-sm cursor-pointer">🛠️ Services</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Target Business Segments</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="b2b"
+                          checked={targetAudience.includes('b2b')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('b2b', !!checked)}
+                        />
+                        <Label htmlFor="b2b" className="font-medium cursor-pointer">🏢 Large Enterprises (B2B)</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="msme"
+                          checked={targetAudience.includes('msme')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('msme', !!checked)}
+                        />
+                        <Label htmlFor="msme" className="font-medium cursor-pointer">🏭 MSME Businesses</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="startup"
+                          checked={targetAudience.includes('startup')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('startup', !!checked)}
+                        />
+                        <Label htmlFor="startup" className="font-medium cursor-pointer">🚀 Startups & Scale-ups</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id="government_scheme"
+                      checked={governmentSchemeSupport}
+                      onCheckedChange={(checked) => setGovernmentSchemeSupport(!!checked)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="government_scheme" className="font-medium cursor-pointer">🏛️ Government Scheme Support</Label>
+                      <p className="text-xs text-muted-foreground">We assist with government subsidies and scheme applications</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Submit Button */}
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-lg" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center space-x-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>{isSignUp ? 'Creating Your Account...' : 'Signing You In...'}</span>
+                  </div>
+                ) : (
+                  <>
+                    {isSignUp ? (
+                      <>
+                        <Bot className="w-5 h-5 mr-2" />
+                        {agreementAccepted ? 'Create My RobotVerse Account' : 'Review Agreement & Create Account'}
+                      </>
+                    ) : (
+                      <>
+                        <User className="w-5 h-5 mr-2" />
+                        Sign In to RobotVerse
+                      </>
+                    )}
+                  </>
+                )}
+              </Button>
+            </form>
+            
+            {/* Toggle between Sign Up and Sign In */}
+            <div className="mt-8 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setAgreementAccepted(false); // Reset agreement when switching
+                }}
+                className="text-primary hover:text-primary/80 transition-colors font-medium"
+              >
+                {isSignUp 
+                  ? 'Already have an account? Sign in here' 
+                  : "Don't have an account? Join RobotVerse"
+                }
+              </button>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>
