@@ -238,9 +238,11 @@ export type Database = {
           mou_agreed: boolean | null
           mou_agreed_at: string | null
           phone: string | null
+          primary_role: string | null
           primary_user_type:
             | Database["public"]["Enums"]["user_type_enum"]
             | null
+          registration_complete: boolean | null
           seller_roles: string[] | null
           service_categories: string[] | null
           target_audience: string[] | null
@@ -269,9 +271,11 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          primary_role?: string | null
           primary_user_type?:
             | Database["public"]["Enums"]["user_type_enum"]
             | null
+          registration_complete?: boolean | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
@@ -300,9 +304,11 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          primary_role?: string | null
           primary_user_type?:
             | Database["public"]["Enums"]["user_type_enum"]
             | null
+          registration_complete?: boolean | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
