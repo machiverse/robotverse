@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth"; // Adjust import path/name if needed
+import { useState, useEffect, ChangeEvent, KeyboardEvent } from "react";
+import { useAuth } from "@/hooks/useAuth"; // Adjust this path if different
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -9,10 +9,9 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components//ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -22,6 +21,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -30,13 +30,10 @@ import {
   Plus,
   X,
   Settings,
-  Camera,
   Zap,
-  Globe,
-  Star,
-  Award,
   Bot,
-  Shield,
+  Award,
+  Globe,
   FileText,
   CheckCircle,
   AlertCircle,
@@ -81,7 +78,7 @@ const priceRanges = [
   "₹3,000 - ₹5,000 per hour",
   "₹5,000 - ₹10,000 per hour",
   "₹10,000 - ₹20,000 per hour",
-  "₹20,000+",
+  "₹20,000+ per hour",
   "Fixed Project Rate",
   "Monthly Contract",
   "Annual Contract",
@@ -112,7 +109,7 @@ const languageOptions = [
 ];
 
 const serviceCategories = {
-  "Maintenance": [
+  "Maintenance & Repair": [
     "Preventive Maintenance",
     "Corrective Maintenance",
     "Emergency Repair",
@@ -120,7 +117,7 @@ const serviceCategories = {
     "System Overhaul",
     "Condition Monitoring",
   ],
-  "Installation": [
+  "Installation & Setup": [
     "Robot Installation",
     "System Integration",
     "Commissioning",
@@ -128,7 +125,7 @@ const serviceCategories = {
     "Safety Setup",
     "Network Configuration",
   ],
-  "Programming": [
+  "Programming & Software": [
     "Robot Programming",
     "Software Updates",
     "Custom Application Development",
@@ -136,7 +133,7 @@ const serviceCategories = {
     "HMI Development",
     "Simulation Services",
   ],
-  "Training": [
+  "Training & Consulting": [
     "Operator Training",
     "Technical Training",
     "Safety Training",
@@ -144,7 +141,7 @@ const serviceCategories = {
     "Automation Consulting",
     "ROI Analysis",
   ],
-  "Specialized": [
+  "Specialized Services": [
     "Calibration Services",
     "Robot Inspection",
     "Compliance Testing",
@@ -158,7 +155,6 @@ export default function ServiceListing() {
   const { user } = useAuth();
   const toast = useToast();
 
-  // States for form
   const [formData, setFormData] = useState<ServiceFormData>({
     name: "",
     service_type: "",
@@ -179,30 +175,26 @@ export default function ServiceListing() {
     portfolio_images: [],
   });
 
-  // Inputs for adding to list-type fields
   const [specializationInput, setSpecializationInput] = useState("");
   const [certificationInput, setCertificationInput] = useState("");
   const [languageInput, setLanguageInput] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
   const [validatingImages, setValidatingImages] = useState(false);
 
-  // Validation & progress
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formCompletion, setFormCompletion] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // States from DB
   const [states, setStates] = useState<State[]>([]);
 
   useEffect(() => {
-    // Fetch Indian states for location dropdown
     async function fetchStates() {
       const { data, error } = await supabase
-        .from("states")
+        .from("states" as any) // Use "as any" temporarily if typing errors arise
         .select("id, name")
         .order("name");
       if (error) {
-        console.error("Failed to load states:", error.message);
+        console.error("Error fetching states:", error.message);
         setStates([]);
       } else {
         setStates(data ?? []);
@@ -212,163 +204,217 @@ export default function ServiceListing() {
   }, []);
 
   useEffect(() => {
-    calculateCompletion();
+    let totalFields = 5 + 4; // required + optional count
+    let filledRequired = 0;
+    let filledOptional = 0;
+
+    const requiredFields: (keyof ServiceFormData)[] = [
+      "name",
+      "service_type",
+      "location",
+      "description",
+      "price_range",
+    ];
+
+    requiredFields.forEach((field) => {
+      const val = formData[field];
+      if (Array.isArray(val)) {
+        if (val.length > 0) filledRequired++;
+      } else if (val && val !== "") {
+        filledRequired++;
+      }
+    });
+
+    const optionalFields: (keyof ServiceFormData)[] = [
+      "specializations",
+      "certifications",
+      "availability",
+      "languages",
+    ];
+
+    optionalFields.forEach((field) => {
+      const val = formData[field];
+      if (Array.isArray(val)) {
+        if (val.length > 0) filledOptional++;
+      } else if (val && val !== "") {
+        filledOptional++;
+      }
+    });
+
+    const percentage =
+      Math.round(
+        (filledRequired / requiredFields.length) * 70 +
+          (filledOptional / optionalFields.length) * 30
+      ) || 0;
+    setFormCompletion(percentage);
   }, [formData]);
 
-  function calculateCompletion() {
-    const required = ["name", "service_type", "location", "description", "price_range"];
-    const optional = ["specializations", "certifications", "availability", "languages"];
-
-    const requiredCount = required.filter(d => {
-      const val = formData[d as keyof ServiceFormData];
-      if (Array.isArray(val)) return val.length > 0;
-      return val !== null && val !== undefined && val !== "" && val !== 0;
-    }).length;
-
-    const optionalCount = optional.filter(d => {
-      const val = formData[d as keyof ServiceFormData];
-      if (Array.isArray(val)) return val.length > 0;
-      return val !== null && val !== undefined && val !== "" && val !== 0;
-    }).length;
-
-    const completion = Math.round((requiredCount / required.length) * 70 + (optionalCount / optional.length) * 30);
-    setFormCompletion(completion);
-  }
-
-  function validateForm() {
+  function validateForm(): boolean {
     const errs: Record<string, string> = {};
 
     if (!formData.name.trim()) errs.name = "Service name is required";
     if (!formData.service_type) errs.service_type = "Service type is required";
     if (!formData.location) errs.location = "Location is required";
     if (!formData.price_range) errs.price_range = "Price range is required";
-    if (!formData.description || formData.description.length < 50) errs.description = "Description must be at least 50 characters";
-    if (formData.experience_years < 0) errs.experience_years = "Experience cannot be negative";
+    if (!formData.description || formData.description.trim().length < 50)
+      errs.description = "Description must be at least 50 characters";
+    if (formData.experience_years < 0)
+      errs.experience_years = "Experience cannot be negative";
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
-  function handleInputChange<T extends keyof ServiceFormData>(field: T, value: ServiceFormData[T]) {
-    setFormData(old => ({ ...old, [field]: value }));
-    if(errors[field]) setErrors(old => ({ ...old, [field]: '' }));
+  function handleInput<T extends keyof ServiceFormData>(field: T, value: ServiceFormData[T]) {
+    setFormData((old) => ({
+      ...old,
+      [field]: value,
+    }));
+    if (errors[field]) setErrors((old) => ({ ...old, [field]: "" }));
   }
 
-  // Items list management helpers
-
-  const addSpecialization = () => {
+  function addSpecialization() {
     const val = specializationInput.trim();
-    if(val && !formData.specializations.includes(val)) {
-      handleInputChange("specializations", [...formData.specializations, val]);
+    if (val && !formData.specializations.includes(val)) {
+      handleInput("specializations", [...formData.specializations, val]);
       setSpecializationInput("");
     }
-  };
+  }
 
-  const removeSpecialization = (val: string) => {
-    handleInputChange("specializations", formData.specializations.filter(v => v !== val));
-  };
+  function removeSpecialization(val: string) {
+    handleInput(
+      "specializations",
+      formData.specializations.filter((s) => s !== val)
+    );
+  }
 
-  const addCertification = () => {
+  function addCertification() {
     const val = certificationInput.trim();
-    if(val && !formData.certifications.includes(val)) {
-      handleInputChange("certifications", [...formData.certifications, val]);
+    if (val && !formData.certifications.includes(val)) {
+      handleInput("certifications", [...formData.certifications, val]);
       setCertificationInput("");
     }
-  };
+  }
 
-  const removeCertification = (val: string) => {
-    handleInputChange("certifications", formData.certifications.filter(v => v !== val));
-  };
+  function removeCertification(val: string) {
+    handleInput(
+      "certifications",
+      formData.certifications.filter((c) => c !== val)
+    );
+  }
 
-  const addLanguage = () => {
-    if(languageInput && !formData.languages.includes(languageInput)) {
-      handleInputChange("languages", [...formData.languages, languageInput]);
+  function addLanguage() {
+    if (languageInput && !formData.languages.includes(languageInput)) {
+      handleInput("languages", [...formData.languages, languageInput]);
       setLanguageInput("");
     }
-  };
+  }
 
-  const removeLanguage = (val: string) => {
-    if(formData.languages.length > 1) {
-      handleInputChange("languages", formData.languages.filter(v => v !== val));
+  function removeLanguage(val: string) {
+    if (formData.languages.length > 1) {
+      handleInput(
+        "languages",
+        formData.languages.filter((l) => l !== val)
+      );
     }
-  };
+  }
 
-  const handleAvailabilityChange = (value: string, checked: boolean) => {
-    if(checked) {
-      handleInputChange("availability", [...formData.availability, value]);
+  function handleAvailabilityChange(opt: string, checked: boolean) {
+    if (checked) {
+      handleInput("availability", [...formData.availability, opt]);
     } else {
-      handleInputChange("availability", formData.availability.filter(v => v !== value));
+      handleInput(
+        "availability",
+        formData.availability.filter((v) => v !== opt)
+      );
     }
-  };
-
-  // Image validation
+  }
 
   async function validateImageUrl(url: string): Promise<boolean> {
-    if(!url || !url.startsWith("http")) return false;
+    if (!url || !url.startsWith("http")) return false;
     try {
       const res = await fetch(url, { method: "HEAD" });
       const ct = res.headers.get("content-type");
-      return res.ok && !!ct && ct.startsWith("image");
+      return res.ok && !!ct && ct.startsWith("image/");
     } catch {
       return false;
     }
   }
 
-  async function handleImageUrlChange(index: number, url: string) {
-    const urls = [...imageUrls];
-    urls[index] = url;
-    setImageUrls(urls);
+  async function handleImageUrlChange(idx: number, url: string) {
+    const updated = [...imageUrls];
+    updated[idx] = url;
+    setImageUrls(updated);
 
-    if(url.startsWith("http")) {
+    if (url.startsWith("http")) {
       setValidatingImages(true);
       const valid = await validateImageUrl(url);
       setValidatingImages(false);
-      if(!valid) {
-        toast({
-          variant: "destructive",
+
+      if (!valid) {
+        toast.toast({
           title: "Invalid Image URL",
-          description: "The image URL is invalid or unreachable"
+          description: "Provided URL is invalid or unreachable.",
+          variant: "destructive",
         });
       } else {
-        // Update formData if valid urls exist
-        const validUrls = urls.filter(u => u && u.startsWith("http"));
-        handleInputChange("portfolio_images", validUrls);
+        const goodUrls = updated.filter((u) => u.startsWith("http"));
+        handleInput("portfolio_images", goodUrls);
       }
     }
   }
 
-  function addImageUrlField() {
-    if(imageUrls.length < 10) setImageUrls(old => [...old, ""]);
+  function addImageField() {
+    if (imageUrls.length < 10) setImageUrls((old) => [...old, ""]);
   }
-
-  function removeImageUrlField(index: number) {
-    if(imageUrls.length > 1) {
-      const updated = imageUrls.filter((_, i) => i !== index);
+  function removeImageField(idx: number) {
+    if (imageUrls.length > 1) {
+      const updated = imageUrls.filter((_, i) => i !== idx);
       setImageUrls(updated);
-      handleInputChange("portfolio_images", updated.filter(u => u && u.startsWith("http")));
+      handleInput(
+        "portfolio_images",
+        updated.filter((u) => u.startsWith("http"))
+      );
     }
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if(!user) {
-      toast({ variant:"destructive", title:"Authentication Required", description:"Please sign in to continue" });
+
+    if (!user) {
+      toast.toast({
+        title: "Authentication Required",
+        description: "Please login to submit your listing.",
+        variant: "destructive",
+      });
       return;
     }
-    if(!validateForm()) {
-      toast({ variant:"destructive", title:"Validation Error", description:"Please fill all required fields correctly" });
+
+    if (!validateForm()) {
+      toast.toast({
+        title: "Validation Error",
+        description: "Please fix the highlighted errors.",
+        variant: "destructive",
+      });
       return;
     }
+
     setLoading(true);
     try {
-      const { error } = await supabase.from("services").insert({
-        ...formData,
-        provider_id: user.id,
-        created_at: new Date().toISOString(),
+      const { error } = await supabase.from("services").insert([
+        {
+          ...formData,
+          provider_id: user.id,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+      if (error) throw error;
+
+      toast.toast({
+        title: "Success",
+        description: "Your service listing has been created.",
       });
-      if(error) throw error;
-      toast({ title:"Success!", description:"Your service listing has been created." });
-      // Reset form
+
       setFormData({
         name: "",
         service_type: "",
@@ -393,63 +439,80 @@ export default function ServiceListing() {
       setLanguageInput("");
       setImageUrls([""]);
       setErrors({});
-    } catch (e) {
-      toast({ variant:"destructive", title:"Error", description:(e as Error).message || "Unknown error" });
+    } catch (error) {
+      toast.toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to submit listing.",
+        variant: "destructive",
+      });
+      console.error(error);
     } finally {
       setLoading(false);
     }
   }
 
-  const completionColor = formCompletion >= 80 ? "text-green-600" : formCompletion >= 60 ? "text-yellow-600" : "text-red-600";
-
   return (
-    <div className="max-w-4xl mx-auto my-8 px-4">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Create New Service Listing</CardTitle>
-          <CardDescription>Fill all required fields to attract clients</CardDescription>
+          <CardDescription>
+            Please fill all required fields to attract clients.
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <div className="mb-4 flex items-center justify-between">
-            <span className={`text-3xl font-bold ${completionColor}`}>{formCompletion}% Complete</span>
+          <div className="mb-4 flex justify-between items-center">
+            <span className={`text-3xl font-semibold ${formCompletion >= 80 ? "text-green-600" : formCompletion >= 60 ? "text-yellow-600" : "text-red-600"}`}>
+              {formCompletion}%
+            </span>
             <Progress value={formCompletion} className="flex-grow ml-4" />
           </div>
-          {formCompletion < 80 && 
+
+          {formCompletion < 80 && (
             <Alert className="mb-6" variant="warning">
               <AlertCircle className="mr-2" />
-              Complete your profile for better visibility and client trust
+              <AlertDescription>
+                Complete your profile for better visibility and trust.
+              </AlertDescription>
             </Alert>
-          }
-          <form onSubmit={onSubmit} className="space-y-6">
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Service Name */}
             <div>
               <Label htmlFor="service-name">Service Name *</Label>
               <Input
                 id="service-name"
                 value={formData.name}
-                onChange={e => handleInputChange("name", e.target.value)}
+                onChange={(e) => handleInput("name", e.target.value)}
                 className={errors.name ? "border-red-600" : ""}
                 required
               />
               {errors.name && <p className="text-red-600 text-sm">{errors.name}</p>}
             </div>
 
+            {/* Service Type */}
             <div>
               <Label htmlFor="service-type">Service Type *</Label>
               <Select
                 id="service-type"
                 value={formData.service_type}
-                onValueChange={v => handleInputChange("service_type", v)}
+                onChange={(v) => handleInput("service_type", v)}
                 required
                 className={errors.service_type ? "border-red-600" : ""}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Service Type" />
+                  <SelectValue placeholder="Select a service type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(serviceCategories).map(([categoryName, services]) => (
-                    <optgroup key={categoryName} label={categoryName}>
-                      {services.map(service => (
-                        <SelectItem key={service} value={service}>{service}</SelectItem>
+                  {Object.entries(serviceCategories).map(([group, services]) => (
+                    <optgroup key={group} label={group}>
+                      {services.map((service) => (
+                        <SelectItem key={service} value={service}>
+                          {service}
+                        </SelectItem>
                       ))}
                     </optgroup>
                   ))}
@@ -458,45 +521,52 @@ export default function ServiceListing() {
               {errors.service_type && <p className="text-red-600 text-sm">{errors.service_type}</p>}
             </div>
 
+            {/* Location */}
             <div>
-              <Label htmlFor="location">Service Location *</Label>
+              <Label htmlFor="location">Location *</Label>
               <Select
                 id="location"
                 value={formData.location}
-                onValueChange={v => handleInputChange("location", v)}
+                onChange={(v) => handleInput("location", v)}
                 required
                 className={errors.location ? "border-red-600" : ""}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Location" />
+                  <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {states.length === 0 && <SelectItem disabled>Loading...</SelectItem>}
-                  {states.map(state => (
-                    <SelectItem key={state.id} value={state.name}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
+                  {states.length === 0 ? (
+                    <SelectItem disabled>Loading states...</SelectItem>
+                  ) : (
+                    states.map((state) => (
+                      <SelectItem key={state.id} value={state.name}>
+                        {state.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.location && <p className="text-red-600 text-sm">{errors.location}</p>}
             </div>
 
+            {/* Description */}
             <div>
-              <Label htmlFor="description">Service Description *</Label>
+              <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={e => handleInputChange("description", e.target.value)}
+                onChange={(e) => handleInput("description", e.target.value)}
                 rows={5}
                 className={errors.description ? "border-red-600" : ""}
                 required
               />
-              {errors.description && <p className="text-red-600 text-sm">{errors.description}</p>}
-              <p className="text-sm text-muted-foreground">{formData.description.length} / 50 minimum characters</p>
+              {errors.description && (
+                <p className="text-red-600 text-sm">{errors.description}</p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {formData.description.length}/50 minimum characters
+              </p>
             </div>
-
-            {/* Further inputs (price_range, response_time, availability, certifications, languages etc.) */}
 
             {/* Price Range */}
             <div>
@@ -504,20 +574,24 @@ export default function ServiceListing() {
               <Select
                 id="price-range"
                 value={formData.price_range}
-                onValueChange={v => handleInputChange("price_range", v)}
+                onChange={(v) => handleInput("price_range", v)}
                 required
                 className={errors.price_range ? "border-red-600" : ""}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Price Range" />
+                  <SelectValue placeholder="Select price range" />
                 </SelectTrigger>
                 <SelectContent>
-                  {priceRanges.map(price => (
-                    <SelectItem key={price} value={price}>{price}</SelectItem>
+                  {priceRanges.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {range}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {errors.price_range && <p className="text-red-600 text-sm">{errors.price_range}</p>}
+              {errors.price_range && (
+                <p className="text-red-600 text-sm">{errors.price_range}</p>
+              )}
             </div>
 
             {/* Response Time */}
@@ -526,14 +600,16 @@ export default function ServiceListing() {
               <Select
                 id="response-time"
                 value={formData.response_time}
-                onValueChange={v => handleInputChange("response_time", v)}
+                onChange={(v) => handleInput("response_time", v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Response Time" />
+                  <SelectValue placeholder="Select response time" />
                 </SelectTrigger>
                 <SelectContent>
-                  {responseTimeOptions.map(({value, label}) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  {responseTimeOptions.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -543,16 +619,21 @@ export default function ServiceListing() {
             <div>
               <Label>Availability</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {availabilityOptions.map(option => (
-                  <div key={option} className="flex items-center space-x-2">
-                    <Checkbox 
-                      checked={formData.availability.includes(option)} 
-                      onCheckedChange={checked => handleAvailabilityChange(option, checked as boolean)} 
-                      id={`avail-${option}`}
-                    />
-                    <Label htmlFor={`avail-${option}`}>{option}</Label>
-                  </div>
-                ))}
+                {availabilityOptions.map((option) => {
+                  const id = option.toLowerCase().replace(/\s+/g, "-");
+                  return (
+                    <div key={option} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={id}
+                        checked={formData.availability.includes(option)}
+                        onCheckedChange={(checked) =>
+                          handleAvailabilityChange(option, checked as boolean)
+                        }
+                      />
+                      <Label htmlFor={id}>{option}</Label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -562,18 +643,27 @@ export default function ServiceListing() {
               <div className="flex space-x-2 items-center mb-2">
                 <Input
                   value={specializationInput}
-                  onChange={e => setSpecializationInput(e.target.value)}
-                  placeholder="Add specialization and press enter"
-                  onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addSpecialization())}
+                  onChange={(e) => setSpecializationInput(e.target.value)}
+                  placeholder="Add specialization and press Enter"
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addSpecialization();
+                    }
+                  }}
                 />
-                <Button type="button" onClick={addSpecialization}><Plus /></Button>
+                <Button type="button" onClick={addSpecialization}>
+                  <Plus />
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.specializations.map((spec, i) => (
                   <Badge key={i} className="flex items-center space-x-1">
-                    <Bot className="w-4 h-4" />
+                    <Bot size={16} />
                     <span>{spec}</span>
-                    <Button type="button" onClick={() => removeSpecialization(spec)}><X className="w-4 h-4" /></Button>
+                    <Button type="button" onClick={() => removeSpecialization(spec)}>
+                      <X size={16} />
+                    </Button>
                   </Badge>
                 ))}
               </div>
@@ -585,18 +675,27 @@ export default function ServiceListing() {
               <div className="flex space-x-2 items-center mb-2">
                 <Input
                   value={certificationInput}
-                  onChange={e => setCertificationInput(e.target.value)}
-                  placeholder="Add certification and press enter"
-                  onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addCertification())}
+                  onChange={(e) => setCertificationInput(e.target.value)}
+                  placeholder="Add certification and press Enter"
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCertification();
+                    }
+                  }}
                 />
-                <Button type="button" onClick={addCertification}><Plus /></Button>
+                <Button type="button" onClick={addCertification}>
+                  <Plus />
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.certifications.map((cert, i) => (
                   <Badge key={i} className="flex items-center space-x-1">
-                    <Award className="w-4 h-4" />
+                    <Award size={16} />
                     <span>{cert}</span>
-                    <Button type="button" onClick={() => removeCertification(cert)}><X className="w-4 h-4" /></Button>
+                    <Button type="button" onClick={() => removeCertification(cert)}>
+                      <X size={16} />
+                    </Button>
                   </Badge>
                 ))}
               </div>
@@ -606,26 +705,42 @@ export default function ServiceListing() {
             <div>
               <Label>Languages</Label>
               <div className="flex space-x-2 items-center mb-2">
-                <Select value={languageInput} onValueChange={v => setLanguageInput(v)} className="flex-grow">
+                <Select
+                  value={languageInput}
+                  onValueChange={(v) => setLanguageInput(v)}
+                  className="flex-grow"
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Add language" />
                   </SelectTrigger>
                   <SelectContent>
-                    {languageOptions.filter(l => !formData.languages.includes(l)).map(l => (
-                      <SelectItem key={l} value={l}>{l}</SelectItem>
-                    ))}
+                    {languageOptions
+                      .filter((l) => !formData.languages.includes(l))
+                      .map((l) => (
+                        <SelectItem key={l} value={l}>
+                          {l}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
-                <Button type="button" onClick={addLanguage} disabled={!languageInput}><Plus /></Button>
+                <Button
+                  type="button"
+                  onClick={addLanguage}
+                  disabled={!languageInput}
+                >
+                  <Plus />
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.languages.map((lang, i) => (
                   <Badge key={i} className="flex items-center space-x-1">
-                    <Globe className="w-4 h-4" />
+                    <Globe size={16} />
                     <span>{lang}</span>
-                    {formData.languages.length > 1 &&
-                      <Button type="button" onClick={() => removeLanguage(lang)}><X className="w-4 h-4" /></Button>
-                    }
+                    {formData.languages.length > 1 && (
+                      <Button type="button" onClick={() => removeLanguage(lang)}>
+                        <X size={16} />
+                      </Button>
+                    )}
                   </Badge>
                 ))}
               </div>
@@ -636,34 +751,41 @@ export default function ServiceListing() {
               <Label>Portfolio Images (URLs)</Label>
               {imageUrls.map((url, idx) => (
                 <div key={idx} className="flex space-x-2 items-center mb-2">
-                  <Input 
+                  <Input
                     value={url}
-                    onChange={e => handleImageUrlChange(idx, e.target.value)}
+                    onChange={(e) => handleImageUrlChange(idx, e.target.value)}
                     placeholder="https://example.com/image.jpg"
                     className="flex-grow"
                   />
-                  {url.startsWith("http") && (
-                    <img 
-                      src={url} alt="Preview" 
+                  {url.startsWith("http") ? (
+                    <img
+                      src={url}
+                      alt="Portfolio Preview"
                       className="w-16 h-16 object-cover rounded border"
-                      onError={e => { (e.currentTarget as HTMLImageElement).src = ""; }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "";
+                      }}
                     />
-                  )}
+                  ) : null}
                   {imageUrls.length > 1 && (
-                    <Button type="button" onClick={() => removeImageUrlField(idx)}><X /></Button>
+                    <Button type="button" onClick={() => removeImageField(idx)}>
+                      <X />
+                    </Button>
                   )}
                 </div>
               ))}
               {imageUrls.length < 10 && (
-                <Button type="button" onClick={addImageUrlField} className="w-full mt-2">
+                <Button type="button" onClick={addImageField} className="w-full mt-2">
                   <Plus /> Add Another Image URL
                 </Button>
               )}
-              {validatingImages && <p className="text-sm text-muted-foreground">Validating images...</p>}
+              {validatingImages && (
+                <p className="text-sm text-muted-foreground">Validating images...</p>
+              )}
             </div>
 
             {/* Submit */}
-            <Button type="submit" disabled={loading || formCompletion < 50} size="lg" className="w-full">
+            <Button type="submit" size="lg" className="w-full" disabled={loading || formCompletion < 50}>
               {loading ? "Submitting..." : "Create Service Listing"}
             </Button>
           </form>
@@ -672,4 +794,5 @@ export default function ServiceListing() {
     </div>
   );
 };
+
 export default ServiceListing;
