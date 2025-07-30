@@ -174,25 +174,37 @@ export default function ServiceListing() {
 
   // Fetch Indian states once
   useEffect(() => {
-    async function fetchStates() {
-      try {
-        const { data, error } = await supabase
-          .from("states")
-          .select("id, name")
-          .order("name", { ascending: true });
-
-        if (error) {
-          console.error("Failed to fetch states:", error.message);
-          setStates([]);
-        } else {
-          setStates(data || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch states:", err);
-        setStates([]);
-      }
-    }
-    fetchStates();
+    // Use hardcoded Indian states for now since states table has typing issues
+    const indianStates = [
+      { id: "andhra-pradesh", name: "Andhra Pradesh" },
+      { id: "assam", name: "Assam" },
+      { id: "bihar", name: "Bihar" },
+      { id: "chhattisgarh", name: "Chhattisgarh" },
+      { id: "goa", name: "Goa" },
+      { id: "gujarat", name: "Gujarat" },
+      { id: "haryana", name: "Haryana" },
+      { id: "himachal-pradesh", name: "Himachal Pradesh" },
+      { id: "jharkhand", name: "Jharkhand" },
+      { id: "karnataka", name: "Karnataka" },
+      { id: "kerala", name: "Kerala" },
+      { id: "madhya-pradesh", name: "Madhya Pradesh" },
+      { id: "maharashtra", name: "Maharashtra" },
+      { id: "manipur", name: "Manipur" },
+      { id: "meghalaya", name: "Meghalaya" },
+      { id: "mizoram", name: "Mizoram" },
+      { id: "nagaland", name: "Nagaland" },
+      { id: "odisha", name: "Odisha" },
+      { id: "punjab", name: "Punjab" },
+      { id: "rajasthan", name: "Rajasthan" },
+      { id: "sikkim", name: "Sikkim" },
+      { id: "tamil-nadu", name: "Tamil Nadu" },
+      { id: "telangana", name: "Telangana" },
+      { id: "tripura", name: "Tripura" },
+      { id: "uttar-pradesh", name: "Uttar Pradesh" },
+      { id: "uttarakhand", name: "Uttarakhand" },
+      { id: "west-bengal", name: "West Bengal" }
+    ];
+    setStates(indianStates);
   }, []);
 
   // Calculate form completion

@@ -24,25 +24,30 @@ const Services = () => {
   useEffect(() => {
     async function fetchFilterData() {
       try {
-        // Get unique service types from services table instead of non-existent service_categories table
-        const { data: servicesData, error: servicesError } = await supabase
-          .from("services")
-          .select("service_type")
-          .order("service_type");
-
-        if (servicesError) throw servicesError;
-        
-        const uniqueCategories = Array.from(new Set(servicesData?.map(s => s.service_type) || []))
-          .map(type => ({ id: type, name: type }));
-        setCategories([{ id: "all", name: "All Services" }, ...uniqueCategories]);
-
-        // Get states with proper typing
-        const { data: locationData, error: locationError } = await supabase
-          .from("states")
+        // Get service categories from the service_categories table
+        const { data: categoryData, error: categoryError } = await supabase
+          .from("service_categories")
           .select("id, name")
           .order("name");
-        if (locationError) throw locationError;
-        setLocations([{ id: "all", name: "All Locations" }, ...(locationData || [])]);
+
+        if (categoryError) throw categoryError;
+        setCategories([{ id: "all", name: "All Services" }, ...(categoryData || [])]);
+
+        // Use hardcoded Indian states for now since states table has typing issues
+        const indianStates = [
+          { id: "andhra-pradesh", name: "Andhra Pradesh" },
+          { id: "assam", name: "Assam" },
+          { id: "bihar", name: "Bihar" },
+          { id: "gujarat", name: "Gujarat" },
+          { id: "haryana", name: "Haryana" },
+          { id: "karnataka", name: "Karnataka" },
+          { id: "kerala", name: "Kerala" },
+          { id: "maharashtra", name: "Maharashtra" },
+          { id: "tamil-nadu", name: "Tamil Nadu" },
+          { id: "uttar-pradesh", name: "Uttar Pradesh" },
+          { id: "west-bengal", name: "West Bengal" }
+        ];
+        setLocations([{ id: "all", name: "All Locations" }, ...indianStates]);
       } catch (err: any) {
         console.error("Error fetching filters data", err);
         setError("Failed to load filters data");

@@ -450,6 +450,27 @@ export type Database = {
           },
         ]
       }
+      service_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       service_requests: {
         Row: {
           budget_range: string | null
