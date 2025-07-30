@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth"; // Make sure this path is correct in your project
-import { supabase } from "@/integrations/supabase/client"; // Adjust path
+import { useAuth } from "@/hooks/auth"; // Adjust import path if needed
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -37,9 +37,15 @@ import {
   Award,
   Bot,
   Shield,
+  Phone,
+  Mail,
   FileText,
+  Upload,
   CheckCircle,
   AlertCircle,
+  Clock,
+  DollarSign,
+  Users,
 } from "lucide-react";
 
 interface State {
@@ -147,23 +153,24 @@ export default function ServiceListing() {
     portfolio_images: [],
   });
 
-  // Fetch Indian states dynamically from Supabase `states` table
+  // Fetch Indian states list from your database table "states"
   useEffect(() => {
     async function fetchStates() {
       const { data, error } = await supabase
         .from("states")
         .select("id, name")
-        .order("name");
+        .order("name", { ascending: true });
+
       if (error) {
         console.error("Failed to fetch states:", error.message);
-        setStates([]);
       } else {
-        setStates(data || []);
+        setStates(data ?? []);
       }
     }
     fetchStates();
   }, []);
 
+  // Calculate form completion percentage
   useEffect(() => {
     calculateCompletion();
   }, [formData]);
@@ -188,11 +195,11 @@ export default function ServiceListing() {
       return val && val !== "" && val !== 0;
     }).length;
 
-    const completion = Math.round(
-      (completedRequired / required.length) * 70 +
-      (completedOptional / optional.length) * 30
-    );
-
+    const completion =
+      Math.round(
+        (completedRequired / required.length) * 70 +
+        (completedOptional / optional.length) * 30
+      );
     setFormCompletion(completion);
   }
 
@@ -275,7 +282,8 @@ export default function ServiceListing() {
     }
   }
 
-  async function validateImage(url: string): Promise<boolean> {
+  // Image URL Validation & Management
+  async function validateImage(url: string) {
     if (!url.startsWith("http")) return false;
     try {
       const res = await fetch(url, { method: "HEAD" });
@@ -293,16 +301,16 @@ export default function ServiceListing() {
 
     if (url.startsWith("http")) {
       setValidatingImages(true);
-      const isValid = await validateImage(url);
+      const valid = await validateImage(url);
       setValidatingImages(false);
-
-      if (!isValid) {
+      if (!valid) {
         toast({
           variant: "destructive",
           title: "Invalid Image URL",
           description: "The image URL is invalid or unreachable.",
         });
       } else {
+        // Update formData if valid images present
         const validImages = newUrls.filter((u) => u.startsWith("http"));
         handleInputChange("portfolio_images", validImages);
       }
@@ -324,6 +332,7 @@ export default function ServiceListing() {
     }
   }
 
+  // Submit handler
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) {
@@ -374,6 +383,7 @@ export default function ServiceListing() {
         description: "Your listing has been successfully created.",
       });
 
+      // Clear form
       setFormData({
         name: "",
         service_type: "",
@@ -393,12 +403,14 @@ export default function ServiceListing() {
         equipment_provided: false,
         portfolio_images: [],
       });
+
       setSpecializationInput("");
       setCertificationInput("");
       setLanguageInput("");
       setImageUrls([""]);
       setErrors({});
-    } catch (err: any) {
+
+    } catch (err) {
       toast({
         variant: "destructive",
         title: "Submission Failed",
@@ -409,174 +421,117 @@ export default function ServiceListing() {
     }
   }
 
-  const getCompletionColor = (completion: number) => {
-    if (completion >= 80) return "text-green-600";
-    if (completion >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <Card>
+    <div className="max-w-4xl mx-auto p-6">
+      <Card className="mb-6 shadow-lg">
         <CardHeader>
           <CardTitle>Create a New Service Listing</CardTitle>
-          <CardDescription>
-            Please fill in all required fields to publish your service.
-          </CardDescription>
+          <CardDescription>Fill out all required fields and publish your services.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <div className={`text-3xl font-semibold ${getCompletionColor(formCompletion)}`}>
-              {formCompletion}%
-            </div>
-            <Progress value={formCompletion} className="flex-grow ml-4" />
-          </div>
-          {formCompletion < 80 && (
-            <Alert className="mb-4 border-yellow-200 bg-yellow-50 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-yellow-700" />
-              <AlertDescription className="text-yellow-700">
-                Complete your listing to attract more clients!
-              </AlertDescription>
-            </Alert>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Service Name */}
-            <div>
-              <Label htmlFor="service-name">Service Name *</Label>
-              <Input
-                id="service-name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                className={errors.name ? "border-red-500" : ""}
-                required
-              />
-              {errors.name && <p className="text-red-600 text-sm">{errors.name}</p>}
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Input
+            label="Service Name *"
+            value={formData.name}
+            onChange={(e) => handleInputChange("name", e.target.value)}
+            error={errors.name}
+            required
+          />
+          <Select
+            label="Service Type *"
+            value={formData.service_type}
+            onValueChange={(v) => handleInputChange("service_type", v)}
+            error={errors.service_type}
+            required
+          >
+            {Object.entries({
+              "Maintenance & Repair": [
+                "Preventive Maintenance",
+                "Corrective Maintenance",
+                "Emergency Repair",
+                "Parts Replacement",
+                "System Overhaul",
+                "Condition Monitoring",
+              ],
+              "Installation & Setup": [
+                "Robot Installation",
+                "System Integration",
+                "Commissioning",
+                "Site Preparation",
+                "Safety Setup",
+                "Network Configuration",
+              ],
+              "Programming & Software": [
+                "Robot Programming",
+                "Software Updates",
+                "Custom Application Development",
+                "PLC Programming",
+                "HMI Development",
+                "Simulation Services",
+              ],
+              "Training & Consulting": [
+                "Operator Training",
+                "Technical Training",
+                "Safety Training",
+                "Process Optimization",
+                "Automation Consulting",
+                "ROI Analysis",
+              ],
+              "Specialized Services": [
+                "Calibration Services",
+                "Robot Inspection",
+                "Compliance Testing",
+                "Retrofitting",
+                "Custom Tool Design",
+                "Quality Assurance",
+              ],
+            }).map(([category, options]) => (
+              <optgroup key={category} label={category}>
+                {options.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
+                  </SelectItem>
+                ))}
+              </optgroup>
+            ))}
+          </Select>
+          {errors.description && <p className="text-red-600">{errors.description}</p>}
+          <Textarea
+            label="Description *"
+            value={formData.description}
+            onChange={(e) => handleInputChange("description", e.target.value)}
+            error={errors.description}
+            required
+          />
 
-            {/* Service Type */}
-            <div>
-              <Label htmlFor="service-type">Service Type *</Label>
-              <Select
-                id="service-type"
-                value={formData.service_type}
-                onValueChange={(v) => handleInputChange("service_type", v)}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select service type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries({
-                    "Maintenance & Repair": [
-                      "Preventive Maintenance",
-                      "Corrective Maintenance",
-                      "Emergency Repair",
-                      "Parts Replacement",
-                      "System Overhaul",
-                      "Condition Monitoring",
-                    ],
-                    "Installation & Setup": [
-                      "Robot Installation",
-                      "System Integration",
-                      "Commissioning",
-                      "Site Preparation",
-                      "Safety Setup",
-                      "Network Configuration",
-                    ],
-                    "Programming & Software": [
-                      "Robot Programming",
-                      "Software Updates",
-                      "Custom Application Development",
-                      "PLC Programming",
-                      "HMI Development",
-                      "Simulation Services",
-                    ],
-                    "Training & Consulting": [
-                      "Operator Training",
-                      "Technical Training",
-                      "Safety Training",
-                      "Process Optimization",
-                      "Automation Consulting",
-                      "ROI Analysis",
-                    ],
-                    "Specialized Services": [
-                      "Calibration Services",
-                      "Robot Inspection",
-                      "Compliance Testing",
-                      "Retrofitting",
-                      "Custom Tool Design",
-                      "Quality Assurance",
-                    ],
-                  }).map(([category, options]) => (
-                    <optgroup key={category} label={category}>
-                      {options.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </optgroup>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.service_type && (
-                <p className="text-red-600 text-sm">{errors.service_type}</p>
-              )}
-            </div>
+          <Select
+            label="Location *"
+            value={formData.location}
+            onValueChange={(v) => handleInputChange("location", v)}
+            error={errors.location}
+            required
+          >
+            {states.length === 0 && <SelectItem disabled>Loading states...</SelectItem>}
+            {states.map((s) => (
+              <SelectItem key={s.id} value={s.name}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </Select>
 
-            {/* Location */}
-            <div>
-              <Label htmlFor="location-select">Service Location *</Label>
-              <Select
-                id="location-select"
-                value={formData.location}
-                onValueChange={(v) => handleInputChange("location", v)}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your state" />
-                </SelectTrigger>
-                <SelectContent>
-                  {states.length === 0 && <SelectItem disabled>Loading...</SelectItem>}
-                  {states.map((state) => (
-                    <SelectItem key={state.id} value={state.name}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.location && (
-                <p className="text-red-600 text-sm">{errors.location}</p>
-              )}
-            </div>
+          {/* Add other fields here similarly */}
 
-            {/* Description */}
-            <div>
-              <Label htmlFor="description-textarea">Description *</Label>
-              <Textarea
-                id="description-textarea"
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                required
-                rows={5}
-                className={errors.description ? "border-red-500" : ""}
-              />
-              {errors.description && (
-                <p className="text-red-600 text-sm">{errors.description}</p>
-              )}
-            </div>
+          {/* Specializations, Certifications, Languages, Availability... */}
+          {/* For brevity, not repeating all UI controls but re-use your handlers */}
 
-            {/* Add the rest of your inputs for specializations, certifications, availability, images etc., using similar controlled components and the handlers */}
+          {/* Images upload */}
+          {/* Your existing image URL inputs + preview logic */}
 
-            {/* Submit Button */}
-            <Button type="submit" disabled={loading || formCompletion < 50} className="w-full py-3 text-lg">
-              {loading ? "Submitting..." : "Create Service Listing"}
-            </Button>
-          </form>
-        </CardContent>
+          <Button type="submit" disabled={loading || formCompletion < 50}>
+            {loading ? "Submitting..." : "Create Listing"}
+          </Button>
+        </form>
       </Card>
     </div>
   );
-};
-
-export default ServiceListing;
+}
