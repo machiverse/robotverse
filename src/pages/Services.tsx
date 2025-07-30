@@ -5,41 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import {
-  Settings,
-  MapPin,
-  Search,
-  Grid,
-  List,
-  Star,
-  Clock,
-  Users,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Settings, MapPin, Search, Grid, List, Star, Clock, Users } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-const SERVICE_TYPE_OPTIONS = [
-  "Installation",
-  "Maintenance",
-  "Repair",
-  "Inspection",
-  "Calibration",
-  "Training",
-  "Upgrades",
-  "Consulting",
-];
 
 const Services = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,148 +15,100 @@ const Services = () => {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [services, setServices] = useState<any[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for service details modal
-  const [selectedService, setSelectedService] = useState<any | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const categories = [
+    { value: "all", label: "All Services" },
+    { value: "maintenance", label: "Maintenance" },
+    { value: "repair", label: "Repair" },
+    { value: "installation", label: "Installation" },
+    { value: "calibration", label: "Calibration" },
+    { value: "training", label: "Training" },
+  ];
 
-  // Fetch categories and locations on mount
+  const locations = [
+    { value: "all", label: "All Locations" },
+    { value: "mumbai", label: "Mumbai" },
+    { value: "delhi", label: "Delhi" },
+    { value: "bangalore", label: "Bangalore" },
+    { value: "chennai", label: "Chennai" },
+    { value: "pune", label: "Pune" },
+  ];
+
+  // Fetch real services data from Supabase
   useEffect(() => {
-    async function fetchFilterData() {
-      try {
-        const { data: categoryData, error: categoryError } = await supabase
-          .from("service_categories")
-          .select("id, name")
-          .order("name");
-
-        if (categoryError) throw categoryError;
-        setCategories([{ id: "all", name: "All Services" }, ...(categoryData ?? [])]);
-
-        const { data: locationData, error: locationError } = await supabase
-          .from("states")
-          .select("id, name")
-          .order("name");
-
-        if (locationError) throw locationError;
-        setLocations([{ id: "all", name: "All Locations" }, ...(locationData ?? [])]);
-      } catch (err: any) {
-        console.error("Error fetching filters data", err);
-        setError("Failed to load filters data");
-      }
-    }
-    fetchFilterData();
-  }, []);
-
-  // Fetch services data
-  useEffect(() => {
-    async function fetchServices() {
+    const fetchServices = async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
-          .from("services")
+          .from('services')
           .select(`
             *,
             profiles!services_provider_id_fkey (
               full_name,
               company_name,
-              location,
-              phone,
-              email
+              location
             )
           `)
-          .order("created_at", { ascending: false });
+          .order('created_at', { ascending: false });
 
         if (error) throw error;
-
-        const transformed = (data ?? []).map((item: any) => {
-          const serviceTypes = item.service_type
-            ? item.service_type
-                .split(",")
-                .map((t: string) => t.trim().toLowerCase())
-            : [];
-
-          const locationName =
-            item.location || item.profiles?.location || "Location not specified";
-
-          const locationNormalized = locationName.toLowerCase();
-
-          return {
-            id: item.id,
-            name: item.name,
-            serviceTypes, // array of lowercased service types for filtering
-            priceRange: item.price_range || "Contact for pricing",
-            location: locationName, // original location for display
-            locationNormalized, // normalized location for filtering
-            provider:
-              item.profiles?.company_name ||
-              item.profiles?.full_name ||
-              "Service Provider",
-            providerPhone: item.profiles?.phone || "",
-            providerEmail: item.profiles?.email || "",
-            image: "/placeholder.svg",
-            description: item.description || "Professional service provider",
-            rating: 4.5, // default
-            responseTime: "2-4 hours", // default
-            completedJobs: Math.floor(Math.random() * 100) + 50, // dummy data
-            availability: "Available",
-          };
-        });
-
-        setServices(transformed);
+        
+        // Transform data to match interface
+        const transformedData = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          category: item.service_type,
+          priceRange: item.price_range || 'Contact for pricing',
+          location: item.location || item.profiles?.location || 'Location not specified',
+          provider: item.profiles?.company_name || item.profiles?.full_name || 'Service Provider',
+          image: "/placeholder.svg",
+          description: item.description || 'Professional service provider',
+          rating: 4.5, // Default rating
+          responseTime: "2-4 hours", // Default response time
+          completedJobs: Math.floor(Math.random() * 100) + 50, // Random for demo
+          availability: "Available"
+        }));
+        
+        setServices(transformedData);
         setError(null);
-      } catch (err: any) {
-        setError(err.message || "Failed to load services");
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load services');
         setServices([]);
       } finally {
         setLoading(false);
       }
-    }
+    };
+
     fetchServices();
   }, []);
 
-  const selectedCategoryNormalized = selectedCategory.toLowerCase();
-
-  const selectedLocationNormalized =
-    selectedLocation === "all"
-      ? ""
-      : locations.find((l) => l.id === selectedLocation)?.name.toLowerCase() || "";
-
   const filteredServices = services.filter((service) => {
-    const matchesSearch =
-      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.provider.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory =
-      selectedCategory === "all" || service.serviceTypes.includes(selectedCategoryNormalized);
-
-    const matchesLocation =
-      selectedLocation === "all" || service.locationNormalized === selectedLocationNormalized;
+    const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         service.provider.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === "all" || 
+                           service.category.toLowerCase().includes(selectedCategory.toLowerCase());
+    
+    const matchesLocation = selectedLocation === "all" || 
+                           service.location.toLowerCase() === selectedLocation.toLowerCase();
 
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
-  // Open service details modal
-  function openDetailsModal(service: any) {
-    setSelectedService(service);
-    setShowDetailsModal(true);
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-
+      
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Robot Services</h1>
           <p className="text-xl text-muted-foreground">
-            Connect with certified professionals for robot maintenance, repair,
-            and training services
+            Connect with certified professionals for robot maintenance, repair, and training services
           </p>
         </div>
 
@@ -204,40 +124,35 @@ const Services = () => {
                 className="pl-10"
               />
             </div>
-
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="Service Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Services</SelectItem>
-                {SERVICE_TYPE_OPTIONS.map((type) => (
-                  <SelectItem key={type} value={type.toLowerCase()}>
-                    {type}
+                {categories.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger>
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
-                    {location.name}
+                  <SelectItem key={location.value} value={location.value}>
+                    {location.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
             <div className="flex space-x-2">
               <Button
                 variant={viewMode === "grid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
-                aria-label="Grid view"
               >
                 <Grid className="w-4 h-4" />
               </Button>
@@ -245,210 +160,118 @@ const Services = () => {
                 variant={viewMode === "list" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("list")}
-                aria-label="List view"
               >
                 <List className="w-4 h-4" />
               </Button>
             </div>
           </div>
-
-          {/* Loading state */}
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin mb-4" />
-              <p className="text-muted-foreground">Loading services...</p>
-            </div>
-          )}
-
-          {/* Error state */}
-          {error && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Settings className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Unable to fetch services</h3>
-              <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()} variant="outline">
-                Retry
-              </Button>
-            </div>
-          )}
-
-          {/* No results */}
-          {!loading && !error && filteredServices.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Settings className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No services found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
-                  ? "No services match your filters."
-                  : "There are no services available at the moment."}
-              </p>
-            </div>
-          )}
-
-          {/* Services list */}
-          {!loading && !error && filteredServices.length > 0 && (
-            <>
-              <p className="mb-4 text-sm text-muted-foreground">
-                {filteredServices.length} service{filteredServices.length > 1 ? "s" : ""} found
-              </p>
-
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    : "space-y-4"
-                }
-              >
-                {filteredServices.map((service) => (
-                  <Card
-                    key={service.id}
-                    className="hover:shadow-lg transition-shadow cursor-pointer"
-                    onClick={() => openDetailsModal(service)}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`View details for ${service.name}`}
-                  >
-                    <CardHeader>
-                      <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                        <Settings className="w-12 h-12 text-muted-foreground" />
-                      </div>
-                      <CardTitle className="text-lg">{service.name}</CardTitle>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="secondary" className="w-fit capitalize">
-                          {service.serviceTypes
-                            .map((t: string) => t.charAt(0).toUpperCase() + t.slice(1))
-                            .join(", ")}
-                        </Badge>
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm text-muted-foreground">{service.rating}</span>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-primary">{service.priceRange}</span>
-                          <Badge variant={service.availability === "24/7" ? "default" : "secondary"}>
-                            {service.availability}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center text-muted-foreground">
-                          <MapPin className="w-5 h-5 mr-1" />
-                          <span>{service.location}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{service.description}</p>
-
-                        <div className="text-sm space-y-1">
-                          <div className="flex justify-between">
-                            <div className="flex items-center space-x-1">
-                              <Clock className="w-5 h-5 text-primary" />
-                              <span>Response: {service.responseTime}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Users className="w-5 h-5 text-primary" />
-                              <span>{service.completedJobs} jobs</span>
-                            </div>
-                          </div>
-                          <p>
-                            <span className="font-medium">Provider:</span> {service.provider}
-                          </p>
-                        </div>
-
-                        <div className="flex space-x-2 mt-4">
-                          <Button
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!service.providerEmail) {
-                                alert("Provider email not available");
-                                return;
-                              }
-                              window.location.href = `mailto:${service.providerEmail}`;
-                            }}
-                          >
-                            Request Quote
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!service.providerPhone) {
-                                alert("Provider phone not available");
-                                return;
-                              }
-                              window.location.href = `tel:${service.providerPhone}`;
-                            }}
-                          >
-                            Contact Provider
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredServices.length > 6 && (
-                <div className="mt-8 flex justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      // Implement load more / pagination logic here
-                    }}
-                  >
-                    Load More
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
         </div>
-      </div>
 
-      {/* Service Details Modal */}
-      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-        <DialogContent>
-          <DialogTitle>{selectedService?.name}</DialogTitle>
-          <div className="space-y-4 mt-2">
-            <p>
-              <strong>Categories: </strong>
-              {selectedService?.serviceTypes
-                .map((t: string) => t.charAt(0).toUpperCase() + t.slice(1))
-                .join(", ")}
-            </p>
-            <p>
-              <strong>Price Range: </strong> {selectedService?.priceRange}
-            </p>
-            <p>
-              <strong>Location: </strong> {selectedService?.location}
-            </p>
-            <p>
-              <strong>Provider: </strong> {selectedService?.provider}
-            </p>
-            <p>
-              <strong>Description: </strong> {selectedService?.description}
-            </p>
-            <p>
-              <strong>Rating: </strong> {selectedService?.rating}
-            </p>
-            <p>
-              <strong>Response Time: </strong> {selectedService?.responseTime}
-            </p>
-            <p>
-              <strong>Completed Jobs: </strong> {selectedService?.completedJobs}
-            </p>
-            <p>
-              <strong>Availability: </strong> {selectedService?.availability}
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mb-4" />
+            <p className="text-muted-foreground">Loading services...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Settings className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Unable to load services</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        ) : filteredServices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Settings className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No services available</h3>
+            <p className="text-muted-foreground">
+              {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
+                ? "No services match your current filters."
+                : "Service listings are currently empty."}
             </p>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setShowDetailsModal(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        ) : (
+          <>
+            {/* Results */}
+            <div className="mb-4">
+              <p className="text-sm text-muted-foreground">
+                {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'} found
+              </p>
+            </div>
+            
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+              {filteredServices.map((service) => (
+            <Card key={service.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                  <Settings className="w-12 h-12 text-muted-foreground" />
+                </div>
+                <CardTitle className="text-lg">{service.name}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <Badge variant="secondary" className="w-fit">
+                    {service.category}
+                  </Badge>
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm text-muted-foreground">{service.rating}</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-primary">
+                      {service.priceRange}
+                    </span>
+                    <Badge variant={service.availability === "24/7" ? "default" : "secondary"}>
+                      {service.availability}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{service.location}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{service.description}</p>
+                  <div className="text-sm space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4 text-primary" />
+                        <span>Response: {service.responseTime}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span>{service.completedJobs} jobs</span>
+                      </div>
+                    </div>
+                    <p><span className="font-medium">Provider:</span> {service.provider}</p>
+                  </div>
+                  <div className="flex space-x-2 pt-2">
+                    <Button size="sm" className="flex-1">
+                      Request Quote
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      Contact Provider
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+              ))}
+            </div>
+
+            {/* Load More */}
+            {filteredServices.length > 0 && (
+              <div className="text-center mt-8">
+                <Button variant="outline" size="lg">
+                  Load More Services
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

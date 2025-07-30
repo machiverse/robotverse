@@ -1,606 +1,657 @@
-import { useState, useEffect, ChangeEvent, KeyboardEvent } from "react";
-import { useAuth } from "@/hooks/useAuth";  // Correct import, check your project setup
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectValue,
-  SelectItem,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-
-import {
-  Plus,
-  X,
-  Bot,
-  Award,
-  Globe,
-  Zap,
-  FileText,
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Plus, 
+  X, 
+  Settings, 
+  Upload, 
+  Camera, 
+  MapPin, 
+  DollarSign, 
+  Clock, 
+  Award, 
+  Users, 
+  Star,
   CheckCircle,
   AlertCircle,
+  FileText,
+  Phone,
+  Mail,
+  Globe,
+  Calendar,
+  Wrench,
+  Bot,
+  Shield,
+  Zap
 } from "lucide-react";
-
-interface State {
-  id: string;
-  name: string;
-}
+import { useToast } from "@/hooks/use-toast";
 
 interface ServiceFormData {
   name: string;
   service_type: string;
-  certifications: string[];
-  description: string;
-  experience_years: number;
-  emergency_service: boolean;
-  equipment_provided: boolean;
-  language: string[];
-  location: string;
-  portfolio_images: string[];
-  price_range: string;
-  response_time: string;
-  service_radius: number;
   specializations: string[];
-  warranty_offered: boolean;
+  price_range: string;
+  location: string;
+  description: string;
+  certifications: string[];
+  experience_years: number;
   availability: string[];
+  emergency_service: boolean;
+  warranty_offered: boolean;
+  service_radius: number;
   contact_method: string;
+  response_time: string;
+  languages: string[];
+  equipment_provided: boolean;
+  portfolio_images: string[];
 }
 
-const availabilityOptions = [
-  "Monday-Friday",
-  "Weekends",
-  "24/7 Support",
-  "Emergency On-Call",
-  "Flexible Hours",
-];
-
-const priceRanges = [
-  "₹500 - ₹1,500",
-  "₹1,500 - ₹3,000",
-  "₹3,000 - ₹5,000",
-  "₹5,000 - ₹10,000",
-  "₹10,000 - ₹20,000",
-  "₹20,000+",
-  "Fixed Project Rate",
-  "Monthly Contract",
-  "Annual Contract",
-  "Contact for Quote",
-];
-
-const responseTimes = [
-  { value: "1_hour", label: "Within 1 hour" },
-  { value: "4_hours", label: "Within 4 hours" },
-  { value: "24_hours", label: "Within 24 hours" },
-  { value: "48_hours", label: "Within 48 hours" },
-  { value: "1_week", label: "Within 1 week" },
-];
-
-// Your categories grouped as per your schema
-const serviceCategories = {
-  "Maintenance & Repair": [
-    "Preventive Maintenance",
-    "Corrective Maintenance",
-    "Emergency Repair",
-    "Parts Replacement",
-    "System Overhaul",
-    "Condition Monitoring",
-  ],
-  "Installation & Setup": [
-    "Robot Installation",
-    "System Integration",
-    "Commissioning",
-    "Site Preparation",
-    "Safety Setup",
-    "Network Configuration",
-  ],
-  "Programming & Software": [
-    "Robot Programming",
-    "Software Updates",
-    "Custom Application Development",
-    "PLC Programming",
-    "HMI Development",
-    "Simulation",
-  ],
-  "Training & Consulting": [
-    "Operator Training",
-    "Technical Training",
-    "Safety Training",
-    "Process Optimization",
-    "Automation Consulting",
-    "ROI Analysis",
-  ],
-  "Specialized Services": [
-    "Calibration",
-    "Inspection",
-    "Compliance Testing",
-    "Retrofitting",
-    "Custom Tool Design",
-    "Quality Assurance",
-  ],
-};
-
-export default function ServiceListing() {
+const ServiceListing = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-
-  const [states, setStates] = useState<State[]>([]);
   const [loading, setLoading] = useState(false);
-  const [validatingImages, setValidatingImages] = useState(false);
+  const [newSpecialization, setNewSpecialization] = useState('');
+  const [newCertification, setNewCertification] = useState('');
+  const [newLanguage, setNewLanguage] = useState('');
   const [formCompletion, setFormCompletion] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
+  const [imageUrls, setImageUrls] = useState<string[]>(['']);
+  const [validatingImages, setValidatingImages] = useState(false);
+  
   const [formData, setFormData] = useState<ServiceFormData>({
-    name: "",
-    service_type: "",
-    certifications: [],
-    description: "",
-    experience_years: 0,
-    emergency_service: false,
-    equipment_provided: false,
-    language: ["English"],
-    location: "",
-    portfolio_images: [""],
-    price_range: "",
-    response_time: "24_hours",
-    service_radius: 50,
+    name: '',
+    service_type: '',
     specializations: [],
-    warranty_offered: false,
+    price_range: '',
+    location: '',
+    description: '',
+    certifications: [],
+    experience_years: 0,
     availability: [],
-    contact_method: "both",
+    emergency_service: false,
+    warranty_offered: false,
+    service_radius: 50,
+    contact_method: 'both',
+    response_time: '24_hours',
+    languages: ['English'],
+    equipment_provided: false,
+    portfolio_images: []
   });
 
-  // Extra inputs for addable lists
-  const [newCertification, setNewCertification] = useState("");
-  const [newSpecialization, setNewSpecialization] = useState("");
-  const [newLanguage, setNewLanguage] = useState("");
-  const [newImageUrlFields, setNewImageUrlFields] = useState([""]);
+  // Enhanced service types with categories
+  const serviceCategories = {
+    'Maintenance & Repair': [
+      'Preventive Maintenance',
+      'Corrective Maintenance',
+      'Emergency Repair',
+      'Parts Replacement',
+      'System Overhaul',
+      'Condition Monitoring'
+    ],
+    'Installation & Setup': [
+      'Robot Installation',
+      'System Integration',  
+      'Commissioning',
+      'Site Preparation',
+      'Safety Setup',
+      'Network Configuration'
+    ],
+    'Programming & Software': [
+      'Robot Programming',
+      'Software Updates',
+      'Custom Application Development',
+      'PLC Programming',
+      'HMI Development',
+      'Simulation Services'
+    ],
+    'Training & Consulting': [
+      'Operator Training',
+      'Technical Training',
+      'Safety Training',
+      'Process Optimization',
+      'Automation Consulting',
+      'ROI Analysis'
+    ],
+    'Specialized Services': [
+      'Calibration Services',
+      'Robot Inspection',
+      'Compliance Testing',
+      'Retrofitting',
+      'Custom Tool Design',
+      'Quality Assurance'
+    ]
+  };
 
-  // Fetch Indian states once
+  const priceRanges = [
+    '₹500 - ₹1,500 per hour',
+    '₹1,500 - ₹3,000 per hour', 
+    '₹3,000 - ₹5,000 per hour',
+    '₹5,000 - ₹10,000 per hour',
+    '₹10,000 - ₹20,000 per hour',
+    '₹20,000+ per hour',
+    'Fixed Project Rate',
+    'Monthly Contract',
+    'Annual Maintenance Contract',
+    'Contact for Quote'
+  ];
+
+  const availabilityOptions = [
+    'Monday-Friday',
+    'Weekends',
+    '24/7 Support',
+    'Emergency On-Call',
+    'Flexible Hours'
+  ];
+
+  const responseTimeOptions = [
+    { value: '1_hour', label: 'Within 1 hour' },
+    { value: '4_hours', label: 'Within 4 hours' },
+    { value: '24_hours', label: 'Within 24 hours' },
+    { value: '48_hours', label: 'Within 48 hours' },
+    { value: '1_week', label: 'Within 1 week' }
+  ];
+
+  const languageOptions = [
+    'English', 'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Marathi', 
+    'Gujarati', 'Kannada', 'Malayalam', 'Punjabi', 'German', 'Japanese'
+  ];
+
   useEffect(() => {
-    // Use hardcoded Indian states for now since states table has typing issues
-    const indianStates = [
-      { id: "andhra-pradesh", name: "Andhra Pradesh" },
-      { id: "assam", name: "Assam" },
-      { id: "bihar", name: "Bihar" },
-      { id: "chhattisgarh", name: "Chhattisgarh" },
-      { id: "goa", name: "Goa" },
-      { id: "gujarat", name: "Gujarat" },
-      { id: "haryana", name: "Haryana" },
-      { id: "himachal-pradesh", name: "Himachal Pradesh" },
-      { id: "jharkhand", name: "Jharkhand" },
-      { id: "karnataka", name: "Karnataka" },
-      { id: "kerala", name: "Kerala" },
-      { id: "madhya-pradesh", name: "Madhya Pradesh" },
-      { id: "maharashtra", name: "Maharashtra" },
-      { id: "manipur", name: "Manipur" },
-      { id: "meghalaya", name: "Meghalaya" },
-      { id: "mizoram", name: "Mizoram" },
-      { id: "nagaland", name: "Nagaland" },
-      { id: "odisha", name: "Odisha" },
-      { id: "punjab", name: "Punjab" },
-      { id: "rajasthan", name: "Rajasthan" },
-      { id: "sikkim", name: "Sikkim" },
-      { id: "tamil-nadu", name: "Tamil Nadu" },
-      { id: "telangana", name: "Telangana" },
-      { id: "tripura", name: "Tripura" },
-      { id: "uttar-pradesh", name: "Uttar Pradesh" },
-      { id: "uttarakhand", name: "Uttarakhand" },
-      { id: "west-bengal", name: "West Bengal" }
-    ];
-    setStates(indianStates);
-  }, []);
-
-  // Calculate form completion
-  useEffect(() => {
-    const requiredFields: (keyof ServiceFormData)[] = [
-      "name",
-      "service_type",
-      "description",
-      "price_range",
-      "location",
-    ];
-    const optionalFields: (keyof ServiceFormData)[] = [
-      "specializations",
-      "certifications",
-      "availability",
-      "language",
-    ];
-
-    let requiredCompleted = requiredFields.filter((field) => {
-      const val = formData[field];
-      if (Array.isArray(val)) return val.length > 0;
-      return !!val && val !== "";
-    }).length;
-
-    let optionalCompleted = optionalFields.filter((field) => {
-      const val = formData[field];
-      if (Array.isArray(val)) return val.length > 0;
-      return !!val && val !== "";
-    }).length;
-
-    let completion = Math.round(
-      (requiredCompleted / requiredFields.length) * 70 +
-        (optionalCompleted / optionalFields.length) * 30
-    );
-
-    setFormCompletion(completion);
+    calculateFormCompletion();
   }, [formData]);
 
-  // Validation check before submit
-  function validateForm() {
-    let newErrors: Record<string, string> = {};
+  const calculateFormCompletion = () => {
+    const requiredFields = [
+      'name', 'service_type', 'location', 'description', 'price_range'
+    ];
+    const optionalFields = [
+      'specializations', 'certifications', 'experience_years', 'availability'
+    ];
 
-    if (!formData.name.trim()) newErrors.name = "Service name is required";
-    if (!formData.service_type) newErrors.service_type = "Service type is required";
-    if (!formData.price_range) newErrors.price_range = "Price range is required";
-    if (!formData.location) newErrors.location = "Location is required";
-    if (!formData.description || formData.description.trim().length < 50)
-      newErrors.description = "Description must be at least 50 characters";
-    if (formData.experience_years < 0)
-      newErrors.experience_years = "Experience cannot be negative";
+    const requiredCompleted = requiredFields.filter(field => {
+      const value = formData[field as keyof ServiceFormData];
+      if (Array.isArray(value)) return value.length > 0;
+      return value && value !== '' && value !== 0;
+    }).length;
 
+    const optionalCompleted = optionalFields.filter(field => {
+      const value = formData[field as keyof ServiceFormData];
+      if (Array.isArray(value)) return value.length > 0;
+      return value && value !== '' && value !== 0;
+    }).length;
+
+    const completion = Math.round(
+      ((requiredCompleted / requiredFields.length) * 70) + 
+      ((optionalCompleted / optionalFields.length) * 30)
+    );
+    
+    setFormCompletion(completion);
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Service name is required';
+    }
+    
+    if (!formData.service_type) {
+      newErrors.service_type = 'Service type is required';
+    }
+    
+    if (!formData.description.trim() || formData.description.length < 50) {
+      newErrors.description = 'Description must be at least 50 characters';
+    }
+    
+    if (!formData.location.trim()) {
+      newErrors.location = 'Service location is required';
+    }
+
+    if (formData.experience_years < 0) {
+      newErrors.experience_years = 'Experience years cannot be negative';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }
+  };
 
-  // Generic setter for formData fields
-  function setField<T extends keyof ServiceFormData>(field: T, value: ServiceFormData[T]) {
-    setFormData((old) => ({
-      ...old,
-      [field]: value,
+  const handleInputChange = (field: keyof ServiceFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
     }));
-    if (errors[field]) setErrors((old) => ({ ...old, [field]: "" }));
-  }
-
-  // Handlers for adding/removing certifications, specializations, languages
-  function addCertification() {
-    const val = newCertification.trim();
-    if (val && !formData.certifications.includes(val)) {
-      setField("certifications", [...formData.certifications, val]);
-      setNewCertification("");
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
-  }
+  };
 
-  function removeCertification(cert: string) {
-    setField("certifications", formData.certifications.filter((c) => c !== cert));
-  }
-
-  function addSpecialization() {
-    const val = newSpecialization.trim();
-    if (val && !formData.specializations.includes(val)) {
-      setField("specializations", [...formData.specializations, val]);
-      setNewSpecialization("");
+  const addSpecialization = () => {
+    if (newSpecialization.trim() && !formData.specializations.includes(newSpecialization.trim())) {
+      handleInputChange('specializations', [...formData.specializations, newSpecialization.trim()]);
+      setNewSpecialization('');
     }
-  }
+  };
 
-  function removeSpecialization(spec: string) {
-    setField("specializations", formData.specializations.filter((s) => s !== spec));
-  }
+  const removeSpecialization = (specializationToRemove: string) => {
+    handleInputChange('specializations', formData.specializations.filter(spec => spec !== specializationToRemove));
+  };
 
-  function addLanguage() {
-    if (newLanguage && !formData.language.includes(newLanguage)) {
-      setField("language", [...formData.language, newLanguage]);
-      setNewLanguage("");
+  const addCertification = () => {
+    if (newCertification.trim() && !formData.certifications.includes(newCertification.trim())) {
+      handleInputChange('certifications', [...formData.certifications, newCertification.trim()]);
+      setNewCertification('');
     }
-  }
+  };
 
-  function removeLanguage(lang: string) {
-    if (formData.language.length > 1) {
-      setField("language", formData.language.filter((l) => l !== lang));
+  const removeCertification = (certToRemove: string) => {
+    handleInputChange('certifications', formData.certifications.filter(cert => cert !== certToRemove));
+  };
+
+  const addLanguage = () => {
+    if (newLanguage && !formData.languages.includes(newLanguage)) {
+      handleInputChange('languages', [...formData.languages, newLanguage]);
+      setNewLanguage('');
     }
-  }
+  };
 
-  // Availability checkbox handler
-  function toggleAvailability(value: string, checked: boolean) {
+  const removeLanguage = (langToRemove: string) => {
+    if (formData.languages.length > 1) { // Keep at least one language
+      handleInputChange('languages', formData.languages.filter(lang => lang !== langToRemove));
+    }
+  };
+
+  const handleAvailabilityChange = (availability: string, checked: boolean) => {
     if (checked) {
-      setField("availability", [...formData.availability, value]);
+      handleInputChange('availability', [...formData.availability, availability]);
     } else {
-      setField("availability", formData.availability.filter((a) => a !== value));
+      handleInputChange('availability', formData.availability.filter(a => a !== availability));
     }
-  }
+  };
 
-  // Image URL validation and management
-  async function validateImageUrl(url: string): Promise<boolean> {
-    if (!url || !url.startsWith("http")) return false;
+  const validateImageUrl = async (url: string): Promise<boolean> => {
+    if (!url || !url.startsWith('http')) return false;
+    
     try {
-      const response = await fetch(url, { method: "HEAD" });
-      const contentType = response.headers.get("content-type") || "";
-      return response.ok && contentType.startsWith("image");
+      const response = await fetch(url, { method: 'HEAD' });
+      const contentType = response.headers.get('content-type');
+      return response.ok && contentType?.startsWith('image/');
     } catch {
       return false;
     }
-  }
+  };
 
-  async function changeImageUrl(index: number, url: string) {
-    const urls = [...formData.portfolio_images];
-    urls[index] = url;
-    setField("portfolio_images", urls);
+  const handleImageUrlChange = async (index: number, url: string) => {
+    const newUrls = [...imageUrls];
+    newUrls[index] = url;
+    setImageUrls(newUrls);
 
-    if (url.startsWith("http")) {
+    if (url && url.startsWith('http')) {
       setValidatingImages(true);
-      const valid = await validateImageUrl(url);
+      const isValid = await validateImageUrl(url);
+      
+      if (isValid) {
+        const validUrls = newUrls.filter(u => u && u.startsWith('http'));
+        handleInputChange('portfolio_images', validUrls);
+      }
+      
       setValidatingImages(false);
-      if (!valid) {
+
+      if (!isValid && url.length > 10) {
         toast({
-          title: "Invalid Image URL",
-          description: "Provided URL is invalid or unreachable",
           variant: "destructive",
+          title: "Invalid Image URL",
+          description: "Please provide a valid image URL"
         });
       }
     }
-  }
+  };
 
-  function addImageField() {
-    if (formData.portfolio_images.length < 10) {
-      setField("portfolio_images", [...formData.portfolio_images, ""]);
+  const addImageUrlField = () => {
+    if (imageUrls.length < 10) {
+      setImageUrls([...imageUrls, '']);
     }
-  }
+  };
 
-  function removeImageField(index: number) {
-    if (formData.portfolio_images.length > 1) {
-      setField(
-        "portfolio_images",
-        formData.portfolio_images.filter((_, i) => i !== index)
-      );
+  const removeImageUrlField = (index: number) => {
+    if (imageUrls.length > 1) {
+      const newUrls = imageUrls.filter((_, i) => i !== index);
+      setImageUrls(newUrls);
+      const validUrls = newUrls.filter(u => u && u.startsWith('http'));
+      handleInputChange('portfolio_images', validUrls);
     }
-  }
+  };
 
-  // Submit form function
-  async function onSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!user) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in to continue.",
         variant: "destructive",
+        title: "Authentication Required",
+        description: "Please sign in to create service listings"
       });
       return;
     }
 
     if (!validateForm()) {
       toast({
-        title: "Validation Error",
-        description: "Please fix all errors before submitting.",
         variant: "destructive",
+        title: "Validation Error",
+        description: "Please fix the errors before submitting"
       });
       return;
     }
 
     setLoading(true);
+
     try {
-      const { error } = await supabase.from("services").insert([
-        {
-          ...formData,
+      const { error } = await supabase
+        .from('services')
+        .insert({
           provider_id: user.id,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+          name: formData.name,
+          service_type: formData.service_type,
+          specializations: formData.specializations,
+          price_range: formData.price_range,
+          location: formData.location,
+          description: formData.description,
+          certifications: formData.certifications,
+          experience_years: formData.experience_years,
+          availability: formData.availability,
+          emergency_service: formData.emergency_service,
+          warranty_offered: formData.warranty_offered,
+          service_radius: formData.service_radius,
+          contact_method: formData.contact_method,
+          response_time: formData.response_time,
+          languages: formData.languages,
+          equipment_provided: formData.equipment_provided,
+          portfolio_images: formData.portfolio_images,
+          created_at: new Date().toISOString()
+        });
+
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Your service listing was created.",
+        title: "Success!",
+        description: "Service listing created successfully!"
       });
-
+      
+      // Reset form
       setFormData({
-        name: "",
-        service_type: "",
-        certifications: [],
-        description: "",
-        experience_years: 0,
-        emergency_service: false,
-        equipment_provided: false,
-        language: ["English"],
-        location: "",
-        portfolio_images: [""],
-        price_range: "",
-        response_time: "24_hours",
-        service_radius: 50,
+        name: '',
+        service_type: '',
         specializations: [],
-        warranty_offered: false,
+        price_range: '',
+        location: '',
+        description: '',
+        certifications: [],
+        experience_years: 0,
         availability: [],
-        contact_method: "both",
+        emergency_service: false,
+        warranty_offered: false,
+        service_radius: 50,
+        contact_method: 'both',
+        response_time: '24_hours',
+        languages: ['English'],
+        equipment_provided: false,
+        portfolio_images: []
       });
-      setNewCertification("");
-      setNewSpecialization("");
-      setNewLanguage("");
-    } catch (err) {
+      setImageUrls(['']);
+      setErrors({});
+
+    } catch (error: any) {
+      console.error('Error creating service listing:', error);
       toast({
-        title: "Error",
-        description: (err as Error).message || "Failed to create listing",
         variant: "destructive",
+        title: "Error",
+        description: "Failed to create service listing"
       });
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const getCompletionColor = (completion: number) => {
+    if (completion >= 80) return 'text-green-600';
+    if (completion >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
 
   return (
-    <div className="mx-auto max-w-3xl p-6 space-y-6">
-      <Card>
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-purple-50">
         <CardHeader>
-          <CardTitle>Create Your Service Listing</CardTitle>
-          <CardDescription>
-            Fill out the form below and connect with clients seeking your expertise.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6 flex justify-between items-center">
-            <div className={`text-3xl font-bold ${
-              formCompletion >= 80
-                ? "text-green-600"
-                : formCompletion >= 60
-                ? "text-yellow-600"
-                : "text-red-600"
-            }`}>
-              {formCompletion}%
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
+                <Settings className="w-6 h-6 text-blue-600" />
+                Create Professional Service Listing
+              </CardTitle>
+              <p className="text-muted-foreground mt-1">
+                Showcase your robotics expertise and attract quality clients
+              </p>
             </div>
-            <Progress value={formCompletion} className="flex-grow ml-4" />
+            <div className="text-right">
+              <div className={`text-2xl font-bold ${getCompletionColor(formCompletion)}`}>
+                {formCompletion}%
+              </div>
+              <Progress value={formCompletion} className="w-24 mt-1" />
+              <p className="text-xs text-muted-foreground mt-1">Complete</p>
+            </div>
           </div>
+        </CardHeader>
+      </Card>
 
-          {formCompletion < 80 && (
-            <Alert variant="default" className="mb-4">
-              <AlertCircle className="mr-2" />
-              <AlertDescription>
-                Complete your profile to attract more clients.
-              </AlertDescription>
-            </Alert>
-          )}
+      {/* Form Completion Alert */}
+      {formCompletion < 80 && (
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <AlertCircle className="w-4 h-4" />
+          <AlertDescription className="text-yellow-700">
+            <strong>Complete your listing to attract more clients!</strong>
+            <br />
+            Add more details like certifications, specializations, and portfolio images to improve visibility.
+          </AlertDescription>
+        </Alert>
+      )}
 
-          <form onSubmit={onSubmit} className="space-y-6">
-            {/* Service Name */}
-            <div>
-              <Label htmlFor="service-name">Service Name *</Label>
-              <Input
-                id="service-name"
-                value={formData.name}
-                onChange={(e) => setField("name", e.target.value)}
-                className={errors.name ? "border-red-600" : ""}
-                required
-              />
-              {errors.name && <p className="text-red-600 mt-1">{errors.name}</p>}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Basic Service Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="name">Service Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="e.g., Professional Robot Maintenance Services"
+                  className={errors.name ? 'border-red-500' : ''}
+                  required
+                />
+                {errors.name && (
+                  <p className="text-red-500 text-sm">{errors.name}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Service Category *</Label>
+                <Select 
+                  value={formData.service_type} 
+                  onValueChange={(value) => handleInputChange('service_type', value)}
+                >
+                  <SelectTrigger className={errors.service_type ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Select service category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(serviceCategories).map(([category, services]) => (
+                      <div key={category}>
+                        <div className="px-2 py-1 text-sm font-semibold text-muted-foreground bg-muted">
+                          {category}
+                        </div>
+                        {services.map((service) => (
+                          <SelectItem key={service} value={service} className="pl-4">
+                            {service}
+                          </SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.service_type && (
+                  <p className="text-red-500 text-sm">{errors.service_type}</p>
+                )}
+              </div>
             </div>
 
-            {/* Service Type */}
-            <div>
-              <Label htmlFor="service-type">Service Type *</Label>
-              <Select
-                value={formData.service_type}
-                onValueChange={(v) => setField("service_type", v)}
-              >
-                <SelectTrigger className={errors.service_type ? "border-red-600" : ""}>
-                  <SelectValue placeholder="Select service type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(serviceCategories).map(([group, services]) => (
-                    <optgroup key={group} label={group}>
-                      {services.map((service) => (
-                        <SelectItem key={service} value={service}>
-                          {service}
-                        </SelectItem>
-                      ))}
-                    </optgroup>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.service_type && <p className="text-red-600 mt-1">{errors.service_type}</p>}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="location">Service Location *</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  placeholder="e.g., Mumbai, Maharashtra"
+                  className={errors.location ? 'border-red-500' : ''}
+                  required
+                />
+                {errors.location && (
+                  <p className="text-red-500 text-sm">{errors.location}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="service_radius">Service Radius (km)</Label>
+                <Input
+                  id="service_radius"
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={formData.service_radius}
+                  onChange={(e) => handleInputChange('service_radius', parseInt(e.target.value) || 50)}
+                  placeholder="50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="experience_years">Experience (Years)</Label>
+                <Input
+                  id="experience_years"
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={formData.experience_years}
+                  onChange={(e) => handleInputChange('experience_years', parseInt(e.target.value) || 0)}
+                  placeholder="5"
+                  className={errors.experience_years ? 'border-red-500' : ''}
+                />
+                {errors.experience_years && (
+                  <p className="text-red-500 text-sm">{errors.experience_years}</p>
+                )}
+              </div>
             </div>
 
-            {/* Location */}
-            <div>
-              <Label htmlFor="location">Service Location *</Label>
-              <Select
-                value={formData.location}
-                onValueChange={(v) => setField("location", v)}
-              >
-                <SelectTrigger className={errors.location ? "border-red-600" : ""}>
-                  <SelectValue placeholder="Select location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {states.length === 0 ? (
-                    <SelectItem disabled value="loading">Loading locations...</SelectItem>
-                  ) : (
-                    states.map((state) => (
-                      <SelectItem key={state.id} value={state.name}>
-                        {state.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.location && <p className="text-red-600 mt-1">{errors.location}</p>}
-            </div>
-
-            {/* Description */}
-            <div>
-              <Label htmlFor="description">Description *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="description">Service Description *</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setField("description", e.target.value)}
-                rows={5}
-                className={errors.description ? "border-red-600" : ""}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Describe your service offerings, experience, expertise, and what makes you unique. Include details about your approach, quality standards, and client success stories..."
+                rows={6}
+                className={errors.description ? 'border-red-500' : ''}
                 required
               />
-              {errors.description && (
-                <p className="text-red-600 mt-1">{errors.description}</p>
-              )}
-              <p className="text-sm text-muted-foreground mt-1">
-                {formData.description.length} / 50 minimum characters
-              </p>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{formData.description.length} characters (minimum 50)</span>
+                {errors.description && (
+                  <span className="text-red-500">{errors.description}</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pricing & Availability */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Pricing & Availability
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Price Range</Label>
+                <Select 
+                  value={formData.price_range} 
+                  onValueChange={(value) => handleInputChange('price_range', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select price range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {priceRanges.map((range) => (
+                      <SelectItem key={range} value={range}>
+                        {range}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Response Time</Label>
+                <Select 
+                  value={formData.response_time} 
+                  onValueChange={(value) => handleInputChange('response_time', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {responseTimeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Price Range */}
-            <div>
-              <Label htmlFor="price-range">Price Range *</Label>
-              <Select
-                value={formData.price_range}
-                onValueChange={(v) => setField("price_range", v)}
-              >
-                <SelectTrigger className={errors.price_range ? "border-red-600" : ""}>
-                  <SelectValue placeholder="Select a price range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {priceRanges.map((price) => (
-                    <SelectItem key={price} value={price}>
-                      {price}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.price_range && <p className="text-red-600 mt-1">{errors.price_range}</p>}
-            </div>
-
-            {/* Response Time */}
-            <div>
-              <Label htmlFor="response-time">Response Time</Label>
-              <Select
-                value={formData.response_time}
-                onValueChange={(v) => setField("response_time", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select response time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {responseTimes.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Availability */}
-            <div>
+            <div className="space-y-3">
               <Label>Availability</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {availabilityOptions.map((option) => (
                   <div key={option} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`avail-${option.replace(/\s+/g, "-")}`}
+                      id={option}
                       checked={formData.availability.includes(option)}
-                      onCheckedChange={(checked) => toggleAvailability(option, checked as boolean)}
+                      onCheckedChange={(checked) => handleAvailabilityChange(option, checked as boolean)}
                     />
-                    <Label htmlFor={`avail-${option.replace(/\s+/g, "-")}`}>
+                    <Label htmlFor={option} className="text-sm font-normal">
                       {option}
                     </Label>
                   </div>
@@ -608,157 +659,270 @@ export default function ServiceListing() {
               </div>
             </div>
 
+            <div className="flex gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="emergency_service"
+                  checked={formData.emergency_service}
+                  onCheckedChange={(checked) => handleInputChange('emergency_service', checked)}
+                />
+                <Label htmlFor="emergency_service" className="flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Emergency Service Available
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="warranty_offered"
+                  checked={formData.warranty_offered}
+                  onCheckedChange={(checked) => handleInputChange('warranty_offered', checked)}
+                />
+                <Label htmlFor="warranty_offered" className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Warranty Offered
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="equipment_provided"
+                  checked={formData.equipment_provided}
+                  onCheckedChange={(checked) => handleInputChange('equipment_provided', checked)}
+                />
+                <Label htmlFor="equipment_provided" className="flex items-center gap-2">
+                  <Wrench className="w-4 h-4" />
+                  Equipment Provided
+                </Label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Expertise & Specializations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="w-5 h-5" />
+              Expertise & Specializations
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
             {/* Specializations */}
-            <div>
-              <Label>Specializations</Label>
-              <div className="flex items-center gap-2 mb-2">
+            <div className="space-y-2">
+              <Label>Robot/System Specializations</Label>
+              <div className="flex gap-2">
                 <Input
                   value={newSpecialization}
                   onChange={(e) => setNewSpecialization(e.target.value)}
-                  placeholder="Add specialization and press Enter"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addSpecialization();
-                    }
-                  }}
-                  className="flex-grow"
+                  placeholder="e.g., ABB IRB Series, KUKA KR Series, Fanuc Arc Mate"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialization())}
                 />
-                <Button type="button" onClick={addSpecialization}>
-                  <Plus />
+                <Button type="button" onClick={addSpecialization} size="sm">
+                  <Plus className="w-4 h-4" />
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.specializations.map((spec, idx) => (
-                  <Badge key={idx} className="flex items-center gap-1">
-                    <Bot size={16} />
-                    {spec}
-                    <Button type="button" onClick={() => removeSpecialization(spec)}>
-                      <X size={16} />
-                    </Button>
-                  </Badge>
-                ))}
-              </div>
+              {formData.specializations.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.specializations.map((spec, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Bot className="w-3 h-3" />
+                      {spec}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => removeSpecialization(spec)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Certifications */}
-            <div>
-              <Label>Certifications</Label>
-              <div className="flex items-center gap-2 mb-2">
+            <div className="space-y-2">
+              <Label>Certifications & Qualifications</Label>
+              <div className="flex gap-2">
                 <Input
                   value={newCertification}
                   onChange={(e) => setNewCertification(e.target.value)}
-                  placeholder="Add certification and press Enter"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCertification();
-                    }
-                  }}
-                  className="flex-grow"
+                  placeholder="e.g., Certified Robot Technician, ISO 9001, Safety Training Certificate"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCertification())}
                 />
-                <Button type="button" onClick={addCertification}>
-                  <Plus />
+                <Button type="button" onClick={addCertification} size="sm">
+                  <Plus className="w-4 h-4" />
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.certifications.map((cert, idx) => (
-                  <Badge key={idx} className="flex items-center gap-1">
-                    <Award size={16} />
-                    {cert}
-                    <Button type="button" onClick={() => removeCertification(cert)}>
-                      <X size={16} />
-                    </Button>
-                  </Badge>
-                ))}
-              </div>
+              {formData.certifications.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.certifications.map((cert, index) => (
+                    <Badge key={index} variant="outline" className="flex items-center gap-1">
+                      <Award className="w-3 h-3" />
+                      {cert}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => removeCertification(cert)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Languages */}
-            <div>
-              <Label>Languages</Label>
-              <div className="flex items-center gap-2 mb-2">
-                <Select
-                  value={newLanguage}
-                  onValueChange={(v) => setNewLanguage(v)}
-                >
-                  <SelectTrigger>
+            <div className="space-y-2">
+              <Label>Languages Supported</Label>
+              <div className="flex gap-2">
+                <Select value={newLanguage} onValueChange={setNewLanguage}>
+                  <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Add language" />
                   </SelectTrigger>
                   <SelectContent>
-                    {newLanguage.length > 0 && formData.language.includes(newLanguage) ? null : (
-                      <>
-                        {["English","Hindi","Tamil","Telugu","Bengali","Marathi","Gujarati","Kannada","Malayalam","Punjabi","German","Japanese"]
-                          .filter((l) => !formData.language.includes(l))
-                          .map((lang) => (
-                            <SelectItem key={lang} value={lang}>
-                              {lang}
-                            </SelectItem>
-                        ))}
-                      </>
-                    )}
+                    {languageOptions.filter(lang => !formData.languages.includes(lang)).map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {lang}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Button type="button" disabled={!newLanguage} onClick={addLanguage}>
-                  <Plus />
+                <Button type="button" onClick={addLanguage} size="sm" disabled={!newLanguage}>
+                  <Plus className="w-4 h-4" />
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.language.map((lang, idx) => (
-                  <Badge key={idx} className="flex items-center gap-1">
-                    <Globe size={16} />
-                    {lang}
-                    {formData.language.length > 1 && (
-                      <Button type="button" onClick={() => removeLanguage(lang)}>
-                        <X size={16} />
-                      </Button>
-                    )}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Portfolio Images */}
-            <div>
-              <Label>Portfolio Images (URLs)</Label>
-              {formData.portfolio_images.map((url, idx) => (
-                <div key={idx} className="flex items-center gap-2 mb-2">
-                  <Input
-                    value={url || ""}
-                    onChange={(e) => changeImageUrl(idx, e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className="flex-grow"
-                  />
-                  {url?.startsWith("http") && (
-                    <img
-                      src={url}
-                      alt="preview"
-                      className="w-16 h-16 object-cover rounded border"
-                      onError={(e) => (e.currentTarget.src = "")}
-                    />
-                  )}
-                  {formData.portfolio_images.length > 1 && (
-                    <Button type="button" onClick={() => removeImageField(idx)}>
-                      <X />
-                    </Button>
-                  )}
+              {formData.languages.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.languages.map((lang, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      <Globe className="w-3 h-3" />
+                      {lang}
+                      {formData.languages.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => removeLanguage(lang)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </Badge>
+                  ))}
                 </div>
-              ))}
-              {formData.portfolio_images.length < 10 && (
-                <Button type="button" onClick={addImageField}>
-                  <Plus /> Add Another Image
-                </Button>
               )}
-              {validatingImages && <p className="text-sm text-muted-foreground">Validating images...</p>}
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Submit Button */}
-            <Button type="submit" size="lg" className="w-full" disabled={loading || formCompletion < 50}>
-              {loading ? "Submitting..." : "Create Listing"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        {/* Portfolio Images */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Portfolio Images (Optional)
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Add images of your work, equipment, or completed projects to showcase your expertise
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {imageUrls.map((url, index) => (
+              <div key={index} className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <Input
+                    value={url}
+                    onChange={(e) => handleImageUrlChange(index, e.target.value)}
+                    placeholder="https://example.com/your-work-image.jpg"
+                  />
+                </div>
+                {url && url.startsWith('http') && (
+                  <div className="w-16 h-16 border rounded overflow-hidden flex-shrink-0">
+                    <img 
+                      src={url} 
+                      alt="Portfolio preview" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '';
+                      }}
+                    />
+                  </div>
+                )}
+                {imageUrls.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeImageUrlField(index)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            
+            {imageUrls.length < 10 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addImageUrlField}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Another Image URL
+              </Button>
+            )}
+            
+            {validatingImages && (
+              <p className="text-sm text-muted-foreground">Validating image URLs...</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Submit Button */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Ready to publish your service listing?</h3>
+                <p className="text-sm text-muted-foreground">
+                  {formCompletion >= 80 
+                    ? 'Your listing looks great and is ready to attract clients!' 
+                    : 'Consider adding more details to improve your listing visibility.'
+                  }
+                </p>
+              </div>
+              <Button 
+                type="submit" 
+                disabled={loading || formCompletion < 40}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8"
+              >
+                {loading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Creating Listing...</span>
+                  </div>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Create Service Listing
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </form>
     </div>
   );
-}
+};
+
+export default ServiceListing;
