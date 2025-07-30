@@ -43,7 +43,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase";
+import { supabase } from '@/integrations/supabase/client';
 
 const INDIAN_STATES = [
   "Andhra Pradesh",
