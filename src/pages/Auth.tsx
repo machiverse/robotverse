@@ -202,7 +202,7 @@ const Auth = () => {
           if (savedData && savedData.userId === currentUser.id) {
             console.log('✅ Email confirmed and user data found, creating profile...');
             try {
-              await createUserProfile(currentUser);
+              await createUserProfileFromSavedData(currentUser, savedData);
               clearSavedUserData();
               
               toast({
@@ -320,10 +320,11 @@ const Auth = () => {
     }
   };
 
-  // ✅ Create profile immediately without email confirmation dependency
-  const createUserProfile = async (user: SupabaseUser) => {
+  // ✅ Create profile using exact TypeScript types from your schema
+  const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
-      console.log('👤 Creating profile immediately for user:', user.id);
+      console.log('👤 Creating profile from saved data for user:', user.id);
+      console.log('📋 Saved data:', savedData);
       
       // ✅ Build profile data using exact schema types
       const profileData: ProfileInsert = {
@@ -331,14 +332,14 @@ const Auth = () => {
         user_id: user.id,
         
         // Basic information - using exact field names from schema
-        email: user.email || email,
-        full_name: fullName || null,
-        company_name: companyName || null,
-        mobile_number: mobileNumber || null,
-        phone: mobileNumber || null, // Populate both phone fields
-        location: location || null,
-        user_type: accountType || null,
-        account_type: accountType || null,
+        email: user.email || savedData.email,
+        full_name: savedData.fullName || null,
+        company_name: savedData.companyName || null,
+        mobile_number: savedData.mobileNumber || null,
+        phone: savedData.mobileNumber || null, // Populate both phone fields
+        location: savedData.location || null,
+        user_type: savedData.accountType || null,
+        account_type: savedData.accountType || null,
         updated_at: new Date().toISOString(),
         
         // Set registration as complete and MOU agreed
@@ -351,14 +352,14 @@ const Auth = () => {
       };
 
       // ✅ Add role-specific data based on account type
-      if (accountType === 'seller') {
-        profileData.seller_roles = sellerRoles?.length > 0 ? sellerRoles : null;
-        profileData.user_roles = sellerRoles?.length > 0 ? sellerRoles : ['robot_seller'];
-        profileData.primary_user_type = (sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
-        profileData.primary_role = sellerRoles?.[0] || 'robot_seller';
+      if (savedData.accountType === 'seller') {
+        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
+        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
+        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
+        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
         
         // Set service categories for service providers
-        if (sellerRoles?.includes('service_provider')) {
+        if (savedData.sellerRoles?.includes('service_provider')) {
           profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
         }
         
@@ -370,15 +371,15 @@ const Auth = () => {
           service_categories: profileData.service_categories
         });
         
-      } else if (accountType === 'logistics') {
-        profileData.logistics_type = logisticsType || null;
-        profileData.logistics_region = logisticsRegion || null;
-        profileData.transport_modes = transportModes?.length > 0 ? transportModes : null;
-        profileData.warehouse_storage = warehouseStorage || null;
+      } else if (savedData.accountType === 'logistics') {
+        profileData.logistics_type = savedData.logisticsType || null;
+        profileData.logistics_region = savedData.logisticsRegion || null;
+        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
+        profileData.warehouse_storage = savedData.warehouseStorage || null;
         profileData.primary_user_type = 'logistics_provider';
         profileData.primary_role = 'logistics_provider';
         profileData.user_roles = ['logistics_provider'];
-        profileData.target_audience = targetAudience?.length > 0 ? targetAudience : null;
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
         
         console.log('🚚 Logistics data:', {
           logistics_type: profileData.logistics_type,
@@ -389,11 +390,11 @@ const Auth = () => {
           target_audience: profileData.target_audience
         });
         
-      } else if (accountType === 'finance') {
-        profileData.finance_type = financeType?.length > 0 ? financeType : null;
-        profileData.financing_for = financingFor?.length > 0 ? financingFor : null;
-        profileData.target_audience = targetAudience?.length > 0 ? targetAudience : null;
-        profileData.government_scheme_support = governmentSchemeSupport || null;
+      } else if (savedData.accountType === 'finance') {
+        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
+        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
         profileData.primary_user_type = 'finance_provider';
         profileData.primary_role = 'finance_provider';
         profileData.user_roles = ['finance_provider'];
@@ -406,7 +407,7 @@ const Auth = () => {
           user_roles: profileData.user_roles
         });
         
-      } else if (accountType === 'buyer') {
+      } else if (savedData.accountType === 'buyer') {
         profileData.primary_user_type = 'buyer';
         profileData.primary_role = 'buyer';
         profileData.user_roles = ['buyer'];
@@ -615,28 +616,12 @@ const Auth = () => {
 
         console.log('✅ All validation passed, creating user account...');
 
-        // ✅ Create user account WITHOUT email confirmation dependency
+        // ✅ Create user account with email confirmation
         const { user: newUser, error: signUpError } = await signUp(email, password, fullName);
         
         if (signUpError) {
-          console.error('❌ Signup error:', signUpError);
-          // Even if signup fails due to email confirmation, continue with data saving
-          // if we have a user session
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          if (currentUser) {
-            console.log('⚠️ Email confirmation failed, but user exists. Saving profile anyway...');
-            await createUserProfile(currentUser);
-            
-            toast({
-              title: "Account Created Successfully!",
-              description: "Your profile has been saved. You can start using RobotVerse immediately.",
-            });
-            
-            navigate('/dashboard');
-            return;
-          } else {
-            throw new Error("Failed to create account. Please try again.");
-          }
+          console.error('❌ User creation failed:', signUpError);
+          throw new Error(signUpError.message);
         }
 
         if (!newUser) {
@@ -648,26 +633,51 @@ const Auth = () => {
 
         // ✅ SAVE USER DATA IMMEDIATELY (regardless of email confirmation status)
         try {
-          await createUserProfile(newUser);
+          await createUserProfileFromSavedData(newUser, {
+            email,
+            fullName,
+            companyName,
+            mobileNumber,
+            location,
+            accountType,
+            sellerRoles,
+            logisticsType,
+            logisticsRegion,
+            transportModes,
+            warehouseStorage,
+            financeType,
+            financingFor,
+            targetAudience,
+            governmentSchemeSupport,
+            userId: newUser.id,
+            timestamp: Date.now()
+          });
 
           console.log('✅ User profile created immediately');
           
           toast({
             title: "Account Created Successfully!",
-            description: "Your account has been created and profile saved. You can start using RobotVerse immediately.",
+            description: "Your account has been created. Please check your email for verification.",
           });
 
-          // ✅ Redirect to dashboard immediately
-          navigate('/dashboard');
+          // ✅ Save user data for email confirmation flow (backup)
+          saveUserDataToStorage(newUser);
+
+          // ✅ Show email confirmation modal
+          setShowEmailConfirmationModal(true);
 
         } catch (profileError: any) {
           console.error('❌ Profile creation failed:', profileError);
           
+          // ✅ Still save to localStorage for later processing
+          saveUserDataToStorage(newUser);
+          
           toast({
-            variant: "destructive",
-            title: "Profile Creation Error",
-            description: "Account created but profile setup failed. Please try again.",
+            title: "Account Created",
+            description: "Account created but profile setup incomplete. Please check your email for verification.",
           });
+          
+          setShowEmailConfirmationModal(true);
         }
 
       } else {
