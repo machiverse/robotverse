@@ -57,6 +57,7 @@ import { useToast } from '@/hooks/use-toast';
 import RobotUpload from '@/components/RobotUpload';
 import SpareParts from '@/components/SpareParts';
 import ServiceListing from '@/components/ServiceListing';
+import SparePartsSellerDashboard from './dashboards/SparePartsSellerDashboard';
 
 interface MultiRoleSellerDashboardProps {
   userProfile: any;
@@ -882,59 +883,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         {/* Spare Parts Tab */}
         {hasPartsSeller && (
           <TabsContent value="parts" className="mt-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="w-5 h-5" />
-                    Spare Parts Management
-                  </CardTitle>
-                  <CardDescription>
-                    Manage your parts inventory with real-time stock tracking
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SpareParts />
-                </CardContent>
-              </Card>
-
-              {/* Parts Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">In Stock</p>
-                        <p className="text-2xl font-bold">{stats.partsStats.inStock}</p>
-                      </div>
-                      <Package className="w-8 h-8 text-green-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Out of Stock</p>
-                        <p className="text-2xl font-bold">{stats.partsStats.outOfStock}</p>
-                      </div>
-                      <AlertCircle className="w-8 h-8 text-red-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Avg Price</p>
-                        <p className="text-2xl font-bold">₹{stats.partsStats.avgPrice.toLocaleString()}</p>
-                      </div>
-                      <DollarSign className="w-8 h-8 text-purple-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+            <SparePartsSellerDashboard userProfile={userProfile} />
           </TabsContent>
         )}
 

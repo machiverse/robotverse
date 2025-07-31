@@ -631,11 +631,54 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // ✅ Save user data for after email confirmation
-        saveUserDataToStorage(newUser);
+        // ✅ SAVE USER DATA IMMEDIATELY (regardless of email confirmation status)
+        try {
+          await createUserProfileFromSavedData(newUser, {
+            email,
+            fullName,
+            companyName,
+            mobileNumber,
+            location,
+            accountType,
+            sellerRoles,
+            logisticsType,
+            logisticsRegion,
+            transportModes,
+            warehouseStorage,
+            financeType,
+            financingFor,
+            targetAudience,
+            governmentSchemeSupport,
+            userId: newUser.id,
+            timestamp: Date.now()
+          });
 
-        // ✅ Show email confirmation modal
-        setShowEmailConfirmationModal(true);
+          console.log('✅ User profile created immediately');
+          
+          toast({
+            title: "Account Created Successfully!",
+            description: "Your account has been created. Please check your email for verification.",
+          });
+
+          // ✅ Save user data for email confirmation flow (backup)
+          saveUserDataToStorage(newUser);
+
+          // ✅ Show email confirmation modal
+          setShowEmailConfirmationModal(true);
+
+        } catch (profileError: any) {
+          console.error('❌ Profile creation failed:', profileError);
+          
+          // ✅ Still save to localStorage for later processing
+          saveUserDataToStorage(newUser);
+          
+          toast({
+            title: "Account Created",
+            description: "Account created but profile setup incomplete. Please check your email for verification.",
+          });
+          
+          setShowEmailConfirmationModal(true);
+        }
 
       } else {
         // Sign in process
