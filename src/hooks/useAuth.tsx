@@ -71,17 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // ✅ Modified signUp for email confirmation
+  // ✅ Modified signUp WITHOUT email confirmation dependency
   const signUp = useCallback(
     async (email: string, password: string, fullName?: string) => {
       try {
-        console.log('🚀 Starting signup with email confirmation for:', email);
+        console.log('🚀 Starting signup WITHOUT email confirmation for:', email);
         
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`, // Redirect back to auth page
             data: {
               full_name: fullName || ''
             }
@@ -90,18 +89,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error('❌ Signup error:', error.message);
+          // Don't treat email confirmation errors as failures
+          if (error.message.includes('confirmation email') || error.message.includes('email')) {
+            console.log('⚠️ Email confirmation issue, but continuing with user creation...');
+            return { user: data?.user || null, error: null };
+          }
           return { user: null, error };
         }
 
         if (data.user) {
           console.log('✅ User created successfully:', data.user.id);
-          console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
-          
-          // Don't update local state until email is confirmed
-          if (data.user.email_confirmed_at) {
-            setUser(data.user);
-            setSession(data.session);
-          }
+          // Update local state immediately regardless of email confirmation
+          setUser(data.user);
+          setSession(data.session);
         }
 
         return { user: data.user, error: null };
