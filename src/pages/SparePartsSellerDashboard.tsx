@@ -15,7 +15,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import SparePartsUpload from '@/components/SparePartsUpload'; // You need to create this form (like RobotUpload)
+import SparePartsUpload from '@/components/SpareParts'; // You need to create this form (like RobotUpload)
 
 const SparePartsSellerDashboard = () => {
   const { user } = useAuth();
