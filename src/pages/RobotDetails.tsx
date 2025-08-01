@@ -532,13 +532,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       </div>
                       
                       <Button
-  size="lg"
-  disabled={analysisLoading}
-  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
   onClick={e => {
-    e.stopPropagation();       // Prevent parent card click
-    handleAIAnalysis();        // Then run AI analysis
+    e.stopPropagation();    // Prevents parent Card or Row click from firing instead
+    handleAIAnalysis();     // Now your handler fires correctly
   }}
+  disabled={analysisLoading}
+  size="lg"
+  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
 >
   {analysisLoading ? (
     <>
