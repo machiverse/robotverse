@@ -894,7 +894,25 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <SpareParts />
+                  <div className="space-y-4">
+                    <Alert>
+                      <Package className="h-4 w-4" />
+                      <AlertDescription>
+                        Use the dedicated Spare Parts Dashboard for full inventory management features.
+                      </AlertDescription>
+                    </Alert>
+                    <Button 
+                      onClick={() => window.open('/spare-parts-dashboard', '_blank')}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Package className="w-4 h-4 mr-2" />
+                      Open Spare Parts Dashboard
+                    </Button>
+                  </div>
+                  <div className="mt-6">
+                    <SpareParts />
+                  </div>
                 </CardContent>
               </Card>
 
