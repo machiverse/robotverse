@@ -14,13 +14,28 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 
 // --- TYPE DEFINITIONS ---
+// This manual interface ensures your component knows the shape of the robot data.
 interface Robot {
   id: string; name: string | null; model: string | null; robot_type: string | null; price: number | null; currency: string | null; description: string | null; location: string | null; availability: string | null; images: string[] | null; technical_specifications: any; category_tags: string[] | null; quantity: number | null; seller_id: string | null; created_at: string; brand?: string | null; condition?: string | null; year_manufactured?: number | null; payload_capacity?: number | null; training_included?: boolean | null;
   profiles: { full_name: string | null; company_name: string | null; phone: string | null; mobile_number: string | null; email: string | null; location: string | null; } | null;
 }
+
+// This interface is updated to make nested properties optional, preventing crashes.
 interface AIAnalysisResult {
-  robot: any; analysis: string; marketEcosystem?: { spareParts?: { suppliers: any[] }; services?: { providers: any[] }; logistics?: { providers: any[] }; finance?: { providers: any[] }; }; locationInsights?: any;
-  actionableRecommendations?: { immediateActions?: string[]; costOptimization?: string[]; riskMitigation?: string[]; };
+  robot?: any;
+  analysis?: string;
+  marketEcosystem?: {
+    spareParts?: { suppliers: any[] };
+    services?: { providers: any[] };
+    logistics?: { providers: any[] };
+    finance?: { providers: any[] };
+  };
+  locationInsights?: any;
+  actionableRecommendations?: {
+    immediateActions?: string[];
+    costOptimization?: string[];
+    riskMitigation?: string[];
+  };
 }
 
 
@@ -143,8 +158,28 @@ const RobotDetails = () => {
   const prevImage = () => { if (robot?.images && robot.images.length > 1) setCurrentImageIndex((p) => (p - 1 + robot.images!.length) % robot.images!.length); };
   const formatPrice = (p: number | null, c: string | null) => p === null ? 'Price on request' : `${c === 'USD' ? '$' : '₹'}${p.toLocaleString()}`;
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  if (error || !robot) return <div className="py-12 text-center"><h3>Robot Not Found</h3><p>{error}</p></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <EnhancedHeader />
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !robot) {
+    return (
+      <div className="min-h-screen bg-background">
+        <EnhancedHeader />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h3 className="text-lg font-semibold">Robot Not Found</h3>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   const RecommendationCard = ({ item, type }: { item: any; type: string }) => {
     const iconMap = { parts: <Wrench className="h-4 w-4 text-blue-600" />, services: <Settings className="h-4 w-4 text-green-600" />, logistics: <Truck className="h-4 w-4 text-orange-600" />, finance: <DollarSign className="h-4 w-4 text-purple-600" /> };
@@ -174,8 +209,6 @@ const RobotDetails = () => {
         <Button variant="ghost" onClick={() => navigate('/robots')} className="mb-6"><ArrowLeft className="h-4 w-4 mr-2" />Back to Robots</Button>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="space-y-8 lg:col-span-2">
-            
-            {/* --- ROBOT DETAILS (FULLY RESTORED) --- */}
             
             {/* Robot Image Gallery */}
             <Card><CardContent className="p-6"><div className="relative aspect-video bg-muted rounded-lg flex items-center justify-center mb-4 overflow-hidden">{robot.images && robot.images.length > 0 ? (<><img src={robot.images[currentImageIndex]} alt={`${robot.name} ${currentImageIndex + 1}`} className="w-full h-full object-contain rounded-lg cursor-pointer transition-transform duration-300 ease-in-out hover:scale-105" onClick={() => setShowFullscreen(true)} />{robot.images.length > 1 && (<><Button variant="ghost" size="icon" className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white z-10" onClick={(e) => { e.stopPropagation(); prevImage(); }}><ChevronLeft className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white z-10" onClick={(e) => { e.stopPropagation(); nextImage(); }}><ChevronRight className="w-4 h-4" /></Button></>)}<Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white z-10" onClick={(e) => { e.stopPropagation(); setShowFullscreen(true); }}><Maximize2 className="w-4 h-4" /></Button>{robot.images.length > 1 && (<div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm z-10">{currentImageIndex + 1} / {robot.images.length}</div>)}</>) : (<Bot className="w-24 h-24 text-muted-foreground" />)}</div>{robot.images && robot.images.length > 1 && (<div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">{robot.images.map((image, index) => (<div key={index} className={`flex-shrink-0 aspect-square w-20 h-20 bg-muted rounded-lg flex items-center justify-center cursor-pointer border-2 transition-all duration-200 ${index === currentImageIndex ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100'}`} onClick={() => setCurrentImageIndex(index)}><img src={image} alt={`${robot.name} ${index + 1}`} className="w-full h-full object-cover rounded-lg" /></div>))}</div>)}</CardContent></Card>
@@ -216,10 +249,10 @@ const RobotDetails = () => {
                           <TabsTrigger value="finance">Finance ({(aiAnalysis.marketEcosystem?.finance?.providers?.length ?? 0)})</TabsTrigger>
                         </TabsList>
                         
-                        <TabsContent value="parts" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.spareParts?.suppliers?.map((item, i) => <RecommendationCard key={i} item={item} type="parts" />) ?? <p>No parts found.</p>}</div></TabsContent>
-                        <TabsContent value="services" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.services?.providers?.map((item, i) => <RecommendationCard key={i} item={item} type="services" />) ?? <p>No services found.</p>}</div></TabsContent>
-                        <TabsContent value="logistics" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.logistics?.providers?.map((item, i) => <RecommendationCard key={i} item={item} type="logistics" />) ?? <p>No logistics found.</p>}</div></TabsContent>
-                        <TabsContent value="finance" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.finance?.providers?.map((item, i) => <RecommendationCard key={i} item={item} type="finance" />) ?? <p>No finance found.</p>}</div></TabsContent>
+                        <TabsContent value="parts" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.spareParts?.suppliers?.map((item, i) => <RecommendationCard key={i} item={item} type="parts" />) ?? <p className="text-center text-muted-foreground">No parts found.</p>}</div></TabsContent>
+                        <TabsContent value="services" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.services?.providers?.map((item, i) => <RecommendationCard key={i} item={item} type="services" />) ?? <p className="text-center text-muted-foreground">No services found.</p>}</div></TabsContent>
+                        <TabsContent value="logistics" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.logistics?.providers?.map((item, i) => <RecommendationCard key={i} item={item} type="logistics" />) ?? <p className="text-center text-muted-foreground">No logistics found.</p>}</div></TabsContent>
+                        <TabsContent value="finance" className="mt-4"><div className="space-y-3">{aiAnalysis.marketEcosystem?.finance?.providers?.map((item, i) => <RecommendationCard key={i} item={item} type="finance" />) ?? <p className="text-center text-muted-foreground">No finance found.</p>}</div></TabsContent>
                       </Tabs>
                     </div>
                   )}
