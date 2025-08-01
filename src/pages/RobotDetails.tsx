@@ -41,7 +41,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 
-// Robot and AI Analysis Types
 interface Robot {
   id: string;
   name: string;
@@ -53,27 +52,29 @@ interface Robot {
   location: string;
   availability: string;
   images: string[];
-  technical_specifications: any;
+  technical_specifications: Record<string, any>;
   category_tags: string[];
   quantity: number;
   seller_id: string;
   profiles: {
-    full_name: string;
-    company_name: string;
-    phone: string;
-    email: string;
-    location: string;
-  };
+    full_name?: string | null;
+    company_name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    location?: string | null;
+  } | null;
 }
 
-interface AIAnalysisResult {
+interface AIRecommendations {
+  spareParts: any[];
+  services: any[];
+  logistics: any[];
+  finance: any[];
+}
+
+interface AIAnalysis {
   analysis: string;
-  recommendations: {
-    spareParts: any[];
-    services: any[];
-    logistics: any[];
-    finance: any[];
-  };
+  recommendations: AIRecommendations;
 }
 
 const RobotDetails = () => {
@@ -82,25 +83,29 @@ const RobotDetails = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // State management
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteMessage, setQuoteMessage] = useState("");
+
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
 
+  // Fetch the robot details on mount or when `id` or `user` changes
   useEffect(() => {
     if (!id) return;
 
     const fetchRobot = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
         const { data, error } = await supabase
           .from("robots")
           .select(
@@ -119,15 +124,14 @@ const RobotDetails = () => {
           .single();
 
         if (error) throw error;
-
         setRobot(data);
 
         if (user) {
-          const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || "[]");
+          const watchlistRaw = localStorage.getItem(`watchlist_${user.id}`) || "[]";
+          const watchlist: string[] = JSON.parse(watchlistRaw);
           setIsInWatchlist(watchlist.includes(data.id));
         }
       } catch (err) {
-        console.error("Error fetching robot:", err);
         setError(err instanceof Error ? err.message : "Failed to load robot details");
       } finally {
         setLoading(false);
@@ -137,71 +141,69 @@ const RobotDetails = () => {
     fetchRobot();
   }, [id, user]);
 
-  // AI Analysis button handler with stopPropagation:
+  // Format price with currency symbol
+  const formatPrice = (price: number | null, currency: string | null) => {
+    if (!price) return "Price: On Request";
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
+    return `${symbol}${price.toLocaleString()}`;
+  };
+
+  // Safe access helpers
+  const hasPhone = !!robot?.profiles?.phone;
+  const hasEmail = !!robot?.profiles?.email;
+
+  // Event handlers
+
   const handleAIAnalysis = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!robot || !user) {
       toast({
         title: "Login Required",
-        description: "Please log in to access AI analysis features",
+        description: "Please sign in to access AI analysis.",
         variant: "destructive",
       });
       return;
     }
-
-    const runAnalysis = async () => {
-      setAnalysisLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("robotverse-ai-analyze", {
-          body: { robotId: robot.id, userId: user.id },
-        });
+    setAnalysisLoading(true);
+    supabase.functions
+      .invoke("robotverse", { body: { robotId: robot.id, userId: user.id } })
+      .then(({ data, error }) => {
         if (error) throw error;
         setAiAnalysis(data);
-        toast({
-          title: "AI Analysis Complete",
-          description: "Smart recommendations generated successfully",
-        });
-      } catch (err) {
-        console.error("Error getting AI analysis:", err);
-        toast({
-          title: "Analysis Failed",
-          description: err instanceof Error ? err.message : "Failed to generate AI analysis",
-          variant: "destructive",
-        });
-      } finally {
+        toast({ title: "AI Analysis Completed!", description: "Check out market intelligence." });
+      })
+      .catch((error) => {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      })
+      .finally(() => {
         setAnalysisLoading(false);
-      }
-    };
-
-    runAnalysis();
+      });
   };
 
-  // Contact Seller
   const handleContactSeller = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!robot?.profiles?.phone) {
+    if (!hasPhone) {
       toast({
-        title: "Phone Number Not Available",
-        description: "Seller's phone number is not provided.",
+        title: "Phone number missing",
+        description: "Seller has not provided a phone number.",
         variant: "destructive",
       });
       return;
     }
-    const phoneNumber = robot.profiles.phone.replace(/\D/g, "");
-    window.open(`tel:${phoneNumber}`, "_self");
+    const phone = robot!.profiles!.phone!.replace(/\D/g, "");
+    window.open(`tel:${phone}`, "_self");
     toast({
       title: "Calling Seller",
-      description: `Calling ${robot.profiles.full_name} at ${robot.profiles.phone}`,
+      description: `Calling ${robot!.profiles?.full_name || robot!.profiles?.company_name}.`,
     });
   };
 
-  // Request Quote
   const handleRequestQuote = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!robot?.profiles?.email) {
+    if (!hasEmail) {
       toast({
-        title: "Email Not Available",
-        description: "Seller's email address is not provided.",
+        title: "Email missing",
+        description: "Seller has not provided an email address.",
         variant: "destructive",
       });
       return;
@@ -209,248 +211,192 @@ const RobotDetails = () => {
     setShowQuoteModal(true);
   };
 
-  // Send Quote Email
   const sendQuoteEmail = () => {
-    if (!robot?.profiles?.email) return;
+    if (!robot || !robot.profiles) return;
+    const subject = `Quote request for robot: ${robot.name}`;
+    const body = `Dear ${robot.profiles.full_name || robot.profiles.company_name},
 
-    const subject = `Quote Request for ${robot.name} - ${robot.model}`;
-    const body = `Dear ${robot.profiles.full_name},
+I am interested in your robot:
+- Model: ${robot.model}
+- Type: ${robot.robot_type}
+- Price: ${formatPrice(robot.price, robot.currency)}
 
-I am interested in the following robot:
+${quoteMessage ? `Additional notes: ${quoteMessage}` : ""}
 
-Robot: ${robot.name}
-Model: ${robot.model}
-Type: ${robot.robot_type}
-Listed Price: ${
-      robot.price ? `${robot.currency} ${robot.price}` : "Price on Request"
-    }
+Please provide a quote and any relevant info.
 
-${quoteMessage ? `Additional Message:\n${quoteMessage}` : ""}
+Thanks,  
+${user?.email || "Interested Buyer"}`;
 
-Please provide me with:
-1. Best price quote
-2. Availability and delivery timeline
-3. Technical specifications
-4. Warranty and support details
-5. Installation and training options
-
-Best regards,
-${user?.user_metadata?.full_name || "Interested Buyer"}`;
-
-    const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(
+    const mailto = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(
       subject
     )}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink, "_blank");
+
+    window.open(mailto);
     setShowQuoteModal(false);
     setQuoteMessage("");
-    toast({
-      title: "Quote Request Sent",
-      description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
-    });
+    toast({ title: "Quote request sent!", description: "Email client should open shortly." });
   };
 
-  // Add/Remove from Watchlist
-  const handleAddToWatchlist = (e: React.MouseEvent) => {
+  const handleWatchlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       toast({
         title: "Login Required",
-        description: "Please log in to add items to your watchlist.",
+        description: "Please sign in to manage your watchlist.",
         variant: "destructive",
       });
       return;
     }
+    setAddingToWatchlist(true);
     try {
-      setAddingToWatchlist(true);
-      const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || "[]");
+      const key = `watchlist_${user.id}`;
+      const existing = JSON.parse(localStorage.getItem(key) ?? "[]") as string[];
+      let updated;
       if (isInWatchlist) {
-        const newList = watchlist.filter((id: string) => id !== robot!.id);
-        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(newList));
+        updated = existing.filter((id) => id !== robot!.id);
+        toast({ title: "Removed from Watchlist" });
         setIsInWatchlist(false);
-        toast({ title: "Removed from Watchlist", description: `${robot!.name} removed.` });
       } else {
-        if (!watchlist.includes(robot!.id)) {
-          watchlist.push(robot!.id);
-          localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(watchlist));
+        if (!existing.includes(robot!.id)) {
+          updated = [...existing, robot!.id];
+          toast({ title: "Added to Watchlist" });
           setIsInWatchlist(true);
-          toast({ title: "Added to Watchlist", description: `${robot!.name} added.` });
+        } else {
+          updated = existing;
         }
       }
-    } catch (err) {
-      toast({ title: "Error", description: "Could not update watchlist.", variant: "destructive" });
+      localStorage.setItem(key, JSON.stringify(updated));
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update watchlist.",
+        variant: "destructive",
+      });
     } finally {
       setAddingToWatchlist(false);
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    if (!price) return "Price on Request";
-    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
-    return `${symbol}${price.toLocaleString()}`;
+  // Image navigation helpers
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((v) => (v === 0 ? robot!.images.length - 1 : v - 1));
   };
 
-  if (loading) {
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((v) => (v + 1) % robot!.images.length);
+  };
+
+  // Loading and error states
+  if (loading)
     return (
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
-        <div className="container mx-auto px-4 py-8 flex justify-center items-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <span className="ml-2">Loading robot details...</span>
+        <div className="container mx-auto py-32 flex flex-col items-center justify-center space-y-4">
+          <Loader2 className="animate-spin w-10 h-10" />
+          <p>Loading robot details...</p>
         </div>
       </div>
     );
-  }
 
-  if (error || !robot) {
+  if (error || !robot)
     return (
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <Bot className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Robot Not Found</h3>
-          <p className="text-muted-foreground">{error ?? "Robot not found."}</p>
-          <Button onClick={() => navigate("/robots")} className="mt-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Robots
+        <div className="container mx-auto py-32 text-center">
+          <Bot className="mx-auto w-20 h-20 text-muted-foreground" />
+          <h2 className="mt-4 text-2xl font-semibold">Robot Not Found</h2>
+          <p className="mt-2 text-muted-foreground">{error || "No robot matches your request."}</p>
+          <Button onClick={() => navigate("/robots")} className="mt-6">
+            <ArrowLeft className="mr-2 w-4 h-4" />
+            Back to Marketplace
           </Button>
         </div>
       </div>
     );
-  }
-
-  // Card for AI recommendations inside Tabs
-  const RecommendationCard = ({
-    item,
-    type,
-  }: {
-    item: any;
-    type: string;
-  }) => {
-    const icons = {
-      parts: <Wrench className="text-blue-600" />,
-      services: <Settings className="text-green-600" />,
-      logistics: <Truck className="text-orange-600" />,
-      finance: <DollarSign className="text-purple-600" />,
-    };
-    const colors = {
-      parts: "border-blue-200",
-      services: "border-green-200",
-      logistics: "border-orange-200",
-      finance: "border-purple-200",
-    };
-
-    const name = item.name || item.company || item.company_name;
-    const location = item.profiles?.location || item.location;
-
-    return (
-      <Card className={`${colors[type]} hover:shadow-md transition-shadow`}>
-        <CardContent>
-          <div className="flex justify-between items-start">
-            <div>
-              <h5 className="font-semibold flex items-center gap-2">
-                {icons[type]} {name}
-              </h5>
-              {location && (
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {location}
-                </p>
-              )}
-            </div>
-            <Button size="sm" variant="outline" aria-label={`Go to ${type} details`}>
-              <ArrowLeft />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       <EnhancedHeader />
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/robots")} className="mb-6">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Robots
+
+      <div className="container mx-auto py-6 px-4">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/robots")}
+          className="mb-6 flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Marketplace
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main area */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Image gallery */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Left / Main Content */}
+          <div className="md:col-span-2 space-y-6">
+            {/* Image Gallery */}
             <Card>
               <CardContent>
-                <div className="relative aspect-video rounded-lg bg-muted flex items-center justify-center">
-                  {robot.images && robot.images.length > 0 ? (
+                <div className="relative aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                  {robot.images.length ? (
                     <>
                       <img
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} image ${currentImageIndex + 1}`}
-                        className="w-full h-full object-contain rounded-lg cursor-pointer"
+                        className="w-full h-full object-contain cursor-pointer"
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (
                         <>
                           <Button
-                            variant="ghost"
                             size="icon"
-                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((v) => (v === 0 ? robot.images.length - 1 : v - 1));
-                            }}
-                            aria-label="Previous Image"
+                            variant="ghost"
+                            aria-label="Previous image"
+                            className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/50 text-white"
+                            onClick={prevImage}
                           >
                             <ChevronLeft />
                           </Button>
                           <Button
-                            variant="ghost"
                             size="icon"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentImageIndex((v) => (v + 1) % robot.images.length);
-                            }}
-                            aria-label="Next Image"
+                            variant="ghost"
+                            aria-label="Next image"
+                            className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/50 text-white"
+                            onClick={nextImage}
                           >
                             <ChevronRight />
                           </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label="Fullscreen"
+                            className="absolute top-2 right-2 bg-black/50 text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowFullscreen(true);
+                            }}
+                          >
+                            <Maximize2 />
+                          </Button>
+                          <div className="absolute bottom-2 right-2 bg-black/50 text-white rounded px-2 py-1 text-sm">
+                            {currentImageIndex + 1} / {robot.images.length}
+                          </div>
                         </>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 bg-black/50 text-white"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowFullscreen(true);
-                        }}
-                        aria-label="Fullscreen"
-                      >
-                        <Maximize2 />
-                      </Button>
-                      <div className="absolute bottom-2 right-2 bg-black/50 text-white rounded px-2 py-1 text-sm">
-                        {currentImageIndex + 1} / {robot.images.length}
-                      </div>
                     </>
                   ) : (
                     <Bot className="w-24 h-24 text-muted-foreground" />
                   )}
                 </div>
 
+                {/* Thumbnail strip */}
                 {robot.images.length > 1 && (
-                  <div className="flex mt-4 overflow-x-auto gap-2">
-                    {robot.images.map((image, idx) => (
+                  <div className="mt-3 flex gap-2 overflow-x-auto">
+                    {robot.images.map((src, idx) => (
                       <img
                         key={idx}
-                        src={image}
+                        src={src}
                         alt={`${robot.name} thumbnail ${idx + 1}`}
-                        className={`w-20 h-20 object-cover rounded cursor-pointer border-2 ${
-                          idx === currentImageIndex
-                            ? "border-primary"
-                            : "border-transparent opacity-50 hover:opacity-100"
-                        }`}
+                        className={`h-20 w-20 rounded border-2 cursor-pointer object-cover ${idx === currentImageIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setCurrentImageIndex(idx);
@@ -462,16 +408,16 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
               </CardContent>
             </Card>
 
-            {/* Robot details */}
+            {/* Basic info */}
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>{robot.name}</CardTitle>
-                    <p className="text-muted-foreground">{robot.model}</p>
+                    <p className="font-medium text-muted-foreground">{robot.model}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold">{formatPrice(robot.price, robot.currency)}</p>
+                    <p className="text-3xl font-extrabold">{formatPrice(robot.price, robot.currency)}</p>
                     <Badge variant={robot.availability === "available" ? "default" : "secondary"}>
                       {robot.availability}
                     </Badge>
@@ -480,31 +426,29 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge>{robot.robot_type}</Badge>
-                    {robot.category_tags?.map((tag, idx) => (
-                      <Badge key={idx} variant="secondary">
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="outline">{robot.robot_type}</Badge>
+                    {robot.category_tags.map((tag, idx) => (
+                      <Badge variant="secondary" key={idx}>
                         {tag}
                       </Badge>
                     ))}
                   </div>
-                  <div className="flex items-center text-muted-foreground gap-1">
+                  <div className="flex items-center gap-1 text-muted-foreground">
                     <MapPin />
                     <span>{robot.location}</span>
                   </div>
                   {robot.description && <p>{robot.description}</p>}
-                  <div>
-                    <p>
-                      <strong>Quantity Available: </strong>
-                      {robot.quantity}
-                    </p>
-                  </div>
+                  <p>
+                    <strong>Quantity Available: </strong>
+                    {robot.quantity}
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Technical specifications */}
-            {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 && (
+            {/* Technical specs */}
+            {robot.technical_specifications && Object.keys(robot.technical_specifications).length !== 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Technical Specifications</CardTitle>
@@ -524,37 +468,33 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
             {/* AI Analysis */}
             {user && (
-              <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200">
-                <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t">
+              <Card className="border border-primary bg-primary/5">
+                <CardHeader className="bg-primary text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
-                    <Brain /> Advanced AI Market Intelligence
+                    <Brain /> Advanced Market Intelligence
                   </CardTitle>
-                  <p className="text-sm">
-                    Discover suppliers, services, financing & logistics tailored for this robot.
-                  </p>
+                  <p className="text-sm">Smart recommendations curated for this robot</p>
                 </CardHeader>
                 <CardContent>
                   {!aiAnalysis ? (
-                    <div className="text-center">
-                      <Button
-                        size="lg"
-                        disabled={analysisLoading}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                        onClick={handleAIAnalysis}
-                      >
-                        {analysisLoading ? (
-                          <>
-                            <Loader2 className="mr-2 w-5 h-5 animate-spin" />
-                            Analyzing Market...
-                          </>
-                        ) : (
-                          <>
-                            <Brain className="mr-2 w-5 h-5" />
-                            Generate Smart Analysis
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      size="lg"
+                      disabled={analysisLoading}
+                      className="bg-primary text-white w-full"
+                      onClick={handleAIAnalysis}
+                    >
+                      {analysisLoading ? (
+                        <>
+                          <Loader2 className="mr-2 w-5 h-5 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="mr-2 w-5 h-5" />
+                          Generate Smart Analysis
+                        </>
+                      )}
+                    </Button>
                   ) : (
                     <>
                       <div>
@@ -577,41 +517,41 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                             Finance ({aiAnalysis.recommendations.finance.length})
                           </TabsTrigger>
                         </TabsList>
-                        <TabsContent value="parts">
-                          {aiAnalysis.recommendations.spareParts.length === 0 ? (
-                            <p className="text-muted-foreground">No spare parts found.</p>
-                          ) : (
-                            aiAnalysis.recommendations.spareParts.map((item, idx) => (
-                              <RecommendationCard key={idx} item={item} type="parts" />
-                            ))
+
+                        <TabsContent value="parts" className="space-y-4">
+                          {aiAnalysis.recommendations.spareParts.length === 0 && (
+                            <p className="text-muted-foreground">No matching spare parts found.</p>
                           )}
+                          {aiAnalysis.recommendations.spareParts.map((item, idx) => (
+                            <RecommendationCard key={idx} item={item} type="parts" />
+                          ))}
                         </TabsContent>
-                        <TabsContent value="services">
-                          {aiAnalysis.recommendations.services.length === 0 ? (
-                            <p className="text-muted-foreground">No services found.</p>
-                          ) : (
-                            aiAnalysis.recommendations.services.map((item, idx) => (
-                              <RecommendationCard key={idx} item={item} type="services" />
-                            ))
+
+                        <TabsContent value="services" className="space-y-4">
+                          {aiAnalysis.recommendations.services.length === 0 && (
+                            <p className="text-muted-foreground">No matching services found.</p>
                           )}
+                          {aiAnalysis.recommendations.services.map((item, idx) => (
+                            <RecommendationCard key={idx} item={item} type="services" />
+                          ))}
                         </TabsContent>
-                        <TabsContent value="logistics">
-                          {aiAnalysis.recommendations.logistics.length === 0 ? (
-                            <p className="text-muted-foreground">No logistics found.</p>
-                          ) : (
-                            aiAnalysis.recommendations.logistics.map((item, idx) => (
-                              <RecommendationCard key={idx} item={item} type="logistics" />
-                            ))
+
+                        <TabsContent value="logistics" className="space-y-4">
+                          {aiAnalysis.recommendations.logistics.length === 0 && (
+                            <p className="text-muted-foreground">No matching logistics providers found.</p>
                           )}
+                          {aiAnalysis.recommendations.logistics.map((item, idx) => (
+                            <RecommendationCard key={idx} item={item} type="logistics" />
+                          ))}
                         </TabsContent>
-                        <TabsContent value="finance">
-                          {aiAnalysis.recommendations.finance.length === 0 ? (
-                            <p className="text-muted-foreground">No finance providers found.</p>
-                          ) : (
-                            aiAnalysis.recommendations.finance.map((item, idx) => (
-                              <RecommendationCard key={idx} item={item} type="finance" />
-                            ))
+
+                        <TabsContent value="finance" className="space-y-4">
+                          {aiAnalysis.recommendations.finance.length === 0 && (
+                            <p className="text-muted-foreground">No matching finance providers found.</p>
                           )}
+                          {aiAnalysis.recommendations.finance.map((item, idx) => (
+                            <RecommendationCard key={idx} item={item} type="finance" />
+                          ))}
                         </TabsContent>
                       </Tabs>
                     </>
@@ -623,39 +563,36 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {user && robot.profiles ? (
+            {user && robot?.profiles ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Seller Information</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <User />
-                      <span>{robot.profiles.full_name}</span>
-                    </div>
+                    {robot.profiles.full_name && (
+                      <div className="flex items-center gap-2">
+                        <User /> {robot.profiles.full_name}
+                      </div>
+                    )}
                     {robot.profiles.company_name && (
                       <div className="flex items-center gap-2">
-                        <Building />
-                        <span>{robot.profiles.company_name}</span>
+                        <Building /> {robot.profiles.company_name}
                       </div>
                     )}
                     {robot.profiles.phone && (
                       <div className="flex items-center gap-2">
-                        <Phone />
-                        <span>{robot.profiles.phone}</span>
+                        <Phone /> {robot.profiles.phone}
                       </div>
                     )}
                     {robot.profiles.email && (
                       <div className="flex items-center gap-2">
-                        <Mail />
-                        <span>{robot.profiles.email}</span>
+                        <Mail /> {robot.profiles.email}
                       </div>
                     )}
                     {robot.profiles.location && (
                       <div className="flex items-center gap-2">
-                        <MapPin />
-                        <span>{robot.profiles.location}</span>
+                        <MapPin /> {robot.profiles.location}
                       </div>
                     )}
                   </div>
@@ -667,7 +604,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   <CardTitle>Login Required</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p>Please log in to view seller info and AI features.</p>
+                  <p>Please sign in to view seller info and AI features.</p>
                   <Button onClick={() => navigate("/auth")} className="w-full">
                     Login / Sign Up
                   </Button>
@@ -677,36 +614,33 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
             {user && (
               <Card>
-                <CardContent className="space-y-3 p-6">
+                <CardContent>
                   <Button
                     onClick={handleContactSeller}
-                    disabled={!robot.profiles.phone}
-                    className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center"
+                    disabled={!hasPhone}
+                    className="mb-3 w-full flex items-center justify-center gap-2"
                   >
-                    <PhoneCall className="mr-2" />
-                    Contact Seller
+                    <PhoneCall /> Contact Seller
                   </Button>
+
                   <Button
                     onClick={handleRequestQuote}
-                    disabled={!robot.profiles.email}
+                    disabled={!hasEmail}
                     variant="outline"
-                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center justify-center"
+                    className="mb-3 w-full flex items-center justify-center gap-2"
                   >
-                    <MessageCircle className="mr-2" />
-                    Request Quote
+                    <MessageCircle /> Request Quote
                   </Button>
+
                   <Button
-                    onClick={handleAddToWatchlist}
+                    onClick={handleWatchlistToggle}
                     disabled={addingToWatchlist}
                     variant="outline"
-                    className="w-full border-red-600 text-red-600 hover:bg-red-50 flex items-center justify-center"
+                    className="w-full flex items-center justify-center gap-2"
                   >
-                    {addingToWatchlist ? (
-                      <Loader2 className="mr-2 w-5 h-5 animate-spin" />
-                    ) : (
-                      <Heart className={`mr-2 ${isInWatchlist ? "fill-current text-red-600" : ""}`} />
-                    )}
+                    <Heart className={isInWatchlist ? "fill-red-600" : ""} />
                     {isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
+                    {addingToWatchlist && <Loader2 className="animate-spin w-4 h-4 ml-2" />}
                   </Button>
                 </CardContent>
               </Card>
@@ -721,15 +655,15 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
           <div className="relative">
             <img
               src={robot.images[currentImageIndex]}
-              alt={`${robot.name} full image`}
-              className="w-full h-full object-contain max-h-[90vh]"
+              alt={`${robot.name} image ${currentImageIndex + 1}`}
+              className="w-full h-full object-contain"
             />
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 bg-black/50 text-white"
+              aria-label="Close fullscreen"
+              className="absolute top-4 right-4 text-white bg-black/50"
               onClick={() => setShowFullscreen(false)}
-              aria-label="Close fullscreen image"
             >
               <X />
             </Button>
@@ -739,22 +673,28 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                  onClick={() => setCurrentImageIndex((v) => (v + robot.images.length - 1) % robot.images.length)}
                   aria-label="Previous image"
+                  className="absolute top-1/2 left-2 -translate-y-1/2 text-white bg-black/50"
+                  onClick={() =>
+                    setCurrentImageIndex((idx) =>
+                      idx === 0 ? robot.images.length - 1 : idx - 1
+                    )
+                  }
                 >
                   <ChevronLeft />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                  onClick={() => setCurrentImageIndex((v) => (v + 1) % robot.images.length)}
                   aria-label="Next image"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 text-white bg-black/50"
+                  onClick={() =>
+                    setCurrentImageIndex((idx) => (idx + 1) % robot.images.length)
+                  }
                 >
                   <ChevronRight />
                 </Button>
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded px-3 py-1 text-sm">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white bg-black/50 rounded px-3 py-1 text-sm">
                   {currentImageIndex + 1} / {robot.images.length}
                 </div>
               </>
@@ -765,26 +705,24 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
       {/* Quote Request Modal */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Request a Quote</DialogTitle>
             <DialogDescription>
-              Send a quote request to {robot.profiles.company_name || robot.profiles.full_name}
+              Send your request to {robot.profiles?.company_name || robot.profiles?.full_name}
             </DialogDescription>
           </DialogHeader>
           <Textarea
-            placeholder="Add any questions or requirements here..."
             value={quoteMessage}
             onChange={(e) => setQuoteMessage(e.target.value)}
+            placeholder="Enter your message or requirements"
             rows={5}
-            className="mb-4"
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowQuoteModal(false)}>
               Cancel
             </Button>
-            <Button onClick={sendQuoteEmail} disabled={!robot.profiles.email}>
-              <Mail className="mr-2" />
+            <Button onClick={sendQuoteEmail} disabled={!hasEmail}>
               Send
             </Button>
           </DialogFooter>
