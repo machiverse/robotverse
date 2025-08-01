@@ -1,135 +1,83 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Package, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Search, 
-  Filter,
-  BarChart3,
-  TrendingUp,
-  DollarSign,
-  Activity,
-  RefreshCw,
-  Upload,
-  Image as ImageIcon,
-  Grid,
-  List,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Settings,
-  Download,
-  Share2,
-  Star
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Package, Plus, Search, Edit, Trash2, RefreshCw, Download,
+  Grid, List, CheckCircle, BarChart3, DollarSign,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import EnhancedHeader from '@/components/EnhancedHeader';
-
-interface SparePart {
-  id: string;
-  name: string;
-  part_number: string;
-  description?: string;
-  quantity: number;
-  price: number;
-  currency: string;
-  images: string[];
-  compatible_robots: string[];
-  category_tags: string[];
-  specifications: any;
-  location?: string;
-  seller_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface PartFormData {
-  name: string;
-  part_number: string;
-  description: string;
-  quantity: number;
-  price: number;
-  images: string[];
-  compatible_robots: string[];
-  category_tags: string[];
-  specifications: any;
-}
+import SparePartsUpload from '@/components/SparePartsUpload'; // You need to create this form (like RobotUpload)
 
 const SparePartsSellerDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
   // State
-  const [spareParts, setSpareParts] = useState<SparePart[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [spareParts, setSpareParts] = useState<any[]>([]);
+  const [filteredParts, setFilteredParts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingPart, setEditingPart] = useState<SparePart | null>(null);
-  const [formData, setFormData] = useState<PartFormData>({
-    name: '',
-    part_number: '',
-    description: '',
-    quantity: 1,
-    price: 0,
-    images: [],
-    compatible_robots: [],
-    category_tags: [],
-    specifications: {}
+  const [selectedParts, setSelectedParts] = useState<string[]>([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    total: 0, inStock: 0, totalValue: 0, avgPrice: 0
   });
-
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    inStock: 0,
-    outOfStock: 0,
-    totalValue: 0,
-    avgPrice: 0,
-    recentSales: 0
-  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingPart, setEditingPart] = useState<any>(null);
 
   useEffect(() => {
     fetchSpareParts();
   }, [user]);
 
   useEffect(() => {
-    calculateStats();
+    // Filter/search logic
+    let filtered = [...spareParts];
+    if (searchQuery) {
+      filtered = filtered.filter(part =>
+        part.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        part.part_number?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    if (filterStatus === 'in_stock') filtered = filtered.filter(p => p.quantity > 0);
+    if (filterStatus === 'out_of_stock') filtered = filtered.filter(p => p.quantity === 0);
+    setFilteredParts(filtered);
+  }, [spareParts, searchQuery, filterStatus]);
+  
+  useEffect(() => {
+    // Stats calculation
+    const total = spareParts.length;
+    const inStock = spareParts.filter(p => p.quantity > 0).length;
+    const totalValue = spareParts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+    const avgPrice = total ? spareParts.reduce((sum, p) => sum + (p.price || 0), 0) / total : 0;
+    setDashboardStats({ total, inStock, totalValue, avgPrice });
   }, [spareParts]);
 
   const fetchSpareParts = async () => {
     if (!user) return;
-
     try {
+      setLoading(true);
       setRefreshing(true);
       const { data, error } = await supabase
         .from('spare_parts')
         .select('*')
         .eq('seller_id', user.id)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
       setSpareParts(data || []);
-    } catch (error) {
-      console.error('Error fetching spare parts:', error);
+    } catch (e) {
+      console.error('Error fetching spare parts:', e);
       toast({
         variant: "destructive",
         title: "Error",
@@ -141,465 +89,306 @@ const SparePartsSellerDashboard = () => {
     }
   };
 
-  const calculateStats = () => {
-    const total = spareParts.length;
-    const inStock = spareParts.filter(part => part.quantity > 0).length;
-    const outOfStock = spareParts.filter(part => part.quantity === 0).length;
-    const totalValue = spareParts.reduce((sum, part) => sum + (part.price * part.quantity), 0);
-    const avgPrice = total > 0 ? spareParts.reduce((sum, part) => sum + part.price, 0) / total : 0;
-
-    setStats({
-      total,
-      inStock,
-      outOfStock,
-      totalValue,
-      avgPrice,
-      recentSales: 0 // This would come from sales data
-    });
+  const handleAddPart = () => setShowAddForm(true);
+  const handleEditPart = (part: any) => {
+    setEditingPart(part);
+    setShowEditForm(true);
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      const partData = {
-        ...formData,
-        seller_id: user.id,
-        currency: 'INR'
-      };
-
-      let result;
-      if (editingPart) {
-        result = await supabase
-          .from('spare_parts')
-          .update(partData)
-          .eq('id', editingPart.id)
-          .select();
-      } else {
-        result = await supabase
-          .from('spare_parts')
-          .insert([partData])
-          .select();
-      }
-
-      if (result.error) throw result.error;
-
-      toast({
-        title: "Success",
-        description: `Spare part ${editingPart ? 'updated' : 'added'} successfully`
-      });
-
-      resetForm();
-      fetchSpareParts();
-    } catch (error) {
-      console.error('Error saving spare part:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to ${editingPart ? 'update' : 'add'} spare part`
-      });
-    }
-  };
-
-  const handleDelete = async (partId: string) => {
-    if (!confirm('Are you sure you want to delete this spare part?')) return;
-
+  const handleDeletePart = async (partId: string) => {
+    if (!confirm('Delete this spare part?')) return;
     try {
       const { error } = await supabase
         .from('spare_parts')
         .delete()
-        .eq('id', partId);
-
+        .eq('id', partId)
+        .eq('seller_id', user?.id);
       if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Spare part deleted successfully"
-      });
-
+      toast({ title: "Success", description: "Part deleted" });
       fetchSpareParts();
-    } catch (error) {
-      console.error('Error deleting spare part:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete spare part"
-      });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete part" });
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      part_number: '',
-      description: '',
-      quantity: 1,
-      price: 0,
-      images: [],
-      compatible_robots: [],
-      category_tags: [],
-      specifications: {}
-    });
-    setEditingPart(null);
-    setShowAddDialog(false);
-  };
-
-  const startEdit = (part: SparePart) => {
-    setFormData({
-      name: part.name,
-      part_number: part.part_number,
-      description: part.description || '',
-      quantity: part.quantity,
-      price: part.price,
-      images: part.images || [],
-      compatible_robots: part.compatible_robots || [],
-      category_tags: part.category_tags || [],
-      specifications: part.specifications || {}
-    });
-    setEditingPart(part);
-    setShowAddDialog(true);
-  };
-
-  const filteredParts = spareParts.filter(part => {
-    const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         part.part_number.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (filterStatus === 'all') return matchesSearch;
-    if (filterStatus === 'in_stock') return matchesSearch && part.quantity > 0;
-    if (filterStatus === 'out_of_stock') return matchesSearch && part.quantity === 0;
-    
-    return matchesSearch;
-  });
+  // --- Header and Stats Cards ---
+  const statsCards = [
+    {
+      title: "Total Parts",
+      value: dashboardStats.total,
+      icon: Package,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      trend: `${dashboardStats.inStock} in stock`,
+      change: '+5%',
+    },
+    {
+      title: "Total Value",
+      value: `₹${dashboardStats.totalValue.toLocaleString()}`,
+      icon: DollarSign,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      trend: `Avg: ₹${dashboardStats.avgPrice.toLocaleString()}`,
+      change: '+4%',
+    }
+  ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="ml-4 text-lg">Loading spare parts dashboard...</p>
+        <p className="ml-4">Loading dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <EnhancedHeader />
-      <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Welcome Banner */}
+      <Alert className="border-green-200 bg-green-50">
+        <CheckCircle className="w-4 h-4" />
+        <AlertDescription className="text-green-700">
+          <strong>Welcome{user?.user_metadata?.full_name && `, ${user.user_metadata.full_name}`}!</strong>
+        </AlertDescription>
+      </Alert>
+
+      {/* Enhanced Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Spare Parts Dashboard</h1>
-          <p className="text-muted-foreground">Manage your spare parts inventory</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Spare Parts Seller Dashboard
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your spare part inventory and track performance
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchSpareParts}
-            disabled={refreshing}
-          >
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchSpareParts} disabled={refreshing}>
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={() => resetForm()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Part
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingPart ? 'Edit Spare Part' : 'Add New Spare Part'}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="part_number">Part Number *</Label>
-                    <Input
-                      id="part_number"
-                      value={formData.part_number}
-                      onChange={(e) => setFormData(prev => ({ ...prev, part_number: e.target.value }))}
-                      placeholder="e.g., RB-001-ARM"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Part Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Robot Arm Joint"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Detailed description of the spare part..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity *</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="0"
-                      value={formData.quantity}
-                      onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (₹) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Upload Images</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">Click to upload part images</p>
-                    <Button type="button" variant="outline" size="sm" className="mt-2">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Choose Files
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingPart ? 'Update Part' : 'Add Part'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Parts</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              Active inventory items
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Stock</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.inStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Available parts
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{stats.totalValue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Inventory worth
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Price</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{Math.round(stats.avgPrice).toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Per part average
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search parts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Parts</SelectItem>
-              <SelectItem value="in_stock">In Stock</SelectItem>
-              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="w-4 h-4" />
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export All
           </Button>
           <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
+            onClick={handleAddPart}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
-            <Grid className="w-4 h-4" />
+            <Plus className="w-4 h-4 mr-2" />
+            Add Spare Part
           </Button>
         </div>
       </div>
 
-      {/* Parts List/Grid */}
-      {filteredParts.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Package className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No spare parts found</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery || filterStatus !== 'all' 
-                ? 'Try adjusting your search or filters'
-                : 'Get started by adding your first spare part'
-              }
-            </p>
-            {!searchQuery && filterStatus === 'all' && (
-              <Button onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Your First Part
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredParts.map((part) => (
-            <Card key={part.id} className="overflow-hidden">
-              <CardHeader>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <Badge variant={part.quantity > 0 ? 'default' : 'secondary'}>
-                    {part.quantity > 0 ? 'In Stock' : 'Out of Stock'}
-                  </Badge>
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => startEdit(part)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(part.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">{stat.title}</p>
+                    <p className="text-3xl font-bold mt-1">{stat.value}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="secondary" className="text-xs">{stat.trend}</Badge>
+                      <Badge variant="outline" className="text-xs text-green-600">{stat.change}</Badge>
+                    </div>
                   </div>
-                </div>
-                <CardTitle className="text-lg">{part.name}</CardTitle>
-                <CardDescription>Part #: {part.part_number}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Quantity:</span>
-                    <span className="font-medium">{part.quantity}</span>
+                  <div className={`w-14 h-14 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                    <Icon className={`w-7 h-7 ${stat.color}`} />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Price:</span>
-                    <span className="font-medium">₹{part.price.toLocaleString()}</span>
-                  </div>
-                  {part.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {part.description}
-                    </p>
-                  )}
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+        })}
+      </div>
+
+      {/* Inventory Table/Grid with Filters */}
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search parts..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-10 w-64"
+              />
+            </div>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border rounded-md px-3 py-2 ml-2">
+              <option value="all">All Status</option>
+              <option value="in_stock">In Stock</option>
+              <option value="out_of_stock">Out of Stock</option>
+            </select>
+            <div className="flex border rounded-lg ml-2">
+              <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('list')}>
+                <List className="w-4 h-4" />
+              </Button>
+              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')}>
+                <Grid className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </div>
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Part Number</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredParts.map((part) => (
-                <TableRow key={part.id}>
-                  <TableCell className="font-medium">{part.part_number}</TableCell>
-                  <TableCell>{part.name}</TableCell>
-                  <TableCell>{part.quantity}</TableCell>
-                  <TableCell>₹{part.price.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Badge variant={part.quantity > 0 ? 'default' : 'secondary'}>
-                      {part.quantity > 0 ? 'In Stock' : 'Out of Stock'}
+        {/* List/Grid views */}
+        {filteredParts.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Package className="w-12 h-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                {spareParts.length === 0 ? 'No spare parts in inventory' : 'No spare parts match your filters'}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {searchQuery || filterStatus !== 'all'
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'Start by adding your first spare part listing'}
+              </p>
+              <Button
+                onClick={handleAddPart}
+                className="bg-gradient-to-r from-blue-600 to-purple-600"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Spare Part
+              </Button>
+            </CardContent>
+          </Card>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {filteredParts.map(part => (
+              <Card key={part.id} className="hover:shadow-lg transition-all">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                      {part.images?.length > 0 ? (
+                        <img src={part.images[0]} alt={part.name} className="w-full h-full object-cover rounded-lg" />
+                      ) : (
+                        <Package className="w-6 h-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="truncate">
+                      <span className="font-medium">{part.name || 'Unnamed Part'}</span>
+                      <span className="block text-xs text-muted-foreground">{part.part_number}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <Badge variant={part.quantity > 0 ? "default" : "secondary"}>
+                      {part.quantity > 0 ? "In Stock" : "Out of Stock"}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => startEdit(part)}>
+                    <span className="font-bold text-lg">₹{part.price?.toLocaleString() || '0'}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1">
+                      View
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditPart(part)}>
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeletePart(part.id)}>
+                      <Trash2 className="w-3 h-3 text-red-600" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Part Name</TableHead>
+                  <TableHead>Part Number</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredParts.map(part => (
+                  <TableRow key={part.id}>
+                    <TableCell>{part.name}</TableCell>
+                    <TableCell>{part.part_number}</TableCell>
+                    <TableCell>{part.quantity}</TableCell>
+                    <TableCell>₹{part.price?.toLocaleString() || '0'}</TableCell>
+                    <TableCell>
+                      <Badge variant={part.quantity > 0 ? "default" : "secondary"}>
+                        {part.quantity > 0 ? "In Stock" : "Out of Stock"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditPart(part)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleDelete(part.id)}>
-                        <Trash2 className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" onClick={() => handleDeletePart(part.id)}>
+                        <Trash2 className="w-4 h-4 text-red-600" />
                       </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
       </div>
+
+      {/* Add Spare Part Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Add Spare Part</h2>
+                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
+                  ×
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <SparePartsUpload
+                onSuccess={() => {
+                  setShowAddForm(false);
+                  fetchSpareParts();
+                  toast({ title: 'Success!', description: 'Spare part added.' });
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Spare Part Modal */}
+      {showEditForm && editingPart && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Edit Spare Part: {editingPart.name}</h2>
+                <Button variant="ghost" onClick={() => { setShowEditForm(false); setEditingPart(null); }}>
+                  ×
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <SparePartsUpload
+                editMode={true}
+                partData={editingPart}
+                onSuccess={() => {
+                  setShowEditForm(false);
+                  setEditingPart(null);
+                  fetchSpareParts();
+                  toast({ title: 'Success!', description: 'Spare part updated.' });
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
