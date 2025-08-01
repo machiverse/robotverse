@@ -5,15 +5,43 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import {
+  Bot,
+  MapPin,
+  Building,
+  Phone,
+  Mail,
+  User,
+  ArrowLeft,
+  Loader2,
+  Wrench,
+  Settings,
+  DollarSign,
+  Truck,
+  Brain,
+  Heart,
+  MessageCircle,
+  PhoneCall,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+} from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 
-// Data types for Robot and AI analysis response
+// Robot and AI Analysis Types
 interface Robot {
   id: string;
   name: string;
@@ -109,19 +137,19 @@ const RobotDetails = () => {
     fetchRobot();
   }, [id, user]);
 
-  // Handler to call AI analysis function
-  const handleAIAnalysis = () => {
-    // Prevent propagation so parent click handlers do not interfere
-    return async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!robot || !user) {
-        toast({
-          title: "Login Required",
-          description: "Please log in to access AI analysis features",
-          variant: "destructive",
-        });
-        return;
-      }
+  // AI Analysis button handler with stopPropagation:
+  const handleAIAnalysis = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!robot || !user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to access AI analysis features",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const runAnalysis = async () => {
       setAnalysisLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke("robotverse-ai-analyze", {
@@ -144,9 +172,13 @@ const RobotDetails = () => {
         setAnalysisLoading(false);
       }
     };
+
+    runAnalysis();
   };
 
-  const handleContactSeller = () => {
+  // Contact Seller
+  const handleContactSeller = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!robot?.profiles?.phone) {
       toast({
         title: "Phone Number Not Available",
@@ -163,7 +195,9 @@ const RobotDetails = () => {
     });
   };
 
-  const handleRequestQuote = () => {
+  // Request Quote
+  const handleRequestQuote = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!robot?.profiles?.email) {
       toast({
         title: "Email Not Available",
@@ -175,6 +209,7 @@ const RobotDetails = () => {
     setShowQuoteModal(true);
   };
 
+  // Send Quote Email
   const sendQuoteEmail = () => {
     if (!robot?.profiles?.email) return;
 
@@ -186,11 +221,18 @@ I am interested in the following robot:
 Robot: ${robot.name}
 Model: ${robot.model}
 Type: ${robot.robot_type}
-Listed Price: ${robot.price ? `${robot.currency} ${robot.price}` : "Price: On Request"}
+Listed Price: ${
+      robot.price ? `${robot.currency} ${robot.price}` : "Price on Request"
+    }
 
 ${quoteMessage ? `Additional Message:\n${quoteMessage}` : ""}
 
-Please provide a quote and availability details.
+Please provide me with:
+1. Best price quote
+2. Availability and delivery timeline
+3. Technical specifications
+4. Warranty and support details
+5. Installation and training options
 
 Best regards,
 ${user?.user_metadata?.full_name || "Interested Buyer"}`;
@@ -198,60 +240,52 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
     const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(
       subject
     )}&body=${encodeURIComponent(body)}`;
-
     window.open(mailtoLink, "_blank");
     setShowQuoteModal(false);
     setQuoteMessage("");
-
     toast({
-      title: "Quote Sent",
-      description: `Email sent to ${robot.profiles.email}`,
+      title: "Quote Request Sent",
+      description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
     });
   };
 
-  const handleAddToWatchlist = () => {
+  // Add/Remove from Watchlist
+  const handleAddToWatchlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!user) {
       toast({
         title: "Login Required",
-        description: "Please log in to add items to watchlist",
+        description: "Please log in to add items to your watchlist.",
         variant: "destructive",
       });
       return;
     }
-
-    setAddingToWatchlist(true);
     try {
-      const storageKey = `watchlist_${user.id}`;
-      let watchlist = JSON.parse(localStorage.getItem(storageKey) || "[]");
-
+      setAddingToWatchlist(true);
+      const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || "[]");
       if (isInWatchlist) {
-        watchlist = watchlist.filter((item: string) => item !== robot!.id);
+        const newList = watchlist.filter((id: string) => id !== robot!.id);
+        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(newList));
         setIsInWatchlist(false);
-        toast({ title: "Removed from Watchlist", description: `${robot?.name} removed` });
+        toast({ title: "Removed from Watchlist", description: `${robot!.name} removed.` });
       } else {
         if (!watchlist.includes(robot!.id)) {
           watchlist.push(robot!.id);
+          localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(watchlist));
           setIsInWatchlist(true);
-          toast({ title: "Added to Watchlist", description: `${robot?.name} added` });
+          toast({ title: "Added to Watchlist", description: `${robot!.name} added.` });
         }
       }
-      localStorage.setItem(storageKey, JSON.stringify(watchlist));
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Could not update watchlist. Try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Could not update watchlist.", variant: "destructive" });
     } finally {
       setAddingToWatchlist(false);
     }
   };
 
   const formatPrice = (price: number, currency: string) => {
-    if (!price) return "Price: On Request";
-    let symbol = "₹";
-    if (currency === "USD") symbol = "$";
-    else if (currency === "EUR") symbol = "€";
+    if (!price) return "Price on Request";
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
     return `${symbol}${price.toLocaleString()}`;
   };
 
@@ -259,11 +293,9 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
     return (
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin mr-2" />
-            <span>Loading robot details...</span>
-          </div>
+        <div className="container mx-auto px-4 py-8 flex justify-center items-center">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <span className="ml-2">Loading robot details...</span>
         </div>
       </div>
     );
@@ -274,9 +306,9 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
         <div className="container mx-auto px-4 py-8 text-center">
-          <Bot className="mx-auto mb-4" />
+          <Bot className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold">Robot Not Found</h3>
-          <p className="text-muted-foreground">{error || "The requested robot was not found."}</p>
+          <p className="text-muted-foreground">{error ?? "Robot not found."}</p>
           <Button onClick={() => navigate("/robots")} className="mt-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Robots
@@ -286,8 +318,14 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
     );
   }
 
-  // Card to render each recommended item in AI analysis tabs
-  const RecommendationCard = ({ item, type }: { item: any; type: string }) => {
+  // Card for AI recommendations inside Tabs
+  const RecommendationCard = ({
+    item,
+    type,
+  }: {
+    item: any;
+    type: string;
+  }) => {
     const icons = {
       parts: <Wrench className="text-blue-600" />,
       services: <Settings className="text-green-600" />,
@@ -332,19 +370,15 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
     <div className="min-h-screen bg-gray-50">
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/robots")}
-          className="mb-6"
-        >
+        <Button variant="ghost" onClick={() => navigate("/robots")} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Robots
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left/Main content */}
+          {/* Main area */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
+            {/* Image gallery */}
             <Card>
               <CardContent>
                 <div className="relative aspect-video rounded-lg bg-muted flex items-center justify-center">
@@ -352,7 +386,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                     <>
                       <img
                         src={robot.images[currentImageIndex]}
-                        alt={`${robot.name} image`}
+                        alt={`${robot.name} image ${currentImageIndex + 1}`}
                         className="w-full h-full object-contain rounded-lg cursor-pointer"
                         onClick={() => setShowFullscreen(true)}
                       />
@@ -362,11 +396,9 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                             variant="ghost"
                             size="icon"
                             className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                            onClick={e => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              setCurrentImageIndex((v) =>
-                                v === 0 ? robot.images.length - 1 : v - 1
-                              );
+                              setCurrentImageIndex((v) => (v === 0 ? robot.images.length - 1 : v - 1));
                             }}
                             aria-label="Previous Image"
                           >
@@ -376,7 +408,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                             variant="ghost"
                             size="icon"
                             className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                            onClick={e => {
+                            onClick={(e) => {
                               e.stopPropagation();
                               setCurrentImageIndex((v) => (v + 1) % robot.images.length);
                             }}
@@ -390,11 +422,11 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         variant="ghost"
                         size="icon"
                         className="absolute top-2 right-2 bg-black/50 text-white"
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           setShowFullscreen(true);
                         }}
-                        aria-label="View Image Fullscreen"
+                        aria-label="Fullscreen"
                       >
                         <Maximize2 />
                       </Button>
@@ -406,21 +438,22 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                     <Bot className="w-24 h-24 text-muted-foreground" />
                   )}
                 </div>
+
                 {robot.images.length > 1 && (
                   <div className="flex mt-4 overflow-x-auto gap-2">
-                    {robot.images.map((img, i) => (
+                    {robot.images.map((image, idx) => (
                       <img
-                        key={i}
-                        src={img}
-                        alt={`${robot.name} thumbnail ${i + 1}`}
+                        key={idx}
+                        src={image}
+                        alt={`${robot.name} thumbnail ${idx + 1}`}
                         className={`w-20 h-20 object-cover rounded cursor-pointer border-2 ${
-                          i === currentImageIndex
+                          idx === currentImageIndex
                             ? "border-primary"
                             : "border-transparent opacity-50 hover:opacity-100"
                         }`}
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
-                          setCurrentImageIndex(i);
+                          setCurrentImageIndex(idx);
                         }}
                       />
                     ))}
@@ -429,7 +462,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
               </CardContent>
             </Card>
 
-            {/* Robot Basic Info */}
+            {/* Robot details */}
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -438,9 +471,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                     <p className="text-muted-foreground">{robot.model}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold">
-                      {formatPrice(robot.price, robot.currency)}
-                    </p>
+                    <p className="text-3xl font-bold">{formatPrice(robot.price, robot.currency)}</p>
                     <Badge variant={robot.availability === "available" ? "default" : "secondary"}>
                       {robot.availability}
                     </Badge>
@@ -449,7 +480,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex flex-wrap gap-2">
                     <Badge>{robot.robot_type}</Badge>
                     {robot.category_tags?.map((tag, idx) => (
                       <Badge key={idx} variant="secondary">
@@ -472,7 +503,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
               </CardContent>
             </Card>
 
-            {/* Technical Specs */}
+            {/* Technical specifications */}
             {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 && (
               <Card>
                 <CardHeader>
@@ -509,10 +540,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         size="lg"
                         disabled={analysisLoading}
                         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAIAnalysis()(e);
-                        }}
+                        onClick={handleAIAnalysis}
                       >
                         {analysisLoading ? (
                           <>
@@ -592,6 +620,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
               </Card>
             )}
           </div>
+
           {/* Sidebar */}
           <div className="space-y-6">
             {user && robot.profiles ? (
@@ -648,35 +677,36 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
             {user && (
               <Card>
-                <CardContent>
+                <CardContent className="space-y-3 p-6">
                   <Button
-                    fullWidth
                     onClick={handleContactSeller}
                     disabled={!robot.profiles.phone}
-                    className="mb-3"
+                    className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center"
                   >
                     <PhoneCall className="mr-2" />
                     Contact Seller
                   </Button>
                   <Button
-                    fullWidth
-                    variant="outline"
                     onClick={handleRequestQuote}
                     disabled={!robot.profiles.email}
-                    className="mb-3"
+                    variant="outline"
+                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center justify-center"
                   >
                     <MessageCircle className="mr-2" />
                     Request Quote
                   </Button>
                   <Button
-                    fullWidth
-                    variant="outline"
                     onClick={handleAddToWatchlist}
                     disabled={addingToWatchlist}
+                    variant="outline"
+                    className="w-full border-red-600 text-red-600 hover:bg-red-50 flex items-center justify-center"
                   >
-                    <Heart className={`mr-2 ${isInWatchlist ? "fill-red-600" : ""}`} />
+                    {addingToWatchlist ? (
+                      <Loader2 className="mr-2 w-5 h-5 animate-spin" />
+                    ) : (
+                      <Heart className={`mr-2 ${isInWatchlist ? "fill-current text-red-600" : ""}`} />
+                    )}
                     {isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
-                    {addingToWatchlist && <Loader2 className="ml-2 inline-block w-4 h-4 animate-spin" />}
                   </Button>
                 </CardContent>
               </Card>
@@ -710,7 +740,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   variant="ghost"
                   size="icon"
                   className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                  onClick={() => setCurrentImageIndex(v => (v + robot.images.length - 1) % robot.images.length)}
+                  onClick={() => setCurrentImageIndex((v) => (v + robot.images.length - 1) % robot.images.length)}
                   aria-label="Previous image"
                 >
                   <ChevronLeft />
@@ -719,7 +749,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   variant="ghost"
                   size="icon"
                   className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white"
-                  onClick={() => setCurrentImageIndex(v => (v + 1) % robot.images.length)}
+                  onClick={() => setCurrentImageIndex((v) => (v + 1) % robot.images.length)}
                   aria-label="Next image"
                 >
                   <ChevronRight />
@@ -745,7 +775,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
           <Textarea
             placeholder="Add any questions or requirements here..."
             value={quoteMessage}
-            onChange={e => setQuoteMessage(e.target.value)}
+            onChange={(e) => setQuoteMessage(e.target.value)}
             rows={5}
             className="mb-4"
           />
