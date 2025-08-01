@@ -36,56 +36,28 @@ const EnhancedHero = () => {
   const [locations, setLocations] = useState<string[]>(["All Locations"]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Fetch distinct robot types as categories and distinct locations from robots table
   useEffect(() => {
     const fetchFilters = async () => {
       try {
         setLoading(true);
 
-        // Fetch distinct robot types
-        const { data: robotTypes, error: typeError } = await supabase
+        // Fetch robot_type and location fields for all robots (add .limit() if dataset is very large)
+        const { data: robotsData, error } = await supabase
           .from("robots")
-          .select("robot_type", { count: "exact", head: true }) // no data, just count
-          .limit(1); // dummy just for schema
+          .select("robot_type, location")
+          .neq("robot_type", null)
+          .neq("location", null);
 
-        // Supabase currently doesn't support distinct with selectCount in the same call,
-        // so fetch distinct robot_type with RPC or direct query:
+        if (error) throw error;
 
-        const { data: distinctTypes, error: distinctTypeError } =
-          await supabase.rpc("distinct_robot_types");
+        // Extract unique robot types (categories)
+        const uniqueTypes = Array.from(
+          new Set(robotsData?.map((r) => r.robot_type).filter(Boolean))
+        );
 
-        // But if you don't have RPC setup, fallback to fetching all robots and derive distinct types locally:
-        // const { data: allRobots, error: allRobotsError } = await supabase
-        //   .from("robots")
-        //   .select("robot_type, location");
-
-        // Extract distinct robot types
-        // const uniqueTypes =
-        //   allRobots?.map((r) => r.robot_type).filter(Boolean) || [];
-
-        // const distinctTypes = Array.from(new Set(uniqueTypes));
-
-        // For this example, let's query distinct types using Postgres "select distinct"
-        const { data: robotTypeRows, error: errorRobotTypes } = await supabase
-          .from("robots")
-          .select("robot_type", { distinct: true });
-
-        if (errorRobotTypes) throw errorRobotTypes;
-
-        const uniqueTypes = robotTypeRows
-          ?.map((r) => r.robot_type)
-          .filter(Boolean) as string[];
-
-        // Similarly distinct locations
-        const { data: locationRows, error: errorLocations } = await supabase
-          .from("robots")
-          .select("location", { distinct: true });
-
-        if (errorLocations) throw errorLocations;
-
-        // Some locations might have commas — extract city part before comma, filter empty
+        // Extract unique locations (only take first segment before comma, trimmed)
         const uniqueLocationsSet = new Set<string>();
-        locationRows?.forEach((r) => {
+        robotsData?.forEach((r) => {
           if (r.location) {
             uniqueLocationsSet.add(r.location.split(",")[0].trim());
           }
@@ -95,7 +67,7 @@ const EnhancedHero = () => {
         setLocations(["All Locations", ...Array.from(uniqueLocationsSet)]);
       } catch (error) {
         console.error("Failed to fetch filter data:", error);
-        // fallback to defaults
+        // fallback to static defaults on error
         setCategories([
           "All Categories",
           "Industrial Robots",
@@ -165,6 +137,7 @@ const EnhancedHero = () => {
             className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-6 mb-8 max-w-4xl"
           >
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Search Input */}
               <div className="md:col-span-2 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -176,6 +149,7 @@ const EnhancedHero = () => {
                 />
               </div>
 
+              {/* Category Select */}
               <Select
                 value={selectedCategory}
                 onValueChange={setSelectedCategory}
@@ -196,6 +170,7 @@ const EnhancedHero = () => {
                 </SelectContent>
               </Select>
 
+              {/* Location Select */}
               <Select
                 value={selectedLocation}
                 onValueChange={setSelectedLocation}
@@ -217,6 +192,7 @@ const EnhancedHero = () => {
               </Select>
             </div>
 
+            {/* Search Button */}
             <Button
               type="submit"
               className="w-full mt-4 h-12 text-lg bg-primary hover:bg-primary-glow"
