@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Store, Wrench, Settings, Truck, CreditCard } from "lucide-react";
 import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
 import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
+import SparePartsDashboard from "@/components/SpareParts";
 import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
@@ -35,7 +36,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     spare_parts_seller: {
       label: 'Parts Seller',
       icon: Settings,
-      component: RobotSellerDashboard, // Reuse for now, can be specialized later
+      component: SparePartsDashboard, // Reuse for now, can be specialized later
       description: 'Manage spare parts'
     },
     service_provider: {
