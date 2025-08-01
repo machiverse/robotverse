@@ -883,41 +883,45 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         {hasPartsSeller && (
           <TabsContent value="parts" className="mt-6">
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="w-5 h-5" />
-                    Spare Parts Management
-                  </CardTitle>
-                  <CardDescription>
-                    Manage your parts inventory with real-time stock tracking
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Alert>
-                      <Package className="h-4 w-4" />
-                      <AlertDescription>
-                        Use the dedicated Spare Parts Dashboard for full inventory management features.
-                      </AlertDescription>
-                    </Alert>
-                    <Button 
-                      onClick={() => window.open('/spare-parts-dashboard', '_blank')}
-                      className="w-full"
-                      size="lg"
-                    >
-                      <Package className="w-4 h-4 mr-2" />
-                      Open Spare Parts Dashboard
-                    </Button>
-                  </div>
-                  <div className="mt-6">
-                    <SpareParts />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Header with Add Button */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Spare Parts Management</h2>
+                  <p className="text-muted-foreground">Manage your spare parts inventory</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchAllRealData}
+                    disabled={refreshing}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <Button 
+                    onClick={() => window.open('/spare-parts-dashboard', '_blank')}
+                    size="sm"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Full Dashboard
+                  </Button>
+                </div>
+              </div>
 
               {/* Parts Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Parts</p>
+                        <p className="text-2xl font-bold">{stats.partsStats.total}</p>
+                      </div>
+                      <Package className="w-8 h-8 text-blue-600" />
+                    </div>
+                  </CardContent>
+                </Card>
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -925,7 +929,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">In Stock</p>
                         <p className="text-2xl font-bold">{stats.partsStats.inStock}</p>
                       </div>
-                      <Package className="w-8 h-8 text-green-600" />
+                      <CheckCircle className="w-8 h-8 text-green-600" />
                     </div>
                   </CardContent>
                 </Card>
@@ -944,14 +948,151 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground">Avg Price</p>
-                        <p className="text-2xl font-bold">₹{stats.partsStats.avgPrice.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Total Value</p>
+                        <p className="text-2xl font-bold">₹{stats.partsStats.revenue.toLocaleString()}</p>
                       </div>
                       <DollarSign className="w-8 h-8 text-purple-600" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Parts Listings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    Your Spare Parts Inventory
+                  </CardTitle>
+                  <CardDescription>
+                    Current parts in your inventory
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {spareParts.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No spare parts listed yet</p>
+                      <p className="text-sm text-muted-foreground">Add your first spare part to get started</p>
+                      <Button 
+                        className="mt-4"
+                        onClick={() => window.open('/spare-parts-dashboard', '_blank')}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add First Part
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Search and Filter */}
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex-1 max-w-sm">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <Input
+                            placeholder="Search parts..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Parts</SelectItem>
+                            <SelectItem value="in_stock">In Stock</SelectItem>
+                            <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Parts Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {spareParts
+                          .filter(part => {
+                            const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                 part.part_number?.toLowerCase().includes(searchQuery.toLowerCase());
+                            
+                            if (filterStatus === 'all') return matchesSearch;
+                            if (filterStatus === 'in_stock') return matchesSearch && part.quantity > 0;
+                            if (filterStatus === 'out_of_stock') return matchesSearch && part.quantity === 0;
+                            
+                            return matchesSearch;
+                          })
+                          .slice(0, 6)
+                          .map((part) => (
+                          <Card key={part.id} className="hover:shadow-md transition-shadow">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <Badge variant={part.quantity > 0 ? 'default' : 'secondary'}>
+                                  {part.quantity > 0 ? 'In Stock' : 'Out of Stock'}
+                                </Badge>
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" variant="ghost">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost">
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <CardTitle className="text-lg">{part.name}</CardTitle>
+                              <CardDescription>
+                                Part #: {part.part_number || 'Not specified'}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Quantity:</span>
+                                  <span className="font-medium">{part.quantity}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Price:</span>
+                                  <span className="font-medium">₹{part.price?.toLocaleString() || '0'}</span>
+                                </div>
+                                {part.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
+                                    {part.description}
+                                  </p>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {spareParts.length > 6 && (
+                        <div className="text-center pt-4">
+                          <Button 
+                            variant="outline"
+                            onClick={() => window.open('/spare-parts-dashboard', '_blank')}
+                          >
+                            View All {spareParts.length} Parts
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Quick Add Part Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5" />
+                    Quick Add Spare Part
+                  </CardTitle>
+                  <CardDescription>
+                    Add a new part to your inventory
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SpareParts />
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         )}
