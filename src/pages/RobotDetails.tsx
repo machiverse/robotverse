@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/auth";
-import { useToast } from "@/hooks/toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Robot {
   id: string;
