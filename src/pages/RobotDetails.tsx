@@ -1,5 +1,7 @@
+// src/pages/RobotDetails.tsx
+
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -100,18 +102,10 @@ interface AIAnalysisResult {
   };
   analysis: string;
   marketEcosystem: {
-    spareParts: {
-      suppliers: Array<any>;
-    };
-    services: {
-      providers: Array<any>;
-    };
-    logistics: {
-      providers: Array<any>;
-    };
-    finance: {
-      providers: Array<any>;
-    };
+    spareParts: { suppliers: any[] };
+    services: { providers: any[] };
+    logistics: { providers: any[] };
+    finance: { providers: any[] };
   };
   locationInsights: any;
   actionableRecommendations: {
@@ -129,9 +123,7 @@ const RobotDetails = () => {
 
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(
-    null
-  );
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -150,25 +142,29 @@ const RobotDetails = () => {
         setLoading(true);
         const { data, error: fetchError } = await supabase
           .from("robots")
-          .select(
-            `
+          .select(`
             *,
             profiles!robots_seller_id_fkey (
-              full_name, company_name, phone, mobile_number, email, location, seller_id
+              full_name,
+              company_name,
+              phone,
+              mobile_number,
+              email,
+              location,
+              seller_id
             )
-          `
-          )
+          `)
           .eq("id", id)
           .single();
 
         if (fetchError) throw fetchError;
-        setRobot(data as Robot);
+        setRobot((data as unknown) as Robot);
 
         if (user) {
           const watchlist = JSON.parse(
             localStorage.getItem(`watchlist_${user.id}`) || "[]"
           );
-          setIsInWatchlist(watchlist.includes(data.id));
+          setIsInWatchlist(watchlist.includes((data as any).id));
         }
       } catch (err: any) {
         console.error("Error fetching robot:", err);
@@ -181,7 +177,7 @@ const RobotDetails = () => {
     fetchRobotAndWatchlist();
   }, [id, user]);
 
-  const handleAIAnalysis = async () => {
+  const handleAIAnalysis = () => {
     if (!robot || !user) {
       toast({
         title: "Login Required",
@@ -190,7 +186,6 @@ const RobotDetails = () => {
       });
       return;
     }
-
     navigate(`/market-intelligence/${robot.id}`);
   };
 
@@ -209,9 +204,7 @@ const RobotDetails = () => {
     window.open(`tel:${phoneNumber}`, "_self");
     toast({
       title: "Initiating Call",
-      description: `Attempting to call ${
-        robot.profiles.full_name || robot.profiles.company_name
-      }`,
+      description: `Attempting to call ${robot.profiles.full_name || robot.profiles.company_name}`,
     });
   };
 
@@ -224,7 +217,6 @@ const RobotDetails = () => {
       });
       return;
     }
-
     navigate(`/quote-request/${robot.profiles.seller_id}`);
   };
 
@@ -235,37 +227,28 @@ const RobotDetails = () => {
       const watchlist = JSON.parse(
         localStorage.getItem(`watchlist_${user.id}`) || "[]"
       );
-
       if (isInWatchlist) {
-        const newWatchlist = watchlist.filter(
-          (robotId: string) => robotId !== robot.id
-        );
-        localStorage.setItem(
-          `watchlist_${user.id}`,
-          JSON.stringify(newWatchlist)
-        );
+        const newList = watchlist.filter((rid: string) => rid !== robot.id);
+        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(newList));
         setIsInWatchlist(false);
         toast({
           title: "Removed from Watchlist",
-          description: `${robot.name} has been removed from your watchlist.`,
+          description: `${robot.name} removed.`,
         });
       } else {
         watchlist.push(robot.id);
-        localStorage.setItem(
-          `watchlist_${user.id}`,
-          JSON.stringify(watchlist)
-        );
+        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(watchlist));
         setIsInWatchlist(true);
         toast({
           title: "Added to Watchlist",
-          description: `${robot.name} has been added to your watchlist.`,
+          description: `${robot.name} added.`,
         });
       }
-    } catch (error: any) {
-      console.error("Error updating watchlist:", error);
+    } catch (e: any) {
+      console.error(e);
       toast({
-        title: "Failed to Update",
-        description: "Could not update watchlist. Please try again.",
+        title: "Update Failed",
+        description: "Could not update watchlist.",
         variant: "destructive",
       });
     } finally {
@@ -275,25 +258,19 @@ const RobotDetails = () => {
 
   const nextImage = () => {
     if (robot?.images && robot.images.length > 1) {
-      setCurrentImageIndex(
-        (prev) => (prev + 1) % robot.images!.length
-      );
+      setCurrentImageIndex((prev) => (prev + 1) % robot.images!.length);
     }
   };
 
   const prevImage = () => {
     if (robot?.images && robot.images.length > 1) {
-      setCurrentImageIndex(
-        (prev) => (prev - 1 + robot.images!.length) % robot.images!.length
-      );
+      setCurrentImageIndex((prev) => (prev - 1 + robot.images!.length) % robot.images!.length);
     }
   };
 
   const formatPrice = (price: number | null, currency: string | null) => {
-    if (price === null || price === undefined)
-      return "Price on request";
-    const symbol =
-      currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
+    if (price == null) return "Price on request";
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
     return `${symbol}${price.toLocaleString()}`;
   };
 
@@ -318,16 +295,11 @@ const RobotDetails = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center py-12">
             <Bot className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              Robot Not Found
-            </h3>
+            <h3 className="text-lg font-semibold mb-2">Robot Not Found</h3>
             <p className="text-muted-foreground mb-4">
               {error || "The requested robot could not be found."}
             </p>
-            <Button
-              onClick={() => navigate("/robots")}
-              variant="outline"
-            >
+            <Button onClick={() => navigate("/robots")} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Robots
             </Button>
@@ -337,22 +309,12 @@ const RobotDetails = () => {
     );
   }
 
-  const RecommendationCard = ({
-    item,
-    type,
-  }: {
-    item: any;
-    type: string;
-  }) => {
+  const RecommendationCard = ({ item, type }: { item: any; type: string }) => {
     const icons: Record<string, React.ReactNode> = {
       parts: <Wrench className="w-4 h-4 mr-2 text-blue-600" />,
-      services: (
-        <Settings className="w-4 h-4 mr-2 text-green-600" />
-      ),
+      services: <Settings className="w-4 h-4 mr-2 text-green-600" />,
       logistics: <Truck className="w-4 h-4 mr-2 text-orange-600" />,
-      finance: (
-        <DollarSign className="w-4 h-4 mr-2 text-purple-600" />
-      ),
+      finance: <DollarSign className="w-4 h-4 mr-2 text-purple-600" />,
     };
     const colors: Record<string, string> = {
       parts: "border-blue-200",
@@ -360,14 +322,11 @@ const RobotDetails = () => {
       logistics: "border-orange-200",
       finance: "border-purple-200",
     };
-    const name =
-      item.profiles?.company_name || item.company || item.name;
+    const name = item.profiles?.company_name || item.company || item.name;
     const location = item.profiles?.location || item.location;
 
     return (
-      <Card
-        className={`${colors[type]} hover:shadow-md transition-shadow`}
-      >
+      <Card className={`${colors[type]} hover:shadow-md transition-shadow`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
@@ -381,19 +340,12 @@ const RobotDetails = () => {
                 </p>
               )}
               {item.proximity !== undefined && (
-                <Badge
-                  variant="outline"
-                  className="ml-6 mt-1"
-                >
+                <Badge variant="outline" className="ml-6 mt-1">
                   {item.proximity}% Proximity
                 </Badge>
               )}
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-gray-600 hover:text-gray-800"
-            >
+            <Button size="sm" variant="outline" className="text-gray-600 hover:text-gray-800">
               <ExternalLink className="w-4 h-4" />
             </Button>
           </div>
@@ -407,18 +359,12 @@ const RobotDetails = () => {
       <EnhancedHeader />
 
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/robots")}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Robots
+        <Button variant="ghost" onClick={() => navigate("/robots")} className="mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" />Back to Robots
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {/* Images & Gallery */}
             <Card>
               <CardContent className="p-6">
                 <div className="relative aspect-video bg-muted rounded-lg flex items-center justify-center mb-4 overflow-hidden">
@@ -426,8 +372,7 @@ const RobotDetails = () => {
                     <>
                       <img
                         src={robot.images[currentImageIndex]}
-                        alt={`${robot.name} ${currentImageIndex +
-                          1}`}
+                        alt={`${robot.name} ${currentImageIndex + 1}`}
                         className="w-full h-full object-contain rounded-lg cursor-pointer transition-transform duration-300 ease-in-out hover:scale-105"
                         onClick={() => setShowFullscreen(true)}
                       />
@@ -470,8 +415,7 @@ const RobotDetails = () => {
                       </Button>
                       {robot.images.length > 1 && (
                         <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm z-10">
-                          {currentImageIndex + 1} /{" "}
-                          {robot.images.length}
+                          {currentImageIndex + 1} / {robot.images.length}
                         </div>
                       )}
                     </>
@@ -489,15 +433,9 @@ const RobotDetails = () => {
                             ? "border-primary shadow-md"
                             : "border-transparent opacity-70 hover:opacity-100"
                         }`}
-                        onClick={() =>
-                          setCurrentImageIndex(index)
-                        }
+                        onClick={() => setCurrentImageIndex(index)}
                       >
-                        <img
-                          src={image}
-                          alt={`${robot.name} ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
+                        <img src={image} alt={`${robot.name} ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
                       </div>
                     ))}
                   </div>
@@ -505,32 +443,18 @@ const RobotDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Details */}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-3xl font-bold">
-                      {robot.name}
-                    </CardTitle>
-                    <p className="text-xl text-muted-foreground mt-1">
-                      {robot.model}
-                    </p>
+                    <CardTitle className="text-3xl font-bold">{robot.name}</CardTitle>
+                    <p className="text-xl text-muted-foreground mt-1">{robot.model}</p>
                   </div>
                   <div className="text-right flex flex-col items-end">
                     <div className="text-4xl font-extrabold text-primary">
-                      {robot.price
-                        ? formatPrice(robot.price, robot.currency)
-                        : "Price on Request"}
+                      {robot.price ? formatPrice(robot.price, robot.currency) : "Price on Request"}
                     </div>
-                    <Badge
-                      variant={
-                        robot.availability === "available"
-                          ? "default"
-                          : "secondary"
-                      }
-                      className="mt-2 text-sm px-3 py-1"
-                    >
+                    <Badge variant={robot.availability === "available" ? "default" : "secondary"} className="mt-2 text-sm px-3 py-1">
                       {robot.availability}
                     </Badge>
                   </div>
@@ -538,89 +462,49 @@ const RobotDetails = () => {
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 <Separator className="my-4" />
-
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2">
-                    <Badge
-                      variant="outline"
-                      className="px-3 py-1 text-sm"
-                    >
-                      {robot.robot_type}
-                    </Badge>
+                    <Badge variant="outline" className="px-3 py-1 text-sm">{robot.robot_type}</Badge>
                     {robot.category_tags?.map((tag, idx) => (
-                      <Badge
-                        key={idx}
-                        variant="secondary"
-                        className="px-3 py-1 text-sm"
-                      >
-                        {tag}
-                      </Badge>
+                      <Badge key={idx} variant="secondary" className="px-3 py-1 text-sm">{tag}</Badge>
                     ))}
                   </div>
-
                   <div className="flex items-center text-lg text-muted-foreground">
-                    <MapPin className="w-5 h-5 mr-3" />
-                    <span>{robot.location}</span>
+                    <MapPin className="w-5 h-5 mr-3" /><span>{robot.location}</span>
                   </div>
-
                   {robot.description && (
                     <>
-                      <h4 className="font-semibold text-lg mb-2">
-                        Description
-                      </h4>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {robot.description}
-                      </p>
+                      <h4 className="font-semibold text-lg mb-2">Description</h4>
+                      <p className="text-muted-foreground leading-relaxed">{robot.description}</p>
                     </>
                   )}
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-base">
                     <div>
-                      <span className="font-medium text-gray-700">
-                        Quantity Available:
-                      </span>
-                      <p className="text-muted-foreground">
-                        {robot.quantity}
-                      </p>
+                      <span className="font-medium text-gray-700">Quantity Available:</span>
+                      <p className="text-muted-foreground">{robot.quantity}</p>
                     </div>
                     {robot.brand && (
                       <div>
-                        <span className="font-medium text-gray-700">
-                          Brand:
-                        </span>
-                        <p className="text-muted-foreground">
-                          {robot.brand}
-                        </p>
+                        <span className="font-medium text-gray-700">Brand:</span>
+                        <p className="text-muted-foreground">{robot.brand}</p>
                       </div>
                     )}
                     {robot.condition && (
                       <div>
-                        <span className="font-medium text-gray-700">
-                          Condition:
-                        </span>
-                        <p className="text-muted-foreground">
-                          {robot.condition.replace("_", " ")}
-                        </p>
+                        <span className="font-medium text-gray-700">Condition:</span>
+                        <p className="text-muted-foreground">{robot.condition.replace("_", " ")}</p>
                       </div>
                     )}
                     {robot.year_manufactured && (
                       <div>
-                        <span className="font-medium text-gray-700">
-                          Year Manufactured:
-                        </span>
-                        <p className="text-muted-foreground">
-                          {robot.year_manufactured}
-                        </p>
+                        <span className="font-medium text-gray-700">Year Manufactured:</span>
+                        <p className="text-muted-foreground">{robot.year_manufactured}</p>
                       </div>
                     )}
                     {robot.payload_capacity && (
                       <div>
-                        <span className="font-medium text-gray-700">
-                          Payload Capacity:
-                        </span>
-                        <p className="text-muted-foreground">
-                          {robot.payload_capacity} kg
-                        </p>
+                        <span className="font-medium text-gray-700">Payload Capacity:</span>
+                        <p className="text-muted-foreground">{robot.payload_capacity} kg</p>
                       </div>
                     )}
                   </div>
@@ -628,46 +512,33 @@ const RobotDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Technical Specs */}
-            {robot.technical_specifications &&
-              Object.keys(robot.technical_specifications).length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-2xl">
-                      Technical Specifications
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-0">
-                    <Separator className="my-4" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(
-                        robot.technical_specifications
-                      ).map(([key, value]) => (
-                        <div key={key}>
-                          <span className="font-medium text-gray-700 capitalize">
-                            {key.replace(/_/g, " ")}:
-                          </span>
-                          <p className="text-muted-foreground text-base">
-                            {String(value)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+            {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-2xl">Technical Specifications</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <Separator className="my-4" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(robot.technical_specifications).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="font-medium text-gray-700 capitalize">{key.replace(/_/g, " ")}:</span>
+                        <p className="text-muted-foreground text-base">{String(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* AI Analysis Card */}
             {user && (
               <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80 shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg p-6">
                   <CardTitle className="flex items-center text-2xl font-bold">
-                    <Brain className="w-7 h-7 mr-3" />
-                    Smart Market Intelligence
+                    <Brain className="w-7 h-7 mr-3" /> Smart Market Intelligence
                   </CardTitle>
                   <p className="text-blue-100 text-sm mt-1">
-                    AI-powered insights for this specific robot and your
-                    location.
+                    AI-powered insights for this specific robot and your location.
                   </p>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -676,24 +547,14 @@ const RobotDetails = () => {
                       <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border-4 border-blue-100">
                         <Brain className="w-12 h-12 text-blue-500" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">
-                        Unlock Your Competitive Edge
-                      </h3>
+                      <h3 className="text-xl font-bold text-gray-800 mb-2">Unlock Your Competitive Edge</h3>
                       <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-                        Get an instant, detailed analysis of market
-                        positioning, ROI, and a complete ecosystem of
-                        suppliers and services.
+                        Get an instant, detailed analysis of market positioning, ROI, and a complete ecosystem of suppliers and services.
                       </p>
-                      <Button
-                        onClick={handleAIAnalysis}
-                        disabled={analysisLoading}
-                        size="lg"
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 rounded-lg shadow-md hover:shadow-lg transition-all"
-                      >
+                      <Button onClick={handleAIAnalysis} disabled={analysisLoading} size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 rounded-lg shadow-md hover:shadow-lg transition-all">
                         {analysisLoading ? (
                           <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Analyzing Market...
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Analyzing Market...
                           </>
                         ) : (
                           "Generate AI Analysis"
@@ -701,59 +562,43 @@ const RobotDetails = () => {
                       </Button>
                     </div>
                   ) : (
-                    <>
-                      {/* Render AI analysis results here */}
-                    </>
+                    <></>
                   )}
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
             {user && robot.profiles && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">
-                    Seller Information
-                  </CardTitle>
+                  <CardTitle className="text-xl">Seller Information</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 pt-0">
                   <Separator className="my-4" />
                   <div className="space-y-3 text-base">
                     <div className="flex items-center text-gray-700">
-                      <User className="w-4 h-4 mr-3" />
-                      <span>{robot.profiles.full_name}</span>
+                      <User className="w-4 h-4 mr-3" /><span>{robot.profiles.full_name}</span>
                     </div>
                     {robot.profiles.company_name && (
                       <div className="flex items-center text-gray-700">
-                        <Building className="w-4 h-4 mr-3" />
-                        <span>{robot.profiles.company_name}</span>
+                        <Building className="w-4 h-4 mr-3" /><span>{robot.profiles.company_name}</span>
                       </div>
                     )}
-                    {(robot.profiles.phone ||
-                      robot.profiles.mobile_number) && (
+                    {(robot.profiles.phone || robot.profiles.mobile_number) && (
                       <div className="flex items-center text-gray-700">
-                        <Phone className="w-4 h-4 mr-3" />
-                        <span>
-                          {robot.profiles.phone ||
-                            robot.profiles.mobile_number}
-                        </span>
+                        <Phone className="w-4 h-4 mr-3" /><span>{robot.profiles.phone || robot.profiles.mobile_number}</span>
                       </div>
                     )}
                     {robot.profiles.email && (
                       <div className="flex items-center text-gray-700">
-                        <Mail className="w-4 h-4 mr-3" />
-                        <span className="text-sm break-all">
-                          {robot.profiles.email}
-                        </span>
+                        <Mail className="w-4 h-4 mr-3" /><span className="text-sm break-all">{robot.profiles.email}</span>
                       </div>
                     )}
                     {robot.profiles.location && (
                       <div className="flex items-center text-gray-700">
-                        <MapPin className="w-4 h-4 mr-3" />
-                        <span>{robot.profiles.location}</span>
+                        <MapPin className="w-4 h-4 mr-3" /><span>{robot.profiles.location}</span>
                       </div>
                     )}
                   </div>
@@ -764,22 +609,12 @@ const RobotDetails = () => {
             {!user && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">
-                    Login Required
-                  </CardTitle>
+                  <CardTitle className="text-xl">Login Required</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 pt-0">
                   <Separator className="my-4" />
-                  <p className="text-muted-foreground mb-4">
-                    Please log in to view seller information and access
-                    advanced AI analysis features.
-                  </p>
-                  <Button
-                    onClick={() => navigate("/auth")}
-                    className="w-full"
-                  >
-                    Login / Sign Up
-                  </Button>
+                  <p className="text-muted-foreground mb-4">Please log in to view seller information and access advanced AI analysis features.</p>
+                  <Button onClick={() => navigate("/auth")} className="w-full">Login / Sign Up</Button>
                 </CardContent>
               </Card>
             )}
@@ -787,47 +622,14 @@ const RobotDetails = () => {
             {user && (
               <Card>
                 <CardContent className="p-6 space-y-3">
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md"
-                    size="lg"
-                    onClick={handleContactSeller}
-                    disabled={
-                      !robot.profiles?.phone &&
-                      !robot.profiles?.mobile_number
-                    }
-                  >
-                    <PhoneCall className="w-5 h-5 mr-2" />
-                    Contact Seller
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md" size="lg" onClick={handleContactSeller} disabled={!robot.profiles?.phone && !robot.profiles?.mobile_number}>
+                    <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
-                    onClick={handleRequestQuote}
-                    disabled={!robot.profiles?.email}
-                  >
-                    <MessageCircle className="w-5 h-5 mr-2" />
-                    Request Quote
+                  <Button variant="outline" className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md" onClick={handleRequestQuote} disabled={!robot.profiles?.email}>
+                    <MessageCircle className="w-5 h-5 mr-2" /> Request Quote
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full border-red-600 text-red-600 hover:bg-red-50 shadow-md"
-                    onClick={handleAddToWatchlist}
-                    disabled={addingToWatchlist}
-                  >
-                    {addingToWatchlist ? (
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    ) : (
-                      <Heart
-                        className={`w-5 h-5 mr-2 ${
-                          isInWatchlist
-                            ? "fill-current text-red-500"
-                            : ""
-                        }`}
-                      />
-                    )}
-                    {isInWatchlist
-                      ? "In Watchlist"
-                      : "Add to Watchlist"}
+                  <Button variant="outline" className="w-full border-red-600 text-red-600 hover:bg-red-50 shadow-md" onClick={handleAddToWatchlist} disabled={addingToWatchlist}>
+                    {addingToWatchlist ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Heart className={`w-5 h-5 mr-2 ${isInWatchlist ? "fill-current text-red-500" : ""}`} />} {isInWatchlist ? "In Watchlist" : "Add to Watchlist"}
                   </Button>
                 </CardContent>
               </Card>
@@ -836,50 +638,49 @@ const RobotDetails = () => {
         </div>
       </div>
 
-      {/* Fullscreen Image Modal */}
-      <Dialog
-        open={showFullscreen}
-        onOpenChange={setShowFullscreen}
-      >
+      <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
         <DialogContent className="max-w-7xl max-h-[95vh] p-0 border-none bg-transparent flex items-center justify-center">
           <div className="relative w-full h-full flex items-center justify-center">
-            <img
-              src={robot.images?.[currentImageIndex]}
-              alt={`${robot.name} ${currentImageIndex + 1}`}
-              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
-              onClick={() => setShowFullscreen(false)}
-            >
-              <X className="w-6 h-6" />
-            </Button>
+            <img src={robot.images?.[currentImageIndex]} alt={`${robot.name} ${currentImageIndex + 1}`} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl" />
+            <Button variant="ghost" size="icon" className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full p-2" onClick={() => setShowFullscreen(false)}><X className="w-6 h-6" /></Button>
             {robot.images && robot.images.length > 1 && (
               <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
-                  onClick={prevImage}
-                >
-                  <ChevronLeft className="w-8 h-8" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2"
-                  onClick={nextImage}
-                >
-                  <ChevronRight className="w-8 h-8" />
-                </Button>
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-lg">
-                  {currentImageIndex + 1} / {robot.images.length}
-                </div>
+                <Button variant="ghost" size="icon" className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2" onClick={prevImage}><ChevronLeft className="w-8 h-8" /></Button>
+                <Button variant="ghost" size="icon" className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2" onClick={nextImage}><ChevronRight className="w-8 h-8" /></Button>
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-lg">{currentImageIndex + 1} / {robot.images.length}</div>
               </>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Request Quote</DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground">
+              Send a quote request to <span className="font-semibold text-gray-800">{robot.profiles?.company_name || robot.profiles?.full_name}</span> for <span className="font-semibold text-gray-800">{robot.name}</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-gray-700">
+              Your message will be sent to the seller's email: <span className="font-medium">{robot.profiles?.email}</span>
+            </p>
+            <Textarea placeholder="Add any specific requirements or questions..." value={quoteMessage} onChange={(e) => setQuoteMessage(e.target.value)} rows={6} className="min-h-[120px]" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuoteModal(false)}>Cancel</Button>
+            <Button onClick={() => {
+              const subject = `Quote Request for ${robot.name} - ${robot.model}`;
+              const body = `Dear ${robot.profiles?.full_name || robot.profiles?.company_name},%0D%0A%0D%0AI am interested in the following robot:%0D%0ARobot: ${robot.name}%0D%0AModel: ${robot.model}%0D%0AType: ${robot.robot_type}%0D%0AListed Price: ${robot.price ? `${robot.currency} ${robot.price}` : 'Price on Request'}%0D%0A%0D%0A${quoteMessage ? `Additional Message:%0D%0A${quoteMessage}` : ''}%0D%0A%0D%0APlease provide me with:%0D%0A1. Best price quote%0D%0A2. Availability and delivery timeline%0D%0A3. Technical specifications%0D%0A4. Warranty and support details%0D%0A5. Installation and training options%0D%0A%0D%0ABest regards,%0D%0A${user.user_metadata?.full_name || 'Interested Buyer'}`;
+              window.open(`mailto:${robot.profiles?.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+              setShowQuoteModal(false);
+              setQuoteMessage('');
+              toast({ title: "Quote Request Sent", description: `Email sent to ${robot.profiles?.company_name || robot.profiles?.full_name}` });
+            }} disabled={!robot.profiles?.email}>
+              <Mail className="w-4 h-4 mr-2" />Send Email
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
