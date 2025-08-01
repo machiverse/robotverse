@@ -59,6 +59,7 @@ const SpareParts = () => {
       return;
     }
 
+    // Removed the minimum 3 images check from here
     setImages(prev => [...prev, ...files]);
     
     files.forEach(file => {
@@ -76,9 +77,8 @@ const SpareParts = () => {
   };
 
   const addTag = () => {
-    const tag = newTag.trim();
-    if (tag && !formData.category_tags.includes(tag)) {
-      handleInputChange('category_tags', [...formData.category_tags, tag]);
+    if (newTag.trim() && !formData.category_tags.includes(newTag.trim())) {
+      handleInputChange('category_tags', [...formData.category_tags, newTag.trim()]);
       setNewTag('');
     }
   };
@@ -88,9 +88,8 @@ const SpareParts = () => {
   };
 
   const addCompatibleRobot = () => {
-    const robot = newRobot.trim();
-    if (robot && !formData.compatible_robots.includes(robot)) {
-      handleInputChange('compatible_robots', [...formData.compatible_robots, robot]);
+    if (newRobot.trim() && !formData.compatible_robots.includes(newRobot.trim())) {
+      handleInputChange('compatible_robots', [...formData.compatible_robots, newRobot.trim()]);
       setNewRobot('');
     }
   };
@@ -99,33 +98,27 @@ const SpareParts = () => {
     handleInputChange('compatible_robots', formData.compatible_robots.filter(robot => robot !== robotToRemove));
   };
 
-  // Upload images in parallel for efficiency
   const uploadImages = async (): Promise<string[]> => {
-    if (!user) return [];
+    const uploadedUrls: string[] = [];
 
-    try {
-      const uploadPromises = images.map(image => {
-        const fileExt = image.name.split('.').pop();
-        // Use timestamp + original filename to reduce risk of collisions
-        const fileName = `spare-parts/${user.id}/${Date.now()}-${image.name}`;
+    for (const image of images) {
+      const fileExt = image.name.split('.').pop();
+      const fileName = `spare-parts/${user?.id}/${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('robot-images')
+        .upload(fileName, image);
 
-        return supabase.storage
-          .from('robot-images')
-          .upload(fileName, image)
-          .then(({ data, error }) => {
-            if (error) throw error;
-            const { data: { publicUrl } } = supabase.storage
-              .from('robot-images')
-              .getPublicUrl(fileName);
-            return publicUrl;
-          });
-      });
+      if (error) throw error;
 
-      const urls = await Promise.all(uploadPromises);
-      return urls;
-    } catch (error) {
-      throw error;
+      const { data: { publicUrl } } = supabase.storage
+        .from('robot-images')
+        .getPublicUrl(fileName);
+
+      uploadedUrls.push(publicUrl);
     }
+
+    return uploadedUrls;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,6 +129,7 @@ const SpareParts = () => {
       return;
     }
 
+    // Changed from 3 to 1 minimum image
     if (images.length < 1) {
       toast.error('Minimum 1 image required');
       return;
@@ -203,6 +197,7 @@ const SpareParts = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Image Upload */}
           <div className="space-y-4">
+            {/* Changed label from (3-10 required) to (1-10 required) */}
             <Label>Part Images (1-10 required)</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6">
               <div className="text-center">
@@ -240,7 +235,6 @@ const SpareParts = () => {
                       size="sm"
                       className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeImage(index)}
-                      aria-label={`Remove image ${index + 1}`}
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -260,7 +254,6 @@ const SpareParts = () => {
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Enter part name"
                 required
-                disabled={loading}
               />
             </div>
             
@@ -271,7 +264,6 @@ const SpareParts = () => {
                 value={formData.part_number}
                 onChange={(e) => handleInputChange('part_number', e.target.value)}
                 placeholder="Enter part number"
-                disabled={loading}
               />
             </div>
           </div>
@@ -286,7 +278,6 @@ const SpareParts = () => {
                 value={formData.quantity}
                 onChange={(e) => handleInputChange('quantity', parseInt(e.target.value) || 1)}
                 required
-                disabled={loading}
               />
             </div>
             
@@ -297,7 +288,6 @@ const SpareParts = () => {
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
                 placeholder="Enter location"
-                disabled={loading}
               />
             </div>
           </div>
@@ -314,7 +304,6 @@ const SpareParts = () => {
                 onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || null)}
                 placeholder="Enter price (optional)"
                 className="flex-1"
-                disabled={loading}
               />
             </div>
           </div>
@@ -328,9 +317,8 @@ const SpareParts = () => {
                 onChange={(e) => setNewRobot(e.target.value)}
                 placeholder="Add compatible robot model"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCompatibleRobot())}
-                disabled={loading}
               />
-              <Button type="button" onClick={addCompatibleRobot} size="sm" disabled={loading}>
+              <Button type="button" onClick={addCompatibleRobot} size="sm">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -345,8 +333,6 @@ const SpareParts = () => {
                       size="sm"
                       className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
                       onClick={() => removeCompatibleRobot(robot)}
-                      aria-label={`Remove compatible robot ${robot}`}
-                      disabled={loading}
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -365,9 +351,8 @@ const SpareParts = () => {
                 onChange={(e) => setNewTag(e.target.value)}
                 placeholder="Add category tag"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                disabled={loading}
               />
-              <Button type="button" onClick={addTag} size="sm" disabled={loading}>
+              <Button type="button" onClick={addTag} size="sm">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -382,8 +367,6 @@ const SpareParts = () => {
                       size="sm"
                       className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
                       onClick={() => removeTag(tag)}
-                      aria-label={`Remove category tag ${tag}`}
-                      disabled={loading}
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -402,13 +385,12 @@ const SpareParts = () => {
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="Describe the spare part, its condition, compatibility, etc."
               rows={4}
-              disabled={loading}
             />
           </div>
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? (
-              <div className="flex items-center space-x-2 justify-center">
+              <div className="flex items-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
                 <span>Creating Listing...</span>
               </div>
