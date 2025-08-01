@@ -241,42 +241,51 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
   };
 
   const handleAIAnalysis = async () => {
-    if (!robot || !user) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to access AI analysis features",
-        variant: "destructive",
-      });
-      return;
-    }
+  if (!robot || !user) {
+    toast({
+      title: "Login Required",
+      description: "Please log in to access AI analysis features",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    try {
-      setAnalysisLoading(true);
-      const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
-        body: {
-          robotId: robot.id,
-          userId: user.id
-        }
-      });
+  try {
+    setAnalysisLoading(true);
+    const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
+      body: {
+        robotId: robot.id,
+      },
+    });
 
-      if (error) throw error;
-      setAiAnalysis(data);
-      
-      toast({
-        title: "AI Analysis Complete",
-        description: "Smart recommendations generated successfully",
-      });
-    } catch (err) {
-      console.error('Error getting AI analysis:', err);
-      toast({
-        title: "Analysis Failed",
-        description: err instanceof Error ? err.message : 'Failed to generate AI analysis',
-        variant: "destructive",
-      });
-    } finally {
-      setAnalysisLoading(false);
-    }
-  };
+    if (error) throw error;
+
+    // Transform backend response to expected frontend shape
+    setAiAnalysis({
+      analysis: data.analysis,
+      recommendations: {
+        spareParts: data.marketEcosystem?.spareParts?.suppliers || [],
+        services: data.marketEcosystem?.services?.providers || [],
+        logistics: data.marketEcosystem?.logistics?.providers || [],
+        finance: data.marketEcosystem?.finance?.providers || [],
+      },
+    });
+
+    toast({
+      title: "AI Analysis Complete",
+      description: "Smart recommendations generated successfully",
+    });
+  } catch (err) {
+    console.error('Error getting AI analysis:', err);
+    toast({
+      title: "Analysis Failed",
+      description: err instanceof Error ? err.message : 'Failed to generate AI analysis',
+      variant: "destructive",
+    });
+  } finally {
+    setAnalysisLoading(false);
+  }
+};
 
   const formatPrice = (price: number, currency: string) => {
     const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
