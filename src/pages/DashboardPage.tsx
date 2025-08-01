@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
 import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
-import SparepartsDashboard from "@/pagesSparePartsSellerDashboard";
+import SparepartsDashboard from "@/pages/SparePartsSellerDashboard";
 import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
