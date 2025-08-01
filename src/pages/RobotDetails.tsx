@@ -9,12 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -44,10 +39,11 @@ import {
   DollarSign,
   Truck,
 } from "lucide-react";
+
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Robot {
   id: string;
@@ -113,11 +109,13 @@ const RobotDetails = () => {
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
 
+  // Helper for price formatting
   const formatPrice = (price: number, currency: string) => {
     const symbols: Record<string, string> = { USD: "$", EUR: "€", INR: "₹" };
     return `${symbols[currency] ?? currency}${price.toLocaleString()}`;
   };
 
+  // Fetch robot details with seller profile
   useEffect(() => {
     if (!id) return;
 
@@ -126,43 +124,40 @@ const RobotDetails = () => {
       try {
         const { data, error } = await supabase
           .from("robots")
-          .select(`
-            *,
-            profiles!robots_seller_id_fkey (
-              full_name,
-              company_name,
-              phone,
-              email,
-              location
-            )
-          `)
+          .select(
+            `*, profiles:profiles!robots_seller_id_fkey (
+              full_name, company_name, phone, email, location
+            )`
+          )
           .eq("id", id)
           .single();
 
         if (error) throw error;
 
-        // Parse technical_specifications if it's a JSON string
-        let techSpecs = data.technical_specifications;
-        if (typeof techSpecs === "string") {
+        // Parse technical_specifications if needed (some DB setups return string)
+        let specs = data.technical_specifications;
+        if (typeof specs === "string") {
           try {
-            techSpecs = JSON.parse(techSpecs);
+            specs = JSON.parse(specs);
           } catch {
-            techSpecs = {};
+            specs = {};
           }
         }
 
-        setRobot({ ...data, technical_specifications: techSpecs });
+        setRobot({ ...data, technical_specifications: specs });
 
         if (user && data.id) {
-          const savedList = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) ?? "[]");
+          const savedList = JSON.parse(
+            localStorage.getItem(`watchlist_${user.id}`) ?? "[]"
+          );
           setIsInWatchlist(savedList.includes(data.id));
         }
       } catch (e) {
-        const message = e instanceof Error ? e.message : "Failed to load robot details.";
-        setError(message);
+        const msg = e instanceof Error ? e.message : "Failed to load robot details.";
+        setError(msg);
         toast({
           title: "Error",
-          description: message,
+          description: msg,
           variant: "destructive",
         });
       } finally {
@@ -175,36 +170,37 @@ const RobotDetails = () => {
 
   const nextImage = () => {
     if (!robot?.images?.length) return;
-    setCurrentImageIndex((prev) => (prev + 1) % robot.images.length);
+    setCurrentImageIndex((i) => (i + 1) % robot.images.length);
   };
-
   const prevImage = () => {
     if (!robot?.images?.length) return;
-    setCurrentImageIndex((prev) => (prev - 1 + robot.images.length) % robot.images.length);
+    setCurrentImageIndex((i) => (i - 1 + robot.images.length) % robot.images.length);
   };
 
+  // Call seller phone
   const handleContactSeller = () => {
     if (!robot?.profiles?.phone) {
       toast({
-        title: "Phone Number Not Available",
-        description: "Seller's phone number is not provided.",
+        title: "No phone available",
+        description: "Seller phone number is not provided.",
         variant: "destructive",
       });
       return;
     }
-    const phone = robot.profiles.phone.replace(/\D/g, "");
-    window.open(`tel:${phone}`, "_self");
+    const phoneNum = robot.profiles.phone.replace(/\D/g, "");
+    window.open(`tel:${phoneNum}`, "_self");
     toast({
       title: "Calling Seller",
       description: `Calling ${robot.profiles.full_name} at ${robot.profiles.phone}`,
     });
   };
 
+  // Open quote modal
   const handleRequestQuote = () => {
     if (!robot?.profiles?.email) {
       toast({
-        title: "Email Not Available",
-        description: "Seller's email address is not provided.",
+        title: "No email available",
+        description: "Seller email is not provided.",
         variant: "destructive",
       });
       return;
@@ -212,48 +208,48 @@ const RobotDetails = () => {
     setShowQuoteModal(true);
   };
 
+  // Compose quote email
   const sendQuoteEmail = () => {
     if (!robot?.profiles?.email || !robot) return;
 
-    const subject = `Quote Request for ${robot.name} - ${robot.model}`;
-    const body = `Dear ${robot.profiles.full_name},
+    const subject = `Quote Request: ${robot.name} (${robot.model})`;
+    const msg = `Dear ${robot.profiles.full_name},
 
 I am interested in the following robot:
 
-Robot: ${robot.name}
-Model: ${robot.model}
-Type: ${robot.robot_type}
-Listed Price: ${robot.price ? `${robot.currency} ${robot.price}` : "Price on Request"}
+- Name: ${robot.name}
+- Model: ${robot.model}
+- Type: ${robot.robot_type}
+- Price: ${robot.price ? formatPrice(robot.price, robot.currency) : "Price on request"}
 
-${quoteMessage ? `Additional Message:\n${quoteMessage}` : ""}
+${quoteMessage ? `Message:\n${quoteMessage}\n\n` : ""}
+Please send me your best price, delivery timeline, technical specs,
+warranty details, and installation options.
 
-Please provide me with:
-1. Best price quote
-2. Availability and delivery timeline
-3. Technical specifications
-4. Warranty and support details
-5. Installation and training options
+Regards,
+${user?.user_metadata?.full_name ?? "Interested Buyer"}
+`;
 
-Best regards,
-${user?.user_metadata?.full_name || "Interested Buyer"}`;
-
-    const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink, "_blank");
-
-    setShowQuoteModal(false);
-    setQuoteMessage("");
+    const mailto = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(msg)}`;
+    window.open(mailto, "_blank");
 
     toast({
-      title: "Quote Request Sent",
-      description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
+      title: "Quote Email Ready",
+      description: `Prepared email to ${robot.profiles.company_name ?? robot.profiles.full_name}`,
     });
+
+    setQuoteMessage("");
+    setShowQuoteModal(false);
   };
 
+  // Watchlist add/remove
   const toggleWatchlist = () => {
     if (!user) {
       toast({
         title: "Login Required",
-        description: "Please log in to add items to your watchlist.",
+        description: "Please login to manage your watchlist.",
         variant: "destructive",
       });
       return;
@@ -263,31 +259,29 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
     try {
       const key = `watchlist_${user.id}`;
-      const watchlist: string[] = JSON.parse(localStorage.getItem(key) ?? "[]");
+      const list: string[] = JSON.parse(localStorage.getItem(key) ?? "[]");
 
-      if (robot && watchlist.includes(robot.id)) {
-        // Remove from watchlist
-        const updated = watchlist.filter((rid) => rid !== robot.id);
-        localStorage.setItem(key, JSON.stringify(updated));
+      if (robot && list.includes(robot.id)) {
+        const updatedList = list.filter((rid) => rid !== robot.id);
+        localStorage.setItem(key, JSON.stringify(updatedList));
         setIsInWatchlist(false);
         toast({
           title: "Removed from Watchlist",
-          description: `${robot.name} has been removed from your watchlist.`,
+          description: `${robot.name} removed.`,
         });
       } else if (robot) {
-        // Add to watchlist
-        watchlist.push(robot.id);
-        localStorage.setItem(key, JSON.stringify(watchlist));
+        list.push(robot.id);
+        localStorage.setItem(key, JSON.stringify(list));
         setIsInWatchlist(true);
         toast({
           title: "Added to Watchlist",
-          description: `${robot.name} has been added to your watchlist.`,
+          description: `${robot.name} added.`,
         });
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: "Failed to Update",
-        description: "Could not update watchlist. Please try again.",
+        title: "Error",
+        description: "Failed to update watchlist.",
         variant: "destructive",
       });
     } finally {
@@ -295,11 +289,12 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
     }
   };
 
+  // AI analysis call
   const handleAIAnalysis = async () => {
     if (!user) {
       toast({
-        title: "Login Required",
-        description: "Please log in to access AI analysis features",
+        title: "Login required",
+        description: "Please login to access AI features.",
         variant: "destructive",
       });
       return;
@@ -316,13 +311,13 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
       setAiAnalysis(data);
       toast({
-        title: "AI Analysis Complete",
-        description: "Smart recommendations generated successfully",
+        title: "AI Analysis Success",
+        description: "Smart insights generated.",
       });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to generate AI analysis";
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "AI analysis failed.";
       toast({
-        title: "Analysis Failed",
+        title: "Error",
         description: msg,
         variant: "destructive",
       });
@@ -331,37 +326,33 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin mr-2" />
-        Loading robot details...
+        <Loader2 className="animate-spin mr-2" /> Loading robot details...
       </div>
     );
-  }
 
-  if (error || !robot) {
+  if (error || !robot)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center">
-        <Bot className="mb-4 text-muted" size={64} />
-        <h2 className="text-xl font-semibold mb-2">Robot Not Found</h2>
-        <p className="text-muted mb-4">{error || "The requested robot could not be found."}</p>
-        <Button onClick={() => navigate("/robots")}>
-          <ArrowLeft className="mr-2" />
-          Back to Robots
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <Bot size={80} className="mb-6 text-muted" />
+        <h2 className="text-2xl font-semibold mb-2">Robot Not Found</h2>
+        <p className="mb-4 text-muted">{error ?? "No data available."}</p>
+        <Button onClick={() => navigate("/robots")} aria-label="Back to robots list">
+          <ArrowLeft className="mr-2" /> Back to Robots
         </Button>
       </div>
     );
-  }
 
   return (
     <>
       <EnhancedHeader />
-      <main className="container mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-screen">
-        {/* Main content section */}
-        <section className="lg:col-span-2 space-y-6">
+      <main className="container mx-auto p-4 min-h-screen grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left/Main Section */}
+        <section className="space-y-6 lg:col-span-2">
           <Card>
-            <CardContent className="relative aspect-video bg-muted rounded-lg">
+            <CardContent className="relative aspect-video rounded-lg bg-muted">
               {robot.images?.length ? (
                 <>
                   <img
@@ -390,7 +381,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                       >
                         <ChevronRight />
                       </Button>
-                      <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 rounded text-sm select-none">
+                      <div className="absolute bottom-2 right-2 bg-black/60 rounded px-2 py-1 text-white text-sm select-none">
                         {currentImageIndex + 1} / {robot.images.length}
                       </div>
                     </>
@@ -400,7 +391,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                     size="icon"
                     className="absolute top-2 right-2 bg-black/50 text-white"
                     onClick={() => setShowFullscreen(true)}
-                    aria-label="View fullscreen"
+                    aria-label="Open fullscreen"
                   >
                     <Maximize2 />
                   </Button>
@@ -414,13 +405,13 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
             </CardContent>
             {robot.images.length > 1 && (
               <div className="mt-2 flex space-x-2 overflow-x-auto">
-                {robot.images.map((img, idx) => (
+                {robot.images.map((imgUrl, idx) => (
                   <img
                     key={idx}
-                    src={img}
+                    src={imgUrl}
                     alt={`${robot.name} thumbnail ${idx + 1}`}
-                    className={`w-20 h-20 object-cover rounded cursor-pointer ${
-                      currentImageIndex === idx ? "ring-2 ring-primary" : ""
+                    className={`h-20 w-20 rounded cursor-pointer object-cover transition ${
+                      idx === currentImageIndex ? "ring-2 ring-primary" : ""
                     }`}
                     onClick={() => setCurrentImageIndex(idx)}
                   />
@@ -444,11 +435,9 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                 ))}
               </div>
 
-              <div className="flex justify-between mb-3 items-center">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-2xl font-semibold">
-                  {robot.price
-                    ? formatPrice(robot.price, robot.currency)
-                    : "Price on request"}
+                  {robot.price ? formatPrice(robot.price, robot.currency) : "Price on request"}
                 </span>
                 <Badge variant={robot.availability === "available" ? "default" : "secondary"}>
                   {robot.availability}
@@ -457,7 +446,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
               <p>{robot.description}</p>
 
-              <Separator className="my-3" />
+              <Separator className="my-4" />
 
               <div>
                 <strong>Quantity available:</strong> {robot.quantity}
@@ -475,7 +464,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   {Object.entries(robot.technical_specifications).map(([key, value]) => (
                     <div key={key}>
                       <dt className="font-medium capitalize">{key.replace(/_/g, " ")}</dt>
-                      <dd>{value}</dd>
+                      <dd>{String(value)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -484,20 +473,20 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
           )}
 
           {user && (
-            <Card className="border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100">
+            <Card className="border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Brain /> Advanced AI Market Intelligence
                 </CardTitle>
                 <p className="text-blue-700">
-                  Discover recommendations for spare parts, services, logistics, and finance
+                  Discover recommended parts, services, logistics, and finance options tailored for this robot.
                 </p>
               </CardHeader>
               <CardContent>
                 {!aiAnalysis ? (
                   <>
                     <p className="mb-4">
-                      Unlock AI-powered insights tailored to your needs.
+                      Get AI insights tailored to your needs.
                     </p>
                     <Button
                       onClick={handleAIAnalysis}
@@ -519,7 +508,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   </>
                 ) : (
                   <>
-                    <p className="whitespace-pre-wrap mb-4">{aiAnalysis.analysis}</p>
+                    <p className="whitespace-pre-wrap">{aiAnalysis.analysis}</p>
                     <Tabs defaultValue="spareParts">
                       <TabsList className="grid grid-cols-4 bg-white border border-gray-200 rounded-md">
                         <TabsTrigger value="spareParts">
@@ -537,83 +526,83 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                       </TabsList>
 
                       <TabsContent value="spareParts">
-                        {aiAnalysis.recommendations.spareParts.length === 0 && <p>No spare parts found.</p>}
-                        {aiAnalysis.recommendations.spareParts.map((item, i) => (
-                          <Card key={i} className="mb-2">
-                            <CardContent>
-                              <div className="flex justify-between">
-                                <span>{item.name}</span>
-                                <Button
-                                  onClick={() => navigate("/parts")}
-                                  size="sm"
-                                  variant="default"
-                                >
-                                  <Wrench className="mr-1" /> View
-                                </Button>
-                              </div>
-                              <div className="text-sm text-muted">
-                                {item.profiles?.company_name ?? ""}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {aiAnalysis.recommendations.spareParts.length === 0 ? (
+                          <p>No spare parts found.</p>
+                        ) : (
+                          aiAnalysis.recommendations.spareParts.map((item, idx) => (
+                            <Card key={idx} className="mb-2">
+                              <CardContent>
+                                <div className="flex justify-between">
+                                  <span>{item.name}</span>
+                                  <Button onClick={() => navigate("/parts")} size="sm">
+                                    <Wrench className="mr-1" /> View
+                                  </Button>
+                                </div>
+                                <div className="text-sm text-muted">{item.profiles?.company_name}</div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
                       </TabsContent>
 
                       <TabsContent value="services">
-                        {aiAnalysis.recommendations.services.length === 0 && <p>No services found.</p>}
-                        {aiAnalysis.recommendations.services.map((item, i) => (
-                          <Card key={i} className="mb-2">
-                            <CardContent>
-                              <div className="flex justify-between">
-                                <span>{item.name}</span>
-                                <Button
-                                  onClick={() => navigate("/services")}
-                                  size="sm"
-                                  variant="default"
-                                >
-                                  <Wrench className="mr-1" /> Find
-                                </Button>
-                              </div>
-                              <div className="text-sm text-muted">
-                                {item.profiles?.company_name ?? ""}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {aiAnalysis.recommendations.services.length === 0 ? (
+                          <p>No services found.</p>
+                        ) : (
+                          aiAnalysis.recommendations.services.map((item, idx) => (
+                            <Card key={idx} className="mb-2">
+                              <CardContent>
+                                <div className="flex justify-between">
+                                  <span>{item.name}</span>
+                                  <Button onClick={() => navigate("/services")} size="sm">
+                                    <Wrench className="mr-1" /> Find
+                                  </Button>
+                                </div>
+                                <div className="text-sm text-muted">{item.profiles?.company_name}</div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
                       </TabsContent>
 
                       <TabsContent value="logistics">
-                        {aiAnalysis.recommendations.logistics.length === 0 && <p>No logistics providers found.</p>}
-                        {aiAnalysis.recommendations.logistics.map((item, i) => (
-                          <Card key={i} className="mb-2">
-                            <CardContent>
-                              <div className="flex justify-between">
-                                <span>{item.company_name ?? item.full_name}</span>
-                                <Button size="sm" disabled variant="default">
-                                  <Truck className="mr-1" /> Contact
-                                </Button>
-                              </div>
-                              <div className="text-sm text-muted">{item.location ?? ""}</div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {aiAnalysis.recommendations.logistics.length === 0 ? (
+                          <p>No logistics partners found.</p>
+                        ) : (
+                          aiAnalysis.recommendations.logistics.map((item, idx) => (
+                            <Card key={idx} className="mb-2">
+                              <CardContent>
+                                <div className="flex justify-between">
+                                  <span>{item.company_name ?? item.full_name}</span>
+                                  <Button size="sm" disabled>
+                                    <Truck className="mr-1" /> Contact
+                                  </Button>
+                                </div>
+                                <div className="text-sm text-muted">{item.location}</div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
                       </TabsContent>
 
                       <TabsContent value="finance">
-                        {aiAnalysis.recommendations.finance.length === 0 && <p>No finance providers found.</p>}
-                        {aiAnalysis.recommendations.finance.map((item, i) => (
-                          <Card key={i} className="mb-2">
-                            <CardContent>
-                              <div className="flex justify-between">
-                                <span>{item.company_name ?? item.full_name}</span>
-                                <Button size="sm" disabled variant="default">
-                                  <DollarSign className="mr-1" /> Contact
-                                </Button>
-                              </div>
-                              <div className="text-sm text-muted">{item.location ?? ""}</div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {aiAnalysis.recommendations.finance.length === 0 ? (
+                          <p>No finance options found.</p>
+                        ) : (
+                          aiAnalysis.recommendations.finance.map((item, idx) => (
+                            <Card key={idx} className="mb-2">
+                              <CardContent>
+                                <div className="flex justify-between">
+                                  <span>{item.company_name ?? item.full_name}</span>
+                                  <Button size="sm" disabled>
+                                    <DollarSign className="mr-1" /> Contact
+                                  </Button>
+                                </div>
+                                <div className="text-sm text-muted">{item.location}</div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        )}
                       </TabsContent>
                     </Tabs>
                   </>
@@ -621,8 +610,6 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
               </CardContent>
             </Card>
           )}
-
-        </section>
 
         {/* Sidebar */}
         <aside className="space-y-6">
@@ -665,7 +652,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                 <CardTitle>Login Required</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>Please log in to view seller information and access AI features.</p>
+                <p>Please login to view seller details and access AI features.</p>
                 <Button onClick={() => navigate("/auth")}>Login / Sign Up</Button>
               </CardContent>
             </Card>
@@ -681,11 +668,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                 >
                   <PhoneCall className="mr-2" /> Contact Seller
                 </Button>
-                <Button
-                  onClick={handleRequestQuote}
-                  variant="outline"
-                  className="w-full"
-                >
+                <Button onClick={handleRequestQuote} variant="outline" className="w-full">
                   <MessageCircle className="mr-2" /> Request Quote
                 </Button>
                 <Button
@@ -694,9 +677,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   className="w-full"
                   disabled={addingToWatchlist}
                 >
-                  <Heart
-                    className={`mr-2 ${isInWatchlist ? "fill-current text-red-600" : ""}`}
-                  />{" "}
+                  <Heart className={`mr-2 ${isInWatchlist ? "fill-current text-red-600" : ""}`} />{" "}
                   {isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
                 </Button>
               </CardContent>
@@ -705,7 +686,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
         </aside>
       </main>
 
-      {/* Fullscreen Image Modal */}
+      {/* Image fullscreen modal */}
       <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
         <DialogContent className="max-w-screen-xl max-h-screen p-0">
           <div className="relative">
@@ -744,7 +725,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                 >
                   <ChevronRight />
                 </Button>
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 rounded text-sm select-none">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 rounded px-3 py-1 text-white text-sm select-none">
                   {currentImageIndex + 1} / {robot.images.length}
                 </div>
               </>
@@ -753,7 +734,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
         </DialogContent>
       </Dialog>
 
-      {/* Quote Request Modal */}
+      {/* Quote request modal */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
