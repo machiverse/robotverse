@@ -531,27 +531,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         </div>
                       </div>
                       
-                      <Button
-  onClick={(e) => {
-    e.stopPropagation();      // Prevent the card’s onClick
-    handleAIAnalysis();       // Then run your AI analysis
-  }}
-  disabled={analysisLoading}
-  size="lg"
-  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
->
-  {analysisLoading ? (
-    <>
-      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-      Analyzing Market...
-    </>
-  ) : (
-    <>
-      <Brain className="w-5 h-5 mr-2" />
-      Generate Smart Analysis
-    </>
-  )}
-</Button>
+                      <Button 
+                        onClick={handleAIAnalysis}
+                        disabled={analysisLoading}
+                        size="lg"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                      >
+                        {analysisLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Analyzing Market...
+                          </>
+                        ) : (
+                          <>
+                            <Brain className="w-5 h-5 mr-2" />
+                            Generate Smart Analysis
+                          </>
+                        )}
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-6">
