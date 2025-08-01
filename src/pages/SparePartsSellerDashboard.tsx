@@ -39,6 +39,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import EnhancedHeader from '@/components/EnhancedHeader';
 
 interface SparePart {
   id: string;
@@ -281,7 +282,9 @@ const SparePartsSellerDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <EnhancedHeader />
+      <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -596,6 +599,7 @@ const SparePartsSellerDashboard = () => {
           </Table>
         </Card>
       )}
+      </div>
     </div>
   );
 };
