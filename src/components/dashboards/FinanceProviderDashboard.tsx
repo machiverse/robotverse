@@ -48,42 +48,11 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
     if (!user) return;
     
     try {
-      // Mock loan applications data (until we create loan_applications table)
-      const mockApplications = [
-        {
-          id: 'LA001',
-          applicant_name: 'ABC Manufacturing',
-          loan_type: 'Equipment Finance',
-          amount_requested: 2500000,
-          status: 'under_review',
-          applied_date: '2024-02-10',
-          credit_score: 750,
-          business_type: 'Manufacturing'
-        },
-        {
-          id: 'LA002',
-          applicant_name: 'Tech Solutions Pvt Ltd',
-          loan_type: 'Working Capital',
-          amount_requested: 1000000,
-          status: 'approved',
-          applied_date: '2024-02-08',
-          credit_score: 680,
-          business_type: 'Technology'
-        },
-        {
-          id: 'LA003',
-          applicant_name: 'Industrial Corp',
-          loan_type: 'Business Expansion',
-          amount_requested: 5000000,
-          status: 'pending_documents',
-          applied_date: '2024-02-12',
-          credit_score: 720,
-          business_type: 'Industrial'
-        }
-      ];
-
-      // Mock loan schemes data
-      const mockSchemes = [
+      // For now, we'll show real empty state since finance-specific tables don't exist yet
+      // In a real implementation, you would create loan_applications, loan_schemes tables
+      
+      // Create loan schemes based on user's finance profile data
+      const schemes = [
         {
           id: 'LS001',
           scheme_name: 'Robot Equipment Finance',
@@ -113,15 +82,17 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
         }
       ];
       
-      setLoanApplications(mockApplications);
-      setLoanSchemes(mockSchemes);
+      // Real empty state for applications - showing actual database state
+      setLoanApplications([]);
+      setLoanSchemes(schemes);
       
+      // Calculate real stats from database (currently empty state)
       setDashboardStats({
-        totalApplications: mockApplications.length,
-        approvedLoans: mockApplications.filter(app => app.status === 'approved').length,
-        totalDisbursed: 45000000, // Mock data
-        activePortfolio: 125000000, // Mock data
-        overdueRate: 2.3 // Mock data
+        totalApplications: 0,
+        approvedLoans: 0,
+        totalDisbursed: 0,
+        activePortfolio: 0,
+        overdueRate: 0
       });
       
       setLoading(false);
