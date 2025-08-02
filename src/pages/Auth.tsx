@@ -521,6 +521,14 @@ const Auth = () => {
         console.log('  - Location:', location);
         console.log('  - Account Type:', accountType);
         console.log('  - Seller Roles:', sellerRoles);
+        console.log('  - Logistics Type:', logisticsType);
+        console.log('  - Logistics Region:', logisticsRegion);
+        console.log('  - Transport Modes:', transportModes);
+        console.log('  - Warehouse Storage:', warehouseStorage);
+        console.log('  - Finance Type:', financeType);
+        console.log('  - Financing For:', financingFor);
+        console.log('  - Target Audience:', targetAudience);
+        console.log('  - Government Scheme Support:', governmentSchemeSupport);
         
         // Comprehensive validation
         if (!email.trim()) {
@@ -587,7 +595,9 @@ const Auth = () => {
         }
 
         if (accountType === 'logistics') {
+          console.log('🚚 Validating logistics provider data...');
           if (!logisticsType) {
+            console.log('❌ Logistics type missing');
             toast({
               variant: "destructive",
               title: "Logistics Type Required",
@@ -596,6 +606,7 @@ const Auth = () => {
             return;
           }
           if (!logisticsRegion.trim()) {
+            console.log('❌ Logistics region missing');
             toast({
               variant: "destructive",
               title: "Service Region Required",
@@ -603,15 +614,48 @@ const Auth = () => {
             });
             return;
           }
+          if (transportModes.length === 0) {
+            console.log('❌ Transport modes missing');
+            toast({
+              variant: "destructive",
+              title: "Transport Modes Required",
+              description: "Please select at least one transport mode.",
+            });
+            return;
+          }
+          console.log('✅ Logistics provider validation passed');
         }
 
-        if (accountType === 'finance' && financeType.length === 0) {
-          toast({
-            variant: "destructive",
-            title: "Finance Type Required",
-            description: "Please select at least one finance type.",
-          });
-          return;
+        if (accountType === 'finance') {
+          console.log('💰 Validating finance provider data...');
+          if (financeType.length === 0) {
+            console.log('❌ Finance type missing');
+            toast({
+              variant: "destructive",
+              title: "Finance Type Required",
+              description: "Please select at least one finance type.",
+            });
+            return;
+          }
+          if (financingFor.length === 0) {
+            console.log('❌ Financing for options missing');
+            toast({
+              variant: "destructive",
+              title: "Financing Options Required",
+              description: "Please select what you provide financing for.",
+            });
+            return;
+          }
+          if (targetAudience.length === 0) {
+            console.log('❌ Target audience missing');
+            toast({
+              variant: "destructive",
+              title: "Target Audience Required",
+              description: "Please select your target business segments.",
+            });
+            return;
+          }
+          console.log('✅ Finance provider validation passed');
         }
 
         console.log('✅ All validation passed, creating user account...');
@@ -1163,6 +1207,45 @@ const Auth = () => {
                     <div className="flex-1">
                       <Label htmlFor="warehouse" className="font-medium cursor-pointer">🏭 Warehouse & Storage Facilities</Label>
                       <p className="text-xs text-muted-foreground">We provide temporary storage and warehousing services</p>
+                    </div>
+                  </div>
+
+                  {/* Target Audience for Logistics */}
+                  <div className="space-y-3">
+                    <Label>Target Customer Segments</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="logistics_small_business"
+                          checked={targetAudience.includes('small_business')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('small_business', !!checked)}
+                        />
+                        <Label htmlFor="logistics_small_business" className="font-medium cursor-pointer">🏪 Small Manufacturing Units</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="logistics_medium_business"
+                          checked={targetAudience.includes('medium_business')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('medium_business', !!checked)}
+                        />
+                        <Label htmlFor="logistics_medium_business" className="font-medium cursor-pointer">🏭 Medium Scale Industries</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="logistics_large_enterprise"
+                          checked={targetAudience.includes('large_enterprise')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('large_enterprise', !!checked)}
+                        />
+                        <Label htmlFor="logistics_large_enterprise" className="font-medium cursor-pointer">🏢 Large Enterprises</Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          id="logistics_research"
+                          checked={targetAudience.includes('research_institutions')}
+                          onCheckedChange={(checked) => handleTargetAudienceChange('research_institutions', !!checked)}
+                        />
+                        <Label htmlFor="logistics_research" className="font-medium cursor-pointer">🔬 Research Institutions</Label>
+                      </div>
                     </div>
                   </div>
                 </div>
