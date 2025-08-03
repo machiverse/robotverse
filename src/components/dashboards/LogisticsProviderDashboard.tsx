@@ -51,6 +51,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
 type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
@@ -107,7 +108,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   
   // Modal states
   const [showAddAreaForm, setShowAddAreaForm] = useState(false);
+  const [showAddServiceForm, setShowAddServiceForm] = useState(false);
   const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
+  const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
 
   // Enhanced access check for logistics providers
   const userType = userProfile?.user_type || userProfile?.primary_user_type;
@@ -148,6 +151,20 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       const shipments = shipmentsResult.data || [];
       const fleet = fleetResult.data || [];
       const coverage = coverageResult.data || [];
+      
+      // Try to fetch services but handle gracefully if table doesn't exist
+      try {
+        const servicesResult = await supabase.rpc('get_logistics_data', {
+          table_name: 'logistics_services',
+          provider_id: user.id
+        });
+        if (servicesResult.data) {
+          setLogisticsServices(Array.isArray(servicesResult.data) ? servicesResult.data : []);
+        }
+      } catch (error) {
+        console.log('logistics_services table not available yet');
+        setLogisticsServices([]);
+      }
 
       // Calculate real service capabilities based on actual data
       const capabilities: string[] = [];
@@ -421,9 +438,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
             <Download className="w-4 h-4 mr-2" />
             Export Data
           </Button>
-          <Button onClick={() => setShowAddAreaForm(true)}>
+          <Button onClick={() => setShowAddServiceForm(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Add Service Area
+            Add Service
           </Button>
         </div>
       </div>
@@ -570,70 +587,73 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         <TabsContent value="services" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="w-5 h-5" />
-                Service Requests & Bookings
-              </CardTitle>
-              <CardDescription>Manage incoming logistics requests</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Truck className="w-5 h-5" />
+                    Logistics Services
+                  </CardTitle>
+                  <CardDescription>Manage your logistics service offerings</CardDescription>
+                </div>
+                <Button onClick={() => setShowAddServiceForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Service
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {recentInquiries.length === 0 ? (
+              {logisticsServices.length === 0 ? (
                 <div className="text-center py-12">
                   <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Service Requests Yet</h3>
+                  <h3 className="text-lg font-semibold mb-2">No Services Added Yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Complete your profile to start receiving logistics requests from customers
+                    Add your logistics services to let customers know what you offer
                   </p>
-                  <div className="space-y-2">
-                    <Button onClick={() => window.location.href = '/profile'}>
-                      Complete Profile Setup
-                    </Button>
-                    <p className="text-sm text-muted-foreground">
-                      Profile completion: {dashboardStats.profileCompletion}%
-                    </p>
-                  </div>
+                  <Button onClick={() => setShowAddServiceForm(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Your First Service
+                  </Button>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Request ID</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Service Type</TableHead>
-                      <TableHead>Route</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentInquiries.map((inquiry) => (
-                      <TableRow key={inquiry.id}>
-                        <TableCell className="font-medium">{inquiry.id}</TableCell>
-                        <TableCell>{inquiry.client_name}</TableCell>
-                        <TableCell>{inquiry.service_type}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-3 h-3" />
-                            <span className="text-sm">
-                              {inquiry.pickup} → {inquiry.delivery}
-                            </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {logisticsServices.map((service, index) => (
+                    <Card key={index} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold">{service.service_name}</h3>
+                            <Badge variant="outline" className="mt-1">{service.service_type}</Badge>
                           </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(inquiry.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline">
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                            <Button size="sm" variant="outline">
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="ghost">
                               <Edit className="w-3 h-3" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Coverage:</span>
+                            <span className="font-medium">{service.coverage_area}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Base Price:</span>
+                            <span className="font-medium">₹{service.base_price}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Delivery Time:</span>
+                            <span className="font-medium">{service.delivery_time_hours}h</span>
+                          </div>
+                        </div>
+
+                        <Button size="sm" variant="outline" className="w-full mt-4">
+                          <Eye className="w-3 h-3 mr-1" />
+                          View Details
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -886,6 +906,19 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Service Form Dialog */}
+      <Dialog open={showAddServiceForm} onOpenChange={setShowAddServiceForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <LogisticsServiceForm
+            onSuccess={() => {
+              setShowAddServiceForm(false);
+              fetchRealDashboardData();
+            }}
+            onCancel={() => setShowAddServiceForm(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   CreditCard,
   TrendingUp,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import LoanProductForm from '@/components/forms/LoanProductForm';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;
@@ -31,6 +33,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
   const { user } = useAuth();
   const [loanApplications, setLoanApplications] = useState<any[]>([]);
   const [loanSchemes, setLoanSchemes] = useState<any[]>([]);
+  const [loanProducts, setLoanProducts] = useState<any[]>([]);
+  const [showAddProductForm, setShowAddProductForm] = useState(false);
+  const [showAddApplicationForm, setShowAddApplicationForm] = useState(false);
   const [dashboardStats, setDashboardStats] = useState({
     totalApplications: 0,
     approvedLoans: 0,
@@ -182,9 +187,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
             <Calculator className="w-4 h-4" />
             Loan Calculator
           </Button>
-          <Button className="flex items-center gap-2">
+          <Button onClick={() => setShowAddProductForm(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            New Loan Scheme
+            Add Loan Product
           </Button>
         </div>
       </div>
@@ -226,17 +231,30 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
         <TabsContent value="applications" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Loan Application Processing
-              </CardTitle>
-              <CardDescription>Review and process incoming loan applications</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Loan Applications
+                  </CardTitle>
+                  <CardDescription>Review and process incoming loan applications</CardDescription>
+                </div>
+                <Button onClick={() => setShowAddApplicationForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Application
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {loanApplications.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No loan applications</p>
+                  <h3 className="text-lg font-semibold mb-2">No Applications Yet</h3>
+                  <p className="text-muted-foreground mb-4">Loan applications will appear here when customers apply</p>
+                  <Button onClick={() => setShowAddApplicationForm(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Demo Application Form
+                  </Button>
                 </div>
               ) : (
                 <Table>
@@ -293,21 +311,69 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
         <TabsContent value="schemes" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
-                Loan Product Management
-              </CardTitle>
-              <CardDescription>Configure and manage loan schemes and interest rates</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    Loan Products
+                  </CardTitle>
+                  <CardDescription>Configure and manage your loan offerings</CardDescription>
+                </div>
+                <Button onClick={() => setShowAddProductForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Product
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Show loan products first if any */}
+                {loanProducts.map((product, index) => (
+                  <Card key={index} className="hover:shadow-lg transition-shadow border-2 border-primary/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold">{product.product_name}</h3>
+                          <Badge variant="default" className="mt-1">Custom Product</Badge>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost">
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Type:</span>
+                          <span className="font-medium">{product.loan_type}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Amount:</span>
+                          <span className="font-medium">₹{(product.min_amount / 100000).toFixed(1)}L - ₹{(product.max_amount / 100000).toFixed(1)}L</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Interest:</span>
+                          <span className="font-medium">{product.min_interest_rate}% - {product.max_interest_rate}%</span>
+                        </div>
+                      </div>
+
+                      <Button size="sm" variant="outline" className="w-full mt-4">
+                        <Calculator className="w-3 h-3 mr-1" />
+                        Calculate EMI
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {/* Show default schemes */}
                 {loanSchemes.map((scheme) => (
                   <Card key={scheme.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="font-semibold">{scheme.scheme_name}</h3>
-                          <Badge variant="outline" className="mt-1">Active</Badge>
+                          <Badge variant="outline" className="mt-1">Default Scheme</Badge>
                         </div>
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="ghost">
@@ -342,6 +408,23 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                     </CardContent>
                   </Card>
                 ))}
+                
+                {/* Show add new card if no products exist */}
+                {loanProducts.length === 0 && (
+                  <Card className="hover:shadow-lg transition-shadow border-2 border-dashed border-muted-foreground/20">
+                    <CardContent className="p-8 text-center">
+                      <Plus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-semibold mb-2">Add Your First Product</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Create custom loan products for your customers
+                      </p>
+                      <Button onClick={() => setShowAddProductForm(true)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Product
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -480,6 +563,20 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Add Loan Product Form Dialog */}
+      <Dialog open={showAddProductForm} onOpenChange={setShowAddProductForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <LoanProductForm
+            onSuccess={() => {
+              setShowAddProductForm(false);
+              // Add to local state for demo
+              fetchDashboardData();
+            }}
+            onCancel={() => setShowAddProductForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
