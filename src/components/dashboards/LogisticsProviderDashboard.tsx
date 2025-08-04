@@ -114,7 +114,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
 
   // Enhanced access check for logistics providers
   const userType = userProfile?.user_type || userProfile?.primary_user_type;
-  const isLogisticsProvider = userType === 'logistics_provider';
+  const isLogisticsProvider = userType === 'logistics_provider' || userType === 'logistics';
 
   console.log('🚛 Logistics Dashboard Debug:', {
     userType,
