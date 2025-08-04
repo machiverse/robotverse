@@ -34,6 +34,7 @@ interface Robot {
     full_name: string;
     company_name: string;
     phone: string;
+    mobile_number: string;
     email: string;
     location: string;
   };
@@ -84,6 +85,7 @@ const RobotDetails = () => {
               full_name,
               company_name,
               phone,
+              mobile_number,
               email,
               location
             )
@@ -113,7 +115,9 @@ const RobotDetails = () => {
 
   // Contact seller by phone
   const handleContactSeller = () => {
-    if (!robot?.profiles?.phone) {
+    const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
+    
+    if (!phone) {
       toast({
         title: "Phone Number Not Available",
         description: "Seller's phone number is not provided.",
@@ -121,11 +125,11 @@ const RobotDetails = () => {
       });
       return;
     }
-    const phoneNumber = robot.profiles.phone.replace(/\D/g, '');
+    const phoneNumber = phone.replace(/\D/g, '');
     window.open(`tel:${phoneNumber}`, '_self');
     toast({
       title: "Calling Seller",
-      description: `Calling ${robot.profiles.full_name} at ${robot.profiles.phone}`,
+      description: `Calling ${robot.profiles.company_name || robot.profiles.full_name} at ${phone}`,
     });
   };
 
