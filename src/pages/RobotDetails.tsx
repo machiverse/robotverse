@@ -90,7 +90,10 @@ const RobotDetails = () => {
           .single();
 
         if (error) throw error;
-        setRobot(data);
+        setRobot({
+          ...data,
+          technical_specifications: (data.technical_specifications as Record<string, any>) || {}
+        });
         
         if (user) {
           const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
