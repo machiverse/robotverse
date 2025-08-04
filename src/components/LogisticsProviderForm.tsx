@@ -100,6 +100,11 @@ const LogisticsProviderForm = ({ onComplete }: LogisticsProviderFormProps) => {
       return;
     }
 
+    if (!formData.company_name || !formData.phone || !formData.logistics_type || !formData.logistics_region) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     if (!formData.mou_agreed) {
       toast.error('Please agree to the MOU to continue');
       return;
@@ -108,30 +113,65 @@ const LogisticsProviderForm = ({ onComplete }: LogisticsProviderFormProps) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      // First check if profile exists
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .update({
-          company_name: formData.company_name,
-          phone: formData.phone,
-          logistics_type: formData.logistics_type,
-          logistics_region: formData.logistics_region,
-          transport_modes: formData.transport_modes,
-          warehouse_storage: formData.warehouse_storage,
-          target_audience: formData.target_audience,
-          government_scheme_support: formData.government_scheme_support,
-          mou_agreed: formData.mou_agreed,
-          mou_agreed_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
 
-      if (error) throw error;
+      if (!existingProfile) {
+        // Create profile if it doesn't exist
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || '',
+            company_name: formData.company_name,
+            phone: formData.phone,
+            logistics_type: formData.logistics_type,
+            logistics_region: formData.logistics_region,
+            transport_modes: formData.transport_modes,
+            warehouse_storage: formData.warehouse_storage,
+            target_audience: formData.target_audience,
+            government_scheme_support: formData.government_scheme_support,
+            mou_agreed: formData.mou_agreed,
+            mou_agreed_at: new Date().toISOString(),
+            primary_user_type: 'logistics_provider',
+            registration_complete: true
+          });
+
+        if (insertError) throw insertError;
+      } else {
+        // Update existing profile
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            company_name: formData.company_name,
+            phone: formData.phone,
+            logistics_type: formData.logistics_type,
+            logistics_region: formData.logistics_region,
+            transport_modes: formData.transport_modes,
+            warehouse_storage: formData.warehouse_storage,
+            target_audience: formData.target_audience,
+            government_scheme_support: formData.government_scheme_support,
+            mou_agreed: formData.mou_agreed,
+            mou_agreed_at: new Date().toISOString(),
+            primary_user_type: 'logistics_provider',
+            registration_complete: true
+          })
+          .eq('user_id', user.id);
+
+        if (updateError) throw updateError;
+      }
 
       toast.success('Logistics provider profile completed successfully!');
       onComplete();
 
     } catch (error: any) {
       console.error('Error updating logistics provider profile:', error);
-      toast.error('Failed to complete registration');
+      toast.error(`Failed to complete registration: ${error.message}`);
     } finally {
       setLoading(false);
     }
