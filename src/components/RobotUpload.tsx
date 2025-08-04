@@ -44,6 +44,8 @@ interface RobotFormData {
   robot_type: string;
   quantity: number;
   location: string;
+  state: string;
+  pincode: string;
   price: number | null;
   currency: string;
   description: string;
@@ -96,6 +98,8 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         robot_type: robotData.robot_type || '',
         quantity: robotData.quantity || 1,
         location: robotData.location || '',
+        state: robotData.state || '',
+        pincode: robotData.pincode || '',
         price: robotData.price || null,
         currency: robotData.currency || 'INR',
         description: robotData.description || '',
@@ -125,6 +129,8 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
       robot_type: '',
       quantity: 1,
       location: '',
+      state: '',
+      pincode: '',
       price: null,
       currency: 'INR',
       description: '',
@@ -450,6 +456,8 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           robot_type: formData.robot_type,
           quantity: formData.quantity,
           location: formData.location,
+          state: formData.state,
+          pincode: formData.pincode,
           price: formData.price,
           currency: formData.currency,
           description: formData.description,
@@ -500,6 +508,8 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
             robot_type: formData.robot_type,
             quantity: formData.quantity,
             location: formData.location,
+            state: formData.state,
+            pincode: formData.pincode,
             price: formData.price,
             currency: formData.currency,
             description: formData.description,
@@ -540,6 +550,8 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         robot_type: '',
         quantity: 1,
         location: '',
+        state: '',
+        pincode: '',
         price: null,
         currency: 'INR',
         description: '',
@@ -831,7 +843,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="quantity">Quantity *</Label>
                 <Input
@@ -865,9 +877,11 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="year_manufactured">Year</Label>
+                <Label htmlFor="year_manufactured">Year Manufactured</Label>
                 <Input
                   id="year_manufactured"
                   type="number"
@@ -879,12 +893,35 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location">City/Location</Label>
                 <Input
                   id="location"
                   value={formData.location}
                   onChange={(e) => handleInputChange('location', e.target.value)}
-                  placeholder="City, State"
+                  placeholder="e.g., Mumbai, Pune, Chennai"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => handleInputChange('state', e.target.value)}
+                  placeholder="e.g., Maharashtra, Tamil Nadu"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pincode">Pincode</Label>
+                <Input
+                  id="pincode"
+                  value={formData.pincode}
+                  onChange={(e) => handleInputChange('pincode', e.target.value)}
+                  placeholder="e.g., 400001"
+                  maxLength={6}
                 />
               </div>
             </div>
