@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Part {
   id: string;
@@ -20,6 +21,14 @@ interface Part {
   rating: number;
   availability: string;
   quantity: number;
+  seller?: {
+    full_name?: string;
+    company_name?: string;
+    phone?: string;
+    mobile_number?: string;
+    email?: string;
+  };
+  sellerId?: string;
 }
 
 const Parts = () => {
@@ -30,6 +39,7 @@ const Parts = () => {
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const categories = [
     { value: "all", label: "All Parts" },
@@ -61,7 +71,10 @@ const Parts = () => {
             profiles!spare_parts_seller_id_fkey (
               full_name,
               company_name,
-              location
+              location,
+              phone,
+              mobile_number,
+              email
             )
           `)
           .order('created_at', { ascending: false });
@@ -80,7 +93,9 @@ const Parts = () => {
           compatibility: item.compatible_robots?.join(', ') || 'Universal',
           rating: 4.5, // Default rating
           availability: 'In Stock',
-          quantity: item.quantity
+          quantity: item.quantity,
+          seller: item.profiles || {},
+          sellerId: item.seller_id
         }));
         
         setParts(transformedData);
@@ -96,6 +111,26 @@ const Parts = () => {
 
     fetchParts();
   }, []);
+
+  // Handle contact seller
+  const handleContactSeller = (part: Part) => {
+    const phone = part.seller?.phone || part.seller?.mobile_number;
+    
+    if (!phone) {
+      toast({
+        variant: "destructive",
+        title: "Contact Unavailable",
+        description: "Seller's phone number is not available.",
+      });
+      return;
+    }
+    
+    window.open(`tel:${phone}`, '_self');
+    toast({
+      title: "Calling Seller",
+      description: `Calling ${part.seller?.company_name || part.seller?.full_name}...`,
+    });
+  };
 
   // Filter parts based on search and selections
   const filteredParts = parts.filter((part) => {
@@ -279,7 +314,12 @@ const Parts = () => {
                         <Button size="sm" className="flex-1">
                           Add to Cart
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleContactSeller(part)}
+                          disabled={!part.seller?.phone && !part.seller?.mobile_number}
+                        >
                           Contact Seller
                         </Button>
                       </div>

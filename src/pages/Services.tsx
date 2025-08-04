@@ -8,15 +8,40 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Settings, MapPin, Search, Grid, List, Star, Clock, Users } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Service {
+  id: string;
+  name: string;
+  category: string;
+  priceRange: string;
+  location: string;
+  provider: string;
+  image: string;
+  description: string;
+  rating: number;
+  responseTime: string;
+  completedJobs: number;
+  availability: string;
+  providerProfile?: {
+    full_name?: string;
+    company_name?: string;
+    phone?: string;
+    mobile_number?: string;
+    email?: string;
+  };
+  providerId?: string;
+}
 
 const Services = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const categories = [
     { value: "all", label: "All Services" },
@@ -48,7 +73,10 @@ const Services = () => {
             profiles!services_provider_id_fkey (
               full_name,
               company_name,
-              location
+              location,
+              phone,
+              mobile_number,
+              email
             )
           `)
           .order('created_at', { ascending: false });
@@ -68,7 +96,9 @@ const Services = () => {
           rating: 4.5, // Default rating
           responseTime: "2-4 hours", // Default response time
           completedJobs: Math.floor(Math.random() * 100) + 50, // Random for demo
-          availability: "Available"
+          availability: "Available",
+          providerProfile: item.profiles || {},
+          providerId: item.provider_id
         }));
         
         setServices(transformedData);
@@ -84,6 +114,26 @@ const Services = () => {
 
     fetchServices();
   }, []);
+
+  // Handle contact provider
+  const handleContactProvider = (service: Service) => {
+    const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
+    
+    if (!phone) {
+      toast({
+        variant: "destructive",
+        title: "Contact Unavailable",
+        description: "Provider's phone number is not available.",
+      });
+      return;
+    }
+    
+    window.open(`tel:${phone}`, '_self');
+    toast({
+      title: "Calling Provider",
+      description: `Calling ${service.providerProfile?.company_name || service.providerProfile?.full_name}...`,
+    });
+  };
 
   const filteredServices = services.filter((service) => {
     const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -251,7 +301,12 @@ const Services = () => {
                     <Button size="sm" className="flex-1">
                       Request Quote
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleContactProvider(service)}
+                      disabled={!service.providerProfile?.phone && !service.providerProfile?.mobile_number}
+                    >
                       Contact Provider
                     </Button>
                   </div>
