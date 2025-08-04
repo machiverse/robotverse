@@ -22,6 +22,8 @@ interface Robot {
   currency: string;
   description: string;
   location: string;
+  state?: string;
+  pincode?: string;
   availability: string;
   images: string[];
   technical_specifications: Record<string, any>;
@@ -290,7 +292,19 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
   // Calculate import duty if outside India (~18%)
   const calculateImportDuty = (basePrice: number, currency: string) => {
-    const isOutsideIndia = robot?.location && !robot.location.toLowerCase().includes('india');
+    // List of Indian states for checking
+    const indianStates = [
+      'andhra pradesh', 'arunachal pradesh', 'assam', 'bihar', 'chhattisgarh', 'goa', 'gujarat', 
+      'haryana', 'himachal pradesh', 'jharkhand', 'karnataka', 'kerala', 'madhya pradesh', 
+      'maharashtra', 'manipur', 'meghalaya', 'mizoram', 'nagaland', 'odisha', 'punjab', 
+      'rajasthan', 'sikkim', 'tamil nadu', 'telangana', 'tripura', 'uttar pradesh', 
+      'uttarakhand', 'west bengal', 'delhi', 'jammu and kashmir', 'ladakh', 'chandigarh', 
+      'dadra and nagar haveli and daman and diu', 'lakshadweep', 'puducherry'
+    ];
+    
+    const isInIndia = robot?.state && indianStates.includes(robot.state.toLowerCase());
+    const isOutsideIndia = !isInIndia;
+    
     if (isOutsideIndia && basePrice) {
       const dutyRate = 0.18;
       const duty = basePrice * dutyRate;
@@ -689,13 +703,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <Card>
               <CardContent className="p-0">
                 <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
+                  <TabsList className={`grid w-full ${importDuty ? 'grid-cols-6' : 'grid-cols-5'} rounded-none border-b`}>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="specifications">Specifications</TabsTrigger>
                     <TabsTrigger value="services">Services</TabsTrigger>
                     <TabsTrigger value="spareparts">Spare Parts</TabsTrigger>
                     <TabsTrigger value="financing">Financing</TabsTrigger>
-                    <TabsTrigger value="import">Import</TabsTrigger>
+                    {importDuty && <TabsTrigger value="import">Import</TabsTrigger>}
                   </TabsList>
                   
                   {/* Overview */}
@@ -813,10 +827,10 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Import */}
-                  <TabsContent value="import" className="p-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Import Information</h3>
-                      {importDuty ? (
+                  {importDuty && (
+                    <TabsContent value="import" className="p-6">
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Import Information</h3>
                         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                           <div className="flex items-center mb-3">
                             <Plane className="w-5 h-5 text-orange-600 mr-2" />
@@ -841,19 +855,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                             *Additional shipping, insurance, and customs processing fees may apply
                           </div>
                         </div>
-                      ) : (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <MapPin className="w-5 h-5 text-green-600 mr-2" />
-                            <h4 className="font-semibold text-green-800">Domestic Purchase</h4>
-                          </div>
-                          <p className="text-sm text-green-700">
-                            This robot is located in India. No import duties apply.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
+                      </div>
+                    </TabsContent>
+                  )}
                 </Tabs>
               </CardContent>
             </Card>
