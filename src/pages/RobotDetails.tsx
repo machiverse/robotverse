@@ -22,6 +22,8 @@ interface Robot {
   currency: string;
   description: string;
   location: string;
+  state: string;
+  pincode: string;
   availability: string;
   images: string[];
   technical_specifications: any;
@@ -294,12 +296,28 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     return `${currencySymbol}${price.toLocaleString()}`;
   };
 
-  // Calculate import duty for locations outside India
+  // Calculate import duty based on state and pincode for locations outside India
   const calculateImportDuty = (basePrice: number, currency: string) => {
-    const isOutsideIndia = robot?.location && !robot.location.toLowerCase().includes('india');
+    // Check if robot is outside India by state or location
+    const isOutsideIndia = robot && (
+      (robot.state && !robot.state.toLowerCase().includes('india') && robot.state.toLowerCase() !== 'india') ||
+      (robot.location && !robot.location.toLowerCase().includes('india'))
+    );
+    
     if (isOutsideIndia && basePrice) {
-      // Typical import duty for industrial robots is around 7.5% + customs (10%) = ~18%
-      const dutyRate = 0.18;
+      // Import duty varies by state/country but typically 7.5% + customs (10%) = ~18% for industrial robots
+      let dutyRate = 0.18;
+      
+      // Adjust duty rate based on specific countries/regions if state is provided
+      if (robot.state) {
+        const stateCode = robot.state.toLowerCase();
+        if (stateCode.includes('germany') || stateCode.includes('de')) dutyRate = 0.15;
+        else if (stateCode.includes('china') || stateCode.includes('cn')) dutyRate = 0.20;
+        else if (stateCode.includes('japan') || stateCode.includes('jp')) dutyRate = 0.12;
+        else if (stateCode.includes('usa') || stateCode.includes('us')) dutyRate = 0.16;
+        else if (stateCode.includes('uk') || stateCode.includes('britain')) dutyRate = 0.14;
+      }
+      
       const duty = basePrice * dutyRate;
       setImportDuty(duty);
       return duty;
@@ -602,6 +620,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   <div className="flex items-center text-muted-foreground">
                     <MapPin className="w-4 h-4 mr-2" />
                     <span>{robot.location}</span>
+                    {robot.state && (
+                      <span className="ml-2 text-sm">({robot.state})</span>
+                    )}
+                    {robot.pincode && (
+                      <span className="ml-2 text-sm">- {robot.pincode}</span>
+                    )}
                   </div>
 
                   {robot.description && (
@@ -756,17 +780,29 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           <p className="text-muted-foreground">{robot.location}</p>
                         </div>
                         <div>
-                          <span className="font-medium">State:</span>
-                          <p className="text-muted-foreground">Saxony [ DE-SN ]</p>
+                          <span className="font-medium">State/Region:</span>
+                          <p className="text-muted-foreground">{robot.state || 'Not specified'}</p>
                         </div>
                         <div>
-                          <span className="font-medium">Price:</span>
+                          <span className="font-medium">Postal Code:</span>
+                          <p className="text-muted-foreground">{robot.pincode || 'Not specified'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Base Price:</span>
                           <p className="text-muted-foreground">{robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}</p>
                         </div>
-                        <div>
-                          <span className="font-medium">Negotiable:</span>
-                          <p className="text-muted-foreground">No</p>
-                        </div>
+                        {importDuty && (
+                          <>
+                            <div>
+                              <span className="font-medium">Import Duty:</span>
+                              <p className="text-orange-600">{formatPrice(importDuty, robot.currency)} (18%)</p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Total Estimate:</span>
+                              <p className="font-semibold text-primary">{formatPrice((robot.price || 0) + importDuty, robot.currency)}</p>
+                            </div>
+                          </>
+                        )}
                         <div>
                           <span className="font-medium">Views:</span>
                           <p className="text-muted-foreground">29</p>
@@ -829,11 +865,37 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   <TabsContent value="import" className="p-6">
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold">Import Information</h3>
+                      
+                      {/* Origin Location Details */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-800 mb-3">Origin Location</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">City:</span>
+                            <p className="text-muted-foreground">{robot.location}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">State/Region:</span>
+                            <p className="text-muted-foreground">{robot.state || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Postal Code:</span>
+                            <p className="text-muted-foreground">{robot.pincode || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Country:</span>
+                            <p className="text-muted-foreground">
+                              {robot.state && !robot.state.toLowerCase().includes('india') ? 'International' : 'India'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       {importDuty ? (
                         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                           <div className="flex items-center mb-3">
                             <Plane className="w-5 h-5 text-orange-600 mr-2" />
-                            <h4 className="font-semibold text-orange-800">Import to India</h4>
+                            <h4 className="font-semibold text-orange-800">Import to India Required</h4>
                           </div>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
@@ -841,8 +903,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <span className="font-medium">{formatPrice(robot.price, robot.currency)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Estimated Import Duty (18%):</span>
+                              <span>Estimated Import Duty:</span>
                               <span className="font-medium text-orange-600">{formatPrice(importDuty, robot.currency)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Duty Rate:</span>
+                              <span>{Math.round((importDuty / robot.price) * 100)}% (varies by origin)</span>
                             </div>
                             <Separator />
                             <div className="flex justify-between font-semibold">
@@ -850,8 +916,23 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <span>{formatPrice(robot.price + importDuty, robot.currency)}</span>
                             </div>
                           </div>
-                          <div className="mt-4 text-xs text-orange-700">
-                            *Additional shipping, insurance, and customs processing fees may apply
+                          
+                          <div className="mt-4 text-xs text-orange-700 space-y-1">
+                            <p>*Import duty rates vary by country of origin and specific product classification</p>
+                            <p>*Additional costs: Shipping (5-15%), Insurance (1-2%), Customs clearance, Documentation fees</p>
+                            <p>*GST (18%) will be applicable on total landed cost in India</p>
+                          </div>
+                          
+                          <div className="mt-4 pt-3 border-t border-orange-200">
+                            <h5 className="font-semibold text-orange-800 mb-2">Import Documentation Required:</h5>
+                            <ul className="text-xs text-orange-700 space-y-1">
+                              <li>• Commercial Invoice</li>
+                              <li>• Packing List</li>
+                              <li>• Bill of Lading/AWB</li>
+                              <li>• Certificate of Origin</li>
+                              <li>• Technical Specifications</li>
+                              <li>• Import License (if applicable)</li>
+                            </ul>
                           </div>
                         </div>
                       ) : (
@@ -861,7 +942,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                             <h4 className="font-semibold text-green-800">Domestic Purchase</h4>
                           </div>
                           <p className="text-sm text-green-700">
-                            This robot is located in India. No import duties apply.
+                            This robot is located in India. No import duties apply. Only local transportation and GST (18%) applicable.
                           </p>
                         </div>
                       )}

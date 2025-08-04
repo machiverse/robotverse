@@ -323,58 +323,112 @@ export type Database = {
       }
       robots: {
         Row: {
+          applications: string[] | null
           availability: string | null
+          brand: string | null
           category_tags: string[] | null
+          certification_standards: string[] | null
+          condition: string | null
           created_at: string
           currency: string | null
           description: string | null
+          financing_available: boolean
           id: string
           images: string[] | null
+          included_accessories: string[] | null
+          installation_service: boolean
           location: string | null
+          maintenance_contract: boolean
           model: string | null
           name: string
+          operating_environment: string | null
+          payload_capacity: number | null
+          pincode: string | null
+          power_consumption: number | null
           price: number | null
           quantity: number
+          reach: number | null
+          repeatability: number | null
           robot_type: string
           seller_id: string
+          state: string | null
           technical_specifications: Json | null
-          updated_at: string
+          training_included: boolean
+          updated_at: string | null
+          warranty_info: string | null
+          year_manufactured: number | null
         }
         Insert: {
+          applications?: string[] | null
           availability?: string | null
+          brand?: string | null
           category_tags?: string[] | null
+          certification_standards?: string[] | null
+          condition?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          financing_available?: boolean
           id?: string
           images?: string[] | null
+          included_accessories?: string[] | null
+          installation_service?: boolean
           location?: string | null
+          maintenance_contract?: boolean
           model?: string | null
           name: string
+          operating_environment?: string | null
+          payload_capacity?: number | null
+          pincode?: string | null
+          power_consumption?: number | null
           price?: number | null
           quantity?: number
+          reach?: number | null
+          repeatability?: number | null
           robot_type: string
           seller_id: string
+          state?: string | null
           technical_specifications?: Json | null
-          updated_at?: string
+          training_included?: boolean
+          updated_at?: string | null
+          warranty_info?: string | null
+          year_manufactured?: number | null
         }
         Update: {
+          applications?: string[] | null
           availability?: string | null
+          brand?: string | null
           category_tags?: string[] | null
+          certification_standards?: string[] | null
+          condition?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          financing_available?: boolean
           id?: string
           images?: string[] | null
+          included_accessories?: string[] | null
+          installation_service?: boolean
           location?: string | null
+          maintenance_contract?: boolean
           model?: string | null
           name?: string
+          operating_environment?: string | null
+          payload_capacity?: number | null
+          pincode?: string | null
+          power_consumption?: number | null
           price?: number | null
           quantity?: number
+          reach?: number | null
+          repeatability?: number | null
           robot_type?: string
           seller_id?: string
+          state?: string | null
           technical_specifications?: Json | null
-          updated_at?: string
+          training_included?: boolean
+          updated_at?: string | null
+          warranty_info?: string | null
+          year_manufactured?: number | null
         }
         Relationships: [
           {
@@ -449,6 +503,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       service_requests: {
         Row: {
@@ -601,6 +676,7 @@ export type Database = {
       }
       services: {
         Row: {
+          coverage: string | null
           created_at: string
           description: string | null
           id: string
@@ -613,6 +689,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          coverage?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -625,6 +702,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          coverage?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -707,6 +785,21 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      states: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id?: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
