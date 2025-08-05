@@ -24,6 +24,7 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
   const [formData, setFormData] = useState({
     product_name: '',
     loan_type: '',
+    professional_types: [] as string[],
     description: '',
     min_amount: '',
     max_amount: '',
@@ -49,6 +50,21 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
     'Line of Credit',
     'MSME Loan',
     'Startup Funding'
+  ];
+
+  const professionalTypes = [
+    'Doctor',
+    'Engineer',
+    'Lawyer',
+    'Chartered Accountant',
+    'Architect',
+    'Consultant',
+    'IT Professional',
+    'Teacher/Professor',
+    'Pharmacist',
+    'Dentist',
+    'Veterinarian',
+    'Financial Advisor'
   ];
 
   const documentTypes = [
@@ -80,6 +96,15 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
     }));
   };
 
+  const handleProfessionalTypeChange = (professionalType: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      professional_types: checked 
+        ? [...prev.professional_types, professionalType]
+        : prev.professional_types.filter(p => p !== professionalType)
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -104,32 +129,35 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
     setLoading(true);
 
     try {
-      // For now, show success message since loan_products table doesn't exist yet
-      // This will be functional once the table is created
-      console.log('Loan product data:', {
-        provider_id: user.id,
-        product_name: formData.product_name,
-        loan_type: formData.loan_type,
-        description: formData.description,
-        min_amount: parseFloat(formData.min_amount) || 0,
-        max_amount: parseFloat(formData.max_amount),
-        min_interest_rate: parseFloat(formData.min_interest_rate) || 0,
-        max_interest_rate: parseFloat(formData.max_interest_rate) || 0,
-        min_tenure_months: parseInt(formData.min_tenure_months) || 1,
-        max_tenure_months: parseInt(formData.max_tenure_months) || 12,
-        processing_fee_percentage: parseFloat(formData.processing_fee_percentage) || 0,
-        eligibility_criteria: formData.eligibility_criteria,
-        required_documents: formData.required_documents,
-        collateral_required: formData.collateral_required,
-        quick_approval: formData.quick_approval,
-        digital_process: formData.digital_process,
-        prepayment_allowed: formData.prepayment_allowed,
-        is_active: true
-      });
+      const { error } = await supabase
+        .from('loan_products')
+        .insert({
+          provider_id: user.id,
+          product_name: formData.product_name,
+          loan_type: formData.loan_type,
+          professional_types: formData.professional_types,
+          description: formData.description,
+          min_amount: parseFloat(formData.min_amount) || 0,
+          max_amount: parseFloat(formData.max_amount),
+          min_interest_rate: parseFloat(formData.min_interest_rate) || 0,
+          max_interest_rate: parseFloat(formData.max_interest_rate) || 0,
+          min_tenure_months: parseInt(formData.min_tenure_months) || 1,
+          max_tenure_months: parseInt(formData.max_tenure_months) || 12,
+          processing_fee_percentage: parseFloat(formData.processing_fee_percentage) || 0,
+          eligibility_criteria: formData.eligibility_criteria,
+          required_documents: formData.required_documents,
+          collateral_required: formData.collateral_required,
+          quick_approval: formData.quick_approval,
+          digital_process: formData.digital_process,
+          prepayment_allowed: formData.prepayment_allowed,
+          is_active: true
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Loan product form completed! (Database integration pending)"
+        description: "Loan product added successfully!"
       });
 
       onSuccess();
@@ -181,6 +209,26 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Professional Types - Multi Choice */}
+          <div className="space-y-2">
+            <Label>Target Professional Types (Optional)</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 border rounded-lg bg-muted/20">
+              {professionalTypes.map((professionalType) => (
+                <div key={professionalType} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={professionalType}
+                    checked={formData.professional_types.includes(professionalType)}
+                    onCheckedChange={(checked) => handleProfessionalTypeChange(professionalType, checked as boolean)}
+                  />
+                  <Label htmlFor={professionalType} className="text-sm">{professionalType}</Label>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select specific professional categories this loan targets (leave empty for general loans)
+            </p>
           </div>
 
           <div className="space-y-2">

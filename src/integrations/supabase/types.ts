@@ -103,6 +103,81 @@ export type Database = {
           },
         ]
       }
+      loan_products: {
+        Row: {
+          collateral_required: boolean | null
+          created_at: string
+          description: string | null
+          digital_process: boolean | null
+          eligibility_criteria: string | null
+          id: string
+          is_active: boolean | null
+          loan_type: string
+          max_amount: number
+          max_interest_rate: number | null
+          max_tenure_months: number | null
+          min_amount: number | null
+          min_interest_rate: number | null
+          min_tenure_months: number | null
+          prepayment_allowed: boolean | null
+          processing_fee_percentage: number | null
+          product_name: string
+          professional_types: string[] | null
+          provider_id: string
+          quick_approval: boolean | null
+          required_documents: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          collateral_required?: boolean | null
+          created_at?: string
+          description?: string | null
+          digital_process?: boolean | null
+          eligibility_criteria?: string | null
+          id?: string
+          is_active?: boolean | null
+          loan_type: string
+          max_amount: number
+          max_interest_rate?: number | null
+          max_tenure_months?: number | null
+          min_amount?: number | null
+          min_interest_rate?: number | null
+          min_tenure_months?: number | null
+          prepayment_allowed?: boolean | null
+          processing_fee_percentage?: number | null
+          product_name: string
+          professional_types?: string[] | null
+          provider_id: string
+          quick_approval?: boolean | null
+          required_documents?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          collateral_required?: boolean | null
+          created_at?: string
+          description?: string | null
+          digital_process?: boolean | null
+          eligibility_criteria?: string | null
+          id?: string
+          is_active?: boolean | null
+          loan_type?: string
+          max_amount?: number
+          max_interest_rate?: number | null
+          max_tenure_months?: number | null
+          min_amount?: number | null
+          min_interest_rate?: number | null
+          min_tenure_months?: number | null
+          prepayment_allowed?: boolean | null
+          processing_fee_percentage?: number | null
+          product_name?: string
+          professional_types?: string[] | null
+          provider_id?: string
+          quick_approval?: boolean | null
+          required_documents?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       logistics_coverage: {
         Row: {
           area_name: string
