@@ -7,8 +7,9 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import LogisticsServiceCard from "@/components/LogisticsServiceCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -62,6 +63,14 @@ const RobotDetails = () => {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Data states for tabs
+  const [services, setServices] = useState<any[]>([]);
+  const [spareParts, setSpareParts] = useState<any[]>([]);
+  const [financingOptions, setFinancingOptions] = useState<any[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingSpareParts, setLoadingSpareParts] = useState(false);
+  const [loadingFinancing, setLoadingFinancing] = useState(false);
+  
   // Enhanced states
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullscreen, setShowFullscreen] = useState(false);
@@ -112,6 +121,108 @@ const RobotDetails = () => {
     };
     fetchRobot();
   }, [id, user]);
+
+  // Fetch related services for this robot type
+  const fetchRelatedServices = async () => {
+    if (!robot) return;
+    
+    setLoadingServices(true);
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select(`
+          *,
+          profiles!services_provider_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            location,
+            avatar_url
+          )
+        `)
+        .or(`specializations.cs.{${robot.robot_type}},service_type.ilike.%${robot.robot_type}%`)
+        .limit(6);
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (err) {
+      console.error('Error fetching services:', err);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  // Fetch compatible spare parts
+  const fetchCompatibleSpareParts = async () => {
+    if (!robot) return;
+    
+    setLoadingSpareParts(true);
+    try {
+      const { data, error } = await supabase
+        .from('spare_parts')
+        .select(`
+          *,
+          profiles!spare_parts_seller_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            location
+          )
+        `)
+        .or(`compatible_robots.cs.{${robot.model}},compatible_robots.cs.{${robot.name}},name.ilike.%${robot.robot_type}%`)
+        .limit(8);
+
+      if (error) throw error;
+      setSpareParts(data || []);
+    } catch (err) {
+      console.error('Error fetching spare parts:', err);
+    } finally {
+      setLoadingSpareParts(false);
+    }
+  };
+
+  // Fetch financing options (placeholder for now)
+  const fetchFinancingOptions = async () => {
+    setLoadingFinancing(true);
+    try {
+      // Placeholder financing data
+      setFinancingOptions([
+        {
+          id: 1,
+          provider: "RoboFin Solutions",
+          type: "Equipment Loan",
+          rate: "8.5% - 12%",
+          tenure: "1-5 years",
+          amount: "Up to ₹2 Crores",
+          processing: "2-3 weeks",
+          features: ["No collateral up to ₹50L", "Flexible EMI", "Quick approval"]
+        },
+        {
+          id: 2,
+          provider: "TechLease India",
+          type: "Lease Financing",
+          rate: "10% - 15%",
+          tenure: "2-7 years",
+          amount: "₹10L - ₹5 Crores",
+          processing: "1-2 weeks",
+          features: ["Tax benefits", "Buyback option", "Maintenance included"]
+        }
+      ]);
+    } catch (err) {
+      console.error('Error fetching financing:', err);
+    } finally {
+      setLoadingFinancing(false);
+    }
+  };
+
+  // Load related data when robot is loaded
+  useEffect(() => {
+    if (robot) {
+      fetchRelatedServices();
+      fetchCompatibleSpareParts();
+      fetchFinancingOptions();
+    }
+  }, [robot]);
 
   // Contact seller by phone
   const handleContactSeller = () => {
@@ -793,40 +904,305 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
                   {/* Services */}
                   <TabsContent value="services" className="p-6">
-                    <div className="text-center py-8">
-                      <Settings className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Service Providers</h3>
-                      <p className="text-muted-foreground mb-4">Find maintenance, repair, and installation services for this robot.</p>
-                      <Button onClick={() => navigate('/services')}>
-                        <Settings className="w-4 h-4 mr-2" />
-                        Browse Services
-                      </Button>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Available Services</h3>
+                        <Button variant="outline" onClick={() => navigate('/services')}>
+                          <Search className="w-4 h-4 mr-2" />
+                          Browse All Services
+                        </Button>
+                      </div>
+                      
+                      {loadingServices ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-32 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : services.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {services.map((service) => (
+                            <Card key={service.id} className="hover:shadow-md transition-shadow">
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <h4 className="font-semibold">{service.name}</h4>
+                                      <p className="text-sm text-muted-foreground">{service.service_type}</p>
+                                    </div>
+                                    <Badge variant="secondary">{service.price_range || 'Contact for Quote'}</Badge>
+                                  </div>
+                                  
+                                  <p className="text-sm line-clamp-2">{service.description}</p>
+                                  
+                                  {service.specializations && service.specializations.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {service.specializations.slice(0, 3).map((spec: string, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          {spec}
+                                        </Badge>
+                                      ))}
+                                      {service.specializations.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{service.specializations.length - 3} more
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center text-muted-foreground">
+                                      <MapPin className="w-3 h-3 mr-1" />
+                                      {service.location || service.profiles?.location || 'Location not specified'}
+                                    </div>
+                                    <Button size="sm" variant="outline">
+                                      <MessageCircle className="w-3 h-3 mr-1" />
+                                      Contact
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Settings className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
+                          <p className="text-muted-foreground mb-4">No specialized services found for this robot type.</p>
+                          <Button onClick={() => navigate('/services')}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Browse All Services
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 
                   {/* Spare Parts */}
                   <TabsContent value="spareparts" className="p-6">
-                    <div className="text-center py-8">
-                      <Wrench className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Spare Parts</h3>
-                      <p className="text-muted-foreground mb-4">Find compatible spare parts and components for this robot model.</p>
-                      <Button onClick={() => navigate('/parts')}>
-                        <Wrench className="w-4 h-4 mr-2" />
-                        Browse Parts
-                      </Button>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Compatible Spare Parts</h3>
+                        <Button variant="outline" onClick={() => navigate('/parts')}>
+                          <Search className="w-4 h-4 mr-2" />
+                          Browse All Parts
+                        </Button>
+                      </div>
+                      
+                      {loadingSpareParts ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-40 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : spareParts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {spareParts.map((part) => (
+                            <Card key={part.id} className="hover:shadow-md transition-shadow">
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  {part.images && part.images.length > 0 && (
+                                    <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                                      <img 
+                                        src={part.images[0]} 
+                                        alt={part.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  <div>
+                                    <h4 className="font-semibold line-clamp-1">{part.name}</h4>
+                                    {part.part_number && (
+                                      <p className="text-xs text-muted-foreground">Part #: {part.part_number}</p>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm">
+                                      {part.price ? (
+                                        <span className="font-semibold text-green-600">
+                                          {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? '€' : '₹'}
+                                          {part.price.toLocaleString()}
+                                        </span>
+                                      ) : (
+                                        <span className="text-muted-foreground">Price on Request</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center text-xs text-muted-foreground">
+                                      <Package className="w-3 h-3 mr-1" />
+                                      Qty: {part.quantity}
+                                    </div>
+                                  </div>
+                                  
+                                  {part.category_tags && part.category_tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {part.category_tags.slice(0, 2).map((tag: string, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          <Tag className="w-2 h-2 mr-1" />
+                                          {tag}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center text-muted-foreground">
+                                      <MapPin className="w-3 h-3 mr-1" />
+                                      {part.location || 'Not specified'}
+                                    </div>
+                                    <Button size="sm" variant="outline">
+                                      <MessageCircle className="w-3 h-3 mr-1" />
+                                      Inquire
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Wrench className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Parts Found</h3>
+                          <p className="text-muted-foreground mb-4">No compatible spare parts found for this robot model.</p>
+                          <Button onClick={() => navigate('/parts')}>
+                            <Wrench className="w-4 h-4 mr-2" />
+                            Browse All Parts
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 
                   {/* Financing */}
                   <TabsContent value="financing" className="p-6">
-                    <div className="text-center py-8">
-                      <DollarSign className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Financing Options</h3>
-                      <p className="text-muted-foreground mb-4">Explore financing and leasing options for this equipment.</p>
-                      <Button disabled>
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        Check Financing
-                      </Button>
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold">Financing Options</h3>
+                          <p className="text-sm text-muted-foreground">Explore financing solutions for this equipment</p>
+                        </div>
+                        <Button variant="outline">
+                          <Calculator className="w-4 h-4 mr-2" />
+                          EMI Calculator
+                        </Button>
+                      </div>
+                      
+                      {loadingFinancing ? (
+                        <div className="space-y-4">
+                          {[...Array(2)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-32 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : financingOptions.length > 0 ? (
+                        <div className="grid gap-4">
+                          {financingOptions.map((option) => (
+                            <Card key={option.id} className="border-l-4 border-l-green-500">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-semibold text-lg">{option.provider}</h4>
+                                      <p className="text-sm text-muted-foreground">{option.type}</p>
+                                    </div>
+                                    <Badge variant="secondary" className="bg-green-50 text-green-700">
+                                      {option.rate}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Loan Amount</p>
+                                      <p className="font-medium">{option.amount}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Tenure</p>
+                                      <p className="font-medium">{option.tenure}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Processing Time</p>
+                                      <p className="font-medium">{option.processing}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Interest Rate</p>
+                                      <p className="font-medium">{option.rate}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <p className="text-sm font-medium">Key Features:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {option.features.map((feature: string, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          <Shield className="w-2 h-2 mr-1" />
+                                          {feature}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex gap-2">
+                                    <Button className="flex-1">
+                                      <CreditCard className="w-4 h-4 mr-2" />
+                                      Apply Now
+                                    </Button>
+                                    <Button variant="outline">
+                                      <Phone className="w-4 h-4 mr-2" />
+                                      Contact
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <DollarSign className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Financing Options</h3>
+                          <p className="text-muted-foreground mb-4">No financing options available at the moment.</p>
+                          <Button variant="outline">
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            Contact for Custom Financing
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {robot?.price && (
+                        <Card className="bg-blue-50 border-blue-200">
+                          <CardContent className="p-4">
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-blue-900">Quick EMI Estimate</h4>
+                              <p className="text-sm text-blue-700">
+                                For equipment price of {formatPrice(robot.price, robot.currency)}
+                              </p>
+                              <div className="grid grid-cols-3 gap-4 text-xs">
+                                <div className="text-center">
+                                  <p className="text-blue-600">1 Year</p>
+                                  <p className="font-semibold">₹{Math.round(robot.price * 0.09).toLocaleString()}/mo</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-blue-600">3 Years</p>
+                                  <p className="font-semibold">₹{Math.round(robot.price * 0.032).toLocaleString()}/mo</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-blue-600">5 Years</p>
+                                  <p className="font-semibold">₹{Math.round(robot.price * 0.021).toLocaleString()}/mo</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-blue-600">*Estimates based on 9-12% interest rate</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                   </TabsContent>
 
@@ -863,6 +1239,31 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     </TabsContent>
                   )}
                 </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Logistics Services Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Logistics & Shipping
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Available logistics providers for shipping this robot
+                </p>
+              </CardHeader>
+              <CardContent>
+                <LogisticsServiceCard 
+                  robotLocation={robot?.location}
+                  onRequestQuote={(serviceId, providerId) => {
+                    toast({
+                      title: "Quote Requested",
+                      description: `Quote request sent to logistics provider`,
+                    });
+                  }}
+                  limit={3}
+                />
               </CardContent>
             </Card>
 
