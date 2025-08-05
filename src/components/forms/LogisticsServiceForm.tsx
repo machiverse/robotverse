@@ -75,7 +75,9 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
     'Temperature Controlled Transport',
     'Hazardous Material Transport',
     'White Glove Service',
-    'Installation & Setup Service'
+    'Installation & Setup Service',
+    'Port Handling',
+    'Duties Clearance'
   ];
 
   const transportModes = [
@@ -107,15 +109,39 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
       const { data, error } = await supabase
         .from('coverage_areas')
         .select('*')
-        .eq('is_active', true) // Active coverage areas
+        .eq('is_active', true)
         .order('area_type', { ascending: true })
         .order('zone_type', { ascending: true })
         .order('area_name', { ascending: true });
 
       if (error) throw error;
-      setAvailableCoverageAreas(data || []);
+      
+      // If no data exists, create default coverage areas
+      if (!data || data.length === 0) {
+        const defaultAreas = [
+          { id: 'dom-1', area_name: 'Mumbai', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'dom-2', area_name: 'Delhi', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'dom-3', area_name: 'Bangalore', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'dom-4', area_name: 'Chennai', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'dom-5', area_name: 'Pune', area_type: 'domestic', zone_type: 'tier1', delivery_time: '48 hours', base_rate: 120, per_kg_rate: 12, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'dom-6', area_name: 'Hyderabad', area_type: 'domestic', zone_type: 'tier1', delivery_time: '48 hours', base_rate: 120, per_kg_rate: 12, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'int-1', area_name: 'USA', area_type: 'international', zone_type: 'international', delivery_time: '7-10 days', base_rate: 2000, per_kg_rate: 200, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'int-2', area_name: 'Europe', area_type: 'international', zone_type: 'international', delivery_time: '5-7 days', base_rate: 1800, per_kg_rate: 180, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+          { id: 'int-3', area_name: 'Singapore', area_type: 'international', zone_type: 'international', delivery_time: '3-5 days', base_rate: 1500, per_kg_rate: 150, is_active: true, provider_id: '', created_at: '', updated_at: '' }
+        ];
+        setAvailableCoverageAreas(defaultAreas as any);
+      } else {
+        setAvailableCoverageAreas(data);
+      }
     } catch (error) {
       console.error('Error fetching coverage areas:', error);
+      // Fallback to default areas in case of error
+      const defaultAreas = [
+        { id: 'dom-1', area_name: 'Mumbai', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+        { id: 'dom-2', area_name: 'Delhi', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+        { id: 'dom-3', area_name: 'Bangalore', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' }
+      ];
+      setAvailableCoverageAreas(defaultAreas as any);
     }
   };
 
