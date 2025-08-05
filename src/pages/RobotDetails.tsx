@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import LoanCalculator from "@/components/forms/LoanCalculator";
 import { Textarea } from "@/components/ui/textarea";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -81,6 +82,7 @@ const RobotDetails = () => {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [showImportQuote, setShowImportQuote] = useState(false);
   const [importDuty, setImportDuty] = useState<number | null>(null);
+  const [showEmiCalculator, setShowEmiCalculator] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -122,6 +124,10 @@ const RobotDetails = () => {
     };
     fetchRobot();
   }, [id, user]);
+
+  useEffect(() => {
+    console.log('Logistics services loaded:', logisticsServices);
+  }, [logisticsServices]);
 
   // Fetch all services from database
   const fetchRelatedServices = async () => {
@@ -212,11 +218,13 @@ const RobotDetails = () => {
         .from('logistics_services')
         .select(`
           *,
-          profiles!logistics_services_provider_id_fkey (
+          profiles!inner (
             full_name,
             company_name,
             phone,
-            location
+            location,
+            email,
+            mobile_number
           )
         `)
         .eq('is_active', true)
@@ -1233,28 +1241,47 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       )}
                       
                       {robot?.price && (
-                        <Card className="bg-blue-50 border-blue-200">
-                          <CardContent className="p-4">
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-blue-900">Quick EMI Estimate</h4>
-                              <p className="text-sm text-blue-700">
-                                For equipment price of {formatPrice(robot.price, robot.currency)}
+                        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:shadow-lg transition-all duration-300">
+                          <CardContent className="p-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-lg font-bold text-blue-900 flex items-center">
+                                  <Calculator className="w-5 h-5 mr-2" />
+                                  Quick EMI Estimate
+                                </h4>
+                                <Button 
+                                  onClick={() => setShowEmiCalculator(true)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                                >
+                                  <Calculator className="w-4 h-4 mr-1" />
+                                  Full Calculator
+                                </Button>
+                              </div>
+                              <p className="text-sm text-blue-700 font-medium">
+                                For equipment price of <span className="font-bold">{formatPrice(robot.price, robot.currency)}</span>
                               </p>
-                              <div className="grid grid-cols-3 gap-4 text-xs">
-                                <div className="text-center">
-                                  <p className="text-blue-600">1 Year</p>
-                                  <p className="font-semibold">₹{Math.round(robot.price * 0.09).toLocaleString()}/mo</p>
+                              <div className="grid grid-cols-3 gap-4">
+                                <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-100">
+                                  <p className="text-xs text-blue-600 font-medium mb-1">1 Year</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.09).toLocaleString()}</p>
+                                  <p className="text-xs text-blue-600">/month</p>
                                 </div>
-                                <div className="text-center">
-                                  <p className="text-blue-600">3 Years</p>
-                                  <p className="font-semibold">₹{Math.round(robot.price * 0.032).toLocaleString()}/mo</p>
+                                <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-100">
+                                  <p className="text-xs text-blue-600 font-medium mb-1">3 Years</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.032).toLocaleString()}</p>
+                                  <p className="text-xs text-blue-600">/month</p>
                                 </div>
-                                <div className="text-center">
-                                  <p className="text-blue-600">5 Years</p>
-                                  <p className="font-semibold">₹{Math.round(robot.price * 0.021).toLocaleString()}/mo</p>
+                                <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-100">
+                                  <p className="text-xs text-blue-600 font-medium mb-1">5 Years</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.021).toLocaleString()}</p>
+                                  <p className="text-xs text-blue-600">/month</p>
                                 </div>
                               </div>
-                              <p className="text-xs text-blue-600">*Estimates based on 9-12% interest rate</p>
+                              <p className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded border border-blue-100">
+                                *Estimates based on 9-12% interest rate. Use full calculator for accurate results.
+                              </p>
                             </div>
                           </CardContent>
                         </Card>
@@ -1468,6 +1495,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </Card>
             )}
           </div>
+
+          {/* EMI Calculator Modal */}
+          <Dialog open={showEmiCalculator} onOpenChange={setShowEmiCalculator}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>EMI Calculator for {robot?.name}</DialogTitle>
+                <DialogDescription>
+                  Calculate your loan EMI for this robot equipment
+                </DialogDescription>
+              </DialogHeader>
+              <LoanCalculator 
+                defaultAmount={robot?.price || 1000000}
+                defaultRate={10.5}
+                defaultTenure={60}
+                onClose={() => setShowEmiCalculator(false)}
+              />
+            </DialogContent>
+          </Dialog>
 
           {/* Sidebar with Seller info and Contact buttons */}
           <div className="space-y-6">
