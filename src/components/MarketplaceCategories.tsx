@@ -175,28 +175,31 @@ const MarketplaceCategories = () => {
   }, []);
 
   return (
-    <section className="py-16 bg-gradient-to-br from-background to-muted/20">
+    <section className="py-16 bg-gradient-to-br from-muted/20 to-background">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-extrabold mb-10 text-center text-slate-900">
+        <h2 className="text-4xl font-extrabold mb-12 text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
           Marketplace Categories
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
           {categoriesData.map((category) => {
             const Icon = category.icon;
             return (
-              <Link key={category.id} to={category.href} tabIndex={0} aria-label={category.title}>
-                <Card
-                  className="group bg-card/80 backdrop-blur-sm border-border hover:scale-105 hover:shadow-glow transition-all duration-300 cursor-pointer"
-                >
-                  <CardContent className="p-6">
+              <Link
+                key={category.id}
+                to={category.href}
+                aria-label={category.title}
+                tabIndex={0}
+                className="group"
+              >
+                <Card className="border border-border/50 bg-card p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer">
+                  <CardContent className="p-0">
                     <div
-                      className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                      className={`w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
                     >
                       <Icon className="w-8 h-8 text-white" aria-hidden="true" />
                     </div>
-
-                    <h3 className="text-xl font-bold mb-2">{category.title}</h3>
-                    <p className="text-muted-foreground mb-4">{category.description}</p>
+                    <h3 className="text-xl font-semibold mb-3 text-foreground">{category.title}</h3>
+                    <p className="text-muted-foreground mb-6">{category.description}</p>
 
                     <div className="space-y-3">
                       {Object.entries(category.stats).map(([key, value]) => (
@@ -215,21 +218,21 @@ const MarketplaceCategories = () => {
                               {key === "listings"
                                 ? "Active listings"
                                 : key === "locations"
-                                ? "locations available"
+                                ? "Locations available"
                                 : key === "suppliers"
-                                ? "suppliers"
+                                ? "Suppliers"
                                 : key === "requests"
                                 ? "Active requests"
                                 : key === "providers"
-                                ? "service providers"
+                                ? "Service providers"
                                 : key === "services"
-                                ? "logistics services"
+                                ? "Logistics services"
                                 : key === "products"
-                                ? "loan products"
+                                ? "Loan products"
                                 : key === "opportunities"
                                 ? "Job opportunities"
                                 : key === "coverage"
-                                ? "coverage areas"
+                                ? "Coverage areas"
                                 : key}
                             </span>
                           </div>
