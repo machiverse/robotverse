@@ -3,7 +3,6 @@ import EnhancedHero from "@/components/EnhancedHero";
 import LiveStats from "@/components/LiveStats";
 import MarketplaceCategories from "@/components/MarketplaceCategories";
 import RobotListings from "@/components/RobotListings";
-import TrustIndicators from "@/components/TrustIndicators";
 import WhyChooseRobotVerse from "@/components/WhyChooseRobotVerse";
 import ProfessionalCategories from "@/components/ProfessionalCategories";
 
@@ -17,7 +16,6 @@ const Index = () => {
       <MarketplaceCategories />
       <ProfessionalCategories />
       <WhyChooseRobotVerse />
-      <TrustIndicators />
     </div>
   );
 };
