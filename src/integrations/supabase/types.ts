@@ -726,54 +726,78 @@ export type Database = {
       }
       spare_parts: {
         Row: {
+          brand: string | null
           category_tags: string[] | null
           compatible_robots: string[] | null
+          condition: string | null
           created_at: string
           currency: string | null
           description: string | null
+          duty_amount: number | null
           id: string
           images: string[] | null
+          is_international: boolean | null
           location: string | null
+          model: string | null
           name: string
           part_number: string | null
+          pincode: string | null
           price: number | null
           quantity: number
           seller_id: string
+          shipping_amount: number | null
           specifications: Json | null
+          state: string | null
           updated_at: string
         }
         Insert: {
+          brand?: string | null
           category_tags?: string[] | null
           compatible_robots?: string[] | null
+          condition?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          duty_amount?: number | null
           id?: string
           images?: string[] | null
+          is_international?: boolean | null
           location?: string | null
+          model?: string | null
           name: string
           part_number?: string | null
+          pincode?: string | null
           price?: number | null
           quantity?: number
           seller_id: string
+          shipping_amount?: number | null
           specifications?: Json | null
+          state?: string | null
           updated_at?: string
         }
         Update: {
+          brand?: string | null
           category_tags?: string[] | null
           compatible_robots?: string[] | null
+          condition?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          duty_amount?: number | null
           id?: string
           images?: string[] | null
+          is_international?: boolean | null
           location?: string | null
+          model?: string | null
           name?: string
           part_number?: string | null
+          pincode?: string | null
           price?: number | null
           quantity?: number
           seller_id?: string
+          shipping_amount?: number | null
           specifications?: Json | null
+          state?: string | null
           updated_at?: string
         }
         Relationships: [

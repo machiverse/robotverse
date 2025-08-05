@@ -39,7 +39,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import EnhancedHeader from '@/components/EnhancedHeader';
+import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
 
 interface SparePart {
   id: string;
@@ -283,7 +283,6 @@ const SparePartsSellerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <EnhancedHeader />
       <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -308,94 +307,15 @@ const SparePartsSellerDashboard = () => {
                 Add Part
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {editingPart ? 'Edit Spare Part' : 'Add New Spare Part'}
+                  Add New Spare Part
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="part_number">Part Number *</Label>
-                    <Input
-                      id="part_number"
-                      value={formData.part_number}
-                      onChange={(e) => setFormData(prev => ({ ...prev, part_number: e.target.value }))}
-                      placeholder="e.g., RB-001-ARM"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Part Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Robot Arm Joint"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Detailed description of the spare part..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity *</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="0"
-                      value={formData.quantity}
-                      onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (₹) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Upload Images</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">Click to upload part images</p>
-                    <Button type="button" variant="outline" size="sm" className="mt-2">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Choose Files
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingPart ? 'Update Part' : 'Add Part'}
-                  </Button>
-                </div>
-              </form>
+              <div className="mt-4">
+                <EnhancedSparePartsForm />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
