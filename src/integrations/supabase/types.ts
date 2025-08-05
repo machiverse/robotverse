@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      coverage_areas: {
+        Row: {
+          area_name: string
+          area_type: string
+          base_rate: number
+          country_name: string | null
+          created_at: string
+          delivery_time: string
+          id: string
+          is_active: boolean | null
+          per_kg_rate: number
+          provider_id: string
+          state_name: string | null
+          updated_at: string
+          zone_type: string
+        }
+        Insert: {
+          area_name: string
+          area_type?: string
+          base_rate?: number
+          country_name?: string | null
+          created_at?: string
+          delivery_time?: string
+          id?: string
+          is_active?: boolean | null
+          per_kg_rate?: number
+          provider_id: string
+          state_name?: string | null
+          updated_at?: string
+          zone_type?: string
+        }
+        Update: {
+          area_name?: string
+          area_type?: string
+          base_rate?: number
+          country_name?: string | null
+          created_at?: string
+          delivery_time?: string
+          id?: string
+          is_active?: boolean | null
+          per_kg_rate?: number
+          provider_id?: string
+          state_name?: string | null
+          updated_at?: string
+          zone_type?: string
+        }
+        Relationships: []
+      }
       document_uploads: {
         Row: {
           document_type: string
@@ -148,6 +196,81 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           vehicle_type?: string
+        }
+        Relationships: []
+      }
+      logistics_services: {
+        Row: {
+          base_price: number | null
+          coverage_areas: string[] | null
+          created_at: string
+          delivery_time_hours: number | null
+          description: string | null
+          emergency_delivery: boolean | null
+          id: string
+          insurance_included: boolean | null
+          international_coverage: string[] | null
+          is_active: boolean | null
+          is_international: boolean | null
+          max_volume_m3: number | null
+          max_weight_kg: number | null
+          price_per_kg: number | null
+          price_per_km: number | null
+          provider_id: string
+          service_name: string
+          service_type: string
+          special_handling: boolean | null
+          tracking_available: boolean | null
+          transport_modes: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number | null
+          coverage_areas?: string[] | null
+          created_at?: string
+          delivery_time_hours?: number | null
+          description?: string | null
+          emergency_delivery?: boolean | null
+          id?: string
+          insurance_included?: boolean | null
+          international_coverage?: string[] | null
+          is_active?: boolean | null
+          is_international?: boolean | null
+          max_volume_m3?: number | null
+          max_weight_kg?: number | null
+          price_per_kg?: number | null
+          price_per_km?: number | null
+          provider_id: string
+          service_name: string
+          service_type: string
+          special_handling?: boolean | null
+          tracking_available?: boolean | null
+          transport_modes?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number | null
+          coverage_areas?: string[] | null
+          created_at?: string
+          delivery_time_hours?: number | null
+          description?: string | null
+          emergency_delivery?: boolean | null
+          id?: string
+          insurance_included?: boolean | null
+          international_coverage?: string[] | null
+          is_active?: boolean | null
+          is_international?: boolean | null
+          max_volume_m3?: number | null
+          max_weight_kg?: number | null
+          price_per_kg?: number | null
+          price_per_km?: number | null
+          provider_id?: string
+          service_name?: string
+          service_type?: string
+          special_handling?: boolean | null
+          tracking_available?: boolean | null
+          transport_modes?: string[] | null
+          updated_at?: string
         }
         Relationships: []
       }
