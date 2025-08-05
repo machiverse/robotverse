@@ -57,7 +57,11 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
     insurance_included: editingService?.insurance_included || false,
     tracking_available: editingService?.tracking_available || false,
     emergency_delivery: editingService?.emergency_delivery || false,
-    is_international: editingService?.is_international || false
+    is_international: editingService?.is_international || false,
+    container_20ft_min: editingService?.container_20ft_min?.toString() || '',
+    container_20ft_max: editingService?.container_20ft_max?.toString() || '',
+    container_40ft_min: editingService?.container_40ft_min?.toString() || '',
+    container_40ft_max: editingService?.container_40ft_max?.toString() || ''
   });
 
   const serviceTypes = [
@@ -289,7 +293,11 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
         tracking_available: formData.tracking_available,
         emergency_delivery: formData.emergency_delivery,
         is_international: selectedAreas.some(area => area.area_type === 'international'),
-        is_active: true
+        is_active: true,
+        container_20ft_min: parseFloat(formData.container_20ft_min) || null,
+        container_20ft_max: parseFloat(formData.container_20ft_max) || null,
+        container_40ft_min: parseFloat(formData.container_40ft_min) || null,
+        container_40ft_max: parseFloat(formData.container_40ft_max) || null
       };
 
       if (editingService?.id) {
@@ -498,9 +506,6 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
                           <Label htmlFor={area.id} className="text-xs font-medium cursor-pointer">
                             {area.area_name}
                           </Label>
-                          <div className="text-xs text-muted-foreground">
-                            ₹{area.base_rate}
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -510,18 +515,58 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
                 {selectedCoverageAreas.some(id => availableCoverageAreas.find(area => area.id === id)?.area_type === 'international') && (
                   <div className="mt-4 p-3 bg-muted/30 rounded-lg">
                     <h5 className="text-sm font-medium mb-2">Container Pricing Options</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="border rounded p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="border rounded p-3 space-y-3">
                         <div className="font-medium text-sm">20ft Container</div>
-                        <div className="text-xs text-muted-foreground mt-1">Standard shipping container</div>
-                        <div className="text-sm font-medium text-primary mt-2">₹45,000 - ₹75,000</div>
-                        <div className="text-xs text-muted-foreground">Based on destination</div>
+                        <div className="text-xs text-muted-foreground">Standard shipping container</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Min Price (₹)</Label>
+                            <Input
+                              type="number"
+                              placeholder="45000"
+                              value={formData.container_20ft_min}
+                              onChange={(e) => handleInputChange('container_20ft_min', e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Max Price (₹)</Label>
+                            <Input
+                              type="number"
+                              placeholder="75000"
+                              value={formData.container_20ft_max}
+                              onChange={(e) => handleInputChange('container_20ft_max', e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="border rounded p-3">
+                      <div className="border rounded p-3 space-y-3">
                         <div className="font-medium text-sm">40ft Container</div>
-                        <div className="text-xs text-muted-foreground mt-1">High capacity container</div>
-                        <div className="text-sm font-medium text-primary mt-2">₹75,000 - ₹1,25,000</div>
-                        <div className="text-xs text-muted-foreground">Based on destination</div>
+                        <div className="text-xs text-muted-foreground">High capacity container</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Min Price (₹)</Label>
+                            <Input
+                              type="number"
+                              placeholder="75000"
+                              value={formData.container_40ft_min}
+                              onChange={(e) => handleInputChange('container_40ft_min', e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Max Price (₹)</Label>
+                            <Input
+                              type="number"
+                              placeholder="125000"
+                              value={formData.container_40ft_max}
+                              onChange={(e) => handleInputChange('container_40ft_max', e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
