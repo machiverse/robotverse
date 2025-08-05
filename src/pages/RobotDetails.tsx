@@ -218,7 +218,7 @@ const RobotDetails = () => {
         .from('logistics_services')
         .select(`
           *,
-          profiles!inner (
+          profiles!logistics_services_provider_id_fkey (
             full_name,
             company_name,
             phone,
