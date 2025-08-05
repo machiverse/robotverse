@@ -67,9 +67,11 @@ const RobotDetails = () => {
   const [services, setServices] = useState<any[]>([]);
   const [spareParts, setSpareParts] = useState<any[]>([]);
   const [financingOptions, setFinancingOptions] = useState<any[]>([]);
+  const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingSpareParts, setLoadingSpareParts] = useState(false);
   const [loadingFinancing, setLoadingFinancing] = useState(false);
+  const [loadingLogistics, setLoadingLogistics] = useState(false);
   
   // Enhanced states
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -215,12 +217,40 @@ const RobotDetails = () => {
     }
   };
 
+  // Fetch logistics services
+  const fetchLogisticsServices = async () => {
+    setLoadingLogistics(true);
+    try {
+      const { data, error } = await supabase
+        .from('logistics_services')
+        .select(`
+          *,
+          profiles!logistics_services_provider_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            location
+          )
+        `)
+        .eq('is_active', true)
+        .limit(6);
+
+      if (error) throw error;
+      setLogisticsServices(data || []);
+    } catch (err) {
+      console.error('Error fetching logistics services:', err);
+    } finally {
+      setLoadingLogistics(false);
+    }
+  };
+
   // Load related data when robot is loaded
   useEffect(() => {
     if (robot) {
       fetchRelatedServices();
       fetchCompatibleSpareParts();
       fetchFinancingOptions();
+      fetchLogisticsServices();
     }
   }, [robot]);
 
@@ -818,13 +848,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <Card>
               <CardContent className="p-0">
                 <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className={`grid w-full ${importDuty ? 'grid-cols-6' : 'grid-cols-5'} rounded-none border-b`}>
+                  <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="specifications">Specifications</TabsTrigger>
-                    <TabsTrigger value="services">Services</TabsTrigger>
                     <TabsTrigger value="spareparts">Spare Parts</TabsTrigger>
+                    <TabsTrigger value="services">Services</TabsTrigger>
                     <TabsTrigger value="financing">Financing</TabsTrigger>
-                    {importDuty && <TabsTrigger value="import">Import</TabsTrigger>}
+                    <TabsTrigger value="logistics">Logistics</TabsTrigger>
                   </TabsList>
                   
                   {/* Overview */}
@@ -1200,6 +1230,118 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               </div>
                               <p className="text-xs text-blue-600">*Estimates based on 9-12% interest rate</p>
                             </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Logistics */}
+                  <TabsContent value="logistics" className="p-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Available Logistics Services</h3>
+                      {loadingLogistics ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                          <span>Loading logistics services...</span>
+                        </div>
+                      ) : logisticsServices.length > 0 ? (
+                        <div className="grid gap-4">
+                          {logisticsServices.map((service) => (
+                            <Card key={service.id} className="border border-gray-200">
+                              <CardContent className="p-4">
+                                <div className="flex justify-between items-start mb-3">
+                                  <div>
+                                    <h4 className="font-semibold text-lg">{service.service_name}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      by {service.profiles?.company_name || service.profiles?.full_name}
+                                    </p>
+                                  </div>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {service.service_type}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                                  <div>
+                                    <span className="text-xs text-muted-foreground">Base Price</span>
+                                    <p className="font-medium">₹{service.base_price}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs text-muted-foreground">Per KM</span>
+                                    <p className="font-medium">₹{service.price_per_km}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs text-muted-foreground">Per KG</span>
+                                    <p className="font-medium">₹{service.price_per_kg}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs text-muted-foreground">Delivery Time</span>
+                                    <p className="font-medium">{service.delivery_time_hours}h</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                  {service.transport_modes?.map((mode: string) => (
+                                    <Badge key={mode} variant="outline" className="text-xs">
+                                      {mode}
+                                    </Badge>
+                                  ))}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 text-xs mb-3">
+                                  <div>
+                                    <span className="text-muted-foreground">Max Weight:</span>
+                                    <span className="ml-1 font-medium">{service.max_weight_kg} kg</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Max Volume:</span>
+                                    <span className="ml-1 font-medium">{service.max_volume_m3} m³</span>
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                  {service.insurance_included && (
+                                    <Badge variant="outline" className="text-xs text-green-600">
+                                      <Shield className="w-3 h-3 mr-1" />
+                                      Insurance Included
+                                    </Badge>
+                                  )}
+                                  {service.tracking_available && (
+                                    <Badge variant="outline" className="text-xs text-blue-600">
+                                      <MapPin className="w-3 h-3 mr-1" />
+                                      Live Tracking
+                                    </Badge>
+                                  )}
+                                  {service.special_handling && (
+                                    <Badge variant="outline" className="text-xs text-orange-600">
+                                      Special Handling
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                <div className="flex justify-between items-center">
+                                  <div className="text-xs text-muted-foreground">
+                                    <MapPin className="w-3 h-3 inline mr-1" />
+                                    {service.profiles?.location}
+                                  </div>
+                                  <Button size="sm" variant="outline">
+                                    <Phone className="w-3 h-3 mr-1" />
+                                    Contact Provider
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <Card className="border-dashed">
+                          <CardContent className="p-8 text-center">
+                            <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h4 className="font-semibold mb-2">No Logistics Services Found</h4>
+                            <p className="text-sm text-muted-foreground">
+                              No logistics providers are currently available for this location.
+                            </p>
                           </CardContent>
                         </Card>
                       )}
