@@ -29,19 +29,73 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="RobotVerse" />
+    
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/og-image.jpg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/og-image.jpg" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/og-image.jpg" />
+    
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="RobotVerse-Industrial-Marketplace" />
+    
+    <!-- Additional SEO -->
+    <meta name="rating" content="general" />
+    <meta name="distribution" content="global" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="1 days" />
+    <meta name="copyright" content="RobotVerse 2024" />
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <!-- Schema.org structured data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
+      "@type": ["Organization", "WebSite"],
       "name": "RobotVerse",
+      "alternateName": "RobotVerse Marketplace",
       "url": "https://robotverse.in",
-      "description": "Premier marketplace for industrial robots, spare parts, and robotics services",
+      "logo": "https://robotverse.in/og-image.jpg",
+      "description": "Premier marketplace for industrial robots, spare parts, and robotics services. Buy, sell and service industrial automation equipment.",
+      "founder": {
+        "@type": "Organization",
+        "name": "RobotVerse"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://robotverse.in/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
       "sameAs": [
         "https://twitter.com/robotverse",
         "https://linkedin.com/company/robotverse"
-      ]
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Service",
+        "areaServed": "IN",
+        "availableLanguage": "English"
+      }
+    }
+    </script>
+    
+    <!-- Additional Schema for Marketplace -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "RobotVerse Marketplace",
+      "url": "https://robotverse.in",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "description": "Industrial robots marketplace platform for buying, selling and servicing automation equipment",
+      "offers": {
+        "@type": "Offer",
+        "category": "Industrial Robots, Spare Parts, Robotics Services"
+      }
     }
     </script>
   </head>
