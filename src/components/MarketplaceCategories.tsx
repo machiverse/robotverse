@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Users,
   Clock,
+  Truck,
+  CreditCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -39,7 +41,7 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
       locations: 0,
     },
     gradient: "from-blue-500 to-cyan-600",
-    href: "/marketplace/robots",
+    href: "/robots",
   },
   {
     id: "parts",
@@ -51,7 +53,7 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
       suppliers: 0,
     },
     gradient: "from-green-500 to-emerald-600",
-    href: "/marketplace/parts",
+    href: "/parts",
   },
   {
     id: "services",
@@ -63,7 +65,31 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
       providers: 0,
     },
     gradient: "from-purple-500 to-violet-600",
-    href: "/marketplace/services",
+    href: "/services",
+  },
+  {
+    id: "logistics",
+    title: "Logistics",
+    description: "Shipping & delivery solutions",
+    icon: Truck,
+    stats: {
+      services: 0,
+      coverage: 0,
+    },
+    gradient: "from-orange-500 to-red-600",
+    href: "/services",
+  },
+  {
+    id: "finance",
+    title: "Finance",
+    description: "Flexible financing options",
+    icon: CreditCard,
+    stats: {
+      products: 0,
+      providers: 0,
+    },
+    gradient: "from-indigo-500 to-purple-600",
+    href: "/services",
   },
 ];
 
@@ -118,6 +144,31 @@ const MarketplaceCategories = () => {
         const uniqueProviderIds = new Set(serviceProvidersData?.map(item => item.provider_id) || []);
         const serviceProvidersCount = uniqueProviderIds.size;
 
+        // === Logistics ===
+        const { data: logisticsData, error: logisticsError } = await supabase
+          .from("logistics_services")
+          .select("id, coverage_areas")
+          .eq("is_active", true);
+        if (logisticsError) throw logisticsError;
+        const logisticsServicesCount = logisticsData?.length ?? 0;
+
+        // Count total coverage areas
+        const allCoverageAreas = logisticsData?.flatMap(service => service.coverage_areas || []) || [];
+        const uniqueCoverageAreas = new Set(allCoverageAreas);
+        const logisticsCoverageCount = uniqueCoverageAreas.size;
+
+        // === Finance ===
+        const { data: financeData, error: financeError } = await supabase
+          .from("loan_products")
+          .select("id, provider_id")
+          .eq("is_active", true);
+        if (financeError) throw financeError;
+        const financeProductsCount = financeData?.length ?? 0;
+
+        // Finance Providers count (distinct providers from loan_products)
+        const uniqueFinanceProviders = new Set(financeData?.map(product => product.provider_id) || []);
+        const financeProvidersCount = uniqueFinanceProviders.size;
+
         // Update categoriesData state with fetched counts
         setCategoriesData((prev) =>
           prev.map((category) => {
@@ -139,6 +190,18 @@ const MarketplaceCategories = () => {
                 stats: { requests: activeRequestsCount, providers: serviceProvidersCount },
               };
             }
+            if (category.id === "logistics") {
+              return {
+                ...category,
+                stats: { services: logisticsServicesCount, coverage: logisticsCoverageCount },
+              };
+            }
+            if (category.id === "finance") {
+              return {
+                ...category,
+                stats: { products: financeProductsCount, providers: financeProvidersCount },
+              };
+            }
             return category;
           }),
         );
@@ -152,7 +215,7 @@ const MarketplaceCategories = () => {
   return (
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {categoriesData.map((category) => {
             const Icon = category.icon;
             return (
@@ -179,6 +242,8 @@ const MarketplaceCategories = () => {
                             {key === "suppliers" && <Users className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "requests" && <Clock className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "providers" && <Settings className="w-4 h-4 text-primary" aria-hidden="true" />}
+                            {key === "services" && <Truck className="w-4 h-4 text-primary" aria-hidden="true" />}
+                            {key === "products" && <CreditCard className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "opportunities" && <Briefcase className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "coverage" && <MapPin className="w-4 h-4 text-primary" aria-hidden="true" />}
                             <span className="text-sm text-muted-foreground capitalize">
@@ -192,10 +257,14 @@ const MarketplaceCategories = () => {
                                 ? "Active requests"
                                 : key === "providers"
                                 ? "service providers"
+                                : key === "services"
+                                ? "logistics services"
+                                : key === "products"
+                                ? "loan products"
                                 : key === "opportunities"
                                 ? "Job opportunities"
                                 : key === "coverage"
-                                ? "coverage"
+                                ? "coverage areas"
                                 : key}
                             </span>
                           </div>
