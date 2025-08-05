@@ -85,7 +85,12 @@ const conditionOptions = [
 
 const MAX_IMAGES = 10;
 
-const EnhancedSparePartsForm = () => {
+interface EnhancedSparePartsFormProps {
+  editingPart?: any;
+  onSuccess?: () => void;
+}
+
+const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +99,9 @@ const EnhancedSparePartsForm = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("single");
   const [images, setImages] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>(() => {
+    return editingPart?.images || [];
+  });
   const [newTag, setNewTag] = useState('');
   const [newRobot, setNewRobot] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -106,25 +113,49 @@ const EnhancedSparePartsForm = () => {
   const [csvData, setCsvData] = useState<CSVRow[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
-  const [formData, setFormData] = useState<SparePartFormData>({
-    name: '',
-    part_number: '',
-    brand: '',
-    model: '',
-    condition: 'new',
-    price: null,
-    currency: 'INR',
-    location: '',
-    state: '',
-    pincode: '',
-    quantity: 1,
-    description: '',
-    compatible_robots: [],
-    category_tags: [],
-    specifications: {},
-    is_international: false,
-    duty_amount: 0,
-    shipping_amount: 0,
+  const [formData, setFormData] = useState<SparePartFormData>(() => {
+    if (editingPart) {
+      return {
+        name: editingPart.name || '',
+        part_number: editingPart.part_number || '',
+        brand: editingPart.brand || '',
+        model: editingPart.model || '',
+        condition: editingPart.condition || 'new',
+        price: editingPart.price,
+        currency: editingPart.currency || 'INR',
+        location: editingPart.location || '',
+        state: editingPart.state || '',
+        pincode: editingPart.pincode || '',
+        quantity: editingPart.quantity || 1,
+        description: editingPart.description || '',
+        compatible_robots: editingPart.compatible_robots || [],
+        category_tags: editingPart.category_tags || [],
+        specifications: editingPart.specifications || {},
+        is_international: editingPart.is_international || false,
+        duty_amount: editingPart.duty_amount || 0,
+        shipping_amount: editingPart.shipping_amount || 0,
+      };
+    }
+    return {
+      name: '',
+      part_number: '',
+      brand: '',
+      model: '',
+      condition: 'new',
+      price: null,
+      currency: 'INR',
+      location: '',
+      state: '',
+      pincode: '',
+      quantity: 1,
+      description: '',
+      compatible_robots: [],
+      category_tags: [],
+      specifications: {},
+      is_international: false,
+      duty_amount: 0,
+      shipping_amount: 0,
+    };
   });
 
   // Handle form field updates
@@ -268,68 +299,62 @@ const EnhancedSparePartsForm = () => {
     try {
       const finalImageUrls = await uploadImagesToSupabase();
 
-      const { error } = await supabase
-        .from("spare_parts")
-        .insert({
-          seller_id: user.id,
-          name: formData.name,
-          part_number: formData.part_number,
-          brand: formData.brand,
-          model: formData.model,
-          condition: formData.condition,
-          price: formData.price,
-          currency: formData.currency,
-          location: formData.location,
-          state: formData.state,
-          pincode: formData.pincode,
-          quantity: formData.quantity,
-          description: formData.description,
-          compatible_robots: formData.compatible_robots,
-          category_tags: formData.category_tags,
-          specifications: formData.specifications,
-          is_international: formData.is_international,
-          duty_amount: formData.duty_amount,
-          shipping_amount: formData.shipping_amount,
-          images: finalImageUrls,
-        });
+      const partData = {
+        seller_id: user.id,
+        name: formData.name,
+        part_number: formData.part_number,
+        brand: formData.brand,
+        model: formData.model,
+        condition: formData.condition,
+        price: formData.price,
+        currency: formData.currency,
+        location: formData.location,
+        state: formData.state,
+        pincode: formData.pincode,
+        quantity: formData.quantity,
+        description: formData.description,
+        compatible_robots: formData.compatible_robots,
+        category_tags: formData.category_tags,
+        specifications: formData.specifications,
+        is_international: formData.is_international,
+        duty_amount: formData.duty_amount,
+        shipping_amount: formData.shipping_amount,
+        images: finalImageUrls,
+      };
+
+      let result;
+      if (editingPart) {
+        result = await supabase
+          .from("spare_parts")
+          .update(partData)
+          .eq('id', editingPart.id)
+          .select();
+      } else {
+        result = await supabase
+          .from("spare_parts")
+          .insert([partData])
+          .select();
+      }
+
+      const { error } = result;
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Spare part listing created successfully!"
+        description: `Spare part ${editingPart ? 'updated' : 'created'} successfully!`
       });
 
-      // Reset form
-      setFormData({
-        name: '',
-        part_number: '',
-        brand: '',
-        model: '',
-        condition: 'new',
-        price: null,
-        currency: 'INR',
-        location: '',
-        state: '',
-        pincode: '',
-        quantity: 1,
-        description: '',
-        compatible_robots: [],
-        category_tags: [],
-        specifications: {},
-        is_international: false,
-        duty_amount: 0,
-        shipping_amount: 0,
-      });
-      setImages([]);
-      setImageUrls([]);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      // Call success callback to refresh data and close dialog
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
-      console.error("Error creating spare part listing:", error);
+      console.error(`Error ${editingPart ? 'updating' : 'creating'} spare part listing:`, error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create spare part listing"
+        description: `Failed to ${editingPart ? 'update' : 'create'} spare part listing`
       });
     } finally {
       setLoading(false);
@@ -966,7 +991,7 @@ const EnhancedSparePartsForm = () => {
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    Create Spare Part Listing
+                    {editingPart ? 'Update Spare Part' : 'Create Spare Part Listing'}
                   </>
                 )}
               </Button>

@@ -300,7 +300,12 @@ const SparePartsSellerDashboard = () => {
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <Dialog open={showAddDialog} onOpenChange={(open) => {
+            setShowAddDialog(open);
+            if (!open) {
+              resetForm();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button onClick={() => resetForm()}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -310,11 +315,17 @@ const SparePartsSellerDashboard = () => {
             <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  Add New Spare Part
+                  {editingPart ? 'Edit Spare Part' : 'Add New Spare Part'}
                 </DialogTitle>
               </DialogHeader>
               <div className="mt-4">
-                <EnhancedSparePartsForm />
+                <EnhancedSparePartsForm 
+                  editingPart={editingPart}
+                  onSuccess={() => {
+                    resetForm();
+                    fetchSpareParts();
+                  }}
+                />
               </div>
             </DialogContent>
           </Dialog>
