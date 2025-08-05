@@ -24,6 +24,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import LoanProductForm from '@/components/forms/LoanProductForm';
+import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;
@@ -53,12 +54,40 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
     if (!user) return;
     
     try {
+      // Fetch loan applications from database
+      const { data: applications, error: applicationsError } = await supabase
+        .from('loan_applications')
+        .select('*')
+        .eq('provider_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (applicationsError) {
+        console.error('Error fetching loan applications:', applicationsError);
+      } else {
+        setLoanApplications(applications || []);
+      }
+
+      // Fetch loan schemes from database  
+      const { data: schemes, error: schemesError } = await supabase
+        .from('loan_schemes')
+        .select('*')
+        .eq('provider_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (schemesError) {
+        console.error('Error fetching loan schemes:', schemesError);
+      } else {
+        setLoanSchemes(schemes || []);
+      }
+
       // Fetch loan products from database
       const { data: products, error: productsError } = await supabase
         .from('loan_products')
         .select('*')
         .eq('provider_id', user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
       if (productsError) {
         console.error('Error fetching loan products:', productsError);
@@ -66,48 +95,22 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
         setLoanProducts(products || []);
       }
 
-      // Create default loan schemes for display
-      const schemes = [
-        {
-          id: 'LS001',
-          scheme_name: 'Robot Equipment Finance',
-          interest_rate: '8.5% - 12.0%',
-          max_amount: 10000000,
-          tenure: '12-84 months',
-          processing_fee: '1.5%',
-          status: 'active'
-        },
-        {
-          id: 'LS002',
-          scheme_name: 'Working Capital Loan',
-          interest_rate: '9.0% - 14.0%',
-          max_amount: 5000000,
-          tenure: '12-60 months',
-          processing_fee: '2.0%',
-          status: 'active'
-        },
-        {
-          id: 'LS003',
-          scheme_name: 'MSME Expansion Loan',
-          interest_rate: '7.5% - 11.0%',
-          max_amount: 25000000,
-          tenure: '24-120 months',
-          processing_fee: '1.0%',
-          status: 'active'
-        }
-      ];
-      
-      // Real empty state for applications - showing actual database state
-      setLoanApplications([]);
-      setLoanSchemes(schemes);
-      
-      // Calculate real stats from database (currently empty state)
+      // Calculate real stats from database
+      const totalApplications = applications?.length || 0;
+      const approvedLoans = applications?.filter(app => app.status === 'approved').length || 0;
+      const totalDisbursed = applications?.filter(app => app.status === 'disbursed')
+        .reduce((sum, app) => sum + (app.amount_requested || 0), 0) || 0;
+      const activePortfolio = applications?.filter(app => ['approved', 'disbursed'].includes(app.status))
+        .reduce((sum, app) => sum + (app.amount_requested || 0), 0) || 0;
+      const overdueApplications = applications?.filter(app => app.status === 'overdue').length || 0;
+      const overdueRate = totalApplications > 0 ? ((overdueApplications / totalApplications) * 100) : 0;
+
       setDashboardStats({
-        totalApplications: 0,
-        approvedLoans: 0,
-        totalDisbursed: 0,
-        activePortfolio: 0,
-        overdueRate: 0
+        totalApplications,
+        approvedLoans,
+        totalDisbursed,
+        activePortfolio,
+        overdueRate: parseFloat(overdueRate.toFixed(1))
       });
       
       setLoading(false);
@@ -394,7 +397,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="font-semibold">{scheme.scheme_name}</h3>
-                          <Badge variant="outline" className="mt-1">Default Scheme</Badge>
+                          <Badge variant={scheme.is_government_scheme ? "default" : "outline"} className="mt-1">
+                            {scheme.is_government_scheme ? "Government Scheme" : scheme.scheme_type}
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="ghost">
@@ -406,7 +411,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Interest Rate:</span>
-                          <span className="font-medium">{scheme.interest_rate}</span>
+                          <span className="font-medium">{scheme.interest_rate_min}% - {scheme.interest_rate_max}%</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Max Amount:</span>
@@ -414,11 +419,11 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Tenure:</span>
-                          <span className="font-medium">{scheme.tenure}</span>
+                          <span className="font-medium">{scheme.min_tenure_months} - {scheme.max_tenure_months} months</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Processing Fee:</span>
-                          <span className="font-medium">{scheme.processing_fee}</span>
+                          <span className="font-medium">{scheme.processing_fee_percentage}%</span>
                         </div>
                       </div>
 
@@ -430,18 +435,18 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                   </Card>
                 ))}
                 
-                {/* Show add new card if no products exist */}
-                {loanProducts.length === 0 && (
+                {/* Show add new scheme card if no schemes exist */}
+                {loanSchemes.length === 0 && (
                   <Card className="hover:shadow-lg transition-shadow border-2 border-dashed border-muted-foreground/20">
                     <CardContent className="p-8 text-center">
                       <Plus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-semibold mb-2">Add Your First Product</h3>
+                      <h3 className="font-semibold mb-2">Add Your First Scheme</h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Create custom loan products for your customers
+                        Create loan schemes for your customers
                       </p>
-                      <Button onClick={() => setShowAddProductForm(true)}>
+                      <Button>
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Product
+                        Add Scheme
                       </Button>
                     </CardContent>
                   </Card>
@@ -591,10 +596,22 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
           <LoanProductForm
             onSuccess={() => {
               setShowAddProductForm(false);
-              // Add to local state for demo
               fetchDashboardData();
             }}
             onCancel={() => setShowAddProductForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Loan Application Form Dialog */}
+      <Dialog open={showAddApplicationForm} onOpenChange={setShowAddApplicationForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <LoanApplicationForm
+            onSuccess={() => {
+              setShowAddApplicationForm(false);
+              fetchDashboardData();
+            }}
+            onCancel={() => setShowAddApplicationForm(false)}
           />
         </DialogContent>
       </Dialog>

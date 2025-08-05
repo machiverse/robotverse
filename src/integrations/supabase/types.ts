@@ -103,6 +103,78 @@ export type Database = {
           },
         ]
       }
+      loan_applications: {
+        Row: {
+          amount_requested: number
+          applicant_email: string | null
+          applicant_id: string | null
+          applicant_name: string
+          applicant_phone: string | null
+          application_id: string
+          applied_date: string | null
+          business_type: string | null
+          business_vintage_months: number | null
+          collateral_offered: string | null
+          created_at: string
+          credit_score: number | null
+          documents_submitted: string[] | null
+          id: string
+          loan_type: string
+          monthly_income: number | null
+          notes: string | null
+          provider_id: string | null
+          purpose: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_requested: number
+          applicant_email?: string | null
+          applicant_id?: string | null
+          applicant_name: string
+          applicant_phone?: string | null
+          application_id?: string
+          applied_date?: string | null
+          business_type?: string | null
+          business_vintage_months?: number | null
+          collateral_offered?: string | null
+          created_at?: string
+          credit_score?: number | null
+          documents_submitted?: string[] | null
+          id?: string
+          loan_type: string
+          monthly_income?: number | null
+          notes?: string | null
+          provider_id?: string | null
+          purpose?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_requested?: number
+          applicant_email?: string | null
+          applicant_id?: string | null
+          applicant_name?: string
+          applicant_phone?: string | null
+          application_id?: string
+          applied_date?: string | null
+          business_type?: string | null
+          business_vintage_months?: number | null
+          collateral_offered?: string | null
+          created_at?: string
+          credit_score?: number | null
+          documents_submitted?: string[] | null
+          id?: string
+          loan_type?: string
+          monthly_income?: number | null
+          notes?: string | null
+          provider_id?: string | null
+          purpose?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loan_products: {
         Row: {
           collateral_required: boolean | null
@@ -171,6 +243,66 @@ export type Database = {
           provider_id?: string
           quick_approval?: boolean | null
           required_documents?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loan_schemes: {
+        Row: {
+          created_at: string
+          description: string | null
+          eligibility_criteria: string | null
+          features: string[] | null
+          id: string
+          interest_rate_max: number
+          interest_rate_min: number
+          is_active: boolean | null
+          is_government_scheme: boolean | null
+          max_amount: number
+          max_tenure_months: number
+          min_tenure_months: number | null
+          processing_fee_percentage: number | null
+          provider_id: string
+          scheme_name: string
+          scheme_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          eligibility_criteria?: string | null
+          features?: string[] | null
+          id?: string
+          interest_rate_max: number
+          interest_rate_min: number
+          is_active?: boolean | null
+          is_government_scheme?: boolean | null
+          max_amount: number
+          max_tenure_months: number
+          min_tenure_months?: number | null
+          processing_fee_percentage?: number | null
+          provider_id: string
+          scheme_name: string
+          scheme_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          eligibility_criteria?: string | null
+          features?: string[] | null
+          id?: string
+          interest_rate_max?: number
+          interest_rate_min?: number
+          is_active?: boolean | null
+          is_government_scheme?: boolean | null
+          max_amount?: number
+          max_tenure_months?: number
+          min_tenure_months?: number | null
+          processing_fee_percentage?: number | null
+          provider_id?: string
+          scheme_name?: string
+          scheme_type?: string
           updated_at?: string
         }
         Relationships: []
