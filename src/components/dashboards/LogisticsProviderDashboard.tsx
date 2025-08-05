@@ -110,7 +110,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   const [showAddAreaForm, setShowAddAreaForm] = useState(false);
   const [showAddServiceForm, setShowAddServiceForm] = useState(false);
   const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
+  const [editingService, setEditingService] = useState<any>(null);
   const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
+  const [userCoverageAreas, setUserCoverageAreas] = useState<any[]>([]);
 
   // Enhanced access check for logistics providers
   const userType = userProfile?.user_type || userProfile?.primary_user_type;
@@ -142,32 +144,33 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       const profileCompletion = calculateProfileCompletion(userProfile);
       
       // Fetch real logistics data from database
-      const [shipmentsResult, fleetResult, coverageResult] = await Promise.all([
+      const [shipmentsResult, fleetResult, coverageResult, servicesResult, userCoverageResult] = await Promise.all([
         supabase.from('logistics_shipments').select('*').eq('provider_id', user.id),
         supabase.from('logistics_fleet').select('*').eq('provider_id', user.id),
-        supabase.from('logistics_coverage').select('*').eq('provider_id', user.id)
+        supabase.from('logistics_coverage').select('*').eq('provider_id', user.id),
+        supabase.from('logistics_services').select('*').eq('provider_id', user.id),
+        supabase.from('coverage_areas').select('*').eq('provider_id', user.id)
       ]);
 
       const shipments = shipmentsResult.data || [];
       const fleet = fleetResult.data || [];
       const coverage = coverageResult.data || [];
+      const services = servicesResult.data || [];
+      const userCoverage = userCoverageResult.data || [];
+
+      setLogisticsServices(services);
+      setUserCoverageAreas(userCoverage);
       
-      // Try to fetch services but handle gracefully if table doesn't exist
-      try {
-        const servicesResult = await supabase.rpc('get_logistics_data', {
-          table_name: 'logistics_services',
-          provider_id: user.id
-        });
-        if (servicesResult.data) {
-          setLogisticsServices(Array.isArray(servicesResult.data) ? servicesResult.data : []);
-        }
-      } catch (error) {
-        console.log('logistics_services table not available yet');
-        setLogisticsServices([]);
-      }
+      // Services and coverage data are now fetched above
 
       // Calculate real service capabilities based on actual data
       const capabilities: string[] = [];
+      
+      // Add capabilities based on services data
+      if (services.length > 0) {
+        const serviceTypes = [...new Set(services.map(s => s.service_type))];
+        capabilities.push(...serviceTypes);
+      }
       
       // Add capabilities based on fleet data
       if (fleet.length > 0) {
@@ -176,8 +179,8 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       }
       
       // Add capabilities based on coverage data
-      if (coverage.length > 0) {
-        capabilities.push(`${coverage.length} Coverage Areas`);
+      if (coverage.length > 0 || userCoverage.length > 0) {
+        capabilities.push(`${coverage.length + userCoverage.length} Coverage Areas`);
       }
       
       // Add basic capabilities from profile
@@ -299,20 +302,20 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       bgColor: 'bg-blue-50'
     },
     {
-      title: 'Service Areas',
-      value: serviceAreas.length,
-      icon: MapPin,
-      trend: 'Coverage locations',
+      title: 'Active Services',
+      value: logisticsServices.filter(s => s.is_active).length,
+      icon: Truck,
+      trend: 'Service offerings',
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
-      title: 'Capabilities',
-      value: serviceCapabilities.length,
-      icon: Truck,
-      trend: 'Service types',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
+      title: 'Service Areas',
+      value: serviceAreas.length + userCoverageAreas.length,
+      icon: MapPin,
+      trend: 'Coverage locations',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
     },
     {
       title: 'Business Status',
@@ -438,7 +441,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
             <Download className="w-4 h-4 mr-2" />
             Export Data
           </Button>
-          <Button onClick={() => setShowAddServiceForm(true)}>
+          <Button onClick={() => {
+            setEditingService(null);
+            setShowAddServiceForm(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Add Service
           </Button>
@@ -481,7 +487,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </TabsTrigger>
           <TabsTrigger value="services" className="flex items-center gap-2">
             <Truck className="w-4 h-4" />
-            Services
+            Services ({logisticsServices.length})
           </TabsTrigger>
           <TabsTrigger value="coverage" className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
@@ -615,44 +621,198 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {logisticsServices.map((service, index) => (
-                    <Card key={index} className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-semibold">{service.service_name}</h3>
-                            <Badge variant="outline" className="mt-1">{service.service_type}</Badge>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost">
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Coverage:</span>
-                            <span className="font-medium">{service.coverage_area}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Base Price:</span>
-                            <span className="font-medium">₹{service.base_price}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Delivery Time:</span>
-                            <span className="font-medium">{service.delivery_time_hours}h</span>
-                          </div>
-                        </div>
+                <div className="space-y-6">
+                  {/* Services Table */}
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Service Details</TableHead>
+                          <TableHead>Coverage Areas</TableHead>
+                          <TableHead>Pricing</TableHead>
+                          <TableHead>Transport Modes</TableHead>
+                          <TableHead>Features</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {logisticsServices.map((service) => (
+                          <TableRow key={service.id}>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="font-medium">{service.service_name}</div>
+                                <Badge variant="outline" className="text-xs">
+                                  {service.service_type}
+                                </Badge>
+                                <div className="text-xs text-muted-foreground line-clamp-2">
+                                  {service.description}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1 text-sm">
+                                  <Building className="w-3 h-3" />
+                                  {service.coverage_areas?.length || 0} areas
+                                </div>
+                                {service.is_international && (
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <Globe className="w-3 h-3" />
+                                    International
+                                  </div>
+                                )}
+                                <div className="flex flex-wrap gap-1 max-w-32">
+                                  {service.coverage_areas?.slice(0, 2).map((area: string, idx: number) => (
+                                    <Badge key={idx} variant="secondary" className="text-xs">
+                                      {area}
+                                    </Badge>
+                                  ))}
+                                  {service.coverage_areas?.length > 2 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{service.coverage_areas.length - 2}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1 text-sm">
+                                <div>Base: ₹{service.base_price}</div>
+                                {service.price_per_km > 0 && (
+                                  <div>Per KM: ₹{service.price_per_km}</div>
+                                )}
+                                {service.price_per_kg > 0 && (
+                                  <div>Per KG: ₹{service.price_per_kg}</div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1 max-w-32">
+                                {service.transport_modes?.slice(0, 2).map((mode: string, idx: number) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {mode}
+                                  </Badge>
+                                ))}
+                                {service.transport_modes?.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{service.transport_modes.length - 2}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {service.tracking_available && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Tracking
+                                  </Badge>
+                                )}
+                                {service.insurance_included && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Insurance
+                                  </Badge>
+                                )}
+                                {service.emergency_delivery && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Emergency
+                                  </Badge>
+                                )}
+                                {service.special_handling && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Special
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(service.is_active ? 'active' : 'pending')}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingService(service);
+                                    setShowAddServiceForm(true);
+                                  }}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost">
+                                  <Eye className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
 
-                        <Button size="sm" variant="outline" className="w-full mt-4">
-                          <Eye className="w-3 h-3 mr-1" />
-                          View Details
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {/* Service Cards for Mobile */}
+                  <div className="md:hidden grid grid-cols-1 gap-4">
+                    {logisticsServices.map((service) => (
+                      <Card key={service.id} className="border">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold">{service.service_name}</h3>
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {service.service_type}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingService(service);
+                                  setShowAddServiceForm(true);
+                                }}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Coverage Areas:</span>
+                              <span className="font-medium">{service.coverage_areas?.length || 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Base Price:</span>
+                              <span className="font-medium">₹{service.base_price}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Delivery Time:</span>
+                              <span className="font-medium">{service.delivery_time_hours}h</span>
+                            </div>
+                            {service.is_international && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Globe className="w-4 h-4 text-blue-600" />
+                                <span className="text-sm text-blue-600">International Service</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-1 mt-3">
+                            {service.tracking_available && (
+                              <Badge variant="secondary" className="text-xs">Tracking</Badge>
+                            )}
+                            {service.insurance_included && (
+                              <Badge variant="secondary" className="text-xs">Insurance</Badge>
+                            )}
+                            {service.emergency_delivery && (
+                              <Badge variant="secondary" className="text-xs">Emergency</Badge>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -913,11 +1073,16 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       <Dialog open={showAddServiceForm} onOpenChange={setShowAddServiceForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <LogisticsServiceForm
+            editingService={editingService}
             onSuccess={() => {
               setShowAddServiceForm(false);
+              setEditingService(null);
               fetchRealDashboardData();
             }}
-            onCancel={() => setShowAddServiceForm(false)}
+            onCancel={() => {
+              setShowAddServiceForm(false);
+              setEditingService(null);
+            }}
           />
         </DialogContent>
       </Dialog>

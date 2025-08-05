@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,48 +6,76 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Truck, MapPin, Package, Clock } from 'lucide-react';
+import { Truck, MapPin, Package, Clock, Globe, Building, CheckCircle2, Plus, X } from 'lucide-react';
 
 interface LogisticsServiceFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  editingService?: any;
 }
 
-const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps) => {
+interface CoverageArea {
+  id: string;
+  area_name: string;
+  area_type: string;
+  state_name?: string;
+  country_name?: string;
+  zone_type: string;
+  base_rate: number;
+  per_kg_rate: number;
+  delivery_time: string;
+  provider_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: LogisticsServiceFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [availableCoverageAreas, setAvailableCoverageAreas] = useState<CoverageArea[]>([]);
+  const [selectedCoverageAreas, setSelectedCoverageAreas] = useState<string[]>([]);
+  const [showInternational, setShowInternational] = useState(false);
   
   const [formData, setFormData] = useState({
-    service_name: '',
-    service_type: '',
-    description: '',
-    coverage_area: '',
-    base_price: '',
-    price_per_km: '',
-    price_per_kg: '',
-    max_weight: '',
-    max_volume: '',
-    delivery_time_hours: '',
-    transport_modes: [] as string[],
-    special_handling: false,
-    insurance_included: false,
-    tracking_available: false,
-    emergency_delivery: false
+    service_name: editingService?.service_name || '',
+    service_type: editingService?.service_type || '',
+    description: editingService?.description || '',
+    base_price: editingService?.base_price?.toString() || '',
+    price_per_km: editingService?.price_per_km?.toString() || '',
+    price_per_kg: editingService?.price_per_kg?.toString() || '',
+    max_weight_kg: editingService?.max_weight_kg?.toString() || '',
+    max_volume_m3: editingService?.max_volume_m3?.toString() || '',
+    delivery_time_hours: editingService?.delivery_time_hours?.toString() || '',
+    transport_modes: editingService?.transport_modes || [],
+    special_handling: editingService?.special_handling || false,
+    insurance_included: editingService?.insurance_included || false,
+    tracking_available: editingService?.tracking_available || false,
+    emergency_delivery: editingService?.emergency_delivery || false,
+    is_international: editingService?.is_international || false
   });
 
   const serviceTypes = [
     'Local Delivery',
-    'Inter-city Transport',
+    'Inter-city Transport', 
     'International Shipping',
     'Heavy Equipment Transport',
     'Fragile Item Handling',
     'Bulk Transport',
     'Express Delivery',
-    'Warehousing'
+    'Warehousing & Storage',
+    'Supply Chain Management',
+    'Last Mile Delivery',
+    'Industrial Machinery Transport',
+    'Temperature Controlled Transport',
+    'Hazardous Material Transport',
+    'White Glove Service',
+    'Installation & Setup Service'
   ];
 
   const transportModes = [
@@ -55,9 +83,41 @@ const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps
     'Rail Transport',
     'Air Cargo',
     'Sea Freight',
-    'Pipeline',
-    'Multi-modal'
+    'Pipeline Transport',
+    'Multi-modal Transport',
+    'Specialized Equipment Transport',
+    'Container Shipping',
+    'Break Bulk Cargo',
+    'Project Cargo'
   ];
+
+  // Load coverage areas on component mount
+  useEffect(() => {
+    fetchCoverageAreas();
+    if (editingService?.coverage_areas) {
+      setSelectedCoverageAreas(editingService.coverage_areas);
+    }
+    if (editingService?.is_international) {
+      setShowInternational(true);
+    }
+  }, [editingService]);
+
+  const fetchCoverageAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('coverage_areas')
+        .select('*')
+        .eq('is_active', false) // These are template areas, not user-specific
+        .order('area_type', { ascending: true })
+        .order('zone_type', { ascending: true })
+        .order('area_name', { ascending: true });
+
+      if (error) throw error;
+      setAvailableCoverageAreas(data || []);
+    } catch (error) {
+      console.error('Error fetching coverage areas:', error);
+    }
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -75,6 +135,42 @@ const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps
     }));
   };
 
+  const handleCoverageAreaToggle = (areaId: string) => {
+    setSelectedCoverageAreas(prev => 
+      prev.includes(areaId) 
+        ? prev.filter(id => id !== areaId)
+        : [...prev, areaId]
+    );
+  };
+
+  const handleSelectAllDomestic = () => {
+    const domesticAreas = availableCoverageAreas
+      .filter(area => area.area_type === 'domestic')
+      .map(area => area.id);
+    
+    const allSelected = domesticAreas.every(id => selectedCoverageAreas.includes(id));
+    
+    if (allSelected) {
+      setSelectedCoverageAreas(prev => prev.filter(id => !domesticAreas.includes(id)));
+    } else {
+      setSelectedCoverageAreas(prev => [...new Set([...prev, ...domesticAreas])]);
+    }
+  };
+
+  const handleSelectAllInternational = () => {
+    const internationalAreas = availableCoverageAreas
+      .filter(area => area.area_type === 'international')
+      .map(area => area.id);
+    
+    const allSelected = internationalAreas.every(id => selectedCoverageAreas.includes(id));
+    
+    if (allSelected) {
+      setSelectedCoverageAreas(prev => prev.filter(id => !internationalAreas.includes(id)));
+    } else {
+      setSelectedCoverageAreas(prev => [...new Set([...prev, ...internationalAreas])]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -87,11 +183,11 @@ const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps
       return;
     }
 
-    if (!formData.service_name || !formData.service_type || !formData.coverage_area) {
+    if (!formData.service_name || !formData.service_type || selectedCoverageAreas.length === 0) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Please fill in all required fields"
+        description: "Please fill in all required fields and select at least one coverage area"
       });
       return;
     }
@@ -99,40 +195,66 @@ const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps
     setLoading(true);
 
     try {
-      // For now, show success message since logistics_services table doesn't exist yet
-      // This will be functional once the table is created
-      console.log('Logistics service data:', {
+      const selectedAreas = availableCoverageAreas.filter(area => 
+        selectedCoverageAreas.includes(area.id)
+      );
+      
+      const serviceData = {
         provider_id: user.id,
         service_name: formData.service_name,
         service_type: formData.service_type,
         description: formData.description,
-        coverage_area: formData.coverage_area,
+        coverage_areas: selectedAreas.map(area => area.area_name),
+        international_coverage: selectedAreas.filter(area => area.area_type === 'international').map(area => area.area_name),
         base_price: parseFloat(formData.base_price) || 0,
         price_per_km: parseFloat(formData.price_per_km) || 0,
         price_per_kg: parseFloat(formData.price_per_kg) || 0,
-        max_weight: parseFloat(formData.max_weight) || 0,
-        max_volume: parseFloat(formData.max_volume) || 0,
+        max_weight_kg: parseFloat(formData.max_weight_kg) || 0,
+        max_volume_m3: parseFloat(formData.max_volume_m3) || 0,
         delivery_time_hours: parseInt(formData.delivery_time_hours) || 24,
         transport_modes: formData.transport_modes,
         special_handling: formData.special_handling,
         insurance_included: formData.insurance_included,
         tracking_available: formData.tracking_available,
         emergency_delivery: formData.emergency_delivery,
+        is_international: selectedAreas.some(area => area.area_type === 'international'),
         is_active: true
-      });
+      };
 
-      toast({
-        title: "Success",
-        description: "Logistics service form completed! (Database integration pending)"
-      });
+      if (editingService?.id) {
+        // Update existing service
+        const { error } = await supabase
+          .from('logistics_services')
+          .update(serviceData)
+          .eq('id', editingService.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Logistics service updated successfully!"
+        });
+      } else {
+        // Create new service
+        const { error } = await supabase
+          .from('logistics_services')
+          .insert([serviceData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Logistics service created successfully!"
+        });
+      }
 
       onSuccess();
     } catch (error) {
-      console.error('Error adding logistics service:', error);
+      console.error('Error saving logistics service:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add logistics service"
+        description: "Failed to save logistics service"
       });
     } finally {
       setLoading(false);
@@ -188,15 +310,150 @@ const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="coverage_area">Coverage Area *</Label>
-            <Input
-              id="coverage_area"
-              value={formData.coverage_area}
-              onChange={(e) => handleInputChange('coverage_area', e.target.value)}
-              placeholder="e.g., Mumbai Metropolitan Area"
-              required
-            />
+          {/* Coverage Areas Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-medium">Coverage Areas *</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAllDomestic}
+                  className="text-xs"
+                >
+                  <Building className="w-3 h-3 mr-1" />
+                  {availableCoverageAreas.filter(area => area.area_type === 'domestic').every(area => selectedCoverageAreas.includes(area.id)) ? 'Deselect All Domestic' : 'Select All Domestic'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowInternational(!showInternational)}
+                  className="text-xs"
+                >
+                  <Globe className="w-3 h-3 mr-1" />
+                  {showInternational ? 'Hide International' : 'Show International'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Domestic Coverage */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Building className="w-4 h-4" />
+                  Domestic Coverage (India)
+                </h4>
+                <Badge variant="outline">
+                  {availableCoverageAreas.filter(area => area.area_type === 'domestic' && selectedCoverageAreas.includes(area.id)).length} selected
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                {availableCoverageAreas
+                  .filter(area => area.area_type === 'domestic')
+                  .map((area) => (
+                    <div key={area.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded">
+                      <Checkbox
+                        id={area.id}
+                        checked={selectedCoverageAreas.includes(area.id)}
+                        onCheckedChange={() => handleCoverageAreaToggle(area.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <Label htmlFor={area.id} className="text-xs font-medium cursor-pointer">
+                          {area.area_name}
+                        </Label>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-xs">
+                            {area.zone_type}
+                          </Badge>
+                          <span>₹{area.base_rate}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* International Coverage */}
+            {showInternational && (
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    International Coverage
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {availableCoverageAreas.filter(area => area.area_type === 'international' && selectedCoverageAreas.includes(area.id)).length} selected
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAllInternational}
+                      className="text-xs"
+                    >
+                      {availableCoverageAreas.filter(area => area.area_type === 'international').every(area => selectedCoverageAreas.includes(area.id)) ? 'Deselect All' : 'Select All'}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                  {availableCoverageAreas
+                    .filter(area => area.area_type === 'international')
+                    .map((area) => (
+                      <div key={area.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded">
+                        <Checkbox
+                          id={area.id}
+                          checked={selectedCoverageAreas.includes(area.id)}
+                          onCheckedChange={() => handleCoverageAreaToggle(area.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <Label htmlFor={area.id} className="text-xs font-medium cursor-pointer">
+                            {area.area_name}
+                          </Label>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-xs">
+                              {area.delivery_time}
+                            </Badge>
+                            <span>₹{area.base_rate}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {selectedCoverageAreas.length > 0 && (
+              <div className="bg-muted/30 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">Selected Areas ({selectedCoverageAreas.length})</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {selectedCoverageAreas.slice(0, 6).map(areaId => {
+                    const area = availableCoverageAreas.find(a => a.id === areaId);
+                    return area ? (
+                      <Badge key={areaId} variant="secondary" className="text-xs">
+                        {area.area_name}
+                        <X 
+                          className="w-3 h-3 ml-1 cursor-pointer" 
+                          onClick={() => handleCoverageAreaToggle(areaId)}
+                        />
+                      </Badge>
+                    ) : null;
+                  })}
+                  {selectedCoverageAreas.length > 6 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{selectedCoverageAreas.length - 6} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Pricing */}
@@ -240,24 +497,24 @@ const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps
           {/* Capacity */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="max_weight">Max Weight (KG)</Label>
+              <Label htmlFor="max_weight_kg">Max Weight (KG)</Label>
               <Input
-                id="max_weight"
+                id="max_weight_kg"
                 type="number"
-                value={formData.max_weight}
-                onChange={(e) => handleInputChange('max_weight', e.target.value)}
+                value={formData.max_weight_kg}
+                onChange={(e) => handleInputChange('max_weight_kg', e.target.value)}
                 placeholder="1000"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="max_volume">Max Volume (m³)</Label>
+              <Label htmlFor="max_volume_m3">Max Volume (m³)</Label>
               <Input
-                id="max_volume"
+                id="max_volume_m3"
                 type="number"
                 step="0.01"
-                value={formData.max_volume}
-                onChange={(e) => handleInputChange('max_volume', e.target.value)}
+                value={formData.max_volume_m3}
+                onChange={(e) => handleInputChange('max_volume_m3', e.target.value)}
                 placeholder="10.5"
               />
             </div>
@@ -339,7 +596,7 @@ const LogisticsServiceForm = ({ onSuccess, onCancel }: LogisticsServiceFormProps
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Service'}
+              {loading ? (editingService ? 'Updating...' : 'Adding...') : (editingService ? 'Update Service' : 'Add Service')}
             </Button>
           </div>
         </form>
