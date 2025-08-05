@@ -1144,16 +1144,48 @@ const Auth = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Type of Logistics Service *</Label>
-                      <Select value={logisticsType} onValueChange={setLogisticsType}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select logistics type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="local">🏠 Local Delivery</SelectItem>
-                          <SelectItem value="interstate">🛣️ Interstate Transport</SelectItem>
-                          <SelectItem value="international">🌍 International Shipping</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="border rounded-lg p-4 space-y-2 max-h-48 overflow-y-auto">
+                        <div className="grid grid-cols-1 gap-2">
+                          {[
+                            'Local Delivery',
+                            'Inter-city Transport', 
+                            'International Shipping',
+                            'Heavy Equipment Transport',
+                            'Fragile Item Handling',
+                            'Bulk Transport',
+                            'Express Delivery',
+                            'Warehousing & Storage',
+                            'Supply Chain Management',
+                            'Last Mile Delivery',
+                            'Industrial Machinery Transport',
+                            'Temperature Controlled Transport',
+                            'Hazardous Material Transport',
+                            'White Glove Service',
+                            'Installation & Setup Service',
+                            'Port Handling',
+                            'Duties Clearance'
+                          ].map((type) => (
+                            <div key={type} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={type}
+                                checked={logisticsType.includes(type)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setLogisticsType(prev => prev ? `${prev}, ${type}` : type);
+                                  } else {
+                                    setLogisticsType(prev => 
+                                      prev.split(', ').filter(t => t !== type).join(', ')
+                                    );
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={type} className="text-sm cursor-pointer flex-1">
+                                {type}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
