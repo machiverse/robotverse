@@ -66,9 +66,11 @@ const RobotDetails = () => {
   const [services, setServices] = useState<any[]>([]);
   const [spareParts, setSpareParts] = useState<any[]>([]);
   const [financingOptions, setFinancingOptions] = useState<any[]>([]);
+  const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingSpareParts, setLoadingSpareParts] = useState(false);
   const [loadingFinancing, setLoadingFinancing] = useState(false);
+  const [loadingLogistics, setLoadingLogistics] = useState(false);
   
   // Enhanced states
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -121,10 +123,8 @@ const RobotDetails = () => {
     fetchRobot();
   }, [id, user]);
 
-  // Fetch related services for this robot type
+  // Fetch all services from database
   const fetchRelatedServices = async () => {
-    if (!robot) return;
-    
     setLoadingServices(true);
     try {
       const { data, error } = await supabase
@@ -139,8 +139,7 @@ const RobotDetails = () => {
             avatar_url
           )
         `)
-        .or(`specializations.cs.{${robot.robot_type}},service_type.ilike.%${robot.robot_type}%`)
-        .limit(6);
+        .limit(10);
 
       if (error) throw error;
       setServices(data || []);
@@ -151,10 +150,8 @@ const RobotDetails = () => {
     }
   };
 
-  // Fetch compatible spare parts
+  // Fetch all spare parts from database
   const fetchCompatibleSpareParts = async () => {
-    if (!robot) return;
-    
     setLoadingSpareParts(true);
     try {
       const { data, error } = await supabase
@@ -168,8 +165,7 @@ const RobotDetails = () => {
             location
           )
         `)
-        .or(`compatible_robots.cs.{${robot.model}},compatible_robots.cs.{${robot.name}},name.ilike.%${robot.robot_type}%`)
-        .limit(8);
+        .limit(12);
 
       if (error) throw error;
       setSpareParts(data || []);
@@ -180,7 +176,7 @@ const RobotDetails = () => {
     }
   };
 
-  // Fetch financing options from database
+  // Fetch all financing options from database
   const fetchFinancingOptions = async () => {
     setLoadingFinancing(true);
     try {
@@ -196,7 +192,7 @@ const RobotDetails = () => {
           )
         `)
         .eq('is_active', true)
-        .limit(6);
+        .limit(10);
 
       if (error) throw error;
       setFinancingOptions(data || []);
@@ -208,14 +204,41 @@ const RobotDetails = () => {
   };
 
 
-  // Load related data when robot is loaded
-  useEffect(() => {
-    if (robot) {
-      fetchRelatedServices();
-      fetchCompatibleSpareParts();
-      fetchFinancingOptions();
+  // Fetch all logistics services from database
+  const fetchLogisticsServices = async () => {
+    setLoadingLogistics(true);
+    try {
+      const { data, error } = await supabase
+        .from('logistics_services')
+        .select(`
+          *,
+          profiles!logistics_services_provider_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            location
+          )
+        `)
+        .eq('is_active', true)
+        .limit(10);
+
+      if (error) throw error;
+      setLogisticsServices(data || []);
+    } catch (err) {
+      console.error('Error fetching logistics services:', err);
+    } finally {
+      setLoadingLogistics(false);
     }
-  }, [robot]);
+  };
+
+  // Load related data when component mounts (not dependent on robot)
+  useEffect(() => {
+    // Fetch all data when component mounts
+    fetchRelatedServices();
+    fetchCompatibleSpareParts();
+    fetchFinancingOptions();
+    fetchLogisticsServices();
+  }, []);
 
   // Contact seller by phone
   const handleContactSeller = () => {
@@ -1247,155 +1270,116 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           <Package className="w-5 h-5 mr-2 text-orange-600" />
                           Logistics & Shipping Partners
                         </h3>
+                        <Badge variant="outline" className="text-orange-600">
+                          {logisticsServices.length} Providers Available
+                        </Badge>
                       </div>
                       
-                      {/* Available Logistics Services */}
-                      <div className="grid gap-4">
-                        <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
-                          <CardContent className="p-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-semibold text-lg">Express Robotics Logistics</h4>
-                                  <p className="text-sm text-muted-foreground">Specialized Industrial Equipment Transport</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    <Badge variant="secondary" className="text-xs">Heavy Machinery</Badge>
-                                    <Badge variant="secondary" className="text-xs">Door-to-Door</Badge>
-                                    <Badge variant="secondary" className="text-xs">Insurance Included</Badge>
+                      {loadingLogistics ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                          <span>Loading logistics services...</span>
+                        </div>
+                      ) : logisticsServices.length > 0 ? (
+                        <div className="grid gap-4">
+                          {logisticsServices.map((service) => (
+                            <Card key={service.id} className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-semibold text-lg">
+                                        {service.profiles?.company_name || service.profiles?.full_name || 'Logistics Provider'}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{service.service_name}</p>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        <Badge variant="secondary" className="text-xs">{service.service_type}</Badge>
+                                        {service.tracking_available && (
+                                          <Badge variant="secondary" className="text-xs">GPS Tracking</Badge>
+                                        )}
+                                        {service.insurance_included && (
+                                          <Badge variant="secondary" className="text-xs">Insurance Included</Badge>
+                                        )}
+                                        {service.emergency_delivery && (
+                                          <Badge variant="secondary" className="text-xs">Emergency Delivery</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <Badge variant="secondary" className="bg-orange-50 text-orange-700 mb-2">
+                                        ₹{service.base_price || 0}/base + ₹{service.price_per_kg || 0}/kg
+                                      </Badge>
+                                      <div>
+                                        <Badge variant="outline" className="text-xs">
+                                          <Clock className="w-2 h-2 mr-1" />
+                                          {service.delivery_time_hours || 24}h delivery
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Coverage</p>
+                                      <p className="font-medium">
+                                        {service.coverage_areas?.length > 0 ? 
+                                          `${service.coverage_areas.slice(0, 2).join(', ')}${service.coverage_areas.length > 2 ? '...' : ''}` : 
+                                          service.is_international ? 'International' : 'Domestic'
+                                        }
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Max Weight</p>
+                                      <p className="font-medium">{service.max_weight_kg || 'No limit'} kg</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Transport</p>
+                                      <p className="font-medium">
+                                        {service.transport_modes?.length > 0 ? 
+                                          service.transport_modes.slice(0, 2).join(', ') : 
+                                          'Various'
+                                        }
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Special</p>
+                                      <p className="font-medium">
+                                        {service.special_handling ? 'Special Handling' : 'Standard'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  {service.description && (
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">{service.description}</p>
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex gap-2">
+                                    <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                                      <Package className="w-4 h-4 mr-2" />
+                                      Get Quote
+                                    </Button>
+                                    <Button variant="outline">
+                                      <Phone className="w-4 h-4 mr-2" />
+                                      Contact
+                                    </Button>
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <Badge variant="secondary" className="bg-orange-50 text-orange-700 mb-2">
-                                    ₹15-25/kg
-                                  </Badge>
-                                  <div>
-                                    <Badge variant="outline" className="text-xs">
-                                      <Clock className="w-2 h-2 mr-1" />
-                                      3-5 Days
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground">Coverage</p>
-                                  <p className="font-medium">Pan India</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Max Weight</p>
-                                  <p className="font-medium">5000 kg</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Tracking</p>
-                                  <p className="font-medium">Real-time GPS</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Insurance</p>
-                                  <p className="font-medium">Up to ₹50L</p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex gap-2">
-                                <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
-                                  <Package className="w-4 h-4 mr-2" />
-                                  Get Quote
-                                </Button>
-                                <Button variant="outline">
-                                  <Phone className="w-4 h-4 mr-2" />
-                                  Contact
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-                          <CardContent className="p-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-semibold text-lg">TechMove Solutions</h4>
-                                  <p className="text-sm text-muted-foreground">Technology Equipment Specialists</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    <Badge variant="secondary" className="text-xs">White Glove Service</Badge>
-                                    <Badge variant="secondary" className="text-xs">Installation Support</Badge>
-                                    <Badge variant="secondary" className="text-xs">Temperature Controlled</Badge>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 mb-2">
-                                    ₹20-35/kg
-                                  </Badge>
-                                  <div>
-                                    <Badge variant="outline" className="text-xs">
-                                      <Clock className="w-2 h-2 mr-1" />
-                                      2-4 Days
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground">Coverage</p>
-                                  <p className="font-medium">India + Export</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Max Weight</p>
-                                  <p className="font-medium">3000 kg</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Services</p>
-                                  <p className="font-medium">Installation Support</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground">Customs</p>
-                                  <p className="font-medium">Clearance Handled</p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex gap-2">
-                                <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
-                                  <Package className="w-4 h-4 mr-2" />
-                                  Get Quote
-                                </Button>
-                                <Button variant="outline">
-                                  <Phone className="w-4 h-4 mr-2" />
-                                  Contact
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                      
-                      {robot?.price && (
-                        <Card className="bg-orange-50 border-orange-200">
-                          <CardContent className="p-4">
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-orange-900">Shipping Cost Estimate</h4>
-                              <p className="text-sm text-orange-700">
-                                For equipment price of {formatPrice(robot.price, robot.currency)}
-                              </p>
-                              <div className="grid grid-cols-3 gap-4 text-xs">
-                                <div className="text-center">
-                                  <p className="text-orange-600">Local (Same State)</p>
-                                  <p className="font-semibold">₹2,500 - ₹5,000</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-orange-600">National</p>
-                                  <p className="font-semibold">₹8,000 - ₹15,000</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-orange-600">International</p>
-                                  <p className="font-semibold">₹25,000 - ₹50,000</p>
-                                </div>
-                              </div>
-                              <p className="text-xs text-orange-600">*Estimates based on weight and distance</p>
-                            </div>
-                          </CardContent>
-                        </Card>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Logistics Services Available</h3>
+                          <p className="text-muted-foreground mb-4">No logistics providers are currently available.</p>
+                          <Button variant="outline">
+                            <Package className="w-4 h-4 mr-2" />
+                            Request Logistics Quote
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
