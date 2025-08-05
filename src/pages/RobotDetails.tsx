@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import LogisticsServiceCard from "@/components/LogisticsServiceCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -67,11 +66,9 @@ const RobotDetails = () => {
   const [services, setServices] = useState<any[]>([]);
   const [spareParts, setSpareParts] = useState<any[]>([]);
   const [financingOptions, setFinancingOptions] = useState<any[]>([]);
-  const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingSpareParts, setLoadingSpareParts] = useState(false);
   const [loadingFinancing, setLoadingFinancing] = useState(false);
-  const [loadingLogistics, setLoadingLogistics] = useState(false);
   
   // Enhanced states
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -183,49 +180,15 @@ const RobotDetails = () => {
     }
   };
 
-  // Fetch financing options (placeholder for now)
+  // Fetch financing options from database
   const fetchFinancingOptions = async () => {
     setLoadingFinancing(true);
     try {
-      // Placeholder financing data
-      setFinancingOptions([
-        {
-          id: 1,
-          provider: "RoboFin Solutions",
-          type: "Equipment Loan",
-          rate: "8.5% - 12%",
-          tenure: "1-5 years",
-          amount: "Up to ₹2 Crores",
-          processing: "2-3 weeks",
-          features: ["No collateral up to ₹50L", "Flexible EMI", "Quick approval"]
-        },
-        {
-          id: 2,
-          provider: "TechLease India",
-          type: "Lease Financing",
-          rate: "10% - 15%",
-          tenure: "2-7 years",
-          amount: "₹10L - ₹5 Crores",
-          processing: "1-2 weeks",
-          features: ["Tax benefits", "Buyback option", "Maintenance included"]
-        }
-      ]);
-    } catch (err) {
-      console.error('Error fetching financing:', err);
-    } finally {
-      setLoadingFinancing(false);
-    }
-  };
-
-  // Fetch logistics services
-  const fetchLogisticsServices = async () => {
-    setLoadingLogistics(true);
-    try {
       const { data, error } = await supabase
-        .from('logistics_services')
+        .from('loan_products')
         .select(`
           *,
-          profiles!logistics_services_provider_id_fkey (
+          profiles!loan_products_provider_id_fkey (
             full_name,
             company_name,
             phone,
@@ -236,13 +199,14 @@ const RobotDetails = () => {
         .limit(6);
 
       if (error) throw error;
-      setLogisticsServices(data || []);
+      setFinancingOptions(data || []);
     } catch (err) {
-      console.error('Error fetching logistics services:', err);
+      console.error('Error fetching financing:', err);
     } finally {
-      setLoadingLogistics(false);
+      setLoadingFinancing(false);
     }
   };
+
 
   // Load related data when robot is loaded
   useEffect(() => {
@@ -250,7 +214,6 @@ const RobotDetails = () => {
       fetchRelatedServices();
       fetchCompatibleSpareParts();
       fetchFinancingOptions();
-      fetchLogisticsServices();
     }
   }, [robot]);
 
@@ -848,13 +811,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <Card>
               <CardContent className="p-0">
                 <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
+                  <TabsList className="grid w-full grid-cols-5 rounded-none border-b">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="specifications">Specifications</TabsTrigger>
                     <TabsTrigger value="spareparts">Spare Parts</TabsTrigger>
                     <TabsTrigger value="services">Services</TabsTrigger>
                     <TabsTrigger value="financing">Financing</TabsTrigger>
-                    <TabsTrigger value="logistics">Logistics</TabsTrigger>
                   </TabsList>
                   
                   {/* Overview */}
@@ -1133,54 +1095,94 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           ))}
                         </div>
                       ) : financingOptions.length > 0 ? (
-                        <div className="grid gap-4">
+                        <div className="grid gap-6">
                           {financingOptions.map((option) => (
-                            <Card key={option.id} className="border-l-4 border-l-green-500">
+                            <Card key={option.id} className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
                               <CardContent className="p-6">
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <h4 className="font-semibold text-lg">{option.provider}</h4>
-                                      <p className="text-sm text-muted-foreground">{option.type}</p>
+                                      <h4 className="font-semibold text-lg">
+                                        {option.profiles?.company_name || option.profiles?.full_name}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{option.product_name}</p>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {option.loan_type?.map((type: string, idx: number) => (
+                                          <Badge key={idx} variant="secondary" className="text-xs">
+                                            {type}
+                                          </Badge>
+                                        ))}
+                                      </div>
                                     </div>
-                                    <Badge variant="secondary" className="bg-green-50 text-green-700">
-                                      {option.rate}
-                                    </Badge>
+                                    <div className="text-right">
+                                      <Badge variant="secondary" className="bg-green-50 text-green-700 mb-2">
+                                        {option.min_interest_rate}% - {option.max_interest_rate}%
+                                      </Badge>
+                                      {option.quick_approval && (
+                                        <div>
+                                          <Badge variant="outline" className="text-xs">
+                                            <Clock className="w-2 h-2 mr-1" />
+                                            Quick Approval
+                                          </Badge>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                   
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                     <div>
                                       <p className="text-muted-foreground">Loan Amount</p>
-                                      <p className="font-medium">{option.amount}</p>
+                                      <p className="font-medium">
+                                        ₹{(option.min_amount || 0).toLocaleString()} - ₹{option.max_amount.toLocaleString()}
+                                      </p>
                                     </div>
                                     <div>
                                       <p className="text-muted-foreground">Tenure</p>
-                                      <p className="font-medium">{option.tenure}</p>
+                                      <p className="font-medium">
+                                        {option.min_tenure_months} - {option.max_tenure_months} months
+                                      </p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Processing Time</p>
-                                      <p className="font-medium">{option.processing}</p>
+                                      <p className="text-muted-foreground">Processing Fee</p>
+                                      <p className="font-medium">{option.processing_fee_percentage}%</p>
                                     </div>
                                     <div>
                                       <p className="text-muted-foreground">Interest Rate</p>
-                                      <p className="font-medium">{option.rate}</p>
+                                      <p className="font-medium">
+                                        {option.min_interest_rate}% - {option.max_interest_rate}%
+                                      </p>
                                     </div>
                                   </div>
                                   
-                                  <div className="space-y-2">
-                                    <p className="text-sm font-medium">Key Features:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                      {option.features.map((feature: string, idx: number) => (
-                                        <Badge key={idx} variant="outline" className="text-xs">
-                                          <Shield className="w-2 h-2 mr-1" />
-                                          {feature}
-                                        </Badge>
-                                      ))}
+                                  {option.description && (
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">{option.description}</p>
                                     </div>
+                                  )}
+                                  
+                                  <div className="flex flex-wrap gap-2">
+                                    {option.collateral_required && (
+                                      <Badge variant="outline" className="text-xs">
+                                        <Shield className="w-2 h-2 mr-1" />
+                                        Collateral Required
+                                      </Badge>
+                                    )}
+                                    {option.digital_process && (
+                                      <Badge variant="outline" className="text-xs">
+                                        <Star className="w-2 h-2 mr-1" />
+                                        Digital Process
+                                      </Badge>
+                                    )}
+                                    {option.prepayment_allowed && (
+                                      <Badge variant="outline" className="text-xs">
+                                        <Star className="w-2 h-2 mr-1" />
+                                        Prepayment Allowed
+                                      </Badge>
+                                    )}
                                   </div>
                                   
                                   <div className="flex gap-2">
-                                    <Button className="flex-1">
+                                    <Button className="flex-1 bg-green-600 hover:bg-green-700">
                                       <CreditCard className="w-4 h-4 mr-2" />
                                       Apply Now
                                     </Button>
@@ -1236,178 +1238,10 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     </div>
                   </TabsContent>
 
-                  {/* Logistics */}
-                  <TabsContent value="logistics" className="p-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Available Logistics Services</h3>
-                      {loadingLogistics ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                          <span>Loading logistics services...</span>
-                        </div>
-                      ) : logisticsServices.length > 0 ? (
-                        <div className="grid gap-4">
-                          {logisticsServices.map((service) => (
-                            <Card key={service.id} className="border border-gray-200">
-                              <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                  <div>
-                                    <h4 className="font-semibold text-lg">{service.service_name}</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      by {service.profiles?.company_name || service.profiles?.full_name}
-                                    </p>
-                                  </div>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {service.service_type}
-                                  </Badge>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                                  <div>
-                                    <span className="text-xs text-muted-foreground">Base Price</span>
-                                    <p className="font-medium">₹{service.base_price}</p>
-                                  </div>
-                                  <div>
-                                    <span className="text-xs text-muted-foreground">Per KM</span>
-                                    <p className="font-medium">₹{service.price_per_km}</p>
-                                  </div>
-                                  <div>
-                                    <span className="text-xs text-muted-foreground">Per KG</span>
-                                    <p className="font-medium">₹{service.price_per_kg}</p>
-                                  </div>
-                                  <div>
-                                    <span className="text-xs text-muted-foreground">Delivery Time</span>
-                                    <p className="font-medium">{service.delivery_time_hours}h</p>
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                  {service.transport_modes?.map((mode: string) => (
-                                    <Badge key={mode} variant="outline" className="text-xs">
-                                      {mode}
-                                    </Badge>
-                                  ))}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4 text-xs mb-3">
-                                  <div>
-                                    <span className="text-muted-foreground">Max Weight:</span>
-                                    <span className="ml-1 font-medium">{service.max_weight_kg} kg</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">Max Volume:</span>
-                                    <span className="ml-1 font-medium">{service.max_volume_m3} m³</span>
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                  {service.insurance_included && (
-                                    <Badge variant="outline" className="text-xs text-green-600">
-                                      <Shield className="w-3 h-3 mr-1" />
-                                      Insurance Included
-                                    </Badge>
-                                  )}
-                                  {service.tracking_available && (
-                                    <Badge variant="outline" className="text-xs text-blue-600">
-                                      <MapPin className="w-3 h-3 mr-1" />
-                                      Live Tracking
-                                    </Badge>
-                                  )}
-                                  {service.special_handling && (
-                                    <Badge variant="outline" className="text-xs text-orange-600">
-                                      Special Handling
-                                    </Badge>
-                                  )}
-                                </div>
-
-                                <div className="flex justify-between items-center">
-                                  <div className="text-xs text-muted-foreground">
-                                    <MapPin className="w-3 h-3 inline mr-1" />
-                                    {service.profiles?.location}
-                                  </div>
-                                  <Button size="sm" variant="outline">
-                                    <Phone className="w-3 h-3 mr-1" />
-                                    Contact Provider
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <Card className="border-dashed">
-                          <CardContent className="p-8 text-center">
-                            <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                            <h4 className="font-semibold mb-2">No Logistics Services Found</h4>
-                            <p className="text-sm text-muted-foreground">
-                              No logistics providers are currently available for this location.
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  {/* Import */}
-                  {importDuty && (
-                    <TabsContent value="import" className="p-6">
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Import Information</h3>
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                          <div className="flex items-center mb-3">
-                            <Plane className="w-5 h-5 text-orange-600 mr-2" />
-                            <h4 className="font-semibold text-orange-800">Import to India</h4>
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span>Base Price:</span>
-                              <span className="font-medium">{formatPrice(robot.price, robot.currency)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Estimated Import Duty (18%):</span>
-                              <span className="font-medium text-orange-600">{formatPrice(importDuty, robot.currency)}</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between font-semibold">
-                              <span>Total Estimated Cost:</span>
-                              <span>{formatPrice(robot.price + importDuty, robot.currency)}</span>
-                            </div>
-                          </div>
-                          <div className="mt-4 text-xs text-orange-700">
-                            *Additional shipping, insurance, and customs processing fees may apply
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  )}
                 </Tabs>
               </CardContent>
             </Card>
 
-            {/* Logistics Services Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Truck className="w-5 h-5" />
-                  Logistics & Shipping
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Available logistics providers for shipping this robot
-                </p>
-              </CardHeader>
-              <CardContent>
-                <LogisticsServiceCard 
-                  robotLocation={robot?.location}
-                  onRequestQuote={(serviceId, providerId) => {
-                    toast({
-                      title: "Quote Requested",
-                      description: `Quote request sent to logistics provider`,
-                    });
-                  }}
-                  limit={3}
-                />
-              </CardContent>
-            </Card>
 
             {/* AI Analysis Section */}
             {user && (
