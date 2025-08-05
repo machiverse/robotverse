@@ -14,9 +14,9 @@ const Index = () => {
       <EnhancedHeader />
       <EnhancedHero />
       <RobotListings />
+      <LogisticsFinanceShowcase />
       <MarketplaceCategories />
       <WhyChooseRobotVerse />
-      <LogisticsFinanceShowcase />
       <ProfessionalCategories />
       <TrustIndicators />
     </div>
