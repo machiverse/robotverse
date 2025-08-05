@@ -811,11 +811,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <Card>
               <CardContent className="p-0">
                 <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5 rounded-none border-b">
+                  <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="specifications">Specifications</TabsTrigger>
                     <TabsTrigger value="spareparts">Spare Parts</TabsTrigger>
                     <TabsTrigger value="services">Services</TabsTrigger>
+                    <TabsTrigger value="logistics">Logistics</TabsTrigger>
                     <TabsTrigger value="financing">Financing</TabsTrigger>
                   </TabsList>
                   
@@ -1231,6 +1232,167 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                 </div>
                               </div>
                               <p className="text-xs text-blue-600">*Estimates based on 9-12% interest rate</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Logistics */}
+                  <TabsContent value="logistics" className="p-6">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-semibold flex items-center">
+                          <Package className="w-5 h-5 mr-2 text-orange-600" />
+                          Logistics & Shipping Partners
+                        </h3>
+                      </div>
+                      
+                      {/* Available Logistics Services */}
+                      <div className="grid gap-4">
+                        <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
+                          <CardContent className="p-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-semibold text-lg">Express Robotics Logistics</h4>
+                                  <p className="text-sm text-muted-foreground">Specialized Industrial Equipment Transport</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    <Badge variant="secondary" className="text-xs">Heavy Machinery</Badge>
+                                    <Badge variant="secondary" className="text-xs">Door-to-Door</Badge>
+                                    <Badge variant="secondary" className="text-xs">Insurance Included</Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <Badge variant="secondary" className="bg-orange-50 text-orange-700 mb-2">
+                                    ₹15-25/kg
+                                  </Badge>
+                                  <div>
+                                    <Badge variant="outline" className="text-xs">
+                                      <Clock className="w-2 h-2 mr-1" />
+                                      3-5 Days
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">Coverage</p>
+                                  <p className="font-medium">Pan India</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Max Weight</p>
+                                  <p className="font-medium">5000 kg</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Tracking</p>
+                                  <p className="font-medium">Real-time GPS</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Insurance</p>
+                                  <p className="font-medium">Up to ₹50L</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                                  <Package className="w-4 h-4 mr-2" />
+                                  Get Quote
+                                </Button>
+                                <Button variant="outline">
+                                  <Phone className="w-4 h-4 mr-2" />
+                                  Contact
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+                          <CardContent className="p-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-semibold text-lg">TechMove Solutions</h4>
+                                  <p className="text-sm text-muted-foreground">Technology Equipment Specialists</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    <Badge variant="secondary" className="text-xs">White Glove Service</Badge>
+                                    <Badge variant="secondary" className="text-xs">Installation Support</Badge>
+                                    <Badge variant="secondary" className="text-xs">Temperature Controlled</Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 mb-2">
+                                    ₹20-35/kg
+                                  </Badge>
+                                  <div>
+                                    <Badge variant="outline" className="text-xs">
+                                      <Clock className="w-2 h-2 mr-1" />
+                                      2-4 Days
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">Coverage</p>
+                                  <p className="font-medium">India + Export</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Max Weight</p>
+                                  <p className="font-medium">3000 kg</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Services</p>
+                                  <p className="font-medium">Installation Support</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Customs</p>
+                                  <p className="font-medium">Clearance Handled</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
+                                  <Package className="w-4 h-4 mr-2" />
+                                  Get Quote
+                                </Button>
+                                <Button variant="outline">
+                                  <Phone className="w-4 h-4 mr-2" />
+                                  Contact
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      {robot?.price && (
+                        <Card className="bg-orange-50 border-orange-200">
+                          <CardContent className="p-4">
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-orange-900">Shipping Cost Estimate</h4>
+                              <p className="text-sm text-orange-700">
+                                For equipment price of {formatPrice(robot.price, robot.currency)}
+                              </p>
+                              <div className="grid grid-cols-3 gap-4 text-xs">
+                                <div className="text-center">
+                                  <p className="text-orange-600">Local (Same State)</p>
+                                  <p className="font-semibold">₹2,500 - ₹5,000</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-orange-600">National</p>
+                                  <p className="font-semibold">₹8,000 - ₹15,000</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-orange-600">International</p>
+                                  <p className="font-semibold">₹25,000 - ₹50,000</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-orange-600">*Estimates based on weight and distance</p>
                             </div>
                           </CardContent>
                         </Card>
