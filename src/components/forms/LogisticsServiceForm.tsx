@@ -44,7 +44,7 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
   
   const [formData, setFormData] = useState({
     service_name: editingService?.service_name || '',
-    service_type: editingService?.service_type || '',
+    service_type: editingService?.service_type || [],
     description: editingService?.description || '',
     base_price: editingService?.base_price?.toString() || '',
     price_per_km: editingService?.price_per_km?.toString() || '',
@@ -107,7 +107,7 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
       const { data, error } = await supabase
         .from('coverage_areas')
         .select('*')
-        .eq('is_active', false) // These are template areas, not user-specific
+        .eq('is_active', true) // Active coverage areas
         .order('area_type', { ascending: true })
         .order('zone_type', { ascending: true })
         .order('area_name', { ascending: true });
@@ -123,6 +123,15 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleServiceTypeChange = (type: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      service_type: checked 
+        ? [...prev.service_type, type]
+        : prev.service_type.filter(t => t !== type)
     }));
   };
 
@@ -183,7 +192,7 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
       return;
     }
 
-    if (!formData.service_name || !formData.service_type || selectedCoverageAreas.length === 0) {
+    if (!formData.service_name || formData.service_type.length === 0 || selectedCoverageAreas.length === 0) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -202,7 +211,7 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
       const serviceData = {
         provider_id: user.id,
         service_name: formData.service_name,
-        service_type: formData.service_type,
+        service_type: formData.service_type.join(', '),
         description: formData.description,
         coverage_areas: selectedAreas.map(area => area.area_name),
         international_coverage: selectedAreas.filter(area => area.area_type === 'international').map(area => area.area_name),
@@ -285,17 +294,36 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="service_type">Service Type *</Label>
-              <Select onValueChange={(value) => handleInputChange('service_type', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select service type" />
-                </SelectTrigger>
-                <SelectContent>
+              <Label htmlFor="service_type">Service Types *</Label>
+              <div className="border rounded-lg p-4 space-y-2 max-h-48 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-2">
                   {serviceTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                    <div key={type} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={type}
+                        checked={formData.service_type.includes(type)}
+                        onCheckedChange={(checked) => handleServiceTypeChange(type, !!checked)}
+                      />
+                      <Label htmlFor={type} className="text-sm cursor-pointer flex-1">
+                        {type}
+                      </Label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
+              {formData.service_type.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {formData.service_type.map((type) => (
+                    <Badge key={type} variant="secondary" className="text-xs">
+                      {type}
+                      <X 
+                        className="w-3 h-3 ml-1 cursor-pointer" 
+                        onClick={() => handleServiceTypeChange(type, false)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
