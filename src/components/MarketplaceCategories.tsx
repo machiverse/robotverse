@@ -24,7 +24,7 @@ interface MarketplaceCategory {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   stats: CategoryStats;
   gradient: string;
   href: string;
@@ -99,110 +99,72 @@ const MarketplaceCategories = () => {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // === Robots ===
-        const { data: robotsData, error: robotsError } = await supabase
-          .from("robots")
-          .select("id");
-        if (robotsError) throw robotsError;
-        const robotListingsCount = robotsData?.length ?? 0;
+        const [
+          { data: robotsData, error: robotsError },
+          { data: robotLocationsData, error: robotLocError },
+          { data: partsData, error: partsError },
+          { data: suppliersData, error: suppliersError },
+          { data: serviceRequestsData, error: serviceReqError },
+          { data: serviceProvidersData, error: serviceProvError },
+          { data: logisticsData, error: logisticsError },
+          { data: financeData, error: financeError },
+        ] = await Promise.all([
+          supabase.from("robots").select("id"),
+          supabase.from("robots").select("location"),
+          supabase.from("spare_parts").select("id"),
+          supabase.from("spare_parts").select("seller_id"),
+          supabase.from("service_requests").select("id"),
+          supabase.from("services").select("provider_id"),
+          supabase.from("logistics_services").select("id, coverage_areas").eq("is_active", true),
+          supabase.from("loan_products").select("id, provider_id").eq("is_active", true),
+        ]);
 
-        // Count distinct locations for robots
-        const { data: robotLocationsData, error: robotLocError } = await supabase
-          .from("robots")
-          .select("location");
-        if (robotLocError) throw robotLocError;
-        const uniqueLocations = new Set(robotLocationsData?.map(item => item.location).filter(Boolean) || []);
+        if (robotsError) console.error("Robots error:", robotsError);
+        if (robotLocError) console.error("Robot locations error:", robotLocError);
+        if (partsError) console.error("Parts error:", partsError);
+        if (suppliersError) console.error("Suppliers error:", suppliersError);
+        if (serviceReqError) console.error("Service requests error:", serviceReqError);
+        if (serviceProvError) console.error("Service providers error:", serviceProvError);
+        if (logisticsError) console.error("Logistics error:", logisticsError);
+        if (financeError) console.error("Finance error:", financeError);
+
+        const robotListingsCount = robotsData?.length ?? 0;
+        const uniqueLocations = new Set(robotLocationsData?.map(item => item.location).filter(Boolean) ?? []);
         const robotLocationsCount = uniqueLocations.size;
 
-        // === Spare Parts ===
-        const { data: partsData, error: partsError } = await supabase
-          .from("spare_parts")
-          .select("id");
-        if (partsError) throw partsError;
         const partsListingsCount = partsData?.length ?? 0;
-
-        // Suppliers count (distinct sellers from spare_parts)
-        const { data: suppliersData, error: suppliersError } = await supabase
-          .from("spare_parts")
-          .select("seller_id");
-        if (suppliersError) throw suppliersError;
-        const uniqueSellerIds = new Set(suppliersData?.map(item => item.seller_id) || []);
+        const uniqueSellerIds = new Set(suppliersData?.map(item => item.seller_id) ?? []);
         const suppliersCount = uniqueSellerIds.size;
 
-        // === Services ===
-        const { data: serviceRequestsData, error: serviceReqError } = await supabase
-          .from("service_requests")
-          .select("id");
-        if (serviceReqError) throw serviceReqError;
         const activeRequestsCount = serviceRequestsData?.length ?? 0;
-
-        // Service Providers count (distinct providers from services)
-        const { data: serviceProvidersData, error: serviceProvError } = await supabase
-          .from("services")
-          .select("provider_id");
-        if (serviceProvError) throw serviceProvError;
-        const uniqueProviderIds = new Set(serviceProvidersData?.map(item => item.provider_id) || []);
+        const uniqueProviderIds = new Set(serviceProvidersData?.map(item => item.provider_id) ?? []);
         const serviceProvidersCount = uniqueProviderIds.size;
 
-        // === Logistics ===
-        const { data: logisticsData, error: logisticsError } = await supabase
-          .from("logistics_services")
-          .select("id, coverage_areas")
-          .eq("is_active", true);
-        if (logisticsError) throw logisticsError;
         const logisticsServicesCount = logisticsData?.length ?? 0;
-
-        // Count total coverage areas
-        const allCoverageAreas = logisticsData?.flatMap(service => service.coverage_areas || []) || [];
+        const allCoverageAreas = logisticsData?.flatMap(service => service.coverage_areas ?? []) ?? [];
         const uniqueCoverageAreas = new Set(allCoverageAreas);
         const logisticsCoverageCount = uniqueCoverageAreas.size;
 
-        // === Finance ===
-        const { data: financeData, error: financeError } = await supabase
-          .from("loan_products")
-          .select("id, provider_id")
-          .eq("is_active", true);
-        if (financeError) throw financeError;
         const financeProductsCount = financeData?.length ?? 0;
-
-        // Finance Providers count (distinct providers from loan_products)
-        const uniqueFinanceProviders = new Set(financeData?.map(product => product.provider_id) || []);
+        const uniqueFinanceProviders = new Set(financeData?.map(product => product.provider_id) ?? []);
         const financeProvidersCount = uniqueFinanceProviders.size;
 
-        // Update categoriesData state with fetched counts
         setCategoriesData((prev) =>
-          prev.map((category) => {
-            if (category.id === "robots") {
-              return {
-                ...category,
-                stats: { listings: robotListingsCount, locations: robotLocationsCount },
-              };
+          prev.map(category => {
+            switch (category.id) {
+              case "robots":
+                return { ...category, stats: { listings: robotListingsCount, locations: robotLocationsCount } };
+              case "parts":
+                return { ...category, stats: { listings: partsListingsCount, suppliers: suppliersCount } };
+              case "services":
+                return { ...category, stats: { requests: activeRequestsCount, providers: serviceProvidersCount } };
+              case "logistics":
+                return { ...category, stats: { services: logisticsServicesCount, coverage: logisticsCoverageCount } };
+              case "finance":
+                return { ...category, stats: { products: financeProductsCount, providers: financeProvidersCount } };
+              default:
+                return category;
             }
-            if (category.id === "parts") {
-              return {
-                ...category,
-                stats: { listings: partsListingsCount, suppliers: suppliersCount },
-              };
-            }
-            if (category.id === "services") {
-              return {
-                ...category,
-                stats: { requests: activeRequestsCount, providers: serviceProvidersCount },
-              };
-            }
-            if (category.id === "logistics") {
-              return {
-                ...category,
-                stats: { services: logisticsServicesCount, coverage: logisticsCoverageCount },
-              };
-            }
-            if (category.id === "finance") {
-              return {
-                ...category,
-                stats: { products: financeProductsCount, providers: financeProvidersCount },
-              };
-            }
-            return category;
           }),
         );
       } catch (error) {
@@ -215,6 +177,9 @@ const MarketplaceCategories = () => {
   return (
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
+        <h2 className="text-3xl font-extrabold mb-10 text-center text-slate-900">
+          Marketplace Categories
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {categoriesData.map((category) => {
             const Icon = category.icon;
