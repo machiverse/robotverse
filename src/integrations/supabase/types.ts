@@ -112,7 +112,7 @@ export type Database = {
           eligibility_criteria: string | null
           id: string
           is_active: boolean | null
-          loan_type: string
+          loan_type: string[]
           max_amount: number
           max_interest_rate: number | null
           max_tenure_months: number | null
@@ -122,7 +122,6 @@ export type Database = {
           prepayment_allowed: boolean | null
           processing_fee_percentage: number | null
           product_name: string
-          professional_types: string[] | null
           provider_id: string
           quick_approval: boolean | null
           required_documents: string[] | null
@@ -136,7 +135,7 @@ export type Database = {
           eligibility_criteria?: string | null
           id?: string
           is_active?: boolean | null
-          loan_type: string
+          loan_type: string[]
           max_amount: number
           max_interest_rate?: number | null
           max_tenure_months?: number | null
@@ -146,7 +145,6 @@ export type Database = {
           prepayment_allowed?: boolean | null
           processing_fee_percentage?: number | null
           product_name: string
-          professional_types?: string[] | null
           provider_id: string
           quick_approval?: boolean | null
           required_documents?: string[] | null
@@ -160,7 +158,7 @@ export type Database = {
           eligibility_criteria?: string | null
           id?: string
           is_active?: boolean | null
-          loan_type?: string
+          loan_type?: string[]
           max_amount?: number
           max_interest_rate?: number | null
           max_tenure_months?: number | null
@@ -170,7 +168,6 @@ export type Database = {
           prepayment_allowed?: boolean | null
           processing_fee_percentage?: number | null
           product_name?: string
-          professional_types?: string[] | null
           provider_id?: string
           quick_approval?: boolean | null
           required_documents?: string[] | null

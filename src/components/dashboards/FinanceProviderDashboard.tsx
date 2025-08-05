@@ -355,26 +355,20 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                       
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Type:</span>
-                          <span className="font-medium">{product.loan_type}</span>
-                        </div>
-                        {product.professional_types && product.professional_types.length > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Target:</span>
-                            <div className="flex flex-wrap gap-1">
-                              {product.professional_types.slice(0, 2).map((type: string, idx: number) => (
-                                <span key={idx} className="text-xs bg-primary/10 text-primary px-1 rounded">
-                                  {type}
-                                </span>
-                              ))}
-                              {product.professional_types.length > 2 && (
-                                <span className="text-xs text-muted-foreground">
-                                  +{product.professional_types.length - 2} more
-                                </span>
-                              )}
-                            </div>
+                          <span className="text-muted-foreground">Types:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {product.loan_type.slice(0, 2).map((type: string, idx: number) => (
+                              <span key={idx} className="text-xs bg-primary/10 text-primary px-1 rounded">
+                                {type}
+                              </span>
+                            ))}
+                            {product.loan_type.length > 2 && (
+                              <span className="text-xs text-muted-foreground">
+                                +{product.loan_type.length - 2} more
+                              </span>
+                            )}
                           </div>
-                        )}
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Amount:</span>
                           <span className="font-medium">₹{(product.min_amount / 100000).toFixed(1)}L - ₹{(product.max_amount / 100000).toFixed(1)}L</span>

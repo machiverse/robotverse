@@ -23,8 +23,7 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
   
   const [formData, setFormData] = useState({
     product_name: '',
-    loan_type: '',
-    professional_types: [] as string[],
+    loan_type: [] as string[],
     description: '',
     min_amount: '',
     max_amount: '',
@@ -50,21 +49,6 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
     'Line of Credit',
     'MSME Loan',
     'Startup Funding'
-  ];
-
-  const professionalTypes = [
-    'Doctor',
-    'Engineer',
-    'Lawyer',
-    'Chartered Accountant',
-    'Architect',
-    'Consultant',
-    'IT Professional',
-    'Teacher/Professor',
-    'Pharmacist',
-    'Dentist',
-    'Veterinarian',
-    'Financial Advisor'
   ];
 
   const documentTypes = [
@@ -96,12 +80,12 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
     }));
   };
 
-  const handleProfessionalTypeChange = (professionalType: string, checked: boolean) => {
+  const handleLoanTypeChange = (loanType: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      professional_types: checked 
-        ? [...prev.professional_types, professionalType]
-        : prev.professional_types.filter(p => p !== professionalType)
+      loan_type: checked 
+        ? [...prev.loan_type, loanType]
+        : prev.loan_type.filter(t => t !== loanType)
     }));
   };
 
@@ -117,7 +101,7 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
       return;
     }
 
-    if (!formData.product_name || !formData.loan_type || !formData.max_amount) {
+    if (!formData.product_name || formData.loan_type.length === 0 || !formData.max_amount) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -135,7 +119,6 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
           provider_id: user.id,
           product_name: formData.product_name,
           loan_type: formData.loan_type,
-          professional_types: formData.professional_types,
           description: formData.description,
           min_amount: parseFloat(formData.min_amount) || 0,
           max_amount: parseFloat(formData.max_amount),
@@ -197,38 +180,23 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="loan_type">Loan Type *</Label>
-              <Select onValueChange={(value) => handleInputChange('loan_type', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select loan type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {loanTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Loan Types * (Select multiple)</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 border rounded-lg bg-muted/20">
+                {loanTypes.map((type) => (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={type}
+                      checked={formData.loan_type.includes(type)}
+                      onCheckedChange={(checked) => handleLoanTypeChange(type, checked as boolean)}
+                    />
+                    <Label htmlFor={type} className="text-sm">{type}</Label>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Select one or more loan types this product covers
+              </p>
             </div>
-          </div>
-
-          {/* Professional Types - Multi Choice */}
-          <div className="space-y-2">
-            <Label>Target Professional Types (Optional)</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 border rounded-lg bg-muted/20">
-              {professionalTypes.map((professionalType) => (
-                <div key={professionalType} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={professionalType}
-                    checked={formData.professional_types.includes(professionalType)}
-                    onCheckedChange={(checked) => handleProfessionalTypeChange(professionalType, checked as boolean)}
-                  />
-                  <Label htmlFor={professionalType} className="text-sm">{professionalType}</Label>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select specific professional categories this loan targets (leave empty for general loans)
-            </p>
           </div>
 
           <div className="space-y-2">
