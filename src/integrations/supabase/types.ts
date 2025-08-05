@@ -202,6 +202,10 @@ export type Database = {
       logistics_services: {
         Row: {
           base_price: number | null
+          container_20ft_max: number | null
+          container_20ft_min: number | null
+          container_40ft_max: number | null
+          container_40ft_min: number | null
           coverage_areas: string[] | null
           created_at: string
           delivery_time_hours: number | null
@@ -226,6 +230,10 @@ export type Database = {
         }
         Insert: {
           base_price?: number | null
+          container_20ft_max?: number | null
+          container_20ft_min?: number | null
+          container_40ft_max?: number | null
+          container_40ft_min?: number | null
           coverage_areas?: string[] | null
           created_at?: string
           delivery_time_hours?: number | null
@@ -250,6 +258,10 @@ export type Database = {
         }
         Update: {
           base_price?: number | null
+          container_20ft_max?: number | null
+          container_20ft_min?: number | null
+          container_40ft_max?: number | null
+          container_40ft_min?: number | null
           coverage_areas?: string[] | null
           created_at?: string
           delivery_time_hours?: number | null
