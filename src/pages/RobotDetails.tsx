@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Truck, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1268,7 +1268,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         Get AI-powered recommendations for spare parts, services, financing, and logistics 
                         specifically matched to this robot with intelligent market analysis.
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                      <div className="grid grid-cols-3 gap-4 mb-8">
                         <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
                           <Wrench className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                           <div className="text-sm font-semibold text-gray-700">Spare Parts</div>
@@ -1278,11 +1278,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           <Settings className="w-8 h-8 text-green-600 mx-auto mb-2" />
                           <div className="text-sm font-semibold text-gray-700">Services</div>
                           <div className="text-xs text-gray-500">Expert Providers</div>
-                        </div>
-                        <div className="p-4 bg-white rounded-xl border border-orange-200 shadow-sm">
-                          <Truck className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                          <div className="text-sm font-semibold text-gray-700">Logistics</div>
-                          <div className="text-xs text-gray-500">Delivery Options</div>
                         </div>
                         <div className="p-4 bg-white rounded-xl border border-purple-200 shadow-sm">
                           <DollarSign className="w-8 h-8 text-purple-600 mx-auto mb-2" />
