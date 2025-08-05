@@ -116,18 +116,54 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
 
       if (error) throw error;
       
-      // If no data exists, create default coverage areas
+      // If no data exists, create comprehensive coverage areas
       if (!data || data.length === 0) {
+        const indianStates = [
+          'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 
+          'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
+          'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 
+          'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 
+          'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Chandigarh', 
+          'Dadra and Nagar Haveli', 'Daman and Diu', 'Lakshadweep', 'Puducherry'
+        ];
+
+        const internationalRegions = [
+          'USA', 'Canada', 'United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands',
+          'China', 'Japan', 'South Korea', 'Singapore', 'Malaysia', 'Thailand', 'Vietnam',
+          'Australia', 'New Zealand', 'UAE', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Oman',
+          'Brazil', 'Argentina', 'Mexico', 'South Africa', 'Egypt', 'Nigeria', 'Kenya',
+          'Russia', 'Turkey', 'Israel', 'Bangladesh', 'Sri Lanka', 'Nepal', 'Myanmar'
+        ];
+
         const defaultAreas = [
-          { id: 'dom-1', area_name: 'Mumbai', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'dom-2', area_name: 'Delhi', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'dom-3', area_name: 'Bangalore', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'dom-4', area_name: 'Chennai', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'dom-5', area_name: 'Pune', area_type: 'domestic', zone_type: 'tier1', delivery_time: '48 hours', base_rate: 120, per_kg_rate: 12, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'dom-6', area_name: 'Hyderabad', area_type: 'domestic', zone_type: 'tier1', delivery_time: '48 hours', base_rate: 120, per_kg_rate: 12, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'int-1', area_name: 'USA', area_type: 'international', zone_type: 'international', delivery_time: '7-10 days', base_rate: 2000, per_kg_rate: 200, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'int-2', area_name: 'Europe', area_type: 'international', zone_type: 'international', delivery_time: '5-7 days', base_rate: 1800, per_kg_rate: 180, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-          { id: 'int-3', area_name: 'Singapore', area_type: 'international', zone_type: 'international', delivery_time: '3-5 days', base_rate: 1500, per_kg_rate: 150, is_active: true, provider_id: '', created_at: '', updated_at: '' }
+          ...indianStates.map((state, index) => ({
+            id: `dom-${index + 1}`,
+            area_name: state,
+            area_type: 'domestic',
+            zone_type: 'state',
+            delivery_time: '24-72 hours',
+            base_rate: 100,
+            per_kg_rate: 10,
+            is_active: true,
+            provider_id: '',
+            created_at: '',
+            updated_at: ''
+          })),
+          ...internationalRegions.map((region, index) => ({
+            id: `int-${index + 1}`,
+            area_name: region,
+            area_type: 'international',
+            zone_type: 'international',
+            delivery_time: '5-15 days',
+            base_rate: 2000,
+            per_kg_rate: 200,
+            is_active: true,
+            provider_id: '',
+            created_at: '',
+            updated_at: '',
+            container_20ft_price: 50000 + (index * 1000),
+            container_40ft_price: 85000 + (index * 1500)
+          }))
         ];
         setAvailableCoverageAreas(defaultAreas as any);
       } else {
@@ -137,9 +173,9 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
       console.error('Error fetching coverage areas:', error);
       // Fallback to default areas in case of error
       const defaultAreas = [
-        { id: 'dom-1', area_name: 'Mumbai', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-        { id: 'dom-2', area_name: 'Delhi', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
-        { id: 'dom-3', area_name: 'Bangalore', area_type: 'domestic', zone_type: 'metro', delivery_time: '24 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' }
+        { id: 'dom-1', area_name: 'Maharashtra', area_type: 'domestic', zone_type: 'state', delivery_time: '24-72 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+        { id: 'dom-2', area_name: 'Karnataka', area_type: 'domestic', zone_type: 'state', delivery_time: '24-72 hours', base_rate: 100, per_kg_rate: 10, is_active: true, provider_id: '', created_at: '', updated_at: '' },
+        { id: 'int-1', area_name: 'USA', area_type: 'international', zone_type: 'international', delivery_time: '7-10 days', base_rate: 2000, per_kg_rate: 200, is_active: true, provider_id: '', created_at: '', updated_at: '', container_20ft_price: 50000, container_40ft_price: 85000 }
       ];
       setAvailableCoverageAreas(defaultAreas as any);
     }
@@ -404,7 +440,7 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
                 </Badge>
               </div>
               
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
                 {availableCoverageAreas
                   .filter(area => area.area_type === 'domestic')
                   .map((area) => (
@@ -418,12 +454,6 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
                         <Label htmlFor={area.id} className="text-xs font-medium cursor-pointer">
                           {area.area_name}
                         </Label>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="text-xs">
-                            {area.zone_type}
-                          </Badge>
-                          <span>₹{area.base_rate}</span>
-                        </div>
                       </div>
                     </div>
                   ))}
@@ -454,25 +484,32 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
                   {availableCoverageAreas
                     .filter(area => area.area_type === 'international')
                     .map((area) => (
-                      <div key={area.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded">
-                        <Checkbox
-                          id={area.id}
-                          checked={selectedCoverageAreas.includes(area.id)}
-                          onCheckedChange={() => handleCoverageAreaToggle(area.id)}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <Label htmlFor={area.id} className="text-xs font-medium cursor-pointer">
-                            {area.area_name}
-                          </Label>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                              {area.delivery_time}
-                            </Badge>
-                            <span>₹{area.base_rate}</span>
+                      <div key={area.id} className="border rounded-lg p-3 hover:bg-muted/50">
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id={area.id}
+                            checked={selectedCoverageAreas.includes(area.id)}
+                            onCheckedChange={() => handleCoverageAreaToggle(area.id)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <Label htmlFor={area.id} className="text-sm font-medium cursor-pointer">
+                              {area.area_name}
+                            </Label>
+                            <div className="mt-2 space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">20ft Container:</span>
+                                <span className="font-medium">₹{(area as any).container_20ft_price?.toLocaleString() || '50,000'}</span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">40ft Container:</span>
+                                <span className="font-medium">₹{(area as any).container_40ft_price?.toLocaleString() || '85,000'}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
