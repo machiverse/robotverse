@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Upload, 
   X, 
@@ -20,9 +22,13 @@ import {
   MapPin,
   DollarSign,
   Truck,
-  CheckCircle
+  CheckCircle,
+  Download,
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Papa from 'papaparse';
 
 interface SparePartFormData {
   name: string;
@@ -43,6 +49,29 @@ interface SparePartFormData {
   is_international: boolean;
   duty_amount: number;
   shipping_amount: number;
+}
+
+interface BulkUploadResult {
+  success: number;
+  errors: string[];
+  total: number;
+}
+
+interface CSVRow {
+  name: string;
+  part_number: string;
+  brand: string;
+  model: string;
+  condition: string;
+  price: string;
+  quantity: string;
+  location: string;
+  state: string;
+  pincode: string;
+  description: string;
+  image_urls: string;
+  compatible_robots: string;
+  category_tags: string;
 }
 
 const conditionOptions = [
@@ -69,6 +98,13 @@ const EnhancedSparePartsForm = () => {
   const [newTag, setNewTag] = useState('');
   const [newRobot, setNewRobot] = useState('');
   const [urlInput, setUrlInput] = useState('');
+  
+  // Bulk upload states
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [bulkResult, setBulkResult] = useState<BulkUploadResult | null>(null);
+  const [csvData, setCsvData] = useState<CSVRow[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
 
   const [formData, setFormData] = useState<SparePartFormData>({
     name: '',
@@ -300,24 +336,217 @@ const EnhancedSparePartsForm = () => {
     }
   };
 
+  // Download CSV template
+  const downloadTemplate = useCallback(() => {
+    const headers = [
+      'name',
+      'part_number', 
+      'brand',
+      'model',
+      'condition',
+      'price',
+      'quantity',
+      'location',
+      'state',
+      'pincode',
+      'description',
+      'image_urls',
+      'compatible_robots',
+      'category_tags'
+    ];
+    
+    const sampleData = [
+      'Robot Arm Joint',
+      'RB-001-ARM',
+      'ABB',
+      'IRB-6700',
+      'new',
+      '15000',
+      '5',
+      'Chennai',
+      'Tamil Nadu',
+      '600001',
+      'High precision robot arm joint for industrial applications',
+      'https://example.com/image1.jpg,https://example.com/image2.jpg',
+      'IRB-6700,IRB-6650',
+      'robot-parts,arm-joint,industrial'
+    ];
+
+    const csvContent = [headers, sampleData].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'spare_parts_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Template Downloaded",
+      description: "CSV template has been downloaded successfully"
+    });
+  }, [toast]);
+
   // Handle CSV file upload
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
+    if (!file.name.endsWith('.csv')) {
       toast({
         variant: "destructive",
         title: "Invalid file type",
-        description: "Please upload a CSV or Excel file"
+        description: "Please upload a CSV file"
       });
       return;
     }
 
-    toast({
-      title: "CSV Upload",
-      description: "CSV bulk upload feature will be implemented in the next update!"
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length > 0) {
+          toast({
+            variant: "destructive",
+            title: "CSV Parse Error",
+            description: "Error parsing CSV file. Please check the format."
+          });
+          return;
+        }
+
+        const data = results.data as CSVRow[];
+        
+        // Validate required fields
+        const invalidRows = data.filter(row => !row.name || !row.quantity);
+        if (invalidRows.length > 0) {
+          toast({
+            variant: "destructive",
+            title: "Validation Error",
+            description: `${invalidRows.length} rows are missing required fields (name, quantity)`
+          });
+          return;
+        }
+
+        setCsvData(data);
+        setShowPreview(true);
+        toast({
+          title: "CSV Loaded",
+          description: `${data.length} parts loaded for preview`
+        });
+      },
+      error: (error) => {
+        toast({
+          variant: "destructive",
+          title: "File Read Error",
+          description: error.message
+        });
+      }
     });
+  };
+
+  // Process bulk upload
+  const processBulkUpload = async () => {
+    if (!user || csvData.length === 0) return;
+
+    setBulkLoading(true);
+    setUploadProgress(0);
+    setBulkResult(null);
+
+    const results: BulkUploadResult = {
+      success: 0,
+      errors: [],
+      total: csvData.length
+    };
+
+    try {
+      for (let i = 0; i < csvData.length; i++) {
+        const row = csvData[i];
+        setUploadProgress(((i + 1) / csvData.length) * 100);
+
+        try {
+          // Parse image URLs
+          const imageUrls = row.image_urls 
+            ? row.image_urls.split(',').map(url => url.trim()).filter(url => url)
+            : [];
+
+          // Parse compatible robots
+          const compatibleRobots = row.compatible_robots
+            ? row.compatible_robots.split(',').map(robot => robot.trim()).filter(robot => robot)
+            : [];
+
+          // Parse category tags
+          const categoryTags = row.category_tags
+            ? row.category_tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+            : [];
+
+          const partData = {
+            seller_id: user.id,
+            name: row.name,
+            part_number: row.part_number || null,
+            brand: row.brand || null,
+            model: row.model || null,
+            condition: row.condition || 'new',
+            price: row.price ? parseFloat(row.price) : null,
+            currency: 'INR',
+            location: row.location || null,
+            state: row.state || null,
+            pincode: row.pincode || null,
+            quantity: parseInt(row.quantity) || 1,
+            description: row.description || null,
+            compatible_robots: compatibleRobots,
+            category_tags: categoryTags,
+            specifications: {},
+            is_international: false,
+            duty_amount: 0,
+            shipping_amount: 0,
+            images: imageUrls,
+          };
+
+          const { error } = await supabase
+            .from("spare_parts")
+            .insert([partData]);
+
+          if (error) {
+            results.errors.push(`Row ${i + 1}: ${error.message}`);
+          } else {
+            results.success++;
+          }
+        } catch (error: any) {
+          results.errors.push(`Row ${i + 1}: ${error.message || 'Unknown error'}`);
+        }
+      }
+
+      setBulkResult(results);
+      
+      if (results.success > 0) {
+        toast({
+          title: "Bulk Upload Complete",
+          description: `Successfully uploaded ${results.success} out of ${results.total} parts`
+        });
+        
+        // Reset form if all successful
+        if (results.errors.length === 0) {
+          setCsvData([]);
+          setShowPreview(false);
+          if (csvFileRef.current) csvFileRef.current.value = "";
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "No parts were uploaded successfully"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Bulk Upload Error",
+        description: error.message || 'An unexpected error occurred'
+      });
+    } finally {
+      setBulkLoading(false);
+      setUploadProgress(0);
+    }
   };
 
   return (
@@ -745,41 +974,156 @@ const EnhancedSparePartsForm = () => {
           </TabsContent>
 
           <TabsContent value="bulk" className="space-y-6 mt-6">
-            <div className="text-center py-12">
-              <FileSpreadsheet className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Bulk CSV Upload</h3>
-              <p className="text-muted-foreground mb-6">Upload multiple spare parts at once using CSV or Excel files</p>
-              
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-8">
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    ref={csvFileRef}
-                    onChange={handleCsvUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    onClick={() => csvFileRef.current?.click()}
-                    size="lg"
-                    className="mb-4"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload CSV/Excel File
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Supported formats: .csv, .xlsx, .xls
-                  </p>
-                </div>
+            {!showPreview ? (
+              <div className="text-center py-12">
+                <FileSpreadsheet className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Bulk CSV Upload</h3>
+                <p className="text-muted-foreground mb-6">Upload multiple spare parts at once using CSV files</p>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      onClick={downloadTemplate}
+                      variant="outline"
+                      size="lg"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Template
+                    </Button>
+                    
+                    <div className="border-2 border-dashed border-border rounded-lg p-8">
+                      <input
+                        type="file"
+                        accept=".csv"
+                        ref={csvFileRef}
+                        onChange={handleCsvUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        onClick={() => csvFileRef.current?.click()}
+                        size="lg"
+                        disabled={bulkLoading}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload CSV File
+                      </Button>
+                    </div>
+                  </div>
 
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">CSV Format Requirements:</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Your CSV should include columns: name, part_number, brand, model, condition, price, quantity, location, state, pincode, description
-                  </p>
+                  <div className="bg-muted p-4 rounded-lg max-w-2xl mx-auto">
+                    <h4 className="font-medium mb-2">CSV Format Requirements:</h4>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p><strong>Required columns:</strong> name, quantity</p>
+                      <p><strong>Optional columns:</strong> part_number, brand, model, condition, price, location, state, pincode, description</p>
+                      <p><strong>Special columns:</strong></p>
+                      <ul className="list-disc list-inside ml-4 space-y-1">
+                        <li><strong>image_urls:</strong> Comma-separated URLs (e.g., "url1.jpg,url2.jpg")</li>
+                        <li><strong>compatible_robots:</strong> Comma-separated robot models</li>
+                        <li><strong>category_tags:</strong> Comma-separated tags</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Preview CSV Data ({csvData.length} parts)</h3>
+                  <div className="space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowPreview(false);
+                        setCsvData([]);
+                        if (csvFileRef.current) csvFileRef.current.value = "";
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={processBulkUpload}
+                      disabled={bulkLoading}
+                    >
+                      {bulkLoading ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground" />
+                          <span>Uploading...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Upload {csvData.length} Parts
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {bulkLoading && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Uploading parts...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="w-full" />
+                  </div>
+                )}
+
+                {bulkResult && (
+                  <Alert className={bulkResult.errors.length === 0 ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}>
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p className="font-medium">
+                          Upload Complete: {bulkResult.success}/{bulkResult.total} parts uploaded successfully
+                        </p>
+                        {bulkResult.errors.length > 0 && (
+                          <details className="text-sm">
+                            <summary className="cursor-pointer">View {bulkResult.errors.length} errors</summary>
+                            <ul className="mt-2 list-disc list-inside space-y-1">
+                              {bulkResult.errors.map((error, index) => (
+                                <li key={index} className="text-red-600">{error}</li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="border rounded-lg max-h-96 overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left">Name</th>
+                        <th className="p-2 text-left">Part Number</th>
+                        <th className="p-2 text-left">Brand</th>
+                        <th className="p-2 text-left">Model</th>
+                        <th className="p-2 text-left">Condition</th>
+                        <th className="p-2 text-left">Price</th>
+                        <th className="p-2 text-left">Quantity</th>
+                        <th className="p-2 text-left">Location</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvData.map((row, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="p-2">{row.name}</td>
+                          <td className="p-2">{row.part_number}</td>
+                          <td className="p-2">{row.brand}</td>
+                          <td className="p-2">{row.model}</td>
+                          <td className="p-2">{row.condition}</td>
+                          <td className="p-2">₹{row.price}</td>
+                          <td className="p-2">{row.quantity}</td>
+                          <td className="p-2">{row.location}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
