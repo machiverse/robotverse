@@ -82,7 +82,7 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
   {
     id: "finance",
     title: "Finance",
-    description: "Flexible financing options",
+    description: "Flexible financing options & Insurance",
     icon: CreditCard,
     stats: {
       products: 0,
