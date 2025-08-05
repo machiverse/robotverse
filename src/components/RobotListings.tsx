@@ -762,11 +762,22 @@ const RobotListings = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={(e) => handleContactSeller(robot, e)}
-                        disabled={!robot.profiles?.phone && !robot.profiles?.mobile_number}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!user) {
+                            toast({
+                              variant: "destructive",
+                              title: "Sign In Required",
+                              description: "Please sign in to contact sellers"
+                            });
+                            return;
+                          }
+                          handleContactSeller(robot, e);
+                        }}
+                        disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
                       >
                         <MessageCircle className="w-3 h-3 mr-1" />
-                        Contact
+                        {user ? 'Contact' : 'Sign In to Contact'}
                       </Button>
                     </div>
 
