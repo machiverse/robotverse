@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   CreditCard,
   TrendingUp,
@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import LoanProductForm from '@/components/forms/LoanProductForm';
 import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
+import LoanCalculator from '@/components/forms/LoanCalculator';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;
@@ -37,6 +38,12 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
   const [loanProducts, setLoanProducts] = useState<any[]>([]);
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [showAddApplicationForm, setShowAddApplicationForm] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculatorData, setCalculatorData] = useState<{
+    amount?: number;
+    rate?: number;
+    tenure?: number;
+  }>({});
   const [dashboardStats, setDashboardStats] = useState({
     totalApplications: 0,
     approvedLoans: 0,
@@ -196,7 +203,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" onClick={() => setShowCalculator(true)}>
             <Calculator className="w-4 h-4" />
             Loan Calculator
           </Button>
@@ -382,7 +389,14 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                         </div>
                       </div>
 
-                      <Button size="sm" variant="outline" className="w-full mt-4">
+                      <Button size="sm" variant="outline" className="w-full mt-4" onClick={() => {
+                        setCalculatorData({
+                          amount: product.max_amount / 2,
+                          rate: product.max_interest_rate,
+                          tenure: product.max_tenure_months
+                        });
+                        setShowCalculator(true);
+                      }}>
                         <Calculator className="w-3 h-3 mr-1" />
                         Calculate EMI
                       </Button>
@@ -427,7 +441,14 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                         </div>
                       </div>
 
-                      <Button size="sm" variant="outline" className="w-full mt-4">
+                      <Button size="sm" variant="outline" className="w-full mt-4" onClick={() => {
+                        setCalculatorData({
+                          amount: scheme.max_amount / 2,
+                          rate: (scheme.interest_rate_min + scheme.interest_rate_max) / 2,
+                          tenure: scheme.max_tenure_months
+                        });
+                        setShowCalculator(true);
+                      }}>
                         <Calculator className="w-3 h-3 mr-1" />
                         Calculate EMI
                       </Button>
@@ -593,6 +614,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       {/* Add Loan Product Form Dialog */}
       <Dialog open={showAddProductForm} onOpenChange={setShowAddProductForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Loan Product</DialogTitle>
+          </DialogHeader>
           <LoanProductForm
             onSuccess={() => {
               setShowAddProductForm(false);
@@ -606,12 +630,30 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       {/* Add Loan Application Form Dialog */}
       <Dialog open={showAddApplicationForm} onOpenChange={setShowAddApplicationForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Submit Loan Application</DialogTitle>
+          </DialogHeader>
           <LoanApplicationForm
             onSuccess={() => {
               setShowAddApplicationForm(false);
               fetchDashboardData();
             }}
             onCancel={() => setShowAddApplicationForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Loan Calculator Dialog */}
+      <Dialog open={showCalculator} onOpenChange={setShowCalculator}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>EMI Calculator</DialogTitle>
+          </DialogHeader>
+          <LoanCalculator
+            defaultAmount={calculatorData.amount}
+            defaultRate={calculatorData.rate}
+            defaultTenure={calculatorData.tenure}
+            onClose={() => setShowCalculator(false)}
           />
         </DialogContent>
       </Dialog>
