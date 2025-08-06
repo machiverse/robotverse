@@ -246,15 +246,16 @@ serve(async (req) => {
 
     console.log(`Processing AI analysis for robot: ${robotId}`);
 
-    // Check if analysis already exists in database
+    // Check if analysis already exists in database with a lock to prevent race conditions
     const { data: existingAnalysis, error: fetchError } = await supabaseAdmin
       .from('robot_ai_analysis')
       .select('*')
       .eq('robot_id', robotId)
-      .maybeSingle();
+      .single();
 
-    if (fetchError) {
+    if (fetchError && fetchError.code !== 'PGRST116') {
       console.error('Error checking existing analysis:', fetchError);
+      throw new Error(`Database error: ${fetchError.message}`);
     }
 
     // If analysis exists, return cached result with updated location context
@@ -342,20 +343,23 @@ serve(async (req) => {
         finance: { providers: sortedFinance.map(p => ({ ...p, proximity: p.proximity })) },
     };
 
-    // Store the analysis result in database
+    // Store the analysis result in database using upsert to handle race conditions
     const { error: insertError } = await supabaseAdmin
       .from('robot_ai_analysis')
-      .insert({
+      .upsert({
         robot_id: robotId,
         analysis_data: structuredAnalysis,
-        recommendations: marketEcosystem
+        recommendations: marketEcosystem,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'robot_id'
       });
 
     if (insertError) {
       console.error('Error storing analysis:', insertError);
       // Continue without storing - don't fail the request
     } else {
-      console.log('AI analysis stored successfully for robot:', robotId);
+      console.log('AI analysis stored/updated successfully for robot:', robotId);
     }
 
     const finalResponse = {
