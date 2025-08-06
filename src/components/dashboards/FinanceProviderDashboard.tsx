@@ -73,7 +73,11 @@ import LoanApplicationForm from "@/components/forms/LoanApplicationForm";
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanSchemeForm from "@/components/forms/LoanSchemeForm";
 
-const FinanceProviderDashboard = () => {
+interface FinanceProviderDashboardProps {
+  userProfile?: any;
+}
+
+const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -208,7 +212,7 @@ const FinanceProviderDashboard = () => {
       await supabase.from("loan_schemes").delete().eq("id", id);
       toast({
         title: "Scheme deleted",
-        variant: "success",
+        description: "Loan scheme has been successfully deleted"
       });
       fetchDashboardData();
     } catch (error) {
