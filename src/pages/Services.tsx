@@ -379,22 +379,26 @@ const Services = () => {
                     {/* Buttons */}
                     <div className="flex space-x-2 pt-4">
                       {/* Request Quote links to email mailto if available, else disabled */}
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        as="a"
-                        href={
-                          service.providerProfile?.email
-                            ? `mailto:${service.providerProfile.email}?subject=Request Quote for ${encodeURIComponent(service.name)}`
-                            : undefined
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-disabled={!service.providerProfile?.email}
-                        {...(!service.providerProfile?.email && { disabled: true })}
-                      >
-                        Request Quote
-                      </Button>
+                      {service.providerProfile?.email ? (
+                        <Button size="sm" className="flex-1" asChild>
+                          <a
+                            href={`mailto:${service.providerProfile.email}?subject=Request Quote for ${encodeURIComponent(service.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Request Quote
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled
+                          aria-disabled={true}
+                        >
+                          Request Quote
+                        </Button>
+                      )}
 
                       {/* Provider button label, no phone click */}
                       <Button
