@@ -6,47 +6,29 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import {
   Truck,
   Package,
   MapPin,
-  Clock,
-  Star,
-  DollarSign,
-  Navigation,
-  Users,
   Activity,
+  CheckCircle,
+  AlertTriangle,
   Plus,
   Edit,
   Eye,
-  CheckCircle,
-  AlertTriangle,
-  Search,
-  Filter,
   RefreshCw,
   Download,
-  Upload,
   Settings,
-  Shield,
-  PhoneCall,
-  Mail,
-  Calendar,
-  Route,
-  Fuel,
-  Wrench,
-  AlertCircle,
+  PieChart,
   TrendingUp,
   BarChart3,
-  PieChart,
   Globe,
   Building,
-  User
+  User,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +37,6 @@ import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
 type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
-type UserTypeEnum = SupabaseDatabase['public']['Enums']['user_type_enum'];
 
 interface LogisticsProviderDashboardProps {
   userProfile: Profile;
@@ -82,15 +63,12 @@ interface ServiceArea {
 const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  // States
+
+  // State variables
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Data states
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     activeQuotes: 0,
     completedDeliveries: 0,
@@ -101,115 +79,65 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     profileCompletion: 0,
     businessVerified: false
   });
-  
-  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
-  const [recentInquiries, setRecentInquiries] = useState<any[]>([]);
-  const [serviceCapabilities, setServiceCapabilities] = useState<string[]>([]);
-  
-  // Modal states
-  const [showAddAreaForm, setShowAddAreaForm] = useState(false);
-  const [showAddServiceForm, setShowAddServiceForm] = useState(false);
-  const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
-  const [editingService, setEditingService] = useState<any>(null);
-  const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
-  const [userCoverageAreas, setUserCoverageAreas] = useState<any[]>([]);
 
-  // Enhanced access check for logistics providers
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+  const [serviceCapabilities, setServiceCapabilities] = useState<string[]>([]);
+  const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
+  const [editingService, setEditingService] = useState<any>(null);
+  const [showAddServiceForm, setShowAddServiceForm] = useState(false);
+  const [showAddAreaForm, setShowAddAreaForm] = useState(false);
+  const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
+
+  // Determine if user is logistics provider
   const userType = userProfile?.user_type || userProfile?.primary_user_type;
   const isLogisticsProvider = userType === 'logistics_provider' || userType === 'logistics';
 
-  console.log('🚛 Logistics Dashboard Debug:', {
-    userType,
-    isLogisticsProvider,
-    userProfile: userProfile ? 'Present' : 'Missing',
-    userId: user?.id
-  });
-
-  useEffect(() => {
-    if (user) {
-      fetchRealDashboardData();
-    }
-  }, [user]);
-
+  // Fetch dashboard data function
   const fetchRealDashboardData = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
-    
     try {
       setRefreshing(true);
-      
-      // Calculate real profile completion using existing fields
-      const profileCompletion = calculateProfileCompletion(userProfile);
-      
-      // Fetch real logistics data from database
-      const [shipmentsResult, fleetResult, coverageResult, servicesResult, userCoverageResult] = await Promise.all([
+
+      // Fetch logistics data in parallel
+      const [shipmentsResult, coverageResult, servicesResult] = await Promise.all([
         supabase.from('logistics_shipments').select('*').eq('provider_id', user.id),
-        supabase.from('logistics_fleet').select('*').eq('provider_id', user.id),
         supabase.from('logistics_coverage').select('*').eq('provider_id', user.id),
-        supabase.from('logistics_services').select('*').eq('provider_id', user.id),
-        supabase.from('coverage_areas').select('*').eq('provider_id', user.id)
+        supabase.from('logistics_services').select('*').eq('provider_id', user.id)
       ]);
 
       const shipments = shipmentsResult.data || [];
-      const fleet = fleetResult.data || [];
       const coverage = coverageResult.data || [];
       const services = servicesResult.data || [];
-      const userCoverage = userCoverageResult.data || [];
 
       setLogisticsServices(services);
-      setUserCoverageAreas(userCoverage);
-      
-      // Services and coverage data are now fetched above
 
-      // Calculate real service capabilities based on actual data
-      const capabilities: string[] = [];
-      
-      // Add capabilities based on services data
-      if (services.length > 0) {
-        const serviceTypes = [...new Set(services.map(s => s.service_type))];
-        capabilities.push(...serviceTypes);
-      }
-      
-      // Add capabilities based on fleet data
-      if (fleet.length > 0) {
-        const vehicleTypes = [...new Set(fleet.map(v => v.vehicle_type))];
-        vehicleTypes.forEach(type => capabilities.push(`${type} Transport`));
-      }
-      
-      // Add capabilities based on coverage data
-      if (coverage.length > 0 || userCoverage.length > 0) {
-        capabilities.push(`${coverage.length + userCoverage.length} Coverage Areas`);
-      }
-      
-      // Add basic capabilities from profile
-      if (userProfile?.company_name) capabilities.push('Commercial Transport');
-      if (userProfile?.phone) capabilities.push('Phone Support');
-      if (userProfile?.email) capabilities.push('Email Communication');
-      
-      setServiceCapabilities(capabilities);
-      
-      // Set real service areas from database
+      // Set coverage areas (mapped)
       const areas: ServiceArea[] = coverage.map(area => ({
         id: area.id,
         area_name: area.area_name,
-        coverage_radius: 50, // Default radius
-        active: area.is_active
+        coverage_radius: area.coverage_radius || 50,
+        active: area.is_active ?? true
       }));
-      
+
       setServiceAreas(areas);
-      
-      // Calculate real stats based on database data
+
+      // Calculate profile completion
+      const profileCompletion = calculateProfileCompletion(userProfile);
+
+      // Calculate dashboard stats
       const completedDeliveries = shipments.filter(s => s.status === 'delivered').length;
-      const onTimeDeliveries = shipments.filter(s => 
-        s.status === 'delivered' && 
-        s.actual_delivery && 
+      const onTimeDeliveries = shipments.filter(s =>
+        s.status === 'delivered' &&
+        s.actual_delivery &&
         s.estimated_delivery &&
         new Date(s.actual_delivery) <= new Date(s.estimated_delivery)
       ).length;
-      
+
       const onTimeRate = completedDeliveries > 0 ? (onTimeDeliveries / completedDeliveries) * 100 : 0;
+
       const monthlyRevenue = shipments
         .filter(s => new Date(s.created_at).getMonth() === new Date().getMonth())
         .reduce((sum, s) => sum + (s.cost || 0), 0);
@@ -219,19 +147,27 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         completedDeliveries,
         onTimeDeliveryRate: Math.round(onTimeRate),
         monthlyRevenue,
-        customerRating: 4.5, // TODO: Calculate from reviews when table exists
+        customerRating: 4.5, // Placeholder, replace with review data if available
         serviceRequests: shipments.length,
         profileCompletion,
-        businessVerified: !!(userProfile?.company_name && userProfile?.phone && userProfile?.email)
+        businessVerified: Boolean(userProfile?.company_name && userProfile?.phone && userProfile?.email)
       };
-      
+
       setDashboardStats(realStats);
-      
-      // Set recent inquiries from shipments data
-      setRecentInquiries(shipments.slice(0, 5));
-      
-      console.log('✅ Fetched real logistics data:', realStats);
-      
+
+      // Calculate service capabilities summary
+      const capabilities: string[] = [];
+      if (services.length > 0) {
+        const serviceTypes = [...new Set(services.map(s => s.service_type))];
+        capabilities.push(...serviceTypes);
+      }
+      if (areas.length > 0) capabilities.push(`${areas.length} Coverage Areas`);
+      if (userProfile?.company_name) capabilities.push('Commercial Transport');
+      if (userProfile?.phone) capabilities.push('Phone Support');
+      if (userProfile?.email) capabilities.push('Email Communication');
+
+      setServiceCapabilities(capabilities);
+
     } catch (error) {
       console.error('Error fetching logistics dashboard data:', error);
       toast({
@@ -245,42 +181,36 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     }
   }, [user, userProfile, toast]);
 
+  useEffect(() => {
+    if (user) fetchRealDashboardData();
+  }, [user, fetchRealDashboardData]);
+
+  // Calculate profile completion based on required fields
   const calculateProfileCompletion = (profile: any): number => {
     if (!profile) return 0;
-    
-    // Use actual fields that exist in the profiles table
-    const requiredFields = [
-      'full_name', 'email', 'phone', 'company_name', 
-      'location', 'user_type'
-    ];
-    
-    const completedFields = requiredFields.filter(field => {
-      const value = profile[field];
-      return value && value !== '' && value !== null && value !== undefined;
-    });
-    
+    const requiredFields = ['full_name', 'email', 'phone', 'company_name', 'location', 'user_type'];
+    const completedFields = requiredFields.filter(field => profile[field]);
     return Math.round((completedFields.length / requiredFields.length) * 100);
   };
 
+  // Add a new service coverage area handler
   const handleAddServiceArea = async (areaData: Partial<ServiceArea>) => {
     try {
-      // For now, we'll just add to the local state since we don't have a dedicated table
-      // In the future, you can create a service_areas table linked to the user
+      // Placeholder: Add area logic should connect to DB; here adding locally
       const newArea: ServiceArea = {
         id: `area_${Date.now()}`,
         area_name: areaData.area_name || '',
         coverage_radius: areaData.coverage_radius || 50,
         active: true
       };
-      
-      setServiceAreas(prev => [...prev, newArea]);
 
+      setServiceAreas(prev => [...prev, newArea]);
       toast({
         title: "Success",
         description: "Service area added successfully"
       });
-      
       setShowAddAreaForm(false);
+      setActiveTab('coverage'); // switch to Coverage tab on success
     } catch (error) {
       console.error('Error adding service area:', error);
       toast({
@@ -291,42 +221,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     }
   };
 
-  // Enhanced stats cards with real data focus
-  const enhancedStatsCards = [
-    {
-      title: 'Profile Completion',
-      value: `${dashboardStats.profileCompletion}%`,
-      icon: User,
-      trend: 'Setup progress',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Active Services',
-      value: logisticsServices.filter(s => s.is_active).length,
-      icon: Truck,
-      trend: 'Service offerings',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      title: 'Service Areas',
-      value: serviceAreas.length + userCoverageAreas.length,
-      icon: MapPin,
-      trend: 'Coverage locations',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Business Status',
-      value: dashboardStats.businessVerified ? 'Verified' : 'Pending',
-      icon: Shield,
-      trend: 'Verification status',
-      color: dashboardStats.businessVerified ? 'text-green-600' : 'text-yellow-600',
-      bgColor: dashboardStats.businessVerified ? 'bg-green-50' : 'bg-yellow-50'
-    }
-  ];
-
+  // Badge helper for service status
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { variant: 'secondary' as const, label: 'Pending' },
@@ -334,7 +229,6 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       completed: { variant: 'outline' as const, label: 'Completed' },
       cancelled: { variant: 'destructive' as const, label: 'Cancelled' }
     };
-    
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -350,22 +244,18 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     );
   }
 
-  // Access control
   if (!isLogisticsProvider) {
     return (
       <div className="space-y-6">
         <Alert className="border-orange-200 bg-orange-50">
           <AlertTriangle className="w-4 h-4" />
           <AlertDescription className="text-orange-700">
-            <strong>⚠️ Logistics Provider Access Required</strong>
-            <br />
-            Your account type is currently "{userType || 'not set'}". To access the logistics provider dashboard, 
-            please update your profile to "logistics_provider" type.
-            <br />
+            <strong>⚠️ Logistics Provider Access Required</strong><br />
+            Your account type is currently "{userType || 'not set'}". Please update your profile to "logistics_provider" to access this dashboard.<br />
             <small>User ID: {user?.id} | Profile: {userProfile ? 'Present' : 'Missing'}</small>
           </AlertDescription>
         </Alert>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Become a Logistics Provider</CardTitle>
@@ -408,6 +298,42 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     );
   }
 
+  // Stats cards for overview
+  const enhancedStatsCards = [
+    {
+      title: 'Profile Completion',
+      value: `${dashboardStats.profileCompletion}%`,
+      icon: User,
+      trend: 'Setup progress',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      title: 'Active Services',
+      value: logisticsServices.filter(s => s.is_active).length,
+      icon: Truck,
+      trend: 'Service offerings',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
+    },
+    {
+      title: 'Service Areas',
+      value: serviceAreas.length,
+      icon: MapPin,
+      trend: 'Coverage locations',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      title: 'Business Status',
+      value: dashboardStats.businessVerified ? 'Verified' : 'Pending',
+      icon: Settings,
+      trend: 'Verification status',
+      color: dashboardStats.businessVerified ? 'text-green-600' : 'text-yellow-600',
+      bgColor: dashboardStats.businessVerified ? 'bg-green-50' : 'bg-yellow-50'
+    }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Access Confirmed Banner */}
@@ -429,11 +355,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => fetchRealDashboardData()}
-            disabled={refreshing}
-          >
+          <Button variant="outline" disabled={refreshing} onClick={fetchRealDashboardData}>
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -451,22 +373,18 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         </div>
       </div>
 
-      {/* Enhanced Stats Overview */}
+      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {enhancedStatsCards.map((stat, index) => {
+        {enhancedStatsCards.map((stat, idx) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
+            <Card key={idx} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      {stat.title}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{stat.title}</p>
                     <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                    <Badge variant="secondary" className="mt-2 text-xs">
-                      {stat.trend}
-                    </Badge>
+                    <Badge variant="secondary" className="mt-2 text-xs">{stat.trend}</Badge>
                   </div>
                   <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
                     <Icon className={`w-6 h-6 ${stat.color}`} />
@@ -478,7 +396,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         })}
       </div>
 
-      {/* Main Content Tabs */}
+      {/* Tabs for main content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 h-12">
           <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -503,7 +421,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
+        {/* Overview Tab Content */}
         <TabsContent value="overview" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -515,35 +433,29 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               </CardHeader>
               <CardContent>
                 {dashboardStats.profileCompletion < 100 ? (
-                  <div className="space-y-4">
+                  <>
                     <Alert className="border-blue-200 bg-blue-50">
                       <AlertCircle className="w-4 h-4" />
                       <AlertDescription className="text-blue-700">
                         Complete your profile to start receiving logistics requests
                       </AlertDescription>
                     </Alert>
-                    <div className="space-y-2">
+                    <div className="space-y-2 mt-4">
                       <div className="flex justify-between text-sm">
                         <span>Profile Completion</span>
                         <span>{dashboardStats.profileCompletion}%</span>
                       </div>
                       <Progress value={dashboardStats.profileCompletion} className="h-2" />
                     </div>
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => window.location.href = '/profile'}
-                    >
+                    <Button variant="outline" className="w-full mt-4" onClick={() => window.location.href = '/profile'}>
                       Complete Profile Setup
                     </Button>
-                  </div>
+                  </>
                 ) : (
                   <div className="text-center py-8">
                     <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">Profile Complete!</h3>
-                    <p className="text-muted-foreground mb-4">
-                      You're ready to receive logistics requests
-                    </p>
+                    <p className="text-muted-foreground mb-4">You're ready to receive logistics requests</p>
                     <Button>Start Receiving Requests</Button>
                   </div>
                 )}
@@ -561,13 +473,8 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                 {serviceCapabilities.length === 0 ? (
                   <div className="text-center py-8">
                     <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">
-                      Complete your profile to show service capabilities
-                    </p>
-                    <Button 
-                      variant="outline"
-                      onClick={() => window.location.href = '/profile'}
-                    >
+                    <p className="text-muted-foreground mb-4">Complete your profile to show service capabilities</p>
+                    <Button variant="outline" onClick={() => window.location.href = '/profile'}>
                       Update Profile
                     </Button>
                   </div>
@@ -589,7 +496,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </div>
         </TabsContent>
 
-        {/* Services Tab */}
+        {/* Services Tab Content */}
         <TabsContent value="services" className="mt-6">
           <Card>
             <CardHeader>
@@ -601,7 +508,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                   </CardTitle>
                   <CardDescription>Manage your logistics service offerings</CardDescription>
                 </div>
-                <Button onClick={() => setShowAddServiceForm(true)}>
+                <Button onClick={() => {
+                  setEditingService(null);
+                  setShowAddServiceForm(true);
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Service
                 </Button>
@@ -621,205 +531,97 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {/* Services Table */}
-                  <div className="rounded-lg border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Service Details</TableHead>
-                          <TableHead>Coverage Areas</TableHead>
-                          <TableHead>Pricing</TableHead>
-                          <TableHead>Transport Modes</TableHead>
-                          <TableHead>Features</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {logisticsServices.map((service) => (
-                          <TableRow key={service.id}>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-medium">{service.service_name}</div>
-                                <Badge variant="outline" className="text-xs">
-                                  {service.service_type}
-                                </Badge>
-                                <div className="text-xs text-muted-foreground line-clamp-2">
-                                  {service.description}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1 text-sm">
-                                  <Building className="w-3 h-3" />
-                                  {service.coverage_areas?.length || 0} areas
-                                </div>
-                                {service.is_international && (
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <Globe className="w-3 h-3" />
-                                    International
-                                  </div>
-                                )}
-                                <div className="flex flex-wrap gap-1 max-w-32">
-                                  {service.coverage_areas?.slice(0, 2).map((area: string, idx: number) => (
-                                    <Badge key={idx} variant="secondary" className="text-xs">
-                                      {area}
-                                    </Badge>
-                                  ))}
-                                  {service.coverage_areas?.length > 2 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{service.coverage_areas.length - 2}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1 text-sm">
-                                <div>Base: ₹{service.base_price}</div>
-                                {service.price_per_km > 0 && (
-                                  <div>Per KM: ₹{service.price_per_km}</div>
-                                )}
-                                {service.price_per_kg > 0 && (
-                                  <div>Per KG: ₹{service.price_per_kg}</div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-1 max-w-32">
-                                {service.transport_modes?.slice(0, 2).map((mode: string, idx: number) => (
-                                  <Badge key={idx} variant="outline" className="text-xs">
-                                    {mode}
-                                  </Badge>
-                                ))}
-                                {service.transport_modes?.length > 2 && (
-                                  <Badge variant="outline" className="text-xs">
-                                    +{service.transport_modes.length - 2}
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                {service.tracking_available && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Tracking
-                                  </Badge>
-                                )}
-                                {service.insurance_included && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Insurance
-                                  </Badge>
-                                )}
-                                {service.emergency_delivery && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Emergency
-                                  </Badge>
-                                )}
-                                {service.special_handling && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Special
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(service.is_active ? 'active' : 'pending')}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center gap-1 justify-end">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setEditingService(service);
-                                    setShowAddServiceForm(true);
-                                  }}
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-                                <Button size="sm" variant="ghost">
-                                  <Eye className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {/* Service Cards for Mobile */}
-                  <div className="md:hidden grid grid-cols-1 gap-4">
-                    {logisticsServices.map((service) => (
-                      <Card key={service.id} className="border">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h3 className="font-semibold">{service.service_name}</h3>
-                              <Badge variant="outline" className="mt-1 text-xs">
-                                {service.service_type}
-                              </Badge>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Service Details</TableHead>
+                        <TableHead>Coverage Areas</TableHead>
+                        <TableHead>Pricing</TableHead>
+                        <TableHead>Transport Modes</TableHead>
+                        <TableHead>Features</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {logisticsServices.map(service => (
+                        <TableRow key={service.id}>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="font-medium">{service.service_name}</div>
+                              <Badge variant="outline" className="text-xs">{service.service_type}</Badge>
+                              <div className="text-xs text-muted-foreground line-clamp-2">{service.description}</div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setEditingService(service);
-                                  setShowAddServiceForm(true);
-                                }}
-                              >
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-sm">
+                                {service.coverage_areas?.length || 0} areas
+                              </div>
+                              {service.is_international && (
+                                <div className="flex items-center gap-1 text-sm"><Globe className="w-3 h-3" />International</div>
+                              )}
+                              <div className="flex flex-wrap gap-1 max-w-32">
+                                {service.coverage_areas?.slice(0, 2).map((area: string, idx: number) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">{area}</Badge>
+                                ))}
+                                {service.coverage_areas?.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">+{service.coverage_areas.length - 2}</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1 text-sm">
+                              <div>Base: ₹{service.base_price}</div>
+                              {service.price_per_km > 0 && <div>Per KM: ₹{service.price_per_km}</div>}
+                              {service.price_per_kg > 0 && <div>Per KG: ₹{service.price_per_kg}</div>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1 max-w-32">
+                              {service.transport_modes?.slice(0, 2).map((mode: string, idx: number) => (
+                                <Badge key={idx} variant="outline" className="text-xs">{mode}</Badge>
+                              ))}
+                              {service.transport_modes?.length > 2 && (
+                                <Badge variant="outline" className="text-xs">+{service.transport_modes.length - 2}</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {service.tracking_available && <Badge variant="secondary" className="text-xs">Tracking</Badge>}
+                              {service.insurance_included && <Badge variant="secondary" className="text-xs">Insurance</Badge>}
+                              {service.emergency_delivery && <Badge variant="secondary" className="text-xs">Emergency</Badge>}
+                              {service.special_handling && <Badge variant="secondary" className="text-xs">Special</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(service.is_active ? 'active' : 'pending')}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center gap-1 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => {
+                                setEditingService(service);
+                                setShowAddServiceForm(true);
+                              }}>
                                 <Edit className="w-3 h-3" />
                               </Button>
+                              <Button size="sm" variant="ghost">
+                                <Eye className="w-3 h-3" />
+                              </Button>
                             </div>
-                          </div>
-                          
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Coverage Areas:</span>
-                              <span className="font-medium">{service.coverage_areas?.length || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Base Price:</span>
-                              <span className="font-medium">₹{service.base_price}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Delivery Time:</span>
-                              <span className="font-medium">{service.delivery_time_hours}h</span>
-                            </div>
-                            {service.is_international && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <Globe className="w-4 h-4 text-blue-600" />
-                                <span className="text-sm text-blue-600">International Service</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap gap-1 mt-3">
-                            {service.tracking_available && (
-                              <Badge variant="secondary" className="text-xs">Tracking</Badge>
-                            )}
-                            {service.insurance_included && (
-                              <Badge variant="secondary" className="text-xs">Insurance</Badge>
-                            )}
-                            {service.emergency_delivery && (
-                              <Badge variant="secondary" className="text-xs">Emergency</Badge>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Coverage Areas Tab */}
+        {/* Coverage Tab Content */}
         <TabsContent value="coverage" className="mt-6">
           <Card>
             <CardHeader>
@@ -852,7 +654,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {serviceAreas.map((area) => (
+                  {serviceAreas.map(area => (
                     <Card key={area.id} className="hover:shadow-lg transition-shadow">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
@@ -866,12 +668,15 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                         </div>
                         <div className="space-y-2 text-sm text-muted-foreground">
                           <div className="flex items-center gap-2">
-                            <Navigation className="w-3 h-3" />
+                            <Building className="w-3 h-3" />
                             <span>Radius: {area.coverage_radius} km</span>
                           </div>
                         </div>
                         <div className="flex gap-2 mt-4">
-                          <Button variant="outline" size="sm" className="flex-1">
+                          <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                            setEditingArea(area);
+                            setShowAddAreaForm(true);
+                          }}>
                             <Edit className="w-3 h-3 mr-1" />
                             Edit
                           </Button>
@@ -888,7 +693,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </Card>
         </TabsContent>
 
-        {/* Profile Setup Tab */}
+        {/* Profile Setup Tab Content */}
         <TabsContent value="profile" className="mt-6">
           <Card>
             <CardHeader>
@@ -914,11 +719,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                         style={{ width: `${dashboardStats.profileCompletion}%` }}
                       />
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => window.location.href = '/profile'}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => window.location.href = '/profile'}>
                       Update Profile
                     </Button>
                   </div>
@@ -984,7 +785,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </Card>
         </TabsContent>
 
-        {/* Analytics Tab */}
+        {/* Analytics Tab Content */}
         <TabsContent value="analytics" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -1032,13 +833,14 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       <Dialog open={showAddAreaForm} onOpenChange={setShowAddAreaForm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Service Area</DialogTitle>
+            <DialogTitle>{editingArea ? 'Edit Service Area' : 'Add Service Area'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label htmlFor="area_name">Area Name</Label>
               <Input
                 id="area_name"
+                defaultValue={editingArea?.area_name || ''}
                 placeholder="e.g., Mumbai, Delhi NCR, Bangalore"
               />
             </div>
@@ -1047,29 +849,50 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               <Input
                 id="coverage_radius"
                 type="number"
+                defaultValue={editingArea?.coverage_radius || 50}
                 placeholder="50"
-                defaultValue="50"
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddAreaForm(false)}>
+              <Button variant="outline" onClick={() => {
+                setShowAddAreaForm(false);
+                setEditingArea(null);
+              }}>
                 Cancel
               </Button>
               <Button onClick={() => {
                 const areaName = (document.getElementById('area_name') as HTMLInputElement)?.value;
                 const coverageRadius = parseInt((document.getElementById('coverage_radius') as HTMLInputElement)?.value || '50');
-                if (areaName) {
-                  handleAddServiceArea({ area_name: areaName, coverage_radius: coverageRadius, active: true });
+                if (!areaName.trim()) {
+                  toast({
+                    variant: "destructive",
+                    title: "Validation Error",
+                    description: "Area Name cannot be empty"
+                  });
+                  return;
+                }
+                if (editingArea) {
+                  // Edit existing area
+                  setServiceAreas(prev => prev.map(area =>
+                    area.id === editingArea.id ? {...area, area_name: areaName, coverage_radius: coverageRadius} : area
+                  ));
+                  toast({title: "Success", description: "Service area updated successfully"});
+                  setEditingArea(null);
+                  setShowAddAreaForm(false);
+                  setActiveTab('coverage');
+                } else {
+                  // Add new area
+                  handleAddServiceArea({ area_name: areaName, coverage_radius: coverageRadius });
                 }
               }}>
-                Add Area
+                {editingArea ? 'Update Area' : 'Add Area'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Add Service Form Dialog */}
+      {/* Add/Edit Service Dialog */}
       <Dialog open={showAddServiceForm} onOpenChange={setShowAddServiceForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <LogisticsServiceForm
@@ -1078,6 +901,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               setShowAddServiceForm(false);
               setEditingService(null);
               fetchRealDashboardData();
+              setActiveTab('coverage'); // Switch to Coverage after adding service
             }}
             onCancel={() => {
               setShowAddServiceForm(false);
