@@ -44,6 +44,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
     rate?: number;
     tenure?: number;
   }>({});
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingScheme, setEditingScheme] = useState<any>(null);
+  const [editingApplication, setEditingApplication] = useState<any>(null);
   const [dashboardStats, setDashboardStats] = useState({
     totalApplications: 0,
     approvedLoans: 0,
@@ -310,11 +313,17 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                         <TableCell>{getApplicationStatusBadge(application.status)}</TableCell>
                         <TableCell>{application.applied_date}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline">
+                           <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" onClick={() => {
+                              // View application details
+                              console.log('View application:', application.id);
+                            }}>
                               <Eye className="w-3 h-3" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" onClick={() => {
+                              setEditingApplication(application);
+                              setShowAddApplicationForm(true);
+                            }}>
                               <Edit className="w-3 h-3" />
                             </Button>
                           </div>
@@ -356,8 +365,11 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                           <h3 className="font-semibold">{product.product_name}</h3>
                           <Badge variant="default" className="mt-1">Custom Product</Badge>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Button size="sm" variant="ghost">
+                         <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            setEditingProduct(product);
+                            setShowAddProductForm(true);
+                          }}>
                             <Edit className="w-3 h-3" />
                           </Button>
                         </div>
@@ -415,8 +427,11 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                             {scheme.is_government_scheme ? "Government Scheme" : scheme.scheme_type}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Button size="sm" variant="ghost">
+                         <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            setEditingScheme(scheme);
+                            setShowAddProductForm(true);
+                          }}>
                             <Edit className="w-3 h-3" />
                           </Button>
                         </div>
@@ -615,14 +630,23 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       <Dialog open={showAddProductForm} onOpenChange={setShowAddProductForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Loan Product</DialogTitle>
+            <DialogTitle>
+              {editingProduct || editingScheme ? 'Edit Product/Scheme' : 'Add Loan Product'}
+            </DialogTitle>
           </DialogHeader>
           <LoanProductForm
+            editingProduct={editingProduct}
             onSuccess={() => {
               setShowAddProductForm(false);
+              setEditingProduct(null);
+              setEditingScheme(null);
               fetchDashboardData();
             }}
-            onCancel={() => setShowAddProductForm(false)}
+            onCancel={() => {
+              setShowAddProductForm(false);
+              setEditingProduct(null);
+              setEditingScheme(null);
+            }}
           />
         </DialogContent>
       </Dialog>
@@ -631,14 +655,21 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       <Dialog open={showAddApplicationForm} onOpenChange={setShowAddApplicationForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Submit Loan Application</DialogTitle>
+            <DialogTitle>
+              {editingApplication ? 'Edit Application' : 'Submit Loan Application'}
+            </DialogTitle>
           </DialogHeader>
           <LoanApplicationForm
+            editingApplication={editingApplication}
             onSuccess={() => {
               setShowAddApplicationForm(false);
+              setEditingApplication(null);
               fetchDashboardData();
             }}
-            onCancel={() => setShowAddApplicationForm(false)}
+            onCancel={() => {
+              setShowAddApplicationForm(false);
+              setEditingApplication(null);
+            }}
           />
         </DialogContent>
       </Dialog>

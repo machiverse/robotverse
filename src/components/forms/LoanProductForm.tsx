@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,10 @@ import { CreditCard, DollarSign, Calculator, FileText } from 'lucide-react';
 interface LoanProductFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  editingProduct?: any;
 }
 
-const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
+const LoanProductForm = ({ onSuccess, onCancel, editingProduct }: LoanProductFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -39,6 +40,30 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
     digital_process: false,
     prepayment_allowed: true
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingProduct) {
+      setFormData({
+        product_name: editingProduct.product_name || '',
+        loan_type: editingProduct.loan_type || [],
+        description: editingProduct.description || '',
+        min_amount: editingProduct.min_amount?.toString() || '',
+        max_amount: editingProduct.max_amount?.toString() || '',
+        min_interest_rate: editingProduct.min_interest_rate?.toString() || '',
+        max_interest_rate: editingProduct.max_interest_rate?.toString() || '',
+        min_tenure_months: editingProduct.min_tenure_months?.toString() || '',
+        max_tenure_months: editingProduct.max_tenure_months?.toString() || '',
+        processing_fee_percentage: editingProduct.processing_fee_percentage?.toString() || '',
+        eligibility_criteria: editingProduct.eligibility_criteria || '',
+        required_documents: editingProduct.required_documents || [],
+        collateral_required: editingProduct.collateral_required || false,
+        quick_approval: editingProduct.quick_approval || false,
+        digital_process: editingProduct.digital_process || false,
+        prepayment_allowed: editingProduct.prepayment_allowed !== false
+      });
+    }
+  }, [editingProduct]);
 
   const loanTypes = [
     'Business Loan',
@@ -113,34 +138,48 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('loan_products')
-        .insert({
-          provider_id: user.id,
-          product_name: formData.product_name,
-          loan_type: formData.loan_type,
-          description: formData.description,
-          min_amount: parseFloat(formData.min_amount) || 0,
-          max_amount: parseFloat(formData.max_amount),
-          min_interest_rate: parseFloat(formData.min_interest_rate) || 0,
-          max_interest_rate: parseFloat(formData.max_interest_rate) || 0,
-          min_tenure_months: parseInt(formData.min_tenure_months) || 1,
-          max_tenure_months: parseInt(formData.max_tenure_months) || 12,
-          processing_fee_percentage: parseFloat(formData.processing_fee_percentage) || 0,
-          eligibility_criteria: formData.eligibility_criteria,
-          required_documents: formData.required_documents,
-          collateral_required: formData.collateral_required,
-          quick_approval: formData.quick_approval,
-          digital_process: formData.digital_process,
-          prepayment_allowed: formData.prepayment_allowed,
-          is_active: true
-        });
+      const productData = {
+        provider_id: user.id,
+        product_name: formData.product_name,
+        loan_type: formData.loan_type,
+        description: formData.description,
+        min_amount: parseFloat(formData.min_amount) || 0,
+        max_amount: parseFloat(formData.max_amount),
+        min_interest_rate: parseFloat(formData.min_interest_rate) || 0,
+        max_interest_rate: parseFloat(formData.max_interest_rate) || 0,
+        min_tenure_months: parseInt(formData.min_tenure_months) || 1,
+        max_tenure_months: parseInt(formData.max_tenure_months) || 12,
+        processing_fee_percentage: parseFloat(formData.processing_fee_percentage) || 0,
+        eligibility_criteria: formData.eligibility_criteria,
+        required_documents: formData.required_documents,
+        collateral_required: formData.collateral_required,
+        quick_approval: formData.quick_approval,
+        digital_process: formData.digital_process,
+        prepayment_allowed: formData.prepayment_allowed,
+        is_active: true
+      };
+
+      let error;
+      if (editingProduct) {
+        // Update existing product
+        const { error: updateError } = await supabase
+          .from('loan_products')
+          .update(productData)
+          .eq('id', editingProduct.id);
+        error = updateError;
+      } else {
+        // Insert new product
+        const { error: insertError } = await supabase
+          .from('loan_products')
+          .insert(productData);
+        error = insertError;
+      }
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Loan product added successfully!"
+        description: editingProduct ? "Loan product updated successfully!" : "Loan product added successfully!"
       });
 
       onSuccess();
@@ -161,7 +200,7 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="w-5 h-5" />
-          Add Loan Product
+          {editingProduct ? 'Edit Loan Product' : 'Add Loan Product'}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -376,7 +415,7 @@ const LoanProductForm = ({ onSuccess, onCancel }: LoanProductFormProps) => {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Product'}
+              {loading ? (editingProduct ? 'Updating...' : 'Adding...') : (editingProduct ? 'Update Product' : 'Add Product')}
             </Button>
           </div>
         </form>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,10 @@ import { FileText, DollarSign } from 'lucide-react';
 interface LoanApplicationFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  editingApplication?: any;
 }
 
-const LoanApplicationForm = ({ onSuccess, onCancel }: LoanApplicationFormProps) => {
+const LoanApplicationForm = ({ onSuccess, onCancel, editingApplication }: LoanApplicationFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,26 @@ const LoanApplicationForm = ({ onSuccess, onCancel }: LoanApplicationFormProps) 
     collateral_offered: '',
     documents_submitted: [] as string[]
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingApplication) {
+      setFormData({
+        applicant_name: editingApplication.applicant_name || '',
+        applicant_email: editingApplication.applicant_email || '',
+        applicant_phone: editingApplication.applicant_phone || '',
+        business_type: editingApplication.business_type || '',
+        loan_type: editingApplication.loan_type || '',
+        amount_requested: editingApplication.amount_requested?.toString() || '',
+        purpose: editingApplication.purpose || '',
+        monthly_income: editingApplication.monthly_income?.toString() || '',
+        credit_score: editingApplication.credit_score?.toString() || '',
+        business_vintage_months: editingApplication.business_vintage_months?.toString() || '',
+        collateral_offered: editingApplication.collateral_offered || '',
+        documents_submitted: editingApplication.documents_submitted || []
+      });
+    }
+  }, [editingApplication]);
 
   const loanTypes = [
     'Business Loan',
@@ -111,30 +132,46 @@ const LoanApplicationForm = ({ onSuccess, onCancel }: LoanApplicationFormProps) 
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('loan_applications')
-        .insert({
-          applicant_id: user.id,
-          applicant_name: formData.applicant_name,
-          applicant_email: formData.applicant_email,
-          applicant_phone: formData.applicant_phone,
-          business_type: formData.business_type,
-          loan_type: formData.loan_type,
-          amount_requested: parseFloat(formData.amount_requested),
-          purpose: formData.purpose,
-          monthly_income: parseFloat(formData.monthly_income) || null,
-          credit_score: parseInt(formData.credit_score) || null,
-          business_vintage_months: parseInt(formData.business_vintage_months) || null,
-          collateral_offered: formData.collateral_offered,
-          documents_submitted: formData.documents_submitted,
-          status: 'pending'
-        });
+      const applicationData = {
+        applicant_id: user.id,
+        applicant_name: formData.applicant_name,
+        applicant_email: formData.applicant_email,
+        applicant_phone: formData.applicant_phone,
+        business_type: formData.business_type,
+        loan_type: formData.loan_type,
+        amount_requested: parseFloat(formData.amount_requested),
+        purpose: formData.purpose,
+        monthly_income: parseFloat(formData.monthly_income) || null,
+        credit_score: parseInt(formData.credit_score) || null,
+        business_vintage_months: parseInt(formData.business_vintage_months) || null,
+        collateral_offered: formData.collateral_offered,
+        documents_submitted: formData.documents_submitted
+      };
+
+      let error;
+      if (editingApplication) {
+        // Update existing application
+        const { error: updateError } = await supabase
+          .from('loan_applications')
+          .update(applicationData)
+          .eq('id', editingApplication.id);
+        error = updateError;
+      } else {
+        // Insert new application with status
+        const { error: insertError } = await supabase
+          .from('loan_applications')
+          .insert({
+            ...applicationData,
+            status: 'pending'
+          });
+        error = insertError;
+      }
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Loan application submitted successfully!"
+        description: editingApplication ? "Loan application updated successfully!" : "Loan application submitted successfully!"
       });
 
       onSuccess();
@@ -155,7 +192,7 @@ const LoanApplicationForm = ({ onSuccess, onCancel }: LoanApplicationFormProps) 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="w-5 h-5" />
-          Loan Application
+          {editingApplication ? 'Edit Loan Application' : 'Loan Application'}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -200,7 +237,7 @@ const LoanApplicationForm = ({ onSuccess, onCancel }: LoanApplicationFormProps) 
               
               <div className="space-y-2">
                 <Label htmlFor="business_type">Business Type</Label>
-                <Select onValueChange={(value) => handleInputChange('business_type', value)}>
+                <Select value={formData.business_type} onValueChange={(value) => handleInputChange('business_type', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select business type" />
                   </SelectTrigger>
@@ -220,7 +257,7 @@ const LoanApplicationForm = ({ onSuccess, onCancel }: LoanApplicationFormProps) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="loan_type">Loan Type *</Label>
-                <Select onValueChange={(value) => handleInputChange('loan_type', value)}>
+                <Select value={formData.loan_type} onValueChange={(value) => handleInputChange('loan_type', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select loan type" />
                   </SelectTrigger>
@@ -332,7 +369,7 @@ const LoanApplicationForm = ({ onSuccess, onCancel }: LoanApplicationFormProps) 
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Application'}
+              {loading ? (editingApplication ? 'Updating...' : 'Submitting...') : (editingApplication ? 'Update Application' : 'Submit Application')}
             </Button>
           </div>
         </form>
