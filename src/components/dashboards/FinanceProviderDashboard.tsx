@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Card,
   CardContent,
@@ -62,7 +62,11 @@ import LoanApplicationForm from "@/components/forms/LoanApplicationForm";
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanSchemeForm from "@/components/forms/LoanSchemeForm";
 
-const FinanceProviderDashboard = () => {
+interface FinanceProviderDashboardProps {
+  userProfile: any;
+}
+
+const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps) => {
   // Auth and toast
   const { user } = useAuth();
   const { toast } = useToast();
@@ -176,7 +180,7 @@ const FinanceProviderDashboard = () => {
 
   // Generate status badge component
   const getStatusBadge = (status: string) => {
-    const statusMapping: Record<string, { label: string; variant: string }> = {
+    const statusMapping: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       pending_documents: { label: "Pending Documents", variant: "secondary" },
       under_review: { label: "Under Review", variant: "default" },
       approved: { label: "Approved", variant: "outline" },
@@ -213,7 +217,6 @@ const FinanceProviderDashboard = () => {
 
       toast({
         title: "Scheme deleted",
-        variant: "success",
       });
       fetchDashboardData();
 
