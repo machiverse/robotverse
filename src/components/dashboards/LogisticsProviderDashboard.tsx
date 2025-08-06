@@ -118,7 +118,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       const areas: ServiceArea[] = coverage.map(area => ({
         id: area.id,
         area_name: area.area_name,
-        coverage_radius: area.coverage_radius || 50,
+        coverage_radius: 50, // Default coverage radius since field doesn't exist in DB
         active: area.is_active ?? true
       }));
 
