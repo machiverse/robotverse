@@ -223,11 +223,28 @@ serve(async (req) => {
       console.error('Error checking existing analysis:', fetchError);
     }
 
-    // If analysis exists, return cached result
+    // If analysis exists, return cached result with updated location context
     if (existingAnalysis) {
       console.log('Returning cached AI analysis for robot:', robotId);
       
       const robot = await getRobotDetails(robotId);
+      const currentUserLocation = await getUserLocation(user.id);
+      const robotLocation = robot.profiles?.location || '';
+      const targetLocation = currentUserLocation || robotLocation;
+      
+      // Get current market ecosystem for user's location
+      const marketData = await getMarketEcosystem(robot.robot_type);
+      const sortedSpareParts = sortAndSlice(marketData.spareParts, targetLocation, (i: any) => i.profiles?.location, 5);
+      const sortedServices = sortAndSlice(marketData.services, targetLocation, (i: any) => i.profiles?.location, 5);
+      const sortedLogistics = sortAndSlice(marketData.logistics, targetLocation, (i: any) => i.location, 3);
+      const sortedFinance = sortAndSlice(marketData.finance, targetLocation, (i: any) => i.location, 3);
+
+      const updatedMarketEcosystem = {
+        spareParts: { suppliers: sortedSpareParts.map(p => ({ ...p, profiles: p.profiles, proximity: p.proximity })) },
+        services: { providers: sortedServices.map(s => ({ ...s, profiles: s.profiles, proximity: s.proximity })) },
+        logistics: { providers: sortedLogistics.map(p => ({ ...p, proximity: p.proximity })) },
+        finance: { providers: sortedFinance.map(p => ({ ...p, proximity: p.proximity })) },
+      };
       
       return new Response(JSON.stringify({
         success: true,
@@ -241,7 +258,8 @@ serve(async (req) => {
           }
         },
         analysis: existingAnalysis.analysis_data,
-        marketEcosystem: existingAnalysis.recommendations || {}
+        marketEcosystem: updatedMarketEcosystem,
+        currentUserLocation: targetLocation
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
@@ -316,6 +334,7 @@ serve(async (req) => {
         },
         analysis: structuredAnalysis,
         marketEcosystem: marketEcosystem,
+        currentUserLocation: targetLocation
     };
 
     return new Response(JSON.stringify(finalResponse), {

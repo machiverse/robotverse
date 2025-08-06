@@ -54,6 +54,7 @@ interface AIAnalysisData {
 interface AIAnalysisResult {
   analysis: AIAnalysisData;
   cached?: boolean;
+  currentUserLocation?: string;
   recommendations: {
     spareParts: any[];
     services: any[];
@@ -453,6 +454,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       setAiAnalysis({
         analysis: structuredAnalysis,
         cached: data.cached || false,
+        currentUserLocation: data.currentUserLocation,
         recommendations: {
           spareParts: data.marketEcosystem?.spareParts?.suppliers || [],
           services: data.marketEcosystem?.services?.providers || [],
@@ -1539,7 +1541,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <AIAnalysisResult 
                       analysis={aiAnalysis.analysis} 
                       cached={aiAnalysis.cached || false}
-                      currentUserLocation={currentUserLocation}
+                      currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
                       className="mt-6"
                     />
                   )}
