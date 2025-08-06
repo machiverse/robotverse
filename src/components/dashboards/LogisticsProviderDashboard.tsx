@@ -28,15 +28,24 @@ import {
   Globe,
   Building,
   User,
-  AlertCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
-import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
-type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
+// Example type for user profile - adjust as needed from your supabase types
+interface Profile {
+  id: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  company_name?: string;
+  location?: string;
+  user_type?: string;
+  primary_user_type?: string;
+}
 
 interface LogisticsProviderDashboardProps {
   userProfile: Profile;
@@ -64,11 +73,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // State variables
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     activeQuotes: 0,
     completedDeliveries: 0,
@@ -81,18 +89,27 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   });
 
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
-  const [serviceCapabilities, setServiceCapabilities] = useState<string[]>([]);
   const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
+
   const [editingService, setEditingService] = useState<any>(null);
-  const [showAddServiceForm, setShowAddServiceForm] = useState(false);
-  const [showAddAreaForm, setShowAddAreaForm] = useState(false);
   const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
 
-  // Determine if user is logistics provider
+  const [showAddServiceForm, setShowAddServiceForm] = useState(false);
+  const [showAddAreaForm, setShowAddAreaForm] = useState(false);
+
+  // Check if user is logistics provider by profile type
   const userType = userProfile?.user_type || userProfile?.primary_user_type;
   const isLogisticsProvider = userType === 'logistics_provider' || userType === 'logistics';
 
-  // Fetch dashboard data function
+  // Function to calculate profile completion percentage
+  const calculateProfileCompletion = (profile: Profile): number => {
+    if (!profile) return 0;
+    const requiredFields = ['full_name', 'email', 'phone', 'company_name', 'location', 'user_type'];
+    const completedFields = requiredFields.filter(field => !!profile[field as keyof Profile]);
+    return Math.round((completedFields.length / requiredFields.length) * 100);
+  };
+
+  // Fetch dashboard data
   const fetchRealDashboardData = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -101,7 +118,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     try {
       setRefreshing(true);
 
-      // Fetch logistics data in parallel
+      // Fetch shipments, services, coverage areas in parallel
       const [shipmentsResult, coverageResult, servicesResult] = await Promise.all([
         supabase.from('logistics_shipments').select('*').eq('provider_id', user.id),
         supabase.from('logistics_coverage').select('*').eq('provider_id', user.id),
@@ -114,20 +131,18 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
 
       setLogisticsServices(services);
 
-      // Set coverage areas (mapped)
       const areas: ServiceArea[] = coverage.map(area => ({
         id: area.id,
         area_name: area.area_name,
-        coverage_radius: 50, // Default coverage radius since field doesn't exist in DB
+        coverage_radius: area.coverage_radius || 50,
         active: area.is_active ?? true
       }));
 
       setServiceAreas(areas);
 
-      // Calculate profile completion
       const profileCompletion = calculateProfileCompletion(userProfile);
 
-      // Calculate dashboard stats
+      // Calculate stats
       const completedDeliveries = shipments.filter(s => s.status === 'delivered').length;
       const onTimeDeliveries = shipments.filter(s =>
         s.status === 'delivered' &&
@@ -135,45 +150,29 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         s.estimated_delivery &&
         new Date(s.actual_delivery) <= new Date(s.estimated_delivery)
       ).length;
-
       const onTimeRate = completedDeliveries > 0 ? (onTimeDeliveries / completedDeliveries) * 100 : 0;
 
       const monthlyRevenue = shipments
         .filter(s => new Date(s.created_at).getMonth() === new Date().getMonth())
         .reduce((sum, s) => sum + (s.cost || 0), 0);
 
-      const realStats: DashboardStats = {
+      setDashboardStats({
         activeQuotes: shipments.filter(s => s.status === 'pending').length,
         completedDeliveries,
         onTimeDeliveryRate: Math.round(onTimeRate),
         monthlyRevenue,
-        customerRating: 4.5, // Placeholder, replace with review data if available
+        customerRating: 4.5, // Placeholder
         serviceRequests: shipments.length,
         profileCompletion,
         businessVerified: Boolean(userProfile?.company_name && userProfile?.phone && userProfile?.email)
-      };
-
-      setDashboardStats(realStats);
-
-      // Calculate service capabilities summary
-      const capabilities: string[] = [];
-      if (services.length > 0) {
-        const serviceTypes = [...new Set(services.map(s => s.service_type))];
-        capabilities.push(...serviceTypes);
-      }
-      if (areas.length > 0) capabilities.push(`${areas.length} Coverage Areas`);
-      if (userProfile?.company_name) capabilities.push('Commercial Transport');
-      if (userProfile?.phone) capabilities.push('Phone Support');
-      if (userProfile?.email) capabilities.push('Email Communication');
-
-      setServiceCapabilities(capabilities);
+      });
 
     } catch (error) {
-      console.error('Error fetching logistics dashboard data:', error);
+      console.error('Error fetching dashboard data:', error);
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load dashboard data"
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load dashboard data'
       });
     } finally {
       setLoading(false);
@@ -182,21 +181,14 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   }, [user, userProfile, toast]);
 
   useEffect(() => {
-    if (user) fetchRealDashboardData();
+    if (user) {
+      fetchRealDashboardData();
+    }
   }, [user, fetchRealDashboardData]);
 
-  // Calculate profile completion based on required fields
-  const calculateProfileCompletion = (profile: any): number => {
-    if (!profile) return 0;
-    const requiredFields = ['full_name', 'email', 'phone', 'company_name', 'location', 'user_type'];
-    const completedFields = requiredFields.filter(field => profile[field]);
-    return Math.round((completedFields.length / requiredFields.length) * 100);
-  };
-
-  // Add a new service coverage area handler
+  // Handler to add new service coverage area
   const handleAddServiceArea = async (areaData: Partial<ServiceArea>) => {
     try {
-      // Placeholder: Add area logic should connect to DB; here adding locally
       const newArea: ServiceArea = {
         id: `area_${Date.now()}`,
         area_name: areaData.area_name || '',
@@ -205,23 +197,20 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       };
 
       setServiceAreas(prev => [...prev, newArea]);
-      toast({
-        title: "Success",
-        description: "Service area added successfully"
-      });
+      toast({ title: 'Success', description: 'Service area added successfully' });
       setShowAddAreaForm(false);
-      setActiveTab('coverage'); // switch to Coverage tab on success
+      setActiveTab('coverage'); // Auto-switch to coverage tab
     } catch (error) {
       console.error('Error adding service area:', error);
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to add service area"
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to add service area'
       });
     }
   };
 
-  // Badge helper for service status
+  // Badge helper for status labels
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { variant: 'secondary' as const, label: 'Pending' },
@@ -229,8 +218,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       completed: { variant: 'outline' as const, label: 'Completed' },
       cancelled: { variant: 'destructive' as const, label: 'Cancelled' }
     };
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={statusConfig[status]?.variant || 'secondary'}>{statusConfig[status]?.label || 'Pending'}</Badge>;
   };
 
   if (loading) {
@@ -250,12 +238,11 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         <Alert className="border-orange-200 bg-orange-50">
           <AlertTriangle className="w-4 h-4" />
           <AlertDescription className="text-orange-700">
-            <strong>⚠️ Logistics Provider Access Required</strong><br />
-            Your account type is currently "{userType || 'not set'}". Please update your profile to "logistics_provider" to access this dashboard.<br />
-            <small>User ID: {user?.id} | Profile: {userProfile ? 'Present' : 'Missing'}</small>
+            <strong>⚠️ Logistics Provider Access Required</strong>
+            <br />
+            Your account type is currently "{userType || 'not set'}". Please update to "logistics_provider" type to access.
           </AlertDescription>
         </Alert>
-
         <Card>
           <CardHeader>
             <CardTitle>Become a Logistics Provider</CardTitle>
@@ -285,12 +272,8 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               </div>
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => window.location.href = '/profile'}>
-                Update Profile
-              </Button>
-              <Button variant="outline" onClick={() => window.location.href = '/contact'}>
-                Contact Support
-              </Button>
+              <Button onClick={() => window.location.href = '/profile'}>Update Profile</Button>
+              <Button variant="outline" onClick={() => window.location.href = '/contact'}>Contact Support</Button>
             </div>
           </CardContent>
         </Card>
@@ -298,7 +281,6 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
     );
   }
 
-  // Stats cards for overview
   const enhancedStatsCards = [
     {
       title: 'Profile Completion',
@@ -336,11 +318,11 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
 
   return (
     <div className="space-y-6">
-      {/* Access Confirmed Banner */}
+      {/* Access Confirmed */}
       <Alert className="border-green-200 bg-green-50">
         <CheckCircle className="w-4 h-4" />
         <AlertDescription className="text-green-700">
-          <strong>✅ Logistics Provider Access Confirmed</strong> - Welcome to your logistics dashboard, {userProfile?.full_name || user?.email}!
+          <strong>✅ Logistics Provider Access Confirmed</strong> - Welcome, {userProfile.full_name || user?.email}!
         </AlertDescription>
       </Alert>
 
@@ -350,12 +332,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
             Logistics Provider Dashboard
           </h1>
-          <p className="text-muted-foreground">
-            Manage your logistics services, coverage areas, and business operations
-          </p>
+          <p className="text-muted-foreground">Manage your logistics services, coverage areas, and profile</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" disabled={refreshing} onClick={fetchRealDashboardData}>
+          <Button variant="outline" onClick={fetchRealDashboardData} disabled={refreshing}>
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -363,10 +343,12 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
             <Download className="w-4 h-4 mr-2" />
             Export Data
           </Button>
-          <Button onClick={() => {
-            setEditingService(null);
-            setShowAddServiceForm(true);
-          }}>
+          <Button
+            onClick={() => {
+              setEditingService(null);
+              setShowAddServiceForm(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Service
           </Button>
@@ -375,10 +357,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {enhancedStatsCards.map((stat, idx) => {
+        {enhancedStatsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={idx} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
+            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -396,7 +378,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         })}
       </div>
 
-      {/* Tabs for main content */}
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 h-12">
           <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -413,7 +395,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </TabsTrigger>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
-            Profile Setup
+            Profile
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
@@ -421,82 +403,46 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab Content */}
+        {/* Overview Content */}
         <TabsContent value="overview" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  Business Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dashboardStats.profileCompletion < 100 ? (
-                  <>
-                    <Alert className="border-blue-200 bg-blue-50">
-                      <AlertCircle className="w-4 h-4" />
-                      <AlertDescription className="text-blue-700">
-                        Complete your profile to start receiving logistics requests
-                      </AlertDescription>
-                    </Alert>
-                    <div className="space-y-2 mt-4">
-                      <div className="flex justify-between text-sm">
-                        <span>Profile Completion</span>
-                        <span>{dashboardStats.profileCompletion}%</span>
-                      </div>
-                      <Progress value={dashboardStats.profileCompletion} className="h-2" />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Business Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dashboardStats.profileCompletion < 100 ? (
+                <>
+                  <Alert className="border-blue-200 bg-blue-50">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription>Complete your profile to start receiving logistics requests</AlertDescription>
+                  </Alert>
+                  <div className="space-y-2 mt-4">
+                    <div className="flex justify-between text-sm">
+                      <span>Profile Completion</span>
+                      <span>{dashboardStats.profileCompletion}%</span>
                     </div>
-                    <Button variant="outline" className="w-full mt-4" onClick={() => window.location.href = '/profile'}>
-                      Complete Profile Setup
-                    </Button>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Profile Complete!</h3>
-                    <p className="text-muted-foreground mb-4">You're ready to receive logistics requests</p>
-                    <Button>Start Receiving Requests</Button>
+                    <Progress value={dashboardStats.profileCompletion} className="h-2" />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                  Service Capabilities
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {serviceCapabilities.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">Complete your profile to show service capabilities</p>
-                    <Button variant="outline" onClick={() => window.location.href = '/profile'}>
-                      Update Profile
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {serviceCapabilities.map((capability, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Truck className="w-5 h-5 text-blue-600" />
-                          <span className="font-medium">{capability}</span>
-                        </div>
-                        <Badge variant="outline">Active</Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  <Button variant="outline" className="w-full mt-4" onClick={() => window.location.href = '/profile'}>
+                    Complete Profile Setup
+                  </Button>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Profile Complete!</h3>
+                  <p className="text-muted-foreground mb-4">You're ready to receive logistics requests</p>
+                  <Button>Start Receiving Requests</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* Services Tab Content */}
+        {/* Services Content */}
         <TabsContent value="services" className="mt-6">
           <Card>
             <CardHeader>
@@ -508,10 +454,12 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                   </CardTitle>
                   <CardDescription>Manage your logistics service offerings</CardDescription>
                 </div>
-                <Button onClick={() => {
-                  setEditingService(null);
-                  setShowAddServiceForm(true);
-                }}>
+                <Button
+                  onClick={() => {
+                    setEditingService(null);
+                    setShowAddServiceForm(true);
+                  }}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Service
                 </Button>
@@ -522,106 +470,57 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                 <div className="text-center py-12">
                   <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Services Added Yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Add your logistics services to let customers know what you offer
-                  </p>
+                  <p className="text-muted-foreground mb-4">Add your logistics services to let customers know what you offer</p>
                   <Button onClick={() => setShowAddServiceForm(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Your First Service
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Service Details</TableHead>
-                        <TableHead>Coverage Areas</TableHead>
-                        <TableHead>Pricing</TableHead>
-                        <TableHead>Transport Modes</TableHead>
-                        <TableHead>Features</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {logisticsServices.map(service => (
-                        <TableRow key={service.id}>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="font-medium">{service.service_name}</div>
-                              <Badge variant="outline" className="text-xs">{service.service_type}</Badge>
-                              <div className="text-xs text-muted-foreground line-clamp-2">{service.description}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm">
-                                {service.coverage_areas?.length || 0} areas
-                              </div>
-                              {service.is_international && (
-                                <div className="flex items-center gap-1 text-sm"><Globe className="w-3 h-3" />International</div>
-                              )}
-                              <div className="flex flex-wrap gap-1 max-w-32">
-                                {service.coverage_areas?.slice(0, 2).map((area: string, idx: number) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">{area}</Badge>
-                                ))}
-                                {service.coverage_areas?.length > 2 && (
-                                  <Badge variant="outline" className="text-xs">+{service.coverage_areas.length - 2}</Badge>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1 text-sm">
-                              <div>Base: ₹{service.base_price}</div>
-                              {service.price_per_km > 0 && <div>Per KM: ₹{service.price_per_km}</div>}
-                              {service.price_per_kg > 0 && <div>Per KG: ₹{service.price_per_kg}</div>}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1 max-w-32">
-                              {service.transport_modes?.slice(0, 2).map((mode: string, idx: number) => (
-                                <Badge key={idx} variant="outline" className="text-xs">{mode}</Badge>
-                              ))}
-                              {service.transport_modes?.length > 2 && (
-                                <Badge variant="outline" className="text-xs">+{service.transport_modes.length - 2}</Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {service.tracking_available && <Badge variant="secondary" className="text-xs">Tracking</Badge>}
-                              {service.insurance_included && <Badge variant="secondary" className="text-xs">Insurance</Badge>}
-                              {service.emergency_delivery && <Badge variant="secondary" className="text-xs">Emergency</Badge>}
-                              {service.special_handling && <Badge variant="secondary" className="text-xs">Special</Badge>}
-                            </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(service.is_active ? 'active' : 'pending')}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center gap-1 justify-end">
-                              <Button size="sm" variant="ghost" onClick={() => {
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Service Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {logisticsServices.map(service => (
+                      <TableRow key={service.id}>
+                        <TableCell>{service.service_name}</TableCell>
+                        <TableCell>{service.service_type}</TableCell>
+                        <TableCell>{service.description}</TableCell>
+                        <TableCell>{getStatusBadge(service.is_active ? 'active' : 'pending')}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
                                 setEditingService(service);
                                 setShowAddServiceForm(true);
-                              }}>
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button size="sm" variant="ghost">
-                                <Eye className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost">
+                              <Eye className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Coverage Tab Content */}
+        {/* Coverage Areas Content */}
         <TabsContent value="coverage" className="mt-6">
           <Card>
             <CardHeader>
@@ -644,9 +543,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                 <div className="text-center py-12">
                   <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Coverage Areas</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Add service areas to let customers know where you operate
-                  </p>
+                  <p className="text-muted-foreground mb-4">Add coverage areas to let customers know where you operate</p>
                   <Button onClick={() => setShowAddAreaForm(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Your First Area
@@ -673,15 +570,17 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                           </div>
                         </div>
                         <div className="flex gap-2 mt-4">
-                          <Button variant="outline" size="sm" className="flex-1" onClick={() => {
-                            setEditingArea(area);
-                            setShowAddAreaForm(true);
-                          }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              setEditingArea(area);
+                              setShowAddAreaForm(true);
+                            }}
+                          >
                             <Edit className="w-3 h-3 mr-1" />
                             Edit
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-3 h-3" />
                           </Button>
                         </div>
                       </CardContent>
@@ -693,7 +592,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </Card>
         </TabsContent>
 
-        {/* Profile Setup Tab Content */}
+        {/* Profile Tab */}
         <TabsContent value="profile" className="mt-6">
           <Card>
             <CardHeader>
@@ -701,196 +600,45 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                 <Settings className="w-5 h-5" />
                 Profile Setup & Verification
               </CardTitle>
-              <CardDescription>Complete your logistics provider profile</CardDescription>
+              <CardDescription>Complete and verify your profile</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold">Profile Completion</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {dashboardStats.profileCompletion}% complete
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="w-20 bg-muted rounded-full h-2 mb-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${dashboardStats.profileCompletion}%` }}
-                      />
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => window.location.href = '/profile'}>
-                      Update Profile
-                    </Button>
-                  </div>
+              {/* Profile completion and verification UI */}
+
+              <div className="flex justify-between items-center p-4 border rounded-lg">
+                <div>
+                  <h3 className="font-semibold">Profile Completion</h3>
+                  <p className="text-sm text-muted-foreground">{dashboardStats.profileCompletion}% complete</p>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                      <Building className="w-4 h-4" />
-                      Business Information
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Company Name:</span>
-                        <span className={userProfile?.company_name ? 'text-green-600' : 'text-red-600'}>
-                          {userProfile?.company_name ? '✓' : '✗'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Contact Info:</span>
-                        <span className={userProfile?.phone && userProfile?.email ? 'text-green-600' : 'text-red-600'}>
-                          {userProfile?.phone && userProfile?.email ? '✓' : '✗'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Location:</span>
-                        <span className={userProfile?.location ? 'text-green-600' : 'text-red-600'}>
-                          {userProfile?.location ? '✓' : '✗'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                      <Truck className="w-4 h-4" />
-                      Service Status
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Business Verified:</span>
-                        <span className={dashboardStats.businessVerified ? 'text-green-600' : 'text-red-600'}>
-                          {dashboardStats.businessVerified ? '✓' : '✗'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Service Areas:</span>
-                        <span className={serviceAreas.length > 0 ? 'text-green-600' : 'text-red-600'}>
-                          {serviceAreas.length > 0 ? '✓' : '✗'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Capabilities:</span>
-                        <span className={serviceCapabilities.length > 0 ? 'text-green-600' : 'text-red-600'}>
-                          {serviceCapabilities.length > 0 ? '✓' : '✗'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="w-40 bg-muted rounded-full h-3 overflow-hidden">
+                  <div
+                    style={{ width: `${dashboardStats.profileCompletion}%` }}
+                    className="bg-primary h-3"
+                  />
                 </div>
               </div>
+              <Button variant="outline" onClick={() => window.location.href = '/profile'} className="mt-4">
+                Update Profile
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Analytics Tab Content */}
+        {/* Analytics Tab */}
         <TabsContent value="analytics" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PieChart className="w-5 h-5" />
-                  Business Metrics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-center p-8">
-                    <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Analytics will be available once you start receiving service requests
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Performance Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-center p-8">
-                    <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Performance data will appear as you complete deliveries
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="w-5 h-5" />
+                Business Analytics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Analytics data will appear here when available.</p>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Add Service Area Dialog */}
-      <Dialog open={showAddAreaForm} onOpenChange={setShowAddAreaForm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingArea ? 'Edit Service Area' : 'Add Service Area'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="area_name">Area Name</Label>
-              <Input
-                id="area_name"
-                defaultValue={editingArea?.area_name || ''}
-                placeholder="e.g., Mumbai, Delhi NCR, Bangalore"
-              />
-            </div>
-            <div>
-              <Label htmlFor="coverage_radius">Coverage Radius (km)</Label>
-              <Input
-                id="coverage_radius"
-                type="number"
-                defaultValue={editingArea?.coverage_radius || 50}
-                placeholder="50"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
-                setShowAddAreaForm(false);
-                setEditingArea(null);
-              }}>
-                Cancel
-              </Button>
-              <Button onClick={() => {
-                const areaName = (document.getElementById('area_name') as HTMLInputElement)?.value;
-                const coverageRadius = parseInt((document.getElementById('coverage_radius') as HTMLInputElement)?.value || '50');
-                if (!areaName.trim()) {
-                  toast({
-                    variant: "destructive",
-                    title: "Validation Error",
-                    description: "Area Name cannot be empty"
-                  });
-                  return;
-                }
-                if (editingArea) {
-                  // Edit existing area
-                  setServiceAreas(prev => prev.map(area =>
-                    area.id === editingArea.id ? {...area, area_name: areaName, coverage_radius: coverageRadius} : area
-                  ));
-                  toast({title: "Success", description: "Service area updated successfully"});
-                  setEditingArea(null);
-                  setShowAddAreaForm(false);
-                  setActiveTab('coverage');
-                } else {
-                  // Add new area
-                  handleAddServiceArea({ area_name: areaName, coverage_radius: coverageRadius });
-                }
-              }}>
-                {editingArea ? 'Update Area' : 'Add Area'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Add/Edit Service Dialog */}
       <Dialog open={showAddServiceForm} onOpenChange={setShowAddServiceForm}>
@@ -901,7 +649,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               setShowAddServiceForm(false);
               setEditingService(null);
               fetchRealDashboardData();
-              setActiveTab('coverage'); // Switch to Coverage after adding service
+              setActiveTab('coverage'); // Switch tab after add/edit service
             }}
             onCancel={() => {
               setShowAddServiceForm(false);
@@ -910,7 +658,94 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           />
         </DialogContent>
       </Dialog>
+
+      {/* Add Coverage Area Dialog */}
+      <Dialog open={showAddAreaForm} onOpenChange={setShowAddAreaForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingArea ? 'Edit Service Area' : 'Add Service Area'}</DialogTitle>
+          </DialogHeader>
+          <AreaForm
+            editingArea={editingArea}
+            onSubmit={(data) => {
+              if (editingArea) {
+                // Edit existing area locally
+                setServiceAreas(prev =>
+                  prev.map(area => (area.id === editingArea.id ? { ...area, ...data } : area))
+                );
+                toast({ title: "Success", description: "Service area updated successfully" });
+                setEditingArea(null);
+                setShowAddAreaForm(false);
+                setActiveTab('coverage');
+              } else {
+                handleAddServiceArea(data);
+              }
+            }}
+            onCancel={() => {
+              setShowAddAreaForm(false);
+              setEditingArea(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+};
+
+
+// Separate component for Add/Edit Area Form for clean modularity
+interface AreaFormProps {
+  editingArea: ServiceArea | null;
+  onSubmit: (data: Partial<ServiceArea>) => void;
+  onCancel: () => void;
+}
+const AreaForm = ({ editingArea, onSubmit, onCancel }: AreaFormProps) => {
+  const [areaName, setAreaName] = useState(editingArea?.area_name || '');
+  const [radius, setRadius] = useState(editingArea?.coverage_radius || 50);
+
+  useEffect(() => {
+    setAreaName(editingArea?.area_name || '');
+    setRadius(editingArea?.coverage_radius || 50);
+  }, [editingArea]);
+
+  return (
+    <form
+      onSubmit={e => {
+        e.preventDefault();
+        if (!areaName.trim()) {
+          alert('Area Name cannot be empty');
+          return;
+        }
+        onSubmit({ area_name: areaName, coverage_radius: radius });
+      }}
+      className="space-y-4"
+    >
+      <div>
+        <Label htmlFor="area_name">Area Name</Label>
+        <Input
+          id="area_name"
+          value={areaName}
+          onChange={e => setAreaName(e.target.value)}
+          placeholder="e.g., Mumbai, Delhi NCR"
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="coverage_radius">Coverage Radius (km)</Label>
+        <Input
+          id="coverage_radius"
+          type="number"
+          min={1}
+          value={radius}
+          onChange={e => setRadius(Number(e.target.value))}
+          required
+        />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
+        <Button type="submit">{editingArea ? 'Update Area' : 'Add Area'}</Button>
+      </div>
+    </form>
   );
 };
 
