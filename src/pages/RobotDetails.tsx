@@ -1274,8 +1274,11 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                   </div>
                                   
                                   <div className="flex gap-2">
-                                    <Button className="flex-1 bg-green-600 hover:bg-green-700">
-                                      <CreditCard className="w-4 h-4 mr-2" />
+                                    <Button onClick={() => {
+                  setEditingApplication(null);
+                  setShowAddApplicationForm(true);
+                }}>
+                  <Plus className="w-4 h-4 mr-2" />
                                       Apply Now
                                     </Button>
                                     <Button variant="outline">
