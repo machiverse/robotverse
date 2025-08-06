@@ -676,6 +676,33 @@ export type Database = {
         }
         Relationships: []
       }
+      robot_ai_analysis: {
+        Row: {
+          analysis_data: Json
+          created_at: string
+          id: string
+          recommendations: Json
+          robot_id: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_data: Json
+          created_at?: string
+          id?: string
+          recommendations?: Json
+          robot_id: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_data?: Json
+          created_at?: string
+          id?: string
+          recommendations?: Json
+          robot_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       robots: {
         Row: {
           applications: string[] | null

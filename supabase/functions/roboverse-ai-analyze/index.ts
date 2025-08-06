@@ -176,6 +176,19 @@ async function getAiAnalysis(prompt: string): Promise<string> {
   return result.choices[0].message.content;
 }
 
+// Helper function to extract sections from AI analysis
+function extractSection(analysis: string, sectionType: string): string {
+  const patterns = {
+    suitability: /(?:suitability|suitable|fit|appropriate|value)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
+    technical: /(?:technical|specifications|performance|capabilities)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
+    government: /(?:government|schemes|subsidies|incentives|pli|policy)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
+    industries: /(?:industries|applications|sectors|use cases)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i
+  };
+  
+  const match = analysis.match(patterns[sectionType as keyof typeof patterns]);
+  return match ? match[0].trim() : '';
+}
+
 // --- MAIN SERVER LOGIC ---
 
 serve(async (req) => {
@@ -185,7 +198,6 @@ serve(async (req) => {
 
   try {
     // SECURITY FIX: Authenticate the user from the Authorization header.
-    // This prevents one user from requesting analysis on behalf of another.
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders });
@@ -198,17 +210,55 @@ serve(async (req) => {
     const { robotId } = await req.json();
     if (!robotId) throw new Error('Robot ID is required in the request body.');
 
-    // --- ORCHESTRATION ---
-    // 1. Fetch all necessary data concurrently where possible.
+    console.log(`Processing AI analysis for robot: ${robotId}`);
+
+    // Check if analysis already exists in database
+    const { data: existingAnalysis, error: fetchError } = await supabaseAdmin
+      .from('robot_ai_analysis')
+      .select('*')
+      .eq('robot_id', robotId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('Error checking existing analysis:', fetchError);
+    }
+
+    // If analysis exists, return cached result
+    if (existingAnalysis) {
+      console.log('Returning cached AI analysis for robot:', robotId);
+      
+      const robot = await getRobotDetails(robotId);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        cached: true,
+        robot: {
+          ...robot,
+          marketInsights: {
+            priceRange: robot.price ? `${robot.currency || 'INR'} ${robot.price}` : 'Contact for pricing',
+            location: robot.profiles?.location || '',
+            sellerInfo: robot.profiles
+          }
+        },
+        analysis: existingAnalysis.analysis_data,
+        marketEcosystem: existingAnalysis.recommendations || {}
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
+    // If no cached analysis, proceed with new AI analysis
+    console.log('Generating new AI analysis for robot:', robotId);
+
     const robot = await getRobotDetails(robotId);
     const [userLocation, marketData] = await Promise.all([
         getUserLocation(user.id),
         getMarketEcosystem(robot.robot_type),
     ]);
     
-    // 2. Process and enrich the data.
     const robotLocation = robot.profiles?.location || '';
-    const targetLocation = userLocation || robotLocation; // Prioritize user's location
+    const targetLocation = userLocation || robotLocation;
 
     const sortedSpareParts = sortAndSlice(marketData.spareParts, targetLocation, (i: any) => i.profiles?.location, 5);
     const sortedServices = sortAndSlice(marketData.services, targetLocation, (i: any) => i.profiles?.location, 5);
@@ -217,13 +267,45 @@ serve(async (req) => {
 
     const sortedData = { sortedSpareParts, sortedServices, sortedLogistics, sortedFinance };
 
-    // 3. Generate the AI prompt and get the analysis.
     const prompt = buildAnalysisPrompt(robot, sortedData, targetLocation);
     const analysisContent = await getAiAnalysis(prompt);
 
-    // 4. Format the final, comprehensive response.
-    // (Your original response formatting logic is preserved here)
+    // Structure the analysis for better UI display
+    const structuredAnalysis = {
+      summary: analysisContent,
+      suitability: extractSection(analysisContent, 'suitability'),
+      technicalInsights: extractSection(analysisContent, 'technical'),
+      governmentSchemes: extractSection(analysisContent, 'government'),
+      suggestedIndustries: extractSection(analysisContent, 'industries'),
+      timestamp: new Date().toISOString()
+    };
+
+    const marketEcosystem = {
+        spareParts: { suppliers: sortedSpareParts.map(p => ({ ...p, profiles: p.profiles, proximity: p.proximity })) },
+        services: { providers: sortedServices.map(s => ({ ...s, profiles: s.profiles, proximity: s.proximity })) },
+        logistics: { providers: sortedLogistics.map(p => ({ ...p, proximity: p.proximity })) },
+        finance: { providers: sortedFinance.map(p => ({ ...p, proximity: p.proximity })) },
+    };
+
+    // Store the analysis result in database
+    const { error: insertError } = await supabaseAdmin
+      .from('robot_ai_analysis')
+      .insert({
+        robot_id: robotId,
+        analysis_data: structuredAnalysis,
+        recommendations: marketEcosystem
+      });
+
+    if (insertError) {
+      console.error('Error storing analysis:', insertError);
+      // Continue without storing - don't fail the request
+    } else {
+      console.log('AI analysis stored successfully for robot:', robotId);
+    }
+
     const finalResponse = {
+        success: true,
+        cached: false,
         robot: {
             ...robot,
             marketInsights: {
@@ -232,14 +314,8 @@ serve(async (req) => {
               sellerInfo: robot.profiles
             }
         },
-        analysis: analysisContent,
-        marketEcosystem: {
-            spareParts: { suppliers: sortedSpareParts.map(p => ({ ...p, profiles: p.profiles, proximity: p.proximity })) },
-            services: { providers: sortedServices.map(s => ({ ...s, profiles: s.profiles, proximity: s.proximity })) },
-            logistics: { providers: sortedLogistics.map(p => ({ ...p, proximity: p.proximity })) },
-            finance: { providers: sortedFinance.map(p => ({ ...p, proximity: p.proximity })) },
-        },
-        // ... include any other parts of the response you need
+        analysis: structuredAnalysis,
+        marketEcosystem: marketEcosystem,
     };
 
     return new Response(JSON.stringify(finalResponse), {

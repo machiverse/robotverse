@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import { Textarea } from "@/components/ui/textarea";
+import { AIAnalysisResult } from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,8 +42,18 @@ interface Robot {
   };
 }
 
+interface AIAnalysisData {
+  summary: string;
+  suitability?: string;
+  technicalInsights?: string;
+  governmentSchemes?: string;
+  suggestedIndustries?: string;
+  timestamp: string;
+}
+
 interface AIAnalysisResult {
-  analysis: string;
+  analysis: AIAnalysisData;
+  cached?: boolean;
   recommendations: {
     spareParts: any[];
     services: any[];
@@ -398,8 +409,21 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         body: { robotId: robot.id },
       });
       if (error) throw error;
+      
+      // Handle both new structured analysis and legacy format
+      const analysisData = data.analysis || {};
+      const structuredAnalysis = {
+        summary: typeof analysisData === 'string' ? analysisData : (analysisData.summary || ''),
+        suitability: analysisData.suitability || '',
+        technicalInsights: analysisData.technicalInsights || '',
+        governmentSchemes: analysisData.governmentSchemes || '',
+        suggestedIndustries: analysisData.suggestedIndustries || '',
+        timestamp: analysisData.timestamp || new Date().toISOString()
+      };
+      
       setAiAnalysis({
-        analysis: data.analysis,
+        analysis: structuredAnalysis,
+        cached: data.cached || false,
         recommendations: {
           spareParts: data.marketEcosystem?.spareParts?.suppliers || [],
           services: data.marketEcosystem?.services?.providers || [],
@@ -407,9 +431,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           finance: data.marketEcosystem?.finance?.providers || [],
         },
       });
+      
+      const message = data.cached ? 
+        "Cached analysis retrieved successfully" : 
+        "New AI analysis generated successfully";
+        
       toast({
         title: "AI Analysis Complete",
-        description: "Smart recommendations generated successfully",
+        description: message,
       });
     } catch (err) {
       console.error('Error getting AI analysis:', err);
@@ -1478,18 +1507,11 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      <div className="bg-white p-6 rounded-xl border border-blue-200 shadow-sm">
-                        <h4 className="font-semibold mb-3 text-gray-800 flex items-center">
-                          <Brain className="w-5 h-5 mr-2 text-blue-600" />
-                          AI Market Analysis
-                        </h4>
-                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{aiAnalysis.analysis}</p>
-                      </div>
-                      <Separator />
-                      {/* Recommendation Tabs (parts, services, logistics, finance) */}
-                      {/* ... (similar to original component, render aiAnalysis.recommendations with Tabs here) */}
-                    </div>
+                    <AIAnalysisResult 
+                      analysis={aiAnalysis.analysis} 
+                      cached={aiAnalysis.cached || false}
+                      className="mt-6"
+                    />
                   )}
                 </CardContent>
               </Card>
