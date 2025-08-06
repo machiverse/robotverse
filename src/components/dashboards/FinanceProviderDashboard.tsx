@@ -210,9 +210,13 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
             <Calculator className="w-4 h-4" />
             Loan Calculator
           </Button>
-          <Button onClick={() => setShowAddProductForm(true)} className="flex items-center gap-2">
+          <Button onClick={() => {
+            setEditingProduct(null);
+            setEditingScheme(null);
+            setShowAddProductForm(true);
+          }} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Add Loan Product
+            Add Loan Scheme
           </Button>
         </div>
       </div>
@@ -262,7 +266,10 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                   </CardTitle>
                   <CardDescription>Review and process incoming loan applications</CardDescription>
                 </div>
-                <Button onClick={() => setShowAddApplicationForm(true)}>
+                <Button onClick={() => {
+                  setEditingApplication(null);
+                  setShowAddApplicationForm(true);
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
                   New Application
                 </Button>
@@ -313,9 +320,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                         <TableCell>{getApplicationStatusBadge(application.status)}</TableCell>
                         <TableCell>{application.applied_date}</TableCell>
                         <TableCell>
-                           <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <Button size="sm" variant="outline" onClick={() => {
-                              // View application details
+                              // View application details handler (example)
                               console.log('View application:', application.id);
                             }}>
                               <Eye className="w-3 h-3" />
@@ -348,9 +355,13 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                   </CardTitle>
                   <CardDescription>Configure and manage your loan offerings</CardDescription>
                 </div>
-                <Button onClick={() => setShowAddProductForm(true)}>
+                <Button onClick={() => {
+                  setEditingProduct(null);
+                  setEditingScheme(null);
+                  setShowAddProductForm(true);
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Product
+                  Add Loan Scheme
                 </Button>
               </div>
             </CardHeader>
@@ -365,7 +376,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                           <h3 className="font-semibold">{product.product_name}</h3>
                           <Badge variant="default" className="mt-1">Custom Product</Badge>
                         </div>
-                         <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1">
                           <Button size="sm" variant="ghost" onClick={() => {
                             setEditingProduct(product);
                             setShowAddProductForm(true);
@@ -374,7 +385,6 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                           </Button>
                         </div>
                       </div>
-                      
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Types:</span>
@@ -400,7 +410,6 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                           <span className="font-medium">{product.min_interest_rate}% - {product.max_interest_rate}%</span>
                         </div>
                       </div>
-
                       <Button size="sm" variant="outline" className="w-full mt-4" onClick={() => {
                         setCalculatorData({
                           amount: product.max_amount / 2,
@@ -427,7 +436,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                             {scheme.is_government_scheme ? "Government Scheme" : scheme.scheme_type}
                           </Badge>
                         </div>
-                         <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1">
                           <Button size="sm" variant="ghost" onClick={() => {
                             setEditingScheme(scheme);
                             setShowAddProductForm(true);
@@ -436,7 +445,6 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                           </Button>
                         </div>
                       </div>
-                      
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Interest Rate:</span>
@@ -455,7 +463,6 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                           <span className="font-medium">{scheme.processing_fee_percentage}%</span>
                         </div>
                       </div>
-
                       <Button size="sm" variant="outline" className="w-full mt-4" onClick={() => {
                         setCalculatorData({
                           amount: scheme.max_amount / 2,
@@ -472,7 +479,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                 ))}
                 
                 {/* Show add new scheme card if no schemes exist */}
-                {loanSchemes.length === 0 && (
+                {loanSchemes.length === 0 && loanProducts.length === 0 && (
                   <Card className="hover:shadow-lg transition-shadow border-2 border-dashed border-muted-foreground/20">
                     <CardContent className="p-8 text-center">
                       <Plus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -480,9 +487,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                       <p className="text-sm text-muted-foreground mb-4">
                         Create loan schemes for your customers
                       </p>
-                      <Button>
+                      <Button onClick={() => setShowAddProductForm(true)}>
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Scheme
+                        Add Loan Scheme
                       </Button>
                     </CardContent>
                   </Card>
@@ -636,6 +643,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
           </DialogHeader>
           <LoanProductForm
             editingProduct={editingProduct}
+            editingScheme={editingScheme}
             onSuccess={() => {
               setShowAddProductForm(false);
               setEditingProduct(null);
