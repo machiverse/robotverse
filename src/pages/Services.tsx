@@ -82,7 +82,6 @@ const Services = () => {
     { value: "pune", label: "Pune" },
   ];
 
-  // Fetch real services data from Supabase
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -138,7 +137,6 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // Contact provider handler
   const handleContactProvider = (service: Service) => {
     const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
 
@@ -158,7 +156,6 @@ const Services = () => {
     });
   };
 
-  // Filter services based on search, category, location
   const filteredServices = services.filter((service) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
@@ -168,7 +165,7 @@ const Services = () => {
 
     const matchesCategory =
       selectedCategory === "all" ||
-      service.category.toLowerCase().includes(selectedCategory.toLowerCase());
+      service.category.toLowerCase() === selectedCategory.toLowerCase();
 
     const matchesLocation =
       selectedLocation === "all" ||
@@ -177,7 +174,7 @@ const Services = () => {
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
-  // Helper: convert description into bullet points
+  // Helper to split description into bullet points
   const descriptionPoints = (description: string) =>
     description
       .split(/[.\n]/)
@@ -193,8 +190,7 @@ const Services = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Robot Services</h1>
           <p className="text-xl text-muted-foreground">
-            Connect with certified professionals for robot maintenance, repair,
-            and training services
+            Connect with certified professionals for robot maintenance, repair, and training services
           </p>
         </div>
 
@@ -208,9 +204,11 @@ const Services = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
+                aria-label="Search services"
               />
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+
+            <Select value={selectedCategory} onValueChange={setSelectedCategory} aria-label="Select service category">
               <SelectTrigger>
                 <SelectValue placeholder="Service Type" />
               </SelectTrigger>
@@ -222,7 +220,8 @@ const Services = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+
+            <Select value={selectedLocation} onValueChange={setSelectedLocation} aria-label="Select location">
               <SelectTrigger>
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
@@ -234,11 +233,13 @@ const Services = () => {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex space-x-2">
+
+            <div className="flex space-x-2" role="group" aria-label="View mode toggle">
               <Button
                 variant={viewMode === "grid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
+                aria-pressed={viewMode === "grid"}
                 aria-label="Grid view"
               >
                 <Grid className="w-4 h-4" />
@@ -247,6 +248,7 @@ const Services = () => {
                 variant={viewMode === "list" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("list")}
+                aria-pressed={viewMode === "list"}
                 aria-label="List view"
               >
                 <List className="w-4 h-4" />
@@ -259,14 +261,12 @@ const Services = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading services...</p>
+            <p className="text-muted-foreground" aria-live="polite">Loading services...</p>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Settings className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              Unable to load services
-            </h3>
+          <div className="flex flex-col items-center justify-center py-12" role="alert">
+            <Settings className="w-16 h-16 text-muted-foreground mb-4" aria-hidden="true" />
+            <h3 className="text-lg font-semibold mb-2">Unable to load services</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={() => window.location.reload()} variant="outline">
               Try Again
@@ -274,7 +274,7 @@ const Services = () => {
           </div>
         ) : filteredServices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <Settings className="w-16 h-16 text-muted-foreground mb-4" />
+            <Settings className="w-16 h-16 text-muted-foreground mb-4" aria-hidden="true" />
             <h3 className="text-lg font-semibold mb-2">No services available</h3>
             <p className="text-muted-foreground">
               {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
@@ -286,9 +286,8 @@ const Services = () => {
           <>
             {/* Results Count */}
             <div className="mb-4">
-              <p className="text-sm text-muted-foreground">
-                {filteredServices.length}{" "}
-                {filteredServices.length === 1 ? "service" : "services"} found
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
               </p>
             </div>
 
@@ -305,66 +304,83 @@ const Services = () => {
                   key={service.id}
                   className="hover:shadow-lg transition-shadow"
                   role="region"
-                  aria-label={`${service.name} service`}
+                  aria-label={`${service.name} service details`}
                 >
                   <CardHeader>
                     <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                      <Settings className="w-12 h-12 text-muted-foreground" />
+                      <Settings className="w-12 h-12 text-muted-foreground" aria-hidden="true" />
                     </div>
-                    <CardTitle className="text-lg">{service.name}</CardTitle>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="w-fit">
+                    <CardTitle className="text-lg font-semibold">{service.name}</CardTitle>
+                    <div className="flex items-center justify-between mt-1">
+                      <Badge variant="secondary" className="w-fit px-3 py-1">
                         {service.category}
                       </Badge>
                       <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm text-muted-foreground">
-                          {service.rating}
-                        </span>
+                        <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-muted-foreground">{service.rating}</span>
                       </div>
                     </div>
                   </CardHeader>
 
                   <CardContent>
-                    <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                      {descriptionPoints(service.description).map((point, idx) => (
-                        <li key={idx}>{point}</li>
-                      ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm text-muted-foreground font-[500]">
+                      {/* Left Column */}
+                      <div>
+                        <div className="mb-3">
+                          <span className="font-bold text-foreground">Description:</span>
+                          <ul className="list-disc pl-5 space-y-1 mt-1">
+                            {descriptionPoints(service.description).map((point, idx) => (
+                              <li key={`desc-${service.id}-${idx}`}>{point}.</li>
+                            ))}
+                          </ul>
+                        </div>
 
-                      <li>
-                        <strong className="text-foreground">Provider:</strong>{" "}
-                        {service.provider}
-                      </li>
+                        <div>
+                          <span className="font-bold text-foreground">Provider:</span> {service.provider}
+                        </div>
 
-                      {service.providerProfile?.email && (
-                        <li>
-                          <strong className="text-foreground">Email:</strong>{" "}
-                          {service.providerProfile.email}
-                        </li>
-                      )}
+                        {service.providerProfile?.email && (
+                          <div>
+                            <span className="font-bold text-foreground">Email:</span>{" "}
+                            {service.providerProfile.email}
+                          </div>
+                        )}
 
-                      {(service.providerProfile?.phone ||
-                        service.providerProfile?.mobile_number) && (
-                        <li>
-                          <strong className="text-foreground">Phone:</strong>{" "}
-                          {service.providerProfile.phone ||
-                            service.providerProfile.mobile_number}
-                        </li>
-                      )}
+                        {(service.providerProfile?.phone || service.providerProfile?.mobile_number) && (
+                          <div>
+                            <span className="font-bold text-foreground">Phone:</span>{" "}
+                            {service.providerProfile.phone || service.providerProfile.mobile_number}
+                          </div>
+                        )}
+                      </div>
 
-                      <li className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <span>Response Time: {service.responseTime}</span>
-                      </li>
+                      {/* Right Column */}
+                      <div className="space-y-2 text-sm font-semibold text-foreground">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-5 h-5 text-primary" />
+                          <span>Response Time: {service.responseTime}</span>
+                        </div>
 
-                      <li className="flex items-center space-x-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span>Completed Jobs: {service.completedJobs}</span>
-                      </li>
-                    </ul>
+                        <div className="flex items-center space-x-2">
+                          <Users className="w-5 h-5 text-primary" />
+                          <span>Completed Jobs: {service.completedJobs}</span>
+                        </div>
+
+                        <div>
+                          <span className="font-bold">Availability:</span>{" "}
+                          <Badge variant={service.availability === "24/7" ? "default" : "secondary"}>
+                            {service.availability}
+                          </Badge>
+                        </div>
+
+                        <div>
+                          <span className="font-bold">Price Range:</span> {service.priceRange}
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="flex space-x-2 pt-4">
-                      <Button size="sm" className="flex-1">
+                      <Button size="sm" className="flex-1" aria-label={`Request quote for ${service.name}`}>
                         Request Quote
                       </Button>
                       <Button
@@ -375,6 +391,7 @@ const Services = () => {
                           !service.providerProfile?.phone &&
                           !service.providerProfile?.mobile_number
                         }
+                        aria-label={`Contact provider for ${service.name}`}
                       >
                         Contact Provider
                       </Button>
@@ -384,15 +401,20 @@ const Services = () => {
               ))}
             </div>
 
-            {/* Load More button - Placeholder */}
+            {/* Load More (Optional - placeholder) */}
             {filteredServices.length > 0 && (
               <div className="text-center mt-8">
-                <Button variant="outline" size="lg" onClick={() => {
-                  toast({
-                    title: "Feature not implemented",
-                    description: "Load more functionality will be added later.",
-                  });
-                }}>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    toast({
+                      title: "Feature not implemented",
+                      description: "Load more functionality will be added later.",
+                    });
+                  }}
+                  aria-label="Load more services"
+                >
                   Load More Services
                 </Button>
               </div>
