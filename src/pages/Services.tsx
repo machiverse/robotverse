@@ -283,7 +283,9 @@ const Services = () => {
                     <MapPin className="w-4 h-4 mr-1" />
                     <span className="text-sm">{service.location}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{service.description}</p>
+                  <div className="border border-border rounded-md p-4 mb-4 text-justify text-sm text-muted-foreground">
+  {service.description}
+</div>
                   <div className="text-sm space-y-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1">
