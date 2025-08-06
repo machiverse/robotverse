@@ -31,6 +31,7 @@ interface AIAnalysisResultProps {
   /** Show as overlay popup/modal */
   popup?: boolean;
   onClose?: () => void;
+  currentUserLocation?: string;
 }
 
 // --- Utility Function: Split text into clean sentences for bullet points ---
