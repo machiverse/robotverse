@@ -55,6 +55,40 @@ export const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
       .trim();
   };
 
+  const extractStructuredContent = (text: string): Array<{title: string, content: string}> => {
+    if (!text) return [];
+    
+    const cleanedText = cleanText(text);
+    const sections = [];
+    
+    // Split by common section indicators
+    const parts = cleanedText.split(/(?:Key Features|Technical Specifications|Market Analysis|Benefits|Applications|Recommendations|Summary):/i);
+    
+    if (parts.length > 1) {
+      for (let i = 1; i < parts.length; i++) {
+        const title = cleanedText.match(new RegExp(`(Key Features|Technical Specifications|Market Analysis|Benefits|Applications|Recommendations|Summary)(?=:)`, 'gi'))?.[i-1] || `Section ${i}`;
+        const content = parts[i].trim().slice(0, 300);
+        sections.push({ title, content });
+      }
+    } else {
+      // Fallback: create sections from sentences
+      const sentences = cleanedText.split(/[.!?]+/).filter(s => s.trim().length > 20);
+      const chunkSize = Math.ceil(sentences.length / 3);
+      
+      for (let i = 0; i < sentences.length; i += chunkSize) {
+        const chunk = sentences.slice(i, i + chunkSize).join('. ').trim();
+        if (chunk) {
+          sections.push({
+            title: i === 0 ? 'Product Overview' : i === chunkSize ? 'Technical Assessment' : 'Market Potential',
+            content: chunk
+          });
+        }
+      }
+    }
+    
+    return sections.slice(0, 3);
+  };
+
   const extractBulletPoints = (text: string): string[] => {
     if (!text) return [];
     
@@ -102,6 +136,7 @@ export const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
   const technicalPoints = extractBulletPoints(analysis.technicalInsights || '');
   const industryPoints = extractBulletPoints(analysis.suggestedIndustries || '');
   const governmentSchemes = extractSchemes(analysis.governmentSchemes || analysis.summary);
+  const structuredContent = extractStructuredContent(analysis.summary);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -249,17 +284,51 @@ export const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
         </Card>
       </div>
 
-      {/* Full Analysis Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Complete Analysis Summary</CardTitle>
+      {/* Professional Structured Analysis Summary */}
+      <Card className="border border-primary/20">
+        <CardHeader className="bg-primary/5">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <TrendingUp className="h-6 w-6 text-primary" />
+            Complete Analysis Summary
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="prose prose-sm max-w-none">
-            <p className="text-muted-foreground leading-relaxed">
-              {cleanText(analysis.summary)}
-            </p>
-          </div>
+        <CardContent className="pt-6">
+          {structuredContent.length > 0 ? (
+            <div className="grid gap-6 lg:grid-cols-1">
+              {structuredContent.map((section, index) => (
+                <div key={index} className="relative">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        {section.title}
+                      </h3>
+                      <div className="bg-muted/30 rounded-lg p-4 border-l-4 border-primary/50">
+                        <p className="text-muted-foreground leading-relaxed text-sm">
+                          {section.content}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {index < structuredContent.length - 1 && (
+                    <Separator className="mt-6" />
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-muted/30 rounded-lg p-6 border border-dashed border-primary/30">
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-muted-foreground leading-relaxed">
+                    {cleanText(analysis.summary)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
