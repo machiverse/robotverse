@@ -189,6 +189,40 @@ function extractSection(analysis: string, sectionType: string): string {
   return match ? match[0].trim() : '';
 }
 
+// Helper function to update location-specific content in cached analysis
+function updateLocationInAnalysis(cachedAnalysis: any, newLocation: string): any {
+  if (!cachedAnalysis || !newLocation) return cachedAnalysis;
+  
+  // Create a copy of the cached analysis
+  const updatedAnalysis = { ...cachedAnalysis };
+  
+  // Update location references in all text fields
+  const locationPattern = /(\b(?:in|from|near|around|at)\s+)([A-Za-z\s,]+?)(\s+(?:area|region|city|state|location|market|vicinity))/gi;
+  const updateLocationText = (text: string) => {
+    if (!text) return text;
+    return text.replace(locationPattern, `$1${newLocation}$3`);
+  };
+  
+  // Update all text fields that might contain location references
+  if (updatedAnalysis.summary) {
+    updatedAnalysis.summary = updateLocationText(updatedAnalysis.summary);
+  }
+  if (updatedAnalysis.suitability) {
+    updatedAnalysis.suitability = updateLocationText(updatedAnalysis.suitability);
+  }
+  if (updatedAnalysis.technicalInsights) {
+    updatedAnalysis.technicalInsights = updateLocationText(updatedAnalysis.technicalInsights);
+  }
+  if (updatedAnalysis.governmentSchemes) {
+    updatedAnalysis.governmentSchemes = updateLocationText(updatedAnalysis.governmentSchemes);
+  }
+  if (updatedAnalysis.suggestedIndustries) {
+    updatedAnalysis.suggestedIndustries = updateLocationText(updatedAnalysis.suggestedIndustries);
+  }
+  
+  return updatedAnalysis;
+}
+
 // --- MAIN SERVER LOGIC ---
 
 serve(async (req) => {
@@ -245,6 +279,9 @@ serve(async (req) => {
         logistics: { providers: sortedLogistics.map(p => ({ ...p, proximity: p.proximity })) },
         finance: { providers: sortedFinance.map(p => ({ ...p, proximity: p.proximity })) },
       };
+
+      // Update location-specific content in cached analysis
+      const updatedAnalysis = updateLocationInAnalysis(existingAnalysis.analysis_data, targetLocation);
       
       return new Response(JSON.stringify({
         success: true,
@@ -257,7 +294,7 @@ serve(async (req) => {
             sellerInfo: robot.profiles
           }
         },
-        analysis: existingAnalysis.analysis_data,
+        analysis: updatedAnalysis,
         marketEcosystem: updatedMarketEcosystem,
         currentUserLocation: targetLocation
       }), {
