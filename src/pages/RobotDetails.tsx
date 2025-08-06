@@ -1172,7 +1172,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           <h3 className="text-lg font-semibold">Financing Options</h3>
                           <p className="text-sm text-muted-foreground">Explore financing solutions for this equipment</p>
                         </div>
-                        <Button variant="outline">
+                        <Button variant="outline" onClick={() => setShowEMICalculator(true)}>
                           <Calculator className="w-4 h-4 mr-2" />
                           EMI Calculator
                         </Button>
