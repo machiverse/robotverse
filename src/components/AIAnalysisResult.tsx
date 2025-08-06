@@ -2,10 +2,18 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, TrendingUp, Settings, Building2, Lightbulb, Clock, X } from 'lucide-react';
+import {
+  CheckCircle,
+  TrendingUp,
+  Settings,
+  Building2,
+  Lightbulb,
+  Clock,
+  X
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// --- Types ---
+// --- Typescript interfaces ---
 
 interface AIAnalysisData {
   summary: string;
@@ -23,81 +31,45 @@ interface AIAnalysisResultProps {
   /** Show as overlay popup/modal */
   popup?: boolean;
   onClose?: () => void;
-  currentUserLocation?: string;
 }
 
-// --- Utils: Split text into crisp sentences ----
+// --- Utility Function: Split text into clean sentences for bullet points ---
 
 function toSentences(text: string): string[] {
-  // Remove markdown, bullets, and split by sentence or line
   if (!text) return [];
   return text
-    .replace(/[#*\-•]+/g, '')           // Remove markdown/symbols
-    .replace(/\r?\n+/g, ' ')            // Newlines to space
-    .replace(/\s{2,}/g, ' ')            // Remove double spaces
-    .split(/(?<=[?.!])\s+(?=[A-Z])/g)   // Split on punctuation + capital
+    .replace(/[#*\-•]+/g, '')      // remove common markdown and bullet chars
+    .replace(/\r?\n+/g, '. ')      // convert line breaks to periods + space for sentence splitting
+    .replace(/\s{2,}/g, ' ')       // collapse multiple spaces
+    .split(/(?<=[?.!])\s+(?=[A-Z])/g)  // split on punctuation followed by space and capital letter
+    .flatMap(s => s.split(/\n+/))  // split any stray new lines just in case
     .map(s => s.trim())
     .filter(Boolean);
 }
 
-// Replace location-related sentences with current user location
-function replaceLocationContent(text: string, currentLocation?: string): string {
-  if (!currentLocation || !text) return text;
-  
-  // Common location-related patterns to replace
-  const locationPatterns = [
-    /in [A-Za-z\s,]+ area/gi,
-    /near [A-Za-z\s,]+ region/gi,
-    /around [A-Za-z\s,]+ location/gi,
-    /within [A-Za-z\s,]+ vicinity/gi,
-    /for [A-Za-z\s,]+ market/gi,
-    /in your [A-Za-z\s,]+ region/gi,
-    /in the [A-Za-z\s,]+ area/gi,
-    /near your location in [A-Za-z\s,]+/gi,
-    /in [A-Za-z\s,]+ and surrounding areas/gi
-  ];
-  
-  let updatedText = text;
-  
-  // Replace location patterns with current user location
-  locationPatterns.forEach(pattern => {
-    updatedText = updatedText.replace(pattern, (match) => {
-      // Preserve the sentence structure while updating location
-      if (match.toLowerCase().includes('area')) {
-        return `in ${currentLocation} area`;
-      } else if (match.toLowerCase().includes('region')) {
-        return `near ${currentLocation} region`;
-      } else if (match.toLowerCase().includes('location')) {
-        return `around ${currentLocation} location`;
-      } else if (match.toLowerCase().includes('vicinity')) {
-        return `within ${currentLocation} vicinity`;
-      } else if (match.toLowerCase().includes('market')) {
-        return `for ${currentLocation} market`;
-      } else {
-        return `in ${currentLocation}`;
-      }
-    });
-  });
-  
-  return updatedText;
-}
+// --- Utility: Extract government scheme bullet points from text ---
 
-// Schemes: Heuristic extract to a short list
 function extractSchemes(text: string): string[] {
   if (!text) return [];
+  
   const found: string[] = [];
+
   if (/pli|production linked/i.test(text))
-    found.push('PLI (Production Linked Incentive) Scheme: Financial incentives for eligible robotics manufacturers.');
+    found.push('PLI (Production Linked Incentive): Incentives for eligible robotics manufacturing.');
+
   if (/msme|micro, small/i.test(text))
-    found.push('MSME Support: Subsidy and credit guarantees for automation adoption.');
+    found.push('MSME Support: Subsidy and credit guarantees for automation investments.');
+
   if (/make in india|atmanirbhar/i.test(text))
-    found.push('Make in India: Tax benefits and fast-track clearances for domestic robotics.');
+    found.push('Make in India: Tax benefits and fast-track approvals for domestic robotics.');
+
   if (/startup/i.test(text))
-    found.push('Startup India: Grants and early-stage support for robotics ventures.');
+    found.push('Startup India: Grants and incentive support for robotics startups.');
+
   return found;
 }
 
-// --- Main Component ---
+// --- Main React Component ---
 
 const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
   analysis,
@@ -105,38 +77,35 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
   className = "",
   popup = false,
   onClose,
-  currentUserLocation,
 }) => {
-  // Process text with location replacement if cached and current location available
-  const processText = (text: string) => {
-    return cached && currentUserLocation ? replaceLocationContent(text, currentUserLocation) : text;
-  };
 
-  // Section points with location processing
-  const suitabilityPoints = toSentences(processText(analysis.suitability || analysis.summary));
-  const technicalPoints = toSentences(processText(analysis.technicalInsights || ''));
-  const industryPoints = toSentences(processText(analysis.suggestedIndustries || ''));
-  const governmentPoints = extractSchemes(processText(analysis.governmentSchemes || analysis.summary));
-  const summaryPoints = toSentences(processText(analysis.summary));
+  // Extract bullet points by section
+  const suitabilityPoints = toSentences(analysis.suitability || analysis.summary);
+  const technicalPoints = toSentences(analysis.technicalInsights || '');
+  const industryPoints = toSentences(analysis.suggestedIndustries || '');
+  const governmentPoints = extractSchemes(analysis.governmentSchemes || analysis.summary);
+  const summaryPoints = toSentences(analysis.summary);
 
-  // Timestamp
+  // Format timestamp nicely for display
   const formatTimestamp = (timestamp: string) => {
     try {
       return new Date(timestamp).toLocaleString('en-IN', {
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
       });
     } catch {
       return 'Recently';
     }
   };
 
-  // --- Popup overlay styles ---
-  const popupClass = popup
-    ? "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-2"
+  // If popup mode, add overlay styles
+  const overlayClassName = popup
+    ? "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-2"
     : "";
 
   return (
-    <div className={`${popupClass}`}>
+    <div className={overlayClassName}>
+
       <Card
         className={`
           relative max-w-2xl w-full shadow-2xl border-2 border-primary/30
@@ -144,9 +113,10 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
           ${className}
         `}
       >
+
         {popup && onClose && (
           <Button
-            aria-label="Close analysis popup"
+            aria-label="Close analysis"
             size="icon"
             variant="ghost"
             className="absolute top-3 right-3"
@@ -155,22 +125,34 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
             <X className="h-5 w-5 text-foreground" />
           </Button>
         )}
+
+        {/* Header */}
         <CardHeader className="pb-3 bg-primary/10 rounded-t-lg">
           <div className="flex items-center gap-2">
+
             <TrendingUp className="h-5 w-5 text-primary" />
-            <CardTitle className="text-xl font-bold">Professional Analysis Summary</CardTitle>
+
+            <CardTitle className="text-xl font-bold">
+              Professional Analysis Summary
+            </CardTitle>
+
             {cached && (
-              <Badge variant="outline" className="ml-2 text-xs">Cached</Badge>
+              <Badge variant="outline" className="ml-2 text-xs">
+                Cached
+              </Badge>
             )}
+
           </div>
+
           <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>Analyzed {formatTimestamp(analysis.timestamp)}</span>
           </div>
         </CardHeader>
 
+        {/* Content Sections */}
         <CardContent className="space-y-5 py-6 px-6">
-          {/* Each section shown only if not empty */}
+
           {suitabilityPoints.length > 0 && (
             <>
               <SectionBullets
@@ -181,6 +163,7 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
               <Separator />
             </>
           )}
+
           {technicalPoints.length > 0 && (
             <>
               <SectionBullets
@@ -191,6 +174,7 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
               <Separator />
             </>
           )}
+
           {industryPoints.length > 0 && (
             <>
               <SectionBullets
@@ -201,44 +185,50 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
               <Separator />
             </>
           )}
+
           {governmentPoints.length > 0 && (
             <>
               <SectionBullets
                 icon={<Building2 className="h-4 w-4 text-orange-600" />}
-                title="Applicable Govt. Schemes"
+                title="Applicable Government Schemes"
                 points={governmentPoints}
               />
               <Separator />
             </>
           )}
 
+          {/* Structured Summary */}
           <SectionBullets
             icon={<TrendingUp className="h-4 w-4 text-primary" />}
             title="Structured Analysis"
             points={summaryPoints}
           />
+
         </CardContent>
       </Card>
+
     </div>
   );
 };
 
-// --- Helper to display one section as bullets ---
+// --- Helper Component: Section with Icon, Title, and Bulleted Points ---
+
 const SectionBullets: React.FC<{
   icon: React.ReactNode;
   title: string;
   points: string[];
 }> = ({ icon, title, points }) => (
   <div>
-    <div className="flex items-center gap-2 mb-2">
+    <div className="flex items-center gap-2 mb-1">
       {icon}
       <span className="font-semibold text-base">{title}</span>
     </div>
     <ul className="list-disc space-y-2 pl-6 text-sm text-muted-foreground">
-      {points.length > 0
-        ? points.map((line, i) => <li key={i}>{line}</li>)
-        : <li>No information found.</li>
-      }
+      {points.length > 0 ? (
+        points.map((line, i) => <li key={i}>{line}</li>)
+      ) : (
+        <li>No information found.</li>
+      )}
     </ul>
   </div>
 );
