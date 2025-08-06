@@ -643,7 +643,6 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
           </DialogHeader>
           <LoanProductForm
             editingProduct={editingProduct}
-            editingScheme={editingScheme}
             onSuccess={() => {
               setShowAddProductForm(false);
               setEditingProduct(null);
