@@ -1,12 +1,32 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, MapPin, Search, Grid, List, Star, Clock, Users } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Settings,
+  MapPin,
+  Search,
+  Grid,
+  List,
+  Star,
+  Clock,
+  Users,
+} from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -41,6 +61,7 @@ const Services = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const { toast } = useToast();
 
   const categories = [
@@ -66,9 +87,11 @@ const Services = () => {
     const fetchServices = async () => {
       try {
         setLoading(true);
+
         const { data, error } = await supabase
-          .from('services')
-          .select(`
+          .from("services")
+          .select(
+            `
             *,
             profiles!services_provider_id_fkey (
               full_name,
@@ -78,34 +101,34 @@ const Services = () => {
               mobile_number,
               email
             )
-          `)
-          .order('created_at', { ascending: false });
+          `
+          )
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
-        
-        // Transform data to match interface
-        const transformedData = data.map(item => ({
+
+        const transformedData = (data || []).map((item) => ({
           id: item.id,
           name: item.name,
           category: item.service_type,
-          priceRange: item.price_range || 'Contact for pricing',
-          location: item.location || item.profiles?.location || 'Location not specified',
-          provider: item.profiles?.company_name || item.profiles?.full_name || 'Service Provider',
+          priceRange: item.price_range || "Contact for pricing",
+          location: item.location || item.profiles?.location || "Location not specified",
+          provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
           image: "/placeholder.svg",
-          description: item.description || 'Professional service provider',
-          rating: 4.5, // Default rating
-          responseTime: "2-4 hours", // Default response time
-          completedJobs: Math.floor(Math.random() * 100) + 50, // Random for demo
+          description: item.description || "Professional service provider",
+          rating: 4.5,
+          responseTime: "2-4 hours",
+          completedJobs: Math.floor(Math.random() * 100) + 50,
           availability: "Available",
           providerProfile: item.profiles || {},
-          providerId: item.provider_id
+          providerId: item.provider_id,
         }));
-        
+
         setServices(transformedData);
         setError(null);
       } catch (err) {
-        console.error('Error fetching services:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load services');
+        console.error("Error fetching services:", err);
+        setError(err instanceof Error ? err.message : "Failed to load services");
         setServices([]);
       } finally {
         setLoading(false);
@@ -115,10 +138,10 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // Handle contact provider
+  // Contact provider handler
   const handleContactProvider = (service: Service) => {
     const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
-    
+
     if (!phone) {
       toast({
         variant: "destructive",
@@ -127,38 +150,51 @@ const Services = () => {
       });
       return;
     }
-    
-    window.open(`tel:${phone}`, '_self');
+
+    window.open(`tel:${phone}`, "_self");
     toast({
       title: "Calling Provider",
       description: `Calling ${service.providerProfile?.company_name || service.providerProfile?.full_name}...`,
     });
   };
 
+  // Filter services based on search, category, location
   const filteredServices = services.filter((service) => {
-    const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         service.provider.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "all" || 
-                           service.category.toLowerCase().includes(selectedCategory.toLowerCase());
-    
-    const matchesLocation = selectedLocation === "all" || 
-                           service.location.toLowerCase() === selectedLocation.toLowerCase();
+    const query = searchQuery.toLowerCase();
+    const matchesSearch =
+      service.name.toLowerCase().includes(query) ||
+      service.description.toLowerCase().includes(query) ||
+      service.provider.toLowerCase().includes(query);
+
+    const matchesCategory =
+      selectedCategory === "all" ||
+      service.category.toLowerCase().includes(selectedCategory.toLowerCase());
+
+    const matchesLocation =
+      selectedLocation === "all" ||
+      service.location.toLowerCase() === selectedLocation.toLowerCase();
 
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
+  // Helper: convert description into bullet points
+  const descriptionPoints = (description: string) =>
+    description
+      .split(/[.\n]/)
+      .map((line) => line.trim())
+      .filter((point) => point.length > 0);
+
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Robot Services</h1>
           <p className="text-xl text-muted-foreground">
-            Connect with certified professionals for robot maintenance, repair, and training services
+            Connect with certified professionals for robot maintenance, repair,
+            and training services
           </p>
         </div>
 
@@ -203,6 +239,7 @@ const Services = () => {
                 variant={viewMode === "grid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
               >
                 <Grid className="w-4 h-4" />
               </Button>
@@ -210,6 +247,7 @@ const Services = () => {
                 variant={viewMode === "list" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("list")}
+                aria-label="List view"
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -226,7 +264,9 @@ const Services = () => {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Settings className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Unable to load services</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              Unable to load services
+            </h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={() => window.location.reload()} variant="outline">
               Try Again
@@ -244,82 +284,115 @@ const Services = () => {
           </div>
         ) : (
           <>
-            {/* Results */}
+            {/* Results Count */}
             <div className="mb-4">
               <p className="text-sm text-muted-foreground">
-                {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'} found
+                {filteredServices.length}{" "}
+                {filteredServices.length === 1 ? "service" : "services"} found
               </p>
             </div>
-            
-            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+
+            {/* Service Cards */}
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "space-y-4"
+              }
+            >
               {filteredServices.map((service) => (
-            <Card key={service.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                  <Settings className="w-12 h-12 text-muted-foreground" />
-                </div>
-                <CardTitle className="text-lg">{service.name}</CardTitle>
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="w-fit">
-                    {service.category}
-                  </Badge>
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-muted-foreground">{service.rating}</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-primary">
-                      {service.priceRange}
-                    </span>
-                    <Badge variant={service.availability === "24/7" ? "default" : "secondary"}>
-                      {service.availability}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{service.location}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{service.description}</p>
-                  <div className="text-sm space-y-1">
+                <Card
+                  key={service.id}
+                  className="hover:shadow-lg transition-shadow"
+                  role="region"
+                  aria-label={`${service.name} service`}
+                >
+                  <CardHeader>
+                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                      <Settings className="w-12 h-12 text-muted-foreground" />
+                    </div>
+                    <CardTitle className="text-lg">{service.name}</CardTitle>
                     <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="w-fit">
+                        {service.category}
+                      </Badge>
                       <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <span>Response: {service.responseTime}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span>{service.completedJobs} jobs</span>
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-muted-foreground">
+                          {service.rating}
+                        </span>
                       </div>
                     </div>
-                    <p><span className="font-medium">Provider:</span> {service.provider}</p>
-                  </div>
-                  <div className="flex space-x-2 pt-2">
-                    <Button size="sm" className="flex-1">
-                      Request Quote
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleContactProvider(service)}
-                      disabled={!service.providerProfile?.phone && !service.providerProfile?.mobile_number}
-                    >
-                      Contact Provider
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardHeader>
+
+                  <CardContent>
+                    <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                      {descriptionPoints(service.description).map((point, idx) => (
+                        <li key={idx}>{point}</li>
+                      ))}
+
+                      <li>
+                        <strong className="text-foreground">Provider:</strong>{" "}
+                        {service.provider}
+                      </li>
+
+                      {service.providerProfile?.email && (
+                        <li>
+                          <strong className="text-foreground">Email:</strong>{" "}
+                          {service.providerProfile.email}
+                        </li>
+                      )}
+
+                      {(service.providerProfile?.phone ||
+                        service.providerProfile?.mobile_number) && (
+                        <li>
+                          <strong className="text-foreground">Phone:</strong>{" "}
+                          {service.providerProfile.phone ||
+                            service.providerProfile.mobile_number}
+                        </li>
+                      )}
+
+                      <li className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4 text-primary" />
+                        <span>Response Time: {service.responseTime}</span>
+                      </li>
+
+                      <li className="flex items-center space-x-1">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span>Completed Jobs: {service.completedJobs}</span>
+                      </li>
+                    </ul>
+
+                    <div className="flex space-x-2 pt-4">
+                      <Button size="sm" className="flex-1">
+                        Request Quote
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleContactProvider(service)}
+                        disabled={
+                          !service.providerProfile?.phone &&
+                          !service.providerProfile?.mobile_number
+                        }
+                      >
+                        Contact Provider
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
-            {/* Load More */}
+            {/* Load More button - Placeholder */}
             {filteredServices.length > 0 && (
               <div className="text-center mt-8">
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" onClick={() => {
+                  toast({
+                    title: "Feature not implemented",
+                    description: "Load more functionality will be added later.",
+                  });
+                }}>
                   Load More Services
                 </Button>
               </div>
