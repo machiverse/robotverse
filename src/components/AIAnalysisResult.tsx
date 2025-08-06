@@ -23,6 +23,7 @@ interface AIAnalysisResultProps {
   /** Show as overlay popup/modal */
   popup?: boolean;
   onClose?: () => void;
+  currentUserLocation?: string;
 }
 
 // --- Utils: Split text into crisp sentences ----
@@ -37,6 +38,48 @@ function toSentences(text: string): string[] {
     .split(/(?<=[?.!])\s+(?=[A-Z])/g)   // Split on punctuation + capital
     .map(s => s.trim())
     .filter(Boolean);
+}
+
+// Replace location-related sentences with current user location
+function replaceLocationContent(text: string, currentLocation?: string): string {
+  if (!currentLocation || !text) return text;
+  
+  // Common location-related patterns to replace
+  const locationPatterns = [
+    /in [A-Za-z\s,]+ area/gi,
+    /near [A-Za-z\s,]+ region/gi,
+    /around [A-Za-z\s,]+ location/gi,
+    /within [A-Za-z\s,]+ vicinity/gi,
+    /for [A-Za-z\s,]+ market/gi,
+    /in your [A-Za-z\s,]+ region/gi,
+    /in the [A-Za-z\s,]+ area/gi,
+    /near your location in [A-Za-z\s,]+/gi,
+    /in [A-Za-z\s,]+ and surrounding areas/gi
+  ];
+  
+  let updatedText = text;
+  
+  // Replace location patterns with current user location
+  locationPatterns.forEach(pattern => {
+    updatedText = updatedText.replace(pattern, (match) => {
+      // Preserve the sentence structure while updating location
+      if (match.toLowerCase().includes('area')) {
+        return `in ${currentLocation} area`;
+      } else if (match.toLowerCase().includes('region')) {
+        return `near ${currentLocation} region`;
+      } else if (match.toLowerCase().includes('location')) {
+        return `around ${currentLocation} location`;
+      } else if (match.toLowerCase().includes('vicinity')) {
+        return `within ${currentLocation} vicinity`;
+      } else if (match.toLowerCase().includes('market')) {
+        return `for ${currentLocation} market`;
+      } else {
+        return `in ${currentLocation}`;
+      }
+    });
+  });
+  
+  return updatedText;
 }
 
 // Schemes: Heuristic extract to a short list
@@ -62,13 +105,19 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
   className = "",
   popup = false,
   onClose,
+  currentUserLocation,
 }) => {
-  // Section points
-  const suitabilityPoints = toSentences(analysis.suitability || analysis.summary);
-  const technicalPoints = toSentences(analysis.technicalInsights || '');
-  const industryPoints = toSentences(analysis.suggestedIndustries || '');
-  const governmentPoints = extractSchemes(analysis.governmentSchemes || analysis.summary);
-  const summaryPoints = toSentences(analysis.summary);
+  // Process text with location replacement if cached and current location available
+  const processText = (text: string) => {
+    return cached && currentUserLocation ? replaceLocationContent(text, currentUserLocation) : text;
+  };
+
+  // Section points with location processing
+  const suitabilityPoints = toSentences(processText(analysis.suitability || analysis.summary));
+  const technicalPoints = toSentences(processText(analysis.technicalInsights || ''));
+  const industryPoints = toSentences(processText(analysis.suggestedIndustries || ''));
+  const governmentPoints = extractSchemes(processText(analysis.governmentSchemes || analysis.summary));
+  const summaryPoints = toSentences(processText(analysis.summary));
 
   // Timestamp
   const formatTimestamp = (timestamp: string) => {

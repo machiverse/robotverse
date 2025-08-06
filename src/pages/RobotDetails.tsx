@@ -94,6 +94,7 @@ const RobotDetails = () => {
   const [showImportQuote, setShowImportQuote] = useState(false);
   const [importDuty, setImportDuty] = useState<number | null>(null);
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
+  const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
 
   useEffect(() => {
     if (!id) return;
@@ -135,6 +136,34 @@ const RobotDetails = () => {
     };
     fetchRobot();
   }, [id, user]);
+
+  // Fetch current user's location
+  useEffect(() => {
+    const fetchUserLocation = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('location')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching user location:', error);
+          return;
+        }
+        
+        if (data?.location) {
+          setCurrentUserLocation(data.location);
+        }
+      } catch (err) {
+        console.error('Error fetching user location:', err);
+      }
+    };
+    
+    fetchUserLocation();
+  }, [user]);
 
   useEffect(() => {
     console.log('Logistics services loaded:', logisticsServices);
@@ -1510,6 +1539,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <AIAnalysisResult 
                       analysis={aiAnalysis.analysis} 
                       cached={aiAnalysis.cached || false}
+                      currentUserLocation={currentUserLocation}
                       className="mt-6"
                     />
                   )}
