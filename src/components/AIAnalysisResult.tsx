@@ -39,18 +39,33 @@ export const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
     }
   };
 
+  const cleanText = (text: string): string => {
+    if (!text) return '';
+    
+    return text
+      // Remove markdown headers (#, ##, ###)
+      .replace(/^#{1,6}\s+/gm, '')
+      // Remove bullet points (*, -, •)
+      .replace(/^[\*\-\•]\s+/gm, '')
+      // Remove numbered lists
+      .replace(/^\d+[\.\)]\s+/gm, '')
+      // Clean up extra spaces and line breaks
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      .trim();
+  };
+
   const extractBulletPoints = (text: string): string[] => {
     if (!text) return [];
     
-    // Extract bullet points or numbered lists
-    const lines = text.split('\n').filter(line => line.trim());
-    const bulletPoints = lines.filter(line => 
-      line.match(/^[\-\*\•]\s+/) || 
-      line.match(/^\d+[\.\)]\s+/) ||
-      line.includes(':')
-    );
+    const cleanedText = cleanText(text);
+    const sentences = cleanedText
+      .split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 10)
+      .slice(0, 4);
     
-    return bulletPoints.length > 0 ? bulletPoints.slice(0, 5) : lines.slice(0, 3);
+    return sentences.length > 0 ? sentences : [cleanedText.slice(0, 150)];
   };
 
   const extractSchemes = (text: string): Array<{name: string, benefit: string}> => {
@@ -241,8 +256,8 @@ export const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
         </CardHeader>
         <CardContent>
           <div className="prose prose-sm max-w-none">
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-              {analysis.summary}
+            <p className="text-muted-foreground leading-relaxed">
+              {cleanText(analysis.summary)}
             </p>
           </div>
         </CardContent>
