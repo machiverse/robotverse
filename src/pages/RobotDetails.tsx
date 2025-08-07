@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoanCalculator from "@/components/forms/LoanCalculator";
+import LoanApplicationForm from "@/components/forms/LoanApplicationForm";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
@@ -628,8 +629,198 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     });
   };
 
+  // Show loan application form state
+  const [showLoanApplication, setShowLoanApplication] = useState(false);
+
+  // Contact service provider by phone  
+  const handleContactService = (service: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to contact service providers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = service.profiles?.phone || service.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Service provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Service Provider",
+      description: `Calling ${service.profiles?.company_name || service.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Contact spare parts provider by phone
+  const handleContactSpareParts = (part: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required", 
+        description: "Please log in to contact spare parts providers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = part.profiles?.phone || part.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Spare parts provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Parts Provider",
+      description: `Calling ${part.profiles?.company_name || part.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Contact logistics provider by phone
+  const handleContactLogistics = (service: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to contact logistics providers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = service.profiles?.phone || service.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available", 
+        description: "Logistics provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Logistics Provider",
+      description: `Calling ${service.profiles?.company_name || service.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Contact finance provider by phone
+  const handleContactFinance = (option: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to contact finance providers.", 
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = option.profiles?.phone || option.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Finance provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Finance Provider",
+      description: `Calling ${option.profiles?.company_name || option.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Get quote for logistics with robot details
+  const handleGetLogisticsQuote = (service: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to request logistics quotes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!service.profiles?.email) {
+      toast({
+        title: "Email Not Available",
+        description: "Logistics provider's email address is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const subject = `Logistics Quote Request for ${robot?.name} - ${robot?.model}`;
+    const body = `Dear ${service.profiles.full_name},
+
+I need logistics services for the following robot equipment:
+
+Robot: ${robot?.name}
+Model: ${robot?.model}
+Type: ${robot?.robot_type}
+Price: ${robot?.price ? `${robot.currency} ${robot.price}` : 'Price on Request'}
+Current Location: ${robot?.location}
+My Location: ${currentUserLocation}
+
+Service Required: ${service.service_name}
+Service Type: ${service.service_type}
+
+Please provide:
+1. Detailed logistics quote
+2. Transit time and delivery schedule
+3. Insurance and safety measures
+4. Special handling requirements
+5. Payment terms
+
+Best regards,
+${user?.user_metadata?.full_name || 'Interested Buyer'}`;
+
+    const mailtoLink = `mailto:${service.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+    
+    toast({
+      title: "Quote Request Sent",
+      description: `Email sent to ${service.profiles.company_name || service.profiles.full_name}`,
+    });
+  };
+
+  // Apply for loan with robot details
+  const handleApplyLoan = (option: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to apply for loans.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowLoanApplication(true);
+  };
+
   // Placeholder functions for report and loan check
   const handleGetReport = () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to access technical reports.",
+        variant: "destructive",
+      });
+      return;
+    }
     toast({
       title: "Technical Report",
       description: "Generating detailed technical specifications report...",
@@ -637,6 +828,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
   };
 
   const handleCheckLoan = () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to check financing options.",
+        variant: "destructive",
+      });
+      return;
+    }
     toast({
       title: "Financing Options",
       description: "Checking available loan and financing options...",
@@ -1036,16 +1235,31 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                   )}
                                   
-                                  <div className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center text-muted-foreground">
-                                      <MapPin className="w-3 h-3 mr-1" />
-                                      {service.location || service.profiles?.location || 'Location not specified'}
-                                    </div>
-                                    <Button size="sm" variant="outline">
-                                      <MessageCircle className="w-3 h-3 mr-1" />
-                                      Contact
-                                    </Button>
-                                  </div>
+                                   <div className="flex items-center justify-between text-sm">
+                                     <div className="flex items-center text-muted-foreground">
+                                       <MapPin className="w-3 h-3 mr-1" />
+                                       {service.location || service.profiles?.location || 'Location not specified'}
+                                     </div>
+                                     <div className="flex gap-1">
+                                       <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         onClick={() => handleContactService(service)}
+                                         disabled={!user}
+                                       >
+                                         <PhoneCall className="w-3 h-3 mr-1" />
+                                         Call
+                                       </Button>
+                                       <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         disabled={!user}
+                                       >
+                                         <MessageCircle className="w-3 h-3 mr-1" />
+                                         Contact
+                                       </Button>
+                                     </div>
+                                   </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1135,16 +1349,31 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                   )}
                                   
-                                  <div className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center text-muted-foreground">
-                                      <MapPin className="w-3 h-3 mr-1" />
-                                      {part.location || 'Not specified'}
-                                    </div>
-                                    <Button size="sm" variant="outline">
-                                      <MessageCircle className="w-3 h-3 mr-1" />
-                                      Inquire
-                                    </Button>
-                                  </div>
+                                   <div className="flex items-center justify-between text-sm">
+                                     <div className="flex items-center text-muted-foreground">
+                                       <MapPin className="w-3 h-3 mr-1" />
+                                       {part.location || 'Not specified'}
+                                     </div>
+                                     <div className="flex gap-1">
+                                       <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         onClick={() => handleContactSpareParts(part)}
+                                         disabled={!user}
+                                       >
+                                         <PhoneCall className="w-3 h-3 mr-1" />
+                                         Call
+                                       </Button>
+                                       <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         disabled={!user}
+                                       >
+                                         <MessageCircle className="w-3 h-3 mr-1" />
+                                         Inquire
+                                       </Button>
+                                     </div>
+                                   </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1273,16 +1502,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     )}
                                   </div>
                                   
-                                  <div className="flex gap-2">
-                                    <Button className="flex-1 bg-green-600 hover:bg-green-700">
-                                      <CreditCard className="w-4 h-4 mr-2" />
-                                      Apply Now
-                                    </Button>
-                                    <Button variant="outline">
-                                      <Phone className="w-4 h-4 mr-2" />
-                                      Contact
-                                    </Button>
-                                  </div>
+                                   <div className="flex gap-2">
+                                     <Button 
+                                       className="flex-1 bg-green-600 hover:bg-green-700"
+                                       onClick={() => handleApplyLoan(option)}
+                                       disabled={!user}
+                                     >
+                                       <CreditCard className="w-4 h-4 mr-2" />
+                                       Apply Now
+                                     </Button>
+                                     <Button 
+                                       variant="outline"
+                                       onClick={() => handleContactFinance(option)}
+                                       disabled={!user}
+                                     >
+                                       <PhoneCall className="w-4 h-4 mr-2" />
+                                       Call
+                                     </Button>
+                                   </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1442,16 +1679,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                   )}
                                   
-                                  <div className="flex gap-2">
-                                    <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
-                                      <Package className="w-4 h-4 mr-2" />
-                                      Get Quote
-                                    </Button>
-                                    <Button variant="outline">
-                                      <Phone className="w-4 h-4 mr-2" />
-                                      Contact
-                                    </Button>
-                                  </div>
+                                   <div className="flex gap-2">
+                                     <Button 
+                                       className="flex-1 bg-orange-600 hover:bg-orange-700"
+                                       onClick={() => handleGetLogisticsQuote(service)}
+                                       disabled={!user}
+                                     >
+                                       <Package className="w-4 h-4 mr-2" />
+                                       Get Quote
+                                     </Button>
+                                     <Button 
+                                       variant="outline"
+                                       onClick={() => handleContactLogistics(service)}
+                                       disabled={!user}
+                                     >
+                                       <PhoneCall className="w-4 h-4 mr-2" />
+                                       Call
+                                     </Button>
+                                   </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1740,7 +1985,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         </DialogContent>
       </Dialog>
 
-      {/* Import Quote Modal */}
+        {/* Import Quote Modal */}
       <Dialog open={showImportQuote} onOpenChange={setShowImportQuote}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -1789,6 +2034,37 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               Send Import Quote Request
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Loan Application Modal */}
+      <Dialog open={showLoanApplication} onOpenChange={setShowLoanApplication}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Loan Application for {robot?.name}</DialogTitle>
+            <DialogDescription>
+              Apply for financing for this robot equipment
+            </DialogDescription>
+          </DialogHeader>
+          {robot && (
+            <LoanApplicationForm 
+              onSuccess={() => {
+                setShowLoanApplication(false);
+                toast({
+                  title: "Application Submitted",
+                  description: "Your loan application has been submitted successfully.",
+                });
+              }}
+              onCancel={() => setShowLoanApplication(false)}
+              robotDetails={{
+                name: robot.name,
+                model: robot.model,
+                price: robot.price,
+                currency: robot.currency,
+                type: robot.robot_type
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

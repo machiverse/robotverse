@@ -15,9 +15,16 @@ interface LoanApplicationFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   editingApplication?: any;
+  robotDetails?: {
+    name: string;
+    model: string;
+    price: number;
+    currency: string;
+    type: string;
+  };
 }
 
-const LoanApplicationForm = ({ onSuccess, onCancel, editingApplication }: LoanApplicationFormProps) => {
+const LoanApplicationForm = ({ onSuccess, onCancel, editingApplication, robotDetails }: LoanApplicationFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -37,7 +44,7 @@ const LoanApplicationForm = ({ onSuccess, onCancel, editingApplication }: LoanAp
     documents_submitted: [] as string[]
   });
 
-  // Populate form when editing
+  // Populate form when editing or auto-fill with robot details
   useEffect(() => {
     if (editingApplication) {
       setFormData({
@@ -54,8 +61,16 @@ const LoanApplicationForm = ({ onSuccess, onCancel, editingApplication }: LoanAp
         collateral_offered: editingApplication.collateral_offered || '',
         documents_submitted: editingApplication.documents_submitted || []
       });
+    } else if (robotDetails) {
+      // Auto-fill with robot details
+      setFormData(prev => ({
+        ...prev,
+        loan_type: 'Equipment Finance',
+        amount_requested: robotDetails.price?.toString() || '',
+        purpose: `Financing for ${robotDetails.name} - ${robotDetails.model} (${robotDetails.type}) robot equipment for business operations and automation.`
+      }));
     }
-  }, [editingApplication]);
+  }, [editingApplication, robotDetails]);
 
   const loanTypes = [
     'Business Loan',
