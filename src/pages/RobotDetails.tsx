@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Plus } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -96,8 +96,6 @@ const RobotDetails = () => {
   const [importDuty, setImportDuty] = useState<number | null>(null);
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
-  const [editingApplication, setEditingApplication] = useState<any>(null);
-  const [showAddApplicationForm, setShowAddApplicationForm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -1276,11 +1274,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                   </div>
                                   
                                   <div className="flex gap-2">
-                                    <Button onClick={() => {
-                  setEditingApplication(null);
-                  setShowAddApplicationForm(true);
-                }}>
-                  <Plus className="w-4 h-4 mr-2" />
+                                    <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                                      <CreditCard className="w-4 h-4 mr-2" />
                                       Apply Now
                                     </Button>
                                     <Button variant="outline">
