@@ -1240,25 +1240,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                        <MapPin className="w-3 h-3 mr-1" />
                                        {service.location || service.profiles?.location || 'Location not specified'}
                                      </div>
-                                     <div className="flex gap-1">
-                                       <Button 
-                                         size="sm" 
-                                         variant="outline"
-                                         onClick={() => handleContactService(service)}
-                                         disabled={!user}
-                                       >
-                                         <PhoneCall className="w-3 h-3 mr-1" />
-                                         Call
-                                       </Button>
-                                       <Button 
-                                         size="sm" 
-                                         variant="outline"
-                                         disabled={!user}
-                                       >
-                                         <MessageCircle className="w-3 h-3 mr-1" />
-                                         Contact
-                                       </Button>
-                                     </div>
+                                     <Button 
+                                       size="sm" 
+                                       variant="outline"
+                                       disabled={!user}
+                                     >
+                                       <MessageCircle className="w-3 h-3 mr-1" />
+                                       Contact
+                                     </Button>
                                    </div>
                                 </div>
                               </CardContent>
@@ -1354,25 +1343,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                        <MapPin className="w-3 h-3 mr-1" />
                                        {part.location || 'Not specified'}
                                      </div>
-                                     <div className="flex gap-1">
-                                       <Button 
-                                         size="sm" 
-                                         variant="outline"
-                                         onClick={() => handleContactSpareParts(part)}
-                                         disabled={!user}
-                                       >
-                                         <PhoneCall className="w-3 h-3 mr-1" />
-                                         Call
-                                       </Button>
-                                       <Button 
-                                         size="sm" 
-                                         variant="outline"
-                                         disabled={!user}
-                                       >
-                                         <MessageCircle className="w-3 h-3 mr-1" />
-                                         Inquire
-                                       </Button>
-                                     </div>
+                                     <Button 
+                                       size="sm" 
+                                       variant="outline"
+                                       disabled={!user}
+                                     >
+                                       <MessageCircle className="w-3 h-3 mr-1" />
+                                       Inquire
+                                     </Button>
                                    </div>
                                 </div>
                               </CardContent>
