@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoanCalculator from "@/components/forms/LoanCalculator";
-import LoanApplicationForm from "@/components/forms/LoanApplicationForm";
+
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
@@ -2039,32 +2039,50 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
       {/* Loan Application Modal */}
       <Dialog open={showLoanApplication} onOpenChange={setShowLoanApplication}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Loan Application for {robot?.name}</DialogTitle>
             <DialogDescription>
               Apply for financing for this robot equipment
             </DialogDescription>
           </DialogHeader>
-          {robot && (
-            <LoanApplicationForm 
-              onSuccess={() => {
-                setShowLoanApplication(false);
-                toast({
-                  title: "Application Submitted",
-                  description: "Your loan application has been submitted successfully.",
-                });
-              }}
-              onCancel={() => setShowLoanApplication(false)}
-              robotDetails={{
-                name: robot.name,
-                model: robot.model,
-                price: robot.price,
-                currency: robot.currency,
-                type: robot.robot_type
-              }}
-            />
-          )}
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold mb-2">Equipment Details</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Robot:</span>
+                  <p className="font-medium">{robot?.name}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Model:</span>
+                  <p className="font-medium">{robot?.model}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Type:</span>
+                  <p className="font-medium">{robot?.robot_type}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Price:</span>
+                  <p className="font-medium">{robot?.price ? formatPrice(robot.price, robot.currency) : 'Contact for Price'}</p>
+                </div>
+              </div>
+            </div>
+            <div className="text-center py-4">
+              <p className="text-muted-foreground mb-4">
+                To apply for financing for this equipment, please contact our finance partners directly or visit our financing section.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => navigate('/dashboard')}>
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Go to Finance Dashboard
+                </Button>
+                <Button variant="outline" onClick={() => setShowLoanApplication(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
