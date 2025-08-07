@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoanCalculator from "@/components/forms/LoanCalculator";
-
+import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
@@ -631,6 +631,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
   // Show loan application form state
   const [showLoanApplication, setShowLoanApplication] = useState(false);
+  const [selectedFinanceProvider, setSelectedFinanceProvider] = useState<any>(null);
 
   // Contact service provider by phone  
   const handleContactService = (service: any) => {
@@ -808,6 +809,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       });
       return;
     }
+    setSelectedFinanceProvider(option);
     setShowLoanApplication(true);
   };
 
@@ -2016,53 +2018,23 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       </Dialog>
 
       {/* Loan Application Modal */}
-      <Dialog open={showLoanApplication} onOpenChange={setShowLoanApplication}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Loan Application for {robot?.name}</DialogTitle>
-            <DialogDescription>
-              Apply for financing for this robot equipment
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold mb-2">Equipment Details</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Robot:</span>
-                  <p className="font-medium">{robot?.name}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Model:</span>
-                  <p className="font-medium">{robot?.model}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Type:</span>
-                  <p className="font-medium">{robot?.robot_type}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Price:</span>
-                  <p className="font-medium">{robot?.price ? formatPrice(robot.price, robot.currency) : 'Contact for Price'}</p>
-                </div>
-              </div>
-            </div>
-            <div className="text-center py-4">
-              <p className="text-muted-foreground mb-4">
-                To apply for financing for this equipment, please contact our finance partners directly or visit our financing section.
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => navigate('/dashboard')}>
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Go to Finance Dashboard
-                </Button>
-                <Button variant="outline" onClick={() => setShowLoanApplication(false)}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <LoanApplicationModal
+        open={showLoanApplication}
+        onOpenChange={(open) => {
+          setShowLoanApplication(open);
+          if (!open) {
+            setSelectedFinanceProvider(null);
+          }
+        }}
+        robotDetails={robot ? {
+          name: robot.name,
+          model: robot.model,
+          price: robot.price || 0,
+          currency: robot.currency || 'INR',
+          type: robot.robot_type
+        } : undefined}
+        financeProvider={selectedFinanceProvider}
+      />
     </div>
   );
 };
