@@ -20,9 +20,15 @@ type UserTypeEnum = Database['public']['Enums']['user_type_enum'];
 const Auth = () => {
   // Form state
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isResetPassword, setIsResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -55,6 +61,104 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Handle forgot password
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "Please enter your email address.",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reset Link Sent",
+        description: "Check your email for the password reset link.",
+      });
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      console.error('❌ Forgot password error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send reset email.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle password reset
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword || !confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Required Fields",
+        description: "Please fill in both password fields.",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Password Mismatch",
+        description: "The passwords do not match.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been updated successfully. You can now sign in.",
+      });
+      
+      // Reset the form and go back to sign in
+      setIsResetPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      navigate('/auth');
+    } catch (error: any) {
+      console.error('❌ Password reset error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update password.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
@@ -62,6 +166,17 @@ const Auth = () => {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // Check for password reset token in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isReset = urlParams.get('reset');
+    if (isReset === 'true') {
+      setIsResetPassword(true);
+      setIsForgotPassword(false);
+      setIsSignUp(false);
+    }
+  }, []);
 
   // Toggle password visibility
   const togglePasswordVisibility = () => {
@@ -868,20 +983,37 @@ const Auth = () => {
               <Bot className="w-10 h-10 text-white" />
             </div>
             <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {isSignUp ? 'Join RobotVerse' : 'Welcome Back'}
+              {isResetPassword
+                ? 'Set New Password'
+                : isForgotPassword 
+                  ? 'Reset Password' 
+                  : isSignUp 
+                    ? 'Join RobotVerse' 
+                    : 'Welcome Back'
+              }
             </CardTitle>
             <CardDescription className="text-lg mt-2">
-              {isSignUp 
-                ? 'Create your account to start your robotics journey' 
-                : 'Sign in to access your robot marketplace'
+              {isResetPassword
+                ? 'Enter your new password below'
+                : isForgotPassword 
+                  ? 'Enter your email to receive a password reset link'
+                  : isSignUp 
+                    ? 'Create your account to start your robotics journey' 
+                    : 'Sign in to access your robot marketplace'
               }
             </CardDescription>
           </CardHeader>
           
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={
+              isResetPassword 
+                ? handlePasswordReset 
+                : isForgotPassword 
+                  ? handleForgotPassword 
+                  : handleSubmit
+            } className="space-y-6">
               {/* Basic Information Section - Only for Sign Up */}
-              {isSignUp && (
+              {isSignUp && !isForgotPassword && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
                     <User className="w-5 h-5 text-primary" />
@@ -960,61 +1092,139 @@ const Auth = () => {
               
               {/* Email and Password Fields */}
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                {/* Password Field with Show/Hide Toggle */}
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-12"
-                      placeholder="Enter your password"
-                      required
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      onClick={togglePasswordVisibility}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                  {/* Password Strength Indicator */}
-                  {password && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Password strength: {password.length >= 8 ? '🟢 Strong' : password.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
+                {/* Email Field - Show for all modes except reset password */}
+                {!isResetPassword && (
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10"
+                        placeholder="Enter your email"
+                        required
+                      />
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+                
+                {/* Reset Password Fields */}
+                {isResetPassword && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New Password *</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="pl-10 pr-12"
+                          placeholder="Enter your new password"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showNewPassword ? "Hide password" : "Show password"}
+                        >
+                          {showNewPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                      {newPassword && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Password strength: {newPassword.length >= 8 ? '🟢 Strong' : newPassword.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="pl-10 pr-12"
+                          placeholder="Confirm your new password"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                      {confirmPassword && newPassword !== confirmPassword && (
+                        <div className="text-xs text-red-500 mt-1">
+                          ❌ Passwords do not match
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password and Reset Password */}
+                {!isForgotPassword && !isResetPassword && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10 pr-12"
+                        placeholder="Enter your password"
+                        required
+                        minLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    {/* Password Strength Indicator */}
+                    {password && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Password strength: {password.length >= 8 ? '🟢 Strong' : password.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Account Type Selection - Only for Sign Up */}
-              {isSignUp && (
+              {isSignUp && !isForgotPassword && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Settings className="w-5 h-5 text-primary" />
@@ -1412,11 +1622,30 @@ const Auth = () => {
                 {loading ? (
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>{isSignUp ? 'Creating Your Account...' : 'Signing You In...'}</span>
+                    <span>
+                      {isResetPassword
+                        ? 'Updating Password...'
+                        : isForgotPassword 
+                          ? 'Sending Reset Link...' 
+                          : isSignUp 
+                            ? 'Creating Your Account...' 
+                            : 'Signing You In...'
+                      }
+                    </span>
                   </div>
                 ) : (
                   <>
-                    {isSignUp ? (
+                    {isResetPassword ? (
+                      <>
+                        <Lock className="w-5 h-5 mr-2" />
+                        Update Password
+                      </>
+                    ) : isForgotPassword ? (
+                      <>
+                        <Mail className="w-5 h-5 mr-2" />
+                        Send Reset Link
+                      </>
+                    ) : isSignUp ? (
                       <>
                         <Bot className="w-5 h-5 mr-2" />
                         {agreementAccepted ? 'Create My RobotVerse Account' : 'Review Agreement & Create Account'}
@@ -1432,21 +1661,65 @@ const Auth = () => {
               </Button>
             </form>
             
-            {/* Toggle between Sign Up and Sign In */}
-            <div className="mt-8 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setAgreementAccepted(false); // Reset agreement when switching
-                }}
-                className="text-primary hover:text-primary/80 transition-colors font-medium"
-              >
-                {isSignUp 
-                  ? 'Already have an account? Sign in here' 
-                  : "Don't have an account? Join RobotVerse"
-                }
-              </button>
+            {/* Toggle between Sign Up, Sign In, Forgot Password, and Reset Password */}
+            <div className="mt-8 text-center space-y-3">
+              {isResetPassword ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResetPassword(false);
+                    setIsForgotPassword(false);
+                    setIsSignUp(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="text-primary hover:text-primary/80 transition-colors font-medium"
+                >
+                  Back to Sign In
+                </button>
+              ) : !isForgotPassword ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(!isSignUp);
+                      setAgreementAccepted(false); // Reset agreement when switching
+                    }}
+                    className="text-primary hover:text-primary/80 transition-colors font-medium"
+                  >
+                    {isSignUp 
+                      ? 'Already have an account? Sign in here' 
+                      : "Don't have an account? Join RobotVerse"
+                    }
+                  </button>
+                  
+                  {!isSignUp && (
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsForgotPassword(true);
+                          setIsSignUp(false);
+                        }}
+                        className="text-muted-foreground hover:text-primary transition-colors text-sm underline"
+                      >
+                        Forgot your password?
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setIsSignUp(false);
+                  }}
+                  className="text-primary hover:text-primary/80 transition-colors font-medium"
+                >
+                  Back to Sign In
+                </button>
+              )}
             </div>
           </CardContent>
         </Card>
