@@ -250,8 +250,19 @@ const Auth = () => {
       userId: userData.id,
       timestamp: Date.now()
     };
+    
+    console.log('💾 Saving user data to localStorage:', dataToSave);
     localStorage.setItem('robotverse_pending_profile', JSON.stringify(dataToSave));
-    console.log('💾 User data saved to localStorage for email confirmation');
+    console.log('✅ User data saved to localStorage for email confirmation');
+    
+    // Also validate that the data was saved correctly
+    const savedCheck = localStorage.getItem('robotverse_pending_profile');
+    if (savedCheck) {
+      const parsedCheck = JSON.parse(savedCheck);
+      console.log('✅ Verified saved data:', parsedCheck);
+    } else {
+      console.error('❌ Failed to save data to localStorage');
+    }
   };
 
   // ✅ Load user data from localStorage after email confirmation
@@ -274,49 +285,51 @@ const Auth = () => {
   // ✅ Check for email confirmation on component mount and auth state changes
   useEffect(() => {
     const checkEmailConfirmation = async () => {
+      console.log('🔍 Checking email confirmation...');
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
       if (currentUser && currentUser.email_confirmed_at) {
-        // Check if profile already exists and is complete
-        const { data: existingProfile } = await supabase
+        console.log('📧 Email confirmed for user:', currentUser.id);
+        
+        // Check if profile already exists
+        const { data: existingProfile, error: profileError } = await supabase
           .from('profiles')
-          .select('registration_complete, company_name, mobile_number')
+          .select('*')
           .eq('user_id', currentUser.id)
           .single();
 
-        // If profile exists but is incomplete (missing company_name or mobile_number)
-        if (existingProfile && (!existingProfile.registration_complete || !existingProfile.company_name || !existingProfile.mobile_number)) {
-          const savedData = loadUserDataFromStorage();
-          
-          if (savedData && savedData.userId === currentUser.id) {
-            console.log('✅ Email confirmed and user data found, updating incomplete profile...');
-            try {
-              // Update the existing profile instead of creating a new one
-              await updateUserProfileFromSavedData(currentUser, savedData);
-              clearSavedUserData();
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('❌ Error checking existing profile:', profileError);
+          return;
+        }
+
+        const savedData = loadUserDataFromStorage();
+        console.log('💾 Saved data from localStorage:', savedData);
+
+        // If we have saved data for this user
+        if (savedData && savedData.userId === currentUser.id) {
+          try {
+            if (existingProfile) {
+              // Update existing profile if it's incomplete
+              const isIncomplete = !existingProfile.registration_complete || 
+                                   !existingProfile.company_name || 
+                                   !existingProfile.mobile_number;
               
-              toast({
-                title: "Welcome to RobotVerse!",
-                description: "Your account has been verified and profile updated successfully.",
-              });
-              
-              navigate('/dashboard');
-            } catch (error: any) {
-              console.error('❌ Error updating profile after email confirmation:', error);
-              toast({
-                variant: "destructive",
-                title: "Profile Update Error",
-                description: "Failed to update your profile. Please try again.",
-              });
-            }
-          }
-        } else if (!existingProfile) {
-          // No profile exists, create one
-          const savedData = loadUserDataFromStorage();
-          
-          if (savedData && savedData.userId === currentUser.id) {
-            console.log('✅ Email confirmed and user data found, creating profile...');
-            try {
+              if (isIncomplete) {
+                console.log('🔄 Updating incomplete profile...');
+                await updateUserProfileFromSavedData(currentUser, savedData);
+                clearSavedUserData();
+                
+                toast({
+                  title: "Welcome to RobotVerse!",
+                  description: "Your account has been verified and profile updated successfully.",
+                });
+                
+                setTimeout(() => navigate('/dashboard'), 1000);
+              }
+            } else {
+              // Create new profile
+              console.log('🆕 Creating new profile...');
               await createUserProfileFromSavedData(currentUser, savedData);
               clearSavedUserData();
               
@@ -325,16 +338,19 @@ const Auth = () => {
                 description: "Your account has been verified and profile created successfully.",
               });
               
-              navigate('/dashboard');
-            } catch (error: any) {
-              console.error('❌ Error creating profile after email confirmation:', error);
-              toast({
-                variant: "destructive",
-                title: "Profile Creation Error",
-                description: "Failed to create your profile. Please try again.",
-              });
+              setTimeout(() => navigate('/dashboard'), 1000);
             }
+          } catch (error: any) {
+            console.error('❌ Error handling profile after email confirmation:', error);
+            toast({
+              variant: "destructive",
+              title: "Profile Error",
+              description: "Failed to complete your profile setup. Please try signing in again.",
+            });
           }
+        } else if (!existingProfile || !existingProfile.registration_complete) {
+          // No saved data but user needs to complete profile
+          console.log('⚠️ No saved data found for confirmed user, may need to complete registration');
         }
       }
     };
@@ -356,11 +372,23 @@ const Auth = () => {
   const updateUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Updating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', savedData);
+      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
+      
+      // Validate that we have the required data
+      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
+        console.error('❌ Missing required data for profile update:', {
+          companyName: savedData.companyName,
+          mobileNumber: savedData.mobileNumber,
+          accountType: savedData.accountType
+        });
+        throw new Error('Missing required profile data');
+      }
       
       // ✅ Build profile update data using exact schema types
       const profileData: Partial<ProfileInsert> = {
         // Basic information - using exact field names from schema
+        email: savedData.email || user.email,
+        full_name: savedData.fullName || null,
         company_name: savedData.companyName || null,
         mobile_number: savedData.mobileNumber || null,
         phone: savedData.mobileNumber || null, // Populate both phone fields
@@ -377,7 +405,7 @@ const Auth = () => {
 
       // ✅ Add role-specific data based on account type
       if (savedData.accountType === 'seller') {
-        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
+        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
         profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
         profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
         profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
@@ -390,18 +418,18 @@ const Auth = () => {
       } else if (savedData.accountType === 'logistics') {
         profileData.logistics_type = savedData.logisticsType || null;
         profileData.logistics_region = savedData.logisticsRegion || null;
-        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
-        profileData.warehouse_storage = savedData.warehouseStorage || null;
+        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : ['road'];
+        profileData.warehouse_storage = savedData.warehouseStorage || false;
         profileData.primary_user_type = 'logistics_provider';
         profileData.primary_role = 'logistics_provider';
         profileData.user_roles = ['logistics_provider'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
         
       } else if (savedData.accountType === 'finance') {
-        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
-        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
-        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
+        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : ['loan'];
+        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : ['robots'];
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || false;
         profileData.primary_user_type = 'finance_provider';
         profileData.primary_role = 'finance_provider';
         profileData.user_roles = ['finance_provider'];
@@ -426,6 +454,11 @@ const Auth = () => {
         throw new Error(`Profile update failed: ${error.message}`);
       }
 
+      if (!data || data.length === 0) {
+        console.error('❌ No profile was updated');
+        throw new Error('No profile was updated');
+      }
+
       console.log('✅ Profile updated successfully:', data[0]);
       return data;
 
@@ -439,7 +472,17 @@ const Auth = () => {
   const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Creating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', savedData);
+      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
+      
+      // Validate that we have the required data
+      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
+        console.error('❌ Missing required data for profile creation:', {
+          companyName: savedData.companyName,
+          mobileNumber: savedData.mobileNumber,
+          accountType: savedData.accountType
+        });
+        throw new Error('Missing required profile data');
+      }
       
       // ✅ Build profile data using exact schema types
       const profileData: ProfileInsert = {
