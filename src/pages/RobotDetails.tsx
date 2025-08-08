@@ -121,9 +121,13 @@ const RobotDetails = () => {
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
   const isIndianLocation = (state?: string, location?: string) => {
-    const s = (state || '').toLowerCase();
+    const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
-    if (s && INDIAN_STATES.includes(s)) return true;
+    
+    // Normalize INDIAN_STATES for comparison (remove spaces)
+    const normalizedStates = INDIAN_STATES.map(state => state.replace(/\s+/g, ''));
+    
+    if (s && normalizedStates.includes(s)) return true;
     if (loc.includes('india')) return true;
     return INDIAN_STATES.some(st => loc.includes(st));
   };
