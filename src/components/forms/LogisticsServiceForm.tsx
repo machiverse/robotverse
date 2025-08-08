@@ -44,7 +44,11 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
   
   const [formData, setFormData] = useState({
     service_name: editingService?.service_name || '',
-    service_type: editingService?.service_type || [],
+    service_type: Array.isArray(editingService?.service_type) 
+      ? editingService.service_type 
+      : editingService?.service_type 
+        ? editingService.service_type.split(', ').filter(Boolean)
+        : [],
     description: editingService?.description || '',
     base_price: editingService?.base_price?.toString() || '',
     price_per_km: editingService?.price_per_km?.toString() || '',
@@ -52,7 +56,11 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
     max_weight_kg: editingService?.max_weight_kg?.toString() || '',
     max_volume_m3: editingService?.max_volume_m3?.toString() || '',
     delivery_time_hours: editingService?.delivery_time_hours?.toString() || '',
-    transport_modes: editingService?.transport_modes || [],
+    transport_modes: Array.isArray(editingService?.transport_modes) 
+      ? editingService.transport_modes 
+      : editingService?.transport_modes 
+        ? editingService.transport_modes.split(', ').filter(Boolean)
+        : [],
     special_handling: editingService?.special_handling || false,
     insurance_included: editingService?.insurance_included || false,
     tracking_available: editingService?.tracking_available || false,
