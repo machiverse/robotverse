@@ -120,7 +120,14 @@ const RobotDetails = () => {
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
-  const outsideIndia = robot?.state ? !INDIAN_STATES.includes(robot.state.toLowerCase()) : false;
+  const isIndianLocation = (state?: string, location?: string) => {
+    const s = (state || '').toLowerCase();
+    const loc = (location || '').toLowerCase();
+    if (s && INDIAN_STATES.includes(s)) return true;
+    if (loc.includes('india')) return true;
+    return INDIAN_STATES.some(st => loc.includes(st));
+  };
+  const outsideIndia = robot ? !isIndianLocation(robot.state, robot.location) : false;
   useEffect(() => {
     if (!id) return;
     const fetchRobot = async () => {
