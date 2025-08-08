@@ -77,6 +77,15 @@ interface AIAnalysisResult {
   };
 }
 
+const INDIAN_STATES = [
+  'andhra pradesh', 'arunachal pradesh', 'assam', 'bihar', 'chhattisgarh', 'goa', 'gujarat',
+  'haryana', 'himachal pradesh', 'jharkhand', 'karnataka', 'kerala', 'madhya pradesh',
+  'maharashtra', 'manipur', 'meghalaya', 'mizoram', 'nagaland', 'odisha', 'punjab',
+  'rajasthan', 'sikkim', 'tamil nadu', 'telangana', 'tripura', 'uttar pradesh',
+  'uttarakhand', 'west bengal', 'delhi', 'jammu and kashmir', 'ladakh', 'chandigarh',
+  'dadra and nagar haveli and daman and diu', 'lakshadweep', 'puducherry'
+];
+
 const RobotDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -110,7 +119,8 @@ const RobotDetails = () => {
   const [importDuty, setImportDuty] = useState<number | null>(null);
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
-
+  const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
+  const outsideIndia = robot?.state ? !INDIAN_STATES.includes(robot.state.toLowerCase()) : false;
   useEffect(() => {
     if (!id) return;
     const fetchRobot = async () => {
@@ -989,7 +999,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <div className="text-3xl font-bold text-primary">
                       {robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
                     </div>
-                    {importDuty && (
+                    {outsideIndia && (
                       <div className="text-sm text-orange-600 mt-1">
                         + Import duties and logistics costs
                       </div>
@@ -1033,7 +1043,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   {/* Action Buttons for logged in user */}
                   {user && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-                      {importDuty ? (
+                      {outsideIndia ? (
                         <Button 
                           onClick={handleImportQuote}
                           className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -1115,7 +1125,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             {/* Tabs for Details */}
             <Card>
               <CardContent className="p-0">
-                <Tabs defaultValue="overview" className="w-full">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
                   <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="specifications">Specifications</TabsTrigger>
@@ -1176,6 +1186,38 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           <span className="font-medium">Price:</span>
                           <p className="text-muted-foreground">{robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}</p>
                         </div>
+                      </div>
+
+                      {/* Import & Logistics Summary */}
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {outsideIndia && (
+                          <Card className="border-orange-200 bg-orange-50/50">
+                            <CardContent className="p-4">
+                              <div className="font-semibold mb-1">Import to India</div>
+                              {robot.price && importDuty ? (
+                                <p className="text-sm text-orange-700">
+                                  Estimated import duty: {formatPrice(importDuty, robot.currency)}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-orange-700">Import duties may apply. Get a detailed quote.</p>
+                              )}
+                              <div className="mt-2">
+                                <Button size="sm" onClick={handleImportQuote}>Get Import Quote</Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        <Card className="border-blue-200 bg-blue-50/50">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold">Logistics Providers</div>
+                              <div className="text-sm text-muted-foreground">
+                                {loadingLogistics ? 'Loading...' : `${logisticsServices.length} available`}
+                              </div>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={() => setActiveTab('logistics')}>View</Button>
+                          </CardContent>
+                        </Card>
                       </div>
                     </div>
                   </TabsContent>
