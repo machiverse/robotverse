@@ -33,6 +33,19 @@ interface Robot {
   category_tags: string[];
   quantity: number;
   seller_id: string;
+  // Optional enhanced fields
+  brand?: string;
+  condition?: string;
+  year_manufactured?: number;
+  payload_capacity?: number;
+  reach?: number;
+  repeatability?: number;
+  power_consumption?: number;
+  operating_environment?: string;
+  warranty_info?: string;
+  certification_standards?: string[];
+  applications?: string[];
+  included_accessories?: string[];
   profiles: {
     full_name: string;
     company_name: string;
@@ -1119,27 +1132,27 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="font-medium">Brand:</span>
-                          <p className="text-muted-foreground">Fanuc</p>
+                          <p className="text-muted-foreground">{robot.brand || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Model:</span>
-                          <p className="text-muted-foreground">{robot.model}</p>
+                          <p className="text-muted-foreground">{robot.model || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Year:</span>
-                          <p className="text-muted-foreground">2012</p>
+                          <p className="text-muted-foreground">{robot.year_manufactured || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Category:</span>
-                          <p className="text-muted-foreground">{robot.robot_type}</p>
+                          <p className="text-muted-foreground">{robot.robot_type || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Condition:</span>
-                          <p className="text-muted-foreground">used</p>
+                          <p className="text-muted-foreground">{robot.condition ? robot.condition.replace('_',' ') : '—'}</p>
                         </div>
                         <div>
-                          <span className="font-medium">Origin:</span>
-                          <p className="text-muted-foreground">International</p>
+                          <span className="font-medium">Quantity:</span>
+                          <p className="text-muted-foreground">{robot.quantity}</p>
                         </div>
                       </div>
 
@@ -1149,23 +1162,19 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="font-medium">City:</span>
-                          <p className="text-muted-foreground">{robot.location}</p>
+                          <p className="text-muted-foreground">{robot.location || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">State:</span>
-                          <p className="text-muted-foreground">Saxony [ DE-SN ]</p>
+                          <p className="text-muted-foreground">{robot.state || '—'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Pincode:</span>
+                          <p className="text-muted-foreground">{robot.pincode || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Price:</span>
                           <p className="text-muted-foreground">{robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Negotiable:</span>
-                          <p className="text-muted-foreground">No</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Views:</span>
-                          <p className="text-muted-foreground">29</p>
                         </div>
                       </div>
                     </div>
@@ -1173,18 +1182,82 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
                   {/* Specifications */}
                   <TabsContent value="specifications" className="p-6">
-                    {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 ? (
+                    <div className="space-y-6">
+                      {/* Known Specifications */}
                       <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(robot.technical_specifications).map(([key, value]) => (
-                          <div key={key}>
-                            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
-                            <p className="text-muted-foreground">{String(value)}</p>
+                        {robot.payload_capacity !== undefined && robot.payload_capacity !== null && (
+                          <div>
+                            <span className="font-medium">Payload Capacity:</span>
+                            <p className="text-muted-foreground">{robot.payload_capacity} kg</p>
                           </div>
-                        ))}
+                        )}
+                        {robot.reach !== undefined && robot.reach !== null && (
+                          <div>
+                            <span className="font-medium">Reach:</span>
+                            <p className="text-muted-foreground">{robot.reach} mm</p>
+                          </div>
+                        )}
+                        {robot.repeatability !== undefined && robot.repeatability !== null && (
+                          <div>
+                            <span className="font-medium">Repeatability:</span>
+                            <p className="text-muted-foreground">{robot.repeatability} mm</p>
+                          </div>
+                        )}
+                        {robot.power_consumption !== undefined && robot.power_consumption !== null && (
+                          <div>
+                            <span className="font-medium">Power:</span>
+                            <p className="text-muted-foreground">{robot.power_consumption} kW</p>
+                          </div>
+                        )}
+                        {robot.operating_environment && (
+                          <div>
+                            <span className="font-medium">Operating Environment:</span>
+                            <p className="text-muted-foreground">{robot.operating_environment}</p>
+                          </div>
+                        )}
+                        {robot.warranty_info && (
+                          <div>
+                            <span className="font-medium">Warranty:</span>
+                            <p className="text-muted-foreground">{robot.warranty_info}</p>
+                          </div>
+                        )}
+                        {robot.applications && robot.applications.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="font-medium">Applications:</span>
+                            <p className="text-muted-foreground">{robot.applications.join(', ')}</p>
+                          </div>
+                        )}
+                        {robot.certification_standards && robot.certification_standards.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="font-medium">Certifications:</span>
+                            <p className="text-muted-foreground">{robot.certification_standards.join(', ')}</p>
+                          </div>
+                        )}
+                        {robot.included_accessories && robot.included_accessories.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="font-medium">Included Accessories:</span>
+                            <p className="text-muted-foreground">{robot.included_accessories.join(', ')}</p>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-muted-foreground">No technical specifications available.</p>
-                    )}
+
+                      {/* Technical Specifications JSON */}
+                      {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 ? (
+                        <div>
+                          <h4 className="text-md font-semibold mb-4">Technical Specifications</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            {Object.entries(robot.technical_specifications).map(([key, value]) => (
+                              <div key={key}>
+                                <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                                <p className="text-muted-foreground">{String(value)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No technical specifications available.</p>
+                      )}
+                    </div>
                   </TabsContent>
 
                   {/* Services */}

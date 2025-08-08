@@ -51,6 +51,8 @@ interface Robot {
   robot_type: string;
   quantity: number;
   location: string;
+  state?: string;
+  pincode?: string;
   availability: string;
   price: number;
   currency: string;
@@ -91,6 +93,7 @@ const RobotListings = () => {
   const [priceFilter, setPriceFilter] = useState('all');
   const [conditionFilter, setConditionFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -110,7 +113,7 @@ const RobotListings = () => {
 
   useEffect(() => {
     filterAndSortRobots();
-  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, sortBy]);
+  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, sortBy]);
 
   const fetchRobots = async () => {
     try {
@@ -238,6 +241,11 @@ const RobotListings = () => {
       );
     }
 
+    // State filter
+    if (stateFilter !== 'all') {
+      filtered = filtered.filter(robot => (robot.state || '').toLowerCase() === stateFilter.toLowerCase());
+    }
+
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -344,6 +352,7 @@ const RobotListings = () => {
 
   const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
   const uniqueLocations = [...new Set(robots.map(r => r.location?.split(',')[0]).filter(Boolean))];
+  const uniqueStates = [...new Set(robots.map(r => r.state).filter(Boolean))];
 
   if (loading) {
     return (
@@ -500,7 +509,7 @@ const RobotListings = () => {
             {/* Advanced Filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
                     <SelectTrigger>
                       <SelectValue placeholder="Condition" />
@@ -527,6 +536,18 @@ const RobotListings = () => {
                     </SelectContent>
                   </Select>
 
+                  <Select value={stateFilter} onValueChange={setStateFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="State" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All States</SelectItem>
+                      {uniqueStates.map((state) => (
+                        <SelectItem key={state as string} value={state as string}>{state as string}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sort by" />
@@ -549,6 +570,7 @@ const RobotListings = () => {
                       setPriceFilter('all');
                       setConditionFilter('all');
                       setLocationFilter('all');
+                      setStateFilter('all');
                       setSortBy('newest');
                     }}
                   >
@@ -597,6 +619,7 @@ const RobotListings = () => {
                       setPriceFilter('all');
                       setConditionFilter('all');
                       setLocationFilter('all');
+                      setStateFilter('all');
                     }}
                   >
                     Clear Filters
@@ -702,6 +725,9 @@ const RobotListings = () => {
                         <MapPin className="w-3 h-3 mr-1" />
                         <span className="line-clamp-1">{robot.location || 'Location not specified'}</span>
                       </div>
+                      {robot.state && (
+                        <div className="text-xs text-muted-foreground">State: {robot.state}</div>
+                      )}
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-lg font-bold text-primary">
