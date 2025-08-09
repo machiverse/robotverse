@@ -46,7 +46,8 @@ import {
   PieChart,
   Globe,
   Building,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -287,6 +288,35 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         variant: "destructive",
         title: "Error",
         description: "Failed to add service area"
+      });
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    try {
+      const { error } = await supabase
+        .from('logistics_services')
+        .delete()
+        .eq('id', serviceId)
+        .eq('provider_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state to remove the service
+      setLogisticsServices(prev => prev.filter(service => service.id !== serviceId));
+
+      toast({
+        title: "Success",
+        description: "Service deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete service"
       });
     }
   };
@@ -737,11 +767,18 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                                     setEditingService(service);
                                     setShowAddServiceForm(true);
                                   }}
+                                  title="Edit Service"
                                 >
                                   <Edit className="w-3 h-3" />
                                 </Button>
-                                <Button size="sm" variant="ghost">
-                                  <Eye className="w-3 h-3" />
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => handleDeleteService(service.id)}
+                                  title="Delete Service"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-3 h-3" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -771,8 +808,18 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
                                   setEditingService(service);
                                   setShowAddServiceForm(true);
                                 }}
+                                title="Edit Service"
                               >
                                 <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteService(service.id)}
+                                title="Delete Service"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
                           </div>
