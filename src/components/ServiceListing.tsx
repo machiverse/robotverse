@@ -91,45 +91,53 @@ const ServiceListing = () => {
 
   // Enhanced service types with categories
   const serviceCategories = {
+    'Industrial Automation': [
+      'Robotic Welding Services',
+      'Pick & Place Automation',
+      'Assembly Line Integration',
+      'Material Handling Systems',
+      'Quality Inspection Automation',
+      'Packaging Automation'
+    ],
     'Maintenance & Repair': [
       'Preventive Maintenance',
-      'Corrective Maintenance',
-      'Emergency Repair',
+      'Emergency Repair Services',
       'Parts Replacement',
-      'System Overhaul',
+      'System Diagnostics',
+      'Performance Optimization',
       'Condition Monitoring'
     ],
-    'Installation & Setup': [
+    'Installation & Commissioning': [
       'Robot Installation',
       'System Integration',  
-      'Commissioning',
       'Site Preparation',
-      'Safety Setup',
-      'Network Configuration'
+      'Safety System Setup',
+      'Network Configuration',
+      'End-of-Arm Tooling'
     ],
     'Programming & Software': [
       'Robot Programming',
-      'Software Updates',
-      'Custom Application Development',
-      'PLC Programming',
+      'Vision System Programming',
+      'PLC Integration',
       'HMI Development',
-      'Simulation Services'
+      'Custom Software Development',
+      'Simulation & Modeling'
     ],
     'Training & Consulting': [
       'Operator Training',
       'Technical Training',
-      'Safety Training',
+      'Safety Certification',
       'Process Optimization',
-      'Automation Consulting',
-      'ROI Analysis'
+      'ROI Analysis',
+      'Automation Consulting'
     ],
     'Specialized Services': [
       'Calibration Services',
-      'Robot Inspection',
       'Compliance Testing',
-      'Retrofitting',
+      'Robot Retrofitting',
       'Custom Tool Design',
-      'Quality Assurance'
+      'System Validation',
+      'Performance Analysis'
     ]
   };
 

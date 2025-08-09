@@ -45,11 +45,12 @@ const Services = () => {
 
   const categories = [
     { value: "all", label: "All Services" },
-    { value: "maintenance", label: "Maintenance" },
-    { value: "repair", label: "Repair" },
-    { value: "installation", label: "Installation" },
-    { value: "calibration", label: "Calibration" },
-    { value: "training", label: "Training" },
+    { value: "industrial_automation", label: "Industrial Automation" },
+    { value: "maintenance", label: "Maintenance & Repair" },
+    { value: "installation", label: "Installation & Commissioning" },
+    { value: "programming", label: "Programming & Software" },
+    { value: "training", label: "Training & Consulting" },
+    { value: "specialized", label: "Specialized Services" },
   ];
 
   const locations = [
@@ -114,6 +115,57 @@ const Services = () => {
 
     fetchServices();
   }, []);
+
+  // Handle quote request
+  const handleRequestQuote = async (service: Service) => {
+    if (!service.providerProfile?.email) {
+      toast({
+        variant: "destructive",
+        title: "Email Unavailable",
+        description: "Service provider's email is not available.",
+      });
+      return;
+    }
+
+    // Create a simple quote request modal or redirect to quote page
+    const quoteData = {
+      customerName: "Customer", // You can get this from user profile
+      customerEmail: "customer@example.com", // Get from authenticated user
+      serviceProviderEmail: service.providerProfile.email,
+      serviceProviderName: service.provider,
+      serviceName: service.name,
+      serviceType: service.category,
+      message: `I'm interested in your ${service.name} service. Please provide a detailed quote.`,
+      urgency: "Normal",
+      location: service.location
+    };
+
+    try {
+      const response = await fetch('https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/send-quote-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(quoteData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Quote Request Sent",
+          description: `Your quote request has been sent to ${service.provider}. They will contact you soon.`,
+        });
+      } else {
+        throw new Error('Failed to send quote request');
+      }
+    } catch (error) {
+      console.error('Error sending quote request:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send quote request. Please try again.",
+      });
+    }
+  };
 
   // Handle contact provider
   const handleContactProvider = (service: Service) => {
@@ -253,54 +305,77 @@ const Services = () => {
             
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredServices.map((service) => (
-            <Card key={service.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                  <Settings className="w-12 h-12 text-muted-foreground" />
+            <Card key={service.id} className="hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-gradient-to-br from-white to-gray-50">
+              <CardHeader className="pb-3">
+                <div className="aspect-video bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center mb-4 border">
+                  <div className="text-center">
+                    <Settings className="w-12 h-12 text-blue-600 mx-auto mb-2" />
+                    <Badge variant="outline" className="text-xs bg-white/80">
+                      Professional Service
+                    </Badge>
+                  </div>
                 </div>
-                <CardTitle className="text-lg">{service.name}</CardTitle>
+                <CardTitle className="text-lg font-bold text-gray-900">{service.name}</CardTitle>
                 <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="w-fit">
+                  <Badge variant="secondary" className="w-fit bg-blue-100 text-blue-700 border-blue-200">
                     {service.category}
                   </Badge>
                   <div className="flex items-center space-x-1">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-muted-foreground">{service.rating}</span>
+                    <span className="text-sm font-medium text-gray-700">{service.rating}</span>
+                    <span className="text-xs text-gray-500">({service.completedJobs})</span>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-primary">
+                    <span className="text-lg font-bold text-primary bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                       {service.priceRange}
                     </span>
-                    <Badge variant={service.availability === "24/7" ? "default" : "secondary"}>
+                    <Badge variant={service.availability === "24/7" ? "default" : "secondary"} className="bg-green-100 text-green-700 border-green-200">
                       {service.availability}
                     </Badge>
                   </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{service.location}</span>
+                  
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                    <span className="text-sm font-medium">{service.location}</span>
                   </div>
-                  <div className="border border-border rounded-md p-4 mb-4 text-justify text-sm text-muted-foreground">
-  {service.description}
-</div>
-                  <div className="text-sm space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <span>Response: {service.responseTime}</span>
+                  
+                  <div className="border border-gray-200 rounded-lg p-4 mb-4 text-justify text-sm text-gray-700 bg-gray-50/50">
+                    {service.description}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-orange-600" />
+                      <span className="font-medium">Response: {service.responseTime}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Users className="w-4 h-4 text-green-600" />
+                      <span className="font-medium">{service.completedJobs} projects</span>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-sm">{service.provider.charAt(0)}</span>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span>{service.completedJobs} jobs</span>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{service.provider}</p>
+                        <p className="text-xs text-gray-500">Certified Professional</p>
                       </div>
                     </div>
-                    <p><span className="font-medium">Provider:</span> {service.provider}</p>
                   </div>
+                  
                   <div className="flex space-x-2 pt-2">
-                    <Button size="sm" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      onClick={() => handleRequestQuote(service)}
+                    >
                       Request Quote
                     </Button>
                     <Button 
@@ -308,6 +383,7 @@ const Services = () => {
                       size="sm"
                       onClick={() => handleContactProvider(service)}
                       disabled={!service.providerProfile?.phone && !service.providerProfile?.mobile_number}
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50"
                     >
                       Contact Provider
                     </Button>
