@@ -19,7 +19,8 @@ import {
   Plus,
   Edit,
   Eye,
-  Download
+  Download,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -147,6 +148,47 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
     if (score >= 750) return 'text-green-600';
     if (score >= 650) return 'text-yellow-600';
     return 'text-red-600';
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      const { error } = await supabase
+        .from('loan_products')
+        .delete()
+        .eq('id', productId)
+        .eq('provider_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setLoanProducts(prev => prev.filter(product => product.id !== productId));
+      
+      // Show success message using toast (assuming useToast is available)
+      console.log('Product deleted successfully');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
+  };
+
+  const handleDeleteScheme = async (schemeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('loan_schemes')
+        .delete()
+        .eq('id', schemeId)
+        .eq('provider_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setLoanSchemes(prev => prev.filter(scheme => scheme.id !== schemeId));
+      
+      console.log('Scheme deleted successfully');
+    } catch (error) {
+      console.error('Error deleting scheme:', error);
+    }
   };
 
   const statsCards = [
@@ -383,6 +425,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                           }}>
                             <Edit className="w-3 h-3" />
                           </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteProduct(product.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
                       <div className="space-y-2 text-sm">
@@ -442,6 +487,9 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
                             setShowAddProductForm(true);
                           }}>
                             <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteScheme(scheme.id)}>
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
                       </div>
