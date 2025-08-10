@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, MapPin, Search, Grid, List, Star, Clock, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import { useToast } from "@/components/ui/use-toast";
+import ServiceRequestModal from "@/components/ServiceRequestModal";
+import { 
+  Search, 
+  Grid, 
+  List, 
+  Settings, 
+  MapPin, 
+  Star, 
+  Clock, 
+  Users, 
+  Loader2 
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Service {
   id: string;
@@ -23,25 +33,27 @@ interface Service {
   responseTime: string;
   completedJobs: number;
   availability: string;
-  providerProfile?: {
+  providerProfile: {
     full_name?: string;
     company_name?: string;
     phone?: string;
     mobile_number?: string;
     email?: string;
   };
-  providerId?: string;
+  providerId: string;
 }
 
 const Services = () => {
+  const { toast } = useToast();
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   const categories = [
     { value: "all", label: "All Services" },
@@ -98,8 +110,14 @@ const Services = () => {
           responseTime: "2-4 hours", // Default response time
           completedJobs: Math.floor(Math.random() * 100) + 50, // Random for demo
           availability: "Available",
-          providerProfile: item.profiles || {},
-          providerId: item.provider_id
+          providerProfile: item.profiles || {
+            full_name: 'Unknown',
+            company_name: 'Service Provider',
+            phone: '',
+            mobile_number: '',
+            email: ''
+          },
+          providerId: item.provider_id || ''
         }));
         
         setServices(transformedData);
@@ -117,54 +135,9 @@ const Services = () => {
   }, []);
 
   // Handle quote request
-  const handleRequestQuote = async (service: Service) => {
-    if (!service.providerProfile?.email) {
-      toast({
-        variant: "destructive",
-        title: "Email Unavailable",
-        description: "Service provider's email is not available.",
-      });
-      return;
-    }
-
-    // Create a simple quote request modal or redirect to quote page
-    const quoteData = {
-      customerName: "Customer", // You can get this from user profile
-      customerEmail: "customer@example.com", // Get from authenticated user
-      serviceProviderEmail: service.providerProfile.email,
-      serviceProviderName: service.provider,
-      serviceName: service.name,
-      serviceType: service.category,
-      message: `I'm interested in your ${service.name} service. Please provide a detailed quote.`,
-      urgency: "Normal",
-      location: service.location
-    };
-
-    try {
-      const response = await fetch('https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/send-quote-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(quoteData)
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Quote Request Sent",
-          description: `Your quote request has been sent to ${service.provider}. They will contact you soon.`,
-        });
-      } else {
-        throw new Error('Failed to send quote request');
-      }
-    } catch (error) {
-      console.error('Error sending quote request:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send quote request. Please try again.",
-      });
-    }
+  const handleRequestQuote = (service: Service) => {
+    setSelectedService(service);
+    setShowRequestModal(true);
   };
 
   // Handle contact provider
@@ -376,7 +349,7 @@ const Services = () => {
                       className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                       onClick={() => handleRequestQuote(service)}
                     >
-                      Request Quote
+                      Get Professional Quote
                     </Button>
                     <Button 
                       variant="outline" 
@@ -404,6 +377,13 @@ const Services = () => {
             )}
           </>
         )}
+        
+        {/* Service Request Modal */}
+        <ServiceRequestModal
+          open={showRequestModal}
+          onOpenChange={setShowRequestModal}
+          service={selectedService}
+        />
       </div>
     </div>
   );
