@@ -5,10 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, FileText, CreditCard } from 'lucide-react';
+import { DollarSign, FileText, CreditCard, Bot, Building2, User, Phone, Mail, Calculator, Calendar, Target } from 'lucide-react';
 
 interface LoanApplicationModalProps {
   open: boolean;
@@ -137,204 +140,307 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <CreditCard className="w-5 h-5 mr-2" />
-            Loan Application
-            {robotDetails && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                for {robotDetails.name}
-              </span>
-            )}
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="pb-6 border-b border-border">
+          <DialogTitle className="flex items-center text-2xl font-bold">
+            <CreditCard className="w-6 h-6 mr-3 text-blue-600" />
+            Equipment Financing Application
           </DialogTitle>
-          <DialogDescription>
-            Fill out this form to apply for financing
-            {financeProvider && (
-              <span> with {financeProvider.profiles?.company_name || financeProvider.profiles?.full_name}</span>
-            )}
+          <DialogDescription className="text-lg text-muted-foreground">
+            Apply for financing to acquire cutting-edge robotics equipment for your business
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Robot Details Preview */}
-          {robotDetails && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <FileText className="w-4 h-4 mr-2" />
-                Equipment Details
-              </h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Robot:</span>
-                  <p className="font-medium">{robotDetails.name}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Model:</span>
-                  <p className="font-medium">{robotDetails.model}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Type:</span>
-                  <p className="font-medium">{robotDetails.type}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Price:</span>
-                  <p className="font-medium">
-                    {robotDetails.currency === 'USD' ? '$' : robotDetails.currency === 'EUR' ? '€' : '₹'}
-                    {robotDetails.price.toLocaleString()}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Robot Details & Provider Info */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Robot Details Card */}
+            {robotDetails && (
+              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/50">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center text-lg">
+                    <Bot className="w-5 h-5 mr-2" />
+                    Equipment Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-muted-foreground text-xs uppercase tracking-wider">Robot Name</Label>
+                      <p className="font-bold text-lg text-gray-900">{robotDetails.name}</p>
+                    </div>
+                    <Separator />
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Model</Label>
+                        <p className="font-medium text-gray-800">{robotDetails.model}</p>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Type</Label>
+                        <Badge variant="secondary" className="mt-1">{robotDetails.type}</Badge>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Investment Amount</Label>
+                        <div className="flex items-center mt-1">
+                          <DollarSign className="w-5 h-5 text-green-600 mr-1" />
+                          <p className="font-bold text-2xl text-green-600">
+                            {robotDetails.currency === 'USD' ? '$' : robotDetails.currency === 'EUR' ? '€' : '₹'}
+                            {robotDetails.price.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Finance Provider Info */}
+            {financeProvider && (
+              <Card className="border border-green-200 bg-green-50/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg text-green-700">
+                    <Building2 className="w-5 h-5 mr-2" />
+                    Finance Partner
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-semibold text-green-800">
+                    {financeProvider.profiles?.company_name || financeProvider.profiles?.full_name}
                   </p>
-                </div>
-              </div>
-            </div>
-          )}
+                  <p className="text-sm text-green-600 mt-1">Trusted financing solutions</p>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Personal Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Personal Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="applicant_name">Full Name *</Label>
-                <Input
-                  id="applicant_name"
-                  value={formData.applicant_name}
-                  onChange={(e) => handleInputChange('applicant_name', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="applicant_email">Email *</Label>
-                <Input
-                  id="applicant_email"
-                  type="email"
-                  value={formData.applicant_email}
-                  onChange={(e) => handleInputChange('applicant_email', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="applicant_phone">Phone Number</Label>
-                <Input
-                  id="applicant_phone"
-                  value={formData.applicant_phone}
-                  onChange={(e) => handleInputChange('applicant_phone', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="business_type">Business Type</Label>
-                <Select onValueChange={(value) => handleInputChange('business_type', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select business type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {businessTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* Quick EMI Estimate */}
+            {robotDetails && (
+              <Card className="border border-orange-200 bg-orange-50/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg text-orange-700">
+                    <Calculator className="w-5 h-5 mr-2" />
+                    Quick EMI Estimate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-orange-600">
+                    <p>Estimated EMI (60 months @ 12%)</p>
+                    <p className="font-bold text-lg text-orange-700">
+                      ₹{Math.round((robotDetails.price * 0.12 * Math.pow(1.12, 5)) / (Math.pow(1.12, 5) - 1) / 12).toLocaleString()}/month
+                    </p>
+                    <p className="text-xs mt-1">*Actual rates may vary</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Loan Details */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Loan Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="loan_type">Loan Type *</Label>
-                <Select onValueChange={(value) => handleInputChange('loan_type', value)} value={formData.loan_type}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select loan type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loanTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="amount_requested">Amount Requested (₹) *</Label>
-                <Input
-                  id="amount_requested"
-                  type="number"
-                  value={formData.amount_requested}
-                  onChange={(e) => handleInputChange('amount_requested', e.target.value)}
-                  required
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="purpose">Purpose of Loan</Label>
-                <Textarea
-                  id="purpose"
-                  value={formData.purpose}
-                  onChange={(e) => handleInputChange('purpose', e.target.value)}
-                  rows={3}
-                  placeholder="Describe how you plan to use the loan..."
-                />
-              </div>
-            </div>
-          </div>
+          {/* Right Column - Application Form */}
+          <div className="lg:col-span-2">
+            <form onSubmit={handleSubmit} className="space-y-8">
 
-          {/* Financial Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Financial Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="monthly_income">Monthly Income (₹)</Label>
-                <Input
-                  id="monthly_income"
-                  type="number"
-                  value={formData.monthly_income}
-                  onChange={(e) => handleInputChange('monthly_income', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="credit_score">Credit Score</Label>
-                <Input
-                  id="credit_score"
-                  type="number"
-                  min="300"
-                  max="900"
-                  value={formData.credit_score}
-                  onChange={(e) => handleInputChange('credit_score', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="business_vintage_months">Business Age (Months)</Label>
-                <Input
-                  id="business_vintage_months"
-                  type="number"
-                  value={formData.business_vintage_months}
-                  onChange={(e) => handleInputChange('business_vintage_months', e.target.value)}
-                />
-              </div>
-              <div className="md:col-span-3">
-                <Label htmlFor="collateral_offered">Collateral Offered</Label>
-                <Textarea
-                  id="collateral_offered"
-                  value={formData.collateral_offered}
-                  onChange={(e) => handleInputChange('collateral_offered', e.target.value)}
-                  rows={2}
-                  placeholder="Describe any collateral you can offer..."
-                />
-              </div>
-            </div>
-          </div>
+              {/* Personal Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-xl">
+                    <User className="w-5 h-5 mr-2 text-blue-600" />
+                    Personal Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="applicant_name" className="text-sm font-medium">Full Name *</Label>
+                      <Input
+                        id="applicant_name"
+                        value={formData.applicant_name}
+                        onChange={(e) => handleInputChange('applicant_name', e.target.value)}
+                        required
+                        className="mt-1"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="applicant_email" className="text-sm font-medium">Email Address *</Label>
+                      <Input
+                        id="applicant_email"
+                        type="email"
+                        value={formData.applicant_email}
+                        onChange={(e) => handleInputChange('applicant_email', e.target.value)}
+                        required
+                        className="mt-1"
+                        placeholder="your.email@company.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="applicant_phone" className="text-sm font-medium">Phone Number</Label>
+                      <Input
+                        id="applicant_phone"
+                        value={formData.applicant_phone}
+                        onChange={(e) => handleInputChange('applicant_phone', e.target.value)}
+                        className="mt-1"
+                        placeholder="+91 XXXXX XXXXX"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="business_type" className="text-sm font-medium">Business Type</Label>
+                      <Select onValueChange={(value) => handleInputChange('business_type', value)}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select business type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {businessTypes.map((type) => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Application'}
-            </Button>
-          </DialogFooter>
-        </form>
+              {/* Loan Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-xl">
+                    <Target className="w-5 h-5 mr-2 text-green-600" />
+                    Loan Requirements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="loan_type" className="text-sm font-medium">Loan Type *</Label>
+                      <Select onValueChange={(value) => handleInputChange('loan_type', value)} value={formData.loan_type}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select loan type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {loanTypes.map((type) => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="amount_requested" className="text-sm font-medium">Loan Amount (₹) *</Label>
+                      <Input
+                        id="amount_requested"
+                        type="number"
+                        value={formData.amount_requested}
+                        onChange={(e) => handleInputChange('amount_requested', e.target.value)}
+                        required
+                        className="mt-1"
+                        placeholder="Enter loan amount"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="purpose" className="text-sm font-medium">Purpose & Business Impact</Label>
+                      <Textarea
+                        id="purpose"
+                        value={formData.purpose}
+                        onChange={(e) => handleInputChange('purpose', e.target.value)}
+                        rows={4}
+                        className="mt-1"
+                        placeholder="Describe how this robot will enhance your business operations, expected productivity gains, and ROI projections..."
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Financial Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-xl">
+                    <DollarSign className="w-5 h-5 mr-2 text-purple-600" />
+                    Financial Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="monthly_income" className="text-sm font-medium">Monthly Revenue (₹)</Label>
+                      <Input
+                        id="monthly_income"
+                        type="number"
+                        value={formData.monthly_income}
+                        onChange={(e) => handleInputChange('monthly_income', e.target.value)}
+                        className="mt-1"
+                        placeholder="Enter monthly business revenue"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="credit_score" className="text-sm font-medium">Credit Score</Label>
+                      <Input
+                        id="credit_score"
+                        type="number"
+                        min="300"
+                        max="900"
+                        value={formData.credit_score}
+                        onChange={(e) => handleInputChange('credit_score', e.target.value)}
+                        className="mt-1"
+                        placeholder="300-900"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="business_vintage_months" className="text-sm font-medium">Business Age (Months)</Label>
+                      <Input
+                        id="business_vintage_months"
+                        type="number"
+                        value={formData.business_vintage_months}
+                        onChange={(e) => handleInputChange('business_vintage_months', e.target.value)}
+                        className="mt-1"
+                        placeholder="Years in business"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <Label htmlFor="collateral_offered" className="text-sm font-medium">Collateral & Security</Label>
+                      <Textarea
+                        id="collateral_offered"
+                        value={formData.collateral_offered}
+                        onChange={(e) => handleInputChange('collateral_offered', e.target.value)}
+                        rows={3}
+                        className="mt-1"
+                        placeholder="Describe any assets, property, or other collateral you can offer as security for this loan..."
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <DialogFooter className="pt-6 border-t border-border">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                  disabled={loading}
+                  size="lg"
+                >
+                  Cancel Application
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  {loading ? (
+                    <>
+                      <FileText className="w-4 h-4 mr-2 animate-pulse" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Submit Loan Application
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
