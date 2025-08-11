@@ -186,94 +186,90 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
           {/* Left Column - Service Details */}
           <div className="lg:col-span-1 space-y-6">
             {/* Service Info Card */}
-            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/50">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
-                <CardTitle className="flex items-center text-lg">
-                  <Settings className="w-5 h-5 mr-2" />
-                  Service Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-muted-foreground text-xs uppercase tracking-wider">Service Name</Label>
-                    <p className="font-bold text-lg text-gray-900">{service.name}</p>
-                  </div>
-                  <Separator />
-                  <div className="grid grid-cols-1 gap-3">
-                    <div>
-                      <Label className="text-muted-foreground text-xs uppercase tracking-wider">Category</Label>
-                      <Badge variant="secondary" className="mt-1">{service.category}</Badge>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs uppercase tracking-wider">Price Range</Label>
-                      <div className="flex items-center mt-1">
-                        <DollarSign className="w-4 h-4 text-green-600 mr-1" />
-                        <p className="font-semibold text-green-600">{service.priceRange}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs uppercase tracking-wider">Location</Label>
-                      <div className="flex items-center mt-1">
-                        <MapPin className="w-4 h-4 text-blue-600 mr-1" />
-                        <p className="font-medium text-gray-800">{service.location}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs uppercase tracking-wider">Response Time</Label>
-                      <div className="flex items-center mt-1">
-                        <Clock className="w-4 h-4 text-orange-600 mr-1" />
-                        <p className="font-medium text-orange-600">{service.responseTime}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+<Card className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+  <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
+    <CardTitle className="flex items-center text-lg font-bold text-white">
+      <Settings className="w-5 h-5 mr-2 text-white" />
+      Service Details
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="p-6 space-y-4">
+    <div>
+      <Label className="text-xs uppercase font-semibold text-gray-500">Service Name</Label>
+      <p className="mt-1 font-bold text-lg text-gray-900">{service.name}</p>
+    </div>
+    <Separator />
+    <div className="grid gap-4">
+      <div>
+        <Label className="text-xs uppercase font-semibold text-gray-500">Category</Label>
+        <Badge className="mt-1 bg-blue-100 text-blue-800 font-medium">{service.category}</Badge>
+      </div>
+      <div>
+        <Label className="text-xs uppercase font-semibold text-gray-500">Price Range</Label>
+        <p className="flex items-center mt-1 font-semibold text-green-700">
+          <DollarSign className="w-4 h-4 mr-1 text-green-600" />
+          {service.priceRange}
+        </p>
+      </div>
+      <div>
+        <Label className="text-xs uppercase font-semibold text-gray-500">Location</Label>
+        <p className="flex items-center mt-1 font-medium text-gray-800">
+          <MapPin className="w-4 h-4 mr-1 text-blue-600" />
+          {service.location}
+        </p>
+      </div>
+      <div>
+        <Label className="text-xs uppercase font-semibold text-gray-500">Response Time</Label>
+        <p className="flex items-center mt-1 font-medium text-orange-600">
+          <Clock className="w-4 h-4 mr-1 text-orange-600" />
+          {service.responseTime}
+        </p>
+      </div>
+    </div>
+  </CardContent>
+</Card>
 
-            {/* Provider Info */}
-            <Card className="border border-green-200 bg-green-50/30">
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg text-green-700">
-                  <User className="w-5 h-5 mr-2" />
-                  Service Provider
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold">{service.provider.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-green-800">{service.provider}</p>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium ml-1">{service.rating}</span>
-                        </div>
-                        <span className="text-xs text-green-600">•</span>
-                        <span className="text-xs text-green-600">{service.completedJobs} projects completed</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-sm text-green-600 bg-green-100 p-2 rounded">
-                    <CheckCircle className="w-4 h-4 inline mr-1" />
-                    Verified Professional
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+{/* Provider Info */}
+<Card className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+  <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 p-4">
+    <CardTitle className="flex items-center text-lg font-bold text-white">
+      <User className="w-5 h-5 mr-2" />
+      Service Provider
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="p-6 space-y-4">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+        {service.provider.charAt(0)}
+      </div>
+      <div>
+        <p className="font-semibold text-gray-900">{service.provider}</p>
+        <div className="flex items-center text-sm text-gray-600 gap-2">
+          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+          {service.rating}
+          <span>•</span>
+          {service.completedJobs} projects completed
+        </div>
+      </div>
+    </div>
+    <div className="flex items-center text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-md">
+      <CheckCircle className="w-4 h-4 mr-1" />
+      Verified Professional
+    </div>
+  </CardContent>
+</Card>
 
-            {/* Service Description */}
-            <Card className="border border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-lg">About This Service</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-700 leading-relaxed">{service.description}</p>
-              </CardContent>
-            </Card>
+{/* Service Description */}
+<Card className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+  <CardHeader className="bg-gray-50 p-4">
+    <CardTitle className="text-lg font-semibold text-gray-900">About This Service</CardTitle>
+  </CardHeader>
+  <CardContent className="p-6">
+    <p className="text-sm leading-relaxed text-gray-700">
+      {service.description}
+    </p>
+  </CardContent>
+</Card>
           </div>
 
           {/* Right Column - Request Form */}
