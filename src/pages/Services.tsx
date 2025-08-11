@@ -253,7 +253,7 @@ const Services = () => {
                 <SelectValue placeholder="Service Type" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
+                {categoryFilterList.map((category) => (
                   <SelectItem key={category.value} value={category.value}>
                     {category.label}
                   </SelectItem>
