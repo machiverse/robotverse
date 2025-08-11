@@ -2,54 +2,21 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// --- CONFIGURATION & HEADERS ---
-
+// --- CONFIGURATION ---
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// --- CLIENT INITIALIZATION ---
-// EFFICIENCY & SECURITY: The Supabase client is created only ONCE when the function boots.
-// It uses the secure SERVICE_ROLE_KEY, not the public anon key.
+// Supabase admin client
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// --- UTILITY & HELPER FUNCTIONS ---
-
-/**
- * Calculates a simple proximity score between two location strings.
- * For professional use, consider a database function with PostGIS for geo-queries.
- */
-function getLocationProximity(location1: string, location2: string): number {
-  if (!location1 || !location2) return 0;
-  const loc1 = location1.toLowerCase();
-  const loc2 = location2.toLowerCase();
-  if (loc1 === loc2) return 100;
-  const commonWords = loc1.split(' ').filter(word => loc2.includes(word));
-  return commonWords.length > 0 ? 80 : 20;
-}
-
-/**
- * A generic function to sort an array of items by proximity and take the top results.
- */
-function sortAndSlice<T>(items: T[], targetLocation: string, locationKey: (item: T) => string | undefined, sliceCount: number) {
-  return items
-    .map(item => ({
-      ...item,
-      proximity: getLocationProximity(targetLocation, locationKey(item) || '')
-    }))
-    .sort((a, b) => b.proximity - a.proximity)
-    .slice(0, sliceCount);
-}
-
-// --- DATA FETCHING FUNCTIONS ---
-// These functions are organized to handle specific database interactions.
-
+// --- DATA FETCHING HELPERS ---
 async function getRobotDetails(robotId: string) {
   const { data, error } = await supabaseAdmin
     .from('robots')
@@ -62,20 +29,6 @@ async function getRobotDetails(robotId: string) {
 
   if (error) throw new Error(`Failed to fetch robot details: ${error.message}`);
   return data;
-}
-
-async function getUserLocation(userId: string): Promise<string | null> {
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('location')
-    .eq('user_id', userId)
-    .single();
-
-  if (error) {
-    console.warn(`Could not fetch user location for user ${userId}: ${error.message}`);
-    return null; // Don't throw an error, as a missing location is not critical.
-  }
-  return data?.location || null;
 }
 
 async function getMarketEcosystem(robotType: string) {
@@ -94,12 +47,11 @@ async function getMarketEcosystem(robotType: string) {
     supabaseAdmin.from('profiles').select('*').eq('account_type', 'finance').contains('financing_for', ['robots']).limit(8),
   ]);
 
-  // More specific error checking
   if (sparePartsRes.error) throw new Error(`Spare parts query failed: ${sparePartsRes.error.message}`);
   if (servicesRes.error) throw new Error(`Services query failed: ${servicesRes.error.message}`);
   if (logisticsRes.error) throw new Error(`Logistics query failed: ${logisticsRes.error.message}`);
   if (financeRes.error) throw new Error(`Finance query failed: ${financeRes.error.message}`);
-  
+
   return {
     spareParts: sparePartsRes.data || [],
     services: servicesRes.data || [],
@@ -108,14 +60,12 @@ async function getMarketEcosystem(robotType: string) {
   };
 }
 
-// --- AI ANALYSIS & PROMPT ENGINEERING ---
+// --- PROMPT GENERATION ---
+function buildAnalysisPrompt(robot: any, marketData: any): string {
+  const { sortedSpareParts, sortedServices } = marketData;
+  const robotLocation = robot.profiles?.location || 'Not specified';
 
-function buildAnalysisPrompt(robot: any, marketData: any, targetLocation: string): string {
-    const { sortedSpareParts, sortedServices } = marketData;
-    const robotLocation = robot.profiles?.location || 'Not specified';
-
-    // This is the same detailed prompt you created.
-    return `Analyze this industrial robot and provide comprehensive market insights:
+  return `Analyze this industrial robot and provide comprehensive market insights for the **Indian market** (general, not city-specific):
 
 ROBOT DETAILS:
 - Name: ${robot.name}
@@ -127,28 +77,28 @@ ROBOT DETAILS:
 - Description: ${robot.description || 'No description provided'}
 - Technical Specs: ${robot.technical_specifications ? JSON.stringify(robot.technical_specifications) : 'Not available'}
 
-MARKET ECOSYSTEM:
-- Target Location for Analysis: ${targetLocation || 'Not specified'}
-- Available Spare Parts Suppliers Nearby: ${sortedSpareParts.length}
-- Service Providers Nearby: ${sortedServices.length}
+MARKET ECOSYSTEM (Sample Indian Suppliers & Services):
+- Spare Parts Suppliers: ${sortedSpareParts.length}
+- Service Providers: ${sortedServices.length}
 
-NEARBY RESOURCES:
-Spare Parts: ${sortedSpareParts.map((p: any) => `${p.profiles?.company_name} (${p.profiles?.location})`).join(', ') || 'None found'}
-Services: ${sortedServices.map((s: any) => `${s.profiles?.company_name} (${s.profiles?.location})`).join(', ') || 'None found'}
+SAMPLE SUPPLIERS:
+Spare Parts: ${sortedSpareParts.map((p: any) => `${p.profiles?.company_name} (${p.profiles?.location || 'India'})`).join(', ') || 'None found'}
+Services: ${sortedServices.map((s: any) => `${s.profiles?.company_name} (${s.profiles?.location || 'India'})`).join(', ') || 'None found'}
 
 Provide detailed analysis covering:
-1. Market Position & Value Assessment (Price competitiveness, demand)
-2. Industry Applications & ROI (Best use cases, payback period)
+1. Market Position & Value Assessment (India-wide trends, competitiveness, demand)
+2. Industry Applications & ROI (Best Indian industry use cases, payback period)
 3. Technical Assessment (Strengths, limitations, maintenance)
-4. Supply Chain Analysis (Parts availability, service network)
+4. Supply Chain Analysis (Parts availability, service network nationwide)
 5. Implementation Strategy (Installation, training, challenges)
-6. Financial Recommendations (Financing options, government schemes like PLI)
+6. Financial Recommendations (Indian financing options, government schemes like PLI)
 7. Risk Assessment (Obsolescence, vendor dependency)
-8. Location-Specific Insights (Local market conditions, logistics)
+8. General Indian Market Insights (Economic trends, adoption rates)
 
 Format as structured, actionable insights for decision-making.`;
 }
 
+// --- AI CALL ---
 async function getAiAnalysis(prompt: string): Promise<string> {
   const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
@@ -159,7 +109,7 @@ async function getAiAnalysis(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: 'deepseek-chat',
       messages: [
-        { role: 'system', content: 'You are a senior industrial robotics consultant and market analyst specializing in the Indian robotics market. Provide detailed, actionable insights for robot procurement decisions, considering local market conditions, regulatory environment, and business economics.' },
+        { role: 'system', content: 'You are a senior industrial robotics consultant and market analyst specializing in the Indian robotics market. Provide detailed, actionable insights for procurement decisions, considering market conditions, regulations, and business economics in India.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.7,
@@ -176,7 +126,7 @@ async function getAiAnalysis(prompt: string): Promise<string> {
   return result.choices[0].message.content;
 }
 
-// Helper function to extract sections from AI analysis
+// --- SECTION EXTRACTOR ---
 function extractSection(analysis: string, sectionType: string): string {
   const patterns = {
     suitability: /(?:suitability|suitable|fit|appropriate|value)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
@@ -184,69 +134,28 @@ function extractSection(analysis: string, sectionType: string): string {
     government: /(?:government|schemes|subsidies|incentives|pli|policy)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
     industries: /(?:industries|applications|sectors|use cases)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i
   };
-  
   const match = analysis.match(patterns[sectionType as keyof typeof patterns]);
   return match ? match[0].trim() : '';
 }
 
-// Helper function to update location-specific content in cached analysis
-function updateLocationInAnalysis(cachedAnalysis: any, newLocation: string): any {
-  if (!cachedAnalysis || !newLocation) return cachedAnalysis;
-  
-  // Create a copy of the cached analysis
-  const updatedAnalysis = { ...cachedAnalysis };
-  
-  // Update location references in all text fields
-  const locationPattern = /(\b(?:in|from|near|around|at)\s+)([A-Za-z\s,]+?)(\s+(?:area|region|city|state|location|market|vicinity))/gi;
-  const updateLocationText = (text: string) => {
-    if (!text) return text;
-    return text.replace(locationPattern, `$1${newLocation}$3`);
-  };
-  
-  // Update all text fields that might contain location references
-  if (updatedAnalysis.summary) {
-    updatedAnalysis.summary = updateLocationText(updatedAnalysis.summary);
-  }
-  if (updatedAnalysis.suitability) {
-    updatedAnalysis.suitability = updateLocationText(updatedAnalysis.suitability);
-  }
-  if (updatedAnalysis.technicalInsights) {
-    updatedAnalysis.technicalInsights = updateLocationText(updatedAnalysis.technicalInsights);
-  }
-  if (updatedAnalysis.governmentSchemes) {
-    updatedAnalysis.governmentSchemes = updateLocationText(updatedAnalysis.governmentSchemes);
-  }
-  if (updatedAnalysis.suggestedIndustries) {
-    updatedAnalysis.suggestedIndustries = updateLocationText(updatedAnalysis.suggestedIndustries);
-  }
-  
-  return updatedAnalysis;
-}
-
-// --- MAIN SERVER LOGIC ---
-
+// --- MAIN FUNCTION ---
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // SECURITY FIX: Authenticate the user from the Authorization header.
+    // AUTH
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders });
     }
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
-
     if (userError) throw new Error(`Authentication failed: ${userError.message}`);
-    if (!user) throw new Error('User not found or token is invalid.');
+    if (!user) throw new Error('User not found or token invalid.');
 
     const { robotId } = await req.json();
-    if (!robotId) throw new Error('Robot ID is required in the request body.');
+    if (!robotId) throw new Error('Robot ID is required.');
 
-    console.log(`Processing AI analysis for robot: ${robotId}`);
-
-    // Check if analysis already exists in database with a lock to prevent race conditions
+    // CHECK CACHE
     const { data: existingAnalysis, error: fetchError } = await supabaseAdmin
       .from('robot_ai_analysis')
       .select('*')
@@ -254,36 +163,22 @@ serve(async (req) => {
       .single();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('Error checking existing analysis:', fetchError);
-      throw new Error(`Database error: ${fetchError.message}`);
+      throw new Error(`DB error: ${fetchError.message}`);
     }
 
-    // If analysis exists, return cached result with updated location context
+    const robot = await getRobotDetails(robotId);
+    const marketData = await getMarketEcosystem(robot.robot_type);
+
+    // General sorting (no location proximity)
+    const sortedSpareParts = (marketData.spareParts || []).slice(0, 5);
+    const sortedServices = (marketData.services || []).slice(0, 5);
+    const sortedLogistics = (marketData.logistics || []).slice(0, 3);
+    const sortedFinance = (marketData.finance || []).slice(0, 3);
+
+    const sortedData = { sortedSpareParts, sortedServices, sortedLogistics, sortedFinance };
+
+    // If cached -> return directly
     if (existingAnalysis) {
-      console.log('Returning cached AI analysis for robot:', robotId);
-      
-      const robot = await getRobotDetails(robotId);
-      const currentUserLocation = await getUserLocation(user.id);
-      const robotLocation = robot.profiles?.location || '';
-      const targetLocation = currentUserLocation || robotLocation;
-      
-      // Get current market ecosystem for user's location
-      const marketData = await getMarketEcosystem(robot.robot_type);
-      const sortedSpareParts = sortAndSlice(marketData.spareParts, targetLocation, (i: any) => i.profiles?.location, 5);
-      const sortedServices = sortAndSlice(marketData.services, targetLocation, (i: any) => i.profiles?.location, 5);
-      const sortedLogistics = sortAndSlice(marketData.logistics, targetLocation, (i: any) => i.location, 3);
-      const sortedFinance = sortAndSlice(marketData.finance, targetLocation, (i: any) => i.location, 3);
-
-      const updatedMarketEcosystem = {
-        spareParts: { suppliers: sortedSpareParts.map(p => ({ ...p, profiles: p.profiles, proximity: p.proximity })) },
-        services: { providers: sortedServices.map(s => ({ ...s, profiles: s.profiles, proximity: s.proximity })) },
-        logistics: { providers: sortedLogistics.map(p => ({ ...p, proximity: p.proximity })) },
-        finance: { providers: sortedFinance.map(p => ({ ...p, proximity: p.proximity })) },
-      };
-
-      // Update location-specific content in cached analysis
-      const updatedAnalysis = updateLocationInAnalysis(existingAnalysis.analysis_data, targetLocation);
-      
       return new Response(JSON.stringify({
         success: true,
         cached: true,
@@ -295,38 +190,20 @@ serve(async (req) => {
             sellerInfo: robot.profiles
           }
         },
-        analysis: updatedAnalysis,
-        marketEcosystem: updatedMarketEcosystem,
-        currentUserLocation: targetLocation
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
+        analysis: existingAnalysis.analysis_data,
+        marketEcosystem: {
+          spareParts: { suppliers: sortedSpareParts },
+          services: { providers: sortedServices },
+          logistics: { providers: sortedLogistics },
+          finance: { providers: sortedFinance }
+        }
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
     }
 
-    // If no cached analysis, proceed with new AI analysis
-    console.log('Generating new AI analysis for robot:', robotId);
-
-    const robot = await getRobotDetails(robotId);
-    const [userLocation, marketData] = await Promise.all([
-        getUserLocation(user.id),
-        getMarketEcosystem(robot.robot_type),
-    ]);
-    
-    const robotLocation = robot.profiles?.location || '';
-    const targetLocation = userLocation || robotLocation;
-
-    const sortedSpareParts = sortAndSlice(marketData.spareParts, targetLocation, (i: any) => i.profiles?.location, 5);
-    const sortedServices = sortAndSlice(marketData.services, targetLocation, (i: any) => i.profiles?.location, 5);
-    const sortedLogistics = sortAndSlice(marketData.logistics, targetLocation, (i: any) => i.location, 3);
-    const sortedFinance = sortAndSlice(marketData.finance, targetLocation, (i: any) => i.location, 3);
-
-    const sortedData = { sortedSpareParts, sortedServices, sortedLogistics, sortedFinance };
-
-    const prompt = buildAnalysisPrompt(robot, sortedData, targetLocation);
+    // NEW AI ANALYSIS
+    const prompt = buildAnalysisPrompt(robot, sortedData);
     const analysisContent = await getAiAnalysis(prompt);
 
-    // Structure the analysis for better UI display
     const structuredAnalysis = {
       summary: analysisContent,
       suitability: extractSection(analysisContent, 'suitability'),
@@ -337,59 +214,40 @@ serve(async (req) => {
     };
 
     const marketEcosystem = {
-        spareParts: { suppliers: sortedSpareParts.map(p => ({ ...p, profiles: p.profiles, proximity: p.proximity })) },
-        services: { providers: sortedServices.map(s => ({ ...s, profiles: s.profiles, proximity: s.proximity })) },
-        logistics: { providers: sortedLogistics.map(p => ({ ...p, proximity: p.proximity })) },
-        finance: { providers: sortedFinance.map(p => ({ ...p, proximity: p.proximity })) },
+      spareParts: { suppliers: sortedSpareParts },
+      services: { providers: sortedServices },
+      logistics: { providers: sortedLogistics },
+      finance: { providers: sortedFinance }
     };
 
-    // Store the analysis result in database using upsert to handle race conditions
-    const { error: insertError } = await supabaseAdmin
+    // STORE
+    await supabaseAdmin
       .from('robot_ai_analysis')
       .upsert({
         robot_id: robotId,
         analysis_data: structuredAnalysis,
         recommendations: marketEcosystem,
         updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'robot_id'
-      });
+      }, { onConflict: 'robot_id' });
 
-    if (insertError) {
-      console.error('Error storing analysis:', insertError);
-      // Continue without storing - don't fail the request
-    } else {
-      console.log('AI analysis stored/updated successfully for robot:', robotId);
-    }
-
-    const finalResponse = {
-        success: true,
-        cached: false,
-        robot: {
-            ...robot,
-            marketInsights: {
-              priceRange: robot.price ? `${robot.currency || 'INR'} ${robot.price}` : 'Contact for pricing',
-              location: robotLocation,
-              sellerInfo: robot.profiles
-            }
-        },
-        analysis: structuredAnalysis,
-        marketEcosystem: marketEcosystem,
-        currentUserLocation: targetLocation
-    };
-
-    return new Response(JSON.stringify(finalResponse), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    return new Response(JSON.stringify({
+      success: true,
+      cached: false,
+      robot: {
+        ...robot,
+        marketInsights: {
+          priceRange: robot.price ? `${robot.currency || 'INR'} ${robot.price}` : 'Contact for pricing',
+          location: robot.profiles?.location || '',
+          sellerInfo: robot.profiles
+        }
+      },
+      analysis: structuredAnalysis,
+      marketEcosystem
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 
   } catch (error) {
     console.error('Error in roboverse-ai-analyze:', error);
-    // Use 4xx for client errors (bad input, auth issues), 5xx for server issues.
     const status = error.message.includes('Authentication') || error.message.includes('required') ? 400 : 500;
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: error.message }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
