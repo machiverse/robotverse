@@ -14,6 +14,8 @@ import {
   Settings,
   MapPin,
   Star,
+  Clock,
+  Users,
   Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Service {
   id: string;
   name: string;
-  category: string; // raw string, will be split by commas for UI/filter
+  category: string;
   priceRange: string;
   location: string;
   provider: string;
