@@ -155,84 +155,82 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
           {/* Left Column - Robot Details & Provider Info */}
           <div className="lg:col-span-1 space-y-6">
             {/* Robot Details Card */}
-            {robotDetails && (
-              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/50 to-purple-50/50">
-                <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center text-lg">
-                    <Bot className="w-5 h-5 mr-2" />
-                    Equipment Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-muted-foreground text-xs uppercase tracking-wider">Robot Name</Label>
-                      <p className="font-bold text-lg text-gray-900">{robotDetails.name}</p>
-                    </div>
-                    <Separator />
-                    <div className="grid grid-cols-1 gap-3">
-                      <div>
-                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Model</Label>
-                        <p className="font-medium text-gray-800">{robotDetails.model}</p>
-                      </div>
-                      <div>
-                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Type</Label>
-                        <Badge variant="secondary" className="mt-1">{robotDetails.type}</Badge>
-                      </div>
-                      <div>
-                        <Label className="text-muted-foreground text-xs uppercase tracking-wider">Investment Amount</Label>
-                        <div className="flex items-center mt-1">
-                          <DollarSign className="w-5 h-5 text-green-600 mr-1" />
-                          <p className="font-bold text-2xl text-green-600">
-                            {robotDetails.currency === 'USD' ? '$' : robotDetails.currency === 'EUR' ? '€' : '₹'}
-                            {robotDetails.price.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+{robotDetails && (
+  <Card className="border-2 border-blue-200 shadow-sm">
+    <CardHeader className="bg-blue-600 text-white rounded-t-lg">
+      <CardTitle className="flex items-center text-lg font-semibold">
+        <Bot className="w-5 h-5 mr-2" />
+        Equipment Details
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="p-6 space-y-4 text-gray-800">
+      <div>
+        <Label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Robot Name</Label>
+        <p className="font-bold text-xl mt-1">{robotDetails.name}</p>
+      </div>
+      <Separator />
+      <div className="grid gap-3">
+        <div>
+          <Label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Model</Label>
+          <p className="font-medium mt-1">{robotDetails.model}</p>
+        </div>
+        <div>
+          <Label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Type</Label>
+          <Badge variant="secondary" className="mt-1 font-medium">{robotDetails.type}</Badge>
+        </div>
+        <div>
+          <Label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Investment Amount</Label>
+          <div className="flex items-center mt-1">
+            <DollarSign className="w-5 h-5 text-green-600 mr-1" />
+            <p className="font-bold text-2xl text-green-700">
+              {robotDetails.currency === 'USD' ? '$' : robotDetails.currency === 'EUR' ? '€' : '₹'}
+              {robotDetails.price.toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
 
-            {/* Finance Provider Info */}
-            {financeProvider && (
-              <Card className="border border-green-200 bg-green-50/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg text-green-700">
-                    <Building2 className="w-5 h-5 mr-2" />
-                    Finance Partner
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="font-semibold text-green-800">
-                    {financeProvider.profiles?.company_name || financeProvider.profiles?.full_name}
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">Trusted financing solutions</p>
-                </CardContent>
-              </Card>
-            )}
+{/* Finance Provider Info */}
+{financeProvider && (
+  <Card className="border border-green-200 shadow-sm">
+    <CardHeader className="bg-green-600 text-white rounded-t-lg">
+      <CardTitle className="flex items-center text-lg font-semibold">
+        <Building2 className="w-5 h-5 mr-2" />
+        Finance Partner
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="p-6">
+      <p className="font-semibold text-lg text-gray-900">
+        {financeProvider.profiles?.company_name || financeProvider.profiles?.full_name}
+      </p>
+      <p className="text-sm text-gray-700 mt-1">Trusted financing solutions for growing businesses</p>
+    </CardContent>
+  </Card>
+)}
 
-            {/* Quick EMI Estimate */}
-            {robotDetails && (
-              <Card className="border border-orange-200 bg-orange-50/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg text-orange-700">
-                    <Calculator className="w-5 h-5 mr-2" />
-                    Quick EMI Estimate
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-orange-600">
-                    <p>Estimated EMI (60 months @ 12%)</p>
-                    <p className="font-bold text-lg text-orange-700">
-                      ₹{Math.round((robotDetails.price * 0.12 * Math.pow(1.12, 5)) / (Math.pow(1.12, 5) - 1) / 12).toLocaleString()}/month
-                    </p>
-                    <p className="text-xs mt-1">*Actual rates may vary</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+{/* Quick EMI Estimate */}
+{robotDetails && (
+  <Card className="border border-orange-200 shadow-sm">
+    <CardHeader className="bg-orange-500 text-white rounded-t-lg">
+      <CardTitle className="flex items-center text-lg font-semibold">
+        <Calculator className="w-5 h-5 mr-2" />
+        Quick EMI Estimate
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="p-6 space-y-1">
+      <p className="text-gray-800 font-medium">Estimated EMI (60 months @ 12%)</p>
+      <p className="font-bold text-2xl text-orange-600">
+        ₹{Math.round(
+          (robotDetails.price * 0.12 * Math.pow(1.12, 5)) / (Math.pow(1.12, 5) - 1) / 12
+        ).toLocaleString()} / month
+      </p>
+      <p className="text-xs text-gray-600">*Actual rates may vary</p>
+    </CardContent>
+  </Card>
+)}
           </div>
 
           {/* Right Column - Application Form */}
