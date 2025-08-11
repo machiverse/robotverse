@@ -100,11 +100,16 @@ const FinanceProviderForm = ({ onComplete }: FinanceProviderFormProps) => {
           target_audience: formData.target_audience,
           government_scheme_support: formData.government_scheme_support,
           mou_agreed: formData.mou_agreed,
-          mou_agreed_at: new Date().toISOString()
+          mou_agreed_at: new Date().toISOString(),
+          registration_complete: true
         })
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Finance provider profile update error:', error);
+        toast.error(`Failed to update profile: ${error.message}`);
+        throw error;
+      }
 
       toast.success('Finance provider profile completed successfully!');
       onComplete();

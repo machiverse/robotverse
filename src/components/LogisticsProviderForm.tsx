@@ -142,7 +142,11 @@ const LogisticsProviderForm = ({ onComplete }: LogisticsProviderFormProps) => {
             registration_complete: true
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Logistics provider profile insert error:', insertError);
+          toast.error(`Failed to create profile: ${insertError.message}`);
+          throw insertError;
+        }
       } else {
         // Update existing profile
         const { error: updateError } = await supabase
@@ -163,7 +167,11 @@ const LogisticsProviderForm = ({ onComplete }: LogisticsProviderFormProps) => {
           })
           .eq('user_id', user.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Logistics provider profile update error:', updateError);
+          toast.error(`Failed to update profile: ${updateError.message}`);
+          throw updateError;
+        }
       }
 
       toast.success('Logistics provider profile completed successfully!');

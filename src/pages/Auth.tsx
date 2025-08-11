@@ -342,10 +342,14 @@ const Auth = () => {
             }
           } catch (error: any) {
             console.error('❌ Error handling profile after email confirmation:', error);
+            
+            // Clear the saved data if it's corrupted or incompatible
+            clearSavedUserData();
+            
             toast({
               variant: "destructive",
-              title: "Profile Error",
-              description: "Failed to complete your profile setup. Please try signing in again.",
+              title: "Profile Setup Error", 
+              description: `Failed to complete your profile setup: ${error.message}. Please sign in and try completing your profile again.`,
             });
           }
         } else if (!existingProfile || !existingProfile.registration_complete) {
@@ -374,13 +378,22 @@ const Auth = () => {
       console.log('👤 Updating profile from saved data for user:', user.id);
       console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
       
-      // Validate that we have the required data
+      // Validate that we have the required data for update
       if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
         console.error('❌ Missing required data for profile update:', {
           companyName: savedData.companyName,
           mobileNumber: savedData.mobileNumber,
           accountType: savedData.accountType
         });
+        
+        toast({
+          variant: "destructive",
+          title: "Incomplete Profile Data",
+          description: "Some required information is missing. Please complete your profile information.",
+        });
+        
+        // Clear corrupted data
+        clearSavedUserData();
         throw new Error('Missing required profile data');
       }
       
@@ -451,12 +464,22 @@ const Auth = () => {
 
       if (error) {
         console.error('❌ Profile update error:', error);
+        toast({
+          variant: "destructive",
+          title: "Profile Update Failed",
+          description: `Failed to update your profile: ${error.message}. Please try again.`,
+        });
         throw new Error(`Profile update failed: ${error.message}`);
       }
 
       if (!data || data.length === 0) {
-        console.error('❌ No profile was updated');
-        throw new Error('No profile was updated');
+        console.error('❌ No profile was updated - possible RLS policy issue');
+        toast({
+          variant: "destructive",
+          title: "Profile Update Failed",
+          description: "No profile data was updated. This might be a permissions issue. Please contact support.",
+        });
+        throw new Error('No profile was updated - check RLS policies');
       }
 
       console.log('✅ Profile updated successfully:', data[0]);
@@ -481,6 +504,15 @@ const Auth = () => {
           mobileNumber: savedData.mobileNumber,
           accountType: savedData.accountType
         });
+        
+        toast({
+          variant: "destructive",
+          title: "Incomplete Profile Data",
+          description: "Some required information is missing. Please complete your registration again.",
+        });
+        
+        // Clear corrupted data and redirect to registration
+        clearSavedUserData();
         throw new Error('Missing required profile data');
       }
       
@@ -591,11 +623,25 @@ const Auth = () => {
           hint: error.hint,
           code: error.code
         });
+        
+        // Show user-friendly error message
+        toast({
+          variant: "destructive",
+          title: "Profile Creation Failed",
+          description: `Failed to save your profile: ${error.message}. Please try again.`,
+        });
+        
         throw new Error(`Profile creation failed: ${error.message}`);
       }
 
       if (!data || data.length === 0) {
-        throw new Error('No data returned from profile creation');
+        console.error('❌ No profile was created - possible RLS policy issue');
+        toast({
+          variant: "destructive",
+          title: "Profile Creation Failed",
+          description: "No profile data was returned. This might be a permissions issue. Please contact support.",
+        });
+        throw new Error('No data returned from profile creation - check RLS policies');
       }
 
       console.log('✅ Profile created successfully:', data[0]);
