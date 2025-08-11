@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,15 +12,15 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Settings, 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Clock, 
-  Star, 
-  Send, 
+import {
+  Settings,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  Star,
+  Send,
   CheckCircle,
   AlertCircle,
   Calendar,
@@ -27,6 +29,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 
+// --- Types ---
 interface Service {
   id: string;
   name: string;
@@ -49,11 +52,12 @@ interface ServiceRequestModalProps {
   service: Service | null;
 }
 
+// --- Component ---
 const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     customerName: user?.user_metadata?.full_name || '',
     customerEmail: user?.email || '',
@@ -67,10 +71,10 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
   });
 
   const urgencyOptions = [
-    { value: 'low', label: 'Low Priority - Within a week', color: 'text-green-600 bg-green-50 border-green-200' },
-    { value: 'normal', label: 'Normal - Within 2-3 days', color: 'text-blue-600 bg-blue-50 border-blue-200' },
-    { value: 'high', label: 'High Priority - Within 24 hours', color: 'text-orange-600 bg-orange-50 border-orange-200' },
-    { value: 'urgent', label: 'Urgent - ASAP', color: 'text-red-600 bg-red-50 border-red-200' }
+    { value: 'low', label: 'Low Priority - Within a week', color: 'text-green-700 bg-green-50 border-green-200' },
+    { value: 'normal', label: 'Normal - Within 2-3 days', color: 'text-blue-700 bg-blue-50 border-blue-200' },
+    { value: 'high', label: 'High Priority - Within 24 hours', color: 'text-orange-700 bg-orange-50 border-orange-200' },
+    { value: 'urgent', label: 'Urgent - ASAP', color: 'text-red-700 bg-red-50 border-red-200' }
   ];
 
   const timelineOptions = [
@@ -91,7 +95,6 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -100,11 +103,10 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
       });
       return;
     }
-
     if (!service) return;
 
     setLoading(true);
-    
+
     try {
       const quoteData = {
         customerName: formData.customerName,
@@ -124,9 +126,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
 
       const response = await fetch('https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/send-quote-request', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quoteData)
       });
 
@@ -135,9 +135,8 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
           title: "Service Request Sent Successfully!",
           description: `Your detailed request has been sent to ${service.provider}. You'll receive a response within ${service.responseTime}.`,
         });
-        
         onOpenChange(false);
-        
+
         // Reset form
         setFormData({
           customerName: user?.user_metadata?.full_name || '',
@@ -183,96 +182,94 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Service Details */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* --- Left Column: Service Info, Provider, Description --- */}
+          <div className="lg:col-span-1 space-y-7">
             {/* Service Info Card */}
-<Card className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-  <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
-    <CardTitle className="flex items-center text-lg font-bold text-white">
-      <Settings className="w-5 h-5 mr-2 text-white" />
-      Service Details
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="p-6 space-y-4">
-    <div>
-      <Label className="text-xs uppercase font-semibold text-gray-500">Service Name</Label>
-      <p className="mt-1 font-bold text-lg text-gray-900">{service.name}</p>
-    </div>
-    <Separator />
-    <div className="grid gap-4">
-      <div>
-        <Label className="text-xs uppercase font-semibold text-gray-500">Category</Label>
-        <Badge className="mt-1 bg-blue-100 text-blue-800 font-medium">{service.category}</Badge>
-      </div>
-      <div>
-        <Label className="text-xs uppercase font-semibold text-gray-500">Price Range</Label>
-        <p className="flex items-center mt-1 font-semibold text-green-700">
-          <DollarSign className="w-4 h-4 mr-1 text-green-600" />
-          {service.priceRange}
-        </p>
-      </div>
-      <div>
-        <Label className="text-xs uppercase font-semibold text-gray-500">Location</Label>
-        <p className="flex items-center mt-1 font-medium text-gray-800">
-          <MapPin className="w-4 h-4 mr-1 text-blue-600" />
-          {service.location}
-        </p>
-      </div>
-      <div>
-        <Label className="text-xs uppercase font-semibold text-gray-500">Response Time</Label>
-        <p className="flex items-center mt-1 font-medium text-orange-600">
-          <Clock className="w-4 h-4 mr-1 text-orange-600" />
-          {service.responseTime}
-        </p>
-      </div>
-    </div>
-  </CardContent>
-</Card>
+            <Card className="rounded-xl overflow-hidden border border-gray-200 shadow">
+              <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
+                <CardTitle className="flex items-center text-lg font-bold text-white">
+                  <Settings className="w-5 h-5 mr-2 text-white" />
+                  Service Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4 bg-white">
+                <div>
+                  <Label className="text-xs uppercase font-semibold text-gray-500">Service Name</Label>
+                  <p className="mt-1 font-bold text-lg text-gray-900">{service.name}</p>
+                </div>
+                <Separator />
+                <div className="grid gap-4">
+                  <div>
+                    <Label className="text-xs uppercase font-semibold text-gray-500">Category</Label>
+                    <Badge className="mt-1 bg-blue-100 text-blue-800 font-medium">{service.category}</Badge>
+                  </div>
+                  <div>
+                    <Label className="text-xs uppercase font-semibold text-gray-500">Price Range</Label>
+                    <p className="flex items-center mt-1 font-semibold text-green-700">
+                      <DollarSign className="w-4 h-4 mr-1 text-green-600" />
+                      {service.priceRange}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs uppercase font-semibold text-gray-500">Location</Label>
+                    <p className="flex items-center mt-1 font-medium text-gray-800">
+                      <MapPin className="w-4 h-4 mr-1 text-blue-600" />
+                      {service.location}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs uppercase font-semibold text-gray-500">Response Time</Label>
+                    <p className="flex items-center mt-1 font-medium text-orange-700">
+                      <Clock className="w-4 h-4 mr-1 text-orange-600" />
+                      {service.responseTime}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-{/* Provider Info */}
-<Card className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-  <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 p-4">
-    <CardTitle className="flex items-center text-lg font-bold text-white">
-      <User className="w-5 h-5 mr-2" />
-      Service Provider
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="p-6 space-y-4">
-    <div className="flex items-center gap-3">
-      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-        {service.provider.charAt(0)}
-      </div>
-      <div>
-        <p className="font-semibold text-gray-900">{service.provider}</p>
-        <div className="flex items-center text-sm text-gray-600 gap-2">
-          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-          {service.rating}
-          <span>•</span>
-          {service.completedJobs} projects completed
-        </div>
-      </div>
-    </div>
-    <div className="flex items-center text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-md">
-      <CheckCircle className="w-4 h-4 mr-1" />
-      Verified Professional
-    </div>
-  </CardContent>
-</Card>
+            {/* Provider Info Card */}
+            <Card className="rounded-xl overflow-hidden border border-gray-200 shadow">
+              <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 p-4">
+                <CardTitle className="flex items-center text-lg font-bold text-white">
+                  <User className="w-5 h-5 mr-2" />
+                  Service Provider
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4 bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                    {service.provider.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{service.provider}</p>
+                    <div className="flex items-center text-sm text-gray-600 gap-2">
+                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      {service.rating}
+                      <span>•</span>
+                      {service.completedJobs} projects completed
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-md font-semibold">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Verified Professional
+                </div>
+              </CardContent>
+            </Card>
 
-{/* Service Description */}
-<Card className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-  <CardHeader className="bg-gray-50 p-4">
-    <CardTitle className="text-lg font-semibold text-gray-900">About This Service</CardTitle>
-  </CardHeader>
-  <CardContent className="p-6">
-    <p className="text-sm leading-relaxed text-gray-700">
-      {service.description}
-    </p>
-  </CardContent>
-</Card>
+            {/* About This Service Card */}
+            <Card className="rounded-xl overflow-hidden border border-gray-200 shadow">
+              <CardHeader className="bg-gray-50 p-4">
+                <CardTitle className="text-lg font-semibold text-gray-900">About This Service</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 bg-white">
+                <p className="text-sm leading-relaxed text-gray-700">{service.description}</p>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Right Column - Request Form */}
+          {/* --- Right Column: Request Form --- */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Contact Information */}
@@ -415,17 +412,17 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
               </Card>
 
               <DialogFooter className="pt-6 border-t border-border">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={loading}
                   size="lg"
                 >
                   Cancel Request
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loading}
                   size="lg"
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
