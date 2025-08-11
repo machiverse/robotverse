@@ -1220,6 +1220,20 @@ export type Database = {
         Args: { table_name: string; provider_id: string }
         Returns: Json
       }
+      get_provider_public_info: {
+        Args: { provider_user_id: string }
+        Returns: {
+          user_id: string
+          full_name: string
+          company_name: string
+          location: string
+          user_type: string
+          account_type: string
+          service_categories: string[]
+          user_roles: string[]
+          registration_complete: boolean
+        }[]
+      }
     }
     Enums: {
       seller_role_enum: "robot_seller" | "parts_seller" | "service_provider"
