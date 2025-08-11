@@ -57,17 +57,7 @@ const Services = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
-  const categories = [
-    { value: "all", label: "All Services" },
-    { value: "industrial_automation", label: "Industrial Automation" },
-    { value: "maintenance", label: "Maintenance & Repair" },
-    { value: "installation", label: "Installation & Commissioning" },
-    { value: "programming", label: "Programming & Software" },
-    { value: "training", label: "Training & Consulting" },
-    { value: "specialized", label: "Specialized Services" },
-  ];
-
-  // Fetch services from Supabase
+    // Fetch services from Supabase
   useEffect(() => {
     const fetchServices = async () => {
       try {
