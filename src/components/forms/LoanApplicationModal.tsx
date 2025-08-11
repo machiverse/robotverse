@@ -156,78 +156,70 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
           <div className="lg:col-span-1 space-y-6">
             {/* Robot Details Card */}
 {robotDetails && (
-  <Card className="border-2 border-blue-600 bg-blue-700">
-    <CardHeader className="bg-blue-700 text-white rounded-t-lg">
-      <CardTitle className="flex items-center text-lg font-semibold text-white">
-        <Bot className="w-5 h-5 mr-2 text-white" />
-        Equipment Details
-      </CardTitle>
+  <Card className="bg-gradient-to-br from-blue-800 via-blue-700 to-blue-900 border-0 drop-shadow-xl rounded-2xl">
+    <CardHeader className="flex items-center gap-2 pb-0">
+      <Bot className="w-6 h-6 text-blue-300" />
+      <CardTitle className="text-white text-xl font-bold tracking-wide">Equipment Details</CardTitle>
     </CardHeader>
-    <CardContent className="p-6 space-y-4 text-white">
+    <Separator className="bg-blue-500 opacity-30 my-3" />
+    <CardContent className="space-y-5 text-white">
       <div>
-        <Label className="text-sm font-semibold text-white uppercase tracking-wide">Robot Name</Label>
-        <p className="font-bold text-xl mt-1 text-white">{robotDetails.name}</p>
+        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Robot Name</Label>
+        <div className="font-extrabold text-2xl text-white">{robotDetails.name}</div>
       </div>
-      <Separator className="bg-white opacity-30" />
-      <div className="grid gap-3">
-        <div>
-          <Label className="text-sm font-semibold text-white uppercase tracking-wide">Model</Label>
-          <p className="font-medium mt-1 text-white">{robotDetails.model}</p>
-        </div>
-        <div>
-          <Label className="text-sm font-semibold text-white uppercase tracking-wide">Type</Label>
-          <Badge variant="secondary" className="mt-1 font-medium bg-blue-900 text-white">{robotDetails.type}</Badge>
-        </div>
-        <div>
-          <Label className="text-sm font-semibold text-white uppercase tracking-wide">Investment Amount</Label>
-          <div className="flex items-center mt-1">
-            <DollarSign className="w-5 h-5 text-green-400 mr-1" />
-            <p className="font-bold text-2xl text-white">
-              {robotDetails.currency === 'USD' ? '$' : robotDetails.currency === 'EUR' ? '€' : '₹'}
-              {robotDetails.price.toLocaleString()}
-            </p>
-          </div>
+      <div>
+        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Model</Label>
+        <div className="font-medium text-lg text-blue-100">{robotDetails.model}</div>
+      </div>
+      <div>
+        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Type</Label>
+        <Badge className="bg-blue-600 text-white px-2 py-1 font-semibold text-sm">{robotDetails.type}</Badge>
+      </div>
+      <div>
+        <Label className="uppercase text-xs text-blue-200 font-bold tracking-wide mb-1">Investment Amount</Label>
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-green-300" />
+          <span className="font-bold text-2xl text-green-400 tracking-wide">
+            {robotDetails.currency === 'USD' ? '$' : robotDetails.currency === 'EUR' ? '€' : '₹'}
+            {robotDetails.price.toLocaleString()}
+          </span>
         </div>
       </div>
     </CardContent>
   </Card>
 )}
 
-{/* Finance Provider Info */}
+{/* Finance Partner (Professional) */}
 {financeProvider && (
-  <Card className="border border-green-600 bg-green-700">
-    <CardHeader className="bg-green-700 text-white rounded-t-lg">
-      <CardTitle className="flex items-center text-lg font-semibold text-white">
-        <Building2 className="w-5 h-5 mr-2 text-white" />
-        Finance Partner
-      </CardTitle>
+  <Card className="bg-gradient-to-br from-green-800 via-green-700 to-green-900 border-0 drop-shadow-xl rounded-2xl mt-8">
+    <CardHeader className="flex items-center gap-2 pb-0">
+      <Building2 className="w-6 h-6 text-green-300" />
+      <CardTitle className="text-white text-xl font-bold tracking-wide">Finance Partner</CardTitle>
     </CardHeader>
-    <CardContent className="p-6">
-      <p className="font-semibold text-lg text-white">
+    <Separator className="bg-green-500 opacity-30 my-3" />
+    <CardContent>
+      <div className="font-bold text-lg text-white mb-1">
         {financeProvider.profiles?.company_name || financeProvider.profiles?.full_name}
-      </p>
-      <p className="text-sm text-white mt-1 opacity-90">Trusted financing solutions</p>
+      </div>
+      <div className="text-md text-green-200">Trusted financing solutions for growing businesses</div>
     </CardContent>
   </Card>
 )}
 
-{/* Quick EMI Estimate */}
+{/* Quick EMI Estimate (Professional) */}
 {robotDetails && (
-  <Card className="border border-orange-600 bg-orange-700">
-    <CardHeader className="bg-orange-700 text-white rounded-t-lg">
-      <CardTitle className="flex items-center text-lg font-semibold text-white">
-        <Calculator className="w-5 h-5 mr-2 text-white" />
-        Quick EMI Estimate
-      </CardTitle>
+  <Card className="bg-gradient-to-br from-orange-800 via-orange-700 to-orange-900 border-0 drop-shadow-xl rounded-2xl mt-8">
+    <CardHeader className="flex items-center gap-2 pb-0">
+      <Calculator className="w-6 h-6 text-orange-300" />
+      <CardTitle className="text-white text-xl font-bold tracking-wide">Quick EMI Estimate</CardTitle>
     </CardHeader>
-    <CardContent className="p-6 space-y-1 text-white">
-      <p className="font-medium text-white mb-2">Estimated EMI (60 months @ 12%)</p>
-      <p className="font-bold text-2xl text-white">
-        ₹{Math.round(
-          (robotDetails.price * 0.12 * Math.pow(1.12, 5)) / (Math.pow(1.12, 5) - 1) / 12
-        ).toLocaleString()} / month
-      </p>
-      <p className="text-xs text-white opacity-80 mt-2">*Actual rates may vary</p>
+    <Separator className="bg-orange-500 opacity-30 my-3" />
+    <CardContent>
+      <div className="text-white font-medium mb-2">Estimated EMI <span className="text-orange-200 font-semibold">(60 months @ 12%)</span></div>
+      <div className="font-extrabold text-3xl text-orange-200 mb-2">
+        ₹{Math.round((robotDetails.price * 0.12 * Math.pow(1.12, 5)) / (Math.pow(1.12, 5) - 1) / 12).toLocaleString()} / month
+      </div>
+      <div className="text-xs text-orange-100 italic">*Actual rates may vary</div>
     </CardContent>
   </Card>
 )}
