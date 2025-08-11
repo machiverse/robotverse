@@ -57,15 +57,33 @@ const Services = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
-  const categories = [
-    { value: "all", label: "All Services" },
-    { value: "industrial_automation", label: "Industrial Automation" },
-    { value: "maintenance", label: "Maintenance & Repair" },
-    { value: "installation", label: "Installation & Commissioning" },
-    { value: "programming", label: "Programming & Software" },
-    { value: "training", label: "Training & Consulting" },
-    { value: "specialized", label: "Specialized Services" },
-  ];
+  // Build dynamic category list based on current visible services
+const categoryOptionsDynamic = Array.from(
+  new Set(
+    services
+      .filter((service) => {
+        const matchesSearch =
+          service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          service.provider.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesLocation =
+          selectedLocation === "all" ||
+          service.location.toLowerCase() === selectedLocation.toLowerCase();
+
+        return matchesSearch && matchesLocation;
+      })
+      .map((s) => s.category)
+      .filter(Boolean)
+  )
+)
+  .map((cat) => ({ value: cat, label: cat }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
+const categoryFilterList = [
+  { value: "all", label: "All Services" },
+  ...categoryOptionsDynamic,
+];
 
   // Fetch services from Supabase
   useEffect(() => {
