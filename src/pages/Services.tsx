@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ServiceRequestModal from "@/components/ServiceRequestModal";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Search, 
   Grid, 
@@ -45,6 +46,7 @@ interface Service {
 
 const Services = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +144,15 @@ const Services = () => {
 
   // Handle contact provider
   const handleContactProvider = (service: Service) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please sign in to contact service providers.",
+      });
+      return;
+    }
+
     const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
     
     if (!phone) {
@@ -355,10 +366,10 @@ const Services = () => {
                       variant="outline" 
                       size="sm"
                       onClick={() => handleContactProvider(service)}
-                      disabled={!service.providerProfile?.phone && !service.providerProfile?.mobile_number}
+                      disabled={!user || (!service.providerProfile?.phone && !service.providerProfile?.mobile_number)}
                       className="border-blue-200 text-blue-600 hover:bg-blue-50"
                     >
-                      Contact Provider
+                      {user ? 'Contact Provider' : 'Sign In to Contact'}
                     </Button>
                   </div>
                 </div>
