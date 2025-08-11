@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Service {
   id: string;
   name: string;
-  category: string;
+  category: string[]; // now array of individual categories
   priceRange: string;
   location: string;
   provider: string;
@@ -57,17 +57,7 @@ const Services = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
-  const categories = [
-    { value: "all", label: "All Services" },
-    { value: "industrial_automation", label: "Industrial Automation" },
-    { value: "maintenance", label: "Maintenance & Repair" },
-    { value: "installation", label: "Installation & Commissioning" },
-    { value: "programming", label: "Programming & Software" },
-    { value: "training", label: "Training & Consulting" },
-    { value: "specialized", label: "Specialized Services" },
-  ];
-
-  // Fetch services from Supabase
+  // Fetch services
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -91,32 +81,40 @@ const Services = () => {
 
         if (error) throw error;
 
-        const transformedData = (data || []).map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          category: item.service_type,
-          priceRange: item.price_range || "Contact for pricing",
-          location: item.location || item.profiles?.location || "Location not specified",
-          provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
-          image: "/placeholder.svg",
-          description: item.description || "Professional service provider",
-          rating: 4.5,
-          responseTime: "2-4 hours",
-          completedJobs: Math.floor(Math.random() * 100) + 50,
-          availability: "Available",
-          providerProfile: item.profiles || {
-            full_name: "Unknown",
-            company_name: "Service Provider",
-            phone: "",
-            mobile_number: "",
-            email: "",
-          },
-          providerId: item.provider_id || "",
-        }));
+        const transformedData = (data || []).map((item: any) => {
+          const categoriesArray = (item.service_type || "")
+            .split(",")
+            .map((c: string) => c.trim())
+            .filter(Boolean);
+
+          return {
+            id: item.id,
+            name: item.name,
+            category: categoriesArray,
+            priceRange: item.price_range || "Contact for pricing",
+            location: item.location || item.profiles?.location || "Location not specified",
+            provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
+            image: "/placeholder.svg",
+            description: item.description || "Professional service provider",
+            rating: 4.5,
+            responseTime: "2-4 hours",
+            completedJobs: Math.floor(Math.random() * 100) + 50,
+            availability: "Available",
+            providerProfile: item.profiles || {
+              full_name: "Unknown",
+              company_name: "Service Provider",
+              phone: "",
+              mobile_number: "",
+              email: "",
+            },
+            providerId: item.provider_id || "",
+          };
+        });
 
         setServices(transformedData);
         setError(null);
       } catch (err) {
+        console.error(err);
         setError(err instanceof Error ? err.message : "Failed to load services");
         setServices([]);
       } finally {
@@ -127,7 +125,7 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // Filtered services based on search & category/location
+  // Filtering
   const filteredServices = services.filter((service) => {
     const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -136,7 +134,9 @@ const Services = () => {
 
     const matchesCategory =
       selectedCategory === "all" ||
-      service.category.toLowerCase().includes(selectedCategory.toLowerCase());
+      service.category.some(
+        (cat) => cat.toLowerCase() === selectedCategory.toLowerCase()
+      );
 
     const matchesLocation =
       selectedLocation === "all" ||
@@ -145,37 +145,54 @@ const Services = () => {
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
-  // Build the dynamic location list from currently filteredByCategoryAndSearch services
-  const locationOptionsDynamic = Array.from(
-    new Set(
-      services
-        .filter((service) => {
-          const matchesSearch =
-            service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            service.description
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()) ||
-            service.provider
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase());
-
-          const matchesCategory =
-            selectedCategory === "all" ||
-            service.category
-              .toLowerCase()
-              .includes(selectedCategory.toLowerCase());
-          return matchesSearch && matchesCategory;
-        })
-        .map((s) => s.location)
-        .filter(Boolean)
+  // Dynamic category list
+  const categoryFilterList = [
+    { value: "all", label: "All Services" },
+    ...Array.from(
+      new Set(
+        services
+          .filter((service) => {
+            const matchesSearch =
+              service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              service.provider.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesLocation =
+              selectedLocation === "all" ||
+              service.location.toLowerCase() === selectedLocation.toLowerCase();
+            return matchesSearch && matchesLocation;
+          })
+          .flatMap((s) => s.category)
+          .filter(Boolean)
+      )
     )
-  )
-    .map((loc) => ({ value: loc, label: loc }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+      .map((cat) => ({ value: cat, label: cat }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  ];
 
+  // Dynamic location list
   const locationFilterList = [
     { value: "all", label: "All Locations" },
-    ...locationOptionsDynamic,
+    ...Array.from(
+      new Set(
+        services
+          .filter((service) => {
+            const matchesSearch =
+              service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              service.provider.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory =
+              selectedCategory === "all" ||
+              service.category.some(
+                (cat) => cat.toLowerCase() === selectedCategory.toLowerCase()
+              );
+            return matchesSearch && matchesCategory;
+          })
+          .map((s) => s.location)
+          .filter(Boolean)
+      )
+    )
+      .map((loc) => ({ value: loc, label: loc }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
   ];
 
   const handleRequestQuote = (service: Service) => {
@@ -192,10 +209,7 @@ const Services = () => {
       });
       return;
     }
-
-    const phone =
-      service.providerProfile?.phone || service.providerProfile?.mobile_number;
-
+    const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
     if (!phone) {
       toast({
         variant: "destructive",
@@ -204,13 +218,11 @@ const Services = () => {
       });
       return;
     }
-
     window.open(`tel:${phone}`, "_self");
     toast({
       title: "Calling Provider",
       description: `Calling ${
-        service.providerProfile?.company_name ||
-        service.providerProfile?.full_name
+        service.providerProfile?.company_name || service.providerProfile?.full_name
       }...`,
     });
   };
@@ -218,13 +230,12 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-
       <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Robot Services</h1>
           <p className="text-xl text-gray-700">
-            Connect with certified professionals for robot maintenance, repair, and training services.
+            Connect with certified professionals for robot maintenance, repair, and training services
           </p>
         </div>
 
@@ -248,7 +259,7 @@ const Services = () => {
                 <SelectValue placeholder="Service Type" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
+                {categoryFilterList.map((category) => (
                   <SelectItem key={category.value} value={category.value}>
                     {category.label}
                   </SelectItem>
@@ -256,28 +267,21 @@ const Services = () => {
               </SelectContent>
             </Select>
 
-            {/* Dynamic Location Filter */}
-            <Select
-              value={selectedLocation}
-              onValueChange={setSelectedLocation}
-            >
+            {/* Location */}
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger>
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
-                {locationFilterList.length > 0 ? (
-                  locationFilterList.map((location) => (
-                    <SelectItem key={location.value} value={location.value}>
-                      {location.label}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="all">All Locations</SelectItem>
-                )}
+                {locationFilterList.map((location) => (
+                  <SelectItem key={location.value} value={location.value}>
+                    {location.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            {/* View toggle */}
+            {/* View mode toggle */}
             <div className="flex space-x-2">
               <Button
                 variant={viewMode === "grid" ? "default" : "outline"}
@@ -297,158 +301,51 @@ const Services = () => {
           </div>
         </div>
 
-        {/* Status States */}
+        {/* Content */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
+          <div className="flex flex-col items-center py-12">
             <Loader2 className="w-8 h-8 animate-spin mb-4" />
             <p className="text-gray-500">Loading services...</p>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
+          <div className="flex flex-col items-center py-12">
             <Settings className="w-16 h-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Unable to load services</h3>
+            <p className="text-lg font-semibold mb-2">Unable to load services</p>
             <p className="text-gray-500 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Try Again
-            </Button>
+            <Button onClick={() => window.location.reload()} variant="outline">Try Again</Button>
           </div>
         ) : filteredServices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Settings className="w-16 h-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No services available</h3>
-            <p className="text-gray-500">
-              {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
-                ? "No services match your current filters."
-                : "Service listings are currently empty."}
-            </p>
+          <div className="text-center py-12">
+            <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg font-semibold">No services found</p>
+            <p className="text-gray-500">Try changing your filters</p>
           </div>
         ) : (
           <>
-            <div className="mb-4">
-              <p className="text-sm text-gray-500">
-                {filteredServices.length}{" "}
-                {filteredServices.length === 1 ? "service" : "services"} found
-              </p>
-            </div>
-
-            {/* Cards */}
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                  : "space-y-4"
-              }
-            >
+            <p className="text-sm text-gray-500 mb-4">
+              {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
+            </p>
+            <div className={viewMode === "grid" ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-4"}>
               {filteredServices.map((service) => (
-                <Card
-                  key={service.id}
-                  className="hover:shadow-xl transition-all duration-300 border border-gray-200 shadow-sm bg-white rounded-xl"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="aspect-video bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center mb-4 border">
-                      <div className="text-center">
-                        <Settings className="w-12 h-12 text-blue-600 mx-auto mb-2" />
-                        <Badge variant="outline" className="text-xs bg-white/90 text-blue-700 border border-blue-200">
-                          Professional Service
-                        </Badge>
-                      </div>
-                    </div>
-                    <CardTitle className="text-lg font-bold text-gray-900">
-                      {service.name}
-                    </CardTitle>
-                    <div className="flex items-center justify-between mt-1">
-                      <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
-                        {service.category}
-                      </Badge>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-semibold text-gray-800">
-                          {service.rating}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          ({service.completedJobs})
-                        </span>
-                      </div>
+                <Card key={service.id} className="hover:shadow-lg border border-gray-200 bg-white">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-bold text-gray-900">{service.name}</CardTitle>
+                    {/* Category badges */}
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {service.category.map((cat) => (
+                        <Badge key={cat} className="bg-blue-100 text-blue-800 border border-blue-200">{cat}</Badge>
+                      ))}
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                          {service.priceRange}
-                        </span>
-                        <Badge className="bg-green-100 text-green-800 border border-green-200">
-                          {service.availability}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center text-gray-700">
-                        <MapPin className="w-4 h-4 mr-2 text-blue-600" />
-                        <span className="text-sm font-medium">
-                          {service.location}
-                        </span>
-                      </div>
-
-                      <div className="border border-gray-200 rounded-lg p-4 bg-white text-sm text-gray-800 leading-relaxed text-justify">
-                        {service.description}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-orange-600" />
-                          <span className="font-medium text-gray-800">
-                            Response: {service.responseTime}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-green-600" />
-                          <span className="font-medium text-gray-800">
-                            {service.completedJobs} projects
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-gray-100">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">
-                              {service.provider.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm">
-                              {service.provider}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              Certified Professional
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-2 pt-1">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
-                          onClick={() => handleRequestQuote(service)}
-                        >
-                          Get Professional Quote
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleContactProvider(service)}
-                          disabled={
-                            !user ||
-                            (!service.providerProfile?.phone &&
-                              !service.providerProfile?.mobile_number)
-                          }
-                          className="border border-blue-200 text-blue-700 hover:bg-blue-50"
-                        >
-                          {user ? "Contact Provider" : "Sign In to Contact"}
-                        </Button>
-                      </div>
+                    <p className="text-sm text-gray-700 mb-2">{service.description}</p>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-semibold text-green-700">{service.priceRange}</span>
+                      <span className="text-xs text-gray-500">{service.location}</span>
                     </div>
+                    <Button onClick={() => handleRequestQuote(service)} size="sm" className="w-full">
+                      Request Quote
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
