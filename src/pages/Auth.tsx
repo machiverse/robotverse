@@ -75,16 +75,8 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      // Determine the correct redirect URL
-      const currentHost = window.location.hostname;
-      let redirectUrl = `${window.location.origin}/auth?reset=true`;
-      
-      if (currentHost === 'www.robotverse.in' || currentHost === 'robotverse.in') {
-        redirectUrl = 'https://www.robotverse.in/auth?reset=true';
-      }
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+        redirectTo: `${window.location.origin}/auth?reset=true`,
       });
 
       if (error) throw error;
@@ -252,26 +244,25 @@ const Auth = () => {
       mobileNumber,
       location,
       accountType,
-      // Ensure arrays are properly formatted, never empty strings or null
-      sellerRoles: Array.isArray(sellerRoles) && sellerRoles.length > 0 ? sellerRoles : [],
+      sellerRoles,
       logisticsType,
       logisticsRegion,
-      transportModes: Array.isArray(transportModes) && transportModes.length > 0 ? transportModes : [],
-      warehouseStorage: Boolean(warehouseStorage),
-      financeType: Array.isArray(financeType) && financeType.length > 0 ? financeType : [],
-      financingFor: Array.isArray(financingFor) && financingFor.length > 0 ? financingFor : [],
-      targetAudience: Array.isArray(targetAudience) && targetAudience.length > 0 ? targetAudience : [],
-      governmentSchemeSupport: Boolean(governmentSchemeSupport),
+      transportModes,
+      warehouseStorage,
+      financeType,
+      financingFor,
+      targetAudience,
+      governmentSchemeSupport,
       userId: userData.id,
       timestamp: Date.now()
     };
     
     console.log('💾 Saving user data to localStorage:', dataToSave);
-    localStorage.setItem('robotverse_user_registration_data', JSON.stringify(dataToSave));
+    localStorage.setItem('robotverse_pending_profile', JSON.stringify(dataToSave));
     console.log('✅ User data saved to localStorage for email confirmation');
     
     // Also validate that the data was saved correctly
-    const savedCheck = localStorage.getItem('robotverse_user_registration_data');
+    const savedCheck = localStorage.getItem('robotverse_pending_profile');
     if (savedCheck) {
       const parsedCheck = JSON.parse(savedCheck);
       console.log('✅ Verified saved data:', parsedCheck);
@@ -282,7 +273,7 @@ const Auth = () => {
 
   // ✅ Load user data from localStorage after email confirmation
   const loadUserDataFromStorage = () => {
-    const saved = localStorage.getItem('robotverse_user_registration_data');
+    const saved = localStorage.getItem('robotverse_pending_profile');
     if (saved) {
       const data = JSON.parse(saved);
       console.log('📥 Loading saved user data from localStorage');
@@ -293,7 +284,7 @@ const Auth = () => {
 
   // ✅ Clear saved user data after successful profile creation
   const clearSavedUserData = () => {
-    localStorage.removeItem('robotverse_user_registration_data');
+    localStorage.removeItem('robotverse_pending_profile');
     console.log('🗑️ Cleared saved user data from localStorage');
   };
 
@@ -321,45 +312,44 @@ const Auth = () => {
         const savedData = loadUserDataFromStorage();
         console.log('💾 Saved data from localStorage:', savedData);
 
-        if (!profileError && existingProfile) {
-          // Profile exists, just mark as registration complete
-          console.log('✅ Profile exists, marking as registration complete...');
-          
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              registration_complete: true,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', currentUser.id);
-
-          if (updateError) {
-            console.error('❌ Error updating registration status:', updateError);
-          } else {
-            console.log('✅ Registration marked as complete');
-            
-            toast({
-              title: "Welcome to RobotVerse!",
-              description: "Your account has been verified successfully.",
-            });
-            
-            setTimeout(() => navigate('/dashboard'), 1000);
-          }
-        } else if (savedData && savedData.userId === currentUser.id) {
-          // Fallback: create profile from saved data if it doesn't exist
+        // If we have saved data for this user
+        if (savedData && savedData.userId === currentUser.id) {
           try {
-            console.log('🆕 Creating profile from saved data...');
-            await createUserProfileFromSavedData(currentUser, savedData);
-            clearSavedUserData();
-            
-            toast({
-              title: "Welcome to RobotVerse!",
-              description: "Your account has been verified and profile created successfully.",
-            });
-            
-            setTimeout(() => navigate('/dashboard'), 1000);
+            if (existingProfile) {
+              // Update existing profile if it's incomplete
+              const isIncomplete = !existingProfile.registration_complete || 
+                                   !existingProfile.company_name || 
+                                   !existingProfile.mobile_number;
+              
+              if (isIncomplete) {
+                console.log('🔄 Updating incomplete profile...');
+                await updateUserProfileFromSavedData(currentUser, savedData);
+                clearSavedUserData();
+                
+                toast({
+                  title: "Welcome to RobotVerse!",
+                  description: "Your account has been verified and profile updated successfully.",
+                });
+                
+                setTimeout(() => navigate('/dashboard'), 1000);
+              }
+            } else {
+              // Create new profile
+              console.log('🆕 Creating new profile...');
+              await createUserProfileFromSavedData(currentUser, savedData);
+              clearSavedUserData();
+              
+              toast({
+                title: "Welcome to RobotVerse!",
+                description: "Your account has been verified and profile created successfully.",
+              });
+              
+              setTimeout(() => navigate('/dashboard'), 1000);
+            }
           } catch (error: any) {
-            console.error('❌ Error creating profile after email confirmation:', error);
+            console.error('❌ Error handling profile after email confirmation:', error);
+            
+            // Clear the saved data if it's corrupted or incompatible
             clearSavedUserData();
             
             toast({
@@ -368,6 +358,9 @@ const Auth = () => {
               description: `Failed to complete your profile setup: ${error.message}. Please sign in and try completing your profile again.`,
             });
           }
+        } else if (!existingProfile || !existingProfile.registration_complete) {
+          // No saved data but user needs to complete profile
+          console.log('⚠️ No saved data found for confirmed user, may need to complete registration');
         }
       }
     };
@@ -504,60 +497,146 @@ const Auth = () => {
     }
   };
 
-  // ✅ Create profile using exact schema fields only
+  // ✅ Create profile using exact TypeScript types from your schema
   const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Creating profile from saved data for user:', user.id);
       console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
       
-      // ✅ Build profile data with all possible fields
-      const profileData: any = {
+      // Validate that we have the required data
+      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
+        console.error('❌ Missing required data for profile creation:', {
+          companyName: savedData.companyName,
+          mobileNumber: savedData.mobileNumber,
+          accountType: savedData.accountType
+        });
+        
+        toast({
+          variant: "destructive",
+          title: "Incomplete Profile Data",
+          description: "Some required information is missing. Please complete your registration again.",
+        });
+        
+        // Clear corrupted data and redirect to registration
+        clearSavedUserData();
+        throw new Error('Missing required profile data');
+      }
+      
+      // ✅ Build profile data using exact schema types
+      const profileData: ProfileInsert = {
+        // Required field
         user_id: user.id,
+        
+        // Basic information - using exact field names from schema
         email: user.email || savedData.email,
-        full_name: savedData.fullName || '',
-        company_name: savedData.companyName || '',
-        mobile_number: savedData.mobileNumber || '',
-        location: savedData.location || '',
-        user_type: savedData.accountType || 'buyer',
-        account_type: savedData.accountType || 'buyer',
+        full_name: savedData.fullName || null,
+        company_name: savedData.companyName || null,
+        mobile_number: savedData.mobileNumber || null,
+        phone: savedData.mobileNumber || null, // Populate both phone fields
+        location: savedData.location || null,
+        user_type: savedData.accountType || null,
+        account_type: savedData.accountType || null,
+        updated_at: new Date().toISOString(),
+        
+        // Set registration as complete and MOU agreed
         registration_complete: true,
         mou_agreed: true,
         mou_agreed_at: new Date().toISOString(),
-        user_roles: ['buyer'], // Default
-        primary_role: 'buyer', // Default
+        
+        // Initialize other nullable fields
+        avatar_url: null,
       };
 
       // ✅ Add role-specific data based on account type
-      if (savedData.accountType === 'seller' && savedData.sellerRoles?.length > 0) {
-        profileData.seller_roles = savedData.sellerRoles;
-        profileData.user_roles = savedData.sellerRoles;
-        profileData.primary_role = savedData.sellerRoles[0];
-        profileData.service_categories = savedData.sellerRoles.includes('service_provider') ? ['maintenance', 'repair'] : [];
+      if (savedData.accountType === 'seller') {
+        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
+        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
+        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
+        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
+        
+        // Set service categories for service providers
+        if (savedData.sellerRoles?.includes('service_provider')) {
+          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
+        }
+        
+        console.log('🏪 Seller data:', {
+          seller_roles: profileData.seller_roles,
+          user_roles: profileData.user_roles,
+          primary_user_type: profileData.primary_user_type,
+          primary_role: profileData.primary_role,
+          service_categories: profileData.service_categories
+        });
+        
       } else if (savedData.accountType === 'logistics') {
         profileData.logistics_type = savedData.logisticsType || null;
         profileData.logistics_region = savedData.logisticsRegion || null;
-        profileData.transport_modes = savedData.transportModes || [];
-        profileData.warehouse_storage = Boolean(savedData.warehouseStorage);
+        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
+        profileData.warehouse_storage = savedData.warehouseStorage || null;
+        profileData.primary_user_type = 'logistics_provider';
         profileData.primary_role = 'logistics_provider';
         profileData.user_roles = ['logistics_provider'];
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        
+        console.log('🚚 Logistics data:', {
+          logistics_type: profileData.logistics_type,
+          logistics_region: profileData.logistics_region,
+          transport_modes: profileData.transport_modes,
+          warehouse_storage: profileData.warehouse_storage,
+          user_roles: profileData.user_roles,
+          target_audience: profileData.target_audience
+        });
+        
       } else if (savedData.accountType === 'finance') {
-        profileData.finance_type = savedData.financeType || [];
-        profileData.financing_for = savedData.financingFor || [];
-        profileData.government_scheme_support = Boolean(savedData.governmentSchemeSupport);
+        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
+        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
+        profileData.primary_user_type = 'finance_provider';
         profileData.primary_role = 'finance_provider';
         profileData.user_roles = ['finance_provider'];
+        
+        console.log('💰 Finance data:', {
+          finance_type: profileData.finance_type,
+          financing_for: profileData.financing_for,
+          target_audience: profileData.target_audience,
+          government_scheme_support: profileData.government_scheme_support,
+          user_roles: profileData.user_roles
+        });
+        
+      } else if (savedData.accountType === 'buyer') {
+        profileData.primary_user_type = 'buyer';
+        profileData.primary_role = 'buyer';
+        profileData.user_roles = ['buyer'];
+        console.log('🛒 Buyer data:', {
+          primary_user_type: profileData.primary_user_type,
+          user_roles: profileData.user_roles
+        });
       }
 
-      console.log('📋 Final profile data:', profileData);
+      console.log('📋 Final profile data (type-safe):', JSON.stringify(profileData, null, 2));
 
-      // ✅ Insert profile data
+      // ✅ Insert with type safety
       const { data, error } = await supabase
         .from('profiles')
-        .insert([profileData])
+        .insert(profileData)
         .select();
 
       if (error) {
         console.error('❌ Profile creation error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Show user-friendly error message
+        toast({
+          variant: "destructive",
+          title: "Profile Creation Failed",
+          description: `Failed to save your profile: ${error.message}. Please try again.`,
+        });
+        
         throw new Error(`Profile creation failed: ${error.message}`);
       }
 
@@ -806,8 +885,7 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // Save data for after email confirmation - RLS prevents immediate insert
-        console.log('💾 Saving user data for after email confirmation...');
+        // ✅ Save user data for after email confirmation
         saveUserDataToStorage(newUser);
 
         // ✅ Show email confirmation modal
