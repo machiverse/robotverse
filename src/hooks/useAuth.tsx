@@ -77,11 +77,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('🚀 Starting signup with email confirmation for:', email);
         
+        // Determine the correct redirect URL based on current domain
+        const currentHost = window.location.hostname;
+        let redirectUrl = `${window.location.origin}/auth`;
+        
+        // If we're on www.robotverse.in, use that as the redirect
+        if (currentHost === 'www.robotverse.in' || currentHost === 'robotverse.in') {
+          redirectUrl = 'https://www.robotverse.in/auth';
+        }
+        
+        console.log('📧 Email confirmation redirect URL:', redirectUrl);
+        
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`, // Redirect back to auth page
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName || ''
             }

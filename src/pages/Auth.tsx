@@ -75,8 +75,16 @@ const Auth = () => {
 
     setLoading(true);
     try {
+      // Determine the correct redirect URL
+      const currentHost = window.location.hostname;
+      let redirectUrl = `${window.location.origin}/auth?reset=true`;
+      
+      if (currentHost === 'www.robotverse.in' || currentHost === 'robotverse.in') {
+        redirectUrl = 'https://www.robotverse.in/auth?reset=true';
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?reset=true`,
+        redirectTo: redirectUrl,
       });
 
       if (error) throw error;
