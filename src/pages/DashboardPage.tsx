@@ -25,7 +25,6 @@ const DashboardPage = () => {
       }
       
       try {
-        console.log('🔍 Fetching profile for user:', user.id);
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
@@ -34,134 +33,21 @@ const DashboardPage = () => {
         
         if (error) {
           console.error('Profile fetch error:', error);
-          // If profile doesn't exist, check for saved registration data and create profile
+          // If profile doesn't exist, create a basic one with default buyer type
           if (error.code === 'PGRST116') {
-            console.log('📝 No profile found, checking for saved registration data...');
-            
-            // Check for saved registration data in localStorage
-            const savedData = localStorage.getItem('robotverse_user_registration_data');
-            let registrationData = null;
-            
-            if (savedData) {
-              try {
-                registrationData = JSON.parse(savedData);
-                console.log('💾 Found saved registration data:', registrationData);
-              } catch (e) {
-                console.warn('⚠️ Could not parse saved registration data');
-              }
-            }
-            
-            // Create profile with either saved data or defaults
-            let profileData: any;
-            
-            if (registrationData) {
-              // Map account types to primary_user_type values
-              const mapAccountTypeToPrimary = (accountType: string, sellerRoles?: string[]) => {
-                if (accountType === 'seller') {
-                  return sellerRoles?.[0] || 'robot_seller';
-                } else if (accountType === 'logistics') {
-                  return 'logistics_provider';
-                } else if (accountType === 'finance') {
-                  return 'finance_provider';
-                } else {
-                  return 'buyer';
-                }
-              };
-              
-              profileData = {
-                user_id: user.id,
-                email: user.email || registrationData.email,
-                full_name: registrationData.fullName || user.user_metadata?.full_name || '',
-                company_name: registrationData.companyName || null,
-                mobile_number: registrationData.mobileNumber || null,
-                phone: registrationData.mobileNumber || null,
-                location: registrationData.location || null,
-                user_type: registrationData.accountType || 'buyer',
-                account_type: registrationData.accountType || 'buyer',
-                registration_complete: true,
-                mou_agreed: true,
-                mou_agreed_at: new Date().toISOString(),
-                // Role-specific data
-                user_roles: registrationData.accountType === 'seller' 
-                  ? (registrationData.sellerRoles?.length > 0 ? registrationData.sellerRoles : ['robot_seller'])
-                  : registrationData.accountType === 'logistics' 
-                  ? ['logistics_provider']
-                  : registrationData.accountType === 'finance'
-                  ? ['finance_provider']
-                  : ['buyer'],
-                primary_user_type: mapAccountTypeToPrimary(registrationData.accountType, registrationData.sellerRoles),
-                primary_role: mapAccountTypeToPrimary(registrationData.accountType, registrationData.sellerRoles),
-                // Logistics specific
-                logistics_type: registrationData.logisticsType || null,
-                logistics_region: registrationData.logisticsRegion || null,
-                transport_modes: Array.isArray(registrationData.transportModes) && registrationData.transportModes.length > 0 ? registrationData.transportModes : [],
-                warehouse_storage: registrationData.warehouseStorage || false,
-                // Finance specific
-                finance_type: Array.isArray(registrationData.financeType) && registrationData.financeType.length > 0 ? registrationData.financeType : [],
-                financing_for: Array.isArray(registrationData.financingFor) && registrationData.financingFor.length > 0 ? registrationData.financingFor : [],
-                government_scheme_support: registrationData.governmentSchemeSupport || false,
-                // Seller specific - ensure arrays are properly formatted
-                seller_roles: Array.isArray(registrationData.sellerRoles) && registrationData.sellerRoles.length > 0 ? registrationData.sellerRoles : [],
-                service_categories: registrationData.sellerRoles?.includes('service_provider') 
-                  ? ['maintenance', 'repair', 'installation'] 
-                  : [],
-                target_audience: Array.isArray(registrationData.targetAudience) && registrationData.targetAudience.length > 0 ? registrationData.targetAudience : [],
-              };
-            } else {
-              profileData = {
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .insert({
                 user_id: user.id,
                 email: user.email,
                 full_name: user.user_metadata?.full_name || '',
-                user_type: 'buyer',
-                account_type: 'buyer',
-                user_roles: ['buyer'],
-                primary_user_type: 'buyer',
-                primary_role: 'buyer',
-                registration_complete: true,
-                // Initialize arrays to prevent JSON errors
-                seller_roles: [],
-                service_categories: [],
-                target_audience: [],
-                transport_modes: [],
-                finance_type: [],
-                financing_for: []
-              };
-            }
-            
-            console.log('📝 Creating profile with data:', profileData);
-            const { data: newProfile, error: insertError } = await supabase
-              .from('profiles')
-              .insert(profileData)
+                user_type: 'buyer' // Default to buyer
+              })
               .select()
               .single();
-            
-            if (insertError) {
-              console.error('❌ Profile creation failed:', insertError);
-              // If insert fails, set a minimal profile for the UI to work
-              setUserProfile({
-                user_id: user.id,
-                email: user.email,
-                full_name: user.user_metadata?.full_name || '',
-                user_type: 'buyer',
-                account_type: 'buyer',
-                user_roles: ['buyer'],
-                primary_user_type: 'buyer',
-                primary_role: 'buyer',
-                registration_complete: false
-              });
-            } else {
-              console.log('✅ Profile created successfully:', newProfile);
-              setUserProfile(newProfile);
-              
-              // Clear saved registration data since profile is now created
-              if (savedData) {
-                localStorage.removeItem('robotverse_user_registration_data');
-                console.log('🧹 Cleared saved registration data');
-              }
-            }
+            setUserProfile(newProfile);
           }
         } else {
-          console.log('✅ Profile found:', profile);
           setUserProfile(profile);
         }
       } catch (error) {
