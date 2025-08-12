@@ -103,48 +103,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               console.log('💾 Creating complete profile for user:', data.user.id);
               
-              // Prepare clean data for insertion with proper null handling
-              const insertData = {
-                user_id: data.user.id,
-                email: data.user.email || '',
-                full_name: fullName || '',
-                company_name: profileData.companyName || null,
-                mobile_number: profileData.mobileNumber || null,
-                phone: profileData.mobileNumber || null,
-                location: profileData.location || null,
-                user_type: profileData.accountType || 'buyer',
-                account_type: profileData.accountType || 'buyer',
-                user_roles: Array.isArray(profileData.sellerRoles) && profileData.sellerRoles.length > 0 ? 
-                  profileData.sellerRoles : ['buyer'],
-                seller_roles: profileData.accountType === 'seller' ? 
-                  (Array.isArray(profileData.sellerRoles) && profileData.sellerRoles.length > 0 ? 
-                    profileData.sellerRoles : ['robot_seller']) : [],
-                logistics_type: profileData.logisticsType || null,
-                logistics_region: profileData.logisticsRegion || null,
-                transport_modes: Array.isArray(profileData.transportModes) && profileData.transportModes.length > 0 ? 
-                  profileData.transportModes : [],
-                warehouse_storage: Boolean(profileData.warehouseStorage),
-                finance_type: Array.isArray(profileData.financeType) && profileData.financeType.length > 0 ? 
-                  profileData.financeType : [],
-                financing_for: Array.isArray(profileData.financingFor) && profileData.financingFor.length > 0 ? 
-                  profileData.financingFor : [],
-                target_audience: Array.isArray(profileData.targetAudience) && profileData.targetAudience.length > 0 ? 
-                  profileData.targetAudience : [],
-                government_scheme_support: Boolean(profileData.governmentSchemeSupport),
-                primary_role: profileData.accountType === 'seller' ? 'robot_seller' :
-                  profileData.accountType === 'logistics' ? 'logistics_provider' :
-                  profileData.accountType === 'finance' ? 'finance_provider' : 'buyer',
-                service_categories: profileData.accountType === 'seller' && 
-                  Array.isArray(profileData.sellerRoles) && profileData.sellerRoles.includes('service_provider') ? 
-                  ['maintenance', 'repair', 'installation'] : [],
-                registration_complete: true,
-                mou_agreed: true,
-                mou_agreed_at: new Date().toISOString()
-              };
-
-              const { error: profileError } = await supabase
-                .from('profiles')
-                .insert(insertData);
+              // Use the database function to create profile with proper error handling
+              const { data: profileResult, error: profileError } = await supabase.rpc(
+                'create_complete_user_profile',
+                {
+                  p_user_id: data.user.id,
+                  p_email: data.user.email || '',
+                  p_full_name: fullName || '',
+                  p_company_name: profileData.companyName || null,
+                  p_mobile_number: profileData.mobileNumber || null,
+                  p_location: profileData.location || null,
+                  p_user_type: profileData.accountType || 'buyer',
+                  p_account_type: profileData.accountType || 'buyer',
+                  p_seller_roles: Array.isArray(profileData.sellerRoles) ? profileData.sellerRoles : [],
+                  p_logistics_type: profileData.logisticsType || null,
+                  p_logistics_region: profileData.logisticsRegion || null,
+                  p_transport_modes: Array.isArray(profileData.transportModes) ? profileData.transportModes : [],
+                  p_warehouse_storage: Boolean(profileData.warehouseStorage),
+                  p_finance_type: Array.isArray(profileData.financeType) ? profileData.financeType : [],
+                  p_financing_for: Array.isArray(profileData.financingFor) ? profileData.financingFor : [],
+                  p_target_audience: Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [],
+                  p_government_scheme_support: Boolean(profileData.governmentSchemeSupport)
+                }
+              );
 
               if (profileError) {
                 console.error('❌ Profile creation failed:', profileError);
