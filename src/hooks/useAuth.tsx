@@ -72,28 +72,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // ✅ Modified signUp to store profile data immediately
   const signUp = useCallback(
     async (email: string, password: string, fullName?: string, profileData?: any) => {
       try {
-        console.log('🚀 Starting signup with email confirmation for:', email);
+        console.log('🚀 Starting signup for:', email);
         
-        // Determine the correct redirect URL based on current domain
-        const currentHost = window.location.hostname;
-        let redirectUrl = `${window.location.origin}/auth`;
-        
-        // If we're on www.robotverse.in, use that as the redirect
-        if (currentHost === 'www.robotverse.in' || currentHost === 'robotverse.in') {
-          redirectUrl = 'https://www.robotverse.in/auth';
-        }
-        
-        console.log('📧 Email confirmation redirect URL:', redirectUrl);
+        // Clean up any existing auth state first
+        cleanupAuthState();
         
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName || ''
             }
@@ -107,67 +97,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (data.user) {
           console.log('✅ User created successfully:', data.user.id);
-          console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
           
-          // ✅ Create complete profile immediately without relying on triggers
+          // Create profile immediately after successful signup
           if (profileData) {
             try {
-              console.log('💾 Creating complete profile immediately for user:', data.user.id);
+              console.log('💾 Creating complete profile for user:', data.user.id);
               
-              // Wait for user to be created, then insert profile
-              setTimeout(async () => {
-                try {
-                  const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert({
-                      user_id: data.user.id,
-                      email: data.user.email || '',
-                      full_name: fullName || '',
-                      company_name: profileData.companyName || null,
-                      mobile_number: profileData.mobileNumber || null,
-                      phone: profileData.mobileNumber || null,
-                      location: profileData.location || null,
-                      user_type: profileData.accountType || 'buyer',
-                      account_type: profileData.accountType || 'buyer',
-                      user_roles: profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['buyer'],
-                      seller_roles: profileData.accountType === 'seller' ? 
-                        (profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['robot_seller']) : [],
-                      logistics_type: profileData.logisticsType || null,
-                      logistics_region: profileData.logisticsRegion || null,
-                      transport_modes: profileData.transportModes?.length > 0 ? profileData.transportModes : [],
-                      warehouse_storage: profileData.warehouseStorage || false,
-                      finance_type: profileData.financeType?.length > 0 ? profileData.financeType : [],
-                      financing_for: profileData.financingFor?.length > 0 ? profileData.financingFor : [],
-                      target_audience: profileData.targetAudience?.length > 0 ? profileData.targetAudience : [],
-                      government_scheme_support: profileData.governmentSchemeSupport || false,
-                      primary_role: profileData.accountType === 'seller' ? 'robot_seller' :
-                        profileData.accountType === 'logistics' ? 'logistics_provider' :
-                        profileData.accountType === 'finance' ? 'finance_provider' : 'buyer',
-                      service_categories: profileData.accountType === 'seller' && 
-                        profileData.sellerRoles?.includes('service_provider') ? 
-                        ['maintenance', 'repair', 'installation'] : [],
-                      registration_complete: true,
-                      mou_agreed: true,
-                      mou_agreed_at: new Date().toISOString()
-                    });
+              // Use direct insert with proper error handling
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                  user_id: data.user.id,
+                  email: data.user.email || '',
+                  full_name: fullName || '',
+                  company_name: profileData.companyName || null,
+                  mobile_number: profileData.mobileNumber || null,
+                  phone: profileData.mobileNumber || null,
+                  location: profileData.location || null,
+                  user_type: profileData.accountType || 'buyer',
+                  account_type: profileData.accountType || 'buyer',
+                  user_roles: profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['buyer'],
+                  seller_roles: profileData.accountType === 'seller' ? 
+                    (profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['robot_seller']) : [],
+                  logistics_type: profileData.logisticsType || null,
+                  logistics_region: profileData.logisticsRegion || null,
+                  transport_modes: profileData.transportModes?.length > 0 ? profileData.transportModes : [],
+                  warehouse_storage: profileData.warehouseStorage || false,
+                  finance_type: profileData.financeType?.length > 0 ? profileData.financeType : [],
+                  financing_for: profileData.financingFor?.length > 0 ? profileData.financingFor : [],
+                  target_audience: profileData.targetAudience?.length > 0 ? profileData.targetAudience : [],
+                  government_scheme_support: profileData.governmentSchemeSupport || false,
+                  primary_role: profileData.accountType === 'seller' ? 'robot_seller' :
+                    profileData.accountType === 'logistics' ? 'logistics_provider' :
+                    profileData.accountType === 'finance' ? 'finance_provider' : 'buyer',
+                  service_categories: profileData.accountType === 'seller' && 
+                    profileData.sellerRoles?.includes('service_provider') ? 
+                    ['maintenance', 'repair', 'installation'] : [],
+                  registration_complete: true,
+                  mou_agreed: true,
+                  mou_agreed_at: new Date().toISOString()
+                });
 
-                  if (profileError) {
-                    console.error('❌ Profile creation failed:', profileError);
-                  } else {
-                    console.log('✅ Complete profile created successfully');
-                  }
-                } catch (profileError) {
-                  console.error('❌ Error creating profile:', profileError);
-                }
-              }, 1000); // Wait 1 second for user to be fully created
-              
-            } catch (profileError) {
+              if (profileError) {
+                console.error('❌ Profile creation failed:', profileError);
+                return { user: null, error: { 
+                  message: profileError.message, 
+                  name: 'ProfileCreationError',
+                  code: 'profile_creation_failed',
+                  status: 400,
+                  __isAuthError: true 
+                } as unknown as AuthError };
+              } else {
+                console.log('✅ Complete profile created successfully');
+                // Set auth state immediately since profile was created
+                setUser(data.user);
+                setSession(data.session);
+              }
+            } catch (profileError: any) {
               console.error('❌ Error creating profile:', profileError);
+              return { user: null, error: { 
+                message: profileError.message || 'Profile creation failed', 
+                name: 'ProfileCreationError',
+                code: 'profile_creation_failed',
+                status: 400,
+                __isAuthError: true 
+              } as unknown as AuthError };
             }
-          }
-          
-          // Don't update local state until email is confirmed
-          if (data.user.email_confirmed_at) {
+          } else {
+            // No profile data, just basic signup
             setUser(data.user);
             setSession(data.session);
           }
