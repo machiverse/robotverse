@@ -244,25 +244,26 @@ const Auth = () => {
       mobileNumber,
       location,
       accountType,
-      sellerRoles,
+      // Ensure arrays are properly formatted, never empty strings or null
+      sellerRoles: Array.isArray(sellerRoles) && sellerRoles.length > 0 ? sellerRoles : [],
       logisticsType,
       logisticsRegion,
-      transportModes,
-      warehouseStorage,
-      financeType,
-      financingFor,
-      targetAudience,
-      governmentSchemeSupport,
+      transportModes: Array.isArray(transportModes) && transportModes.length > 0 ? transportModes : [],
+      warehouseStorage: Boolean(warehouseStorage),
+      financeType: Array.isArray(financeType) && financeType.length > 0 ? financeType : [],
+      financingFor: Array.isArray(financingFor) && financingFor.length > 0 ? financingFor : [],
+      targetAudience: Array.isArray(targetAudience) && targetAudience.length > 0 ? targetAudience : [],
+      governmentSchemeSupport: Boolean(governmentSchemeSupport),
       userId: userData.id,
       timestamp: Date.now()
     };
     
     console.log('💾 Saving user data to localStorage:', dataToSave);
-    localStorage.setItem('robotverse_pending_profile', JSON.stringify(dataToSave));
+    localStorage.setItem('robotverse_user_registration_data', JSON.stringify(dataToSave));
     console.log('✅ User data saved to localStorage for email confirmation');
     
     // Also validate that the data was saved correctly
-    const savedCheck = localStorage.getItem('robotverse_pending_profile');
+    const savedCheck = localStorage.getItem('robotverse_user_registration_data');
     if (savedCheck) {
       const parsedCheck = JSON.parse(savedCheck);
       console.log('✅ Verified saved data:', parsedCheck);
@@ -273,7 +274,7 @@ const Auth = () => {
 
   // ✅ Load user data from localStorage after email confirmation
   const loadUserDataFromStorage = () => {
-    const saved = localStorage.getItem('robotverse_pending_profile');
+    const saved = localStorage.getItem('robotverse_user_registration_data');
     if (saved) {
       const data = JSON.parse(saved);
       console.log('📥 Loading saved user data from localStorage');
@@ -284,7 +285,7 @@ const Auth = () => {
 
   // ✅ Clear saved user data after successful profile creation
   const clearSavedUserData = () => {
-    localStorage.removeItem('robotverse_pending_profile');
+    localStorage.removeItem('robotverse_user_registration_data');
     console.log('🗑️ Cleared saved user data from localStorage');
   };
 

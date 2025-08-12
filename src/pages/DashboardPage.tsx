@@ -68,6 +68,9 @@ const DashboardPage = () => {
                 }
               };
               
+              // Ensure arrays are properly formatted to prevent JSON errors
+              const safeArray = (arr: any) => Array.isArray(arr) && arr.length > 0 ? arr : [];
+              
               profileData = {
                 user_id: user.id,
                 email: user.email || registrationData.email,
@@ -81,9 +84,9 @@ const DashboardPage = () => {
                 registration_complete: true,
                 mou_agreed: true,
                 mou_agreed_at: new Date().toISOString(),
-                // Role-specific data
+                // Role-specific data - all arrays properly formatted
                 user_roles: registrationData.accountType === 'seller' 
-                  ? (registrationData.sellerRoles?.length > 0 ? registrationData.sellerRoles : ['robot_seller'])
+                  ? safeArray(registrationData.sellerRoles).length > 0 ? registrationData.sellerRoles : ['robot_seller']
                   : registrationData.accountType === 'logistics' 
                   ? ['logistics_provider']
                   : registrationData.accountType === 'finance'
@@ -94,18 +97,18 @@ const DashboardPage = () => {
                 // Logistics specific
                 logistics_type: registrationData.logisticsType || null,
                 logistics_region: registrationData.logisticsRegion || null,
-                transport_modes: Array.isArray(registrationData.transportModes) && registrationData.transportModes.length > 0 ? registrationData.transportModes : [],
-                warehouse_storage: registrationData.warehouseStorage || false,
+                transport_modes: safeArray(registrationData.transportModes),
+                warehouse_storage: Boolean(registrationData.warehouseStorage),
                 // Finance specific
-                finance_type: Array.isArray(registrationData.financeType) && registrationData.financeType.length > 0 ? registrationData.financeType : [],
-                financing_for: Array.isArray(registrationData.financingFor) && registrationData.financingFor.length > 0 ? registrationData.financingFor : [],
-                government_scheme_support: registrationData.governmentSchemeSupport || false,
+                finance_type: safeArray(registrationData.financeType),
+                financing_for: safeArray(registrationData.financingFor),
+                government_scheme_support: Boolean(registrationData.governmentSchemeSupport),
                 // Seller specific - ensure arrays are properly formatted
-                seller_roles: Array.isArray(registrationData.sellerRoles) && registrationData.sellerRoles.length > 0 ? registrationData.sellerRoles : [],
+                seller_roles: safeArray(registrationData.sellerRoles),
                 service_categories: registrationData.sellerRoles?.includes('service_provider') 
                   ? ['maintenance', 'repair', 'installation'] 
                   : [],
-                target_audience: Array.isArray(registrationData.targetAudience) && registrationData.targetAudience.length > 0 ? registrationData.targetAudience : [],
+                target_audience: safeArray(registrationData.targetAudience),
               };
             } else {
               profileData = {
