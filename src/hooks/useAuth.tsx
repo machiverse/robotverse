@@ -10,6 +10,7 @@ import {
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+// --- Types ---
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -27,6 +28,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// --- Clears Supabase & browser auth tokens ---
 const cleanupAuthState = () => {
   console.log('🧹 Cleaning up auth caches...');
   const keysToRemove = ['supabase.auth.token'];
@@ -36,14 +38,15 @@ const cleanupAuthState = () => {
   });
 };
 
+// ---- Auth Provider ----
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // --- Initial session setup & Supabase auth state listening ---
   useEffect(() => {
     console.log('🚀 Initializing auth state...');
-    
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) {
         console.error('❌ Error getting initial session:', error);
@@ -72,22 +75,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // ---- Signup with optional full profile data ----
   const signUp = useCallback(
     async (email: string, password: string, fullName?: string, profileData?: any) => {
       try {
         console.log('🚀 Starting signup for:', email);
-        
+
         // Clean up any existing auth state first
         cleanupAuthState();
-        
-        // Determine the correct redirect URL for email confirmation
+
+        // Determine redirect URL for email confirmation
         const currentHost = window.location.hostname;
         let redirectUrl = `${window.location.origin}/auth`;
-        
         if (currentHost === 'www.robotverse.in' || currentHost === 'robotverse.in') {
           redirectUrl = 'https://www.robotverse.in/auth';
         }
 
+        // Supabase sign up - triggers confirmation email
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -106,13 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (data.user) {
           console.log('✅ User created successfully:', data.user.id);
-          
-          // Create profile immediately after successful signup
+
+          // --- (Optional) Immediately create profile (if RLS and workflow allow) ---
           if (profileData) {
             try {
               console.log('💾 Creating complete profile for user:', data.user.id);
-              
-              // Use the database function to create profile with proper error handling
+
+              // Example: calling an RPC for profile creation, but be sure your DB and RLS allow this!
               const { data: profileResult, error: profileError } = await supabase.rpc(
                 'create_complete_user_profile',
                 {
@@ -138,31 +142,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
               if (profileError) {
                 console.error('❌ Profile creation failed:', profileError);
-                return { user: null, error: { 
-                  message: profileError.message, 
+                return { user: null, error: {
+                  message: profileError.message,
                   name: 'ProfileCreationError',
                   code: 'profile_creation_failed',
                   status: 400,
-                  __isAuthError: true 
+                  __isAuthError: true
                 } as unknown as AuthError };
               } else {
                 console.log('✅ Complete profile created successfully');
-                // Set auth state immediately since profile was created
                 setUser(data.user);
                 setSession(data.session);
               }
             } catch (profileError: any) {
               console.error('❌ Error creating profile:', profileError);
-              return { user: null, error: { 
-                message: profileError.message || 'Profile creation failed', 
+              return { user: null, error: {
+                message: profileError.message || 'Profile creation failed',
                 name: 'ProfileCreationError',
                 code: 'profile_creation_failed',
                 status: 400,
-                __isAuthError: true 
+                __isAuthError: true
               } as unknown as AuthError };
             }
           } else {
-            // No profile data, just basic signup
             setUser(data.user);
             setSession(data.session);
           }
@@ -177,25 +179,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // ---- Signin ----
   const signIn = useCallback(
     async (email: string, password: string) => {
       try {
         console.log('🔐 Attempting sign in for:', email);
-        
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        
         if (error) {
           console.error('❌ Sign in error:', error.message);
           return error;
         }
-        
         if (data.user) {
           console.log('✅ Sign in successful for user:', data.user.id);
         }
-        
         return null;
       } catch (error) {
         console.error('❌ Sign in exception:', error);
@@ -205,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  // ---- Signout ----
   const signOut = useCallback(async () => {
     try {
       console.log('👋 Signing out user...');
@@ -218,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // ---- Context Value ----
   const value = useMemo(
     () => ({
       user,
@@ -234,6 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// ---- Hook for consumer components ----
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
