@@ -17,7 +17,8 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    fullName?: string
+    fullName?: string,
+    profileData?: any
   ) => Promise<{ user: User | null; error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<AuthError | null>;
   signOut: () => Promise<void>;
@@ -71,9 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // ✅ Modified signUp for email confirmation
+  // ✅ Modified signUp to store profile data immediately
   const signUp = useCallback(
-    async (email: string, password: string, fullName?: string) => {
+    async (email: string, password: string, fullName?: string, profileData?: any) => {
       try {
         console.log('🚀 Starting signup with email confirmation for:', email);
         
@@ -107,6 +108,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.user) {
           console.log('✅ User created successfully:', data.user.id);
           console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
+          
+          // ✅ Create profile immediately after user creation
+          if (profileData) {
+            try {
+              console.log('💾 Creating profile immediately for user:', data.user.id);
+              
+              const fullProfileData = {
+                user_id: data.user.id,
+                email: data.user.email,
+                full_name: fullName || '',
+                company_name: profileData.companyName || null,
+                mobile_number: profileData.mobileNumber || null,
+                phone: profileData.mobileNumber || null,
+                location: profileData.location || null,
+                user_type: profileData.accountType || 'buyer',
+                account_type: profileData.accountType || 'buyer',
+                registration_complete: false, // Set to false until email confirmed
+                mou_agreed: true,
+                mou_agreed_at: new Date().toISOString(),
+                // Role-specific data
+                user_roles: profileData.accountType === 'seller' 
+                  ? (profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['robot_seller'])
+                  : profileData.accountType === 'logistics' 
+                  ? ['logistics_provider']
+                  : profileData.accountType === 'finance'
+                  ? ['finance_provider']
+                  : ['buyer'],
+                primary_user_type: profileData.accountType === 'seller' 
+                  ? (profileData.sellerRoles?.[0] || 'robot_seller')
+                  : profileData.accountType === 'logistics' 
+                  ? 'logistics_provider'
+                  : profileData.accountType === 'finance'
+                  ? 'finance_provider'
+                  : 'buyer',
+                primary_role: profileData.accountType === 'seller' 
+                  ? (profileData.sellerRoles?.[0] || 'robot_seller')
+                  : profileData.accountType === 'logistics' 
+                  ? 'logistics_provider'
+                  : profileData.accountType === 'finance'
+                  ? 'finance_provider'
+                  : 'buyer',
+                // Logistics specific
+                logistics_type: profileData.logisticsType || null,
+                logistics_region: profileData.logisticsRegion || null,
+                transport_modes: profileData.transportModes?.length > 0 ? profileData.transportModes : [],
+                warehouse_storage: Boolean(profileData.warehouseStorage),
+                // Finance specific
+                finance_type: profileData.financeType?.length > 0 ? profileData.financeType : [],
+                financing_for: profileData.financingFor?.length > 0 ? profileData.financingFor : [],
+                government_scheme_support: Boolean(profileData.governmentSchemeSupport),
+                // Seller specific
+                seller_roles: profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : [],
+                service_categories: profileData.sellerRoles?.includes('service_provider') 
+                  ? ['maintenance', 'repair', 'installation'] 
+                  : [],
+                target_audience: profileData.targetAudience?.length > 0 ? profileData.targetAudience : [],
+              };
+
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert(fullProfileData);
+
+              if (profileError) {
+                console.error('❌ Profile creation failed:', profileError);
+                // Save to localStorage as fallback
+                localStorage.setItem('robotverse_user_registration_data', JSON.stringify({
+                  ...profileData,
+                  userId: data.user.id,
+                  timestamp: Date.now()
+                }));
+              } else {
+                console.log('✅ Profile created successfully in database');
+              }
+            } catch (profileError) {
+              console.error('❌ Error creating profile:', profileError);
+              // Save to localStorage as fallback
+              localStorage.setItem('robotverse_user_registration_data', JSON.stringify({
+                ...profileData,
+                userId: data.user.id,
+                timestamp: Date.now()
+              }));
+            }
+          }
           
           // Don't update local state until email is confirmed
           if (data.user.email_confirmed_at) {

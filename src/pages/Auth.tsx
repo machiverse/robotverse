@@ -321,44 +321,45 @@ const Auth = () => {
         const savedData = loadUserDataFromStorage();
         console.log('💾 Saved data from localStorage:', savedData);
 
-        // If we have saved data for this user
-        if (savedData && savedData.userId === currentUser.id) {
-          try {
-            if (existingProfile) {
-              // Update existing profile if it's incomplete
-              const isIncomplete = !existingProfile.registration_complete || 
-                                   !existingProfile.company_name || 
-                                   !existingProfile.mobile_number;
-              
-              if (isIncomplete) {
-                console.log('🔄 Updating incomplete profile...');
-                await updateUserProfileFromSavedData(currentUser, savedData);
-                clearSavedUserData();
-                
-                toast({
-                  title: "Welcome to RobotVerse!",
-                  description: "Your account has been verified and profile updated successfully.",
-                });
-                
-                setTimeout(() => navigate('/dashboard'), 1000);
-              }
-            } else {
-              // Create new profile
-              console.log('🆕 Creating new profile...');
-              await createUserProfileFromSavedData(currentUser, savedData);
-              clearSavedUserData();
-              
-              toast({
-                title: "Welcome to RobotVerse!",
-                description: "Your account has been verified and profile created successfully.",
-              });
-              
-              setTimeout(() => navigate('/dashboard'), 1000);
-            }
-          } catch (error: any) {
-            console.error('❌ Error handling profile after email confirmation:', error);
+        if (!profileError && existingProfile) {
+          // Profile exists, just mark as registration complete
+          console.log('✅ Profile exists, marking as registration complete...');
+          
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              registration_complete: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', currentUser.id);
+
+          if (updateError) {
+            console.error('❌ Error updating registration status:', updateError);
+          } else {
+            console.log('✅ Registration marked as complete');
             
-            // Clear the saved data if it's corrupted or incompatible
+            toast({
+              title: "Welcome to RobotVerse!",
+              description: "Your account has been verified successfully.",
+            });
+            
+            setTimeout(() => navigate('/dashboard'), 1000);
+          }
+        } else if (savedData && savedData.userId === currentUser.id) {
+          // Fallback: create profile from saved data if it doesn't exist
+          try {
+            console.log('🆕 Creating profile from saved data...');
+            await createUserProfileFromSavedData(currentUser, savedData);
+            clearSavedUserData();
+            
+            toast({
+              title: "Welcome to RobotVerse!",
+              description: "Your account has been verified and profile created successfully.",
+            });
+            
+            setTimeout(() => navigate('/dashboard'), 1000);
+          } catch (error: any) {
+            console.error('❌ Error creating profile after email confirmation:', error);
             clearSavedUserData();
             
             toast({
@@ -367,9 +368,6 @@ const Auth = () => {
               description: `Failed to complete your profile setup: ${error.message}. Please sign in and try completing your profile again.`,
             });
           }
-        } else if (!existingProfile || !existingProfile.registration_complete) {
-          // No saved data but user needs to complete profile
-          console.log('⚠️ No saved data found for confirmed user, may need to complete registration');
         }
       }
     };

@@ -34,22 +34,22 @@ const DashboardPage = () => {
         
         if (error) {
           console.error('Profile fetch error:', error);
-          // If profile doesn't exist, check for saved registration data and create profile
-          if (error.code === 'PGRST116') {
-            console.log('📝 No profile found, checking for saved registration data...');
-            
-            // Check for saved registration data in localStorage
-            const savedData = localStorage.getItem('robotverse_user_registration_data');
-            let registrationData = null;
-            
-            if (savedData) {
-              try {
-                registrationData = JSON.parse(savedData);
-                console.log('💾 Found saved registration data:', registrationData);
-              } catch (e) {
-                console.warn('⚠️ Could not parse saved registration data');
+            // If profile doesn't exist, this is unusual since we now create profiles immediately
+            if (error.code === 'PGRST116') {
+              console.log('📝 No profile found - this is unusual, creating minimal profile...');
+              
+              // Check for saved registration data in localStorage as fallback
+              const savedData = localStorage.getItem('robotverse_user_registration_data');
+              let registrationData = null;
+              
+              if (savedData) {
+                try {
+                  registrationData = JSON.parse(savedData);
+                  console.log('💾 Found saved registration data as fallback:', registrationData);
+                } catch (e) {
+                  console.warn('⚠️ Could not parse saved registration data');
+                }
               }
-            }
             
             // Create profile with either saved data or defaults
             let profileData: any;
