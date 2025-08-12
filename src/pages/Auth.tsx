@@ -806,8 +806,40 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // ✅ Save user data for after email confirmation
-        saveUserDataToStorage(newUser);
+        // ✅ Create profile immediately with simplified data
+        try {
+          console.log('📝 Creating profile immediately...');
+          
+          const profileData = {
+            user_id: newUser.id,
+            email: email,
+            full_name: fullName,
+            company_name: companyName,
+            mobile_number: mobileNumber,
+            location: location,
+            user_type: accountType,
+            account_type: accountType,
+            user_roles: [accountType],
+            registration_complete: true
+          };
+
+          const { data: newProfile, error: profileError } = await supabase
+            .from('profiles')
+            .insert(profileData)
+            .select()
+            .single();
+
+          if (profileError) {
+            console.error('❌ Profile creation failed:', profileError);
+            throw new Error(`Profile creation failed: ${profileError.message}`);
+          }
+
+          console.log('✅ Profile created successfully:', newProfile);
+        } catch (profileError) {
+          console.error('❌ Profile creation exception:', profileError);
+          // Don't throw here - save data for later and let email confirmation handle it
+          saveUserDataToStorage(newUser);
+        }
 
         // ✅ Show email confirmation modal
         setShowEmailConfirmationModal(true);
