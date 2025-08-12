@@ -10,7 +10,6 @@ import {
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// -- Context type
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -26,10 +25,8 @@ interface AuthContextType {
   cleanupAuthState: () => void;
 }
 
-// -- Auth Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// -- Helper to clear auth cache
 const cleanupAuthState = () => {
   const keysToRemove = ['supabase.auth.token'];
   keysToRemove.forEach(key => {
@@ -38,20 +35,18 @@ const cleanupAuthState = () => {
   });
 };
 
-// -- Auth Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // -- Initial load / subscription
+  // Initialize session state
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -61,16 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     );
-
     return () => subscription.unsubscribe();
   }, []);
 
-  // -- Sign Up Function: Create auth user and save profile data locally
+  /**
+   * Sign-up: create user and save registration form data locally for post-verification profile creation
+   */
   const signUp = useCallback(
     async (email: string, password: string, fullName?: string, profileData?: any) => {
       try {
         cleanupAuthState();
-
+        // Create auth user & send email verification
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -78,9 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             data: { full_name: fullName || '' }
           }
         });
-
         if (error) return { user: null, error };
-
+        // ----
+        // Save form data for profile creation after verification
         if (data.user) {
           localStorage.setItem(
             'robotverse_user_registration_data',
@@ -95,15 +91,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // -- Sign In Function
+  /**
+   * Sign-in: normal password login
+   */
   const signIn = useCallback(
     async (email: string, password: string) => {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) return error;
         if (data.user) {
           setUser(data.user);
@@ -117,64 +111,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // -- Sign Out
+  /**
+   * Sign-out: clear token and state
+   */
   const signOut = useCallback(async () => {
     cleanupAuthState();
     await supabase.auth.signOut({ scope: 'global' });
     window.location.href = '/auth';
   }, []);
 
-  // -- Listen for email confirmation and profile creation
+  /**
+   * Profile creation after authentication and email confirmation
+   * This effect runs on login and email confirmation event
+   */
   useEffect(() => {
     async function createProfileIfNeeded() {
-      // Get current user
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser && currentUser.email_confirmed_at) {
-        const local = localStorage.getItem('robotverse_user_registration_data');
-        if (!local) return;
-        const pendingData = JSON.parse(local);
+        const savedData = localStorage.getItem('robotverse_user_registration_data');
+        if (!savedData) return;
+        const pendingProfile = JSON.parse(savedData);
 
-        // Check if profile exists
+        // Check if profile already exists
         const { data: existing } = await supabase
           .from('profiles')
           .select('user_id')
           .eq('user_id', currentUser.id)
           .single();
 
-        // Prepare profileData for insert/update
-        const profileInsert: any = {
+        // Prepare all registration fields
+        const profileInsert = {
           user_id: currentUser.id,
           email: currentUser.email,
-          full_name: pendingData.fullName,
-          company_name: pendingData.companyName,
-          mobile_number: pendingData.mobileNumber,
-          location: pendingData.location,
-          user_type: pendingData.accountType,
-          account_type: pendingData.accountType,
+          full_name: pendingProfile.fullName,
+          company_name: pendingProfile.companyName,
+          mobile_number: pendingProfile.mobileNumber,
+          phone: pendingProfile.mobileNumber,
+          location: pendingProfile.location,
+          user_type: pendingProfile.accountType,
+          account_type: pendingProfile.accountType,
           registration_complete: true,
           mou_agreed: true,
           mou_agreed_at: new Date().toISOString(),
-          seller_roles: pendingData.sellerRoles || [],
-          user_roles: pendingData.sellerRoles || [pendingData.accountType],
-          primary_role: pendingData.sellerRoles?.[0] || pendingData.accountType,
-          logistics_type: pendingData.logisticsType || null,
-          logistics_region: pendingData.logisticsRegion || null,
-          transport_modes: pendingData.transportModes || [],
-          warehouse_storage: !!pendingData.warehouseStorage,
-          finance_type: pendingData.financeType || [],
-          financing_for: pendingData.financingFor || [],
-          target_audience: pendingData.targetAudience || [],
-          government_scheme_support: !!pendingData.governmentSchemeSupport,
-          service_categories: pendingData.sellerRoles?.includes('service_provider')
-            ? ['maintenance', 'repair', 'installation']
-            : [],
+          seller_roles: pendingProfile.sellerRoles || [],
+          user_roles: pendingProfile.sellerRoles || [pendingProfile.accountType],
+          primary_role: pendingProfile.sellerRoles?.[0] || pendingProfile.accountType,
+          logistics_type: pendingProfile.logisticsType || null,
+          logistics_region: pendingProfile.logisticsRegion || null,
+          transport_modes: pendingProfile.transportModes || [],
+          warehouse_storage: !!pendingProfile.warehouseStorage,
+          finance_type: pendingProfile.financeType || [],
+          financing_for: pendingProfile.financingFor || [],
+          target_audience: pendingProfile.targetAudience || [],
+          government_scheme_support: !!pendingProfile.governmentSchemeSupport,
+          service_categories: pendingProfile.sellerRoles?.includes('service_provider')
+            ? ['maintenance', 'repair', 'installation'] : [],
         };
 
         if (!existing) {
-          // Insert
           await supabase.from('profiles').insert([profileInsert]);
         } else {
-          // Update
           await supabase.from('profiles').update(profileInsert).eq('user_id', currentUser.id);
         }
         localStorage.removeItem('robotverse_user_registration_data');
@@ -190,11 +186,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     );
-
     return () => subscription.unsubscribe();
   }, []);
 
-  // -- Provider value
+  // Provide context value
   const value = useMemo(
     () => ({
       user,
@@ -211,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// -- Auth Hook
+// Auth hook
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
