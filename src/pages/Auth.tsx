@@ -547,16 +547,18 @@ const Auth = () => {
         avatar_url: null,
       };
 
-      // ✅ Add role-specific data based on account type
+      // ✅ Add role-specific data based on account type - ensure arrays are properly formatted
       if (savedData.accountType === 'seller') {
-        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
-        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
+        profileData.seller_roles = Array.isArray(savedData.sellerRoles) && savedData.sellerRoles.length > 0 ? savedData.sellerRoles : [];
+        profileData.user_roles = Array.isArray(savedData.sellerRoles) && savedData.sellerRoles.length > 0 ? savedData.sellerRoles : ['robot_seller'];
         profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
         profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
         
         // Set service categories for service providers
         if (savedData.sellerRoles?.includes('service_provider')) {
           profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
+        } else {
+          profileData.service_categories = [];
         }
         
         console.log('🏪 Seller data:', {
@@ -570,12 +572,12 @@ const Auth = () => {
       } else if (savedData.accountType === 'logistics') {
         profileData.logistics_type = savedData.logisticsType || null;
         profileData.logistics_region = savedData.logisticsRegion || null;
-        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
-        profileData.warehouse_storage = savedData.warehouseStorage || null;
+        profileData.transport_modes = Array.isArray(savedData.transportModes) && savedData.transportModes.length > 0 ? savedData.transportModes : [];
+        profileData.warehouse_storage = savedData.warehouseStorage || false;
         profileData.primary_user_type = 'logistics_provider';
         profileData.primary_role = 'logistics_provider';
         profileData.user_roles = ['logistics_provider'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
+        profileData.target_audience = Array.isArray(savedData.targetAudience) && savedData.targetAudience.length > 0 ? savedData.targetAudience : [];
         
         console.log('🚚 Logistics data:', {
           logistics_type: profileData.logistics_type,
@@ -587,10 +589,10 @@ const Auth = () => {
         });
         
       } else if (savedData.accountType === 'finance') {
-        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
-        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
-        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
+        profileData.finance_type = Array.isArray(savedData.financeType) && savedData.financeType.length > 0 ? savedData.financeType : [];
+        profileData.financing_for = Array.isArray(savedData.financingFor) && savedData.financingFor.length > 0 ? savedData.financingFor : [];
+        profileData.target_audience = Array.isArray(savedData.targetAudience) && savedData.targetAudience.length > 0 ? savedData.targetAudience : [];
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || false;
         profileData.primary_user_type = 'finance_provider';
         profileData.primary_role = 'finance_provider';
         profileData.user_roles = ['finance_provider'];
@@ -607,6 +609,14 @@ const Auth = () => {
         profileData.primary_user_type = 'buyer';
         profileData.primary_role = 'buyer';
         profileData.user_roles = ['buyer'];
+        // Initialize empty arrays for buyer
+        profileData.seller_roles = [];
+        profileData.service_categories = [];
+        profileData.target_audience = [];
+        profileData.transport_modes = [];
+        profileData.finance_type = [];
+        profileData.financing_for = [];
+        
         console.log('🛒 Buyer data:', {
           primary_user_type: profileData.primary_user_type,
           user_roles: profileData.user_roles
