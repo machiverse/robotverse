@@ -80,10 +80,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clean up any existing auth state first
         cleanupAuthState();
         
+        // Determine the correct redirect URL for email confirmation
+        const currentHost = window.location.hostname;
+        let redirectUrl = `${window.location.origin}/auth`;
+        
+        if (currentHost === 'www.robotverse.in' || currentHost === 'robotverse.in') {
+          redirectUrl = 'https://www.robotverse.in/auth';
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName || ''
             }
