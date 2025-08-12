@@ -114,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               console.log('💾 Creating profile immediately for user:', data.user.id);
               
-              const fullProfileData = {
+              // Create profile with basic data only to avoid JSON errors
+              const basicProfileData = {
                 user_id: data.user.id,
                 email: data.user.email,
                 full_name: fullName || '',
@@ -124,51 +125,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 location: profileData.location || null,
                 user_type: profileData.accountType || 'buyer',
                 account_type: profileData.accountType || 'buyer',
-                registration_complete: false, // Set to false until email confirmed
+                registration_complete: false,
                 mou_agreed: true,
-                mou_agreed_at: new Date().toISOString(),
-                // Role-specific data
-                user_roles: profileData.accountType === 'seller' 
-                  ? (profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['robot_seller'])
-                  : profileData.accountType === 'logistics' 
-                  ? ['logistics_provider']
-                  : profileData.accountType === 'finance'
-                  ? ['finance_provider']
-                  : ['buyer'],
-                primary_user_type: profileData.accountType === 'seller' 
-                  ? (profileData.sellerRoles?.[0] || 'robot_seller')
-                  : profileData.accountType === 'logistics' 
-                  ? 'logistics_provider'
-                  : profileData.accountType === 'finance'
-                  ? 'finance_provider'
-                  : 'buyer',
-                primary_role: profileData.accountType === 'seller' 
-                  ? (profileData.sellerRoles?.[0] || 'robot_seller')
-                  : profileData.accountType === 'logistics' 
-                  ? 'logistics_provider'
-                  : profileData.accountType === 'finance'
-                  ? 'finance_provider'
-                  : 'buyer',
-                // Logistics specific
-                logistics_type: profileData.logisticsType || null,
-                logistics_region: profileData.logisticsRegion || null,
-                transport_modes: profileData.transportModes?.length > 0 ? profileData.transportModes : [],
-                warehouse_storage: Boolean(profileData.warehouseStorage),
-                // Finance specific
-                finance_type: profileData.financeType?.length > 0 ? profileData.financeType : [],
-                financing_for: profileData.financingFor?.length > 0 ? profileData.financingFor : [],
-                government_scheme_support: Boolean(profileData.governmentSchemeSupport),
-                // Seller specific
-                seller_roles: profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : [],
-                service_categories: profileData.sellerRoles?.includes('service_provider') 
-                  ? ['maintenance', 'repair', 'installation'] 
-                  : [],
-                target_audience: profileData.targetAudience?.length > 0 ? profileData.targetAudience : [],
+                mou_agreed_at: new Date().toISOString()
               };
 
               const { error: profileError } = await supabase
                 .from('profiles')
-                .insert(fullProfileData);
+                .insert(basicProfileData);
 
               if (profileError) {
                 console.error('❌ Profile creation failed:', profileError);
