@@ -57,7 +57,7 @@ const Services = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
-  // Fetch services from Supabase
+    // Fetch services from Supabase
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -117,7 +117,7 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // Dynamic category list (split by commas)
+  // Build category filter list dynamically by splitting comma-separated entries
   const categoryFilterList = [
     { value: "all", label: "All Services" },
     ...Array.from(
@@ -133,36 +133,7 @@ const Services = () => {
       .sort((a, b) => a.label.localeCompare(b.label))
   ];
 
-  // Dynamic location list
-  const locationFilterList = [
-    { value: "all", label: "All Locations" },
-    ...Array.from(
-      new Set(
-        services
-          .filter((service) => {
-            const matchesSearch =
-              service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              service.provider.toLowerCase().includes(searchQuery.toLowerCase());
-
-            const matchesCategory =
-              selectedCategory === "all" ||
-              service.category
-                .split(",")
-                .map(c => c.trim().toLowerCase())
-                .includes(selectedCategory.toLowerCase());
-
-            return matchesSearch && matchesCategory;
-          })
-          .map((s) => s.location)
-          .filter(Boolean)
-      )
-    )
-      .map((loc) => ({ value: loc, label: loc }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  ];
-
-  // Filtered services for display
+  // Filtered services based on search & category/location
   const filteredServices = services.filter((service) => {
     const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -171,10 +142,7 @@ const Services = () => {
 
     const matchesCategory =
       selectedCategory === "all" ||
-      service.category
-        .split(",")
-        .map(c => c.trim().toLowerCase())
-        .includes(selectedCategory.toLowerCase());
+      service.category.toLowerCase().includes(selectedCategory.toLowerCase());
 
     const matchesLocation =
       selectedLocation === "all" ||
@@ -182,6 +150,39 @@ const Services = () => {
 
     return matchesSearch && matchesCategory && matchesLocation;
   });
+
+  // Build the dynamic location list from currently filteredByCategoryAndSearch services
+  const locationOptionsDynamic = Array.from(
+    new Set(
+      services
+        .filter((service) => {
+          const matchesSearch =
+            service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            service.description
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            service.provider
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase());
+
+          const matchesCategory =
+            selectedCategory === "all" ||
+            service.category
+              .toLowerCase()
+              .includes(selectedCategory.toLowerCase());
+          return matchesSearch && matchesCategory;
+        })
+        .map((s) => s.location)
+        .filter(Boolean)
+    )
+  )
+    .map((loc) => ({ value: loc, label: loc }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const locationFilterList = [
+    { value: "all", label: "All Locations" },
+    ...locationOptionsDynamic,
+  ];
 
   const handleRequestQuote = (service: Service) => {
     setSelectedService(service);
@@ -253,7 +254,7 @@ const Services = () => {
                 <SelectValue placeholder="Service Type" />
               </SelectTrigger>
               <SelectContent>
-                {categoryFilterList.map((category) => (
+                {categories.map((category) => (
                   <SelectItem key={category.value} value={category.value}>
                     {category.label}
                   </SelectItem>

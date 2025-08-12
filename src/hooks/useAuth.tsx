@@ -17,8 +17,7 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    fullName?: string,
-    profileData?: any
+    fullName?: string
   ) => Promise<{ user: User | null; error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<AuthError | null>;
   signOut: () => Promise<void>;
@@ -72,18 +71,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // ✅ Modified signUp for email confirmation
   const signUp = useCallback(
-    async (email: string, password: string, fullName?: string, profileData?: any) => {
+    async (email: string, password: string, fullName?: string) => {
       try {
-        console.log('🚀 Starting signup for:', email);
-        
-        // Clean up any existing auth state first
-        cleanupAuthState();
+        console.log('🚀 Starting signup with email confirmation for:', email);
         
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/auth`, // Redirect back to auth page
             data: {
               full_name: fullName || ''
             }
@@ -97,63 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (data.user) {
           console.log('✅ User created successfully:', data.user.id);
+          console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
           
-          // Create profile immediately after successful signup
-          if (profileData) {
-            try {
-              console.log('💾 Creating complete profile for user:', data.user.id);
-              
-              // Use the database function to create profile with proper error handling
-              const { data: profileResult, error: profileError } = await supabase.rpc(
-                'create_complete_user_profile',
-                {
-                  p_user_id: data.user.id,
-                  p_email: data.user.email || '',
-                  p_full_name: fullName || '',
-                  p_company_name: profileData.companyName || null,
-                  p_mobile_number: profileData.mobileNumber || null,
-                  p_location: profileData.location || null,
-                  p_user_type: profileData.accountType || 'buyer',
-                  p_account_type: profileData.accountType || 'buyer',
-                  p_seller_roles: Array.isArray(profileData.sellerRoles) ? profileData.sellerRoles : [],
-                  p_logistics_type: profileData.logisticsType || null,
-                  p_logistics_region: profileData.logisticsRegion || null,
-                  p_transport_modes: Array.isArray(profileData.transportModes) ? profileData.transportModes : [],
-                  p_warehouse_storage: Boolean(profileData.warehouseStorage),
-                  p_finance_type: Array.isArray(profileData.financeType) ? profileData.financeType : [],
-                  p_financing_for: Array.isArray(profileData.financingFor) ? profileData.financingFor : [],
-                  p_target_audience: Array.isArray(profileData.targetAudience) ? profileData.targetAudience : [],
-                  p_government_scheme_support: Boolean(profileData.governmentSchemeSupport)
-                }
-              );
-
-              if (profileError) {
-                console.error('❌ Profile creation failed:', profileError);
-                return { user: null, error: { 
-                  message: profileError.message, 
-                  name: 'ProfileCreationError',
-                  code: 'profile_creation_failed',
-                  status: 400,
-                  __isAuthError: true 
-                } as unknown as AuthError };
-              } else {
-                console.log('✅ Complete profile created successfully');
-                // Set auth state immediately since profile was created
-                setUser(data.user);
-                setSession(data.session);
-              }
-            } catch (profileError: any) {
-              console.error('❌ Error creating profile:', profileError);
-              return { user: null, error: { 
-                message: profileError.message || 'Profile creation failed', 
-                name: 'ProfileCreationError',
-                code: 'profile_creation_failed',
-                status: 400,
-                __isAuthError: true 
-              } as unknown as AuthError };
-            }
-          } else {
-            // No profile data, just basic signup
+          // Don't update local state until email is confirmed
+          if (data.user.email_confirmed_at) {
             setUser(data.user);
             setSession(data.session);
           }
