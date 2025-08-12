@@ -114,12 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               console.log('💾 Creating complete profile immediately for user:', data.user.id);
               
-              // Use direct SQL query for now since types aren't updated yet
+              // Use direct insert for immediate profile creation (avoiding type issues)
               const { data: profileId, error: profileError } = await supabase
                 .from('profiles')
                 .insert({
                   user_id: data.user.id,
-                  email: data.user.email!,
+                  email: data.user.email || '',
                   full_name: fullName || '',
                   company_name: profileData.companyName || null,
                   mobile_number: profileData.mobileNumber || null,
@@ -128,7 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   user_type: profileData.accountType || 'buyer',
                   account_type: profileData.accountType || 'buyer',
                   user_roles: profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['buyer'],
-                  seller_roles: profileData.accountType === 'seller' ? (profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['robot_seller']) : [],
+                  seller_roles: profileData.accountType === 'seller' ? 
+                    (profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['robot_seller']) : [],
                   logistics_type: profileData.logisticsType || null,
                   logistics_region: profileData.logisticsRegion || null,
                   transport_modes: profileData.transportModes?.length > 0 ? profileData.transportModes : [],
@@ -137,6 +138,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   financing_for: profileData.financingFor?.length > 0 ? profileData.financingFor : [],
                   target_audience: profileData.targetAudience?.length > 0 ? profileData.targetAudience : [],
                   government_scheme_support: profileData.governmentSchemeSupport || false,
+                  primary_user_type: profileData.accountType === 'seller' ? 'robot_seller' :
+                    profileData.accountType === 'logistics' ? 'logistics_provider' :
+                    profileData.accountType === 'finance' ? 'finance_provider' : 'buyer',
+                  primary_role: profileData.accountType === 'seller' ? 'robot_seller' :
+                    profileData.accountType === 'logistics' ? 'logistics_provider' :
+                    profileData.accountType === 'finance' ? 'finance_provider' : 'buyer',
+                  service_categories: profileData.accountType === 'seller' && 
+                    profileData.sellerRoles?.includes('service_provider') ? 
+                    ['maintenance', 'repair', 'installation'] : [],
                   registration_complete: true,
                   mou_agreed: true,
                   mou_agreed_at: new Date().toISOString()
