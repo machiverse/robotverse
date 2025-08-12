@@ -25,6 +25,7 @@ const DashboardPage = () => {
       }
       
       try {
+        console.log('🔍 Fetching profile for user:', user.id);
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
@@ -35,7 +36,8 @@ const DashboardPage = () => {
           console.error('Profile fetch error:', error);
           // If profile doesn't exist, create a basic one with default buyer type
           if (error.code === 'PGRST116') {
-            const { data: newProfile } = await supabase
+            console.log('📝 No profile found, creating new profile for user:', user.id);
+            const { data: newProfile, error: insertError } = await supabase
               .from('profiles')
               .insert({
                 user_id: user.id,
@@ -50,9 +52,28 @@ const DashboardPage = () => {
               })
               .select()
               .single();
-            setUserProfile(newProfile);
+            
+            if (insertError) {
+              console.error('❌ Profile creation failed:', insertError);
+              // If insert fails, set a minimal profile for the UI to work
+              setUserProfile({
+                user_id: user.id,
+                email: user.email,
+                full_name: user.user_metadata?.full_name || '',
+                user_type: 'buyer',
+                account_type: 'buyer',
+                user_roles: ['buyer'],
+                primary_user_type: 'buyer',
+                primary_role: 'buyer',
+                registration_complete: false
+              });
+            } else {
+              console.log('✅ Profile created successfully:', newProfile);
+              setUserProfile(newProfile);
+            }
           }
         } else {
+          console.log('✅ Profile found:', profile);
           setUserProfile(profile);
         }
       } catch (error) {
