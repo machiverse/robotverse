@@ -109,47 +109,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('✅ User created successfully:', data.user.id);
           console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
           
-          // ✅ Create profile immediately after user creation
+          // ✅ Use database function to create complete profile immediately
           if (profileData) {
             try {
-              console.log('💾 Creating profile immediately for user:', data.user.id);
+              console.log('💾 Creating complete profile immediately for user:', data.user.id);
               
-              // Create profile with basic data only to avoid JSON errors
-              const basicProfileData = {
-                user_id: data.user.id,
-                email: data.user.email,
-                full_name: fullName || '',
-                company_name: profileData.companyName || null,
-                mobile_number: profileData.mobileNumber || null,
-                phone: profileData.mobileNumber || null,
-                location: profileData.location || null,
-                user_type: profileData.accountType || 'buyer',
-                account_type: profileData.accountType || 'buyer',
-                registration_complete: false,
-                mou_agreed: true,
-                mou_agreed_at: new Date().toISOString()
-              };
-
-              const { error: profileError } = await supabase
+              // Use direct SQL query for now since types aren't updated yet
+              const { data: profileId, error: profileError } = await supabase
                 .from('profiles')
-                .insert(basicProfileData);
+                .insert({
+                  user_id: data.user.id,
+                  email: data.user.email!,
+                  full_name: fullName || '',
+                  company_name: profileData.companyName || null,
+                  mobile_number: profileData.mobileNumber || null,
+                  phone: profileData.mobileNumber || null,
+                  location: profileData.location || null,
+                  user_type: profileData.accountType || 'buyer',
+                  account_type: profileData.accountType || 'buyer',
+                  user_roles: profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['buyer'],
+                  seller_roles: profileData.accountType === 'seller' ? (profileData.sellerRoles?.length > 0 ? profileData.sellerRoles : ['robot_seller']) : [],
+                  logistics_type: profileData.logisticsType || null,
+                  logistics_region: profileData.logisticsRegion || null,
+                  transport_modes: profileData.transportModes?.length > 0 ? profileData.transportModes : [],
+                  warehouse_storage: profileData.warehouseStorage || false,
+                  finance_type: profileData.financeType?.length > 0 ? profileData.financeType : [],
+                  financing_for: profileData.financingFor?.length > 0 ? profileData.financingFor : [],
+                  target_audience: profileData.targetAudience?.length > 0 ? profileData.targetAudience : [],
+                  government_scheme_support: profileData.governmentSchemeSupport || false,
+                  registration_complete: true,
+                  mou_agreed: true,
+                  mou_agreed_at: new Date().toISOString()
+                })
+                .select('id')
+                .single();
 
               if (profileError) {
                 console.error('❌ Profile creation failed:', profileError);
                 // Save to localStorage as fallback
                 localStorage.setItem('robotverse_user_registration_data', JSON.stringify({
                   ...profileData,
+                  email: data.user.email,
+                  fullName: fullName,
                   userId: data.user.id,
                   timestamp: Date.now()
                 }));
               } else {
-                console.log('✅ Profile created successfully in database');
+                console.log('✅ Complete profile created successfully:', profileId);
               }
             } catch (profileError) {
               console.error('❌ Error creating profile:', profileError);
               // Save to localStorage as fallback
               localStorage.setItem('robotverse_user_registration_data', JSON.stringify({
                 ...profileData,
+                email: data.user.email,
+                fullName: fullName,
                 userId: data.user.id,
                 timestamp: Date.now()
               }));
