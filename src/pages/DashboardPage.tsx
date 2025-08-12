@@ -118,16 +118,8 @@ const DashboardPage = () => {
                 user_type: 'buyer',
                 account_type: 'buyer',
                 user_roles: ['buyer'],
-                primary_user_type: 'buyer',
                 primary_role: 'buyer',
                 registration_complete: true,
-                // Initialize arrays to prevent JSON errors
-                seller_roles: [],
-                service_categories: [],
-                target_audience: [],
-                transport_modes: [],
-                finance_type: [],
-                financing_for: []
               };
             }
             
