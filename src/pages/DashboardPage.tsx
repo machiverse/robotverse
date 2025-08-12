@@ -41,7 +41,12 @@ const DashboardPage = () => {
                 user_id: user.id,
                 email: user.email,
                 full_name: user.user_metadata?.full_name || '',
-                user_type: 'buyer' // Default to buyer
+                user_type: 'buyer', // Default to buyer
+                account_type: 'buyer',
+                user_roles: ['buyer'], // Add user_roles array for multi-role dashboard
+                primary_user_type: 'buyer',
+                primary_role: 'buyer',
+                registration_complete: true
               })
               .select()
               .single();
