@@ -94,18 +94,18 @@ const DashboardPage = () => {
                 // Logistics specific
                 logistics_type: registrationData.logisticsType || null,
                 logistics_region: registrationData.logisticsRegion || null,
-                transport_modes: registrationData.transportModes?.length > 0 ? registrationData.transportModes : null,
+                transport_modes: Array.isArray(registrationData.transportModes) && registrationData.transportModes.length > 0 ? registrationData.transportModes : [],
                 warehouse_storage: registrationData.warehouseStorage || false,
                 // Finance specific
-                finance_type: registrationData.financeType?.length > 0 ? registrationData.financeType : null,
-                financing_for: registrationData.financingFor?.length > 0 ? registrationData.financingFor : null,
+                finance_type: Array.isArray(registrationData.financeType) && registrationData.financeType.length > 0 ? registrationData.financeType : [],
+                financing_for: Array.isArray(registrationData.financingFor) && registrationData.financingFor.length > 0 ? registrationData.financingFor : [],
                 government_scheme_support: registrationData.governmentSchemeSupport || false,
-                // Seller specific
-                seller_roles: registrationData.sellerRoles?.length > 0 ? registrationData.sellerRoles : null,
+                // Seller specific - ensure arrays are properly formatted
+                seller_roles: Array.isArray(registrationData.sellerRoles) && registrationData.sellerRoles.length > 0 ? registrationData.sellerRoles : [],
                 service_categories: registrationData.sellerRoles?.includes('service_provider') 
                   ? ['maintenance', 'repair', 'installation'] 
-                  : null,
-                target_audience: registrationData.targetAudience?.length > 0 ? registrationData.targetAudience : null,
+                  : [],
+                target_audience: Array.isArray(registrationData.targetAudience) && registrationData.targetAudience.length > 0 ? registrationData.targetAudience : [],
               };
             } else {
               profileData = {
@@ -117,7 +117,14 @@ const DashboardPage = () => {
                 user_roles: ['buyer'],
                 primary_user_type: 'buyer',
                 primary_role: 'buyer',
-                registration_complete: true
+                registration_complete: true,
+                // Initialize arrays to prevent JSON errors
+                seller_roles: [],
+                service_categories: [],
+                target_audience: [],
+                transport_modes: [],
+                finance_type: [],
+                financing_for: []
               };
             }
             
