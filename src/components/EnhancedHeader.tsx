@@ -87,7 +87,7 @@ const EnhancedHeader = () => {
               <Link to="/auth">
                 <Button size="sm" variant="ghost">Sign In</Button>
               </Link>
-              <Link to="/auth">
+              <Link to="/auth?signup=true">
                 <Button size="sm">Join Free!</Button>
               </Link>
             </div>
@@ -154,7 +154,7 @@ const EnhancedHeader = () => {
                 <Link to="/auth" onClick={() => setMenuOpen(false)}>
                   <Button size="sm" variant="ghost" className="w-full">Sign In</Button>
                 </Link>
-                <Link to="/auth" onClick={() => setMenuOpen(false)}>
+                <Link to="/auth?signup=true" onClick={() => setMenuOpen(false)}>
                   <Button size="sm" className="w-full">Join Free!</Button>
                 </Link>
               </div>

@@ -167,14 +167,20 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  // Check for password reset token in URL
+  // Check for password reset token and signup parameter in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const isReset = urlParams.get('reset');
+    const isSignupMode = urlParams.get('signup');
+    
     if (isReset === 'true') {
       setIsResetPassword(true);
       setIsForgotPassword(false);
       setIsSignUp(false);
+    } else if (isSignupMode === 'true') {
+      setIsSignUp(true);
+      setIsForgotPassword(false);
+      setIsResetPassword(false);
     }
   }, []);
 
