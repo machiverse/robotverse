@@ -17,7 +17,8 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    fullName?: string
+    fullName?: string,
+    profileData?: any
   ) => Promise<{ user: User | null; error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<AuthError | null>;
   signOut: () => Promise<void>;
@@ -71,17 +72,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // ✅ Modified signUp for email confirmation
+  // ✅ Modified signUp to store profile data immediately
   const signUp = useCallback(
-    async (email: string, password: string, fullName?: string) => {
+    async (email: string, password: string, fullName?: string, profileData?: any) => {
       try {
         console.log('🚀 Starting signup with email confirmation for:', email);
+        
+        // Determine the correct redirect URL based on current domain
+        const currentHost = window.location.hostname;
+        let redirectUrl = `${window.location.origin}/auth`;
+        
+        // If we're on www.robotverse.in, use that as the redirect
+        if (currentHost === 'www.robotverse.in' || currentHost === 'robotverse.in') {
+          redirectUrl = 'https://www.robotverse.in/auth';
+        }
+        
+        console.log('📧 Email confirmation redirect URL:', redirectUrl);
         
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`, // Redirect back to auth page
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName || ''
             }
@@ -96,6 +108,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.user) {
           console.log('✅ User created successfully:', data.user.id);
           console.log('📧 Email confirmation required:', !data.user.email_confirmed_at);
+          
+          // ✅ Create profile immediately after user creation
+          if (profileData) {
+            try {
+              console.log('💾 Creating profile immediately for user:', data.user.id);
+              
+              // Create profile with basic data only to avoid JSON errors
+              const basicProfileData = {
+                user_id: data.user.id,
+                email: data.user.email,
+                full_name: fullName || '',
+                company_name: profileData.companyName || null,
+                mobile_number: profileData.mobileNumber || null,
+                phone: profileData.mobileNumber || null,
+                location: profileData.location || null,
+                user_type: profileData.accountType || 'buyer',
+                account_type: profileData.accountType || 'buyer',
+                registration_complete: false,
+                mou_agreed: true,
+                mou_agreed_at: new Date().toISOString()
+              };
+
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert(basicProfileData);
+
+              if (profileError) {
+                console.error('❌ Profile creation failed:', profileError);
+                // Save to localStorage as fallback
+                localStorage.setItem('robotverse_user_registration_data', JSON.stringify({
+                  ...profileData,
+                  userId: data.user.id,
+                  timestamp: Date.now()
+                }));
+              } else {
+                console.log('✅ Profile created successfully in database');
+              }
+            } catch (profileError) {
+              console.error('❌ Error creating profile:', profileError);
+              // Save to localStorage as fallback
+              localStorage.setItem('robotverse_user_registration_data', JSON.stringify({
+                ...profileData,
+                userId: data.user.id,
+                timestamp: Date.now()
+              }));
+            }
+          }
           
           // Don't update local state until email is confirmed
           if (data.user.email_confirmed_at) {
