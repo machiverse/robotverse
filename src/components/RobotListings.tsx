@@ -156,10 +156,10 @@ const RobotListings = () => {
     }
   };
 
-  const calculateMarketStats = (robotsData: Robot[]) => {
+ const calculateMarketStats = (robotsData: Robot[]) => {
   const totalListings = robotsData.length;
 
-  // Collect only valid prices (> 0)
+  // Calculate prices
   const prices = robotsData
     .map(r => r.price || 0)
     .filter(price => price > 0);
@@ -169,42 +169,43 @@ const RobotListings = () => {
   const avgPrice = prices.length > 0
     ? prices.reduce((sum, p) => sum + p, 0) / prices.length
     : 0;
-    
-    // Top brands
-    const brandCounts = robotsData.reduce((acc, robot) => {
-      if (robot.brand) {
-        acc[robot.brand] = (acc[robot.brand] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const topBrands = Object.entries(brandCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 3)
-      .map(([brand]) => brand);
 
-    // Trending types
-    const typeCounts = robotsData.reduce((acc, robot) => {
-      if (robot.robot_type) {
-        acc[robot.robot_type] = (acc[robot.robot_type] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const trendingTypes = Object.entries(typeCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 3)
-      .map(([type]) => type);
+  // Top brands
+  const brandCounts = robotsData.reduce((acc, robot) => {
+    if (robot.brand) {
+      acc[robot.brand] = (acc[robot.brand] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
 
-    setMarketStats({
-      totalListings,
-      minPrice,
-      avgPrice,
-      maxPrice,
-      topBrands,
-      trendingTypes
-    });
-  };
+  const topBrands = Object.entries(brandCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([brand]) => brand);
+
+  // Trending types
+  const typeCounts = robotsData.reduce((acc, robot) => {
+    if (robot.robot_type) {
+      acc[robot.robot_type] = (acc[robot.robot_type] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const trendingTypes = Object.entries(typeCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([type]) => type);
+
+  // ✅ No error now — variables are in scope
+  setMarketStats({
+    totalListings,
+    minPrice,
+    avgPrice,
+    maxPrice,
+    topBrands,
+    trendingTypes
+  });
+};
 
   const filterAndSortRobots = () => {
     let filtered = [...robots];
