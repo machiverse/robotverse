@@ -367,32 +367,19 @@ const Robots = () => {
                         <p className="text-sm text-muted-foreground line-clamp-2">{robot.description}</p>
                       )}
                       <div className="flex space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
-  <Button size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
-    View Details
-  </Button>
-
-  {!user ? (
-    // Not signed in → direct link to auth page
-    <Button asChild variant="outline" size="sm" className="flex-1">
-      <a href="https://robotverse.in/auth">
-        <MessageCircle className="w-3 h-3 mr-1" />
-        Sign in to Contact
-      </a>
-    </Button>
-  ) : (
-    // Signed in → run contact logic
-    <Button
-      variant="outline"
-      size="sm"
-      className="flex-1"
-      onClick={(e) => handleContactSeller(robot, e)}
-      disabled={!robot.profiles?.phone && !robot.profiles?.mobile_number}
-    >
-      <MessageCircle className="w-3 h-3 mr-1" />
-      Contact
-    </Button>
-  )}
-</div>
+                        <Button size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
+                          View Details
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => handleContactSeller(robot, e)}
+                          disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
+                        >
+                          <MessageCircle className="w-3 h-3 mr-1" />
+                          {!user ? 'Sign in to Contact' : 'Contact'}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
