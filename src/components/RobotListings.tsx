@@ -463,6 +463,7 @@ const RobotListings = () => {
   </Card>
 
 </div>
+        </div>
 
         {/* Enhanced Search and Filters */}
         <Card className="mb-8">
