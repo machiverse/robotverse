@@ -2,399 +2,342 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bot, MapPin, MessageCircle, Eye, Building, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, MapPin, DollarSign, Search, Filter, Grid, List, Phone, MessageCircle } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+
+interface Robot {
+  id: string;
+  name: string;
+  model?: string;
+  robot_type: string;
+  price: number;
+  currency: string;
+  images: string[];
+  category_tags: string[];
+  quantity: number;
+  location?: string;
+  state?: string;
+  year_manufactured?: number;
+  payload_capacity?: number;
+  training_included?: boolean;
+  condition?: string;
+  profiles: {
+    company_name?: string;
+    full_name?: string;
+    phone?: string;
+    mobile_number?: string;
+    email?: string;
+    user_type?: string;
+  };
+  availability: string;
+  created_at: string;
+  description?: string;
+}
 
 const Robots = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // ✅ Dynamic arrays populated from database
-  const [categories, setCategories] = useState([
-    { value: "all", label: "All Categories" }
-  ]);
-  
-  const [locations, setLocations] = useState([
-    { value: "all", label: "All Locations" }
-  ]);
-
-  const [robots, setRobots] = useState<any[]>([]);
+  const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch robots on mount
   useEffect(() => {
-    const fetchRobotsAndFilters = async () => {
+    const fetchRobots = async () => {
       try {
         setLoading(true);
-        
-        // Fetch robots data
-        const { data: robotsData, error: robotsError } = await supabase
-          .from('robots')
+        const { data, error } = await supabase
+          .from("robots")
           .select(`
             *,
             profiles!robots_seller_id_fkey (
-              full_name,
               company_name,
+              full_name,
               phone,
-              mobile_number
+              mobile_number,
+              email,
+              user_type
             )
           `)
-          .eq('availability', 'available')
-          .order('created_at', { ascending: false });
+          .eq("availability", "available")
+          .order("created_at", { ascending: false });
 
-        if (robotsError) throw robotsError;
-        setRobots(robotsData || []);
-
-        // ✅ Extract unique categories from database
-        const uniqueCategories = new Set<string>();
-        robotsData?.forEach(robot => {
-          // Add robot_type
-          if (robot.robot_type) {
-            uniqueCategories.add(robot.robot_type);
-          }
-          
-          // Add category_tags
-          if (robot.category_tags && Array.isArray(robot.category_tags)) {
-            robot.category_tags.forEach(tag => {
-              if (tag && tag.trim()) {
-                uniqueCategories.add(tag.trim());
-              }
-            });
-          }
-        });
-
-        // Convert to dropdown format
-        const categoryOptions = [
-          { value: "all", label: "All Categories" },
-          ...Array.from(uniqueCategories)
-            .sort()
-            .map(category => ({
-              value: category.toLowerCase().replace(/\s+/g, '-'),
-              label: category
-            }))
-        ];
-        setCategories(categoryOptions);
-
-        // ✅ Extract unique locations from database (only robot location, not seller location)
-        const uniqueLocations = new Set<string>();
-        robotsData?.forEach(robot => {
-          // Add robot location only
-          if (robot.location) {
-            uniqueLocations.add(robot.location.trim());
-          }
-        });
-
-        // Convert to dropdown format
-        const locationOptions = [
-          { value: "all", label: "All Locations" },
-          ...Array.from(uniqueLocations)
-            .sort()
-            .map(location => ({
-              value: location.toLowerCase().replace(/\s+/g, '-'),
-              label: location
-            }))
-        ];
-        setLocations(locationOptions);
-
+        if (error) throw error;
+        setRobots(data || []);
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load robots');
-        setRobots([]);
+        setError(err instanceof Error ? err.message : "Failed to load robots");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRobotsAndFilters();
+    fetchRobots();
   }, []);
 
+  // Format prices according to currency with symbol
   const formatPrice = (price: number, currency: string) => {
-    const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
-    return `${currencySymbol}${price.toLocaleString()}`;
+    if (!price) return 'Price on request';
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
+    return `${symbol}${price.toLocaleString()}`;
   };
 
-  const handleContactSeller = (robot: any, e: React.MouseEvent) => {
+  // Contact seller handler
+  const handleContactSeller = (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    // Check if user is signed in
+
     if (!user) {
-      alert('Please sign in to contact sellers');
-      navigate('/auth');
-      return;
-    }
-    
-    const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
-    
-    if (!phone) {
-      alert('Contact information not available for this seller');
+      window.location.href = 'https://robotverse.in/auth';
       return;
     }
 
-    const phoneNumber = phone.replace(/\D/g, ''); // Remove non-digits
+    const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
+    if (!phone) {
+      alert("Contact information not available for this seller");
+      return;
+    }
+
+    const phoneNumber = phone.replace(/\D/g, "");
     const message = `Hi! I'm interested in your robot: ${robot.name} (${robot.model}). Can you please provide more details?`;
-    
-    // Create options for WhatsApp or Phone call
+
     const choice = window.confirm(
-      'Choose contact method:\n\nOK = WhatsApp Message\nCancel = Phone Call'
+      "Contact via:\n\nOK = WhatsApp\nCancel = Phone Call"
     );
-    
+
     if (choice) {
-      // WhatsApp
       window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     } else {
-      // Phone call
       window.location.href = `tel:+91${phoneNumber}`;
     }
   };
 
-  // ✅ Enhanced filtering logic for dynamic data
-  const filteredRobots = robots.filter((robot) => {
-    const matchesSearch = robot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         robot.robot_type.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "all" || (() => {
-      const selectedCategoryLabel = categories.find(cat => cat.value === selectedCategory)?.label;
-      if (!selectedCategoryLabel) return false;
-      
-      // Check robot_type
-      if (robot.robot_type && robot.robot_type.toLowerCase() === selectedCategoryLabel.toLowerCase()) {
-        return true;
-      }
-      
-      // Check category_tags
-      if (robot.category_tags && Array.isArray(robot.category_tags)) {
-        return robot.category_tags.some((tag: string) => 
-          tag.toLowerCase() === selectedCategoryLabel.toLowerCase()
-        );
-      }
-      
-      return false;
-    })();
-    
-    const matchesLocation = selectedLocation === "all" || (() => {
-      const selectedLocationLabel = locations.find(loc => loc.value === selectedLocation)?.label;
-      if (!selectedLocationLabel) return false;
-      
-      // Check robot location only (not seller location)
-      if (robot.location && robot.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
-        return true;
-      }
-      
-      return false;
-    })();
+  // Group robots by company for unique listing
+  const robotsByCompany = robots.reduce<Record<string, Robot[]>>((acc, robot) => {
+    const company = robot.profiles?.company_name || "Unknown Company";
+    if (!acc[company]) acc[company] = [];
+    acc[company].push(robot);
+    return acc;
+  }, {});
 
-    return matchesSearch && matchesCategory && matchesLocation;
-  });
+  // Get one representative robot per company for main cards
+  const uniqueCompanyRobots = Object.keys(robotsByCompany).map(
+    (company) => robotsByCompany[company][0]
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Industrial Robots</h1>
-          <p className="text-xl text-muted-foreground">
-            Discover and purchase cutting-edge industrial robots for your automation needs
-          </p>
+        <h1 className="text-4xl font-bold mb-2">Industrial Robots</h1>
+        <p className="text-xl text-muted-foreground mb-6">
+          Discover cutting-edge industrial robots from verified sellers worldwide
+        </p>
+
+        {/* Total available robots count */}
+        <div className="mb-6 text-primary font-semibold text-lg">
+          Total Available Robots: {robots.length}
         </div>
 
-        {/* Filters */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search robots..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            {/* ✅ Dynamic Categories Dropdown */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* ✅ Dynamic Locations Dropdown */}
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger>
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((location) => (
-                  <SelectItem key={location.value} value={location.value}>
-                    {location.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <div className="flex space-x-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-          
-          {/* ✅ Filter Summary */}
-          {!loading && (
-            <div className="text-sm text-muted-foreground">
-              {categories.length - 1} categories • {locations.length - 1} locations available
-            </div>
-          )}
-        </div>
-
-        {/* Loading State */}
+        {/* Loading / Error */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading robots and filters...</p>
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Bot className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Unable to load robots</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Try Again
-            </Button>
+          <div className="text-center py-12 text-red-600 font-semibold">
+            {error}
           </div>
-        ) : filteredRobots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Bot className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No robots available</h3>
-            <p className="text-muted-foreground">
-              {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
-                ? "No robots match your current filters."
-                : "Robot inventory is currently empty."}
-            </p>
+        ) : uniqueCompanyRobots.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No robots available.
           </div>
         ) : (
-          <>
-            {/* Results */}
-            <div className="mb-4">
-              <p className="text-sm text-muted-foreground">
-                {filteredRobots.length} {filteredRobots.length === 1 ? 'robot' : 'robots'} found
-                {selectedCategory !== "all" && (
-                  <span className="ml-2">
-                    • Category: <strong>{categories.find(cat => cat.value === selectedCategory)?.label}</strong>
-                  </span>
-                )}
-                {selectedLocation !== "all" && (
-                  <span className="ml-2">
-                    • Location: <strong>{locations.find(loc => loc.value === selectedLocation)?.label}</strong>
-                  </span>
-                )}
-              </p>
-            </div>
-            
-            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-              {filteredRobots.map((robot) => (
-                <Card key={robot.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/robots/${robot.id}`)}>
-                  <CardHeader>
-                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                      {robot.images && robot.images.length > 0 ? (
-                        <img 
-                          src={robot.images[0]} 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            {uniqueCompanyRobots.map(robot => {
+              const companyName = robot.profiles?.company_name || "Unknown Company";
+              const companyRobots = robotsByCompany[companyName];
+
+              return (
+                <Card key={robot.id} className="hover:shadow-xl transition-shadow">
+                  <CardHeader
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/robots/${robot.id}`)}
+                  >
+                    {/* Image container fixed size */}
+                    <div className="relative w-full h-60 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                      {robot.images?.length ? (
+                        <img
+                          src={`${robot.images[0]}?q=80&auto=format`}
                           alt={robot.name}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
-                        <Bot className="w-12 h-12 text-muted-foreground" />
+                        <Bot className="w-16 h-16 text-muted-foreground" />
+                      )}
+                      {robot.condition && (
+                        <Badge className="absolute top-3 left-3 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          {robot.condition.replace(/_/g, ' ')}
+                        </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-lg">{robot.name}</CardTitle>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="w-fit">
-                        {robot.robot_type}
-                      </Badge>
-                      {robot.profiles?.company_name && (
-                        <span className="text-xs text-muted-foreground">{robot.profiles.company_name}</span>
-                      )}
+
+                    <CardTitle className="mt-3 text-lg font-semibold line-clamp-1">
+                      {robot.name}
+                    </CardTitle>
+
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mt-1">
+                      <span>{companyName}</span>
+                      <span>Qty: {robot.quantity}</span>
                     </div>
                   </CardHeader>
+
                   <CardContent>
-                    <div className="space-y-3">
+
+                    <div className="space-y-2">
+
+                      {/* Price and Robot Type Badge */}
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-primary">
-                          {robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
-                        </span>
-                        <Badge variant={robot.availability === "available" ? "default" : "secondary"}>
-                          {robot.availability}
+                        <div className="flex items-center text-2xl font-bold text-primary">
+                          <span className="mr-1">₹</span>
+                          {robot.price ? robot.price.toLocaleString() : 'N/A'}
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {robot.robot_type}
                         </Badge>
                       </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span className="text-sm">{robot.location || 'Location not specified'}</span>
+
+                      {/* Model, Year Manufactured */}
+                      <div className="text-sm text-muted-foreground">
+                        {robot.model && <div>Model: {robot.model}</div>}
+                        {robot.year_manufactured && <div>Year: {robot.year_manufactured}</div>}
                       </div>
-                      {robot.model && (
-                        <p className="text-sm text-muted-foreground">Model: {robot.model}</p>
-                      )}
+
+                      {/* Location */}
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span>{robot.location || 'Location not specified'}</span>
+                      </div>
+
+                      {/* Description */}
                       {robot.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{robot.description}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          {robot.description}
+                        </p>
                       )}
-                      <div className="flex space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                        <Button size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
-                          View Details
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={(e) => handleContactSeller(robot, e)}
-                          disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
+
+                      {/* Category Tags */}
+                      {robot.category_tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {robot.category_tags.map((tag, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Seller Info */}
+                      <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Building className="w-4 h-4" />
+                          <span className="line-clamp-1">{companyName}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Verified</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2 mt-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate(`/robots/${robot.id}`)}
                         >
-                          <MessageCircle className="w-3 h-3 mr-1" />
-                          {!user ? 'Sign in to Contact' : 'Contact'}
+                          <Eye className="w-4 h-4 mr-1" />
+                          Details
                         </Button>
+
+                        {!user ? (
+                          <Button asChild variant="outline">
+                            <a href="https://robotverse.in/auth" className="flex items-center justify-center">
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              Sign in to Contact
+                            </a>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            onClick={(e) => handleContactSeller(robot, e)}
+                            disabled={!robot.profiles?.phone && !robot.profiles?.mobile_number}
+                          >
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            Contact
+                          </Button>
+                        )}
                       </div>
                     </div>
+
+                    {/* Carousel of other robots from the same company */}
+                    {companyRobots.length > 1 && (
+                      <div className="mt-6">
+                        <h4 className="mb-2 font-semibold text-sm">Other robots from {companyName}</h4>
+                        <Swiper
+                          modules={[Autoplay, Navigation]}
+                          autoplay={{ delay: 5000, disableOnInteraction: false }}
+                          navigation
+                          slidesPerView={3}
+                          spaceBetween={12}
+                        >
+                          {companyRobots
+                            .filter(r => r.id !== robot.id)
+                            .map(r => (
+                              <SwiperSlide key={r.id}>
+                                <div
+                                  onClick={() => navigate(`/robots/${r.id}`)}
+                                  className="cursor-pointer w-full h-40 rounded-lg overflow-hidden shadow-sm"
+                                  style={{ minWidth: '160px' }}
+                                >
+                                  {r.images?.length ? (
+                                    <img
+                                      src={`${r.images[0]}?q=80&auto=format`}
+                                      alt={r.name}
+                                      className="w-full h-full object-cover rounded-lg"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <Bot className="w-16 h-16 text-muted-foreground m-auto" />
+                                  )}
+                                  <div className="p-1 text-xs font-medium line-clamp-1 text-center mt-1">
+                                    {r.name}
+                                  </div>
+                                </div>
+                              </SwiperSlide>
+                            ))}
+                        </Swiper>
+                      </div>
+                    )}
+
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              );
+            })}
 
-            {/* Load More */}
-            {filteredRobots.length > 0 && (
-              <div className="text-center mt-8">
-                <Button variant="outline" size="lg">
-                  Load More Robots
-                </Button>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
     </div>
