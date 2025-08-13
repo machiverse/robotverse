@@ -157,8 +157,18 @@ const RobotListings = () => {
   };
 
   const calculateMarketStats = (robotsData: Robot[]) => {
-    const totalListings = robotsData.length;
-    const avgPrice = robotsData.reduce((sum, r) => sum + (r.price || 0), 0) / (totalListings || 1);
+  const totalListings = robotsData.length;
+
+  // Collect only valid prices (> 0)
+  const prices = robotsData
+    .map(r => r.price || 0)
+    .filter(price => price > 0);
+
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+  const avgPrice = prices.length > 0
+    ? prices.reduce((sum, p) => sum + p, 0) / prices.length
+    : 0;
     
     // Top brands
     const brandCounts = robotsData.reduce((acc, robot) => {
@@ -188,7 +198,9 @@ const RobotListings = () => {
 
     setMarketStats({
       totalListings,
+      minPrice,
       avgPrice,
+      maxPrice,
       topBrands,
       trendingTypes
     });
