@@ -410,38 +410,59 @@ const RobotListings = () => {
           </p>
           
           {/* Market Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mt-8">
-            <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-800">{marketStats.totalListings}</div>
-                <div className="text-sm text-blue-600">Active Listings</div>
-              </CardContent>
-            </Card>
-            {/* Min → Avg → Max Price */}
-              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-           <CardContent className="p-4 text-center">
-       <div className="text-sm font-bold text-green-800">
-        ₹{(marketStats.minPrice / 100000).toFixed(1)}L → 
-        ₹{(marketStats.avgPrice / 100000).toFixed(1)}L → 
-        ₹{(marketStats.maxPrice / 100000).toFixed(1)}L
+<div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
+
+  {/* Total Active Listings */}
+  <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-blue-800">
+        {marketStats.totalListings}
       </div>
-      <div className="text-xs text-green-600">Min → Avg → Max</div>
+      <div className="text-sm text-blue-600">Active Listings</div>
     </CardContent>
   </Card>
-            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-800">{marketStats.topBrands.length}</div>
-                <div className="text-sm text-purple-600">Top Brands</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-orange-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-orange-800">{uniqueLocations.length}</div>
-                <div className="text-sm text-orange-600">Cities</div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+
+  {/* Min Price */}
+  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-green-800">
+        ₹{(marketStats.minPrice / 100000).toFixed(1)}L
+      </div>
+      <div className="text-sm text-green-600">Min Price</div>
+    </CardContent>
+  </Card>
+
+  {/* Avg Price */}
+  <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-yellow-800">
+        ₹{(marketStats.avgPrice / 100000).toFixed(1)}L
+      </div>
+      <div className="text-sm text-yellow-600">Avg Price</div>
+    </CardContent>
+  </Card>
+
+  {/* Max Price */}
+  <Card className="bg-gradient-to-r from-red-50 to-rose-50 border-red-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-red-800">
+        ₹{(marketStats.maxPrice / 100000).toFixed(1)}L
+      </div>
+      <div className="text-sm text-red-600">Max Price</div>
+    </CardContent>
+  </Card>
+
+  {/* Top Brands Count */}
+  <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-purple-800">
+        {marketStats.topBrands.length}
+      </div>
+      <div className="text-sm text-purple-600">Top Brands</div>
+    </CardContent>
+  </Card>
+
+</div>
 
         {/* Enhanced Search and Filters */}
         <Card className="mb-8">
