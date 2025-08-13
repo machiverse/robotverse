@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EnhancedHeader from "@/components/EnhancedHeader";
 
+// Swiper Carousel
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Navigation } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/navigation";
+import { Autoplay, Navigation } from "swiper/modules"; 
+import "swiper/swiper-bundle.min.css"; // ✅ full CSS bundle for all modules
 
 interface Robot {
   id: string;
