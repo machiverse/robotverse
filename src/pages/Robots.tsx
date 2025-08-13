@@ -323,29 +323,35 @@ const Robots = () => {
             
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredRobots.map((robot) => (
-                <Card key={robot.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/robots/${robot.id}`)}>
-                  <CardHeader>
-                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                      {robot.images && robot.images.length > 0 ? (
-                        <img 
-                          src={robot.images[0]} 
-                          alt={robot.name}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                      ) : (
-                        <Bot className="w-12 h-12 text-muted-foreground" />
-                      )}
-                    </div>
-                    <CardTitle className="text-lg">{robot.name}</CardTitle>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="w-fit">
-                        {robot.robot_type}
-                      </Badge>
-                      {robot.profiles?.company_name && (
-                        <span className="text-xs text-muted-foreground">{robot.profiles.company_name}</span>
-                      )}
-                    </div>
-                  </CardHeader>
+                           <Card
+  key={robot.id}
+  className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
+  onClick={() => navigate(`/robots/${robot.id}`)}
+>
+  <CardHeader>
+    <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
+      {robot.images && robot.images.length > 0 ? (
+        <img
+          src={robot.images[0]}
+          alt={robot.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+      ) : (
+        <div className="flex items-center justify-center w-full h-full">
+          <Bot className="w-12 h-12 text-muted-foreground" />
+        </div>
+      )}
+    </div>
+    <CardTitle className="text-lg">{robot.name}</CardTitle>
+    <div className="flex items-center justify-between">
+      <Badge variant="secondary" className="w-fit">
+        {robot.robot_type}
+      </Badge>
+      {robot.profiles?.company_name && (
+        <span className="text-xs text-muted-foreground">{robot.profiles.company_name}</span>
+      )}
+    </div>
+  </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
