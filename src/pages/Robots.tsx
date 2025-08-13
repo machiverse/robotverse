@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 
 const Robots = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
@@ -43,7 +45,6 @@ const Robots = () => {
             profiles!robots_seller_id_fkey (
               full_name,
               company_name,
-              location,
               phone,
               mobile_number
             )
@@ -84,17 +85,12 @@ const Robots = () => {
         ];
         setCategories(categoryOptions);
 
-        // ✅ Extract unique locations from database
+        // ✅ Extract unique locations from database (only robot location, not seller location)
         const uniqueLocations = new Set<string>();
         robotsData?.forEach(robot => {
-          // Add robot location
+          // Add robot location only
           if (robot.location) {
             uniqueLocations.add(robot.location.trim());
-          }
-          
-          // Add profile location
-          if (robot.profiles?.location) {
-            uniqueLocations.add(robot.profiles.location.trim());
           }
         });
 
@@ -129,6 +125,14 @@ const Robots = () => {
 
   const handleContactSeller = (robot: any, e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Check if user is signed in
+    if (!user) {
+      alert('Please sign in to contact sellers');
+      navigate('/auth');
+      return;
+    }
+    
     const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
     
     if (!phone) {
@@ -182,13 +186,8 @@ const Robots = () => {
       const selectedLocationLabel = locations.find(loc => loc.value === selectedLocation)?.label;
       if (!selectedLocationLabel) return false;
       
-      // Check robot location
+      // Check robot location only (not seller location)
       if (robot.location && robot.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
-        return true;
-      }
-      
-      // Check profile location
-      if (robot.profiles?.location && robot.profiles.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
         return true;
       }
       
@@ -359,7 +358,7 @@ const Robots = () => {
                       </div>
                       <div className="flex items-center text-muted-foreground">
                         <MapPin className="w-4 h-4 mr-1" />
-                        <span className="text-sm">{robot.location || robot.profiles?.location || 'Location not specified'}</span>
+                        <span className="text-sm">{robot.location || 'Location not specified'}</span>
                       </div>
                       {robot.model && (
                         <p className="text-sm text-muted-foreground">Model: {robot.model}</p>
@@ -375,10 +374,10 @@ const Robots = () => {
                           variant="outline" 
                           size="sm"
                           onClick={(e) => handleContactSeller(robot, e)}
-                          disabled={!robot.profiles?.phone && !robot.profiles?.mobile_number}
+                          disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
                         >
                           <MessageCircle className="w-3 h-3 mr-1" />
-                          Contact
+                          {!user ? 'Sign in to Contact' : 'Contact'}
                         </Button>
                       </div>
                     </div>
