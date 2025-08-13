@@ -156,10 +156,10 @@ const RobotListings = () => {
     }
   };
 
- const calculateMarketStats = (robotsData: Robot[]) => {
+  const calculateMarketStats = (robotsData: Robot[]) => {
   const totalListings = robotsData.length;
 
-  // Calculate prices
+  // Collect only valid prices (> 0)
   const prices = robotsData
     .map(r => r.price || 0)
     .filter(price => price > 0);
@@ -169,43 +169,42 @@ const RobotListings = () => {
   const avgPrice = prices.length > 0
     ? prices.reduce((sum, p) => sum + p, 0) / prices.length
     : 0;
+    
+    // Top brands
+    const brandCounts = robotsData.reduce((acc, robot) => {
+      if (robot.brand) {
+        acc[robot.brand] = (acc[robot.brand] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const topBrands = Object.entries(brandCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([brand]) => brand);
 
-  // Top brands
-  const brandCounts = robotsData.reduce((acc, robot) => {
-    if (robot.brand) {
-      acc[robot.brand] = (acc[robot.brand] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
+    // Trending types
+    const typeCounts = robotsData.reduce((acc, robot) => {
+      if (robot.robot_type) {
+        acc[robot.robot_type] = (acc[robot.robot_type] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const trendingTypes = Object.entries(typeCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([type]) => type);
 
-  const topBrands = Object.entries(brandCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([brand]) => brand);
-
-  // Trending types
-  const typeCounts = robotsData.reduce((acc, robot) => {
-    if (robot.robot_type) {
-      acc[robot.robot_type] = (acc[robot.robot_type] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  const trendingTypes = Object.entries(typeCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([type]) => type);
-
-  // ✅ No error now — variables are in scope
-  setMarketStats({
-    totalListings,
-    minPrice,
-    avgPrice,
-    maxPrice,
-    topBrands,
-    trendingTypes
-  });
-};
+    setMarketStats({
+      totalListings,
+      minPrice,
+      avgPrice,
+      maxPrice,
+      topBrands,
+      trendingTypes
+    });
+  };
 
   const filterAndSortRobots = () => {
     let filtered = [...robots];
@@ -418,12 +417,17 @@ const RobotListings = () => {
                 <div className="text-sm text-blue-600">Active Listings</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-800">₹{(marketStats.avgPrice/100000).toFixed(1)}L</div>
-                <div className="text-sm text-green-600">Avg Price</div>
-              </CardContent>
-            </Card>
+            {/* Min → Avg → Max Price */}
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+           <CardContent className="p-4 text-center">
+       <div className="text-sm font-bold text-green-800">
+        ₹{(marketStats.minPrice / 100000).toFixed(1)}L → 
+        ₹{(marketStats.avgPrice / 100000).toFixed(1)}L → 
+        ₹{(marketStats.maxPrice / 100000).toFixed(1)}L
+      </div>
+      <div className="text-xs text-green-600">Min → Avg → Max</div>
+    </CardContent>
+  </Card>
             <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-purple-800">{marketStats.topBrands.length}</div>
