@@ -1207,11 +1207,73 @@ export type Database = {
         }
         Relationships: []
       }
+      user_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          interaction_type: string
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interaction_type: string
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interaction_type?: string
+          target_id?: string
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_complete_user_profile: {
+        Args: {
+          p_user_id: string
+          p_email: string
+          p_full_name?: string
+          p_company_name?: string
+          p_mobile_number?: string
+          p_location?: string
+          p_user_type?: string
+          p_account_type?: string
+          p_seller_roles?: string[]
+          p_logistics_type?: string
+          p_logistics_region?: string
+          p_transport_modes?: string[]
+          p_warehouse_storage?: boolean
+          p_finance_type?: string[]
+          p_financing_for?: string[]
+          p_target_audience?: string[]
+          p_government_scheme_support?: boolean
+        }
+        Returns: string
+      }
+      create_user_profile: {
+        Args: {
+          p_user_id: string
+          p_email: string
+          p_full_name?: string
+          p_company_name?: string
+          p_mobile_number?: string
+          p_location?: string
+          p_user_type?: string
+          p_account_type?: string
+        }
+        Returns: string
+      }
       generate_random_string: {
         Args: { length: number }
         Returns: string
@@ -1220,7 +1282,35 @@ export type Database = {
         Args: { table_name: string; provider_id: string }
         Returns: Json
       }
+      get_provider_business_info: {
+        Args: { provider_user_id: string }
+        Returns: {
+          user_id: string
+          full_name: string
+          company_name: string
+          location: string
+          service_categories: string[]
+          user_roles: string[]
+          user_type: string
+          account_type: string
+          registration_complete: boolean
+        }[]
+      }
       get_provider_public_info: {
+        Args: { provider_user_id: string }
+        Returns: {
+          user_id: string
+          full_name: string
+          company_name: string
+          location: string
+          user_type: string
+          account_type: string
+          service_categories: string[]
+          user_roles: string[]
+          registration_complete: boolean
+        }[]
+      }
+      get_public_provider_profile: {
         Args: { provider_user_id: string }
         Returns: {
           user_id: string
