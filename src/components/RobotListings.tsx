@@ -102,8 +102,8 @@ const RobotListings = () => {
   // Enhanced stats
   const [marketStats, setMarketStats] = useState({
     totalListings: 0,
+    minPrice:0,
     avgPrice: 0,
-    minPrice: 0,
     maxPrice: 0,
     topBrands: [] as string[],
     trendingTypes: [] as string[]
@@ -158,16 +158,7 @@ const RobotListings = () => {
 
   const calculateMarketStats = (robotsData: Robot[]) => {
     const totalListings = robotsData.length;
-    <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-  <CardContent className="p-4 text-center">
-    <div className="text-sm font-bold text-green-800">
-      ₹{(marketStats.minPrice / 100000).toFixed(1)}L → 
-      ₹{(marketStats.avgPrice / 100000).toFixed(1)}L → 
-      ₹{(marketStats.maxPrice / 100000).toFixed(1)}L
-    </div>
-    <div className="text-xs text-green-600">Min → Avg → Max</div>
-  </CardContent>
-</Card>
+    const avgPrice = robotsData.reduce((sum, r) => sum + (r.price || 0), 0) / (totalListings || 1);
     
     // Top brands
     const brandCounts = robotsData.reduce((acc, robot) => {
@@ -197,9 +188,7 @@ const RobotListings = () => {
 
     setMarketStats({
       totalListings,
-      minPrice,
       avgPrice,
-      maxPrice,
       topBrands,
       trendingTypes
     });
