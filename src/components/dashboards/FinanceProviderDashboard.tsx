@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import LoanProductForm from '@/components/forms/LoanProductForm';
 import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
 import LoanCalculator from '@/components/forms/LoanCalculator';
+import { DashboardHeader } from '@/components/DashboardHeader';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;

@@ -37,6 +37,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { DashboardHeader } from '@/components/DashboardHeader';
 
 interface BuyerDashboardProps {
   userProfile: any;
@@ -341,33 +342,28 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Welcome back, {userProfile?.full_name || user?.email || 'Buyer'}</h1>
-          <p className="text-muted-foreground">
-            Discover {realStats.totalListings} real listings from verified sellers
-          </p>
-        </div>
-        <div className="flex items-center space-x-2 max-w-md">
-          <form onSubmit={handleSearchSubmit} className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search robots, parts, services..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </form>
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={() => fetchRealDashboardData()}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+      {/* Dashboard Header with Company Logo */}
+      <DashboardHeader userProfile={userProfile} onProfileUpdate={fetchRealDashboardData} />
+
+      {/* Search Bar */}
+      <div className="flex items-center space-x-2 max-w-md">
+        <form onSubmit={handleSearchSubmit} className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search robots, parts, services..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </form>
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={() => fetchRealDashboardData()}
+          disabled={refreshing}
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
       {/* Real Stats Overview */}

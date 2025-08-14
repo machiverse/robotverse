@@ -578,6 +578,7 @@ export type Database = {
         Row: {
           account_type: string | null
           avatar_url: string | null
+          company_logo_url: string | null
           company_name: string | null
           created_at: string
           email: string | null
@@ -611,6 +612,7 @@ export type Database = {
         Insert: {
           account_type?: string | null
           avatar_url?: string | null
+          company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
           email?: string | null
@@ -644,6 +646,7 @@ export type Database = {
         Update: {
           account_type?: string | null
           avatar_url?: string | null
+          company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
           email?: string | null

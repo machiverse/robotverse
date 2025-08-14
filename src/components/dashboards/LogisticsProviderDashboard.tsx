@@ -52,6 +52,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { DashboardHeader } from '@/components/DashboardHeader';
 import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 

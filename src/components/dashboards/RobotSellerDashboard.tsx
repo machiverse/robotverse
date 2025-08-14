@@ -52,6 +52,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import RobotUpload from '@/components/RobotUpload';
+import { DashboardHeader } from '@/components/DashboardHeader';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -517,6 +518,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Dashboard Header with Company Logo */}
+      <DashboardHeader userProfile={userProfile} onProfileUpdate={() => fetchDashboardData()} />
+
       {/* SIMPLIFIED Welcome Banner - Only shows "Welcome, [Name]!" */}
       <Alert className="border-green-200 bg-green-50">
         <CheckCircle className="w-4 h-4" />
