@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -1241,36 +1241,36 @@ export type Database = {
     Functions: {
       create_complete_user_profile: {
         Args: {
-          p_user_id: string
-          p_email: string
-          p_full_name?: string
-          p_company_name?: string
-          p_mobile_number?: string
-          p_location?: string
-          p_user_type?: string
           p_account_type?: string
-          p_seller_roles?: string[]
-          p_logistics_type?: string
-          p_logistics_region?: string
-          p_transport_modes?: string[]
-          p_warehouse_storage?: boolean
+          p_company_name?: string
+          p_email: string
           p_finance_type?: string[]
           p_financing_for?: string[]
-          p_target_audience?: string[]
+          p_full_name?: string
           p_government_scheme_support?: boolean
+          p_location?: string
+          p_logistics_region?: string
+          p_logistics_type?: string
+          p_mobile_number?: string
+          p_seller_roles?: string[]
+          p_target_audience?: string[]
+          p_transport_modes?: string[]
+          p_user_id: string
+          p_user_type?: string
+          p_warehouse_storage?: boolean
         }
         Returns: string
       }
       create_user_profile: {
         Args: {
-          p_user_id: string
+          p_account_type?: string
+          p_company_name?: string
           p_email: string
           p_full_name?: string
-          p_company_name?: string
-          p_mobile_number?: string
           p_location?: string
+          p_mobile_number?: string
+          p_user_id: string
           p_user_type?: string
-          p_account_type?: string
         }
         Returns: string
       }
@@ -1279,49 +1279,49 @@ export type Database = {
         Returns: string
       }
       get_logistics_data: {
-        Args: { table_name: string; provider_id: string }
+        Args: { provider_id: string; table_name: string }
         Returns: Json
       }
       get_provider_business_info: {
         Args: { provider_user_id: string }
         Returns: {
-          user_id: string
-          full_name: string
+          account_type: string
           company_name: string
+          full_name: string
           location: string
+          registration_complete: boolean
           service_categories: string[]
+          user_id: string
           user_roles: string[]
           user_type: string
-          account_type: string
-          registration_complete: boolean
         }[]
       }
       get_provider_public_info: {
         Args: { provider_user_id: string }
         Returns: {
-          user_id: string
-          full_name: string
-          company_name: string
-          location: string
-          user_type: string
           account_type: string
-          service_categories: string[]
-          user_roles: string[]
+          company_name: string
+          full_name: string
+          location: string
           registration_complete: boolean
+          service_categories: string[]
+          user_id: string
+          user_roles: string[]
+          user_type: string
         }[]
       }
       get_public_provider_profile: {
         Args: { provider_user_id: string }
         Returns: {
-          user_id: string
-          full_name: string
-          company_name: string
-          location: string
-          user_type: string
           account_type: string
-          service_categories: string[]
-          user_roles: string[]
+          company_name: string
+          full_name: string
+          location: string
           registration_complete: boolean
+          service_categories: string[]
+          user_id: string
+          user_roles: string[]
+          user_type: string
         }[]
       }
     }
