@@ -334,7 +334,7 @@ const Robots = () => {
         <img
           src={robot.images[0]}
           alt={robot.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-contain bg-background group-hover:scale-105 transition-transform duration-500"
         />
       ) : (
         <div className="flex items-center justify-center w-full h-full">

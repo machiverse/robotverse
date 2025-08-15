@@ -933,7 +933,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <img
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
-                        className="w-full h-full object-cover rounded-lg cursor-pointer"
+                        className="w-full h-full object-contain bg-background rounded-lg cursor-pointer"
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (
