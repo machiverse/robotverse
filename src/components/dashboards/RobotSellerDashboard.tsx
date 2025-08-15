@@ -782,10 +782,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                               <div className="flex items-center space-x-3">
                                 <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                                   {robot.images && robot.images.length > 0 ? (
-                                    <img 
-                                      src={robot.images[0]} 
-                                      alt={robot.name}
-                                      className="w-full h-full object-cover rounded-lg"
+                                     <img 
+                                       src={robot.images[0]} 
+                                       alt={robot.name}
+                                       className="w-full h-full object-contain rounded-lg bg-background"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
                                       }}
@@ -865,9 +865,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                               <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
                                 {robot.images && robot.images.length > 0 ? (
                                   <img 
-                                    src={robot.images[0]} 
-                                    alt={robot.name}
-                                    className="w-full h-full object-cover"
+                                   src={robot.images[0]} 
+                                   alt={robot.name}
+                                   className="w-full h-full object-contain bg-background"
                                   />
                                 ) : (
                                   <Bot className="w-8 h-8 text-muted-foreground" />

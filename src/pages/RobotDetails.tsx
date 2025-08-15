@@ -989,7 +989,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         <img 
                           src={image} 
                           alt={`${robot.name} ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-contain rounded-lg bg-background"
                         />
                       </div>
                     ))}

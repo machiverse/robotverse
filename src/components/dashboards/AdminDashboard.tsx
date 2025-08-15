@@ -1454,11 +1454,11 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                               {robot.images && robot.images.length > 0 ? (
-                                <img 
-                                  src={robot.images[0]} 
-                                  alt={robot.name}
-                                  className="w-full h-full object-cover"
-                                />
+                                 <img 
+                                   src={robot.images[0]} 
+                                   alt={robot.name}
+                                   className="w-full h-full object-contain bg-background"
+                                 />
                               ) : (
                                 <Bot className="w-6 h-6 text-muted-foreground" />
                               )}
@@ -1549,9 +1549,9 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
                           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                             {robot.images && robot.images.length > 0 ? (
                               <img 
-                                src={robot.images[0]} 
-                                alt={robot.name}
-                                className="w-full h-full object-cover"
+                                 src={robot.images[0]} 
+                                 alt={robot.name}
+                                 className="w-full h-full object-contain bg-background"
                               />
                             ) : (
                               <Bot className="w-8 h-8 text-muted-foreground" />
