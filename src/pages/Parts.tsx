@@ -267,17 +267,19 @@ const Parts = () => {
             {/* Results */}
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredParts.map((part) => (
-                <Card key={part.id} className="hover:shadow-lg transition-shadow">
+                <Card key={part.id} className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1">
                   <CardHeader>
-                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                    <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
                       {part.image && part.image !== "/placeholder.svg" ? (
                         <img 
                           src={part.image} 
                           alt={part.name}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
-                        <Package className="w-12 h-12 text-muted-foreground" />
+                        <div className="flex items-center justify-center w-full h-full">
+                          <Package className="w-12 h-12 text-muted-foreground" />
+                        </div>
                       )}
                     </div>
                     <CardTitle className="text-lg">{part.name}</CardTitle>
