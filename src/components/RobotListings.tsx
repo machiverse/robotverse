@@ -684,8 +684,8 @@ const RobotListings = () => {
               >
                 {/* Robot Image */}
                 <div className={`relative bg-gradient-to-br from-muted to-muted/50 ${
-                  viewMode === 'list' ? 'w-48 h-32' : 'h-48'
-                }`}>
+                  viewMode === 'list' ? 'w-48 aspect-video' : 'aspect-video'
+                } rounded-t-lg overflow-hidden`}>
                   {robot.images && robot.images.length > 0 ? (
                     <img
                       src={robot.images[0]}
