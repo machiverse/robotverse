@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bot, MapPin, DollarSign, Search, Filter, Grid, List, Phone, MessageCircle } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 
 const Robots = () => {
   const navigate = useNavigate();
@@ -29,6 +30,8 @@ const Robots = () => {
   ]);
 
   const [robots, setRobots] = useState<any[]>([]);
+  const [sellerGroups, setSellerGroups] = useState<{ [key: string]: any[] }>({});
+  const [sellerProfiles, setSellerProfiles] = useState<{ [key: string]: any }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,10 +46,12 @@ const Robots = () => {
           .select(`
             *,
             profiles!robots_seller_id_fkey (
+              user_id,
               full_name,
               company_name,
               phone,
-              mobile_number
+              mobile_number,
+              email
             )
           `)
           .eq('availability', 'available')
@@ -54,6 +59,25 @@ const Robots = () => {
 
         if (robotsError) throw robotsError;
         setRobots(robotsData || []);
+
+        // Group robots by seller
+        const grouped: { [key: string]: any[] } = {};
+        const profiles: { [key: string]: any } = {};
+
+        robotsData?.forEach(robot => {
+          const sellerId = robot.seller_id;
+          if (!grouped[sellerId]) {
+            grouped[sellerId] = [];
+          }
+          grouped[sellerId].push(robot);
+          
+          if (robot.profiles && !profiles[sellerId]) {
+            profiles[sellerId] = robot.profiles;
+          }
+        });
+
+        setSellerGroups(grouped);
+        setSellerProfiles(profiles);
 
         // ✅ Extract unique categories from database
         const uniqueCategories = new Set<string>();
@@ -157,45 +181,93 @@ const Robots = () => {
     }
   };
 
-  // ✅ Enhanced filtering logic for dynamic data
-  const filteredRobots = robots.filter((robot) => {
-    const matchesSearch = robot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         robot.robot_type.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "all" || (() => {
-      const selectedCategoryLabel = categories.find(cat => cat.value === selectedCategory)?.label;
-      if (!selectedCategoryLabel) return false;
+  // ✅ Enhanced filtering logic for seller groups
+  const filteredSellerGroups = Object.entries(sellerGroups).filter(([sellerId, sellerRobots]) => {
+    // Filter robots within each seller group
+    const filteredSellerRobots = sellerRobots.filter((robot) => {
+      const matchesSearch = robot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           robot.robot_type.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Check robot_type
-      if (robot.robot_type && robot.robot_type.toLowerCase() === selectedCategoryLabel.toLowerCase()) {
-        return true;
-      }
+      const matchesCategory = selectedCategory === "all" || (() => {
+        const selectedCategoryLabel = categories.find(cat => cat.value === selectedCategory)?.label;
+        if (!selectedCategoryLabel) return false;
+        
+        // Check robot_type
+        if (robot.robot_type && robot.robot_type.toLowerCase() === selectedCategoryLabel.toLowerCase()) {
+          return true;
+        }
+        
+        // Check category_tags
+        if (robot.category_tags && Array.isArray(robot.category_tags)) {
+          return robot.category_tags.some((tag: string) => 
+            tag.toLowerCase() === selectedCategoryLabel.toLowerCase()
+          );
+        }
+        
+        return false;
+      })();
       
-      // Check category_tags
-      if (robot.category_tags && Array.isArray(robot.category_tags)) {
-        return robot.category_tags.some((tag: string) => 
-          tag.toLowerCase() === selectedCategoryLabel.toLowerCase()
-        );
-      }
-      
-      return false;
-    })();
-    
-    const matchesLocation = selectedLocation === "all" || (() => {
-      const selectedLocationLabel = locations.find(loc => loc.value === selectedLocation)?.label;
-      if (!selectedLocationLabel) return false;
-      
-      // Check robot location only (not seller location)
-      if (robot.location && robot.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
-        return true;
-      }
-      
-      return false;
-    })();
+      const matchesLocation = selectedLocation === "all" || (() => {
+        const selectedLocationLabel = locations.find(loc => loc.value === selectedLocation)?.label;
+        if (!selectedLocationLabel) return false;
+        
+        // Check robot location only (not seller location)
+        if (robot.location && robot.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
+          return true;
+        }
+        
+        return false;
+      })();
 
-    return matchesSearch && matchesCategory && matchesLocation;
-  });
+      return matchesSearch && matchesCategory && matchesLocation;
+    });
+
+    // Only include seller if they have robots matching the filters
+    return filteredSellerRobots.length > 0;
+  }).reduce((acc, [sellerId, sellerRobots]) => {
+    // Also filter the robots within each seller group
+    const filteredSellerRobots = sellerRobots.filter((robot) => {
+      const matchesSearch = robot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           robot.robot_type.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = selectedCategory === "all" || (() => {
+        const selectedCategoryLabel = categories.find(cat => cat.value === selectedCategory)?.label;
+        if (!selectedCategoryLabel) return false;
+        
+        if (robot.robot_type && robot.robot_type.toLowerCase() === selectedCategoryLabel.toLowerCase()) {
+          return true;
+        }
+        
+        if (robot.category_tags && Array.isArray(robot.category_tags)) {
+          return robot.category_tags.some((tag: string) => 
+            tag.toLowerCase() === selectedCategoryLabel.toLowerCase()
+          );
+        }
+        
+        return false;
+      })();
+      
+      const matchesLocation = selectedLocation === "all" || (() => {
+        const selectedLocationLabel = locations.find(loc => loc.value === selectedLocation)?.label;
+        if (!selectedLocationLabel) return false;
+        
+        if (robot.location && robot.location.toLowerCase() === selectedLocationLabel.toLowerCase()) {
+          return true;
+        }
+        
+        return false;
+      })();
+
+      return matchesSearch && matchesCategory && matchesLocation;
+    });
+
+    acc[sellerId] = filteredSellerRobots;
+    return acc;
+  }, {} as { [key: string]: any[] });
+
+  const totalFilteredRobots = Object.values(filteredSellerGroups).reduce((sum, robots) => sum + robots.length, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -292,7 +364,7 @@ const Robots = () => {
               Try Again
             </Button>
           </div>
-        ) : filteredRobots.length === 0 ? (
+        ) : Object.keys(filteredSellerGroups).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Bot className="w-16 h-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No robots available</h3>
@@ -307,7 +379,7 @@ const Robots = () => {
             {/* Results */}
             <div className="mb-4">
               <p className="text-sm text-muted-foreground">
-                {filteredRobots.length} {filteredRobots.length === 1 ? 'robot' : 'robots'} found
+                {totalFilteredRobots} {totalFilteredRobots === 1 ? 'robot' : 'robots'} found from {Object.keys(filteredSellerGroups).length} {Object.keys(filteredSellerGroups).length === 1 ? 'seller' : 'sellers'}
                 {selectedCategory !== "all" && (
                   <span className="ml-2">
                     • Category: <strong>{categories.find(cat => cat.value === selectedCategory)?.label}</strong>
@@ -322,81 +394,20 @@ const Robots = () => {
             </div>
             
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-              {filteredRobots.map((robot) => (
-                           <Card
-  key={robot.id}
-  className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-  onClick={() => navigate(`/robots/${robot.id}`)}
->
-  <CardHeader>
-    <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
-      {robot.images && robot.images.length > 0 ? (
-        <img
-          src={robot.images[0]}
-          alt={robot.name}
-          className="w-full h-full object-contain bg-background group-hover:scale-105 transition-transform duration-500"
-        />
-      ) : (
-        <div className="flex items-center justify-center w-full h-full">
-          <Bot className="w-12 h-12 text-muted-foreground" />
-        </div>
-      )}
-    </div>
-    <CardTitle className="text-lg">{robot.name}</CardTitle>
-    <div className="flex items-center justify-between">
-      <Badge variant="secondary" className="w-fit">
-        {robot.robot_type}
-      </Badge>
-      {robot.profiles?.company_name && (
-        <span className="text-xs text-muted-foreground">{robot.profiles.company_name}</span>
-      )}
-    </div>
-  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-primary">
-                          {robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
-                        </span>
-                        <Badge variant={robot.availability === "available" ? "default" : "secondary"}>
-                          {robot.availability}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span className="text-sm">{robot.location || 'Location not specified'}</span>
-                      </div>
-                      {robot.model && (
-                        <p className="text-sm text-muted-foreground">Model: {robot.model}</p>
-                      )}
-                      {robot.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{robot.description}</p>
-                      )}
-                      <div className="flex space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                        <Button size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
-                          View Details
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={(e) => handleContactSeller(robot, e)}
-                          disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
-                        >
-                          <MessageCircle className="w-3 h-3 mr-1" />
-                          {!user ? 'Sign in to Contact' : 'Contact'}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              {Object.entries(filteredSellerGroups).map(([sellerId, sellerRobots]) => (
+                <SellerRobotCarousel
+                  key={sellerId}
+                  sellerRobots={sellerRobots}
+                  sellerProfile={sellerProfiles[sellerId]}
+                />
               ))}
             </div>
 
             {/* Load More */}
-            {filteredRobots.length > 0 && (
+            {Object.keys(filteredSellerGroups).length > 0 && (
               <div className="text-center mt-8">
                 <Button variant="outline" size="lg">
-                  Load More Robots
+                  Load More Sellers
                 </Button>
               </div>
             )}

@@ -12,6 +12,7 @@ import Parts from "./pages/Parts";
 import Services from "./pages/Services";
 import DashboardPage from "./pages/DashboardPage";
 import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
+import SellerRobots from "./pages/SellerRobots";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/robots" element={<Robots />} />
             <Route path="/robots/:id" element={<RobotDetails />} />
+            <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/services" element={<Services />} />
             <Route path="/marketplace/robots" element={<Robots />} />
