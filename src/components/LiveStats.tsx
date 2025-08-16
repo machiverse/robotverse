@@ -25,8 +25,8 @@ const STAT_CONFIG = [
   {
     key: "liveUsers" as keyof StatsData,
     icon: Users,
-    label: "Active Users",
-    description: "Total registered users across all platform roles",
+    label: "Trusted Users",
+    description: "Total verified user accounts from profiles table",
     gradient: "from-green-500 to-emerald-600",
   },
   {
