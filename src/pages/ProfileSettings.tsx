@@ -61,9 +61,6 @@ const ProfileSettings = () => {
     location: '',
     mobile_number: '',
     phone: '',
-    bio: '',
-    website: '',
-    linkedin_url: '',
     user_type: '',
     avatar_url: '',
     company_logo_url: ''
@@ -95,9 +92,6 @@ const ProfileSettings = () => {
         location: userProfile?.location || '',
         mobile_number: userProfile?.mobile_number || '',
         phone: userProfile?.phone || '',
-        bio: userProfile?.bio || '',
-        website: userProfile?.website || '',
-        linkedin_url: userProfile?.linkedin_url || '',
         user_type: userProfile?.user_type || '',
         avatar_url: userProfile?.avatar_url || '',
         company_logo_url: userProfile?.company_logo_url || ''
@@ -164,13 +158,6 @@ const ProfileSettings = () => {
       newErrors.phone = 'Phone number is required';
     }
     
-    if (formData.website && !formData.website.startsWith('http')) {
-      newErrors.website = 'Website must start with http:// or https://';
-    }
-    
-    if (formData.linkedin_url && !formData.linkedin_url.includes('linkedin.com')) {
-      newErrors.linkedin_url = 'Please enter a valid LinkedIn URL';
-    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -615,29 +602,11 @@ const ProfileSettings = () => {
                         </Select>
                       </div>
 
-                      <div>
-                        <Label htmlFor="website">Website</Label>
-                        <Input
-                          id="website"
-                          value={formData.website}
-                          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                          placeholder="https://yourcompany.com"
-                          className={errors.website ? 'border-red-500' : ''}
-                        />
-                        {errors.website && (
-                          <p className="text-red-500 text-sm mt-1">{errors.website}</p>
-                        )}
-                      </div>
-
                       <div className="md:col-span-2">
-                        <Label htmlFor="bio">Bio</Label>
-                        <Textarea
-                          id="bio"
-                          value={formData.bio}
-                          onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                          placeholder="Tell us about your company..."
-                          rows={3}
-                        />
+                        <Label htmlFor="user_type">Additional Information</Label>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Your profile is set up with all essential information. You can contact support to add additional fields if needed.
+                        </p>
                       </div>
                     </div>
 
