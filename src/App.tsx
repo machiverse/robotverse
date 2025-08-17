@@ -13,6 +13,7 @@ import Services from "./pages/Services";
 import DashboardPage from "./pages/DashboardPage";
 import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
 import SellerRobots from "./pages/SellerRobots";
+import ProfileSettings from "./pages/ProfileSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,8 @@ const App = () => (
             <Route path="/marketplace/services" element={<Services />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
+            <Route path="/profile-settings" element={<ProfileSettings />} />
+            <Route path="/settings" element={<ProfileSettings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

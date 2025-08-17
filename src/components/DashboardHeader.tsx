@@ -146,7 +146,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
           <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
-              onClick={() => setShowProfile(true)}
+              onClick={() => navigate('/profile-settings')}
               className="flex items-center gap-2"
             >
               <Edit className="w-4 h-4" />
@@ -155,7 +155,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
             
             <Button 
               variant="outline" 
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/profile-settings')}
               className="flex items-center gap-2"
             >
               <Settings className="w-4 h-4" />
