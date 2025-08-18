@@ -23,6 +23,8 @@ import {
   Trash2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
 import { supabase } from '@/integrations/supabase/client';
 import LoanProductForm from '@/components/forms/LoanProductForm';
 import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
