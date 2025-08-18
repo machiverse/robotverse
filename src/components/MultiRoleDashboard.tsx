@@ -74,7 +74,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
       {/* Dashboard Header with Company Logo */}
-      <DashboardHeader userProfile={userProfile} onProfileUpdate={() => {}} />
+     /** <DashboardHeader userProfile={userProfile} onProfileUpdate={() => {}} />
       
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-4">
