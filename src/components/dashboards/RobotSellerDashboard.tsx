@@ -51,6 +51,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
 import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
 
@@ -61,6 +62,7 @@ interface RobotSellerDashboardProps {
 const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { viewStats, fetchUserItemViews, loading: viewsLoading } = useViewTracking();
   const [robots, setRobots] = useState<any[]>([]);
   const [filteredRobots, setFilteredRobots] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,7 +110,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user]);
+    if (user) {
+      fetchUserItemViews(user.id);
+    }
+  }, [user, fetchUserItemViews]);
 
   useEffect(() => {
     filterAndSortRobots();
@@ -163,7 +168,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       totalRobots,
       activeListings,
       totalRevenue,
-      totalViews: Math.floor(Math.random() * 1000),
+      totalViews: viewStats.viewsByCategory.robots || 0,
       avgPrice,
       soldThisMonth: 0,
       inquiries: Math.floor(Math.random() * 50),
@@ -498,20 +503,20 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     },
     {
       title: 'Total Views',
-      value: dashboardStats.totalViews,
+      value: viewStats.totalViews || 0,
       icon: Eye,
-      trend: 'All listings',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      change: '+8%'
+      trend: `${viewStats.viewsByCategory.robots} robot views`,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      change: viewsLoading ? '...' : '+8%'
     },
     {
       title: 'Conversion Rate',
       value: `${dashboardStats.conversationRate.toFixed(1)}%`,
       icon: TrendingUp,
       trend: 'Views to inquiries',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
       change: '+3%'
     }
   ];

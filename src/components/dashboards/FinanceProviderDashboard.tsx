@@ -35,6 +35,8 @@ interface FinanceProviderDashboardProps {
 
 const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { viewStats, fetchUserItemViews } = useViewTracking();
   const [loanApplications, setLoanApplications] = useState<any[]>([]);
   const [loanSchemes, setLoanSchemes] = useState<any[]>([]);
   const [loanProducts, setLoanProducts] = useState<any[]>([]);
@@ -60,7 +62,10 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user]);
+    if (user) {
+      fetchUserItemViews(user.id);
+    }
+  }, [user, fetchUserItemViews]);
 
   const fetchDashboardData = async () => {
     if (!user) return;

@@ -15,6 +15,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
+import { useViewTracking } from "@/hooks/useViewTracking";
 
 interface Robot {
   id: string;
@@ -91,6 +92,7 @@ const RobotDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackView, getItemViewCount } = useViewTracking();
   
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,6 +122,7 @@ const RobotDetails = () => {
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
+  const [viewCount, setViewCount] = useState(0);
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -162,7 +165,14 @@ const RobotDetails = () => {
         if (user) {
           const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
           setIsInWatchlist(watchlist.includes(data.id));
+          
+          // Track the view
+          trackView('robots', data.id);
         }
+        
+        // Get view count
+        const count = await getItemViewCount('robots', data.id);
+        setViewCount(count);
       } catch (err) {
         console.error('Error fetching robot:', err);
         setError(err instanceof Error ? err.message : 'Failed to load robot details');
