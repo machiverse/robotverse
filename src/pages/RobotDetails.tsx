@@ -10,7 +10,7 @@ import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1015,6 +1015,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   <div>
                     <CardTitle className="text-2xl">{robot.name}</CardTitle>
                     <p className="text-lg text-muted-foreground">{robot.model}</p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Eye className="w-4 h-4" />
+                        <span>{viewCount} views</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {robot.robot_type}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-bold text-primary">
@@ -1055,9 +1064,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <span className="font-medium">Quantity Available:</span>
                       <p>{robot.quantity}</p>
                     </div>
-                    <div>
+                    <div className="flex items-center gap-2">
                       <span className="font-medium">Views:</span>
-                      <p>29</p> {/* Replace with actual views if available */}
+                      <div className="flex items-center gap-1">
+                        <Eye className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-primary font-semibold">{viewCount}</span>
+                      </div>
                     </div>
                   </div>
 
