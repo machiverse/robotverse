@@ -268,9 +268,9 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         await fetchRealServiceRequests();
       }
 
-      console.log('âœ… Multi-role dashboard data fetched successfully');
+      console.log('✅ Multi-role dashboard data fetched successfully');
     } catch (error) {
-      console.error('âŒ Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -385,7 +385,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         id: `robot_${robot.id}`,
         type: 'robot',
         title: robot.availability === 'sold' ? `Robot Sold: ${robot.name}` : `Robot Listed: ${robot.name}`,
-        description: `${robot.robot_type} â€¢ â‚¹${robot.price?.toLocaleString() || '0'}`,
+        description: `${robot.robot_type} • ₹${robot.price?.toLocaleString() || '0'}`,
         timestamp: robot.availability === 'sold' ? robot.updated_at : robot.created_at,
         status: robot.availability,
         icon: robot.availability === 'sold' ? DollarSign : Bot,
@@ -399,7 +399,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         id: `part_${part.id}`,
         type: 'part',
         title: `Part Listed: ${part.name}`,
-        description: `Qty: ${part.quantity} â€¢ â‚¹${part.price?.toLocaleString() || '0'}`,
+        description: `Qty: ${part.quantity} • ₹${part.price?.toLocaleString() || '0'}`,
         timestamp: part.created_at,
         status: part.quantity > 0 ? 'in_stock' : 'out_of_stock',
         icon: Package,
@@ -427,7 +427,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         id: `request_${request.id}`,
         type: 'service_request',
         title: `Service Request: ${request.service_type}`,
-        description: `From ${request.client_name} â€¢ ${request.status}`,
+        description: `From ${request.client_name} • ${request.status}`,
         timestamp: request.created_at,
         status: request.status,
         icon: MessageCircle,
@@ -566,7 +566,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">Total Revenue</p>
-                <p className="text-3xl font-bold text-green-600">â‚¹{stats.overallStats.totalRevenue.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-green-600">₹{stats.overallStats.totalRevenue.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">From all activities</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
@@ -682,7 +682,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
                           <span className="font-bold text-green-600">
-                            â‚¹{stats.robotStats.revenue.toLocaleString()}
+                            ₹{stats.robotStats.revenue.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -715,7 +715,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
                           <span className="font-bold text-green-600">
-                            â‚¹{stats.partsStats.revenue.toLocaleString()}
+                            ₹{stats.partsStats.revenue.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -748,7 +748,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
                           <span className="font-bold text-green-600">
-                            â‚¹{stats.serviceStats.revenue.toLocaleString()}
+                            ₹{stats.serviceStats.revenue.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -809,19 +809,23 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         {hasRobotSeller && (
           <TabsContent value="robots" className="mt-6">
             <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bot className="w-5 h-5" />
+                    Robot Listings Management
+                  </CardTitle>
+                  <CardDescription>
+                    Upload and manage your robot inventory with real-time analytics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RobotUpload onSuccess={fetchAllRealData} />
+                </CardContent>
+              </Card>
+
               {/* Robot Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Robots</p>
-                        <p className="text-2xl font-bold">{stats.robotStats.total}</p>
-                      </div>
-                      <Bot className="w-8 h-8 text-blue-600" />
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -840,7 +844,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <p className="text-sm text-muted-foreground">Robots Sold</p>
                         <p className="text-2xl font-bold">{stats.robotStats.sold}</p>
                       </div>
-                      <DollarSign className="w-8 h-8 text-green-600" />
+                      <DollarSign className="w-8 h-8 text-blue-600" />
                     </div>
                   </CardContent>
                 </Card>
@@ -849,154 +853,13 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Avg Price</p>
-                        <p className="text-2xl font-bold">â‚¹{(stats.robotStats.avgPrice/100000).toFixed(1)}L</p>
+                        <p className="text-2xl font-bold">₹{(stats.robotStats.avgPrice/100000).toFixed(1)}L</p>
                       </div>
                       <TrendingUp className="w-8 h-8 text-purple-600" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Robot Listings */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Bot className="w-5 h-5" />
-                        Your Robot Listings ({robots.length})
-                      </CardTitle>
-                      <CardDescription>
-                        Manage and view your robot inventory
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline"
-                        onClick={() => window.open('/robots', '_blank')}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add New Robot
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => window.open('/seller-robots', '_blank')}
-                      >
-                        <List className="w-4 h-4 mr-2" />
-                        Manage All
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {robots.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Bot className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No robots listed yet</h3>
-                      <p className="text-muted-foreground mb-4">Start selling by adding your first robot</p>
-                      <Button 
-                        onClick={() => window.open('/robots', '_blank')}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Your First Robot
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Search and Filter */}
-                      <div className="flex items-center gap-4">
-                        <div className="relative flex-1 max-w-sm">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                          <Input
-                            placeholder="Search robots..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-                        <Select value={filterStatus} onValueChange={setFilterStatus}>
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Robots</SelectItem>
-                            <SelectItem value="available">Available</SelectItem>
-                            <SelectItem value="sold">Sold</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Robot Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {robots
-                          .filter(robot => {
-                            const matchesSearch = robot.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                               robot.robot_type?.toLowerCase().includes(searchQuery.toLowerCase());
-                            
-                            if (filterStatus === 'all') return matchesSearch;
-                            if (filterStatus === 'available') return matchesSearch && robot.availability === 'available';
-                            if (filterStatus === 'sold') return matchesSearch && robot.availability === 'sold';
-                            
-                            return matchesSearch;
-                          })
-                          .map((robot) => (
-                          <Card key={robot.id} className="hover:shadow-lg transition-all duration-200">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between">
-                                {getStatusBadge(robot.availability || 'available')}
-                                <div className="flex items-center gap-1">
-                                  <Button size="sm" variant="ghost" onClick={() => window.open(`/robot/${robot.id}`, '_blank')}>
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <CardTitle className="text-lg">{robot.name}</CardTitle>
-                              <CardDescription>
-                                {robot.robot_type} â€¢ {robot.location}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Price:</span>
-                                  <span className="font-bold text-lg text-green-600">â‚¹{robot.price?.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Year:</span>
-                                  <span className="font-medium">{robot.year_manufactured}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Condition:</span>
-                                  <Badge variant="outline">{robot.condition}</Badge>
-                                </div>
-                                {robot.description && (
-                                  <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-                                    {robot.description}
-                                  </p>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-
-                      {robots.length > 6 && (
-                        <div className="text-center pt-4">
-                          <Button 
-                            variant="outline"
-                            onClick={() => window.open('/seller-robots', '_blank')}
-                          >
-                            View All {robots.length} Robots
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
         )}
@@ -1071,7 +934,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Total Value</p>
-                        <p className="text-2xl font-bold">â‚¹{stats.partsStats.revenue.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">₹{stats.partsStats.revenue.toLocaleString()}</p>
                       </div>
                       <DollarSign className="w-8 h-8 text-purple-600" />
                     </div>
@@ -1172,7 +1035,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-sm text-muted-foreground">Price:</span>
-                                  <span className="font-medium">â‚¹{part.price?.toLocaleString() || '0'}</span>
+                                  <span className="font-medium">₹{part.price?.toLocaleString() || '0'}</span>
                                 </div>
                                 {part.description && (
                                   <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
@@ -1223,54 +1086,6 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         {hasServiceProvider && (
           <TabsContent value="services" className="mt-6">
             <div className="space-y-6">
-              {/* Service Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Services</p>
-                        <p className="text-2xl font-bold">{stats.serviceStats.total}</p>
-                      </div>
-                      <Wrench className="w-8 h-8 text-blue-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Completion Rate</p>
-                        <p className="text-2xl font-bold">{stats.serviceStats.completionRate.toFixed(1)}%</p>
-                      </div>
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Pending Requests</p>
-                        <p className="text-2xl font-bold">{stats.serviceStats.pending}</p>
-                      </div>
-                      <Clock className="w-8 h-8 text-yellow-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Service Revenue</p>
-                        <p className="text-2xl font-bold">â‚¹{(stats.serviceStats.revenue/100000).toFixed(1)}L</p>
-                      </div>
-                      <DollarSign className="w-8 h-8 text-purple-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
               {/* Service Categories */}
               {serviceCategories.length > 0 && (
                 <Card>
@@ -1292,106 +1107,15 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                 </Card>
               )}
 
-              {/* Service Listings */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Wrench className="w-5 h-5" />
-                        Your Service Listings ({services.length})
-                      </CardTitle>
-                      <CardDescription>
-                        Professional services you offer
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline"
-                        onClick={() => window.open('/services', '_blank')}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add New Service
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {services.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Wrench className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No services listed yet</h3>
-                      <p className="text-muted-foreground mb-4">Start by adding your professional services</p>
-                      <Button 
-                        onClick={() => window.open('/services', '_blank')}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Your First Service
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Service Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {services.map((service) => (
-                          <Card key={service.id} className="hover:shadow-lg transition-all duration-200">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between">
-                                <Badge variant="default">Active</Badge>
-                                <div className="flex items-center gap-1">
-                                  <Button size="sm" variant="ghost">
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <CardTitle className="text-lg">{service.name}</CardTitle>
-                              <CardDescription>
-                                {service.service_type}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Price Range:</span>
-                                  <span className="font-bold text-green-600">
-                                    â‚¹{service.price_range_min?.toLocaleString()} - â‚¹{service.price_range_max?.toLocaleString()}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Location:</span>
-                                  <span className="font-medium">{service.location || 'Multiple locations'}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">Experience:</span>
-                                  <span className="font-medium">{service.experience_years || 'N/A'} years</span>
-                                </div>
-                                {service.description && (
-                                  <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-                                    {service.description}
-                                  </p>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
               {/* Service Requests */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageCircle className="w-5 h-5" />
-                    Recent Service Requests ({serviceRequests.length})
+                    Service Requests ({serviceRequests.length})
                   </CardTitle>
                   <CardDescription>
-                    Service requests from potential clients
+                    Real service requests generated from your service listings
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1403,7 +1127,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {serviceRequests.slice(0, 5).map((request) => (
+                      {serviceRequests.map((request) => (
                         <Card key={request.id} className="border-l-4 border-l-blue-500">
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start mb-3">
@@ -1431,9 +1155,15 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                               </div>
                               <div className="flex items-center gap-2">
                                 <DollarSign className="w-4 h-4 text-muted-foreground" />
-                                <span>â‚¹{request.estimated_value?.toLocaleString()}</span>
+                                <span>₹{request.estimated_value?.toLocaleString()}</span>
                               </div>
                             </div>
+
+                            {request.description && (
+                              <div className="mb-3 p-3 bg-muted/50 rounded">
+                                <p className="text-sm">{request.description}</p>
+                              </div>
+                            )}
 
                             <div className="flex items-center justify-between">
                               <div className="flex gap-2">
@@ -1466,6 +1196,59 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                   )}
                 </CardContent>
               </Card>
+
+              {/* Service Listings Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    Service Listings Management
+                  </CardTitle>
+                  <CardDescription>
+                    Create and manage your professional service offerings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ServiceListing />
+                </CardContent>
+              </Card>
+
+              {/* Service Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Completion Rate</p>
+                        <p className="text-2xl font-bold">{stats.serviceStats.completionRate.toFixed(1)}%</p>
+                      </div>
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Pending Requests</p>
+                        <p className="text-2xl font-bold">{stats.serviceStats.pending}</p>
+                      </div>
+                      <Clock className="w-8 h-8 text-yellow-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Service Revenue</p>
+                        <p className="text-2xl font-bold">₹{(stats.serviceStats.revenue/100000).toFixed(1)}L</p>
+                      </div>
+                      <DollarSign className="w-8 h-8 text-purple-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
         )}
