@@ -269,9 +269,9 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         await fetchRealServiceRequests();
       }
 
-      console.log('âœ… Multi-role dashboard data fetched successfully');
+      console.log('✅ Multi-role dashboard data fetched successfully');
     } catch (error) {
-      console.error('âŒ Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -386,7 +386,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         id: `robot_${robot.id}`,
         type: 'robot',
         title: robot.availability === 'sold' ? `Robot Sold: ${robot.name}` : `Robot Listed: ${robot.name}`,
-        description: `${robot.robot_type} â€¢ â‚¹${robot.price?.toLocaleString() || '0'}`,
+        description: `${robot.robot_type} • ₹${robot.price?.toLocaleString() || '0'}`,
         timestamp: robot.availability === 'sold' ? robot.updated_at : robot.created_at,
         status: robot.availability,
         icon: robot.availability === 'sold' ? DollarSign : Bot,
@@ -400,7 +400,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         id: `part_${part.id}`,
         type: 'part',
         title: `Part Listed: ${part.name}`,
-        description: `Qty: ${part.quantity} â€¢ â‚¹${part.price?.toLocaleString() || '0'}`,
+        description: `Qty: ${part.quantity} • ₹${part.price?.toLocaleString() || '0'}`,
         timestamp: part.created_at,
         status: part.quantity > 0 ? 'in_stock' : 'out_of_stock',
         icon: Package,
@@ -428,7 +428,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
         id: `request_${request.id}`,
         type: 'service_request',
         title: `Service Request: ${request.service_type}`,
-        description: `From ${request.client_name} â€¢ ${request.status}`,
+        description: `From ${request.client_name} • ${request.status}`,
         timestamp: request.created_at,
         status: request.status,
         icon: MessageCircle,
@@ -531,9 +531,9 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
       <Alert className="border-green-200 bg-green-50">
         <CheckCircle className="w-4 h-4" />
         <AlertDescription className="text-green-700">
-          <strong>âœ… Real Data Dashboard</strong> - All statistics calculated from your actual listings and transactions.
+          <strong>✅ Real Data Dashboard</strong> - All statistics calculated from your actual listings and transactions.
           <br />
-          <small>Active Roles: {activeRoles.length} â€¢ Last Updated: {new Date().toLocaleTimeString()}</small>
+          <small>Active Roles: {activeRoles.length} • Last Updated: {new Date().toLocaleTimeString()}</small>
         </AlertDescription>
       </Alert>
 
@@ -581,7 +581,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">Total Revenue</p>
-                <p className="text-3xl font-bold text-green-600">â‚¹{stats.overallStats.totalRevenue.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-green-600">₹{stats.overallStats.totalRevenue.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">From all activities</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
@@ -697,7 +697,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
                           <span className="font-bold text-green-600">
-                            â‚¹{stats.robotStats.revenue.toLocaleString()}
+                            ₹{stats.robotStats.revenue.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -730,7 +730,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
                           <span className="font-bold text-green-600">
-                            â‚¹{stats.partsStats.revenue.toLocaleString()}
+                            ₹{stats.partsStats.revenue.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -763,7 +763,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                         <div className="flex justify-between items-center">
                           <span className="font-medium">Revenue</span>
                           <span className="font-bold text-green-600">
-                            â‚¹{stats.serviceStats.revenue.toLocaleString()}
+                            ₹{stats.serviceStats.revenue.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -868,7 +868,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Avg Price</p>
-                        <p className="text-2xl font-bold">â‚¹{(stats.robotStats.avgPrice/100000).toFixed(1)}L</p>
+                        <p className="text-2xl font-bold">₹{(stats.robotStats.avgPrice/100000).toFixed(1)}L</p>
                       </div>
                       <TrendingUp className="w-8 h-8 text-purple-600" />
                     </div>
@@ -949,7 +949,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Total Value</p>
-                        <p className="text-2xl font-bold">â‚¹{stats.partsStats.revenue.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">₹{stats.partsStats.revenue.toLocaleString()}</p>
                       </div>
                       <DollarSign className="w-8 h-8 text-purple-600" />
                     </div>
@@ -1050,7 +1050,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-sm text-muted-foreground">Price:</span>
-                                  <span className="font-medium">â‚¹{part.price?.toLocaleString() || '0'}</span>
+                                  <span className="font-medium">₹{part.price?.toLocaleString() || '0'}</span>
                                 </div>
                                 {part.description && (
                                   <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
@@ -1170,7 +1170,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                               </div>
                               <div className="flex items-center gap-2">
                                 <DollarSign className="w-4 h-4 text-muted-foreground" />
-                                <span>â‚¹{request.estimated_value?.toLocaleString()}</span>
+                                <span>₹{request.estimated_value?.toLocaleString()}</span>
                               </div>
                             </div>
 
@@ -1257,7 +1257,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Service Revenue</p>
-                        <p className="text-2xl font-bold">â‚¹{(stats.serviceStats.revenue/100000).toFixed(1)}L</p>
+                        <p className="text-2xl font-bold">₹{(stats.serviceStats.revenue/100000).toFixed(1)}L</p>
                       </div>
                       <DollarSign className="w-8 h-8 text-purple-600" />
                     </div>
