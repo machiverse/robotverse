@@ -10,6 +10,7 @@ import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDas
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import MultiRoleSellerDashboard from "@/components/MultiRoleSellerDashboard";
 
 interface MultiRoleDashboardProps {
   userProfile: any;
@@ -17,72 +18,86 @@ interface MultiRoleDashboardProps {
 
 const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   const userRoles = userProfile?.user_roles || [];
-  
-  // If user only has one role, default to that role's dashboard
-  const [activeTab, setActiveTab] = useState(userRoles[0] || 'buyer');
+  const [activeTab, setActiveTab] = useState(userRoles[0] || "buyer");
 
+  // Define the dashboard configs for different roles
   const roleConfigs = {
     buyer: {
-      label: 'Buyer',
+      label: "Buyer",
       icon: ShoppingCart,
       component: BuyerDashboard,
-      description: 'Browse and purchase robots'
+      description: "Browse and purchase robots",
     },
     robot_seller: {
-      label: 'Robot Seller',
+      label: "Robot Seller",
       icon: Store,
       component: RobotSellerDashboard,
-      description: 'Manage robot listings'
+      description: "Manage robot listings",
     },
     spare_parts_seller: {
-      label: 'Parts Seller',
+      label: "Parts Seller",
       icon: Settings,
-      component: SparePartsDashboard, // Reuse for now, can be specialized later
-      description: 'Manage spare parts'
+      component: SparePartsDashboard,
+      description: "Manage spare parts",
     },
     service_provider: {
-      label: 'Service Provider',
+      label: "Service Provider",
       icon: Wrench,
       component: ServiceProviderDashboard,
-      description: 'Manage service offerings'
+      description: "Manage service offerings",
     },
     logistics_provider: {
-      label: 'Logistics',
+      label: "Logistics",
       icon: Truck,
       component: LogisticsProviderDashboard,
-      description: 'Manage shipments'
+      description: "Manage shipments",
     },
     finance_provider: {
-      label: 'Finance',
+      label: "Finance",
       icon: CreditCard,
       component: FinanceProviderDashboard,
-      description: 'Manage loan programs'
-    }
+      description: "Manage loan programs",
+    },
   };
 
-  // If user has only one role, render that dashboard directly
+  // If user has only one role, show ONLY that dashboard (no tabs)
   if (userRoles.length === 1) {
     const role = userRoles[0];
     const config = roleConfigs[role];
     if (config) {
       const DashboardComponent = config.component;
-      return <DashboardComponent userProfile={userProfile} />;
+      return (
+        <div className="container mx-auto px-4 py-8 space-y-6">
+          <DashboardHeader userProfile={userProfile} onProfileUpdate={() => {}} />
+          {/* Only show dashboard for this role */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <config.icon className="w-5 h-5" />
+                <span>{config.label} Dashboard</span>
+              </CardTitle>
+              <CardDescription>{config.description}</CardDescription>
+            </CardHeader>
+          </Card>
+          <DashboardComponent userProfile={userProfile} />
+        </div>
+      );
     }
   }
 
   // If user has multiple roles, show tabbed interface
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* Dashboard Header with Company Logo */}
-     <DashboardHeader userProfile={userProfile} onProfileUpdate={() => {}} />
-      
+      {/* Top header, company info, role badges */}
+      <DashboardHeader userProfile={userProfile} onProfileUpdate={() => {}} />
+
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-4">
           <h1 className="text-3xl font-bold">Multi-Role Dashboard</h1>
           <div className="flex flex-wrap gap-2">
-            {userRoles.map((role: string) => (
+            {userRoles.map((role) => (
               <Badge key={role} variant="secondary" className="capitalize">
-                {roleConfigs[role]?.label || role.replace('_', ' ')}
+                {roleConfigs[role]?.label || role.replace("_", " ")}
               </Badge>
             ))}
           </div>
@@ -94,17 +109,12 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${userRoles.length}, 1fr)` }}>
-          {userRoles.map((role: string) => {
+          {userRoles.map((role) => {
             const config = roleConfigs[role];
             if (!config) return null;
-            
             const Icon = config.icon;
             return (
-              <TabsTrigger 
-                key={role} 
-                value={role}
-                className="flex items-center space-x-2"
-              >
+              <TabsTrigger key={role} value={role} className="flex items-center space-x-2">
                 <Icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{config.label}</span>
               </TabsTrigger>
@@ -112,13 +122,14 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
           })}
         </TabsList>
 
-        {userRoles.map((role: string) => {
+        {userRoles.map((role) => {
           const config = roleConfigs[role];
           if (!config) return null;
-          
           const DashboardComponent = config.component;
+
           return (
             <TabsContent key={role} value={role} className="space-y-6">
+              {/* Do NOT repeat the DashboardHeader, company, or badges here */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
