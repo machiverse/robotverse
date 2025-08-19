@@ -155,13 +155,12 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showQuickActions, setShowQuickActions] = useState(false);
 
-  // Role Detection
-  const sellerRoles = userProfile?.seller_roles || [];
+  // Role Detection - Check user_roles array first, then fallback to user_type
+  const userRoles = userProfile?.user_roles || [];
   const serviceCategories = userProfile?.service_categories || [];
-  
-  const hasRobotSeller = sellerRoles.includes('robot_seller') || userProfile?.user_type === 'robot_seller';
-  const hasPartsSeller = sellerRoles.includes('spare_parts_seller') || sellerRoles.includes('parts_seller');
-  const hasServiceProvider = sellerRoles.includes('service_provider') || userProfile?.user_type === 'service_provider';
+  const hasRobotSeller = userRoles.includes('robot_seller') || userProfile?.user_type === 'robot_seller';
+  const hasPartsSeller = userRoles.includes('spare_parts_seller');
+  const hasServiceProvider = userRoles.includes('service_provider') || userProfile?.user_type === 'service_provider';
   
   const activeRoles = [hasRobotSeller, hasPartsSeller, hasServiceProvider].filter(Boolean);
   const roleCount = activeRoles.length;
@@ -527,32 +526,18 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
 
   return (
     <div className="space-y-6">
-      {/* Real Data Confirmation */}
-      <Alert className="border-green-200 bg-green-50">
-        <CheckCircle className="w-4 h-4" />
-        <AlertDescription className="text-green-700">
-          <strong>✅ Real Data Dashboard</strong> - All statistics calculated from your actual listings and transactions.
-          <br />
-          <small>Active Roles: {activeRoles.length} • Last Updated: {new Date().toLocaleTimeString()}</small>
-        </AlertDescription>
-      </Alert>
-
-      {/* Enhanced Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Multi-Role Seller Dashboard
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Manage your marketplace presence across all your roles
-          </p>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {sellerRoles.map((role) => (
-              <Badge key={role} variant="secondary" className="text-sm">
-                {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-              </Badge>
-            ))}
-          </div>
+      {/* Quick Action Buttons */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-wrap gap-2">
+          {[
+            ...(hasRobotSeller ? ['Robot Seller'] : []),
+            ...(hasPartsSeller ? ['Parts Seller'] : []),
+            ...(hasServiceProvider ? ['Service Provider'] : [])
+          ].map((role) => (
+            <Badge key={role} variant="secondary" className="text-sm">
+              {role}
+            </Badge>
+          ))}
         </div>
         <div className="flex items-center gap-2">
           <Button 
