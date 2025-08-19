@@ -47,7 +47,6 @@ interface Service {
 const Services = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +57,7 @@ const Services = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
+  // Fetch services from Supabase
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -78,7 +78,9 @@ const Services = () => {
           `
           )
           .order("created_at", { ascending: false });
+
         if (error) throw error;
+
         const transformedData = (data || []).map((item: any) => ({
           id: item.id,
           name: item.name,
@@ -86,7 +88,7 @@ const Services = () => {
           priceRange: item.price_range || "Contact for pricing",
           location: item.location || item.profiles?.location || "Location not specified",
           provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
-          image: item.profiles?.logo_url || "/placeholder.svg", // Use actual logo if available
+          image: "/placeholder.svg",
           description: item.description || "Professional service provider",
           rating: 4.5,
           responseTime: "2-4 hours",
@@ -101,6 +103,7 @@ const Services = () => {
           },
           providerId: item.provider_id || "",
         }));
+
         setServices(transformedData);
         setError(null);
       } catch (err) {
@@ -110,9 +113,11 @@ const Services = () => {
         setLoading(false);
       }
     };
+
     fetchServices();
   }, []);
 
+  // Dynamic category list (split by commas)
   const categoryFilterList = [
     { value: "all", label: "All Services" },
     ...Array.from(
@@ -128,6 +133,7 @@ const Services = () => {
       .sort((a, b) => a.label.localeCompare(b.label))
   ];
 
+  // Dynamic location list
   const locationFilterList = [
     { value: "all", label: "All Locations" },
     ...Array.from(
@@ -138,12 +144,14 @@ const Services = () => {
               service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
               service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
               service.provider.toLowerCase().includes(searchQuery.toLowerCase());
+
             const matchesCategory =
               selectedCategory === "all" ||
               service.category
                 .split(",")
                 .map(c => c.trim().toLowerCase())
                 .includes(selectedCategory.toLowerCase());
+
             return matchesSearch && matchesCategory;
           })
           .map((s) => s.location)
@@ -154,20 +162,24 @@ const Services = () => {
       .sort((a, b) => a.label.localeCompare(b.label))
   ];
 
+  // Filtered services for display
   const filteredServices = services.filter((service) => {
     const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.provider.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesCategory =
       selectedCategory === "all" ||
       service.category
         .split(",")
         .map(c => c.trim().toLowerCase())
         .includes(selectedCategory.toLowerCase());
+
     const matchesLocation =
       selectedLocation === "all" ||
       service.location.toLowerCase() === selectedLocation.toLowerCase();
+
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
@@ -185,8 +197,10 @@ const Services = () => {
       });
       return;
     }
+
     const phone =
       service.providerProfile?.phone || service.providerProfile?.mobile_number;
+
     if (!phone) {
       toast({
         variant: "destructive",
@@ -195,6 +209,7 @@ const Services = () => {
       });
       return;
     }
+
     window.open(`tel:${phone}`, "_self");
     toast({
       title: "Calling Provider",
@@ -208,6 +223,7 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
+
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -320,98 +336,98 @@ const Services = () => {
               </p>
             </div>
 
-            {/* Scrollable services container */}
-            <div className="max-h-[75vh] overflow-y-auto">
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    : "space-y-4"
-                }
-              >
-                {filteredServices.map((service) => (
-                  <Card
-                    key={service.id}
-                    className="flex flex-col hover:shadow-xl transition-all duration-300 border border-gray-200 shadow-sm bg-white rounded-xl min-h-[460px]"
-                  >
-                    <CardHeader className="pb-3 flex flex-col items-center">
-                      {/* Provider Logo or Initial */}
-                      <div className="w-24 h-24 rounded-lg overflow-hidden border border-gray-300 mb-4 bg-white flex items-center justify-center">
-                        {service.image ? (
-                          <img
-                            src={service.image}
-                            alt={`${service.provider} Logo`}
-                            className="object-contain w-full h-full"
-                          />
-                        ) : (
-                          <span className="text-4xl font-bold text-gray-400">
-                            {service.provider.charAt(0)}
-                          </span>
-                        )}
-                      </div>
-
-                      <CardTitle className="text-lg font-bold text-gray-900 text-center">
-                        {service.name}
-                      </CardTitle>
-                      <div className="flex items-center justify-between mt-1 w-full px-6">
-                        <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
-                          {service.category}
+            {/* Cards */}
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "space-y-4"
+              }
+            >
+              {filteredServices.map((service) => (
+                <Card
+                  key={service.id}
+                  className="hover:shadow-xl transition-all duration-300 border border-gray-200 shadow-sm bg-white rounded-xl"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="aspect-video bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center mb-4 border">
+                      <div className="text-center">
+                        <Settings className="w-12 h-12 text-blue-600 mx-auto mb-2" />
+                        <Badge variant="outline" className="text-xs bg-white/90 text-blue-700 border border-blue-200">
+                          Professional Service
                         </Badge>
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-semibold text-gray-800">
-                            {service.rating}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({service.completedJobs})
-                          </span>
-                        </div>
                       </div>
-                    </CardHeader>
+                    </div>
+                    <CardTitle className="text-lg font-bold text-gray-900">
+                      {service.name}
+                    </CardTitle>
+                    <div className="flex items-center justify-between mt-1">
+                      <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
+                        {service.category}
+                      </Badge>
+                      <div className="flex items-center space-x-1">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-semibold text-gray-800">
+                          {service.rating}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ({service.completedJobs})
+                        </span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          {service.priceRange}
+                        </span>
+                        <Badge className="bg-green-100 text-green-800 border border-green-200">
+                          {service.availability}
+                        </Badge>
+                      </div>
 
-                    <CardContent className="flex flex-col flex-grow px-6">
-                      <div className="space-y-4 flex-grow">
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            {service.priceRange}
+                      <div className="flex items-center text-gray-700">
+                        <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                        <span className="text-sm font-medium">
+                          {service.location}
+                        </span>
+                      </div>
+
+                      <div className="border border-gray-200 rounded-lg p-4 bg-white text-sm text-gray-800 leading-relaxed text-justify">
+                        {service.description}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-orange-600" />
+                          <span className="font-medium text-gray-800">
+                            Response: {service.responseTime}
                           </span>
-                          <Badge className="bg-green-100 text-green-800 border border-green-200">
-                            {service.availability}
-                          </Badge>
                         </div>
-                        <div className="flex items-center text-gray-700 space-x-2">
-                          <MapPin className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium">{service.location}</span>
-                        </div>
-                        {/* Scrollable Description Container */}
-                        <div className="border border-gray-200 rounded-lg p-3 bg-white text-sm text-gray-800 leading-relaxed text-justify max-h-24 overflow-y-auto">
-                          {service.description}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center space-x-2">
-                            <Clock className="w-4 h-4 text-orange-600" />
-                            <span className="font-medium text-gray-800">
-                              Response: {service.responseTime}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Users className="w-4 h-4 text-green-600" />
-                            <span className="font-medium text-gray-800">
-                              {service.completedJobs} projects
-                            </span>
-                          </div>
+                        <div className="flex items-center space-x-2">
+                          <Users className="w-4 h-4 text-green-600" />
+                          <span className="font-medium text-gray-800">
+                            {service.completedJobs} projects
+                          </span>
                         </div>
                       </div>
-                      
-                      <div className="pt-2 border-t border-gray-100 mt-auto flex items-center space-x-2 mb-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                          <span className="text-white font-bold text-lg">
-                            {service.provider.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 text-sm">{service.provider}</p>
-                          <p className="text-xs text-gray-600">Certified Professional</p>
+
+                      <div className="pt-2 border-t border-gray-100">
+                        <div className="flex items-center space-x-2 mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">
+                              {service.provider.charAt(0)}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">
+                              {service.provider}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              Certified Professional
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -437,10 +453,10 @@ const Services = () => {
                           {user ? "Contact Provider" : "Sign In to Contact"}
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </>
         )}
