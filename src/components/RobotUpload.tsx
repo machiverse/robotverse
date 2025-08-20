@@ -161,10 +161,15 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
     'SCARA Robot',
     'Delta Robot',
     'Cartesian Robot',
+    'Gantry Robot',
+    'Linear Robot',
     'Cylindrical Robot',
     'Spherical Robot',
+    'Polar Robot',
+    'Parallel Robot',
     'Humanoid Robot',
     'Mobile Robot',
+    'AMR (Autonomous Mobile Robot)',
     'AGV (Automated Guided Vehicle)',
     'Welding Robot',
     'Painting Robot',
@@ -172,15 +177,42 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
     'Pick and Place Robot',
     'Packaging Robot',
     'Palletizing Robot',
+    'Material Handling Robot',
+    'Machine Tending Robot',
+    'Inspection Robot',
+    'CNC Robot',
+    '7th Axis Linear Track Robot',
+    'Vision-Guided Robot',
+    'Force-Controlled Robot',
     'Service Robot',
+    'Medical Robot',
     'Other'
-  ];
+];
 
   const robotBrands = [
+    // Major Global Brands
     'ABB', 'KUKA', 'Fanuc', 'Yaskawa', 'Kawasaki', 'Mitsubishi', 'Denso', 
     'Epson', 'Universal Robots', 'Staubli', 'Comau', 'Nachi', 'Omron',
-    'Doosan', 'Techman Robot', 'Precise Automation', 'Other'
-  ];
+    'Doosan', 'Techman Robot', 'Precise Automation',
+    
+    // Additional Major Brands
+    'Motoman', 'Adept', 'Reis Robotics', 'Cloos', 'Panasonic', 'Toshiba',
+    'Hitachi', 'Yamaha', 'IAI', 'THK', 'Hiwin', 'Googol Technology',
+    
+    // Collaborative Robot Specialists
+    'Franka Emika', 'Rethink Robotics', 'Cobots', 'Elephant Robotics',
+    'Kassow Robots', 'Hanwha', 'Rainbow Robotics', 'Aubo Robotics',
+    
+    // Indian/Regional Brands
+    'Tata Technologies', 'Hi-Tech Robotics', 'Automech Robotics',
+    'Pari Robotics', 'TAL Manufacturing', 'Grind Master',
+    
+    // Chinese Brands
+    'Siasun', 'ESTUN', 'GSK CNC', 'Effort', 'EFORT', 'Han\'s Robot',
+    'Rokae', 'Elite Robot', 'Jaka Robotics', 'Dobot',
+    
+    'Other'
+];
 
   const conditionOptions = [
     { value: 'new', label: 'Brand New', description: 'Factory sealed, never used' },
@@ -191,20 +223,107 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
   ];
 
   const operatingEnvironments = [
-    'Standard Industrial', 'Clean Room', 'Harsh Environment', 'Explosive Atmosphere', 
-    'High Temperature', 'Low Temperature', 'Outdoor', 'Food Grade', 'Pharmaceutical'
-  ];
+    'Standard Industrial',
+    'Clean Room (ISO Class 5-8)',
+    'Harsh Environment',
+    'Explosive Atmosphere (ATEX/IECEx)',
+    'High Temperature (up to 200°C)',
+    'Low Temperature (-40°C to 0°C)',
+    'Outdoor/Weather Resistant',
+    'Food Grade/FDA Compliant',
+    'Pharmaceutical Grade',
+    'Automotive Manufacturing',
+    'Electronics Assembly',
+    'Chemical Processing',
+    'Foundry/Casting',
+    'Aerospace Manufacturing',
+    'Laboratory Environment',
+    'Underwater/Marine',
+    'Radiation Environment',
+    'Dusty Environment (IP65/IP67)',
+    'Corrosive Environment',
+    'Vibration Resistant'
+];
 
   const commonApplications = [
-    'Welding', 'Assembly', 'Pick and Place', 'Packaging', 'Palletizing', 
-    'Material Handling', 'Machine Tending', 'Quality Inspection', 'Painting',
-    'Cutting', 'Grinding', 'Polishing', 'Dispensing', 'Testing'
-  ];
+    // Manufacturing Operations
+    'Welding (Arc, Spot, Laser)',
+    'Assembly (Automated)',
+    'Pick and Place',
+    'Packaging',
+    'Palletizing',
+    'Material Handling',
+    'Machine Tending',
+    'Quality Inspection',
+    'Painting/Coating',
+    'Cutting (Laser, Water Jet, Plasma)',
+    'Grinding',
+    'Polishing',
+    'Dispensing (Adhesive, Sealant)',
+    'Testing/Measurement',
+    
+    // Specialized Operations
+    'Deburring',
+    'Drilling',
+    'Milling',
+    'Surface Treatment',
+    'Loading/Unloading',
+    'Sorting',
+    'Labeling',
+    'Fastening',
+    'Riveting',
+    'Soldering',
+    'Injection Molding',
+    'Press Operations',
+    'Die Casting',
+    'Forging',
+    'Heat Treatment',
+    
+    // Service Applications
+    'Cleaning',
+    'Maintenance',
+    'Security/Surveillance',
+    'Education/Research',
+    'Medical Assistance',
+    'Rehabilitation Therapy'
+];
 
   const certificationStandards = [
-    'ISO 9001', 'CE Marking', 'ANSI/RIA R15.06', 'ISO 10218', 'IEC 61508',
-    'ISO 13849', 'NRTL Listed', 'UL Listed', 'CSA Certified', 'JIS Standards'
-  ];
+    // International Standards
+    'ISO 9001 (Quality Management)',
+    'ISO 10218 (Robot Safety)',
+    'ISO 13849 (Safety Control Systems)',
+    'IEC 61508 (Functional Safety)',
+    'IEC 62061 (Safety Control Systems)',
+    'CE Marking (European Conformity)',
+    
+    // Regional Standards
+    'ANSI/RIA R15.06 (US Robot Safety)',
+    'NRTL Listed (US)',
+    'UL Listed (US)',
+    'CSA Certified (Canada)',
+    'JIS Standards (Japan)',
+    'GB Standards (China)',
+    'BIS (Bureau of Indian Standards)',
+    
+    // Industry-Specific
+    'FDA 21 CFR Part 11 (Pharmaceutical)',
+    'HACCP (Food Safety)',
+    'SIL Rated (Safety Integrity Level)',
+    'ATEX Certified (Explosive Atmospheres)',
+    'IECEx Certified (Explosive Atmospheres)',
+    'IP Rating (Ingress Protection)',
+    'EMC Compliance',
+    'FCC Certified',
+    'RoHS Compliant',
+    'REACH Compliant',
+    
+    // Collaborative Robot Specific
+    'ISO/TS 15066 (Collaborative Robots)',
+    'EN ISO 13849 (Safety Functions)',
+    'OSHA Compliant',
+    'None/Not Specified'
+];
 
   useEffect(() => {
     calculateFormCompletion();
