@@ -235,7 +235,7 @@ const Auth = () => {
     }
   };
 
-  // ✅ Save user data to localStorage for email confirmation flow
+  // ✅ Save user data to localStorage and sessionStorage for email confirmation flow
   const saveUserDataToStorage = (userData: SupabaseUser) => {
     const dataToSave = {
       email,
@@ -257,35 +257,61 @@ const Auth = () => {
       timestamp: Date.now()
     };
     
-    console.log('💾 Saving user data to localStorage:', dataToSave);
-    localStorage.setItem('robotverse_pending_profile', JSON.stringify(dataToSave));
-    console.log('✅ User data saved to localStorage for email confirmation');
+    console.log('💾 Saving user data to storage:', dataToSave);
     
-    // Also validate that the data was saved correctly
-    const savedCheck = localStorage.getItem('robotverse_pending_profile');
-    if (savedCheck) {
-      const parsedCheck = JSON.parse(savedCheck);
-      console.log('✅ Verified saved data:', parsedCheck);
-    } else {
-      console.error('❌ Failed to save data to localStorage');
-    }
+    // Save to both localStorage and sessionStorage for reliability
+    const dataString = JSON.stringify(dataToSave);
+    localStorage.setItem('robotverse_pending_profile', dataString);
+    sessionStorage.setItem('robotverse_pending_profile', dataString);
+    
+    // Also save to a backup key with user ID
+    localStorage.setItem(`robotverse_profile_${userData.id}`, dataString);
+    sessionStorage.setItem(`robotverse_profile_${userData.id}`, dataString);
+    
+    console.log('✅ User data saved to storage for email confirmation');
+    console.log('📋 Saved data keys:', Object.keys(dataToSave));
   };
 
-  // ✅ Load user data from localStorage after email confirmation
-  const loadUserDataFromStorage = () => {
-    const saved = localStorage.getItem('robotverse_pending_profile');
-    if (saved) {
-      const data = JSON.parse(saved);
-      console.log('📥 Loading saved user data from localStorage');
-      return data;
+  // ✅ Load user data from storage after email confirmation (with fallbacks)
+  const loadUserDataFromStorage = (userId?: string) => {
+    console.log('📥 Loading saved user data from storage...');
+    
+    // Try multiple storage locations
+    let saved = localStorage.getItem('robotverse_pending_profile') || 
+                sessionStorage.getItem('robotverse_pending_profile');
+    
+    // If no general data found, try user-specific key
+    if (!saved && userId) {
+      saved = localStorage.getItem(`robotverse_profile_${userId}`) ||
+              sessionStorage.getItem(`robotverse_profile_${userId}`);
     }
+    
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        console.log('✅ Found saved data:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ Error parsing saved data:', error);
+        return null;
+      }
+    }
+    
+    console.log('⚠️ No saved user data found in storage');
     return null;
   };
 
   // ✅ Clear saved user data after successful profile creation
-  const clearSavedUserData = () => {
+  const clearSavedUserData = (userId?: string) => {
     localStorage.removeItem('robotverse_pending_profile');
-    console.log('🗑️ Cleared saved user data from localStorage');
+    sessionStorage.removeItem('robotverse_pending_profile');
+    
+    if (userId) {
+      localStorage.removeItem(`robotverse_profile_${userId}`);
+      sessionStorage.removeItem(`robotverse_profile_${userId}`);
+    }
+    
+    console.log('🗑️ Cleared saved user data from storage');
   };
 
   // ✅ Check for email confirmation on component mount and auth state changes
@@ -309,10 +335,10 @@ const Auth = () => {
           return;
         }
 
-        const savedData = loadUserDataFromStorage();
-        console.log('💾 Saved data from localStorage:', savedData);
+        const savedData = loadUserDataFromStorage(currentUser.id);
+        console.log('💾 Saved data from storage:', savedData);
 
-        // If we have saved data for this user
+        // If we have saved data for this user or if the profile is incomplete
         if (savedData && savedData.userId === currentUser.id) {
           try {
             if (existingProfile) {
@@ -322,9 +348,9 @@ const Auth = () => {
                                    !existingProfile.mobile_number;
               
               if (isIncomplete) {
-                console.log('🔄 Updating incomplete profile...');
+                console.log('🔄 Updating incomplete profile with saved data...');
                 await updateUserProfileFromSavedData(currentUser, savedData);
-                clearSavedUserData();
+                clearSavedUserData(currentUser.id);
                 
                 toast({
                   title: "Welcome to RobotVerse!",
@@ -332,12 +358,15 @@ const Auth = () => {
                 });
                 
                 setTimeout(() => navigate('/dashboard'), 1000);
+              } else {
+                console.log('✅ Profile already complete, clearing saved data');
+                clearSavedUserData(currentUser.id);
               }
             } else {
               // Create new profile
-              console.log('🆕 Creating new profile...');
+              console.log('🆕 Creating new profile from saved data...');
               await createUserProfileFromSavedData(currentUser, savedData);
-              clearSavedUserData();
+              clearSavedUserData(currentUser.id);
               
               toast({
                 title: "Welcome to RobotVerse!",
@@ -349,18 +378,27 @@ const Auth = () => {
           } catch (error: any) {
             console.error('❌ Error handling profile after email confirmation:', error);
             
-            // Clear the saved data if it's corrupted or incompatible
-            clearSavedUserData();
-            
             toast({
               variant: "destructive",
               title: "Profile Setup Error", 
-              description: `Failed to complete your profile setup: ${error.message}. Please sign in and try completing your profile again.`,
+              description: `Failed to complete your profile setup: ${error.message}. Please try completing your profile manually.`,
             });
+            
+            // Don't clear saved data in case of error - user might need to retry
+            setTimeout(() => navigate('/dashboard'), 2000);
           }
         } else if (!existingProfile || !existingProfile.registration_complete) {
           // No saved data but user needs to complete profile
-          console.log('⚠️ No saved data found for confirmed user, may need to complete registration');
+          console.log('⚠️ No saved data found for confirmed user, redirecting to complete registration');
+          
+          toast({
+            title: "Complete Your Profile",
+            description: "Please complete your profile information to continue.",
+          });
+          
+          // Show signup form to complete profile
+          setIsSignUp(true);
+          setEmail(currentUser.email || '');
         }
       }
     };
