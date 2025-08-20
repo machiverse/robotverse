@@ -422,7 +422,34 @@ const Auth = () => {
       console.log('👤 Updating profile from saved data for user:', user.id);
       console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
       
-      // Validate that we have the required data for update
+      // Use the database function to update the complete profile
+      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+        p_user_id: user.id,
+        p_email: savedData.email || user.email,
+        p_full_name: savedData.fullName || null,
+        p_company_name: savedData.companyName || null,
+        p_mobile_number: savedData.mobileNumber || null,
+        p_location: savedData.location || null,
+        p_user_type: savedData.accountType || 'buyer',
+        p_account_type: savedData.accountType || 'buyer',
+        p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
+        p_logistics_type: savedData.logisticsType || null,
+        p_logistics_region: savedData.logisticsRegion || null,
+        p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
+        p_warehouse_storage: savedData.warehouseStorage || false,
+        p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
+        p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
+        p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
+        p_government_scheme_support: savedData.governmentSchemeSupport || false
+      });
+
+      if (dbError) {
+        console.error('❌ Database function error:', dbError);
+        throw new Error(dbError.message);
+      }
+
+      console.log('✅ Profile updated successfully with ID:', profileId);
+      return profileId;
       if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
         console.error('❌ Missing required data for profile update:', {
           companyName: savedData.companyName,
@@ -535,8 +562,53 @@ const Auth = () => {
     }
   };
 
-  // ✅ Create profile using exact TypeScript types from your schema
+  // ✅ Create new profile using the database function  
   const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
+    try {
+      console.log('👤 Creating complete profile from saved data for user:', user.id);
+      console.log('📋 Profile data:', JSON.stringify(savedData, null, 2));
+      
+      // Use the database function to create/update the complete profile
+      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+        p_user_id: user.id,
+        p_email: savedData.email || user.email,
+        p_full_name: savedData.fullName || null,
+        p_company_name: savedData.companyName || null,
+        p_mobile_number: savedData.mobileNumber || null,
+        p_location: savedData.location || null,
+        p_user_type: savedData.accountType || 'buyer',
+        p_account_type: savedData.accountType || 'buyer',
+        p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
+        p_logistics_type: savedData.logisticsType || null,
+        p_logistics_region: savedData.logisticsRegion || null,
+        p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
+        p_warehouse_storage: savedData.warehouseStorage || false,
+        p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
+        p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
+        p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
+        p_government_scheme_support: savedData.governmentSchemeSupport || false
+      });
+
+      if (dbError) {
+        console.error('❌ Database function error:', dbError);
+        throw new Error(dbError.message);
+      }
+
+      console.log('✅ Profile created successfully with ID:', profileId);
+      return profileId;
+      
+    } catch (error: any) {
+      console.error('❌ Error creating profile from saved data:', error);
+      throw error;
+    }
+  };
+
+  // ✅ Handle agreement acceptance
+  const handleAgreementAccept = () => {
+    setAgreementAccepted(true);
+    setShowAgreementModal(false);
+    console.log('✅ Agreement accepted, proceeding with signup');  
+  };
     try {
       console.log('👤 Creating profile from saved data for user:', user.id);
       console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
