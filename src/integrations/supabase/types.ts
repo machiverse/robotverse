@@ -1242,6 +1242,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_user_profile: {
+        Args: {
+          p_account_type?: string
+          p_company_name?: string
+          p_email: string
+          p_finance_type?: string[]
+          p_financing_for?: string[]
+          p_full_name?: string
+          p_government_scheme_support?: boolean
+          p_location?: string
+          p_logistics_region?: string
+          p_logistics_type?: string
+          p_mobile_number?: string
+          p_seller_roles?: string[]
+          p_target_audience?: string[]
+          p_transport_modes?: string[]
+          p_user_id: string
+          p_user_type?: string
+          p_warehouse_storage?: boolean
+        }
+        Returns: string
+      }
       create_complete_user_profile: {
         Args: {
           p_account_type?: string
