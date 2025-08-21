@@ -14,7 +14,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient(); 
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
