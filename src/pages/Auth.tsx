@@ -1888,7 +1888,7 @@ const Auth = () => {
                     type="button"
                     onClick={() => {
                       setIsSignUp(!isSignUp);
-                      setAgreementAccepted(false); // Reset agreement when switching
+                      setAgreementAccepted(false);
                     }}
                     className="text-primary hover:text-primary/80 transition-colors font-medium"
                   >
