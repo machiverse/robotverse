@@ -1,1934 +1,526 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bot, Mail, Lock, User, ArrowLeft, Building, Phone, MapPin, Truck, CreditCard, Package, Settings, ShoppingCart, Eye, EyeOff, FileText, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
-
-// ✅ Use exact types from your schema
-type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
-type UserTypeEnum = Database['public']['Enums']['user_type_enum'];
+import { Loader2, Eye, EyeOff, ArrowLeft, Building2, User, Wrench, Truck, CreditCard, Shield } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const Auth = () => {
-  // Form state
   const [isSignUp, setIsSignUp] = useState(false);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [isResetPassword, setIsResetPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [fullName, setFullName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [location, setLocation] = useState('');
-  const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
-  
-  // Seller state
-  const [sellerRoles, setSellerRoles] = useState<string[]>([]);
-  
-  // Logistics state
-  const [logisticsType, setLogisticsType] = useState('');
-  const [logisticsRegion, setLogisticsRegion] = useState('');
-  const [transportModes, setTransportModes] = useState<string[]>([]);
-  const [warehouseStorage, setWarehouseStorage] = useState(false);
-  
-  // Finance state
-  const [financeType, setFinanceType] = useState<string[]>([]);
-  const [financingFor, setFinancingFor] = useState<string[]>([]);
-  const [targetAudience, setTargetAudience] = useState<string[]>([]);
-  const [governmentSchemeSupport, setGovernmentSchemeSupport] = useState(false);
-  
-  // UI state
-  const [loading, setLoading] = useState(false);
-  const [showAgreementModal, setShowAgreementModal] = useState(false);
-  const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
+  const [userType, setUserType] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
+  const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
+  const [pendingUserEmail, setPendingUserEmail] = useState('');
   
-  // Hooks
-  const { signUp, signIn, user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
-  // Handle forgot password
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast({
-        variant: "destructive",
-        title: "Email Required",
-        description: "Please enter your email address.",
-      });
-      return;
+  useEffect(() => {
+    if (user && !authLoading) {
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
     }
+  }, [user, authLoading, navigate, location]);
 
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?reset=true`,
-      });
-
-      if (error) throw error;
-
+  const validateForm = () => {
+    if (!email || !password) {
       toast({
-        title: "Reset Link Sent",
-        description: "Check your email for the password reset link.",
-      });
-      setIsForgotPassword(false);
-    } catch (error: any) {
-      console.error('❌ Forgot password error:', error);
-      toast({
-        variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send reset email.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle password reset
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPassword || !confirmPassword) {
-      toast({
+        description: "Email and password are required",
         variant: "destructive",
-        title: "Required Fields",
-        description: "Please fill in both password fields.",
       });
-      return;
+      return false;
     }
 
-    if (newPassword !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Password Mismatch",
-        description: "The passwords do not match.",
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Weak Password",
-        description: "Password must be at least 6 characters long.",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully. You can now sign in.",
-      });
-      
-      // Reset the form and go back to sign in
-      setIsResetPassword(false);
-      setNewPassword('');
-      setConfirmPassword('');
-      navigate('/auth');
-    } catch (error: any) {
-      console.error('❌ Password reset error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to update password.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      console.log('✅ User already authenticated, redirecting to home');
-      navigate('/');
-    }
-  }, [user, navigate]);
-
-  // Check for password reset token and signup parameter in URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isReset = urlParams.get('reset');
-    const isSignupMode = urlParams.get('signup');
-    
-    if (isReset === 'true') {
-      setIsResetPassword(true);
-      setIsForgotPassword(false);
-      setIsSignUp(false);
-    } else if (isSignupMode === 'true') {
-      setIsSignUp(true);
-      setIsForgotPassword(false);
-      setIsResetPassword(false);
-    }
-  }, []);
-
-  // Toggle password visibility
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  // Handler functions for multi-select checkboxes
-  const handleSellerRoleChange = (role: string, checked: boolean) => {
-    console.log(`🔄 Seller role change: ${role} = ${checked}`);
-    if (checked) {
-      const newRoles = [...sellerRoles, role];
-      setSellerRoles(newRoles);
-      console.log('✅ Updated seller roles:', newRoles);
-    } else {
-      const newRoles = sellerRoles.filter(r => r !== role);
-      setSellerRoles(newRoles);
-      console.log('✅ Updated seller roles:', newRoles);
-    }
-  };
-
-  const handleTransportModeChange = (mode: string, checked: boolean) => {
-    if (checked) {
-      setTransportModes([...transportModes, mode]);
-    } else {
-      setTransportModes(transportModes.filter(m => m !== mode));
-    }
-  };
-
-  const handleFinanceTypeChange = (type: string, checked: boolean) => {
-    if (checked) {
-      setFinanceType([...financeType, type]);
-    } else {
-      setFinanceType(financeType.filter(t => t !== type));
-    }
-  };
-
-  const handleFinancingForChange = (type: string, checked: boolean) => {
-    if (checked) {
-      setFinancingFor([...financingFor, type]);
-    } else {
-      setFinancingFor(financingFor.filter(t => t !== type));
-    }
-  };
-
-  const handleTargetAudienceChange = (audience: string, checked: boolean) => {
-    if (checked) {
-      setTargetAudience([...targetAudience, audience]);
-    } else {
-      setTargetAudience(targetAudience.filter(a => a !== audience));
-    }
-  };
-
-  // ✅ Save user data to localStorage and sessionStorage for email confirmation flow
-  const saveUserDataToStorage = (userData: SupabaseUser) => {
-    const dataToSave = {
-      email,
-      fullName,
-      companyName,
-      mobileNumber,
-      location,
-      accountType,
-      sellerRoles,
-      logisticsType,
-      logisticsRegion,
-      transportModes,
-      warehouseStorage,
-      financeType,
-      financingFor,
-      targetAudience,
-      governmentSchemeSupport,
-      userId: userData.id,
-      timestamp: Date.now()
-    };
-    
-    console.log('💾 Saving user data to storage:', dataToSave);
-    
-    // Save to both localStorage and sessionStorage for reliability
-    const dataString = JSON.stringify(dataToSave);
-    localStorage.setItem('robotverse_pending_profile', dataString);
-    sessionStorage.setItem('robotverse_pending_profile', dataString);
-    
-    // Also save to a backup key with user ID
-    localStorage.setItem(`robotverse_profile_${userData.id}`, dataString);
-    sessionStorage.setItem(`robotverse_profile_${userData.id}`, dataString);
-    
-    console.log('✅ User data saved to storage for email confirmation');
-    console.log('📋 Saved data keys:', Object.keys(dataToSave));
-  };
-
-  // ✅ Load user data from storage after email confirmation (with fallbacks)
-  const loadUserDataFromStorage = (userId?: string) => {
-    console.log('📥 Loading saved user data from storage...');
-    
-    // Try multiple storage locations
-    let saved = localStorage.getItem('robotverse_pending_profile') || 
-                sessionStorage.getItem('robotverse_pending_profile');
-    
-    // If no general data found, try user-specific key
-    if (!saved && userId) {
-      saved = localStorage.getItem(`robotverse_profile_${userId}`) ||
-              sessionStorage.getItem(`robotverse_profile_${userId}`);
-    }
-    
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        console.log('✅ Found saved data:', data);
-        return data;
-      } catch (error) {
-        console.error('❌ Error parsing saved data:', error);
-        return null;
-      }
-    }
-    
-    console.log('⚠️ No saved user data found in storage');
-    return null;
-  };
-
-  // ✅ Clear saved user data after successful profile creation
-  const clearSavedUserData = (userId?: string) => {
-    localStorage.removeItem('robotverse_pending_profile');
-    sessionStorage.removeItem('robotverse_pending_profile');
-    
-    if (userId) {
-      localStorage.removeItem(`robotverse_profile_${userId}`);
-      sessionStorage.removeItem(`robotverse_profile_${userId}`);
-    }
-    
-    console.log('🗑️ Cleared saved user data from storage');
-  };
-
-  // ✅ Check for email confirmation on component mount and auth state changes
-  useEffect(() => {
-    const checkEmailConfirmation = async () => {
-      console.log('🔍 Checking email confirmation...');
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      if (currentUser && currentUser.email_confirmed_at) {
-        console.log('📧 Email confirmed for user:', currentUser.id);
-        
-        // Check if profile already exists
-        const { data: existingProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .single();
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('❌ Error checking existing profile:', profileError);
-          return;
-        }
-
-        const savedData = loadUserDataFromStorage(currentUser.id);
-        console.log('💾 Saved data from storage:', savedData);
-
-        // If we have saved data for this user or if the profile is incomplete
-        if (savedData && savedData.userId === currentUser.id) {
-          try {
-            if (existingProfile) {
-              // Update existing profile if it's incomplete
-              const isIncomplete = !existingProfile.registration_complete || 
-                                   !existingProfile.company_name || 
-                                   !existingProfile.mobile_number;
-              
-              if (isIncomplete) {
-                console.log('🔄 Updating incomplete profile with saved data...');
-                await updateUserProfileFromSavedData(currentUser, savedData);
-                clearSavedUserData(currentUser.id);
-                
-                toast({
-                  title: "Welcome to RobotVerse!",
-                  description: "Your account has been verified and profile updated successfully.",
-                });
-                
-                setTimeout(() => navigate('/dashboard'), 1000);
-              } else {
-                console.log('✅ Profile already complete, clearing saved data');
-                clearSavedUserData(currentUser.id);
-              }
-            } else {
-              // Create new profile
-              console.log('🆕 Creating new profile from saved data...');
-              await createUserProfileFromSavedData(currentUser, savedData);
-              clearSavedUserData(currentUser.id);
-              
-              toast({
-                title: "Welcome to RobotVerse!",
-                description: "Your account has been verified and profile created successfully.",
-              });
-              
-              setTimeout(() => navigate('/dashboard'), 1000);
-            }
-          } catch (error: any) {
-            console.error('❌ Error handling profile after email confirmation:', error);
-            
-            toast({
-              variant: "destructive",
-              title: "Profile Setup Error", 
-              description: `Failed to complete your profile setup: ${error.message}. Please try completing your profile manually.`,
-            });
-            
-            // Don't clear saved data in case of error - user might need to retry
-            setTimeout(() => navigate('/dashboard'), 2000);
-          }
-        } else if (!existingProfile || !existingProfile.registration_complete) {
-          // No saved data but user needs to complete profile
-          console.log('⚠️ No saved data found for confirmed user, redirecting to complete registration');
-          
-          toast({
-            title: "Complete Your Profile",
-            description: "Please complete your profile information to continue.",
-          });
-          
-          // Show signup form to complete profile
-          setIsSignUp(true);
-          setEmail(currentUser.email || '');
-        }
-      }
-    };
-
-    checkEmailConfirmation();
-
-    // Also listen for auth state changes to catch email confirmations
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-        console.log('🔄 Auth state change detected: user signed in with confirmed email');
-        await checkEmailConfirmation();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // ✅ Update existing profile with complete data
-  const updateUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
-    try {
-      console.log('👤 Updating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
-      
-      // Use the database function to update the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
-        p_user_id: user.id,
-        p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName || null,
-        p_company_name: savedData.companyName || null,
-        p_mobile_number: savedData.mobileNumber || null,
-        p_location: savedData.location || null,
-        p_user_type: savedData.accountType || 'buyer',
-        p_account_type: savedData.accountType || 'buyer',
-        p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
-        p_logistics_type: savedData.logisticsType || null,
-        p_logistics_region: savedData.logisticsRegion || null,
-        p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
-        p_warehouse_storage: savedData.warehouseStorage || false,
-        p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
-        p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
-        p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
-      });
-
-      if (dbError) {
-        console.error('❌ Database function error:', dbError);
-        throw new Error(dbError.message);
-      }
-
-      console.log('✅ Profile updated successfully with ID:', profileId);
-      return profileId;
-      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
-        console.error('❌ Missing required data for profile update:', {
-          companyName: savedData.companyName,
-          mobileNumber: savedData.mobileNumber,
-          accountType: savedData.accountType
-        });
-        
+    if (isSignUp) {
+      if (!firstName || !lastName || !phoneNumber || !userType) {
         toast({
+          title: "Error",
+          description: "All fields are required for registration",
           variant: "destructive",
-          title: "Incomplete Profile Data",
-          description: "Some required information is missing. Please complete your profile information.",
         });
-        
-        // Clear corrupted data
-        clearSavedUserData();
-        throw new Error('Missing required profile data');
-      }
-      
-      // ✅ Build profile update data using exact schema types
-      const profileData: Partial<ProfileInsert> = {
-        // Basic information - using exact field names from schema
-        email: savedData.email || user.email,
-        full_name: savedData.fullName || null,
-        company_name: savedData.companyName || null,
-        mobile_number: savedData.mobileNumber || null,
-        phone: savedData.mobileNumber || null, // Populate both phone fields
-        location: savedData.location || null,
-        user_type: savedData.accountType || null,
-        account_type: savedData.accountType || null,
-        updated_at: new Date().toISOString(),
-        
-        // Set registration as complete and MOU agreed
-        registration_complete: true,
-        mou_agreed: true,
-        mou_agreed_at: new Date().toISOString(),
-      };
-
-      // ✅ Add role-specific data based on account type
-      if (savedData.accountType === 'seller') {
-        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
-        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
-        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
-        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
-        
-        // Set service categories for service providers
-        if (savedData.sellerRoles?.includes('service_provider')) {
-          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
-        }
-        
-      } else if (savedData.accountType === 'logistics') {
-        profileData.logistics_type = savedData.logisticsType || null;
-        profileData.logistics_region = savedData.logisticsRegion || null;
-        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : ['road'];
-        profileData.warehouse_storage = savedData.warehouseStorage || false;
-        profileData.primary_user_type = 'logistics_provider';
-        profileData.primary_role = 'logistics_provider';
-        profileData.user_roles = ['logistics_provider'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
-        
-      } else if (savedData.accountType === 'finance') {
-        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : ['loan'];
-        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : ['robots'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
-        profileData.government_scheme_support = savedData.governmentSchemeSupport || false;
-        profileData.primary_user_type = 'finance_provider';
-        profileData.primary_role = 'finance_provider';
-        profileData.user_roles = ['finance_provider'];
-        
-      } else if (savedData.accountType === 'buyer') {
-        profileData.primary_user_type = 'buyer';
-        profileData.primary_role = 'buyer';
-        profileData.user_roles = ['buyer'];
+        return false;
       }
 
-      console.log('📋 Profile update data:', JSON.stringify(profileData, null, 2));
-
-      // ✅ Update the existing profile
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(profileData)
-        .eq('user_id', user.id)
-        .select();
-
-      if (error) {
-        console.error('❌ Profile update error:', error);
+      if (password !== confirmPassword) {
         toast({
+          title: "Error",
+          description: "Passwords do not match",
           variant: "destructive",
-          title: "Profile Update Failed",
-          description: `Failed to update your profile: ${error.message}. Please try again.`,
         });
-        throw new Error(`Profile update failed: ${error.message}`);
+        return false;
       }
 
-      if (!data || data.length === 0) {
-        console.error('❌ No profile was updated - possible RLS policy issue');
+      if (password.length < 6) {
         toast({
+          title: "Error",
+          description: "Password must be at least 6 characters long",
           variant: "destructive",
-          title: "Profile Update Failed",
-          description: "No profile data was updated. This might be a permissions issue. Please contact support.",
         });
-        throw new Error('No profile was updated - check RLS policies');
+        return false;
       }
 
-      console.log('✅ Profile updated successfully:', data[0]);
-      return data;
-
-    } catch (error: any) {
-      console.error('❌ Profile update exception:', error);
-      throw error;
+      if (!agreementAccepted) {
+        toast({
+          title: "Error",
+          description: "You must accept the terms and conditions to proceed",
+          variant: "destructive",
+        });
+        return false;
+      }
     }
+
+    return true;
   };
 
-  // ✅ Create new profile using the database function  
-  const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
-    try {
-      console.log('👤 Creating complete profile from saved data for user:', user.id);
-      console.log('📋 Profile data:', JSON.stringify(savedData, null, 2));
-      
-      // Use the database function to create/update the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
-        p_user_id: user.id,
-        p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName || null,
-        p_company_name: savedData.companyName || null,
-        p_mobile_number: savedData.mobileNumber || null,
-        p_location: savedData.location || null,
-        p_user_type: savedData.accountType || 'buyer',
-        p_account_type: savedData.accountType || 'buyer',
-        p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
-        p_logistics_type: savedData.logisticsType || null,
-        p_logistics_region: savedData.logisticsRegion || null,
-        p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
-        p_warehouse_storage: savedData.warehouseStorage || false,
-        p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
-        p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
-        p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
-      });
-
-      if (dbError) {
-        console.error('❌ Database function error:', dbError);
-        throw new Error(dbError.message);
-      }
-
-      console.log('✅ Profile created successfully with ID:', profileId);
-      return profileId;
-      
-    } catch (error: any) {
-      console.error('❌ Error creating profile from saved data:', error);
-      throw error;
-    }
-  };
-
-  // ✅ Handle agreement acceptance
-  const handleAgreementAccept = () => {
-    setAgreementAccepted(true);
-    setShowAgreementModal(false);
-    console.log('✅ Agreement accepted, proceeding with signup');  
-  };
-    try {
-      console.log('👤 Creating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
-      
-      // Validate that we have the required data
-      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
-        console.error('❌ Missing required data for profile creation:', {
-          companyName: savedData.companyName,
-          mobileNumber: savedData.mobileNumber,
-          accountType: savedData.accountType
-        });
-        
-        toast({
-          variant: "destructive",
-          title: "Incomplete Profile Data",
-          description: "Some required information is missing. Please complete your registration again.",
-        });
-        
-        // Clear corrupted data and redirect to registration
-        clearSavedUserData();
-        throw new Error('Missing required profile data');
-      }
-      
-      // ✅ Build profile data using exact schema types
-      const profileData: ProfileInsert = {
-        // Required field
-        user_id: user.id,
-        
-        // Basic information - using exact field names from schema
-        email: user.email || savedData.email,
-        full_name: savedData.fullName || null,
-        company_name: savedData.companyName || null,
-        mobile_number: savedData.mobileNumber || null,
-        phone: savedData.mobileNumber || null, // Populate both phone fields
-        location: savedData.location || null,
-        user_type: savedData.accountType || null,
-        account_type: savedData.accountType || null,
-        updated_at: new Date().toISOString(),
-        
-        // Set registration as complete and MOU agreed
-        registration_complete: true,
-        mou_agreed: true,
-        mou_agreed_at: new Date().toISOString(),
-        
-        // Initialize other nullable fields
-        avatar_url: null,
-      };
-
-      // ✅ Add role-specific data based on account type
-      if (savedData.accountType === 'seller') {
-        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
-        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
-        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
-        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
-        
-        // Set service categories for service providers
-        if (savedData.sellerRoles?.includes('service_provider')) {
-          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
-        }
-        
-        console.log('🏪 Seller data:', {
-          seller_roles: profileData.seller_roles,
-          user_roles: profileData.user_roles,
-          primary_user_type: profileData.primary_user_type,
-          primary_role: profileData.primary_role,
-          service_categories: profileData.service_categories
-        });
-        
-      } else if (savedData.accountType === 'logistics') {
-        profileData.logistics_type = savedData.logisticsType || null;
-        profileData.logistics_region = savedData.logisticsRegion || null;
-        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
-        profileData.warehouse_storage = savedData.warehouseStorage || null;
-        profileData.primary_user_type = 'logistics_provider';
-        profileData.primary_role = 'logistics_provider';
-        profileData.user_roles = ['logistics_provider'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
-        
-        console.log('🚚 Logistics data:', {
-          logistics_type: profileData.logistics_type,
-          logistics_region: profileData.logistics_region,
-          transport_modes: profileData.transport_modes,
-          warehouse_storage: profileData.warehouse_storage,
-          user_roles: profileData.user_roles,
-          target_audience: profileData.target_audience
-        });
-        
-      } else if (savedData.accountType === 'finance') {
-        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
-        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
-        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
-        profileData.primary_user_type = 'finance_provider';
-        profileData.primary_role = 'finance_provider';
-        profileData.user_roles = ['finance_provider'];
-        
-        console.log('💰 Finance data:', {
-          finance_type: profileData.finance_type,
-          financing_for: profileData.financing_for,
-          target_audience: profileData.target_audience,
-          government_scheme_support: profileData.government_scheme_support,
-          user_roles: profileData.user_roles
-        });
-        
-      } else if (savedData.accountType === 'buyer') {
-        profileData.primary_user_type = 'buyer';
-        profileData.primary_role = 'buyer';
-        profileData.user_roles = ['buyer'];
-        console.log('🛒 Buyer data:', {
-          primary_user_type: profileData.primary_user_type,
-          user_roles: profileData.user_roles
-        });
-      }
-
-      console.log('📋 Final profile data (type-safe):', JSON.stringify(profileData, null, 2));
-
-      // ✅ Insert with type safety
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert(profileData)
-        .select();
-
-      if (error) {
-        console.error('❌ Profile creation error:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        
-        // Show user-friendly error message
-        toast({
-          variant: "destructive",
-          title: "Profile Creation Failed",
-          description: `Failed to save your profile: ${error.message}. Please try again.`,
-        });
-        
-        throw new Error(`Profile creation failed: ${error.message}`);
-      }
-
-      if (!data || data.length === 0) {
-        console.error('❌ No profile was created - possible RLS policy issue');
-        toast({
-          variant: "destructive",
-          title: "Profile Creation Failed",
-          description: "No profile data was returned. This might be a permissions issue. Please contact support.",
-        });
-        throw new Error('No data returned from profile creation - check RLS policies');
-      }
-
-      console.log('✅ Profile created successfully:', data[0]);
-      
-      // ✅ Verify all fields were saved
-      const savedProfile = data[0];
-      console.log('🔍 Verification - What was actually saved:');
-      console.log('  ✓ user_id:', savedProfile.user_id);
-      console.log('  ✓ email:', savedProfile.email);
-      console.log('  ✓ full_name:', savedProfile.full_name);
-      console.log('  ✓ company_name:', savedProfile.company_name);
-      console.log('  ✓ mobile_number:', savedProfile.mobile_number);
-      console.log('  ✓ phone:', savedProfile.phone);
-      console.log('  ✓ location:', savedProfile.location);
-      console.log('  ✓ user_type:', savedProfile.user_type);
-      console.log('  ✓ account_type:', savedProfile.account_type);
-      console.log('  ✓ user_roles:', savedProfile.user_roles);
-      console.log('  ✓ seller_roles:', savedProfile.seller_roles);
-      console.log('  ✓ primary_user_type:', savedProfile.primary_user_type);
-      console.log('  ✓ primary_role:', savedProfile.primary_role);
-      console.log('  ✓ logistics_type:', savedProfile.logistics_type);
-      console.log('  ✓ logistics_region:', savedProfile.logistics_region);
-      console.log('  ✓ transport_modes:', savedProfile.transport_modes);
-      console.log('  ✓ warehouse_storage:', savedProfile.warehouse_storage);
-      console.log('  ✓ finance_type:', savedProfile.finance_type);
-      console.log('  ✓ financing_for:', savedProfile.financing_for);
-      console.log('  ✓ target_audience:', savedProfile.target_audience);
-      console.log('  ✓ government_scheme_support:', savedProfile.government_scheme_support);
-      console.log('  ✓ service_categories:', savedProfile.service_categories);
-      console.log('  ✓ mou_agreed:', savedProfile.mou_agreed);
-      console.log('  ✓ registration_complete:', savedProfile.registration_complete);
-
-      return data;
-
-    } catch (error: any) {
-      console.error('❌ Profile creation exception:', error);
-      throw error;
-    }
-  };
-
-  // ✅ Handle agreement acceptance
-  const handleAgreementAccept = () => {
-    setAgreementAccepted(true);
-    setShowAgreementModal(false);
-    console.log('✅ Agreement accepted, proceeding with signup');
-  };
-
-  // ✅ Handle agreement decline
-  const handleAgreementDecline = () => {
-    setShowAgreementModal(false);
-    setAgreementAccepted(false);
-    console.log('❌ Agreement declined');
-    toast({
-      variant: "destructive",
-      title: "Agreement Required",
-      description: "You must accept the agreement to create an account.",
-    });
-  };
-
-  // ✅ Form submission with validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     setLoading(true);
-    console.log('🚀 Form submission started');
 
     try {
       if (isSignUp) {
-        // ✅ Show agreement modal first if not accepted
-        if (!agreementAccepted) {
-          setLoading(false);
-          setShowAgreementModal(true);
-          return;
-        }
-
-        console.log('📝 Registration process initiated');
-        console.log('📋 Form data before validation:');
-        console.log('  - Email:', email);
-        console.log('  - Full Name:', fullName);
-        console.log('  - Company Name:', companyName);
-        console.log('  - Mobile Number:', mobileNumber);
-        console.log('  - Location:', location);
-        console.log('  - Account Type:', accountType);
-        console.log('  - Seller Roles:', sellerRoles);
-        console.log('  - Logistics Type:', logisticsType);
-        console.log('  - Logistics Region:', logisticsRegion);
-        console.log('  - Transport Modes:', transportModes);
-        console.log('  - Warehouse Storage:', warehouseStorage);
-        console.log('  - Finance Type:', financeType);
-        console.log('  - Financing For:', financingFor);
-        console.log('  - Target Audience:', targetAudience);
-        console.log('  - Government Scheme Support:', governmentSchemeSupport);
-        
-        // Comprehensive validation
-        if (!email.trim()) {
-          throw new Error('Email is required');
-        }
-        
-        if (!password || password.length < 6) {
-          throw new Error('Password must be at least 6 characters long');
-        }
-
-        if (!accountType) {
-          toast({
-            variant: "destructive",
-            title: "Account Type Required",
-            description: "Please select an account type to continue.",
-          });
-          return;
-        }
-
-        if (!fullName.trim()) {
-          toast({
-            variant: "destructive",
-            title: "Full Name Required",
-            description: "Please enter your full name.",
-          });
-          return;
-        }
-
-        if (!companyName.trim()) {
-          toast({
-            variant: "destructive",
-            title: "Company Name Required",
-            description: "Please enter your company name.",
-          });
-          return;
-        }
-
-        if (!mobileNumber.trim()) {
-          toast({
-            variant: "destructive",
-            title: "Mobile Number Required",
-            description: "Please enter your mobile number.",
-          });
-          return;
-        }
-
-        if (!location.trim()) {
-          toast({
-            variant: "destructive",
-            title: "Location Required",
-            description: "Please enter your location.",
-          });
-          return;
-        }
-
-        // Role-specific validation
-        if (accountType === 'seller' && sellerRoles.length === 0) {
-          toast({
-            variant: "destructive",
-            title: "Seller Role Required",
-            description: "Please select at least one seller role.",
-          });
-          return;
-        }
-
-        if (accountType === 'logistics') {
-          console.log('🚚 Validating logistics provider data...');
-          if (!logisticsType) {
-            console.log('❌ Logistics type missing');
-            toast({
-              variant: "destructive",
-              title: "Logistics Type Required",
-              description: "Please select your logistics type.",
-            });
-            return;
-          }
-          if (!logisticsRegion.trim()) {
-            console.log('❌ Logistics region missing');
-            toast({
-              variant: "destructive",
-              title: "Service Region Required",
-              description: "Please enter your primary service region.",
-            });
-            return;
-          }
-          if (transportModes.length === 0) {
-            console.log('❌ Transport modes missing');
-            toast({
-              variant: "destructive",
-              title: "Transport Modes Required",
-              description: "Please select at least one transport mode.",
-            });
-            return;
-          }
-          console.log('✅ Logistics provider validation passed');
-        }
-
-        if (accountType === 'finance') {
-          console.log('💰 Validating finance provider data...');
-          if (financeType.length === 0) {
-            console.log('❌ Finance type missing');
-            toast({
-              variant: "destructive",
-              title: "Finance Type Required",
-              description: "Please select at least one finance type.",
-            });
-            return;
-          }
-          if (financingFor.length === 0) {
-            console.log('❌ Financing for options missing');
-            toast({
-              variant: "destructive",
-              title: "Financing Options Required",
-              description: "Please select what you provide financing for.",
-            });
-            return;
-          }
-          if (targetAudience.length === 0) {
-            console.log('❌ Target audience missing');
-            toast({
-              variant: "destructive",
-              title: "Target Audience Required",
-              description: "Please select your target business segments.",
-            });
-            return;
-          }
-          console.log('✅ Finance provider validation passed');
-        }
-
-        console.log('✅ All validation passed, creating user account...');
-
-        // ✅ Create user account with email confirmation
-        const { user: newUser, error: signUpError } = await signUp(email, password, fullName);
-        
-        if (signUpError) {
-          console.error('❌ User creation failed:', signUpError);
-          throw new Error(signUpError.message);
-        }
-
-        if (!newUser) {
-          console.error('❌ No user returned from signup');
-          throw new Error('Failed to create user account');
-        }
-
-        console.log('✅ User account created:', newUser.id);
-
-        // ✅ Save user data for after email confirmation
-        saveUserDataToStorage(newUser);
-
-        // ✅ Show email confirmation modal
-        setShowEmailConfirmationModal(true);
-
-      } else {
-        // Sign in process
-        console.log('🔐 Sign in process initiated');
-        
-        if (!email.trim()) {
-          throw new Error('Email is required');
-        }
-        
-        if (!password) {
-          throw new Error('Password is required');
-        }
-
-        const signInError = await signIn(email, password);
-        
-        if (signInError) {
-          console.error('❌ Sign in failed:', signInError);
-          throw new Error(signInError.message);
-        }
-
-        console.log('✅ Sign in successful');
-        toast({
-          title: "Welcome back!",
-          description: "You have been signed in successfully.",
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              phone_number: phoneNumber,
+              company_name: companyName,
+              user_type: userType,
+            },
+          },
         });
-      }
 
+        if (error) throw error;
+
+        if (data.user && !data.user.email_confirmed_at) {
+          setShowConfirmationMessage(true);
+          setPendingUserEmail(email);
+          toast({
+            title: "Check your email",
+            description: "We've sent you a confirmation link. Please check your email to complete registration.",
+          });
+        }
+      } else {
+        await handleSignIn(e);
+      }
     } catch (error: any) {
-      console.error('❌ Form submission error:', error);
       toast({
+        title: "Error",
+        description: error.message,
         variant: "destructive",
-        title: "Authentication Error",
-        description: error.message || "An unexpected error occurred. Please try again.",
       });
     } finally {
       setLoading(false);
-      console.log('🏁 Form submission completed');
     }
   };
 
-  // ✅ Agreement Modal Component
-  if (showAgreementModal) {
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Signed in successfully!",
+      });
+
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!pendingUserEmail) return;
+    
+    setIsResendingConfirmation(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: pendingUserEmail,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email sent",
+        description: "Confirmation email has been resent. Please check your inbox.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsResendingConfirmation(false);
+    }
+  };
+
+  const getUserTypeIcon = (type: string) => {
+    switch (type) {
+      case 'robot_seller':
+        return <Building2 className="w-4 h-4" />;
+      case 'robot_buyer':
+        return <User className="w-4 h-4" />;
+      case 'service_provider':
+        return <Wrench className="w-4 h-4" />;
+      case 'logistics_provider':
+        return <Truck className="w-4 h-4" />;
+      case 'finance_provider':
+        return <CreditCard className="w-4 h-4" />;
+      case 'admin':
+        return <Shield className="w-4 h-4" />;
+      default:
+        return <User className="w-4 h-4" />;
+    }
+  };
+
+  const getUserTypeLabel = (type: string) => {
+    switch (type) {
+      case 'robot_seller':
+        return 'Robot Seller';
+      case 'robot_buyer':
+        return 'Robot Buyer';
+      case 'service_provider':
+        return 'Service Provider';
+      case 'logistics_provider':
+        return 'Logistics Provider';
+      case 'finance_provider':
+        return 'Finance Provider';
+      case 'admin':
+        return 'Administrator';
+      default:
+        return 'Select Role';
+    }
+  };
+
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl bg-card/90 backdrop-blur-lg border-border shadow-2xl">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <FileText className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Terms & Conditions Agreement</CardTitle>
-            <CardDescription>
-              Please review and accept our terms to create your RobotVerse account
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-muted/50 p-6 rounded-lg border max-h-96 overflow-y-auto">
-              <h3 className="text-lg font-semibold mb-4">RobotVerse Partnership Agreement</h3>
-              <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  <strong>1. Account Creation & Verification:</strong> By creating an account, you agree to provide accurate information and verify your email address. Your account will be activated only after email confirmation.
-                </p>
-                <p>
-                  <strong>2. User Responsibilities:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.
-                </p>
-                <p>
-                  <strong>3. Platform Usage:</strong> You agree to use RobotVerse marketplace in accordance with our community guidelines and applicable laws. Prohibited activities include fraud, spam, or misrepresentation.
-                </p>
-                <p>
-                  <strong>4. Data Privacy:</strong> We collect and process your personal information in accordance with our Privacy Policy. Your data will be used to provide marketplace services and improve user experience.
-                </p>
-                <p>
-                  <strong>5. Marketplace Terms:</strong> For sellers, you agree to provide accurate product/service descriptions. For buyers, you agree to our purchase and return policies.
-                </p>
-                <p>
-                  <strong>6. Email Communication:</strong> By signing up, you consent to receive important account-related emails including verification, security alerts, and service updates.
-                </p>
-                <p>
-                  <strong>7. Account Termination:</strong> We reserve the right to suspend or terminate accounts that violate our terms of service.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                className="flex-1 hover:bg-muted/50"
-                onClick={handleAgreementDecline}
-              >
-                ❌ Decline
-              </Button>
-              <Button 
-                onClick={handleAgreementAccept}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                ✅ Accept & Continue
-              </Button>
-            </div>
-            
-            <p className="text-xs text-center text-muted-foreground">
-              By accepting, you agree to receive a verification email to complete your registration.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
-  // ✅ Email Confirmation Modal Component
-  if (showEmailConfirmationModal) {
+  if (showConfirmationMessage) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-card/90 backdrop-blur-lg border-border shadow-2xl">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Mail className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
-            <CardDescription>
-              We've sent a verification link to your email address
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-muted/50 p-4 rounded-lg border text-center">
-              <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-              <p className="text-sm font-medium mb-2">Verification Email Sent!</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                We've sent a verification email to <strong>{email}</strong>. 
-                Please check your inbox and click the verification link to activate your account.
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-3">
-                  After verifying your email, you can sign in to complete your profile setup.
-                </p>
-              </div>
-              
-              <Button 
-                onClick={() => {
-                  setShowEmailConfirmationModal(false);
-                  setIsSignUp(false); // Switch to sign in mode
-                }}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                ✉️ I've Verified - Let me Sign In
-              </Button>
-              
-              <div className="text-center">
-                <button
-                  onClick={() => setShowEmailConfirmationModal(false)}
-                  className="text-sm text-primary hover:text-primary/80 transition-colors"
-                >
-                  Close & Continue Later
-                </button>
-              </div>
-            </div>
-            
-            <div className="text-xs text-center text-muted-foreground space-y-1">
-              <p>• Check your spam folder if you don't see the email</p>
-              <p>• The verification link expires in 24 hours</p>
-              <p>• Your profile data is saved and will be created after verification</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Main Authentication Form
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Back to Home Link */}
-        <Link 
-          to="/" 
-          className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to RobotVerse</span>
-        </Link>
-
-        <Card className="bg-card/90 backdrop-blur-lg border-border shadow-2xl">
-          <CardHeader className="text-center">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <Bot className="w-10 h-10 text-white" />
-            </div>
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {isResetPassword
-                ? 'Set New Password'
-                : isForgotPassword 
-                  ? 'Reset Password' 
-                  : isSignUp 
-                    ? 'Join RobotVerse' 
-                    : 'Welcome Back'
-              }
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Check Your Email
             </CardTitle>
-            <CardDescription className="text-lg mt-2">
-              {isResetPassword
-                ? 'Enter your new password below'
-                : isForgotPassword 
-                  ? 'Enter your email to receive a password reset link'
-                  : isSignUp 
-                    ? 'Create your account to start your robotics journey' 
-                    : 'Sign in to access your robot marketplace'
-              }
+            <CardDescription>
+              We've sent a confirmation link to <strong>{pendingUserEmail}</strong>
             </CardDescription>
           </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={
-              isResetPassword 
-                ? handlePasswordReset 
-                : isForgotPassword 
-                  ? handleForgotPassword 
-                  : handleSubmit
-            } className="space-y-6">
-              {/* Basic Information Section - Only for Sign Up */}
-              {isSignUp && !isForgotPassword && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <User className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Basic Information</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name *</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="fullName"
-                          type="text"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          className="pl-10"
-                          placeholder="Enter your full name"
-                          required={isSignUp}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="companyName">Company Name *</Label>
-                      <div className="relative">
-                        <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="companyName"
-                          type="text"
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                          className="pl-10"
-                          placeholder="Enter your company name"
-                          required={isSignUp}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mobileNumber">Mobile Number *</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="mobileNumber"
-                          type="tel"
-                          value={mobileNumber}
-                          onChange={(e) => setMobileNumber(e.target.value)}
-                          className="pl-10"
-                          placeholder="Enter your mobile number"
-                          required={isSignUp}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Location *</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="location"
-                          type="text"
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          className="pl-10"
-                          placeholder="Enter your location"
-                          required={isSignUp}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Email and Password Fields */}
-              <div className="space-y-4">
-                {/* Email Field - Show for all modes except reset password */}
-                {!isResetPassword && (
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-                
-                {/* Reset Password Fields */}
-                {isResetPassword && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="newPassword"
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Enter your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showNewPassword ? "Hide password" : "Show password"}
-                        >
-                          {showNewPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {newPassword && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Password strength: {newPassword.length >= 8 ? '🟢 Strong' : newPassword.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Confirm your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {confirmPassword && newPassword !== confirmPassword && (
-                        <div className="text-xs text-red-500 mt-1">
-                          ❌ Passwords do not match
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-                
-                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password and Reset Password */}
-                {!isForgotPassword && !isResetPassword && (
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 pr-12"
-                        placeholder="Enter your password"
-                        required
-                        minLength={6}
-                      />
-                      <button
-                        type="button"
-                        onClick={togglePasswordVisibility}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                    {/* Password Strength Indicator */}
-                    {password && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Password strength: {password.length >= 8 ? '🟢 Strong' : password.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Account Type Selection - Only for Sign Up */}
-              {isSignUp && !isForgotPassword && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Account Type</h3>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Select Your Account Type *</Label>
-                    <Select value={accountType} onValueChange={(value: any) => setAccountType(value)}>
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Choose your account type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="buyer" className="h-12">
-                          <div className="flex items-center gap-3">
-                            <ShoppingCart className="w-5 h-5 text-blue-600" />
-                            <div>
-                              <div className="font-medium">Buyer</div>
-                              <div className="text-xs text-muted-foreground">Browse and purchase robots</div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="seller" className="h-12">
-                          <div className="flex items-center gap-3">
-                            <Building className="w-5 h-5 text-green-600" />
-                            <div>
-                              <div className="font-medium">Seller</div>
-                              <div className="text-xs text-muted-foreground">Sell robots, parts, or services</div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="logistics" className="h-12">
-                          <div className="flex items-center gap-3">
-                            <Truck className="w-5 h-5 text-orange-600" />
-                            <div>
-                              <div className="font-medium">Logistics Partner</div>
-                              <div className="text-xs text-muted-foreground">Provide shipping services</div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="finance" className="h-12">
-                          <div className="flex items-center gap-3">
-                            <CreditCard className="w-5 h-5 text-purple-600" />
-                            <div>
-                              <div className="font-medium">Finance Provider</div>
-                              <div className="text-xs text-muted-foreground">Offer financial services</div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-
-              {/* Seller Role Selection */}
-              {isSignUp && accountType === 'seller' && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Package className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Seller Specializations</h3>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Select Your Seller Roles (Choose all that apply) *</Label>
-                    <div className="text-xs text-muted-foreground mb-2">
-                      Selected roles ({sellerRoles.length}): {sellerRoles.join(', ') || 'None'}
-                    </div>
-                    <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="robot_seller"
-                          checked={sellerRoles.includes('robot_seller')}
-                          onCheckedChange={(checked) => handleSellerRoleChange('robot_seller', !!checked)}
-                        />
-                        <div className="flex items-center gap-3 flex-1">
-                          <Bot className="w-5 h-5 text-blue-600" />
-                          <div>
-                            <Label htmlFor="robot_seller" className="font-medium cursor-pointer">Robot Seller</Label>
-                            <p className="text-xs text-muted-foreground">Sell industrial robots and automation equipment</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="spare_parts_seller"
-                          checked={sellerRoles.includes('spare_parts_seller')}
-                          onCheckedChange={(checked) => handleSellerRoleChange('spare_parts_seller', !!checked)}
-                        />
-                        <div className="flex items-center gap-3 flex-1">
-                          <Package className="w-5 h-5 text-green-600" />
-                          <div>
-                            <Label htmlFor="spare_parts_seller" className="font-medium cursor-pointer">Spare Parts Seller</Label>
-                            <p className="text-xs text-muted-foreground">Sell robot components and spare parts</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="service_provider"
-                          checked={sellerRoles.includes('service_provider')}
-                          onCheckedChange={(checked) => handleSellerRoleChange('service_provider', !!checked)}
-                        />
-                        <div className="flex items-center gap-3 flex-1">
-                          <Settings className="w-5 h-5 text-purple-600" />
-                          <div>
-                            <Label htmlFor="service_provider" className="font-medium cursor-pointer">Service Provider</Label>
-                            <p className="text-xs text-muted-foreground">Offer maintenance, installation, and repair services</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Logistics Provider Fields */}
-              {isSignUp && accountType === 'logistics' && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Logistics Details</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Type of Logistics Service *</Label>
-                      <div className="border rounded-lg p-4 space-y-2 max-h-48 overflow-y-auto">
-                        <div className="grid grid-cols-1 gap-2">
-                          {[
-                            'Local Delivery',
-                            'Inter-city Transport', 
-                            'International Shipping',
-                            'Heavy Equipment Transport',
-                            'Fragile Item Handling',
-                            'Bulk Transport',
-                            'Express Delivery',
-                            'Warehousing & Storage',
-                            'Supply Chain Management',
-                            'Last Mile Delivery',
-                            'Industrial Machinery Transport',
-                            'Temperature Controlled Transport',
-                            'Hazardous Material Transport',
-                            'White Glove Service',
-                            'Installation & Setup Service',
-                            'Port Handling',
-                            'Duties Clearance'
-                          ].map((type) => (
-                            <div key={type} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={type}
-                                checked={logisticsType.includes(type)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setLogisticsType(prev => prev ? `${prev}, ${type}` : type);
-                                  } else {
-                                    setLogisticsType(prev => 
-                                      prev.split(', ').filter(t => t !== type).join(', ')
-                                    );
-                                  }
-                                }}
-                              />
-                              <Label htmlFor={type} className="text-sm cursor-pointer flex-1">
-                                {type}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="logisticsRegion">Primary Service Region *</Label>
-                      <Input
-                        id="logisticsRegion"
-                        value={logisticsRegion}
-                        onChange={(e) => setLogisticsRegion(e.target.value)}
-                        placeholder="e.g., North India, Maharashtra, etc."
-                        required={accountType === 'logistics'}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Available Transport Modes</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="road"
-                          checked={transportModes.includes('road')}
-                          onCheckedChange={(checked) => handleTransportModeChange('road', !!checked)}
-                        />
-                        <Label htmlFor="road" className="font-medium cursor-pointer">🚛 Road Transport</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="sea"
-                          checked={transportModes.includes('sea')}
-                          onCheckedChange={(checked) => handleTransportModeChange('sea', !!checked)}
-                        />
-                        <Label htmlFor="sea" className="font-medium cursor-pointer">🚢 Sea Freight</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="air"
-                          checked={transportModes.includes('air')}
-                          onCheckedChange={(checked) => handleTransportModeChange('air', !!checked)}
-                        />
-                        <Label htmlFor="air" className="font-medium cursor-pointer">✈️ Air Cargo</Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                    <Checkbox
-                      id="warehouse"
-                      checked={warehouseStorage}
-                      onCheckedChange={(checked) => setWarehouseStorage(!!checked)}
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor="warehouse" className="font-medium cursor-pointer">🏭 Warehouse & Storage Facilities</Label>
-                      <p className="text-xs text-muted-foreground">We provide temporary storage and warehousing services</p>
-                    </div>
-                  </div>
-
-                  {/* Target Audience for Logistics */}
-                  <div className="space-y-3">
-                    <Label>Target Customer Segments</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_small_business"
-                          checked={targetAudience.includes('small_business')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('small_business', !!checked)}
-                        />
-                        <Label htmlFor="logistics_small_business" className="font-medium cursor-pointer">🏪 Small Manufacturing Units</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_medium_business"
-                          checked={targetAudience.includes('medium_business')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('medium_business', !!checked)}
-                        />
-                        <Label htmlFor="logistics_medium_business" className="font-medium cursor-pointer">🏭 Medium Scale Industries</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_large_enterprise"
-                          checked={targetAudience.includes('large_enterprise')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('large_enterprise', !!checked)}
-                        />
-                        <Label htmlFor="logistics_large_enterprise" className="font-medium cursor-pointer">🏢 Large Enterprises</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_research"
-                          checked={targetAudience.includes('research_institutions')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('research_institutions', !!checked)}
-                        />
-                        <Label htmlFor="logistics_research" className="font-medium cursor-pointer">🔬 Research Institutions</Label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Finance Provider Fields */}
-              {isSignUp && accountType === 'finance' && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Financial Services</h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Types of Financial Services Offered *</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="loan"
-                          checked={financeType.includes('loan')}
-                          onCheckedChange={(checked) => handleFinanceTypeChange('loan', !!checked)}
-                        />
-                        <Label htmlFor="loan" className="font-medium cursor-pointer">💰 Business Loans</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="lease"
-                          checked={financeType.includes('lease')}
-                          onCheckedChange={(checked) => handleFinanceTypeChange('lease', !!checked)}
-                        />
-                        <Label htmlFor="lease" className="font-medium cursor-pointer">📋 Equipment Leasing</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="emi"
-                          checked={financeType.includes('emi')}
-                          onCheckedChange={(checked) => handleFinanceTypeChange('emi', !!checked)}
-                        />
-                        <Label htmlFor="emi" className="font-medium cursor-pointer">💳 EMI Financing</Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Financing Available For</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="robots"
-                          checked={financingFor.includes('robots')}
-                          onCheckedChange={(checked) => handleFinancingForChange('robots', !!checked)}
-                        />
-                        <Label htmlFor="robots" className="text-sm cursor-pointer">🤖 Robots</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="parts"
-                          checked={financingFor.includes('parts')}
-                          onCheckedChange={(checked) => handleFinancingForChange('parts', !!checked)}
-                        />
-                        <Label htmlFor="parts" className="text-sm cursor-pointer">🔧 Parts</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="setup"
-                          checked={financingFor.includes('setup')}
-                          onCheckedChange={(checked) => handleFinancingForChange('setup', !!checked)}
-                        />
-                        <Label htmlFor="setup" className="text-sm cursor-pointer">⚙️ Setup</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="services"
-                          checked={financingFor.includes('services')}
-                          onCheckedChange={(checked) => handleFinancingForChange('services', !!checked)}
-                        />
-                        <Label htmlFor="services" className="text-sm cursor-pointer">🛠️ Services</Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Target Business Segments</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="b2b"
-                          checked={targetAudience.includes('b2b')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('b2b', !!checked)}
-                        />
-                        <Label htmlFor="b2b" className="font-medium cursor-pointer">🏢 Large Enterprises (B2B)</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="msme"
-                          checked={targetAudience.includes('msme')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('msme', !!checked)}
-                        />
-                        <Label htmlFor="msme" className="font-medium cursor-pointer">🏭 MSME Businesses</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="startup"
-                          checked={targetAudience.includes('startup')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('startup', !!checked)}
-                        />
-                        <Label htmlFor="startup" className="font-medium cursor-pointer">🚀 Startups & Scale-ups</Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                    <Checkbox
-                      id="government_scheme"
-                      checked={governmentSchemeSupport}
-                      onCheckedChange={(checked) => setGovernmentSchemeSupport(!!checked)}
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor="government_scheme" className="font-medium cursor-pointer">🏛️ Government Scheme Support</Label>
-                      <p className="text-xs text-muted-foreground">We assist with government subsidies and scheme applications</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-lg" 
-                disabled={loading}
-              >
-                {loading ? (
-                  <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>
-                      {isResetPassword
-                        ? 'Updating Password...'
-                        : isForgotPassword 
-                          ? 'Sending Reset Link...' 
-                          : isSignUp 
-                            ? 'Creating Your Account...' 
-                            : 'Signing You In...'
-                      }
-                    </span>
-                  </div>
-                ) : (
-                  <>
-                    {isResetPassword ? (
-                      <>
-                        <Lock className="w-5 h-5 mr-2" />
-                        Update Password
-                      </>
-                    ) : isForgotPassword ? (
-                      <>
-                        <Mail className="w-5 h-5 mr-2" />
-                        Send Reset Link
-                      </>
-                    ) : isSignUp ? (
-                      <>
-                        <Bot className="w-5 h-5 mr-2" />
-                        {agreementAccepted ? 'Create My RobotVerse Account' : 'Review Agreement & Create Account'}
-                      </>
-                    ) : (
-                      <>
-                        <User className="w-5 h-5 mr-2" />
-                        Sign In to RobotVerse
-                      </>
-                    )}
-                  </>
-                )}
-              </Button>
-            </form>
-            
-            {/* Toggle between Sign Up, Sign In, Forgot Password, and Reset Password */}
-            <div className="mt-8 text-center space-y-3">
-              {isResetPassword ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsResetPassword(false);
-                    setIsForgotPassword(false);
-                    setIsSignUp(false);
-                    setNewPassword('');
-                    setConfirmPassword('');
-                  }}
-                  className="text-primary hover:text-primary/80 transition-colors font-medium"
-                >
-                  Back to Sign In
-                </button>
-              ) : !isForgotPassword ? (
+          <CardContent className="space-y-4">
+            <div className="text-center text-sm text-gray-600">
+              <p>Click the link in your email to complete your registration.</p>
+              <p className="mt-2">Didn't receive the email? Check your spam folder or request a new one.</p>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResendConfirmation}
+              disabled={isResendingConfirmation}
+              className="w-full"
+            >
+              {isResendingConfirmation ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSignUp(!isSignUp);
-                      setAgreementAccepted(false);
-                    }}
-                    className="text-primary hover:text-primary/80 transition-colors font-medium"
-                  >
-                    {isSignUp 
-                      ? 'Already have an account? Sign in here' 
-                      : "Don't have an account? Join RobotVerse"
-                    }
-                  </button>
-                  
-                  {!isSignUp && (
-                    <div className="mt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsForgotPassword(true);
-                          setIsSignUp(false);
-                        }}
-                        className="text-muted-foreground hover:text-primary transition-colors text-sm underline"
-                      >
-                        Forgot your password?
-                      </button>
-                    </div>
-                  )}
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Sending...
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsForgotPassword(false);
-                    setIsSignUp(false);
-                  }}
-                  className="text-primary hover:text-primary/80 transition-colors font-medium"
-                >
-                  Back to Sign In
-                </button>
+                'Resend Confirmation Email'
               )}
-            </div>
-          </CardContent>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setShowConfirmationMessage(false);
+                setPendingUserEmail('');
+              }}
+              className="w-full"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Sign In
+            </Button>
+          </CardFooter>
         </Card>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-gray-900">
+            {isSignUp ? 'Create Account' : 'Welcome Back'}
+          </CardTitle>
+          <CardDescription>
+            {isSignUp 
+              ? 'Join RoboVerse and connect with the robotics community'
+              : 'Sign in to your RoboVerse account'
+            }
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full"
+              />
+            </div>
+
+            {isSignUp && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="First name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Company Name (Optional)</Label>
+                  <Input
+                    id="companyName"
+                    type="text"
+                    placeholder="Enter your company name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="userType">Role</Label>
+                  <Select value={userType} onValueChange={setUserType} required>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select your role">
+                        {userType && (
+                          <div className="flex items-center gap-2">
+                            {getUserTypeIcon(userType)}
+                            <span>{getUserTypeLabel(userType)}</span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="robot_seller">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          <span>Robot Seller</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="robot_buyer">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          <span>Robot Buyer</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="service_provider">
+                        <div className="flex items-center gap-2">
+                          <Wrench className="w-4 h-4" />
+                          <span>Service Provider</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="logistics_provider">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4" />
+                          <span>Logistics Provider</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="finance_provider">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4" />
+                          <span>Finance Provider</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isSignUp && (
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="agreement"
+                  checked={agreementAccepted}
+                  onCheckedChange={(checked) => setAgreementAccepted(checked as boolean)}
+                />
+                <Label htmlFor="agreement" className="text-sm leading-5">
+                  I agree to the{' '}
+                  <a href="#" className="text-primary hover:underline">
+                    Terms of Service
+                  </a>{' '}
+                  and{' '}
+                  <a href="#" className="text-primary hover:underline">
+                    Privacy Policy
+                  </a>
+                </Label>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                </>
+              ) : (
+                isSignUp ? 'Create Account' : 'Sign In'
+              )}
+            </Button>
+            <div className="text-center text-sm text-gray-600">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setAgreementAccepted(false);
+                }}
+                className="text-primary hover:text-primary/80 transition-colors font-medium"
+              >
+                {isSignUp ? 'Sign in' : 'Sign up'}
+              </button>
+            </div>
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
 };
