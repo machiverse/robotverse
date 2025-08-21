@@ -450,48 +450,114 @@ const Auth = () => {
 
       console.log('✅ Profile updated successfully with ID:', profileId);
       return profileId;
-    } catch (error: any) {
-      console.error('❌ Profile update exception:', error);
-      throw error;
-    }
-  };
-
-  // ✅ Create new profile using the database function  
-  const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
-    try {
-      console.log('👤 Creating complete profile from saved data for user:', user.id);
-      console.log('📋 Profile data:', JSON.stringify(savedData, null, 2));
+      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
+        console.error('❌ Missing required data for profile update:', {
+          companyName: savedData.companyName,
+          mobileNumber: savedData.mobileNumber,
+          accountType: savedData.accountType
+        });
+        
+        toast({
+          variant: "destructive",
+          title: "Incomplete Profile Data",
+          description: "Some required information is missing. Please complete your profile information.",
+        });
+        
+        // Clear corrupted data
+        clearSavedUserData();
+        throw new Error('Missing required profile data');
+      }
       
-      // Use the database function to create/update the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
-        p_user_id: user.id,
-        p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName || null,
-        p_company_name: savedData.companyName || null,
-        p_mobile_number: savedData.mobileNumber || null,
-        p_location: savedData.location || null,
-        p_user_type: savedData.accountType || 'buyer',
-        p_account_type: savedData.accountType || 'buyer',
-        p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
-        p_logistics_type: savedData.logisticsType || null,
-        p_logistics_region: savedData.logisticsRegion || null,
-        p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
-        p_warehouse_storage: savedData.warehouseStorage || false,
-        p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
-        p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
-        p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
-      });
+      // ✅ Build profile update data using exact schema types
+      const profileData: Partial<ProfileInsert> = {
+        // Basic information - using exact field names from schema
+        email: savedData.email || user.email,
+        full_name: savedData.fullName || null,
+        company_name: savedData.companyName || null,
+        mobile_number: savedData.mobileNumber || null,
+        phone: savedData.mobileNumber || null, // Populate both phone fields
+        location: savedData.location || null,
+        user_type: savedData.accountType || null,
+        account_type: savedData.accountType || null,
+        updated_at: new Date().toISOString(),
+        
+        // Set registration as complete and MOU agreed
+        registration_complete: true,
+        mou_agreed: true,
+        mou_agreed_at: new Date().toISOString(),
+      };
 
-      if (dbError) {
-        console.error('❌ Database function error:', dbError);
-        throw new Error(dbError.message);
+      // ✅ Add role-specific data based on account type
+      if (savedData.accountType === 'seller') {
+        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
+        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
+        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
+        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
+        
+        // Set service categories for service providers
+        if (savedData.sellerRoles?.includes('service_provider')) {
+          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
+        }
+        
+      } else if (savedData.accountType === 'logistics') {
+        profileData.logistics_type = savedData.logisticsType || null;
+        profileData.logistics_region = savedData.logisticsRegion || null;
+        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : ['road'];
+        profileData.warehouse_storage = savedData.warehouseStorage || false;
+        profileData.primary_user_type = 'logistics_provider';
+        profileData.primary_role = 'logistics_provider';
+        profileData.user_roles = ['logistics_provider'];
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
+        
+      } else if (savedData.accountType === 'finance') {
+        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : ['loan'];
+        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : ['robots'];
+        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
+        profileData.government_scheme_support = savedData.governmentSchemeSupport || false;
+        profileData.primary_user_type = 'finance_provider';
+        profileData.primary_role = 'finance_provider';
+        profileData.user_roles = ['finance_provider'];
+        
+      } else if (savedData.accountType === 'buyer') {
+        profileData.primary_user_type = 'buyer';
+        profileData.primary_role = 'buyer';
+        profileData.user_roles = ['buyer'];
       }
 
-      console.log('✅ Profile created successfully with ID:', profileId);
-      return profileId;
+      console.log('📋 Profile update data:', JSON.stringify(profileData, null, 2));
+
+      // ✅ Update the existing profile
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('user_id', user.id)
+        .select();
+
+      if (error) {
+        console.error('❌ Profile update error:', error);
+        toast({
+          variant: "destructive",
+          title: "Profile Update Failed",
+          description: `Failed to update your profile: ${error.message}. Please try again.`,
+        });
+        throw new Error(`Profile update failed: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        console.error('❌ No profile was updated - possible RLS policy issue');
+        toast({
+          variant: "destructive",
+          title: "Profile Update Failed",
+          description: "No profile data was updated. This might be a permissions issue. Please contact support.",
+        });
+        throw new Error('No profile was updated - check RLS policies');
+      }
+
+      console.log('✅ Profile updated successfully:', data[0]);
+      return data;
+
     } catch (error: any) {
-      console.error('❌ Profile creation exception:', error);
+      console.error('❌ Profile update exception:', error);
       throw error;
     }
   };
@@ -1822,7 +1888,7 @@ const Auth = () => {
                     type="button"
                     onClick={() => {
                       setIsSignUp(!isSignUp);
-                      setAgreementAccepted(false);
+                      setAgreementAccepted(false); // Reset agreement when switching
                     }}
                     className="text-primary hover:text-primary/80 transition-colors font-medium"
                   >
