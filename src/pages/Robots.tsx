@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Bot, Grid, List } from "lucide-react";
+import { Loader2, Bot, Grid, List, Search } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
@@ -359,7 +359,8 @@ const Robots = () => {
 
           {/* Robot Type filter and Grouping toggle */}
           <div className="mt-4 flex items-center justify-between">
-            <Select value={selectedRobotType} onValueChange={setSelectedRobotType} className="w-48">
+            <div className="w-48">
+              <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
               <SelectTrigger>
                 <SelectValue placeholder="Robot Type" />
               </SelectTrigger>
@@ -374,7 +375,8 @@ const Robots = () => {
                     </SelectItem>
                   ))}
               </SelectContent>
-            </Select>
+              </Select>
+            </div>
 
             <div className="flex space-x-2">
               <Button
@@ -440,14 +442,12 @@ const Robots = () => {
                   key={key}
                   sellerRobots={robotsGroup}
                   sellerProfile={sellerProfiles[key]}
-                  viewMode={viewMode}
                 />
               ) : (
                 <CategoryRobotCarousel
                   key={key}
                   category={key}
                   robots={robotsGroup}
-                  viewMode={viewMode}
                 />
               );
             })}
