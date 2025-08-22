@@ -7,7 +7,7 @@ import {
   CardTitle,
   Button,
   Badge,
-} from "@/components/ui";
+} from "@/components/ui/card";
 import {
   Bot,
   ShoppingCart,
