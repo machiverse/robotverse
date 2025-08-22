@@ -283,7 +283,7 @@ const RobotListings = () => {
       const range = ranges[priceFilter as keyof typeof ranges];
       if (range) {
         filtered = filtered.filter(
-          (robot) => robot.price >= range[0] && robot.price < range
+          (robot) => robot.price >= range[0] && robot.price < range[1]
         );
       }
     }
