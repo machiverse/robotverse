@@ -1,163 +1,261 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ShoppingCart,
+  Store,
+  Wrench,
+  Settings,
+  Truck,
+  CreditCard,
+  User,
+  Building2,
+  LogOut,
+  Edit,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/components/ui/use-toast";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Home, Package, Wrench, CreditCard, Users } from "lucide-react";
-import EnhancedHeader from "@/components/EnhancedHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
-const UnifiedDashboard: React.FC = () => {
-  const navigate = useNavigate();
+// Import dashboard components
+import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
+import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
+import SparePartsDashboard from "@/pages/SparePartsSellerDashboard";
+import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
+import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
+import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
+import AdminDashboard from "@/components/dashboards/AdminDashboard";
+
+interface UnifiedDashboardProps {
+  userProfile: any;
+}
+
+const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
   const { user, signOut } = useAuth();
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<string>("");
 
-  const [activeTab, setActiveTab] = useState<"overview" | "robots" | "services" | "financing" | "profile">("overview");
+  // Get user roles - prioritize user_roles array, fallback to legacy fields
+  const userRoles = userProfile?.user_roles?.length > 0 
+    ? userProfile.user_roles 
+    : [userProfile?.user_type || userProfile?.account_type || 'buyer'];
+
+  // Check if user is admin
+  const isAdmin = user?.email === 'mark.it@keyleerkorb.com';
   
-  // Example counts — replace with real API calls if needed
-  const [robotCount, setRobotCount] = useState(0);
-  const [serviceCount, setServiceCount] = useState(0);
-  const [financingCount, setFinancingCount] = useState(0);
+  // If admin, add admin role
+  const finalRoles = isAdmin ? ['admin', ...userRoles.filter(role => role !== 'admin')] : userRoles;
 
   useEffect(() => {
-    // Placeholder: load counts from backend
-    setRobotCount(150);
-    setServiceCount(34);
-    setFinancingCount(12);
-  }, []);
+    // Set initial active tab to first role
+    if (finalRoles.length > 0 && !activeTab) {
+      setActiveTab(finalRoles[0]);
+    }
+  }, [finalRoles, activeTab]);
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      toast({ title: "Logged out", description: "You have successfully logged out." });
-      navigate("/auth");
-    } catch {
-      toast({ title: "Logout failed", description: "Try again later.", variant: "destructive" });
+  const roleConfigs = {
+    admin: {
+      label: 'Admin',
+      icon: Settings,
+      component: AdminDashboard,
+      description: 'System administration'
+    },
+    buyer: {
+      label: 'Buyer',
+      icon: ShoppingCart,
+      component: BuyerDashboard,
+      description: 'Browse and purchase robots'
+    },
+    robot_seller: {
+      label: 'Robot Seller',
+      icon: Store,
+      component: RobotSellerDashboard,
+      description: 'Manage robot listings'
+    },
+    seller: {
+      label: 'Robot Seller',
+      icon: Store,
+      component: RobotSellerDashboard,
+      description: 'Manage robot listings'
+    },
+    spare_parts_seller: {
+      label: 'Parts Seller',
+      icon: Settings,
+      component: SparePartsDashboard,
+      description: 'Manage spare parts'
+    },
+    service_provider: {
+      label: 'Service Provider',
+      icon: Wrench,
+      component: ServiceProviderDashboard,
+      description: 'Manage service offerings'
+    },
+    logistics_provider: {
+      label: 'Logistics',
+      icon: Truck,
+      component: LogisticsProviderDashboard,
+      description: 'Manage shipments'
+    },
+    logistics: {
+      label: 'Logistics',
+      icon: Truck,
+      component: LogisticsProviderDashboard,
+      description: 'Manage shipments'
+    },
+    finance_provider: {
+      label: 'Financing',
+      icon: CreditCard,
+      component: FinanceProviderDashboard,
+      description: 'Manage loan programs'
+    },
+    finance: {
+      label: 'Financing',
+      icon: CreditCard,
+      component: FinanceProviderDashboard,
+      description: 'Manage loan programs'
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleProfileEdit = () => {
+    navigate('/profile-settings');
+  };
+
+  // Get user initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const userName = userProfile?.full_name || userProfile?.display_name || user?.email || 'User';
+  const companyName = userProfile?.company_name || 'RobotVerse';
+
   return (
     <div className="min-h-screen bg-background">
-      <EnhancedHeader />
-      <header className="flex justify-between items-center p-4 border-b bg-card sticky top-0 z-10">
-        <div className="flex items-center cursor-pointer space-x-2" onClick={() => navigate("/")}>
-          <Home className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold text-primary">Unified Dashboard</h1>
-        </div>
+      {/* Header with Company Name and User Menu */}
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Building2 className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold">{companyName}</h1>
+              <p className="text-sm text-muted-foreground">Industrial Robotics Platform</p>
+            </div>
+          </div>
 
-        {user && (
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <User />
-                <span className="truncate max-w-xs">{user.email || "User"}</span>
+              <Button variant="ghost" className="flex items-center space-x-2 h-auto p-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={userProfile?.avatar_url} />
+                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                </Avatar>
+                <div className="text-left hidden md:block">
+                  <p className="text-sm font-medium">{userName}</p>
+                                  </div>
+                <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate("/profile")}>
-                <Users className="mr-2 w-4 h-4" />
-                Profile
+            <DropdownMenuContent align="end" className="w-64 bg-popover">
+              <DropdownMenuLabel>
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={userProfile?.avatar_url} />
+                    <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{userName}</p>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem onClick={handleProfileEdit}>
+                <User className="mr-2 h-4 w-4" />
+                View Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 w-4 h-4" />
-                Logout
+              
+              <DropdownMenuItem onClick={handleProfileEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Profile
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem onClick={handleProfileEdit}>
+                <Settings className="mr-2 h-4 w-4" />
+                Account Settings
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
+        </div>
       </header>
 
-      <main className="p-6 container mx-auto space-y-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="robots">Robots</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="financing">Financing</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
+      {/* Main Dashboard Content */}
+      <div className="container mx-auto px-4 py-6">
+        {/* Always show Tab Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 5)}, 1fr)` }}>
+            {finalRoles.slice(0, 5).map((role: string) => {
+              const config = roleConfigs[role];
+              if (!config) return null;
+              
+              return (
+                <TabsTrigger 
+                  key={role} 
+                  value={role}
+                  className="flex items-center justify-center py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <span className="text-sm font-medium">{config.label}</span>
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
+
+          {finalRoles.map((role: string) => {
+            const config = roleConfigs[role];
+            if (!config) return null;
+            
+            const DashboardComponent = config.component;
+            return (
+              <TabsContent key={role} value={role} className="space-y-6">
+                <DashboardComponent userProfile={userProfile} />
+              </TabsContent>
+            );
+          })}
         </Tabs>
-
-        {activeTab === "overview" && (
-          <>
-            <h2 className="text-xl font-semibold mb-6">Dashboard Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Package />
-                    <span>Robots</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{robotCount}</p>
-                  <Button variant="link" onClick={() => setActiveTab("robots")}>View Robots</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Wrench />
-                    <span>Services</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{serviceCount}</p>
-                  <Button variant="link" onClick={() => setActiveTab("services")}>View Services</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <CreditCard />
-                    <span>Financing</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-4xl font-bold">{financingCount}</p>
-                  <Button variant="link" onClick={() => setActiveTab("financing")}>View Financing</Button>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-
-        {activeTab === "robots" && (
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Robots Management</h2>
-            <Button onClick={() => navigate("/robots")} variant="primary">Manage Robots</Button>
-            {/* Add robots list or management UI here */}
-          </section>
-        )}
-
-        {activeTab === "services" && (
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Services Management</h2>
-            <Button onClick={() => navigate("/services")} variant="primary">Manage Services</Button>
-            {/* Add services list or management UI here */}
-          </section>
-        )}
-
-        {activeTab === "financing" && (
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Financing Options</h2>
-            <Button onClick={() => navigate("/financing")} variant="primary">Manage Financing</Button>
-            {/* Financing options UI */}
-          </section>
-        )}
-
-        {activeTab === "profile" && (
-          <section>
-            <h2 className="text-xl font-semibold mb-4">User Profile</h2>
-            <p>Email: {user?.email}</p>
-            <Button onClick={() => navigate("/profile")} variant="outline">Edit Profile</Button>
-          </section>
-        )}
-      </main>
+      </div>
     </div>
   );
 };
