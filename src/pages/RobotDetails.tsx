@@ -1016,11 +1016,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <CardTitle className="text-2xl">{robot.name}</CardTitle>
                     <p className="text-lg text-muted-foreground">{robot.model}</p>
                     <div className="flex items-center gap-4 mt-2">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Eye className="w-4 h-4" />
-                        <span>{viewCount} views</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
+                           <Badge variant="outline" className="text-xs">
                         {robot.robot_type}
                       </Badge>
                     </div>
