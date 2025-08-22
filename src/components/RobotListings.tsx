@@ -717,6 +717,7 @@ const RobotListings = () => {
                   mobile_number: '',
                   email: ''
                 }}
+                imageClassName="w-full h-full object-cover rounded-lg"
               />
             ))}
           </div>
