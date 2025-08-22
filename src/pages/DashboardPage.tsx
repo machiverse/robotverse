@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import UnifiedDashboard from "@/components/UnifiedDashboard";
+import EnhancedHeader from "@/components/EnhancedHeader";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,7 +67,12 @@ const DashboardPage = () => {
 
   // Always use unified dashboard for consistent layout
   const renderDashboard = () => {
-    return <UnifiedDashboard userProfile={userProfile} />;
+    return (
+      <div className="min-h-screen bg-background">
+        <EnhancedHeader />
+        <UnifiedDashboard userProfile={userProfile} />
+      </div>
+    );
   };
 
   return renderDashboard();
