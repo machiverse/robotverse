@@ -136,52 +136,53 @@ const RobotDetails = () => {
   };
   const outsideIndia = robot ? !isIndianLocation(robot.state, robot.location) : false;
   useEffect(() => {
-    if (!id) return;
-    const fetchRobot = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('robots')
-          .select(`
-            *,
-            profiles!robots_seller_id_fkey (
-              full_name,
-              company_name,
-              phone,
-              mobile_number,
-              email,
-              location
-            )
-          `)
-          .eq('id', id)
-          .single();
+  if (!id) return;
+  const fetchRobot = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('robots')
+        .select(`
+          *,
+          profiles!robots_seller_idfkey (
+            full_name,
+            company_name,
+            phone,
+            mobile_number,
+            email,
+            location
+          )
+        `)
+        .eq('id', id)
+        .single();
 
-        if (error) throw error;
-        setRobot({
-          ...data,
-          technical_specifications: (data.technical_specifications as Record<string, any>) || {}
-        });
+      if (error) throw error;
+      setRobot({
+        ...data,
+        technical_specifications: data.technical_specifications || {}
+      });
+      
+      if (user) {
+        const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
+        setIsInWatchlist(watchlist.includes(data.id));
         
-        if (user) {
-          const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
-          setIsInWatchlist(watchlist.includes(data.id));
-          
-          // Track the view
-          trackView('robots', data.id);
-        }
-        
-        // Get view count
-        const count = await getItemViewCount('robots', data.id);
-        setViewCount(count);
-      } catch (err) {
-        console.error('Error fetching robot:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load robot details');
-      } finally {
-        setLoading(false);
+        // Track this view
+        await trackView('robots', data.id);
       }
-    };
-    fetchRobot();
-  }, [id, user]);
+
+      // Get and set total view count for robot
+      const count = await getItemCount('robots', data.id);
+      setViewCount(count);
+
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to load robot details');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchRobot();
+}, [id, user]);
 
   // Fetch current user's location
   useEffect(() => {
@@ -1061,12 +1062,16 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <p>{robot.quantity}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">Views:</span>
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-primary font-semibold">{viewCount}</span>
-                      </div>
-                    </div>
+  <span className="font-medium">Views:</span>
+  <div className="flex items-center gap-1">
+    <Eye className="w-4 h-4 text-muted-foreground" />
+    {loading ? (
+      <span className="text-muted-foreground animate-pulse">...</span>
+    ) : (
+      <span className="text-primary font-semibold">{viewCount}</span>
+    )}
+  </div>
+</div>
                   </div>
 
                   {/* Action Buttons for logged in user */}
