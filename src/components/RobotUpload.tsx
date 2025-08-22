@@ -215,12 +215,12 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
 ];
 
   const conditionOptions = [
-    { value: 'new', label: 'Brand New', description: 'Factory sealed, never used' },
-    { value: 'like_new', label: 'Like New', description: 'Barely used, excellent condition' },
-    { value: 'good', label: 'Good', description: 'Well maintained, minor wear' },
-    { value: 'fair', label: 'Fair', description: 'Functional, shows usage signs' },
-    { value: 'refurbished', label: 'Refurbished', description: 'Professionally restored' }
-  ];
+  { value: 'new', label: 'Brand New', description: 'Factory sealed, never used' },
+  { value: 'like_new', label: 'Like New', description: 'Barely used, excellent condition' },
+  { value: 'good', label: 'Good', description: 'Well maintained, minor wear' },
+  { value: 'used', label: 'Used', description: 'Previously owned and operated' },  // changed this entry
+  { value: 'refurbished', label: 'Refurbished', description: 'Professionally restored' }
+];
 
   const operatingEnvironments = [
     'Standard Industrial',
