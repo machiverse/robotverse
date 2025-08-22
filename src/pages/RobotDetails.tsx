@@ -144,7 +144,7 @@ const RobotDetails = () => {
         .from('robots')
         .select(`
           *,
-          profiles!robots_seller_idfkey (
+          profiles!seller_id (
             full_name,
             company_name,
             phone,
@@ -159,7 +159,9 @@ const RobotDetails = () => {
       if (error) throw error;
       setRobot({
         ...data,
-        technical_specifications: data.technical_specifications || {}
+        technical_specifications: typeof data.technical_specifications === 'object' && data.technical_specifications !== null 
+          ? data.technical_specifications as Record<string, any>
+          : {}
       });
       
       if (user) {
@@ -171,7 +173,7 @@ const RobotDetails = () => {
       }
 
       // Get and set total view count for robot
-      const count = await getItemCount('robots', data.id);
+      const count = await getItemViewCount('robots', data.id);
       setViewCount(count);
 
     } catch (err) {
