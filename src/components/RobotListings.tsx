@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -103,10 +102,6 @@ const RobotListings = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [displayCount, setDisplayCount] = useState(8);
 
-  // Category/company/group toggle
-  const [groupBy, setGroupBy] = useState<'company' | 'category'>('company');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-
   // Enhanced stats
   const [marketStats, setMarketStats] = useState({
     totalListings: 0,
@@ -119,10 +114,12 @@ const RobotListings = () => {
 
   useEffect(() => {
     fetchRobots();
-    // eslint-disable-next-line
   }, []);
 
- 
+  useEffect(() => {
+    filterAndSortRobots();
+  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, sortBy]);
+
   const fetchRobots = async () => {
     try {
       setRefreshing(true);
@@ -168,9 +165,9 @@ const RobotListings = () => {
       setSellerGroups(grouped);
       setSellerProfiles(profiles);
       
-      //console.log('✅ Fetched robots:', robotsData.length);
+      console.log('✅ Fetched robots:', robotsData.length);
     } catch (error) {
-      //console.error('Error fetching robots:', error);
+      console.error('Error fetching robots:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -183,64 +180,59 @@ const RobotListings = () => {
   };
 
   const calculateMarketStats = (robotsData: Robot[]) => {
-    const totalListings = robotsData.length;
+  const totalListings = robotsData.length;
 
-    // Collect only valid prices (> 0)
-    const prices = robotsData
-      .map(r => r.price || 0)
-      .filter(price => price > 0);
+  // Collect only valid prices (> 0)
+  const prices = robotsData
+    .map(r => r.price || 0)
+    .filter(price => price > 0);
 
-    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-    const avgPrice = prices.length > 0
-      ? prices.reduce((sum, p) => sum + p, 0) / prices.length
-      : 0;
-      
-      // Top brands
-      const brandCounts = robotsData.reduce((acc, robot) => {
-        if (robot.brand) {
-          acc[robot.brand] = (acc[robot.brand] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const topBrands = Object.entries(brandCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 3)
-        .map(([brand]) => brand);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+  const avgPrice = prices.length > 0
+    ? prices.reduce((sum, p) => sum + p, 0) / prices.length
+    : 0;
+    
+    // Top brands
+    const brandCounts = robotsData.reduce((acc, robot) => {
+      if (robot.brand) {
+        acc[robot.brand] = (acc[robot.brand] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const topBrands = Object.entries(brandCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([brand]) => brand);
 
-      // Trending types
-      const typeCounts = robotsData.reduce((acc, robot) => {
-        if (robot.robot_type) {
-          acc[robot.robot_type] = (acc[robot.robot_type] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const trendingTypes = Object.entries(typeCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 3)
-        .map(([type]) => type);
+    // Trending types
+    const typeCounts = robotsData.reduce((acc, robot) => {
+      if (robot.robot_type) {
+        acc[robot.robot_type] = (acc[robot.robot_type] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const trendingTypes = Object.entries(typeCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([type]) => type);
 
-      setMarketStats({
-        totalListings,
-        minPrice,
-        avgPrice,
-        maxPrice,
-        topBrands,
-        trendingTypes
-      });
+    setMarketStats({
+      totalListings,
+      minPrice,
+      avgPrice,
+      maxPrice,
+      topBrands,
+      trendingTypes
+    });
   };
 
-  // Unique types/locations/states for filters
-  const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
-  const uniqueLocations = [...new Set(robots.map(r => r.location?.split(',')[0]).filter(Boolean))];
-  const uniqueStates = [...new Set(robots.map(r => r.state).filter(Boolean))];
-
-  // Filtering and grouping logic
-  const filteredByAllFilters = () => {
+  const filterAndSortRobots = () => {
     let filtered = [...robots];
 
+    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(robot =>
         robot.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -252,13 +244,11 @@ const RobotListings = () => {
       );
     }
 
-    // Type/Category filter
-    if (categoryFilter !== 'all' && categoryFilter) {
-      filtered = filtered.filter(robot => robot.robot_type === categoryFilter);
-    }
+    // Type filter
     if (typeFilter !== 'all') {
       filtered = filtered.filter(robot => robot.robot_type === typeFilter);
     }
+
     // Price filter
     if (priceFilter !== 'all') {
       const ranges = {
@@ -271,24 +261,28 @@ const RobotListings = () => {
       const range = ranges[priceFilter as keyof typeof ranges];
       if (range) {
         filtered = filtered.filter(robot => 
-          robot.price >= range[0] && robot.price < range
+          robot.price >= range[0] && robot.price < range[1]
         );
       }
     }
-    // Condition
+
+    // Condition filter
     if (conditionFilter !== 'all') {
       filtered = filtered.filter(robot => robot.condition === conditionFilter);
     }
-    // Location
+
+    // Location filter
     if (locationFilter !== 'all') {
       filtered = filtered.filter(robot => 
         robot.location?.toLowerCase().includes(locationFilter.toLowerCase())
       );
     }
-    // State
+
+    // State filter
     if (stateFilter !== 'all') {
       filtered = filtered.filter(robot => (robot.state || '').toLowerCase() === stateFilter.toLowerCase());
     }
+
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -309,27 +303,7 @@ const RobotListings = () => {
       }
     });
 
-    return filtered;
-  };
-
-  // Grouped robots either by seller or by category
-  const getCompanyGroups = () => {
-    const toShow = filteredByAllFilters();
-    const groups: { [key: string]: Robot[] } = {};
-    toShow.forEach(r => {
-      if (!groups[r.seller_id]) groups[r.seller_id] = [];
-      groups[r.seller_id].push(r);
-    });
-    return groups;
-  };
-  const getCategoryGroups = () => {
-    const toShow = filteredByAllFilters();
-    const groups: { [key: string]: Robot[] } = {};
-    toShow.forEach(r => {
-      if (!groups[r.robot_type]) groups[r.robot_type] = [];
-      groups[r.robot_type].push(r);
-    });
-    return groups;
+    setFilteredRobots(filtered);
   };
 
   const handleAnalyzeRobot = (robotId: string) => {
@@ -341,16 +315,20 @@ const RobotListings = () => {
       });
       return;
     }
+    
     toast({
       title: "AI Analysis Starting",
       description: "RobotVerse AI is analyzing robot specifications, market data, and compatibility..."
     });
+    
+    // Navigate to detailed analysis page
     navigate(`/robots/${robotId}/analysis`);
   };
 
   const handleContactSeller = (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
     const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
+    
     if (!phone) {
       toast({
         variant: "destructive",
@@ -359,11 +337,14 @@ const RobotListings = () => {
       });
       return;
     }
+
     const phoneNumber = phone.replace(/\D/g, '');
     const message = `Hi ${robot.profiles?.company_name || robot.profiles?.full_name}! I'm interested in your robot: ${robot.name} (${robot.model}). Price: ${formatPrice(robot.price, robot.currency)}. Can you please provide more details?`;
+    
     const choice = window.confirm(
       `Contact ${robot.profiles?.company_name || robot.profiles?.full_name}:\n\nOK = WhatsApp\nCancel = Phone Call`
     );
+    
     if (choice) {
       window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     } else {
@@ -373,6 +354,7 @@ const RobotListings = () => {
 
   const handleShare = (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
+    
     if (navigator.share) {
       navigator.share({
         title: robot.name,
@@ -405,7 +387,9 @@ const RobotListings = () => {
     return colors[condition as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  // --- UI Render ---
+  const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
+  const uniqueLocations = [...new Set(robots.map(r => r.location?.split(',')[0]).filter(Boolean))];
+  const uniqueStates = [...new Set(robots.map(r => r.state).filter(Boolean))];
 
   if (loading) {
     return (
@@ -436,54 +420,79 @@ const RobotListings = () => {
     );
   }
 
-  // -- Main UI section --
-  const companyGroups = getCompanyGroups();
-  const categoryGroups = getCategoryGroups();
-
   return (
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
+        {/* Enhanced Header */}
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Robot Marketplace
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Discover cutting-edge industrial robots from verified sellers worldwide
+          </p>
+          
+          {/* Market Stats */}
+<div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
 
-        {/* Group By toggle */}
-        <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-          <div className="flex gap-2">
-            <Button variant={groupBy === 'company' ? 'default' : 'outline'} onClick={() => setGroupBy('company')}>Company-wise</Button>
-            <Button variant={groupBy === 'category' ? 'default' : 'outline'} onClick={() => setGroupBy('category')}>Category-wise</Button>
-          </div>
-          <div className="flex gap-2">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {uniqueTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Search robots..."
-              className="w-56"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+  {/* Total Active Listings */}
+  <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-blue-800">
+        {marketStats.totalListings}
+      </div>
+      <div className="text-sm text-blue-600">Active Listings</div>
+    </CardContent>
+  </Card>
 
-        {/* Market Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-8">
-          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">{marketStats.totalListings}</div><div className="text-xs text-muted">Active</div></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">₹{(marketStats.minPrice/100000).toFixed(1)}L</div><div className="text-xs text-muted">Min Price</div></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">₹{(marketStats.avgPrice/100000).toFixed(1)}L</div><div className="text-xs text-muted">Avg Price</div></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">₹{(marketStats.maxPrice/100000).toFixed(1)}L</div><div className="text-xs text-muted">Max Price</div></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">{marketStats.topBrands.length}</div><div className="text-xs text-muted">Top Brands</div></CardContent></Card>
+  {/* Min Price */}
+  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-green-800">
+        ₹{(marketStats.minPrice / 100000).toFixed(1)}L
+      </div>
+      <div className="text-sm text-green-600">Min Price</div>
+    </CardContent>
+  </Card>
+
+  {/* Avg Price */}
+  <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-yellow-800">
+        ₹{(marketStats.avgPrice / 100000).toFixed(1)}L
+      </div>
+      <div className="text-sm text-yellow-600">Avg Price</div>
+    </CardContent>
+  </Card>
+
+  {/* Max Price */}
+  <Card className="bg-gradient-to-r from-red-50 to-rose-50 border-red-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-red-800">
+        ₹{(marketStats.maxPrice / 100000).toFixed(1)}L
+      </div>
+      <div className="text-sm text-red-600">Max Price</div>
+    </CardContent>
+  </Card>
+
+  {/* Top Brands Count */}
+  <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+    <CardContent className="p-4 text-center">
+      <div className="text-2xl font-bold text-purple-800">
+        {marketStats.topBrands.length}
+      </div>
+      <div className="text-sm text-purple-600">Top Brands</div>
+    </CardContent>
+  </Card>
+
+</div>
         </div>
 
         {/* Enhanced Search and Filters */}
         <Card className="mb-8">
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row gap-4">
+              {/* Search */}
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -493,6 +502,8 @@ const RobotListings = () => {
                   className="pl-10"
                 />
               </div>
+
+              {/* Quick Filters */}
               <div className="flex gap-2">
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger className="w-40">
@@ -505,6 +516,7 @@ const RobotListings = () => {
                     ))}
                   </SelectContent>
                 </Select>
+
                 <Select value={priceFilter} onValueChange={setPriceFilter}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Price" />
@@ -518,6 +530,7 @@ const RobotListings = () => {
                     <SelectItem value="over-1m">Over ₹10L</SelectItem>
                   </SelectContent>
                 </Select>
+
                 <Button
                   variant="outline"
                   onClick={() => setShowFilters(!showFilters)}
@@ -526,6 +539,8 @@ const RobotListings = () => {
                   <SlidersHorizontal className="w-4 h-4" />
                 </Button>
               </div>
+
+              {/* View Controls */}
               <div className="flex gap-2">
                 <div className="flex border rounded-lg">
                   <Button
@@ -543,6 +558,7 @@ const RobotListings = () => {
                     <List className="w-4 h-4" />
                   </Button>
                 </div>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -553,11 +569,15 @@ const RobotListings = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Advanced Filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                    <SelectTrigger><SelectValue placeholder="Condition" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Condition" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Conditions</SelectItem>
                       <SelectItem value="new">Brand New</SelectItem>
@@ -567,8 +587,11 @@ const RobotListings = () => {
                       <SelectItem value="refurbished">Refurbished</SelectItem>
                     </SelectContent>
                   </Select>
+
                   <Select value={locationFilter} onValueChange={setLocationFilter}>
-                    <SelectTrigger><SelectValue placeholder="Location" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Locations</SelectItem>
                       {uniqueLocations.map(location => (
@@ -576,8 +599,11 @@ const RobotListings = () => {
                       ))}
                     </SelectContent>
                   </Select>
+
                   <Select value={stateFilter} onValueChange={setStateFilter}>
-                    <SelectTrigger><SelectValue placeholder="State" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="State" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All States</SelectItem>
                       {uniqueStates.map((state) => (
@@ -585,8 +611,11 @@ const RobotListings = () => {
                       ))}
                     </SelectContent>
                   </Select>
+
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger><SelectValue placeholder="Sort by" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="newest">Newest First</SelectItem>
                       <SelectItem value="oldest">Oldest First</SelectItem>
@@ -596,6 +625,7 @@ const RobotListings = () => {
                       <SelectItem value="name-za">Name: Z to A</SelectItem>
                     </SelectContent>
                   </Select>
+
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -613,18 +643,22 @@ const RobotListings = () => {
                 </div>
               </div>
             )}
+
+            {/* Results Summary */}
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
               <span>
-                Showing {Math.min(displayCount, filteredByAllFilters().length)} of {filteredByAllFilters().length} robots
+                Showing {Math.min(displayCount, filteredRobots.length)} of {filteredRobots.length} robots
                 {searchQuery && ` for "${searchQuery}"`}
               </span>
-              <span>{refreshing ? 'Updating...' : `Last updated: ${new Date().toLocaleTimeString()}`}</span>
+              <span>
+                {refreshing ? 'Updating...' : `Last updated: ${new Date().toLocaleTimeString()}`}
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Grouped display (carousel per group) */}
-        {Object.keys(groupBy === 'company' ? companyGroups : categoryGroups).length === 0 ? (
+        {/* Robot Listings - Group by Seller */}
+        {filteredRobots.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               {robots.length === 0 ? (
@@ -632,7 +666,9 @@ const RobotListings = () => {
                   <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No robots listed yet</h3>
                   <p className="text-muted-foreground mb-4">Be the first to list your robots on RobotVerse!</p>
-                  <Button onClick={() => navigate('/dashboard')}>Start Selling</Button>
+                  <Button onClick={() => navigate('/dashboard')}>
+                    Start Selling
+                  </Button>
                 </>
               ) : (
                 <>
@@ -649,90 +685,57 @@ const RobotListings = () => {
                       setLocationFilter('all');
                       setStateFilter('all');
                     }}
-                  >Clear Filters</Button>
+                  >
+                    Clear Filters
+                  </Button>
                 </>
               )}
             </CardContent>
           </Card>
         ) : (
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`}>
-            {(groupBy === 'company'
-              ? Object.entries(companyGroups).slice(0, displayCount)
-              : Object.entries(categoryGroups).slice(0, displayCount)
-            ).map(([groupKey, groupRobots]) => (
-              <Card key={groupKey} className="flex flex-col p-2">
-                {/* Company or category name header */}
-                <CardHeader>
-                  <CardTitle className="text-lg font-bold">
-                    {groupBy === 'company'
-                      ? (sellerProfiles[groupKey]?.company_name || sellerProfiles[groupKey]?.full_name || 'Seller')
-                      : groupKey}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/* Carousel of robots for this group: simple inline (loop) for demo */}
-                  <div className="flex flex-col gap-6">
-                    {groupRobots.map(robot => (
-                      <div
-                        key={robot.id}
-                        className="flex flex-col md:flex-row gap-6 items-center border-b pb-4 mb-4 last:border-b-0 last:pb-0 last:mb-0"
-                        onClick={()=>navigate(`/robots/${robot.id}`)}
-                        style={{cursor: "pointer"}}
-                      >
-                        <div className="w-full md:w-64 flex-shrink-0">
-                          {/* HERE'S THE UPDATED IMAGE TAG FOR ACTUAL SIZE */}
-                          <img
-                            src={robot.images?.[0] || "/default-robot.png"}
-                            alt={robot.name}
-                            className="w-full h-64 object-contain bg-white rounded-lg border"
-                          />
-                        </div>
-                        <div className="flex-1 flex flex-col gap-1">
-                          <div className="flex gap-2 items-center">
-                            <span className="font-semibold text-blue-800 text-xl">{robot.name}</span>
-                            {robot.brand && <Badge>{robot.brand}</Badge>}
-                            <Badge variant="outline">{robot.robot_type}</Badge>
-                            <span className={`ml-1 px-2 py-0.5 rounded text-xs ${getConditionColor(robot.condition||'')} uppercase`}>
-                              {robot.condition}
-                            </span>
-                          </div>
-                          <div className="text-slate-700">{robot.model}</div>
-                          <div className="text-slate-500">{robot.description?.slice(0,100)}...</div>
-                          <div className="flex gap-3 items-center mt-2 text-sm">
-                            <MapPin className="w-4 h-4" />
-                            <span>{robot.location}{robot.state ? `, ${robot.state}`: ""}</span>
-                          </div>
-                          <div className="flex gap-3 items-center mt-1 text-sm">
-                            <Calendar className="w-4 h-4" />
-                            <span>Listed: {new Date(robot.created_at).toLocaleDateString()}</span>
-                          </div>
-                          <div className="text-green-800 font-semibold text-lg mt-1">{formatPrice(robot.price, robot.currency)}</div>
-                          <div className="flex gap-4 mt-3">
-                            <Button size="sm" onClick={e=>handleContactSeller(robot, e)}><Phone className="w-4 h-4 mr-1" /> Contact</Button>
-                            <Button size="sm" onClick={()=>handleAnalyzeRobot(robot.id)} variant="secondary"><Brain className="w-4 h-4 mr-1" /> Analyze</Button>
-                            <Button size="sm" onClick={e=>handleShare(robot, e)}><Share2 className="w-4 h-4 mr-1" /> Share</Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Group robots by seller and show as carousels */}
+            {Object.entries(
+              // Group filtered robots by seller
+              filteredRobots.slice(0, displayCount).reduce((groups, robot) => {
+                const sellerId = robot.seller_id;
+                if (!groups[sellerId]) {
+                  groups[sellerId] = [];
+                }
+                groups[sellerId].push(robot);
+                return groups;
+              }, {} as { [key: string]: Robot[] })
+            ).map(([sellerId, sellerRobots]) => (
+              <SellerRobotCarousel
+                key={sellerId}
+                sellerRobots={sellerRobots}
+                sellerProfile={sellerProfiles[sellerId] || { 
+                  user_id: sellerId,
+                  full_name: 'Robot Seller',
+                  company_name: '',
+                  phone: '',
+                  mobile_number: '',
+                  email: ''
+                }}
+              />
             ))}
           </div>
         )}
-
+        
         {/* Load More / View All */}
-        {(groupBy==='company'?Object.keys(companyGroups).length:Object.keys(categoryGroups).length)>displayCount && (
+        {filteredRobots.length > displayCount && (
           <div className="text-center mt-8">
             <Button 
               variant="outline" 
               size="lg"
               onClick={() => setDisplayCount(prev => prev + 8)}
-            >Load More</Button>
+            >
+              Load More Robots
+            </Button>
           </div>
         )}
-        {filteredByAllFilters().length > 0 && (
+
+        {filteredRobots.length > 0 && (
           <div className="text-center mt-8">
             <Button 
               size="lg"
@@ -743,7 +746,6 @@ const RobotListings = () => {
             </Button>
           </div>
         )}
-
       </div>
     </section>
   );
