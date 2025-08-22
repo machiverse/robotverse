@@ -115,13 +115,13 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
       description: 'Manage shipments'
     },
     finance_provider: {
-      label: 'Finance',
+      label: 'Financing',
       icon: CreditCard,
       component: FinanceProviderDashboard,
       description: 'Manage loan programs'
     },
     finance: {
-      label: 'Finance',
+      label: 'Financing',
       icon: CreditCard,
       component: FinanceProviderDashboard,
       description: 'Manage loan programs'
@@ -184,7 +184,7 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-64 bg-popover">
               <DropdownMenuLabel>
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
@@ -201,17 +201,12 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
               
               <DropdownMenuItem onClick={handleProfileEdit}>
                 <User className="mr-2 h-4 w-4" />
-                Profile Settings
+                View Profile
               </DropdownMenuItem>
               
               <DropdownMenuItem onClick={handleProfileEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Profile
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem onClick={handleProfileEdit}>
-                <Building2 className="mr-2 h-4 w-4" />
-                Company Settings
               </DropdownMenuItem>
               
               <DropdownMenuItem onClick={handleProfileEdit}>
@@ -232,88 +227,37 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
 
       {/* Main Dashboard Content */}
       <div className="container mx-auto px-4 py-6">
-        {/* Role Badges */}
-        {finalRoles.length > 1 && (
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2">
-              {finalRoles.map((role: string) => (
-                <Badge key={role} variant="secondary" className="capitalize">
-                  {roleConfigs[role]?.label || role.replace('_', ' ')}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tab Navigation */}
-        {finalRoles.length > 1 ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 6)}, 1fr)` }}>
-              {finalRoles.slice(0, 6).map((role: string) => {
-                const config = roleConfigs[role];
-                if (!config) return null;
-                
-                const Icon = config.icon;
-                return (
-                  <TabsTrigger 
-                    key={role} 
-                    value={role}
-                    className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{config.label}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-
-            {finalRoles.map((role: string) => {
+        {/* Always show Tab Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 5)}, 1fr)` }}>
+            {finalRoles.slice(0, 5).map((role: string) => {
               const config = roleConfigs[role];
               if (!config) return null;
               
-              const DashboardComponent = config.component;
               return (
-                <TabsContent key={role} value={role} className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <config.icon className="w-5 h-5" />
-                        <span>{config.label} Dashboard</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <DashboardComponent userProfile={userProfile} />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                <TabsTrigger 
+                  key={role} 
+                  value={role}
+                  className="flex items-center justify-center py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <span className="text-sm font-medium">{config.label}</span>
+                </TabsTrigger>
               );
             })}
-          </Tabs>
-        ) : (
-          // Single role - render dashboard directly
-          <div className="space-y-6">
-            {(() => {
-              const role = finalRoles[0];
-              const config = roleConfigs[role];
-              if (!config) return <div>No dashboard available</div>;
-              
-              const DashboardComponent = config.component;
-              return (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <config.icon className="w-5 h-5" />
-                      <span>{config.label} Dashboard</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DashboardComponent userProfile={userProfile} />
-                  </CardContent>
-                </Card>
-              );
-            })()}
-          </div>
-        )}
+          </TabsList>
+
+          {finalRoles.map((role: string) => {
+            const config = roleConfigs[role];
+            if (!config) return null;
+            
+            const DashboardComponent = config.component;
+            return (
+              <TabsContent key={role} value={role} className="space-y-6">
+                <DashboardComponent userProfile={userProfile} />
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       </div>
     </div>
   );
