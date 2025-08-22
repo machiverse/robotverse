@@ -11,8 +11,7 @@ import {
   CarouselPrevious,
   type CarouselApi 
 } from '@/components/ui/carousel';
-import { Bot, MapPin, Building, User, Clock, MessageCircle } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Bot, MapPin, Building, User, Clock, ShoppingCart } from 'lucide-react';
 
 interface Robot {
   id: string;
@@ -27,34 +26,28 @@ interface Robot {
   description: string;
   seller_id: string;
   created_at: string;
+  profiles?: {
+    company_name?: string;
+    full_name?: string;
+  };
 }
 
-interface Profile {
-  user_id: string;
-  company_name?: string;
-  full_name?: string;
-  phone?: string;
-  mobile_number?: string;
-  email?: string;
-}
-
-interface SellerRobotCarouselProps {
-  sellerRobots: Robot[];
-  sellerProfile: Profile;
+interface CategoryRobotCarouselProps {
+  category: string;
+  robots: Robot[];
   imageClassName?: string;
 }
 
-const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({ 
-  sellerRobots, 
-  sellerProfile,
+const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({ 
+  category, 
+  robots,
   imageClassName = "w-full h-full object-cover"
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
 
-  // Auto-rotate carousel every 5 seconds
+  // Auto-rotate carousel every 6 seconds
   useEffect(() => {
     if (!api) return;
 
@@ -64,7 +57,7 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
       } else {
         api.scrollTo(0);
       }
-    }, 5000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [api]);
@@ -91,62 +84,33 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
   };
 
   const handleCardClick = () => {
-    // Navigate to a seller's robots page showing all their robots
-    navigate(`/seller/${sellerProfile.user_id}/robots`);
+    // Navigate to category page showing all robots of this type
+    navigate(`/robots?category=${encodeURIComponent(category)}`);
   };
 
-  const handleContactSeller = (e: React.MouseEvent) => {
+  const handleViewRobot = (robotId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
-    const phone = sellerProfile.phone || sellerProfile.mobile_number;
-    
-    if (!phone) {
-      alert('Contact information not available for this seller');
-      return;
-    }
-
-    const phoneNumber = phone.replace(/\D/g, '');
-    const message = `Hi! I'm interested in your robot listings on RobotVerse. Can you please provide more details?`;
-    
-    const choice = window.confirm(
-      'Choose contact method:\n\nOK = WhatsApp Message\nCancel = Phone Call'
-    );
-    
-    if (choice) {
-      window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-    } else {
-      window.location.href = `tel:+91${phoneNumber}`;
-    }
+    navigate(`/robot/${robotId}`);
   };
 
-  const currentRobot = sellerRobots[current];
-  const robotCount = sellerRobots.length;
+  const robotCount = robots.length;
 
   return (
     <Card 
       className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer overflow-hidden"
       onClick={handleCardClick}
     >
-      {/* Seller Header */}
+      {/* Category Header */}
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            {sellerProfile.company_name ? (
-              <Building className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <User className="w-4 h-4 text-muted-foreground" />
-            )}
-            <CardTitle className="text-lg">
-              {sellerProfile.company_name || sellerProfile.full_name || 'Robot Seller'}
+            <Bot className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-lg capitalize">
+              {category}
             </CardTitle>
           </div>
           <Badge variant="outline" className="text-xs">
-            {robotCount} Robot{robotCount > 1 ? 's' : ''}
+            {robotCount} Available
           </Badge>
         </div>
       </CardHeader>
@@ -162,7 +126,7 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
           }}
         >
           <CarouselContent>
-            {sellerRobots.map((robot, index) => (
+            {robots.map((robot, index) => (
               <CarouselItem key={robot.id}>
                 <div className="space-y-3">
                   {/* Fixed size image container */}
@@ -182,7 +146,7 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
                     
                     {/* Carousel indicators */}
                     <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                      {sellerRobots.map((_, idx) => (
+                      {robots.map((_, idx) => (
                         <div
                           key={idx}
                           className={`w-2 h-2 rounded-full transition-all ${
@@ -197,8 +161,11 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-sm line-clamp-1">{robot.name}</h3>
-                      <Badge variant="secondary" className="text-xs">
-                        {robot.robot_type}
+                      <Badge 
+                        variant={robot.availability === "available" ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        {robot.availability}
                       </Badge>
                     </div>
                     
@@ -206,12 +173,16 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
                       <span className="font-bold text-primary">
                         {robot.price ? formatPrice(robot.price, robot.currency) : 'POA'}
                       </span>
-                      <Badge 
-                        variant={robot.availability === "available" ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {robot.availability}
-                      </Badge>
+                      <div className="flex items-center text-muted-foreground text-xs">
+                        {robot.profiles?.company_name ? (
+                          <Building className="w-3 h-3 mr-1" />
+                        ) : (
+                          <User className="w-3 h-3 mr-1" />
+                        )}
+                        <span className="line-clamp-1">
+                          {robot.profiles?.company_name || robot.profiles?.full_name || 'Seller'}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center text-muted-foreground text-xs">
@@ -241,22 +212,21 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
         {/* Auto-rotate indicator */}
         <div className="flex items-center justify-center text-xs text-muted-foreground">
           <Clock className="w-3 h-3 mr-1" />
-          <span>Auto-rotating every 5s</span>
+          <span>Auto-rotating every 6s</span>
         </div>
 
         {/* Action Buttons */}
         <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
           <Button size="sm" className="flex-1" onClick={handleCardClick}>
-            View All {robotCount} Robot{robotCount > 1 ? 's' : ''}
+            <ShoppingCart className="w-3 h-3 mr-1" />
+            Browse All {robotCount}
           </Button>
           <Button 
             variant="outline" 
             size="sm"
-            onClick={handleContactSeller}
-            disabled={!user || (!sellerProfile.phone && !sellerProfile.mobile_number)}
+            onClick={(e) => handleViewRobot(robots[current]?.id, e)}
           >
-            <MessageCircle className="w-3 h-3 mr-1" />
-            Contact
+            View Details
           </Button>
         </div>
       </CardContent>
@@ -264,4 +234,4 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
   );
 };
 
-export default SellerRobotCarousel;
+export default CategoryRobotCarousel;
