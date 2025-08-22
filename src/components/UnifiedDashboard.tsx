@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/dropdown-menu";
 import {
   ShoppingCart,
   Store,
@@ -24,9 +22,9 @@ import {
   LogOut,
   Edit,
   ChevronDown,
+  House,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 // Import dashboard components
@@ -38,6 +36,14 @@ import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProvide
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
 
+// Simple Home Dashboard component
+const HomeDashboard = () => (
+  <div>
+    <h2 className="text-xl font-semibold">Welcome to RobotVerse</h2>
+    <p>Your all-in-one platform for industrial robotics solutions.</p>
+  </div>
+);
+
 interface UnifiedDashboardProps {
   userProfile: any;
 }
@@ -48,126 +54,141 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
   const [activeTab, setActiveTab] = useState<string>("");
 
   // Get user roles - prioritize user_roles array, fallback to legacy fields
-  const userRoles = userProfile?.user_roles?.length > 0 
-    ? userProfile.user_roles 
-    : [userProfile?.user_type || userProfile?.account_type || 'buyer'];
+  const userRoles = userProfile?.user_roles?.length
+    ? userProfile.user_roles
+    : [userProfile?.account_type || userProfile?.user_type || "buyer"];
 
-  // Check if user is admin
-  const isAdmin = user?.email === 'mark.it@keyleerkorb.com';
-  
-  // If admin, add admin role
-  const finalRoles = isAdmin ? ['admin', ...userRoles.filter(role => role !== 'admin')] : userRoles;
+  // Check if user is admin (example email check)
+  const isAdmin = user?.email === "mark.it@keyleerkorb.com";
+
+  // Include admin role and add home as first tab
+  const finalRoles = isAdmin
+    ? ["home", "admin", ...userRoles.filter((r) => r !== "admin" && r !== "home")]
+    : ["home", ...userRoles.filter((r) => r !== "home")];
 
   useEffect(() => {
-    // Set initial active tab to first role
-    if (finalRoles.length > 0 && !activeTab) {
-      setActiveTab(finalRoles[0]);
-    }
+    // Set initial active tab to Home or first role
+    if (!activeTab && finalRoles.length) setActiveTab(finalRoles[0]);
   }, [finalRoles, activeTab]);
 
-  const roleConfigs = {
+  // Configuration for roles and dashboards
+  const roleConfigs: Record<
+    string,
+    {
+      label: string;
+      icon: React.ElementType;
+      component: React.ComponentType<any>;
+      description: string;
+    }
+  > = {
+    home: {
+      label: "Home",
+      icon: House,
+      component: HomeDashboard,
+      description: "Welcome page",
+    },
     admin: {
-      label: 'Admin',
+      label: "Admin",
       icon: Settings,
       component: AdminDashboard,
-      description: 'System administration'
+      description: "System administration",
     },
     buyer: {
-      label: 'Buyer',
+      label: "Buyer",
       icon: ShoppingCart,
       component: BuyerDashboard,
-      description: 'Browse and purchase robots'
+      description: "Browse and purchase robots",
     },
     robot_seller: {
-      label: 'Robot Seller',
+      label: "Robot Seller",
       icon: Store,
       component: RobotSellerDashboard,
-      description: 'Manage robot listings'
+      description: "Manage robot listings",
     },
     seller: {
-      label: 'Robot Seller',
+      label: "Robot Seller",
       icon: Store,
       component: RobotSellerDashboard,
-      description: 'Manage robot listings'
+      description: "Manage robot listings",
     },
     spare_parts_seller: {
-      label: 'Parts Seller',
+      label: "Parts Seller",
       icon: Settings,
       component: SparePartsDashboard,
-      description: 'Manage spare parts'
+      description: "Manage spare parts",
     },
     service_provider: {
-      label: 'Service Provider',
+      label: "Service Provider",
       icon: Wrench,
       component: ServiceProviderDashboard,
-      description: 'Manage service offerings'
+      description: "Manage service offerings",
     },
     logistics_provider: {
-      label: 'Logistics',
+      label: "Logistics",
       icon: Truck,
       component: LogisticsProviderDashboard,
-      description: 'Manage shipments'
+      description: "Manage shipments",
     },
     logistics: {
-      label: 'Logistics',
+      label: "Logistics",
       icon: Truck,
       component: LogisticsProviderDashboard,
-      description: 'Manage shipments'
+      description: "Manage shipments",
     },
     finance_provider: {
-      label: 'Financing',
+      label: "Financing",
       icon: CreditCard,
       component: FinanceProviderDashboard,
-      description: 'Manage loan programs'
+      description: "Manage loan programs",
     },
     finance: {
-      label: 'Financing',
+      label: "Financing",
       icon: CreditCard,
       component: FinanceProviderDashboard,
-      description: 'Manage loan programs'
-    }
+      description: "Manage loan programs",
+    },
   };
 
+  // User menu actions
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/auth');
+      navigate("/auth");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
   const handleProfileEdit = () => {
-    navigate('/profile-settings');
+    navigate("/profile-settings");
   };
 
-  // Get user initials for avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
+  // User avatar initials helper
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
 
-  const userName = userProfile?.full_name || userProfile?.display_name || user?.email || 'User';
-  const companyName = userProfile?.company_name || 'RobotVerse';
+  const userName = userProfile?.full_name || userProfile?.display_name || user?.email || "User";
+  const companyName = userProfile?.company_name || "RobotVerse";
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with Company Name and User Menu */}
+      {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Building2 className="h-8 w-8 text-primary" />
             <div>
               <h1 className="text-xl font-bold">{companyName}</h1>
-              <p className="text-sm text-muted-foreground">Industrial Robotics Platform</p>
+              <p className="text-sm text-muted-foreground">Industrial robotics platform</p>
             </div>
           </div>
 
-          {/* User Menu */}
+          {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2 h-auto p-2">
@@ -175,10 +196,10 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
                   <AvatarImage src={userProfile?.avatar_url} />
                   <AvatarFallback>{getInitials(userName)}</AvatarFallback>
                 </Avatar>
-                <div className="text-left hidden md:block">
+                <div className="hidden md:block text-left">
                   <p className="text-sm font-medium">{userName}</p>
                   <p className="text-xs text-muted-foreground">
-                    {finalRoles.map(role => roleConfigs[role]?.label || role).join(', ')}
+                    {finalRoles.map((r) => roleConfigs[r]?.label || r).join(", ")}
                   </p>
                 </div>
                 <ChevronDown className="h-4 w-4" />
@@ -193,29 +214,24 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
                   </Avatar>
                   <div>
                     <p className="font-medium">{userName}</p>
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
               <DropdownMenuItem onClick={handleProfileEdit}>
                 <User className="mr-2 h-4 w-4" />
                 View Profile
               </DropdownMenuItem>
-              
               <DropdownMenuItem onClick={handleProfileEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Profile
               </DropdownMenuItem>
-              
               <DropdownMenuItem onClick={handleProfileEdit}>
                 <Settings className="mr-2 h-4 w-4" />
                 Account Settings
               </DropdownMenuItem>
-              
               <DropdownMenuSeparator />
-              
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
@@ -225,35 +241,36 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
         </div>
       </header>
 
-      {/* Main Dashboard Content */}
+      {/* Main content with tabs */}
       <div className="container mx-auto px-4 py-6">
-        {/* Always show Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 5)}, 1fr)` }}>
-            {finalRoles.slice(0, 5).map((role: string) => {
+          <TabsList
+            className="grid w-full"
+            style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 5)}, 1fr)` }}
+          >
+            {finalRoles.slice(0, 5).map((role) => {
               const config = roleConfigs[role];
               if (!config) return null;
-              
               return (
-                <TabsTrigger 
-                  key={role} 
+                <TabsTrigger
+                  key={role}
                   value={role}
                   className="flex items-center justify-center py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
+                  <config.icon className="mr-2 w-4 h-4" />
                   <span className="text-sm font-medium">{config.label}</span>
                 </TabsTrigger>
               );
             })}
           </TabsList>
 
-          {finalRoles.map((role: string) => {
+          {finalRoles.map((role) => {
             const config = roleConfigs[role];
             if (!config) return null;
-            
-            const DashboardComponent = config.component;
+            const Component = config.component;
             return (
               <TabsContent key={role} value={role} className="space-y-6">
-                <DashboardComponent userProfile={userProfile} />
+                <Component userProfile={userProfile} />
               </TabsContent>
             );
           })}
