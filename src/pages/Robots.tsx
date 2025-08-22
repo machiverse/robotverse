@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Bot, Search, Grid, List, X } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
@@ -270,7 +270,7 @@ const Robots = () => {
   const handleContactSeller = (robot: any, e: React.MouseEvent) => {
     e.stopPropagation();
     if(!user) {
-      toast({
+      toast.toast({
         title: "Please login",
         description: "Sign in to contact sellers",
         variant: "destructive"
@@ -280,7 +280,7 @@ const Robots = () => {
     }
     const phone = robot.profiles?.phone || robot.profiles?.mobile;
     if(!phone) {
-      toast({title: "No contact info", description: "Seller contact missing", variant: "destructive"});
+      toast.toast({title: "No contact info", description: "Seller contact missing", variant: "destructive"});
       return;
     }
     const num = phone.replace(/\D/g, '');
@@ -335,75 +335,91 @@ const Robots = () => {
               />
             </div>
 
-            <Select className="w-full" value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger><SelectValue placeholder="Category"/></SelectTrigger>
-              <SelectContent>
-                {categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger><SelectValue placeholder="Category"/></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select className="w-full" value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger><SelectValue placeholder="Location"/></SelectTrigger>
-              <SelectContent>
-                {locations.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger><SelectValue placeholder="Location"/></SelectTrigger>
+                <SelectContent>
+                  {locations.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select className="w-full" value={selectedState} onValueChange={setSelectedState}>
-              <SelectTrigger><SelectValue placeholder="State"/></SelectTrigger>
-              <SelectContent>
-                {states.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={selectedState} onValueChange={setSelectedState}>
+                <SelectTrigger><SelectValue placeholder="State"/></SelectTrigger>
+                <SelectContent>
+                  {states.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select className="w-full" value={selectedCondition} onValueChange={setSelectedCondition}>
-              <SelectTrigger><SelectValue placeholder="Condition"/></SelectTrigger>
-              <SelectContent>
-                {conditions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                <SelectTrigger><SelectValue placeholder="Condition"/></SelectTrigger>
+                <SelectContent>
+                  {conditions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select className="w-full" value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-              <SelectTrigger><SelectValue placeholder="Price Range"/></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Prices</SelectItem>
-                <SelectItem value="under-50k">Under ₹50,000</SelectItem>
-                <SelectItem value="50k-200k">₹50,000 - ₹2,00,000</SelectItem>
-                <SelectItem value="200k-500k">₹2,00,000 - ₹5,00,000</SelectItem>
-                <SelectItem value="500k-1m">₹5,00,000 - ₹10,00,000</SelectItem>
-                <SelectItem value="over-1m">Over ₹10,00,000</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
+                <SelectTrigger><SelectValue placeholder="Price Range"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Prices</SelectItem>
+                  <SelectItem value="under-50k">Under ₹50,000</SelectItem>
+                  <SelectItem value="50k-200k">₹50,000 - ₹2,00,000</SelectItem>
+                  <SelectItem value="200k-500k">₹2,00,000 - ₹5,00,000</SelectItem>
+                  <SelectItem value="500k-1m">₹5,00,000 - ₹10,00,000</SelectItem>
+                  <SelectItem value="over-1m">Over ₹10,00,000</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 items-center">
-            <Select className="w-full" value={selectedRobotType} onValueChange={setSelectedRobotType}>
-              <SelectTrigger><SelectValue placeholder="Robot Type"/></SelectTrigger>
-              <SelectContent>
-                {robotTypes.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
+                <SelectTrigger><SelectValue placeholder="Robot Type"/></SelectTrigger>
+                <SelectContent>
+                  {robotTypes.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select className="w-full" value={selectedAvailability} onValueChange={setSelectedAvailability}>
-              <SelectTrigger><SelectValue placeholder="Availability"/></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="unavailable">Unavailable</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={selectedAvailability} onValueChange={setSelectedAvailability}>
+                <SelectTrigger><SelectValue placeholder="Availability"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="unavailable">Unavailable</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select className="w-full" value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger><SelectValue placeholder="Sort By"/></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                <SelectItem value="name-asc">Name: A to Z</SelectItem>
-                <SelectItem value="name-desc">Name: Z to A</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger><SelectValue placeholder="Sort By"/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="name-asc">Name: A to Z</SelectItem>
+                  <SelectItem value="name-desc">Name: Z to A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="flex space-x-2 justify-end">
               <Button variant={groupBy === 'category' ? 'default' : 'outline'} onClick={() => setGroupBy('category')}>By Category</Button>
@@ -427,11 +443,11 @@ const Robots = () => {
           </div>
         ) : (
           <div className={viewMode === 'grid' ? 'grid gap-6 grid-cols-1 md:grid-cols-3' : 'space-y-6'}>
-            {Object.entries(groupRobots()).sort((a,b) => a[0].localeCompare(b)).map(([group, robots]) => {
+            {Object.entries(groupRobots()).sort((a,b) => a[0].localeCompare(b[0])).map(([group, robots]) => {
               if(groupBy === 'category') {
-                return <CategoryRobotCarousel key={group} category={group} robots={robots} viewMode={viewMode} />;
+                return <CategoryRobotCarousel key={group} category={group} robots={robots} />;
               }
-              return <SellerRobotCarousel key={group} sellerProfile={sellerProfiles[group]} sellerRobots={robots} viewMode={viewMode} />;
+              return <SellerRobotCarousel key={group} sellerProfile={sellerProfiles[group]} sellerRobots={robots} />;
             })}
           </div>
         )}
