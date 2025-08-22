@@ -122,11 +122,7 @@ const RobotListings = () => {
     // eslint-disable-next-line
   }, []);
 
-  useEffect(() => {
-    filterAndSortRobots();
-    // eslint-disable-next-line
-  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, sortBy, categoryFilter]);
-
+ 
   const fetchRobots = async () => {
     try {
       setRefreshing(true);
