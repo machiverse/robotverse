@@ -9,15 +9,16 @@ interface ViewCountDisplayProps {
   className?: string;
 }
 
-export const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDisplayProps) => {
+const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDisplayProps) => {
   const { getItemViewCount } = useViewTracking();
   const [viewCount, setViewCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchViewCount = async () => {
+      if (!targetId || !targetType) return;
+      setLoading(true);
       try {
-        setLoading(true);
         const count = await getItemViewCount(targetType, targetId);
         setViewCount(count);
       } catch (error) {
@@ -27,9 +28,7 @@ export const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewC
       }
     };
 
-    if (targetId && targetType) {
-      fetchViewCount();
-    }
+    fetchViewCount();
   }, [targetId, targetType, getItemViewCount]);
 
   if (loading) {
@@ -50,3 +49,5 @@ export const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewC
     </div>
   );
 };
+
+export default ViewCountDisplay;
