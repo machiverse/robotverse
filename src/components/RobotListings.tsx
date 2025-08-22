@@ -3,48 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Search, SlidersHorizontal, Grid, List, RefreshCw } from "lucide-react";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
-import { 
-  MapPin, 
-  Package, 
-  Eye, 
-  Brain, 
-  IndianRupee, 
-  MessageCircle,
-  Search,
-  Filter,
-  Star,
-  Calendar,
-  Bot,
-  TrendingUp,
-  Zap,
-  Shield,
-  Award,
-  Heart,
-  Share2,
-  RefreshCw,
-  Grid,
-  List,
-  SlidersHorizontal,
-  Phone,
-  Mail,
-  Building,
-  User,
-  Clock,
-  CheckCircle,
-  ExternalLink,
-  Bookmark,
-  AlertCircle,
-  ArrowUpDown
-} from "lucide-react";
+import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import { useToast } from "@/hooks/use-toast";
 
-// Fixed Robot interface to match actual database schema
+// Robot interface
 interface Robot {
   id: string;
   name: string;
@@ -62,7 +29,6 @@ interface Robot {
   seller_id: string;
   created_at: string;
   description: string;
-  // Optional enhanced properties (may not exist in all records)
   brand?: string;
   condition?: string;
   year_manufactured?: number;
@@ -86,664 +52,225 @@ const RobotListings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [robots, setRobots] = useState<Robot[]>([]);
-  const [filteredRobots, setFilteredRobots] = useState<Robot[]>([]);
-  const [sellerGroups, setSellerGroups] = useState<{ [key: string]: Robot[] }>({});
   const [sellerProfiles, setSellerProfiles] = useState<{ [key: string]: any }>({});
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [priceFilter, setPriceFilter] = useState('all');
-  const [conditionFilter, setConditionFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [stateFilter, setStateFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showFilters, setShowFilters] = useState(false);
-  const [displayCount, setDisplayCount] = useState(8);
 
-  // Enhanced stats
+  // Filters and grouping
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [groupBy, setGroupBy] = useState<'company' | 'category'>('company');
+  const [displayCount, setDisplayCount] = useState(9); // 3 companies/category per row by default
+
+  // Stats and options
   const [marketStats, setMarketStats] = useState({
     totalListings: 0,
-    minPrice:0,
+    minPrice: 0,
     avgPrice: 0,
     maxPrice: 0,
     topBrands: [] as string[],
     trendingTypes: [] as string[]
   });
 
+  const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
+
+  // Fetch robots from Supabase
   useEffect(() => {
+    const fetchRobots = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('robots')
+          .select(`*, profiles!robots_seller_id_fkey (
+              user_id, company_name, full_name, phone, mobile_number, email, user_type
+           )`)
+          .eq('availability', 'available')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        const robotsData = (data || []) as Robot[];
+        setRobots(robotsData);
+
+        // Set profiles
+        const profiles: { [key: string]: any } = {};
+        robotsData.forEach(r => {
+          if (r.profiles && !profiles[r.seller_id]) profiles[r.seller_id] = r.profiles;
+        });
+        setSellerProfiles(profiles);
+
+        // Market stats
+        const totalListings = robotsData.length;
+        const prices = robotsData.map(r => r.price).filter(p => p > 0);
+        const minPrice = prices.length ? Math.min(...prices) : 0;
+        const maxPrice = prices.length ? Math.max(...prices) : 0;
+        const avgPrice = prices.length ? prices.reduce((a,b) => a+b, 0) / prices.length : 0;
+        const brandCounts = robotsData.reduce((acc, r) => {
+          if (r.brand) acc[r.brand] = (acc[r.brand] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        const topBrands = Object.entries(brandCounts).sort(([,a],[,b]) => b-a).slice(0,3).map(([b])=>b);
+        const typeCounts = robotsData.reduce((acc, r) => {
+          if (r.robot_type) acc[r.robot_type] = (acc[r.robot_type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        const trendingTypes = Object.entries(typeCounts).sort(([,a],[,b]) => b-a).slice(0,3).map(([t])=>t);
+        setMarketStats({ totalListings, minPrice, avgPrice, maxPrice, topBrands, trendingTypes });
+      } catch (err) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to load robot listings" });
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchRobots();
+    // eslint-disable-next-line
   }, []);
 
-  useEffect(() => {
-    filterAndSortRobots();
-  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, sortBy]);
-
-  const fetchRobots = async () => {
-    try {
-      setRefreshing(true);
-      const { data, error } = await supabase
-        .from('robots')
-        .select(`
-          *,
-          profiles!robots_seller_id_fkey (
-            user_id,
-            company_name,
-            full_name,
-            phone,
-            mobile_number,
-            email,
-            user_type
-          )
-        `)
-        .eq('availability', 'available')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const robotsData = (data || []) as Robot[];
-      setRobots(robotsData);
-      calculateMarketStats(robotsData);
-
-      // Group robots by seller
-      const grouped: { [key: string]: Robot[] } = {};
-      const profiles: { [key: string]: any } = {};
-
-      robotsData.forEach(robot => {
-        const sellerId = robot.seller_id;
-        if (!grouped[sellerId]) {
-          grouped[sellerId] = [];
-        }
-        grouped[sellerId].push(robot);
-        
-        if (robot.profiles && !profiles[sellerId]) {
-          profiles[sellerId] = robot.profiles;
-        }
-      });
-
-      setSellerGroups(grouped);
-      setSellerProfiles(profiles);
-      
-      console.log('✅ Fetched robots:', robotsData.length);
-    } catch (error) {
-      console.error('Error fetching robots:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load robot listings"
-      });
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const calculateMarketStats = (robotsData: Robot[]) => {
-  const totalListings = robotsData.length;
-
-  // Collect only valid prices (> 0)
-  const prices = robotsData
-    .map(r => r.price || 0)
-    .filter(price => price > 0);
-
-  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-  const avgPrice = prices.length > 0
-    ? prices.reduce((sum, p) => sum + p, 0) / prices.length
-    : 0;
-    
-    // Top brands
-    const brandCounts = robotsData.reduce((acc, robot) => {
-      if (robot.brand) {
-        acc[robot.brand] = (acc[robot.brand] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const topBrands = Object.entries(brandCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 3)
-      .map(([brand]) => brand);
-
-    // Trending types
-    const typeCounts = robotsData.reduce((acc, robot) => {
-      if (robot.robot_type) {
-        acc[robot.robot_type] = (acc[robot.robot_type] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const trendingTypes = Object.entries(typeCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 3)
-      .map(([type]) => type);
-
-    setMarketStats({
-      totalListings,
-      minPrice,
-      avgPrice,
-      maxPrice,
-      topBrands,
-      trendingTypes
-    });
-  };
-
-  const filterAndSortRobots = () => {
+  // Filter robots based on search and category
+  const getFilteredRobots = (): Robot[] => {
     let filtered = [...robots];
-
-    // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(robot =>
-        robot.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        robot.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        robot.robot_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        robot.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        robot.category_tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(r =>
+        r.name?.toLowerCase().includes(q) ||
+        r.brand?.toLowerCase().includes(q) ||
+        r.model?.toLowerCase().includes(q) ||
+        r.robot_type?.toLowerCase().includes(q) ||
+        r.location?.toLowerCase().includes(q) ||
+        r.category_tags?.some(tag => tag.toLowerCase().includes(q))
       );
     }
-
-    // Type filter
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(robot => robot.robot_type === typeFilter);
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(r => r.robot_type === categoryFilter);
     }
+    return filtered;
+  };
 
-    // Price filter
-    if (priceFilter !== 'all') {
-      const ranges = {
-        'under-50k': [0, 50000],
-        '50k-200k': [50000, 200000],
-        '200k-500k': [200000, 500000],
-        '500k-1m': [500000, 1000000],
-        'over-1m': [1000000, Infinity]
-      };
-      const range = ranges[priceFilter as keyof typeof ranges];
-      if (range) {
-        filtered = filtered.filter(robot => 
-          robot.price >= range[0] && robot.price < range[1]
-        );
-      }
-    }
-
-    // Condition filter
-    if (conditionFilter !== 'all') {
-      filtered = filtered.filter(robot => robot.condition === conditionFilter);
-    }
-
-    // Location filter
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter(robot => 
-        robot.location?.toLowerCase().includes(locationFilter.toLowerCase())
-      );
-    }
-
-    // State filter
-    if (stateFilter !== 'all') {
-      filtered = filtered.filter(robot => (robot.state || '').toLowerCase() === stateFilter.toLowerCase());
-    }
-
-    // Sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'oldest':
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'price-low':
-          return (a.price || 0) - (b.price || 0);
-        case 'price-high':
-          return (b.price || 0) - (a.price || 0);
-        case 'name-az':
-          return (a.name || '').localeCompare(b.name || '');
-        case 'name-za':
-          return (b.name || '').localeCompare(a.name || '');
-        default:
-          return 0;
-      }
+  // Group robots by seller
+  const getCompanyGroups = () => {
+    const filtered = getFilteredRobots();
+    const groups: { [key: string]: Robot[] } = {};
+    filtered.forEach(r => {
+      if (!groups[r.seller_id]) groups[r.seller_id] = [];
+      groups[r.seller_id].push(r);
     });
-
-    setFilteredRobots(filtered);
+    return groups;
   };
 
-  const handleAnalyzeRobot = (robotId: string) => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Sign In Required",
-        description: "Please sign in to use RobotVerse AI analysis"
-      });
-      return;
-    }
-    
-    toast({
-      title: "AI Analysis Starting",
-      description: "RobotVerse AI is analyzing robot specifications, market data, and compatibility..."
+  // Group robots by category (robot_type)
+  const getCategoryGroups = () => {
+    const filtered = getFilteredRobots();
+    const groups: { [key: string]: Robot[] } = {};
+    filtered.forEach(r => {
+      if (!groups[r.robot_type]) groups[r.robot_type] = [];
+      groups[r.robot_type].push(r);
     });
-    
-    // Navigate to detailed analysis page
-    navigate(`/robots/${robotId}/analysis`);
+    return groups;
   };
 
-  const handleContactSeller = (robot: Robot, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
-    
-    if (!phone) {
-      toast({
-        variant: "destructive",
-        title: "Contact Unavailable",
-        description: "Contact information not available for this seller"
-      });
-      return;
-    }
-
-    const phoneNumber = phone.replace(/\D/g, '');
-    const message = `Hi ${robot.profiles?.company_name || robot.profiles?.full_name}! I'm interested in your robot: ${robot.name} (${robot.model}). Price: ${formatPrice(robot.price, robot.currency)}. Can you please provide more details?`;
-    
-    const choice = window.confirm(
-      `Contact ${robot.profiles?.company_name || robot.profiles?.full_name}:\n\nOK = WhatsApp\nCancel = Phone Call`
-    );
-    
-    if (choice) {
-      window.open(`https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-    } else {
-      window.location.href = `tel:+91${phoneNumber}`;
-    }
-  };
-
-  const handleShare = (robot: Robot, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (navigator.share) {
-      navigator.share({
-        title: robot.name,
-        text: `Check out this ${robot.robot_type}: ${robot.name} for ${formatPrice(robot.price, robot.currency)}`,
-        url: `${window.location.origin}/robots/${robot.id}`
-      });
-    } else {
-      navigator.clipboard.writeText(`${window.location.origin}/robots/${robot.id}`);
-      toast({
-        title: "Link copied!",
-        description: "Robot listing link copied to clipboard"
-      });
-    }
-  };
-
-  const formatPrice = (price: number, currency: string) => {
-    if (!price) return 'Price on request';
-    const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : '€';
-    return `${symbol}${price.toLocaleString()}`;
-  };
-
-  const getConditionColor = (condition: string) => {
-    const colors = {
-      'new': 'bg-green-100 text-green-800',
-      'like_new': 'bg-blue-100 text-blue-800', 
-      'good': 'bg-yellow-100 text-yellow-800',
-      'fair': 'bg-orange-100 text-orange-800',
-      'refurbished': 'bg-purple-100 text-purple-800'
-    };
-    return colors[condition as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
-
-  const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
-  const uniqueLocations = [...new Set(robots.map(r => r.location?.split(',')[0]).filter(Boolean))];
-  const uniqueStates = [...new Set(robots.map(r => r.state).filter(Boolean))];
+  // --- UI Begins ---
 
   if (loading) {
     return (
-      <section className="py-16 bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <div className="h-8 bg-muted rounded w-64 mx-auto mb-4 animate-pulse"></div>
-            <div className="h-4 bg-muted rounded w-96 mx-auto animate-pulse"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Array(8).fill(0).map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <div className="h-48 bg-muted rounded-t-lg"></div>
-                <CardContent className="p-4 space-y-3">
-                  <div className="h-4 bg-muted rounded"></div>
-                  <div className="h-3 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                  <div className="flex gap-2">
-                    <div className="h-8 bg-muted rounded flex-1"></div>
-                    <div className="h-8 bg-muted rounded flex-1"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+      <section className="py-16">
+        <div className="container mx-auto px-4 text-center">
+          <div className="h-8 bg-muted rounded w-40 mx-auto my-10 animate-pulse"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array(9).fill(0).map((_,i)=>
+              <Card key={i} className="animate-pulse"><div className="h-64 bg-muted rounded-t-lg"></div></Card>
+            )}
           </div>
         </div>
       </section>
     );
   }
 
+  const companyGroups = getCompanyGroups();
+  const categoryGroups = getCategoryGroups();
+
   return (
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
-        {/* Enhanced Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Robot Marketplace
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover cutting-edge industrial robots from verified sellers worldwide
-          </p>
-          
-          {/* Market Stats */}
-<div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
 
-  {/* Total Active Listings */}
-  <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
-    <CardContent className="p-4 text-center">
-      <div className="text-2xl font-bold text-blue-800">
-        {marketStats.totalListings}
-      </div>
-      <div className="text-sm text-blue-600">Active Listings</div>
-    </CardContent>
-  </Card>
-
-  {/* Min Price */}
-  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-    <CardContent className="p-4 text-center">
-      <div className="text-2xl font-bold text-green-800">
-        ₹{(marketStats.minPrice / 100000).toFixed(1)}L
-      </div>
-      <div className="text-sm text-green-600">Min Price</div>
-    </CardContent>
-  </Card>
-
-  {/* Avg Price */}
-  <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
-    <CardContent className="p-4 text-center">
-      <div className="text-2xl font-bold text-yellow-800">
-        ₹{(marketStats.avgPrice / 100000).toFixed(1)}L
-      </div>
-      <div className="text-sm text-yellow-600">Avg Price</div>
-    </CardContent>
-  </Card>
-
-  {/* Max Price */}
-  <Card className="bg-gradient-to-r from-red-50 to-rose-50 border-red-200">
-    <CardContent className="p-4 text-center">
-      <div className="text-2xl font-bold text-red-800">
-        ₹{(marketStats.maxPrice / 100000).toFixed(1)}L
-      </div>
-      <div className="text-sm text-red-600">Max Price</div>
-    </CardContent>
-  </Card>
-
-  {/* Top Brands Count */}
-  <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
-    <CardContent className="p-4 text-center">
-      <div className="text-2xl font-bold text-purple-800">
-        {marketStats.topBrands.length}
-      </div>
-      <div className="text-sm text-purple-600">Top Brands</div>
-    </CardContent>
-  </Card>
-
-</div>
+        {/* Group By Toggle */}
+        <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex gap-2">
+            <Button variant={groupBy === 'company' ? 'default' : 'outline'} onClick={() => setGroupBy('company')}>Company-wise</Button>
+            <Button variant={groupBy === 'category' ? 'default' : 'outline'} onClick={() => setGroupBy('category')}>Category-wise</Button>
+          </div>
+          <div className="flex gap-2">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {uniqueTypes.map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Search robots..."
+              className="w-56"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Enhanced Search and Filters */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search robots by name, brand, type, location..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        {/* Market Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-8">
+          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">{marketStats.totalListings}</div><div className="text-xs text-muted">Active</div></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">₹{(marketStats.minPrice/100000).toFixed(1)}L</div><div className="text-xs text-muted">Min Price</div></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">₹{(marketStats.avgPrice/100000).toFixed(1)}L</div><div className="text-xs text-muted">Avg Price</div></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">₹{(marketStats.maxPrice/100000).toFixed(1)}L</div><div className="text-xs text-muted">Max Price</div></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><div className="text-xl font-bold">{marketStats.topBrands.length}</div><div className="text-xs text-muted">Top Brands</div></CardContent></Card>
+        </div>
 
-              {/* Quick Filters */}
-              <div className="flex gap-2">
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {uniqueTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={priceFilter} onValueChange={setPriceFilter}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Price" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="under-50k">Under ₹50K</SelectItem>
-                    <SelectItem value="50k-200k">₹50K - ₹2L</SelectItem>
-                    <SelectItem value="200k-500k">₹2L - ₹5L</SelectItem>
-                    <SelectItem value="500k-1m">₹5L - ₹10L</SelectItem>
-                    <SelectItem value="over-1m">Over ₹10L</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="px-3"
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* View Controls */}
-              <div className="flex gap-2">
-                <div className="flex border rounded-lg">
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                  >
-                    <Grid className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchRobots}
-                  disabled={refreshing}
-                >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </div>
-
-            {/* Advanced Filters */}
-            {showFilters && (
-              <div className="mt-4 pt-4 border-t space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Condition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Conditions</SelectItem>
-                      <SelectItem value="new">Brand New</SelectItem>
-                      <SelectItem value="like_new">Like New</SelectItem>
-                      <SelectItem value="good">Good</SelectItem>
-                      <SelectItem value="fair">Fair</SelectItem>
-                      <SelectItem value="refurbished">Refurbished</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={locationFilter} onValueChange={setLocationFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Locations</SelectItem>
-                      {uniqueLocations.map(location => (
-                        <SelectItem key={location} value={location}>{location}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={stateFilter} onValueChange={setStateFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="State" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All States</SelectItem>
-                      {uniqueStates.map((state) => (
-                        <SelectItem key={state as string} value={state as string}>{state as string}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="name-az">Name: A to Z</SelectItem>
-                      <SelectItem value="name-za">Name: Z to A</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setTypeFilter('all');
-                      setPriceFilter('all');
-                      setConditionFilter('all');
-                      setLocationFilter('all');
-                      setStateFilter('all');
-                      setSortBy('newest');
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Results Summary */}
-            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                Showing {Math.min(displayCount, filteredRobots.length)} of {filteredRobots.length} robots
-                {searchQuery && ` for "${searchQuery}"`}
-              </span>
-              <span>
-                {refreshing ? 'Updating...' : `Last updated: ${new Date().toLocaleTimeString()}`}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Robot Listings - Group by Seller */}
-        {filteredRobots.length === 0 ? (
+        {/* No robots or no matches */}
+        {Object.keys(groupBy === 'company' ? companyGroups : categoryGroups).length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
-              {robots.length === 0 ? (
-                <>
-                  <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No robots listed yet</h3>
-                  <p className="text-muted-foreground mb-4">Be the first to list your robots on RobotVerse!</p>
-                  <Button onClick={() => navigate('/dashboard')}>
-                    Start Selling
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No robots match your criteria</h3>
-                  <p className="text-muted-foreground mb-4">Try adjusting your search or filter settings</p>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setTypeFilter('all');
-                      setPriceFilter('all');
-                      setConditionFilter('all');
-                      setLocationFilter('all');
-                      setStateFilter('all');
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                </>
-              )}
+              <AlertCircle className="w-14 h-14 mx-auto mb-4 text-muted" />
+              <div className="font-bold text-lg mb-2">No robots match your criteria</div>
+              <div className="mb-4 text-muted">Try adjusting your search or filter settings</div>
+              <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); }}>Clear Filters</Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Group robots by seller and show as carousels */}
-            {Object.entries(
-              // Group filtered robots by seller
-              filteredRobots.slice(0, displayCount).reduce((groups, robot) => {
-                const sellerId = robot.seller_id;
-                if (!groups[sellerId]) {
-                  groups[sellerId] = [];
-                }
-                groups[sellerId].push(robot);
-                return groups;
-              }, {} as { [key: string]: Robot[] })
-            ).map(([sellerId, sellerRobots]) => (
-              <SellerRobotCarousel
-                key={sellerId}
-                sellerRobots={sellerRobots}
-                sellerProfile={sellerProfiles[sellerId] || { 
-                  user_id: sellerId,
-                  full_name: 'Robot Seller',
-                  company_name: '',
-                  phone: '',
-                  mobile_number: '',
-                  email: ''
-                }}
-              />
-            ))}
-          </div>
-        )}
-        
-        {/* Load More / View All */}
-        {filteredRobots.length > displayCount && (
-          <div className="text-center mt-8">
-            <Button 
-              variant="outline" 
-              size="lg"
-              onClick={() => setDisplayCount(prev => prev + 8)}
-            >
-              Load More Robots
-            </Button>
-          </div>
+          // Company-wise view
+          groupBy === 'company' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(companyGroups)
+                .slice(0, displayCount)
+                .map(([sellerId, sellerRobots]) => (
+                <SellerRobotCarousel
+                  key={sellerId}
+                  sellerRobots={sellerRobots}
+                  sellerProfile={sellerProfiles[sellerId] || {}}
+                  imageClassName="w-full h-auto max-h-80 object-contain rounded-lg" // For real aspect
+                />
+              ))}
+            </div>
+          // Category-wise view
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(categoryGroups)
+                .slice(0, displayCount)
+                .map(([type, robots]) => (
+                <CategoryRobotCarousel 
+                  key={type}
+                  category={type}
+                  robots={robots}
+                  imageClassName="w-full h-auto max-h-80 object-contain rounded-lg"
+                />
+              ))}
+            </div>
+          )
         )}
 
-        {filteredRobots.length > 0 && (
+        {/* Load More */}
+        {(Object.keys(groupBy === 'company' ? companyGroups : categoryGroups).length > displayCount) && (
           <div className="text-center mt-8">
-            <Button 
-              size="lg"
-              onClick={() => navigate('/robots')}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              View All {marketStats.totalListings} Robots
-            </Button>
+            <Button variant="outline" size="lg" onClick={() => setDisplayCount(prev => prev + 9)}>Load More</Button>
           </div>
         )}
       </div>
