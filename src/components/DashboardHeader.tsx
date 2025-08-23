@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 import { 
   User, 
   Building, 
@@ -12,10 +20,18 @@ import {
   Wrench, 
   Package,
   CreditCard,
-  Truck
+  Truck,
+  LogOut,
+  MoreVertical,
+  Bell,
+  HelpCircle,
+  BarChart3,
+  FileText,
+  Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardProfile } from './DashboardProfile';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardHeaderProps {
   userProfile: any;
@@ -24,6 +40,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeaderProps) {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
 
   const getUserRoles = () => {
@@ -84,6 +101,15 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
 
   const createOptions = getCreateListingOptions();
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   if (showProfile) {
     return (
       <div className="space-y-6">
@@ -142,52 +168,151 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/profile-settings')}
-              className="flex items-center gap-2"
-            >
-              <Edit className="w-4 h-4" />
-              Edit Profile
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/profile-settings')}
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              Settings
+          {/* Professional Dashboard Menu */}
+          <div className="flex items-center gap-4">
+            {/* Quick Actions */}
+            <div className="hidden lg:flex gap-2">
+              {createOptions.slice(0, 2).map((option) => {
+                const Icon = option.icon;
+                return (
+                  <Button 
+                    key={option.label}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(option.path)}
+                    className="flex items-center gap-2"
+                  >
+                    <Icon className="w-4 h-4" />
+                    {option.label}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Notifications */}
+            <Button variant="ghost" size="sm" className="relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-[10px] flex items-center justify-center text-white">
+                3
+              </span>
             </Button>
 
-            {createOptions.length > 0 && (
-              <div className="flex gap-2">
-                {createOptions.slice(0, 2).map((option) => {
-                  const Icon = option.icon;
-                  return (
-                    <Button 
-                      key={option.label}
-                      onClick={() => navigate(option.path)}
-                      className="flex items-center gap-2"
-                    >
-                      <Icon className="w-4 h-4" />
-                      {option.label}
-                    </Button>
-                  );
-                })}
-                
-                {createOptions.length > 2 && (
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    More
-                  </Button>
+            {/* Professional Dashboard Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2 px-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    {userProfile?.avatar_url ? (
+                      <img 
+                        src={userProfile.avatar_url} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <User className="w-4 h-4" />
+                    )}
+                  </div>
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              
+              <DropdownMenuContent 
+                align="end" 
+                className="w-64 bg-background border shadow-lg z-50"
+                sideOffset={8}
+              >
+                <DropdownMenuLabel className="px-4 py-3 border-b">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      {userProfile?.avatar_url ? (
+                        <img 
+                          src={userProfile.avatar_url} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <User className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">
+                        {userProfile?.full_name || 'User'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {userProfile?.email || 'user@example.com'}
+                      </p>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+
+                <DropdownMenuItem onClick={() => navigate('/profile-settings')} className="px-4 py-3 cursor-pointer">
+                  <User className="w-4 h-4 mr-3" />
+                  <span>My Profile</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => navigate('/profile-settings')} className="px-4 py-3 cursor-pointer">
+                  <Settings className="w-4 h-4 mr-3" />
+                  <span>Account Settings</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => navigate('/dashboard')} className="px-4 py-3 cursor-pointer">
+                  <BarChart3 className="w-4 h-4 mr-3" />
+                  <span>Analytics</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => navigate('/dashboard')} className="px-4 py-3 cursor-pointer">
+                  <FileText className="w-4 h-4 mr-3" />
+                  <span>Reports</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {createOptions.length > 0 && (
+                  <>
+                    <DropdownMenuLabel className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                      Quick Actions
+                    </DropdownMenuLabel>
+                    {createOptions.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <DropdownMenuItem 
+                          key={option.label}
+                          onClick={() => navigate(option.path)} 
+                          className="px-4 py-3 cursor-pointer"
+                        >
+                          <Icon className="w-4 h-4 mr-3" />
+                          <span>{option.label}</span>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    <DropdownMenuSeparator />
+                  </>
                 )}
-              </div>
-            )}
+
+                <DropdownMenuItem onClick={() => navigate('/help')} className="px-4 py-3 cursor-pointer">
+                  <HelpCircle className="w-4 h-4 mr-3" />
+                  <span>Help & Support</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => navigate('/privacy')} className="px-4 py-3 cursor-pointer">
+                  <Shield className="w-4 h-4 mr-3" />
+                  <span>Privacy Policy</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem 
+                  onClick={handleSignOut} 
+                  className="px-4 py-3 cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="w-4 h-4 mr-3" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
       </CardContent>
     </Card>
   );
