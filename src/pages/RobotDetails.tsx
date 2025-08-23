@@ -946,7 +946,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <img
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
-                        className="w-full h-full object-contain bg-background rounded-lg cursor-pointer"
+                        className="w-full h-full object-cover rounded-lg cursor-pointer"
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (
@@ -1002,7 +1002,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         <img 
                           src={image} 
                           alt={`${robot.name} ${index + 1}`}
-                          className="w-full h-full object-contain rounded-lg bg-background"
+                          className="w-full h-full object-cover rounded-lg"
                         />
                       </div>
                     ))}
@@ -1451,7 +1451,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                       <img 
                                         src={part.images[0]} 
                                         alt={part.name}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover rounded-lg"
                                       />
                                     </div>
                                   )}
@@ -2050,7 +2050,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <img 
               src={robot?.images?.[currentImageIndex]} 
               alt={`${robot?.name} ${currentImageIndex + 1}`}
-              className="w-full h-full object-contain max-h-[90vh]"
+              className="w-full h-full object-cover rounded-lg max-h-[90vh]"
             />
             <Button
               variant="ghost"
