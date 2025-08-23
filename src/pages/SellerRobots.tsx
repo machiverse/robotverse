@@ -211,7 +211,7 @@ const SellerRobots: React.FC = () => {
                       <img
                         src={robot.images[0]}
                         alt={robot.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
                         style={{ imageRendering: 'crisp-edges' }}
                       />
                     ) : (

@@ -274,7 +274,7 @@ const Parts = () => {
                         <img 
                           src={part.image} 
                           alt={part.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="flex items-center justify-center w-full h-full">

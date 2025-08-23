@@ -583,7 +583,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
                             <img 
                               src={robot.images[0]} 
                               alt={robot.name}
-                              className="w-full h-full object-contain bg-background"
+                              className="w-full h-full object-cover rounded-lg"
                             />
                           ) : (
                             <Bot className="w-8 h-8 text-muted-foreground" />

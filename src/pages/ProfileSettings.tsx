@@ -436,7 +436,7 @@ const ProfileSettings = () => {
                           <img 
                             src={formData.avatar_url} 
                             alt="Avatar" 
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
                           <User className="w-12 h-12 text-muted-foreground" />
@@ -477,7 +477,7 @@ const ProfileSettings = () => {
                           <img 
                             src={formData.company_logo_url} 
                             alt="Company Logo" 
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
                           <Building className="w-8 h-8 text-muted-foreground" />

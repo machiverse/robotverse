@@ -275,7 +275,7 @@ const SpareParts = () => {
                       <img
                         src={objectUrl}
                         alt={`Image preview ${idx + 1}`}
-                        className="w-full h-24 object-cover"
+                        className="w-full h-full object-cover rounded-lg"
                         onLoad={() => URL.revokeObjectURL(objectUrl)}
                       />
                       <Button

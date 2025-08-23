@@ -665,7 +665,7 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                           <img
                             src={objectUrl}
                             alt={`Preview ${idx + 1}`}
-                            className="w-full h-20 object-cover"
+                            className="w-full h-full object-cover rounded-lg"
                             onLoad={() => URL.revokeObjectURL(objectUrl)}
                           />
                           <Button
@@ -686,7 +686,7 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                         <img
                           src={url}
                           alt={`URL Preview ${idx + 1}`}
-                          className="w-full h-20 object-cover"
+                          className="w-full h-full object-cover rounded-lg"
                         />
                         <Button
                           type="button"

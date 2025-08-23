@@ -802,7 +802,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
                       <img
                         src={url}
                         alt={`Robot ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border"
+                        className="w-full h-full object-cover rounded-lg border"
                       />
                       {index === 0 && (
                         <Badge className="absolute bottom-1 left-1 text-xs bg-primary">
