@@ -1,13 +1,19 @@
 import { useAuth } from "@/hooks/useAuth";
 import UnifiedDashboard from "@/components/UnifiedDashboard";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const DashboardPage = () => {
   // Force refresh to clear cached UserTypeSelector references
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -68,10 +74,43 @@ const DashboardPage = () => {
   // Always use unified dashboard for consistent layout
   const renderDashboard = () => {
     return (
-      <div className="min-h-screen bg-background">
-        <EnhancedHeader />
-        <UnifiedDashboard userProfile={userProfile} />
-      </div>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <DashboardSidebar userProfile={userProfile} />
+          
+          <div className="flex-1 flex flex-col">
+            {/* Top Header with Menu Toggle */}
+            <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+              <div className="flex items-center justify-between h-full px-4">
+                <div className="flex items-center gap-4">
+                  <SidebarTrigger className="p-2">
+                    <Menu className="h-4 w-4" />
+                  </SidebarTrigger>
+                  <h1 className="text-xl font-semibold">
+                    Dashboard
+                  </h1>
+                </div>
+                
+                {/* Quick access to main site */}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/')}
+                >
+                  Back to RobotVerse
+                </Button>
+              </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-auto">
+              <div className="container mx-auto p-6">
+                <UnifiedDashboard userProfile={userProfile} />
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
     );
   };
 
