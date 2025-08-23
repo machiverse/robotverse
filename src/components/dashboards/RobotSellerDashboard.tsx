@@ -521,20 +521,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     }
   ];
 
-  return (
-    <div className="space-y-6">
-      {/* Dashboard Header with Company Logo */}
-      <DashboardHeader userProfile={userProfile} onProfileUpdate={() => fetchDashboardData()} />
-
-      {/* SIMPLIFIED Welcome Banner - Only shows "Welcome, [Name]!" */}
-      <Alert className="border-green-200 bg-green-50">
-        <CheckCircle className="w-4 h-4" />
-        <AlertDescription className="text-green-700">
-          <strong>Welcome, {userProfile?.full_name || user?.email || 'User'}!</strong>
-        </AlertDescription>
-      </Alert>
-
-      {/* Header */}
+        {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
