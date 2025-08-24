@@ -452,6 +452,7 @@ const Robots = () => {
                     key={key}
                     sellerRobots={robotsGroup}
                     sellerProfile={sellerProfiles[key]}
+                    imageClassName="w-full h-full object-cover rounded-lg"
                   />
                 );
               } else {
@@ -460,6 +461,7 @@ const Robots = () => {
                     key={key}
                     category={key}
                     robots={robotsGroup}
+                    imageClassName="w-full h-full object-cover rounded-lg"
                   />
                 );
               }
