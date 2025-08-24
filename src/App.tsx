@@ -16,6 +16,18 @@ import SellerRobots from "./pages/SellerRobots";
 import ProfileSettings from "./pages/ProfileSettings";
 import NotFound from "./pages/NotFound";
 
+// Dashboard Pages
+import Analytics from "./pages/dashboard/Analytics";
+import Reports from "./pages/dashboard/Reports";
+import MyRobots from "./pages/dashboard/MyRobots";
+import PartsManagement from "./pages/dashboard/PartsManagement";
+import ServicesManagement from "./pages/dashboard/ServicesManagement";
+import Finance from "./pages/dashboard/Finance";
+import Logistics from "./pages/dashboard/Logistics";
+import Settings from "./pages/dashboard/Settings";
+import Help from "./pages/dashboard/Help";
+import Privacy from "./pages/dashboard/Privacy";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -37,6 +49,16 @@ const App = () => (
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard/analytics" element={<Analytics />} />
+            <Route path="/dashboard/reports" element={<Reports />} />
+            <Route path="/dashboard/robots" element={<MyRobots />} />
+            <Route path="/dashboard/parts" element={<PartsManagement />} />
+            <Route path="/dashboard/services" element={<ServicesManagement />} />
+            <Route path="/dashboard/finance" element={<Finance />} />
+            <Route path="/dashboard/logistics" element={<Logistics />} />
+            <Route path="/dashboard/settings" element={<Settings />} />
+            <Route path="/dashboard/help" element={<Help />} />
+            <Route path="/dashboard/privacy" element={<Privacy />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
