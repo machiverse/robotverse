@@ -47,7 +47,7 @@ interface SellerRobotCarouselProps {
 const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({ 
   sellerRobots, 
   sellerProfile,
-  imageClassName = "w-full h-full object-cover rounded-lg"
+  imageClassName = "w-full h-full object-contain rounded-lg bg-muted"
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();

@@ -41,7 +41,7 @@ interface CategoryRobotCarouselProps {
 const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({ 
   category, 
   robots,
-  imageClassName = "w-full h-full object-cover rounded-lg"
+  imageClassName = "w-full h-full object-contain rounded-lg bg-muted"
 }) => {
   const navigate = useNavigate();
   const [api, setApi] = useState<CarouselApi>();

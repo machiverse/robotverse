@@ -779,7 +779,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                                      <img 
                                        src={robot.images[0]} 
                                        alt={robot.name}
-                                       className="w-full h-full object-cover rounded-lg"
+                                       className="w-full h-full object-contain rounded-lg bg-muted"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
                                       }}
@@ -861,7 +861,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                                   <img 
                                    src={robot.images[0]} 
                                    alt={robot.name}
-                                   className="w-full h-full object-cover rounded-lg"
+                                   className="w-full h-full object-contain rounded-lg bg-muted"
                                   />
                                 ) : (
                                   <Bot className="w-8 h-8 text-muted-foreground" />

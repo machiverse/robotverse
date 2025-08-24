@@ -140,7 +140,7 @@ const MyRobots = () => {
                 <img 
                   src={robot.image} 
                   alt={robot.name}
-                  className="w-16 h-16 object-cover rounded-lg"
+                  className="w-16 h-16 object-contain rounded-lg bg-muted"
                 />
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
