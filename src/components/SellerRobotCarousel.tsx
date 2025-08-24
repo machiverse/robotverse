@@ -165,8 +165,8 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
             {sellerRobots.map((robot, index) => (
               <CarouselItem key={robot.id}>
                 <div className="space-y-3">
-                  {/* Fixed size image container */}
-                  <div className="aspect-video rounded-lg overflow-hidden bg-muted relative">
+                  {/* Professional fixed size image container */}
+                  <div className="h-48 w-full rounded-lg overflow-hidden bg-muted relative">
                     {robot.images && robot.images.length > 0 ? (
                       <img
                         src={robot.images[0]}
