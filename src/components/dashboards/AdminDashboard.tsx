@@ -57,6 +57,9 @@ interface DashboardStats {
     buyers: number;
     sellers: number;
     serviceProviders: number;
+    logistics: number;
+    finance: number;
+    admins: number;
     newThisMonth: number;
   };
   equipment: {
@@ -92,7 +95,7 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
   
   // Stats and analytics
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
-    users: { total: 0, active: 0, buyers: 0, sellers: 0, serviceProviders: 0, newThisMonth: 0 },
+    users: { total: 0, active: 0, buyers: 0, sellers: 0, serviceProviders: 0, logistics: 0, finance: 0, admins: 0, newThisMonth: 0 },
     equipment: { totalRobots: 0, totalSpareParts: 0, totalServices: 0, totalValue: 0, activeListings: 0, soldThisMonth: 0 },
     business: { totalRevenue: 0, monthlyGrowth: 0, avgOrderValue: 0, topSellingCategory: '' },
     platform: { totalTransactions: 0, activeConversations: 0, averageRating: 0, systemHealth: 95 }
@@ -182,8 +185,8 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
         setDocuments(documentsResult.value.data);
       }
 
-      // Calculate comprehensive stats
-      calculateComprehensiveStats();
+      // Calculate comprehensive stats after data is loaded
+      setTimeout(() => calculateComprehensiveStats(), 100);
 
     } catch (error) {
       console.error('Error fetching admin data:', error);
@@ -199,24 +202,48 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
   };
 
   const calculateComprehensiveStats = () => {
-    // Real-time user stats from actual data
+    // Enhanced real-time user stats from actual data
     const totalUsers = users.length;
-    const buyers = users.filter(u => u.user_type === 'buyer' || u.account_type === 'buyer').length;
-    const sellers = users.filter(u => 
-      ['robot_seller', 'parts_seller', 'seller'].includes(u.user_type || '') || 
-      u.account_type === 'seller'
+    
+    // Better user categorization based on actual data
+    const buyers = users.filter(u => 
+      u.user_type === 'buyer' || 
+      u.account_type === 'buyer' ||
+      u.primary_user_type === 'buyer' ||
+      (u.user_roles && u.user_roles.includes('buyer'))
     ).length;
+    
+    const sellers = users.filter(u => 
+      ['robot_seller', 'parts_seller', 'seller', 'spare_parts_seller'].includes(u.user_type || '') || 
+      u.account_type === 'seller' ||
+      ['robot_seller', 'spare_parts_seller'].includes(u.primary_user_type as string) ||
+      (u.user_roles && (u.user_roles.includes('robot_seller') || u.user_roles.includes('spare_parts_seller')))
+    ).length;
+    
     const serviceProviders = users.filter(u => 
       u.user_type === 'service_provider' || 
-      u.account_type === 'service'
+      u.account_type === 'service' ||
+      u.primary_user_type === 'service_provider' ||
+      (u.user_roles && u.user_roles.includes('service_provider'))
     ).length;
+    
     const logisticsProviders = users.filter(u => 
       u.user_type === 'logistics_provider' || 
-      u.account_type === 'logistics'
+      u.account_type === 'logistics' ||
+      u.primary_user_type === 'logistics_provider' ||
+      (u.user_roles && u.user_roles.includes('logistics_provider'))
     ).length;
+    
     const financeProviders = users.filter(u => 
       u.user_type === 'finance_provider' || 
-      u.account_type === 'finance'
+      u.account_type === 'finance' ||
+      u.primary_user_type === 'finance_provider' ||
+      (u.user_roles && u.user_roles.includes('finance_provider'))
+    ).length;
+    
+    const admins = users.filter(u => 
+      u.account_type === 'admin' ||
+      (u.user_roles && u.user_roles.includes('admin'))
     ).length;
     
     const currentMonth = new Date().getMonth();
@@ -267,8 +294,12 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
         active: users.filter(u => u.registration_complete).length,
         buyers,
         sellers,
-        serviceProviders: serviceProviders + logisticsProviders + financeProviders,
-        newThisMonth
+        serviceProviders,
+        newThisMonth,
+        // Additional breakdown
+        logistics: logisticsProviders,
+        finance: financeProviders,
+        admins
       },
       equipment: {
         totalRobots,
@@ -972,9 +1003,11 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
       category: "Users & Accounts",
       cards: [
         { title: 'Total Users', value: dashboardStats.users.total.toString(), icon: Users, color: 'text-blue-600', bgColor: 'bg-blue-50', trend: `+${dashboardStats.users.newThisMonth} this month` },
-        { title: 'Active Buyers', value: dashboardStats.users.buyers.toString(), icon: ShoppingCart, color: 'text-green-600', bgColor: 'bg-green-50', trend: 'Purchasing users' },
-        { title: 'Sellers', value: dashboardStats.users.sellers.toString(), icon: Briefcase, color: 'text-purple-600', bgColor: 'bg-purple-50', trend: 'Equipment sellers' },
-        { title: 'Service Providers', value: dashboardStats.users.serviceProviders.toString(), icon: Wrench, color: 'text-orange-600', bgColor: 'bg-orange-50', trend: 'Active providers' }
+        { title: 'Buyers', value: dashboardStats.users.buyers.toString(), icon: ShoppingCart, color: 'text-green-600', bgColor: 'bg-green-50', trend: 'Active buyers' },
+        { title: 'Sellers', value: dashboardStats.users.sellers.toString(), icon: Briefcase, color: 'text-purple-600', bgColor: 'bg-purple-50', trend: 'Robot & parts sellers' },
+        { title: 'Service Providers', value: dashboardStats.users.serviceProviders.toString(), icon: Wrench, color: 'text-orange-600', bgColor: 'bg-orange-50', trend: 'Active providers' },
+        { title: 'Logistics', value: dashboardStats.users.logistics.toString(), icon: Truck, color: 'text-cyan-600', bgColor: 'bg-cyan-50', trend: 'Logistics providers' },
+        { title: 'Finance', value: dashboardStats.users.finance.toString(), icon: DollarSign, color: 'text-emerald-600', bgColor: 'bg-emerald-50', trend: 'Finance providers' }
       ]
     },
     {
@@ -1181,7 +1214,7 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
 
       {/* Enhanced Tabs with Everything */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8 h-12">
+        <TabsList className="grid w-full grid-cols-7 h-12">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Overview
