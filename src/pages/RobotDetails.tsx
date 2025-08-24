@@ -11,6 +11,7 @@ import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye } from "lucide-react";
+import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -122,7 +123,6 @@ const RobotDetails = () => {
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
-  const [viewCount, setViewCount] = useState(0);
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -171,10 +171,6 @@ const RobotDetails = () => {
         // Track this view
         await trackView('robots', data.id);
       }
-
-      // Get and set total view count for robot
-      const count = await getItemViewCount('robots', data.id);
-      setViewCount(count);
 
     } catch (err) {
       console.error(err);
@@ -1063,17 +1059,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <span className="font-medium">Quantity Available:</span>
                       <p>{robot.quantity}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-  <span className="font-medium">Views:</span>
-  <div className="flex items-center gap-1">
-    <Eye className="w-4 h-4 text-muted-foreground" />
-    {loading ? (
-      <span className="text-muted-foreground animate-pulse">...</span>
-    ) : (
-      <span className="text-primary font-semibold">{viewCount}</span>
-    )}
-  </div>
-</div>
+                     <div>
+                       <span className="font-medium">Views:</span>
+                       <ViewCountDisplay 
+                         targetType="robots" 
+                         targetId={robot.id} 
+                         className="mt-1"
+                       />
+                     </div>
                   </div>
 
                   {/* Action Buttons for logged in user */}
