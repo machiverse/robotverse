@@ -53,7 +53,7 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
     : [userProfile?.user_type || userProfile?.account_type || 'buyer'];
 
   // Check if user is admin
-  const isAdmin = user?.email === 'mark.it@keyleerkorb.com';
+  const isAdmin = user?.email === 'mark.it@keyleerkorb.com' || user?.email === 'mynameisrajan@gmail.com';
   
   // If admin, add admin role
   const finalRoles = isAdmin ? ['admin', ...userRoles.filter(role => role !== 'admin')] : userRoles;
