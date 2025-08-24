@@ -41,7 +41,7 @@ interface CategoryRobotCarouselProps {
 const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({ 
   category, 
   robots,
-  imageClassName = "w-full h-full object-contain rounded-lg bg-muted"
+  imageClassName = "max-w-full max-h-full object-contain"
 }) => {
   const navigate = useNavigate();
   const [api, setApi] = useState<CarouselApi>();
@@ -129,8 +129,8 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
             {robots.map((robot, index) => (
               <CarouselItem key={robot.id}>
                 <div className="space-y-3">
-                  {/* Professional fixed size image container */}
-                  <div className="h-48 w-full rounded-lg overflow-hidden bg-muted relative">
+                  {/* Flexible container for complete robot visibility */}
+                  <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-muted relative flex items-center justify-center p-4">
                     {robot.images && robot.images.length > 0 ? (
                       <img
                         src={robot.images[0]}
