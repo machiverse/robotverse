@@ -57,21 +57,33 @@ const ButtonTrackingDashboard: React.FC = () => {
   const fetchButtonInteractions = async () => {
     try {
       setLoading(true);
+      console.log('Fetching button interactions...');
+      
       const { data, error } = await supabase
         .from('button_interactions')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1000);
 
-      if (error) throw error;
+      console.log('Button interactions result:', { data, error });
+
+      if (error) {
+        console.error('Button interactions error:', error);
+        throw error;
+      }
 
       setInteractions(data || []);
       calculateStats(data || []);
-    } catch (error) {
+      
+      if ((data || []).length === 0) {
+        console.log('No button interactions found');
+      }
+    } catch (error: any) {
+      console.error('Error fetching button interactions:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to fetch button interactions"
+        description: `Failed to fetch button interactions: ${error.message || 'Unknown error'}`
       });
     } finally {
       setLoading(false);
@@ -326,6 +338,11 @@ const ButtonTrackingDashboard: React.FC = () => {
 
           <div className="text-sm text-muted-foreground mb-4">
             Showing {filteredInteractions.length} of {interactions.length} interactions
+            {interactions.length === 0 && (
+              <span className="block mt-2 text-orange-600">
+                No button interactions found. Users need to click buttons to generate data.
+              </span>
+            )}
           </div>
 
           {/* Interactions Table */}
@@ -381,9 +398,29 @@ const ButtonTrackingDashboard: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableBody>
+              </Table>
+              
+              {filteredInteractions.length === 0 && interactions.length === 0 && (
+                <div className="text-center py-8">
+                  <MousePointer className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold text-muted-foreground">No Button Interactions Yet</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Button interaction data will appear here once users start clicking buttons on the platform.
+                  </p>
+                </div>
+              )}
+              
+              {filteredInteractions.length === 0 && interactions.length > 0 && (
+                <div className="text-center py-8">
+                  <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold text-muted-foreground">No Results Found</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Try adjusting your search filters to see more results.
+                  </p>
+                </div>
+              )}
+            </div>
         </CardContent>
       </Card>
     </div>
