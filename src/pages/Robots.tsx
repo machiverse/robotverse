@@ -24,7 +24,7 @@ const Robots = () => {
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedRobotType, setSelectedRobotType] = useState("all");
-  const [groupBy, setGroupBy] = useState<"company" | "category">("category");
+  const [groupBy, setGroupBy] = useState<"company" | "category" | "all">("category");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Data states
@@ -217,20 +217,22 @@ const Robots = () => {
       filteredRobots = filteredRobots.filter((r) => r.price >= min && r.price < max);
     }
 
-    // Group by company or category
+    // Group by company, category, or show all
     const groups: { [key: string]: any[] } = {};
     if (groupBy === "company") {
       filteredRobots.forEach((r) => {
         if (!groups[r.seller_id]) groups[r.seller_id] = [];
         groups[r.seller_id].push(r);
       });
-    } else {
-      // groupBy category
+    } else if (groupBy === "category") {
       filteredRobots.forEach((r) => {
         const cat = r.robot_type || "Others";
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(r);
       });
+    } else {
+      // groupBy all - show all robots as one group
+      groups["All Robots"] = filteredRobots;
     }
 
     return groups;
@@ -380,6 +382,13 @@ const Robots = () => {
 
             <div className="flex space-x-2">
               <Button
+                variant={groupBy === "all" ? "default" : "outline"}
+                onClick={() => setGroupBy("all")}
+                size="sm"
+              >
+                All Robots
+              </Button>
+              <Button
                 variant={groupBy === "category" ? "default" : "outline"}
                 onClick={() => setGroupBy("category")}
                 size="sm"
@@ -437,19 +446,23 @@ const Robots = () => {
         ) : (
           <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-6"}>
             {Object.entries(filteredGroups).map(([key, robotsGroup]) => {
-              return groupBy === "company" ? (
-                <SellerRobotCarousel
-                  key={key}
-                  sellerRobots={robotsGroup}
-                  sellerProfile={sellerProfiles[key]}
-                />
-              ) : (
-                <CategoryRobotCarousel
-                  key={key}
-                  category={key}
-                  robots={robotsGroup}
-                />
-              );
+              if (groupBy === "company") {
+                return (
+                  <SellerRobotCarousel
+                    key={key}
+                    sellerRobots={robotsGroup}
+                    sellerProfile={sellerProfiles[key]}
+                  />
+                );
+              } else {
+                return (
+                  <CategoryRobotCarousel
+                    key={key}
+                    category={key}
+                    robots={robotsGroup}
+                  />
+                );
+              }
             })}
           </div>
         )}
