@@ -12,6 +12,7 @@ import {
   type CarouselApi 
 } from '@/components/ui/carousel';
 import { Bot, MapPin, Building, User, Clock, ShoppingCart } from 'lucide-react';
+import { useButtonTracking } from '@/hooks/useButtonTracking';
 
 interface Robot {
   id: string;
@@ -44,6 +45,7 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
   imageClassName = "max-w-full max-h-full object-contain"
 }) => {
   const navigate = useNavigate();
+  const { trackButtonClick } = useButtonTracking();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
 
@@ -88,9 +90,26 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
     navigate(`/robots?category=${encodeURIComponent(category)}`);
   };
 
-  const handleViewRobot = (robotId: string, e: React.MouseEvent) => {
+  const handleViewRobot = async (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/robot/${robotId}`);
+    
+    // Track button click
+    await trackButtonClick({
+      buttonName: "View Robot Details",
+      buttonType: "navigation",
+      sellerId: robot.seller_id,
+      sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+      itemId: robot.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot.name,
+        robotType: robot.robot_type,
+        price: robot.price,
+        source: 'category_carousel'
+      }
+    });
+    
+    navigate(`/robot/${robot.id}`);
   };
 
   const robotCount = robots.length;
@@ -217,14 +236,30 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
 
         {/* Action Buttons */}
         <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" className="flex-1" onClick={handleCardClick}>
+          <Button 
+            size="sm" 
+            className="flex-1" 
+            onClick={async (e) => {
+              e.stopPropagation();
+              await trackButtonClick({
+                buttonName: "Browse All",
+                buttonType: "navigation",
+                additionalData: {
+                  category: category,
+                  robotCount: robotCount,
+                  source: 'category_carousel'
+                }
+              });
+              handleCardClick();
+            }}
+          >
             <ShoppingCart className="w-3 h-3 mr-1" />
             Browse All {robotCount}
           </Button>
           <Button 
             variant="outline" 
             size="sm"
-            onClick={(e) => handleViewRobot(robots[current]?.id, e)}
+            onClick={(e) => robots[current] && handleViewRobot(robots[current], e)}
           >
             View Details
           </Button>

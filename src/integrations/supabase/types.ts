@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      button_interactions: {
+        Row: {
+          additional_data: Json | null
+          button_name: string
+          button_type: string
+          created_at: string
+          id: string
+          item_id: string | null
+          item_type: string | null
+          page_url: string | null
+          seller_id: string | null
+          seller_name: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          additional_data?: Json | null
+          button_name: string
+          button_type: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type?: string | null
+          page_url?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          additional_data?: Json | null
+          button_name?: string
+          button_type?: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type?: string | null
+          page_url?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       coverage_areas: {
         Row: {
           area_name: string

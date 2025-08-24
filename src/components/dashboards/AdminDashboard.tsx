@@ -24,9 +24,10 @@ import {
   Mail, Building, Star, ThumbsUp, MessageSquare, Zap,
   Grid, List, ArrowUpDown, ExternalLink, Copy, Share,
   PieChart, LineChart, Target, Layers, Cpu, Cog,
-  ShoppingCart, Briefcase, Globe, Award, Flame, Save
+  ShoppingCart, Briefcase, Globe, Award, Flame, Save, MousePointer
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ButtonTrackingDashboard from "@/components/ButtonTrackingDashboard";
 
 // Import Database type with alias to avoid conflicts
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
@@ -1103,7 +1104,7 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
 
       {/* Enhanced Tabs with Everything */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7 h-12">
+        <TabsList className="grid w-full grid-cols-8 h-12">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Overview
@@ -1127,6 +1128,10 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Documents ({documents.length})
+          </TabsTrigger>
+          <TabsTrigger value="button-tracking" className="flex items-center gap-2">
+            <MousePointer className="w-4 h-4" />
+            Button Tracking
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <PieChart className="w-4 h-4" />
@@ -1984,6 +1989,11 @@ const AdminDashboard = ({ userProfile }: AdminDashboardProps) => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Button Tracking Tab */}
+        <TabsContent value="button-tracking" className="mt-6">
+          <ButtonTrackingDashboard />
         </TabsContent>
 
         {/* Analytics Tab */}

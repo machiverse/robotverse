@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/carousel';
 import { Bot, MapPin, Building, User, Clock, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useButtonTracking } from '@/hooks/useButtonTracking';
 
 interface Robot {
   id: string;
@@ -51,6 +52,7 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
 
@@ -95,8 +97,21 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
     navigate(`/seller/${sellerProfile.user_id}/robots`);
   };
 
-  const handleContactSeller = (e: React.MouseEvent) => {
+  const handleContactSeller = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Contact Seller",
+      buttonType: "contact",
+      sellerId: sellerProfile.user_id,
+      sellerName: sellerProfile.company_name || sellerProfile.full_name,
+      additionalData: {
+        robotCount: sellerRobots.length,
+        currentRobot: sellerRobots[current]?.name,
+        source: 'seller_carousel'
+      }
+    });
     
     if (!user) {
       navigate('/auth');
@@ -246,7 +261,24 @@ const SellerRobotCarousel: React.FC<SellerRobotCarouselProps> = ({
 
         {/* Action Buttons */}
         <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" className="flex-1" onClick={handleCardClick}>
+          <Button 
+            size="sm" 
+            className="flex-1" 
+            onClick={async (e) => {
+              e.stopPropagation();
+              await trackButtonClick({
+                buttonName: "View All Robots",
+                buttonType: "navigation",
+                sellerId: sellerProfile.user_id,
+                sellerName: sellerProfile.company_name || sellerProfile.full_name,
+                additionalData: {
+                  robotCount: sellerRobots.length,
+                  source: 'seller_carousel'
+                }
+              });
+              handleCardClick();
+            }}
+          >
             View All {robotCount} Robot{robotCount > 1 ? 's' : ''}
           </Button>
           <Button 

@@ -33,6 +33,7 @@ import {
   Brain,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
 
 // Robot type/interface
 interface Robot {
@@ -74,6 +75,7 @@ const RobotListings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { trackButtonClick } = useButtonTracking();
 
   // Data and UI states
   const [robots, setRobots] = useState<Robot[]>([]);
@@ -348,7 +350,7 @@ const RobotListings = () => {
   };
 
   // Handle AI analyze button click
-  const handleAnalyzeRobot = (robotId: string) => {
+  const handleAnalyzeRobot = async (robot: Robot) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -358,17 +360,48 @@ const RobotListings = () => {
       return;
     }
 
+    // Track button click
+    await trackButtonClick({
+      buttonName: "AI Analyze",
+      buttonType: "analysis",
+      sellerId: robot.seller_id,
+      sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+      itemId: robot.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot.name,
+        robotType: robot.robot_type,
+        price: robot.price,
+      }
+    });
+
     toast({
       title: "AI Analysis Starting",
       description: "RobotVerse AI is analyzing robot specifications, market data, and compatibility...",
     });
 
-    navigate(`/robots/${robotId}/analysis`);
+    navigate(`/robots/${robot.id}/analysis`);
   };
 
   // Handle contact with seller
-  const handleContactSeller = (robot: Robot, e: React.MouseEvent) => {
+  const handleContactSeller = async (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Contact Seller",
+      buttonType: "contact",
+      sellerId: robot.seller_id,
+      sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+      itemId: robot.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot.name,
+        robotType: robot.robot_type,
+        price: robot.price,
+      }
+    });
+
     const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
 
     if (!phone) {
@@ -402,8 +435,23 @@ const RobotListings = () => {
   };
 
   // Handle share button click
-  const handleShare = (robot: Robot, e: React.MouseEvent) => {
+  const handleShare = async (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Share",
+      buttonType: "social",
+      sellerId: robot.seller_id,
+      sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+      itemId: robot.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot.name,
+        robotType: robot.robot_type,
+        price: robot.price,
+      }
+    });
 
     if (navigator.share) {
       navigator.share({
