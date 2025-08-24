@@ -744,14 +744,14 @@ const RobotListings = () => {
                   key={groupKey}
                   sellerRobots={groupRobots}
                   sellerProfile={sellerProfiles[groupKey] || {}}
-                  imageClassName="max-w-full max-h-full object-contain"
+                  imageClassName="w-full h-full object-cover rounded-lg"
                 />
               ) : (
                 <CategoryRobotCarousel
                   key={groupKey}
                   category={groupKey}
                   robots={groupRobots}
-                  imageClassName="max-w-full max-h-full object-contain"
+                  imageClassName="w-full h-full object-cover rounded-lg"
                 />
               )
             )}
