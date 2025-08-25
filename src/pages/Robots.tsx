@@ -536,115 +536,82 @@ const Robots = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            {Object.entries(filteredGroups).map(([key, robotsGroup]) => {
-              if (groupBy === "company") {
-                const sellerProfile = sellerProfiles[key];
-                return (
-                  <Card key={key} className="overflow-hidden">
-                    <CardHeader className="bg-muted/50">
-                      <CardTitle className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold">
-                            {sellerProfile?.company_name || sellerProfile?.full_name || "Company"}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {robotsGroup.length} robot{robotsGroup.length !== 1 ? 's' : ''} available
-                          </p>
-                        </div>
-                        <Badge variant="outline">
-                          {robotsGroup.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <SellerRobotCarousel
-                        sellerRobots={robotsGroup}
-                        sellerProfile={sellerProfile}
-                        imageClassName="w-full h-full object-cover rounded-lg"
-                      />
-                    </CardContent>
-                  </Card>
-                );
-              } else if (groupBy === "category") {
-                return (
-                  <Card key={key} className="overflow-hidden">
-                    <CardHeader className="bg-muted/50">
-                      <CardTitle className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold">{key}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {robotsGroup.length} robot{robotsGroup.length !== 1 ? 's' : ''} in category
-                          </p>
-                        </div>
-                        <Badge variant="outline">
-                          {robotsGroup.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <CategoryRobotCarousel
-                        category={key}
-                        robots={robotsGroup}
-                        imageClassName="w-full h-full object-cover rounded-lg"
-                      />
-                    </CardContent>
-                  </Card>
-                );
-              } else {
-                // groupBy === "all" - Show all robots in a clean grid
-                return (
-                  <div key={key} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {robotsGroup.map((robot) => (
-                      <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => navigate(`/robots/${robot.id}`)}>
-                        <div className="aspect-video relative overflow-hidden">
-                          <img
-                            src={robot.images?.[0] || "/placeholder.svg"}
-                            alt={robot.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute top-2 right-2">
-                            <ViewCountDisplay targetType="robots" targetId={robot.id} />
-                          </div>
-                          {robot.condition && (
-                            <div className="absolute top-2 left-2">
-                              <Badge variant={robot.condition === 'new' ? 'default' : 'secondary'} className="text-xs">
-                                {robot.condition}
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                        <CardContent className="p-4">
-                          <div className="space-y-3">
-                            <div>
-                              <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">{robot.name}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-1">{robot.model}</p>
-                            </div>
-                            
-                            <div className="flex items-center justify-between">
-                              <Badge variant="outline" className="text-xs">{robot.robot_type}</Badge>
-                              <span className="text-xs text-muted-foreground">{robot.location}</span>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-xl text-primary">
-                                {formatPrice(robot.price, robot.currency)}
-                              </span>
-                              <Badge variant="secondary" className="text-xs">
-                                {robot.availability}
-                              </Badge>
-                            </div>
-                            
-                            <div className="text-xs text-muted-foreground border-t pt-2">
-                              <span className="font-medium">by {robot.profiles?.company_name || robot.profiles?.full_name}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+            {Object.entries(filteredGroups).map(([key, robotsGroup]) => (
+              <div key={key} className="space-y-4">
+                {/* Group Header - only show if not "All Robots" */}
+                {key !== "All Robots" && (
+                  <div className="flex items-center justify-between border-b pb-4">
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        {groupBy === "company" 
+                          ? (sellerProfiles[key]?.company_name || sellerProfiles[key]?.full_name || "Company")
+                          : key
+                        }
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {robotsGroup.length} robot{robotsGroup.length !== 1 ? 's' : ''} available
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-sm">
+                      {robotsGroup.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
+                    </Badge>
                   </div>
-                );
-              }
-            })}
+                )}
+
+                {/* Robot Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {robotsGroup.map((robot) => (
+                    <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => navigate(`/robots/${robot.id}`)}>
+                      <div className="aspect-video relative overflow-hidden">
+                        <img
+                          src={robot.images?.[0] || "/placeholder.svg"}
+                          alt={robot.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <ViewCountDisplay targetType="robots" targetId={robot.id} />
+                        </div>
+                        {robot.condition && (
+                          <div className="absolute top-2 left-2">
+                            <Badge variant={robot.condition === 'new' ? 'default' : 'secondary'} className="text-xs">
+                              {robot.condition}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div>
+                            <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">{robot.name}</h3>
+                            <p className="text-sm text-muted-foreground line-clamp-1">{robot.model}</p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">{robot.robot_type}</Badge>
+                            <span className="text-xs text-muted-foreground">{robot.location}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xl text-primary">
+                              {formatPrice(robot.price, robot.currency)}
+                            </span>
+                            <Badge variant="secondary" className="text-xs">
+                              {robot.availability}
+                            </Badge>
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground border-t pt-2">
+                            <span className="font-medium">
+                              by {robot.profiles?.company_name || robot.profiles?.full_name}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
