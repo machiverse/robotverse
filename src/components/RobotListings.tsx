@@ -144,6 +144,19 @@ const [activeCompanyIndex, setActiveCompanyIndex] = useState(0);
     categoryFilter,
   ]);
 
+  // Auto-rotate companies - moved here to fix hooks rule violation
+  useEffect(() => {
+    const companyGroups = getCompanyGroups();
+    const companyEntries = Object.entries(companyGroups);
+    
+    if (companyEntries.length > 0) {
+      const interval = setInterval(() => {
+        setActiveCompanyIndex(prev => (prev + 1) % companyEntries.length);
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [filteredRobots]); // Depend on filteredRobots to recalculate when data changes
+
   // Fetch robots data from Supabase and initialize states
   const fetchRobots = async () => {
     try {
@@ -527,16 +540,6 @@ const [activeCompanyIndex, setActiveCompanyIndex] = useState(0);
   const companyGroups = getCompanyGroups();
   const categoryGroups = getCategoryGroups();
   const companyEntries = Object.entries(companyGroups);
-  
-  // Auto-rotate companies if there are any
-  useEffect(() => {
-    if (companyEntries.length > 0) {
-      const interval = setInterval(() => {
-        setActiveCompanyIndex(prev => (prev + 1) % companyEntries.length);
-      }, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [companyEntries.length]);
 
   return (
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
