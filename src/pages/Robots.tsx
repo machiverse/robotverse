@@ -2,20 +2,24 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Bot, Grid, List, Search } from "lucide-react";
+import { useViewTracking } from "@/hooks/useViewTracking";
+import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
-import { Card, CardContent } from "@/components/ui/card";
+import ViewCountDisplay from "@/components/ViewCountDisplay";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 const Robots = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const toast = useToast();
+  const { toast } = useToast();
+  const { getItemViewCount } = useViewTracking();
 
   // States for filtering & UI
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,11 +28,13 @@ const Robots = () => {
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedRobotType, setSelectedRobotType] = useState("all");
-  const [groupBy, setGroupBy] = useState<"company" | "category" | "all">("category");
+  const [sortBy, setSortBy] = useState("views"); // Default sort by view count
+  const [groupBy, setGroupBy] = useState<"company" | "category" | "all">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Data states
   const [robots, setRobots] = useState<any[]>([]);
+  const [robotsWithViews, setRobotsWithViews] = useState<any[]>([]);
   const [sellerGroups, setSellerGroups] = useState<{ [key: string]: any[] }>({});
   const [sellerProfiles, setSellerProfiles] = useState<{ [key: string]: any }>({});
   const [loading, setLoading] = useState(true);
@@ -76,10 +82,19 @@ const Robots = () => {
 
         setRobots(data || []);
 
+        // Fetch view counts for each robot and add to data
+        const robotsWithViewCounts = await Promise.all(
+          (data || []).map(async (robot) => {
+            const viewCount = await getItemViewCount('robots', robot.id);
+            return { ...robot, viewCount };
+          })
+        );
+        setRobotsWithViews(robotsWithViewCounts);
+
         // Group robots by seller
         const grouped: { [id: string]: any[] } = {};
         const profiles: { [id: string]: any } = {};
-        data?.forEach((robot) => {
+        robotsWithViewCounts.forEach((robot) => {
           if (!grouped[robot.seller_id]) grouped[robot.seller_id] = [];
           grouped[robot.seller_id].push(robot);
           if (robot.profiles && !profiles[robot.seller_id]) profiles[robot.seller_id] = robot.profiles;
@@ -149,11 +164,11 @@ const Robots = () => {
     };
 
     fetchData();
-  }, []);
+  }, [getItemViewCount]);
 
   // Filter and group robots according to selected filters
   const getFilteredGroups = () => {
-    let filteredRobots = [...robots];
+    let filteredRobots = [...robotsWithViews];
 
     // Helper to get label from value
     const getLabelFromValue = (arr: { value: string; label: string }[], val: string) => arr.find((i) => i.value === val)?.label || "";
@@ -216,6 +231,24 @@ const Robots = () => {
       const [min, max] = ranges[selectedPriceRange] || [0, Infinity];
       filteredRobots = filteredRobots.filter((r) => r.price >= min && r.price < max);
     }
+
+    // Sort robots based on selected criteria
+    filteredRobots.sort((a, b) => {
+      switch (sortBy) {
+        case "views":
+          return (b.viewCount || 0) - (a.viewCount || 0); // Highest views first
+        case "price-low":
+          return (a.price || 0) - (b.price || 0);
+        case "price-high":
+          return (b.price || 0) - (a.price || 0);
+        case "newest":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "name":
+          return (a.name || "").localeCompare(b.name || "");
+        default:
+          return (b.viewCount || 0) - (a.viewCount || 0);
+      }
+    });
 
     // Group by company, category, or show all
     const groups: { [key: string]: any[] } = {};
@@ -284,146 +317,190 @@ const Robots = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-4">Industrial Robots</h1>
         <p className="text-lg text-muted-foreground mb-8">
-          Explore category-wise or company-wise robot listings with rich filter options.
+          Discover the perfect robot for your needs with our advanced search and filtering capabilities.
         </p>
 
         {/* Filters Section */}
-        <Card className="mb-8 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
-            {/* Search */}
-            <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, model, type..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              Find Your Perfect Robot
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search and Quick Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search robots..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-            {/* Category */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Location */}
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger>
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((loc) => (
-                  <SelectItem key={loc.value} value={loc.value}>
-                    {loc.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Condition */}
-            <Select value={selectedCondition} onValueChange={setSelectedCondition}>
-              <SelectTrigger>
-                <SelectValue placeholder="Condition" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Conditions</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="like-new">Like New</SelectItem>
-                <SelectItem value="used">Used</SelectItem>
-                <SelectItem value="refurbished">Refurbished</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Price Range */}
-            <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Price Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Prices</SelectItem>
-                <SelectItem value="under-50k">Under ₹50,000</SelectItem>
-                <SelectItem value="50k-200k">₹50,000 - ₹2,00,000</SelectItem>
-                <SelectItem value="200k-500k">₹2,00,000 - ₹5,00,000</SelectItem>
-                <SelectItem value="500k-1m">₹5,00,000 - ₹10,00,000</SelectItem>
-                <SelectItem value="over-1m">Over ₹10,00,000</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Robot Type filter and Grouping toggle */}
-          <div className="mt-4 flex items-center justify-between">
-            <div className="w-48">
-              <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Robot Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {robots
-                  .map((r) => r.robot_type)
-                  .filter((v, i, a) => v && a.indexOf(v) === i)
-                  .map((type) => (
-                    <SelectItem key={type} value={type.toLowerCase().replace(/\s+/g, "-")}>
-                      {type}
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
                     </SelectItem>
                   ))}
-              </SelectContent>
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.value} value={loc.value}>
+                      {loc.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Price Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Prices</SelectItem>
+                  <SelectItem value="under-50k">Under ₹50,000</SelectItem>
+                  <SelectItem value="50k-200k">₹50,000 - ₹2,00,000</SelectItem>
+                  <SelectItem value="200k-500k">₹2,00,000 - ₹5,00,000</SelectItem>
+                  <SelectItem value="500k-1m">₹5,00,000 - ₹10,00,000</SelectItem>
+                  <SelectItem value="over-1m">Over ₹10,00,000</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
-            <div className="flex space-x-2">
-              <Button
-                variant={groupBy === "all" ? "default" : "outline"}
-                onClick={() => setGroupBy("all")}
-                size="sm"
-              >
-                All Robots
-              </Button>
-              <Button
-                variant={groupBy === "category" ? "default" : "outline"}
-                onClick={() => setGroupBy("category")}
-                size="sm"
-              >
-                Category View
-              </Button>
-              <Button
-                variant={groupBy === "company" ? "default" : "outline"}
-                onClick={() => setGroupBy("company")}
-                size="sm"
-              >
-                Company View
-              </Button>
+            {/* Secondary Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Condition" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Conditions</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="like-new">Like New</SelectItem>
+                  <SelectItem value="used">Used</SelectItem>
+                  <SelectItem value="refurbished">Refurbished</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                onClick={() => setViewMode("grid")}
-                size="sm"
-              >
-                <Grid className="w-5 h-5" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                onClick={() => setViewMode("list")}
-                size="sm"
-              >
-                <List className="w-5 h-5" />
-              </Button>
+              <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Robot Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {robots
+                    .map((r) => r.robot_type)
+                    .filter((v, i, a) => v && a.indexOf(v) === i)
+                    .map((type) => (
+                      <SelectItem key={type} value={type.toLowerCase().replace(/\s+/g, "-")}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
+
+            {/* Sort and View Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Sort by:</span>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="views">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        Most Popular
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="newest">Latest</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="name">Name A-Z</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Group by:</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant={groupBy === "all" ? "default" : "outline"}
+                    onClick={() => setGroupBy("all")}
+                    size="sm"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant={groupBy === "category" ? "default" : "outline"}
+                    onClick={() => setGroupBy("category")}
+                    size="sm"
+                  >
+                    Category
+                  </Button>
+                  <Button
+                    variant={groupBy === "company" ? "default" : "outline"}
+                    onClick={() => setGroupBy("company")}
+                    size="sm"
+                  >
+                    Company
+                  </Button>
+                </div>
+
+                <div className="flex gap-1 ml-4">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "outline"}
+                    onClick={() => setViewMode("grid")}
+                    size="sm"
+                  >
+                    <Grid className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "default" : "outline"}
+                    onClick={() => setViewMode("list")}
+                    size="sm"
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
         </Card>
 
         {/* Total Summary */}
-        <div className="mb-6 text-sm text-muted-foreground">
-          Showing {totalFilteredRobots} robot{totalFilteredRobots !== 1 && "s"} grouped by {groupBy}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {totalFilteredRobots} robot{totalFilteredRobots !== 1 && "s"} 
+            {sortBy === "views" && (
+              <Badge variant="secondary" className="ml-2">
+                <Eye className="w-3 h-3 mr-1" />
+                Sorted by popularity
+              </Badge>
+            )}
+          </div>
+          {totalFilteredRobots > 0 && (
+            <div className="text-sm text-muted-foreground">
+              {groupBy === "all" ? "All robots" : `Grouped by ${groupBy}`}
+            </div>
+          )}
         </div>
 
         {/* Loading, error, empty states */}
@@ -444,25 +521,103 @@ const Robots = () => {
             <p>No robots match the current filters.</p>
           </div>
         ) : (
-          <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-6"}>
+          <div className="space-y-8">
             {Object.entries(filteredGroups).map(([key, robotsGroup]) => {
               if (groupBy === "company") {
+                const sellerProfile = sellerProfiles[key];
                 return (
-                  <SellerRobotCarousel
-                    key={key}
-                    sellerRobots={robotsGroup}
-                    sellerProfile={sellerProfiles[key]}
-                    imageClassName="w-full h-full object-cover rounded-lg"
-                  />
+                  <Card key={key} className="overflow-hidden">
+                    <CardHeader className="bg-muted/50">
+                      <CardTitle className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold">
+                            {sellerProfile?.company_name || sellerProfile?.full_name || "Company"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {robotsGroup.length} robot{robotsGroup.length !== 1 ? 's' : ''} available
+                          </p>
+                        </div>
+                        <Badge variant="outline">
+                          {robotsGroup.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <SellerRobotCarousel
+                        sellerRobots={robotsGroup}
+                        sellerProfile={sellerProfile}
+                        imageClassName="w-full h-full object-cover rounded-lg"
+                      />
+                    </CardContent>
+                  </Card>
+                );
+              } else if (groupBy === "category") {
+                return (
+                  <Card key={key} className="overflow-hidden">
+                    <CardHeader className="bg-muted/50">
+                      <CardTitle className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold">{key}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {robotsGroup.length} robot{robotsGroup.length !== 1 ? 's' : ''} in category
+                          </p>
+                        </div>
+                        <Badge variant="outline">
+                          {robotsGroup.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <CategoryRobotCarousel
+                        category={key}
+                        robots={robotsGroup}
+                        imageClassName="w-full h-full object-cover rounded-lg"
+                      />
+                    </CardContent>
+                  </Card>
                 );
               } else {
+                // groupBy === "all" - Show all robots in a clean grid
                 return (
-                  <CategoryRobotCarousel
-                    key={key}
-                    category={key}
-                    robots={robotsGroup}
-                    imageClassName="w-full h-full object-cover rounded-lg"
-                  />
+                  <div key={key} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {robotsGroup.map((robot) => (
+                      <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/robots/${robot.id}`)}>
+                        <div className="aspect-video relative">
+                          <img
+                            src={robot.images?.[0] || "/placeholder.svg"}
+                            alt={robot.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-2 right-2">
+                            <ViewCountDisplay targetType="robots" targetId={robot.id} />
+                          </div>
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <h3 className="font-semibold line-clamp-1">{robot.name}</h3>
+                            <p className="text-sm text-muted-foreground line-clamp-1">{robot.model}</p>
+                            <div className="flex items-center justify-between">
+                              <Badge variant="secondary">{robot.robot_type}</Badge>
+                              <Badge variant={robot.condition === 'new' ? 'default' : 'outline'}>
+                                {robot.condition}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-lg">
+                                {formatPrice(robot.price, robot.currency)}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {robot.location}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              by {robot.profiles?.company_name || robot.profiles?.full_name}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 );
               }
             })}
