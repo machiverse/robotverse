@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Users, Bot, Database, Activity, PieChart, MousePointer, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import React, { useState, useCallback, useMemo } from "react";
+import { Users, Bot, Database, Activity, PieChart, MousePointer, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,25 +12,26 @@ interface AdminSidebarProps {
   onSectionChange: (section: string) => void;
 }
 
-const AdminSidebar = ({ userProfile, onSignOut, activeSection, onSectionChange }: AdminSidebarProps) => {
+const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSectionChange }: AdminSidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { id: "overview", label: "Overview", icon: Activity },
     { id: "users", label: "Users", icon: Users },
     { id: "equipment", label: "Equipment", icon: Bot },
     { id: "database", label: "Database", icon: Database },
     { id: "tracking", label: "Tracking", icon: MousePointer },
     { id: "analytics", label: "Analytics", icon: PieChart },
-  ];
+  ], []);
 
-  const getInitials = (name: string) => {
-    return name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'A';
-  };
+  const handleToggleCollapse = useCallback(() => setCollapsed(prev => !prev), []);
+  const handleSectionChange = useCallback((section: string) => onSectionChange(section), [onSectionChange]);
+
+  const getInitials = (name: string) =>
+    name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'A';
 
   return (
     <div className={`bg-card border-r border-border flex flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
-      {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           {!collapsed && (
@@ -43,25 +43,22 @@ const AdminSidebar = ({ userProfile, onSignOut, activeSection, onSectionChange }
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={handleToggleCollapse}
             className="h-8 w-8 p-0"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
         </div>
       </div>
-
-      {/* Navigation */}
       <div className="flex-1 p-4">
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
-            
             return (
               <button
                 key={item.id}
-                onClick={() => onSectionChange(item.id)}
+                onClick={() => handleSectionChange(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive 
                     ? 'bg-primary text-primary-foreground' 
@@ -75,10 +72,7 @@ const AdminSidebar = ({ userProfile, onSignOut, activeSection, onSectionChange }
           })}
         </nav>
       </div>
-
       <Separator />
-
-      {/* User Info */}
       <div className="p-4">
         <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
           <Avatar className="h-8 w-8">
@@ -87,7 +81,6 @@ const AdminSidebar = ({ userProfile, onSignOut, activeSection, onSectionChange }
               {getInitials(userProfile?.full_name || userProfile?.email || 'Admin')}
             </AvatarFallback>
           </Avatar>
-          
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
@@ -102,7 +95,6 @@ const AdminSidebar = ({ userProfile, onSignOut, activeSection, onSectionChange }
             </div>
           )}
         </div>
-
         {!collapsed && (
           <Button
             variant="ghost"
@@ -117,6 +109,6 @@ const AdminSidebar = ({ userProfile, onSignOut, activeSection, onSectionChange }
       </div>
     </div>
   );
-};
-
+});
+AdminSidebar.displayName = 'AdminSidebar';
 export default AdminSidebar;
