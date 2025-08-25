@@ -1,3 +1,4 @@
+import React, { useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Bot, Wrench, Activity, ShoppingCart, Briefcase, Truck, DollarSign, RefreshCw } from "lucide-react";
@@ -7,7 +8,12 @@ interface AdminOverviewProps {
   onRefresh: () => void;
 }
 
-const AdminOverview = ({ dashboardStats, onRefresh }: AdminOverviewProps) => {
+const AdminOverview = React.memo(({ dashboardStats, onRefresh }: AdminOverviewProps) => {
+  const handleQuickAction = useCallback((action: string) => {
+    console.log(`Quick action: ${action}`);
+    // Implement navigation or modal opening logic here
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -166,7 +172,7 @@ const AdminOverview = ({ dashboardStats, onRefresh }: AdminOverviewProps) => {
         </Card>
       </div>
 
-      {/* Recent Activity */}
+      {/* Quick Actions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -176,19 +182,35 @@ const AdminOverview = ({ dashboardStats, onRefresh }: AdminOverviewProps) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-16 flex-col">
+            <Button 
+              variant="outline" 
+              className="h-16 flex-col"
+              onClick={() => handleQuickAction('users')}
+            >
               <Users className="h-6 w-6 mb-2" />
               Manage Users
             </Button>
-            <Button variant="outline" className="h-16 flex-col">
+            <Button 
+              variant="outline" 
+              className="h-16 flex-col"
+              onClick={() => handleQuickAction('equipment')}
+            >
               <Bot className="h-6 w-6 mb-2" />
               View Equipment
             </Button>
-            <Button variant="outline" className="h-16 flex-col">
+            <Button 
+              variant="outline" 
+              className="h-16 flex-col"
+              onClick={() => handleQuickAction('analytics')}
+            >
               <Activity className="h-6 w-6 mb-2" />
               View Analytics
             </Button>
-            <Button variant="outline" className="h-16 flex-col">
+            <Button 
+              variant="outline" 
+              className="h-16 flex-col"
+              onClick={() => handleQuickAction('reports')}
+            >
               <DollarSign className="h-6 w-6 mb-2" />
               Financial Reports
             </Button>
@@ -197,6 +219,7 @@ const AdminOverview = ({ dashboardStats, onRefresh }: AdminOverviewProps) => {
       </Card>
     </div>
   );
-};
+});
 
+AdminOverview.displayName = 'AdminOverview';
 export default AdminOverview;
