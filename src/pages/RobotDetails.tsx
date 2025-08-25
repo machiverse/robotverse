@@ -48,6 +48,10 @@ interface Robot {
   certification_standards?: string[];
   applications?: string[];
   included_accessories?: string[];
+  controller_type?: string;
+  brochure_url?: string;
+  video_url?: string;
+  video_type?: string;
   profiles: {
     full_name: string;
     company_name: string;
@@ -56,6 +60,12 @@ interface Robot {
     email: string;
     location: string;
   };
+}
+
+interface CustomField {
+  id: string;
+  field_name: string;
+  field_value: string;
 }
 
 interface AIAnalysisData {
@@ -98,6 +108,7 @@ const RobotDetails = () => {
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   

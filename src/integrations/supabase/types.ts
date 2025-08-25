@@ -751,11 +751,47 @@ export type Database = {
         }
         Relationships: []
       }
+      robot_custom_fields: {
+        Row: {
+          created_at: string
+          field_name: string
+          field_value: string
+          id: string
+          robot_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_name: string
+          field_value: string
+          id?: string
+          robot_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_name?: string
+          field_value?: string
+          id?: string
+          robot_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "robot_custom_fields_robot_id_fkey"
+            columns: ["robot_id"]
+            isOneToOne: false
+            referencedRelation: "robots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       robots: {
         Row: {
           applications: string[] | null
           availability: string | null
           brand: string | null
+          brochure_url: string | null
           category_tags: string[] | null
           certification_standards: string[] | null
           condition: string | null
@@ -785,6 +821,8 @@ export type Database = {
           technical_specifications: Json | null
           training_included: boolean
           updated_at: string | null
+          video_type: string | null
+          video_url: string | null
           warranty_info: string | null
           year_manufactured: number | null
         }
@@ -792,6 +830,7 @@ export type Database = {
           applications?: string[] | null
           availability?: string | null
           brand?: string | null
+          brochure_url?: string | null
           category_tags?: string[] | null
           certification_standards?: string[] | null
           condition?: string | null
@@ -821,6 +860,8 @@ export type Database = {
           technical_specifications?: Json | null
           training_included?: boolean
           updated_at?: string | null
+          video_type?: string | null
+          video_url?: string | null
           warranty_info?: string | null
           year_manufactured?: number | null
         }
@@ -828,6 +869,7 @@ export type Database = {
           applications?: string[] | null
           availability?: string | null
           brand?: string | null
+          brochure_url?: string | null
           category_tags?: string[] | null
           certification_standards?: string[] | null
           condition?: string | null
@@ -857,6 +899,8 @@ export type Database = {
           technical_specifications?: Json | null
           training_included?: boolean
           updated_at?: string | null
+          video_type?: string | null
+          video_url?: string | null
           warranty_info?: string | null
           year_manufactured?: number | null
         }
