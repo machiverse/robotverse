@@ -9,20 +9,32 @@ interface UserProfile {
   email: string;
   full_name?: string;
   avatar_url?: string;
-  account_type: 'admin' | 'buyer' | 'seller' | 'service' | 'logistics' | 'finance';
+  account_type: string;
   user_type?: string;
   user_roles?: string[];
   primary_user_type?: string;
   registration_complete?: boolean;
   created_at: string;
+  [key: string]: any; // Allow additional properties from Supabase
 }
 
 interface Equipment {
   id: string;
-  price: number | string;
-  availability?: 'available' | 'sold';
+  price?: number | string;
+  availability?: string;
   quantity?: number;
   created_at: string;
+  [key: string]: any; // Allow additional properties from Supabase
+}
+
+interface Service {
+  id: string;
+  name: string;
+  service_type: string;
+  description?: string;
+  price_range?: string;
+  created_at: string;
+  [key: string]: any; // Allow additional properties from Supabase
 }
 
 interface DashboardStats {
@@ -60,7 +72,7 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [robots, setRobots] = useState<Equipment[]>([]);
-  const [services, setServices] = useState<Equipment[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [spareParts, setSpareParts] = useState<Equipment[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
