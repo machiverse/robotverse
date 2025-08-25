@@ -1,1 +1,1 @@
-export { default } from '@/components/AdminDashboardFixed';
+export { default } from '../AdminDashboardFixed';
