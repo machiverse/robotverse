@@ -1,3 +1,1 @@
-import AdminDashboardFixed from '../AdminDashboardFixed';
-
-export default AdminDashboardFixed;
+export { default } from '../AdminDashboardFixed';
