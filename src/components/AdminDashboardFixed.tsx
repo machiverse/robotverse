@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Bot, Wrench, Cog, FileText, MousePointer, PieChart, Activity, ShoppingCart, Briefcase, Truck, DollarSign } from "lucide-react";
+import { Users, Bot, Wrench, Cog, FileText, MousePointer, PieChart, Activity, ShoppingCart, Briefcase, Truck, DollarSign, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ButtonTrackingDashboard from "@/components/ButtonTrackingDashboard";
+import DatabaseTableManager from "@/components/DatabaseTableManager";
 
 interface AdminDashboardProps {
   userProfile: any;
@@ -324,14 +325,18 @@ const AdminDashboardFixed = ({ userProfile }: AdminDashboardProps) => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 h-12">
+        <TabsList className="grid w-full grid-cols-4 h-12">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Overview
           </TabsTrigger>
+          <TabsTrigger value="database" className="flex items-center gap-2">
+            <Database className="w-4 h-4" />
+            Database
+          </TabsTrigger>
           <TabsTrigger value="button-tracking" className="flex items-center gap-2">
             <MousePointer className="w-4 h-4" />
-            Button Tracking
+            Tracking
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <PieChart className="w-4 h-4" />
@@ -390,6 +395,24 @@ const AdminDashboardFixed = ({ userProfile }: AdminDashboardProps) => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Database Management Tab */}
+        <TabsContent value="database" className="mt-6">
+          <div className="mb-4">
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-red-800">Database Management</h3>
+                    <p className="text-sm text-red-600">View, edit, and delete all database records. Use with caution!</p>
+                  </div>
+                  <Database className="w-8 h-8 text-red-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <DatabaseTableManager />
         </TabsContent>
 
         {/* Button Tracking Tab */}
