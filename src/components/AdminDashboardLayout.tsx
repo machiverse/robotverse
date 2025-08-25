@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,20 +20,14 @@ interface AdminDashboardLayoutProps {
   onRefresh: () => void;
 }
 
-const AdminDashboardLayout = ({ 
-  userProfile, 
-  dashboardStats, 
-  users, 
-  robots, 
-  services, 
-  spareParts,
-  onRefresh 
+const AdminDashboardLayout = React.memo(({
+  userProfile, dashboardStats, users, robots, services, spareParts, onRefresh
 }: AdminDashboardLayoutProps) => {
   const [activeSection, setActiveSection] = useState("overview");
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
       navigate('/auth');
@@ -49,9 +43,13 @@ const AdminDashboardLayout = ({
         variant: "destructive",
       });
     }
-  };
+  }, [navigate, toast]);
 
-  const renderContent = () => {
+  const handleSectionChange = useCallback((section: string) => {
+    setActiveSection(section);
+  }, []);
+
+  const renderContent = useCallback(() => {
     switch (activeSection) {
       case "overview":
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
@@ -68,7 +66,7 @@ const AdminDashboardLayout = ({
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
-  };
+  }, [activeSection, dashboardStats, users, robots, services, spareParts, onRefresh]);
 
   return (
     <div className="flex h-screen bg-background">
@@ -76,11 +74,9 @@ const AdminDashboardLayout = ({
         userProfile={userProfile}
         onSignOut={handleSignOut}
         activeSection={activeSection}
-        onSectionChange={setActiveSection}
+        onSectionChange={handleSectionChange}
       />
-      
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Main Content */}
         <div className="flex-1 overflow-auto">
           <div className="p-6">
             {renderContent()}
@@ -89,6 +85,6 @@ const AdminDashboardLayout = ({
       </div>
     </div>
   );
-};
-
+});
+AdminDashboardLayout.displayName = 'AdminDashboardLayout';
 export default AdminDashboardLayout;
