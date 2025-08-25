@@ -111,13 +111,6 @@ const RobotListings = () => {
     trendingTypes: [] as string[],
   });
 const [activeCompanyIndex, setActiveCompanyIndex] = useState(0);
-const companyEntries = Object.entries(getCompanyGroups());
-useEffect(() => {
-  const interval = setInterval(() => {
-    setActiveCompanyIndex(prev => (prev + 1) % companyEntries.length);
-  }, 10000);
-  return () => clearInterval(interval);
-}, [companyEntries.length]);
 
 
   // Unique lists for filter dropdowns
@@ -533,6 +526,17 @@ useEffect(() => {
   // Determine groups for rendering
   const companyGroups = getCompanyGroups();
   const categoryGroups = getCategoryGroups();
+  const companyEntries = Object.entries(companyGroups);
+  
+  // Auto-rotate companies if there are any
+  useEffect(() => {
+    if (companyEntries.length > 0) {
+      const interval = setInterval(() => {
+        setActiveCompanyIndex(prev => (prev + 1) % companyEntries.length);
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [companyEntries.length]);
 
   return (
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
@@ -793,20 +797,16 @@ useEffect(() => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(groupBy === "company"
-              ? Object.entries(getCompanyGroups()).slice(0, displayCount)
-              : Object.entries(getCategoryGroups()).slice(0, displayCount)
+              ? Object.entries(companyGroups).slice(0, displayCount)
+              : Object.entries(categoryGroups).slice(0, displayCount)
             ).map(([groupKey, groupRobots]) =>
               groupBy === "company" ? (
-                <div className="w-full">
-  {companyEntries.length > 0 && (
-    <SellerRobotCarousel
-      key={companyEntries[activeCompanyIndex]}
-      sellerRobots={companyEntries[activeCompanyIndex]}
-      sellerProfile={sellerProfiles[companyEntries[activeCompanyIndex]] || {}}
-      imageClassName="w-full h-full object-cover rounded-lg"
-    />
-  )}
-</div>
+                <SellerRobotCarousel
+                  key={groupKey}
+                  sellerRobots={groupRobots}
+                  sellerProfile={sellerProfiles[groupKey] || {}}
+                  imageClassName="w-full h-full object-cover rounded-lg"
+                />
               ) : (
                 <CategoryRobotCarousel
                   key={groupKey}
