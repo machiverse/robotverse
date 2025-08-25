@@ -9,32 +9,23 @@ interface UserProfile {
   email: string;
   full_name?: string;
   avatar_url?: string;
-  account_type: string;
+  company_name?: string;
+  phone?: string;
+  account_type: 'admin' | 'buyer' | 'seller' | 'service' | 'logistics' | 'finance';
   user_type?: string;
   user_roles?: string[];
   primary_user_type?: string;
   registration_complete?: boolean;
   created_at: string;
-  [key: string]: any; // Allow additional properties from Supabase
 }
 
 interface Equipment {
   id: string;
-  price?: number | string;
-  availability?: string;
+  name?: string;
+  price: number | string;
+  availability?: 'available' | 'sold';
   quantity?: number;
   created_at: string;
-  [key: string]: any; // Allow additional properties from Supabase
-}
-
-interface Service {
-  id: string;
-  name: string;
-  service_type: string;
-  description?: string;
-  price_range?: string;
-  created_at: string;
-  [key: string]: any; // Allow additional properties from Supabase
 }
 
 interface DashboardStats {
@@ -72,7 +63,7 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [robots, setRobots] = useState<Equipment[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Equipment[]>([]);
   const [spareParts, setSpareParts] = useState<Equipment[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,11 +71,12 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
 
   const isAdmin = useMemo((): boolean => {
     if (!userProfile) return false;
-    return (userProfile.email && ADMIN_EMAILS.includes(userProfile.email as any)) ||
-      userProfile.account_type === 'admin';
+    return (
+      (userProfile.email && ADMIN_EMAILS.includes(userProfile.email as any)) ||
+      userProfile.account_type === 'admin'
+    );
   }, [userProfile?.email, userProfile?.account_type]);
 
-  // --- Stats Calculations Memoized ---
   const dashboardStats = useMemo((): DashboardStats => {
     if (!users.length) {
       return {
@@ -98,11 +90,11 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
         }
       };
     }
+
     const totalUsers = users.length;
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    // --- Categorize Users
     const userCounts = users.reduce((acc, u) => {
       // Buyer
       if (
@@ -150,8 +142,7 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
         (u.user_roles && u.user_roles.includes('admin'))
       ) acc.admins++;
 
-      if (u.registration_complete)
-        acc.active++;
+      if (u.registration_complete) acc.active++;
 
       // New this month
       const createdDate = new Date(u.created_at);
@@ -190,12 +181,13 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
     };
   }, [users, robots, services, spareParts]);
 
-  // --- Data fetching logic, memoized ---
   const fetchAllData = useCallback(async () => {
     if (!isAdmin) return;
+    
     try {
       setLoading(true);
       setError(null);
+      
       const [
         usersResult,
         robotsResult, 
@@ -209,22 +201,30 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
         supabase.from('spare_parts').select('*').order('created_at', { ascending: false }),
         supabase.from('document_uploads').select('*').order('uploaded_at', { ascending: false })
       ]);
-      // Users
-      if (usersResult.status === 'fulfilled' && usersResult.value.data) setUsers(usersResult.value.data);
-      if (robotsResult.status === 'fulfilled' && robotsResult.value.data) setRobots(robotsResult.value.data);
-      if (servicesResult.status === 'fulfilled' && servicesResult.value.data) setServices(servicesResult.value.data);
-      if (sparePartsResult.status === 'fulfilled' && sparePartsResult.value.data) setSpareParts(sparePartsResult.value.data);
-      if (documentsResult.status === 'fulfilled' && documentsResult.value.data) setDocuments(documentsResult.value.data);
 
-      // If any failed, show error
-      if (
-        usersResult.status === 'rejected' ||
-        robotsResult.status === 'rejected' ||
-        servicesResult.status === 'rejected' ||
-        sparePartsResult.status === 'rejected' ||
-        documentsResult.status === 'rejected'
-      ) {
-        setError('One or more data fetches failed');
+      // Process results
+      if (usersResult.status === 'fulfilled' && usersResult.value.data) {
+        setUsers(usersResult.value.data);
+      }
+      if (robotsResult.status === 'fulfilled' && robotsResult.value.data) {
+        setRobots(robotsResult.value.data);
+      }
+      if (servicesResult.status === 'fulfilled' && servicesResult.value.data) {
+        setServices(servicesResult.value.data);
+      }
+      if (sparePartsResult.status === 'fulfilled' && sparePartsResult.value.data) {
+        setSpareParts(sparePartsResult.value.data);
+      }
+      if (documentsResult.status === 'fulfilled' && documentsResult.value.data) {
+        setDocuments(documentsResult.value.data);
+      }
+
+      // Check for errors
+      const hasErrors = [usersResult, robotsResult, servicesResult, sparePartsResult, documentsResult]
+        .some(result => result.status === 'rejected');
+      
+      if (hasErrors) {
+        setError('Some data failed to load');
       }
 
     } catch (error) {
@@ -241,8 +241,9 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
   }, [isAdmin, toast]);
 
   useEffect(() => {
-    if (isAdmin) fetchAllData();
-    // eslint-disable-next-line
+    if (isAdmin) {
+      fetchAllData();
+    }
   }, [isAdmin, fetchAllData]);
 
   if (!isAdmin) {
@@ -259,6 +260,7 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
       </div>
     );
   }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -271,6 +273,7 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -304,5 +307,6 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
     />
   );
 });
+
 AdminDashboardFixed.displayName = 'AdminDashboardFixed';
 export default AdminDashboardFixed;
