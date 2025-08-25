@@ -61,8 +61,8 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
     description: "Professional maintenance & repair",
     icon: Settings,
     stats: {
-      requests: 0,
       providers: 0,
+      locations: 0,
     },
     gradient: "from-purple-500 to-violet-600",
     href: "/services",
@@ -104,8 +104,8 @@ const MarketplaceCategories = () => {
           { data: robotLocationsData, error: robotLocError },
           { data: partsData, error: partsError },
           { data: suppliersData, error: suppliersError },
-          { data: serviceRequestsData, error: serviceReqError },
           { data: serviceProvidersData, error: serviceProvError },
+          { data: serviceLocationsData, error: serviceLocError },
           { data: logisticsData, error: logisticsError },
           { data: financeData, error: financeError },
         ] = await Promise.all([
@@ -113,8 +113,8 @@ const MarketplaceCategories = () => {
           supabase.from("robots").select("location"),
           supabase.from("spare_parts").select("id"),
           supabase.from("spare_parts").select("seller_id"),
-          supabase.from("service_requests").select("id"),
           supabase.from("services").select("provider_id"),
+          supabase.from("services").select("location"),
           supabase.from("logistics_services").select("id, coverage_areas").eq("is_active", true),
           supabase.from("loan_products").select("id, provider_id").eq("is_active", true),
         ]);
@@ -123,8 +123,8 @@ const MarketplaceCategories = () => {
         if (robotLocError) console.error("Robot locations error:", robotLocError);
         if (partsError) console.error("Parts error:", partsError);
         if (suppliersError) console.error("Suppliers error:", suppliersError);
-        if (serviceReqError) console.error("Service requests error:", serviceReqError);
         if (serviceProvError) console.error("Service providers error:", serviceProvError);
+        if (serviceLocError) console.error("Service locations error:", serviceLocError);
         if (logisticsError) console.error("Logistics error:", logisticsError);
         if (financeError) console.error("Finance error:", financeError);
 
@@ -136,9 +136,11 @@ const MarketplaceCategories = () => {
         const uniqueSellerIds = new Set(suppliersData?.map(item => item.seller_id) ?? []);
         const suppliersCount = uniqueSellerIds.size;
 
-        const activeRequestsCount = serviceRequestsData?.length ?? 0;
         const uniqueProviderIds = new Set(serviceProvidersData?.map(item => item.provider_id) ?? []);
         const serviceProvidersCount = uniqueProviderIds.size;
+        
+        const uniqueServiceLocations = new Set(serviceLocationsData?.map(item => item.location).filter(Boolean) ?? []);
+        const serviceLocationsCount = uniqueServiceLocations.size;
 
         const logisticsServicesCount = logisticsData?.length ?? 0;
         const allCoverageAreas = logisticsData?.flatMap(service => service.coverage_areas ?? []) ?? [];
@@ -157,7 +159,7 @@ const MarketplaceCategories = () => {
               case "parts":
                 return { ...category, stats: { listings: partsListingsCount, suppliers: suppliersCount } };
               case "services":
-                return { ...category, stats: { requests: activeRequestsCount, providers: serviceProvidersCount } };
+                return { ...category, stats: { providers: serviceProvidersCount, locations: serviceLocationsCount } };
               case "logistics":
                 return { ...category, stats: { services: logisticsServicesCount, coverage: logisticsCoverageCount } };
               case "finance":
@@ -208,7 +210,6 @@ const MarketplaceCategories = () => {
                             {key === "listings" && <TrendingUp className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "locations" && <MapPin className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "suppliers" && <Users className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "requests" && <Clock className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "providers" && <Settings className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "services" && <Truck className="w-4 h-4 text-primary" aria-hidden="true" />}
                             {key === "products" && <CreditCard className="w-4 h-4 text-primary" aria-hidden="true" />}
@@ -221,8 +222,6 @@ const MarketplaceCategories = () => {
                                 ? "Locations available"
                                 : key === "suppliers"
                                 ? "Suppliers"
-                                : key === "requests"
-                                ? "Active requests"
                                 : key === "providers"
                                 ? "Service providers"
                                 : key === "services"
