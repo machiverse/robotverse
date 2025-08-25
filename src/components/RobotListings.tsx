@@ -94,10 +94,13 @@ const RobotListings = () => {
   const [conditionFilter, setConditionFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
+  const [brandFilter, setBrandFilter] = useState('all');
+  const [companyFilter, setCompanyFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [displayCount, setDisplayCount] = useState(8);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
 
   // Enhanced stats
   const [marketStats, setMarketStats] = useState({
@@ -115,7 +118,11 @@ const RobotListings = () => {
 
   useEffect(() => {
     filterAndSortRobots();
-  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, sortBy]);
+  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, brandFilter, companyFilter, sortBy]);
+
+  useEffect(() => {
+    fetchViewCounts();
+  }, [robots]);
 
   const fetchRobots = async () => {
     try {
@@ -153,6 +160,31 @@ const RobotListings = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchViewCounts = async () => {
+    try {
+      const robotIds = robots.map(r => r.id);
+      if (robotIds.length === 0) return;
+
+      const { data, error } = await supabase
+        .from('user_interactions')
+        .select('target_id')
+        .eq('interaction_type', 'view')
+        .eq('target_type', 'robot')
+        .in('target_id', robotIds);
+
+      if (error) throw error;
+
+      const counts = (data || []).reduce((acc, item) => {
+        acc[item.target_id] = (acc[item.target_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setViewCounts(counts);
+    } catch (error) {
+      console.error('Error fetching view counts:', error);
     }
   };
 
@@ -217,6 +249,7 @@ const RobotListings = () => {
         robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         robot.robot_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         robot.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        robot.profiles?.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         robot.category_tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
@@ -224,6 +257,16 @@ const RobotListings = () => {
     // Type filter
     if (typeFilter !== 'all') {
       filtered = filtered.filter(robot => robot.robot_type === typeFilter);
+    }
+
+    // Brand filter
+    if (brandFilter !== 'all') {
+      filtered = filtered.filter(robot => robot.brand === brandFilter);
+    }
+
+    // Company filter
+    if (companyFilter !== 'all') {
+      filtered = filtered.filter(robot => robot.profiles?.company_name === companyFilter);
     }
 
     // Price filter
@@ -263,6 +306,8 @@ const RobotListings = () => {
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case 'popular':
+          return (viewCounts[b.id] || 0) - (viewCounts[a.id] || 0);
         case 'newest':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'oldest':
@@ -275,6 +320,10 @@ const RobotListings = () => {
           return (a.name || '').localeCompare(b.name || '');
         case 'name-za':
           return (b.name || '').localeCompare(a.name || '');
+        case 'brand-az':
+          return (a.brand || '').localeCompare(b.brand || '');
+        case 'company-az':
+          return (a.profiles?.company_name || '').localeCompare(b.profiles?.company_name || '');
         default:
           return 0;
       }
@@ -365,8 +414,15 @@ const RobotListings = () => {
   };
 
   const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
+  const uniqueBrands = [...new Set(robots.map(r => r.brand).filter(Boolean))];
+  const uniqueCompanies = [...new Set(robots.map(r => r.profiles?.company_name).filter(Boolean))];
   const uniqueLocations = [...new Set(robots.map(r => r.location?.split(',')[0]).filter(Boolean))];
   const uniqueStates = [...new Set(robots.map(r => r.state).filter(Boolean))];
+
+  // Get most popular robots (top 8 by view count)
+  const popularRobots = [...filteredRobots]
+    .sort((a, b) => (viewCounts[b.id] || 0) - (viewCounts[a.id] || 0))
+    .slice(0, 8);
 
   if (loading) {
     return (
@@ -494,6 +550,30 @@ const RobotListings = () => {
                   </SelectContent>
                 </Select>
 
+                <Select value={brandFilter} onValueChange={setBrandFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Brands</SelectItem>
+                    {uniqueBrands.map(brand => (
+                      <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Companies</SelectItem>
+                    {uniqueCompanies.map(company => (
+                      <SelectItem key={company} value={company}>{company}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 <Select value={priceFilter} onValueChange={setPriceFilter}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Price" />
@@ -593,14 +673,17 @@ const RobotListings = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="name-az">Name: A to Z</SelectItem>
-                      <SelectItem value="name-za">Name: Z to A</SelectItem>
-                    </SelectContent>
+                     <SelectContent>
+                       <SelectItem value="popular">Most Popular</SelectItem>
+                       <SelectItem value="newest">Newest First</SelectItem>
+                       <SelectItem value="oldest">Oldest First</SelectItem>
+                       <SelectItem value="price-low">Price: Low to High</SelectItem>
+                       <SelectItem value="price-high">Price: High to Low</SelectItem>
+                       <SelectItem value="name-az">Name: A to Z</SelectItem>
+                       <SelectItem value="name-za">Name: Z to A</SelectItem>
+                       <SelectItem value="brand-az">Brand: A to Z</SelectItem>
+                       <SelectItem value="company-az">Company: A to Z</SelectItem>
+                     </SelectContent>
                   </Select>
 
                   <Button
@@ -612,7 +695,9 @@ const RobotListings = () => {
                       setConditionFilter('all');
                       setLocationFilter('all');
                       setStateFilter('all');
-                      setSortBy('newest');
+                       setBrandFilter('all');
+                       setCompanyFilter('all');
+                       setSortBy('popular');
                     }}
                   >
                     Clear Filters
@@ -633,6 +718,82 @@ const RobotListings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Most Popular Robots Section */}
+        {popularRobots.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold flex items-center">
+                <TrendingUp className="w-6 h-6 mr-2 text-orange-500" />
+                Most Popular Robots
+              </h3>
+              <Button variant="outline" onClick={() => navigate('/robots')}>
+                View All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {popularRobots.map((robot) => (
+                <Card 
+                  key={robot.id} 
+                  className="group hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border-orange-200"
+                  onClick={() => navigate(`/robots/${robot.id}`)}
+                >
+                  <div className="relative h-48 bg-gradient-to-br from-orange-50 to-orange-100">
+                    {robot.images && robot.images.length > 0 ? (
+                      <img
+                        src={robot.images[0]}
+                        alt={robot.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Bot className="w-16 h-16 text-orange-400" />
+                      </div>
+                    )}
+                    
+                    <div className="absolute top-2 left-2">
+                      <Badge className="bg-orange-500 text-white">
+                        🔥 Popular
+                      </Badge>
+                    </div>
+                    
+                    <div className="absolute top-2 right-2 flex items-center bg-white/90 px-2 py-1 rounded-full">
+                      <Eye className="w-3 h-3 mr-1 text-orange-600" />
+                      <span className="text-xs font-medium text-orange-600">
+                        {viewCounts[robot.id] || 0} views
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <h4 className="font-bold text-lg mb-1 line-clamp-1">
+                      {robot.name}
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {robot.brand} • {robot.robot_type}
+                    </p>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-lg font-bold text-orange-600">
+                        {formatPrice(robot.price, robot.currency)}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {robot.profiles?.company_name}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center text-xs text-muted-foreground mb-3">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {robot.location}
+                    </div>
+                    <Button size="sm" className="w-full bg-orange-500 hover:bg-orange-600">
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Robot Listings */}
         {filteredRobots.length === 0 ? (
@@ -660,7 +821,9 @@ const RobotListings = () => {
                       setPriceFilter('all');
                       setConditionFilter('all');
                       setLocationFilter('all');
-                      setStateFilter('all');
+                       setStateFilter('all');
+                       setBrandFilter('all');
+                       setCompanyFilter('all');
                     }}
                   >
                     Clear Filters
