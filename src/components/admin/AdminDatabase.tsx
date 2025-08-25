@@ -1,8 +1,8 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Database } from "lucide-react";
-import DatabaseTableManager from "@/components/DatabaseTableManager";
 
-const AdminDatabase = () => {
+const AdminDatabase = React.memo(() => {
   return (
     <div className="space-y-6">
       <div>
@@ -24,9 +24,20 @@ const AdminDatabase = () => {
         </CardContent>
       </Card>
 
-      <DatabaseTableManager />
+      {/* Placeholder for DatabaseTableManager component */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Database Tables</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Database table management component would be rendered here.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
-};
+});
 
+AdminDatabase.displayName = 'AdminDatabase';
 export default AdminDatabase;
