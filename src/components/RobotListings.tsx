@@ -301,7 +301,7 @@ const RobotListings = () => {
       const range = ranges[priceFilter as keyof typeof ranges];
       if (range) {
         filtered = filtered.filter(
-          (robot) => robot.price >= range && robot.price < range[1]
+          (robot) => robot.price >= range[0] && robot.price < range[1]
         );
       }
     }
@@ -589,15 +589,15 @@ const RobotListings = () => {
           <div className="w-full">
             {groupBy === "company" && companyEntries.length > 0 ? (
               <SellerRobotCarousel
-                key={companyEntries[activeCompanyIndex]}
+                key={companyEntries[activeCompanyIndex][0]}
                 sellerRobots={companyEntries[activeCompanyIndex][1]}
-                sellerProfile={sellerProfiles[companyEntries[activeCompanyIndex]] || {}}
+                sellerProfile={sellerProfiles[companyEntries[activeCompanyIndex][0]] || {}}
                 imageClassName="w-full h-full object-cover rounded-lg"
               />
             ) : groupBy === "category" && categoryEntries.length > 0 ? (
               <CategoryRobotCarousel
-                key={categoryEntries[activeCompanyIndex]}
-                category={categoryEntries[activeCompanyIndex]}
+                key={categoryEntries[activeCompanyIndex][0]}
+                category={categoryEntries[activeCompanyIndex][0]}
                 robots={categoryEntries[activeCompanyIndex][1]}
                 imageClassName="w-full h-full object-cover rounded-lg"
               />
