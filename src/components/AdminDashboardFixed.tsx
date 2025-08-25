@@ -9,7 +9,7 @@ interface UserProfile {
   email: string;
   full_name?: string;
   avatar_url?: string;
-  account_type: 'admin' | 'buyer' | 'seller' | 'service' | 'logistics' | 'finance';
+  account_type: string;
   user_type?: string;
   user_roles?: string[];
   primary_user_type?: string;
@@ -19,8 +19,8 @@ interface UserProfile {
 
 interface Equipment {
   id: string;
-  price: number | string;
-  availability?: 'available' | 'sold';
+  price?: number | string;
+  availability?: string;
   quantity?: number;
   created_at: string;
 }
