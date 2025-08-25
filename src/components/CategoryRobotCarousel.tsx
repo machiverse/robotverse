@@ -86,8 +86,8 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
   };
 
   const handleCardClick = () => {
-    // Navigate to category page showing all robots of this type
-    navigate(`/robots?category=${encodeURIComponent(category)}`);
+    // Navigate to robots page with category filter
+    navigate(`/robots?category=${encodeURIComponent(category)}&groupBy=all`);
   };
 
   const handleViewRobot = async (robot: Robot, e: React.MouseEvent) => {
@@ -109,7 +109,7 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
       }
     });
     
-    navigate(`/robot/${robot.id}`);
+    navigate(`/robots/${robot.id}`);
   };
 
   const robotCount = robots.length;

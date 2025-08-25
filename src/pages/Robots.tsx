@@ -54,6 +54,20 @@ const Robots = () => {
   ]);
   const [robotTypes, setRobotTypes] = useState([{ value: "all", label: "All Types" }]);
 
+  // Check URL params and set filters accordingly
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryParam = urlParams.get('category');
+    const groupByParam = urlParams.get('groupBy');
+    
+    if (categoryParam) {
+      setSelectedCategory(categoryParam.toLowerCase().replace(/\s+/g, "-"));
+    }
+    if (groupByParam) {
+      setGroupBy(groupByParam as "company" | "category" | "all");
+    }
+  }, []);
+
   // Fetch robots + filters on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -581,37 +595,47 @@ const Robots = () => {
                 return (
                   <div key={key} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {robotsGroup.map((robot) => (
-                      <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/robots/${robot.id}`)}>
-                        <div className="aspect-video relative">
+                      <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => navigate(`/robots/${robot.id}`)}>
+                        <div className="aspect-video relative overflow-hidden">
                           <img
                             src={robot.images?.[0] || "/placeholder.svg"}
                             alt={robot.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           <div className="absolute top-2 right-2">
                             <ViewCountDisplay targetType="robots" targetId={robot.id} />
                           </div>
-                        </div>
-                        <CardContent className="p-4">
-                          <div className="space-y-2">
-                            <h3 className="font-semibold line-clamp-1">{robot.name}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-1">{robot.model}</p>
-                            <div className="flex items-center justify-between">
-                              <Badge variant="secondary">{robot.robot_type}</Badge>
-                              <Badge variant={robot.condition === 'new' ? 'default' : 'outline'}>
+                          {robot.condition && (
+                            <div className="absolute top-2 left-2">
+                              <Badge variant={robot.condition === 'new' ? 'default' : 'secondary'} className="text-xs">
                                 {robot.condition}
                               </Badge>
                             </div>
+                          )}
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div>
+                              <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">{robot.name}</h3>
+                              <p className="text-sm text-muted-foreground line-clamp-1">{robot.model}</p>
+                            </div>
+                            
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-lg">
+                              <Badge variant="outline" className="text-xs">{robot.robot_type}</Badge>
+                              <span className="text-xs text-muted-foreground">{robot.location}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-xl text-primary">
                                 {formatPrice(robot.price, robot.currency)}
                               </span>
-                              <span className="text-sm text-muted-foreground">
-                                {robot.location}
-                              </span>
+                              <Badge variant="secondary" className="text-xs">
+                                {robot.availability}
+                              </Badge>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              by {robot.profiles?.company_name || robot.profiles?.full_name}
+                            
+                            <div className="text-xs text-muted-foreground border-t pt-2">
+                              <span className="font-medium">by {robot.profiles?.company_name || robot.profiles?.full_name}</span>
                             </div>
                           </div>
                         </CardContent>
