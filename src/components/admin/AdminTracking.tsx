@@ -1,8 +1,8 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MousePointer } from "lucide-react";
-import ButtonTrackingDashboard from "@/components/ButtonTrackingDashboard";
 
-const AdminTracking = () => {
+const AdminTracking = React.memo(() => {
   return (
     <div className="space-y-6">
       <div>
@@ -24,9 +24,20 @@ const AdminTracking = () => {
         </CardContent>
       </Card>
 
-      <ButtonTrackingDashboard />
+      {/* Placeholder for ButtonTrackingDashboard component */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Interaction Analytics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Button tracking dashboard component would be rendered here.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
-};
+});
 
+AdminTracking.displayName = 'AdminTracking';
 export default AdminTracking;
