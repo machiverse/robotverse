@@ -416,7 +416,7 @@ const Services = () => {
       </div>
 
       {/* Custom Scrollbar Styles */}
-      <style jsx>{`
+      <style>{`
         .h-20::-webkit-scrollbar {
           width: 4px;
         }
