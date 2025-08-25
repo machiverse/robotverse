@@ -1,21 +1,29 @@
-// src/components/AdminDashboardFixed.tsx
-
-import { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AdminDashboardLayout from "@/components/AdminDashboardLayout";
 
-// TypeScript interfaces for props and data states
-interface AdminDashboardProps {
-  userProfile: any;
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  account_type: 'admin' | 'buyer' | 'seller' | 'service' | 'logistics' | 'finance';
+  user_type?: string;
+  user_roles?: string[];
+  primary_user_type?: string;
+  registration_complete?: boolean;
+  created_at: string;
 }
 
-// List of admin emails authorized to view
-const ADMIN_EMAILS = [
-  'mark.it@keyleerkorb.com',
-  'mynameisrajan@gmail.com'
-];
+interface Equipment {
+  id: string;
+  price: number | string;
+  availability?: 'available' | 'sold';
+  quantity?: number;
+  created_at: string;
+}
 
 interface DashboardStats {
   users: {
@@ -39,71 +47,146 @@ interface DashboardStats {
   };
 }
 
-const AdminDashboardFixed = ({ userProfile }: AdminDashboardProps) => {
-  // Initialize toast for notifications
+interface AdminDashboardProps {
+  userProfile: UserProfile;
+}
+
+const ADMIN_EMAILS = [
+  'mark.it@keyleerkorb.com',
+  'mynameisrajan@gmail.com',
+] as const;
+
+const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) => {
   const { toast } = useToast();
-
-  // State variables for data arrays
-  const [users, setUsers] = useState<any[]>([]);
-  const [robots, setRobots] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
-  const [spareParts, setSpareParts] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [robots, setRobots] = useState<Equipment[]>([]);
+  const [services, setServices] = useState<Equipment[]>([]);
+  const [spareParts, setSpareParts] = useState<Equipment[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
-
-  // Loading state for async fetch
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // State for dashboard statistics
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
-    users: {
-      total: 0,
-      active: 0,
-      buyers: 0,
-      sellers: 0,
-      serviceProviders: 0,
-      logistics: 0,
-      finance: 0,
-      admins: 0,
-      newThisMonth: 0
-    },
-    equipment: {
-      totalRobots: 0,
-      totalSpareParts: 0,
-      totalServices: 0,
-      totalValue: 0,
-      activeListings: 0,
-      soldThisMonth: 0
+  const isAdmin = useMemo((): boolean => {
+    if (!userProfile) return false;
+    return (userProfile.email && ADMIN_EMAILS.includes(userProfile.email as any)) ||
+      userProfile.account_type === 'admin';
+  }, [userProfile?.email, userProfile?.account_type]);
+
+  // --- Stats Calculations Memoized ---
+  const dashboardStats = useMemo((): DashboardStats => {
+    if (!users.length) {
+      return {
+        users: {
+          total: 0, active: 0, buyers: 0, sellers: 0,
+          serviceProviders: 0, logistics: 0, finance: 0, admins: 0, newThisMonth: 0
+        },
+        equipment: {
+          totalRobots: 0, totalSpareParts: 0, totalServices: 0,
+          totalValue: 0, activeListings: 0, soldThisMonth: 0
+        }
+      };
     }
-  });
+    const totalUsers = users.length;
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
 
-  // Function to check if user has admin access
-  const checkAdminAccess = () => {
-    if (userProfile?.email && ADMIN_EMAILS.includes(userProfile.email)) {
-      return true;
-    }
-    if (userProfile?.account_type === 'admin') {
-      return true;
-    }
-    return false;
-  };
+    // --- Categorize Users
+    const userCounts = users.reduce((acc, u) => {
+      // Buyer
+      if (
+        u.user_type === 'buyer' ||
+        u.account_type === 'buyer' ||
+        u.primary_user_type === 'buyer' ||
+        (u.user_roles && u.user_roles.includes('buyer'))
+      ) acc.buyers++;
 
-  const isAdmin = checkAdminAccess();
+      // Seller
+      if (
+        ['robot_seller', 'parts_seller', 'seller', 'spare_parts_seller'].includes(u.user_type || '') ||
+        u.account_type === 'seller' ||
+        ['robot_seller', 'spare_parts_seller'].includes(u.primary_user_type as string) ||
+        (u.user_roles && (u.user_roles.includes('robot_seller') || u.user_roles.includes('spare_parts_seller')))
+      ) acc.sellers++;
 
-  // Fetch data when isAdmin changes
-  useEffect(() => {
-    if (isAdmin) {
-      fetchAllData();
-    }
-  }, [isAdmin]);
+      // Service Providers
+      if (
+        u.user_type === 'service_provider' ||
+        u.account_type === 'service' ||
+        u.primary_user_type === 'service_provider' ||
+        (u.user_roles && u.user_roles.includes('service_provider'))
+      ) acc.serviceProviders++;
 
-  // Function to fetch all relevant data
-  const fetchAllData = async () => {
+      // Logistics
+      if (
+        u.user_type === 'logistics_provider' ||
+        u.account_type === 'logistics' ||
+        u.primary_user_type === 'logistics_provider' ||
+        (u.user_roles && u.user_roles.includes('logistics_provider'))
+      ) acc.logistics++;
+
+      // Finance
+      if (
+        u.user_type === 'finance_provider' ||
+        u.account_type === 'finance' ||
+        u.primary_user_type === 'finance_provider' ||
+        (u.user_roles && u.user_roles.includes('finance_provider'))
+      ) acc.finance++;
+
+      // Admins
+      if (
+        u.account_type === 'admin' ||
+        (u.user_roles && u.user_roles.includes('admin'))
+      ) acc.admins++;
+
+      if (u.registration_complete)
+        acc.active++;
+
+      // New this month
+      const createdDate = new Date(u.created_at);
+      if (
+        createdDate.getMonth() === currentMonth &&
+        createdDate.getFullYear() === currentYear
+      ) acc.newThisMonth++;
+
+      return acc;
+    }, {
+      buyers: 0, sellers: 0, serviceProviders: 0, logistics: 0,
+      finance: 0, admins: 0, active: 0, newThisMonth: 0
+    });
+
+    // Equipment stats
+    const robotValue = robots.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
+    const partsValue = spareParts.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
+    const activeRobots = robots.filter(r => r.availability === 'available').length;
+    const activeParts = spareParts.filter(p => (p.quantity || 0) > 0).length;
+    const soldRobots = robots.filter(r => r.availability === 'sold').length;
+    const soldParts = spareParts.filter(p => (p.quantity || 0) === 0).length;
+
+    return {
+      users: {
+        total: totalUsers,
+        ...userCounts
+      },
+      equipment: {
+        totalRobots: robots.length,
+        totalSpareParts: spareParts.length,
+        totalServices: services.length,
+        totalValue: robotValue + partsValue,
+        activeListings: activeRobots + activeParts + services.length,
+        soldThisMonth: soldRobots + soldParts
+      }
+    };
+  }, [users, robots, services, spareParts]);
+
+  // --- Data fetching logic, memoized ---
+  const fetchAllData = useCallback(async () => {
+    if (!isAdmin) return;
     try {
       setLoading(true);
-      // Fetch various datasets in parallel
+      setError(null);
       const [
         usersResult,
-        robotsResult,
+        robotsResult, 
         servicesResult,
         sparePartsResult,
         documentsResult
@@ -114,133 +197,42 @@ const AdminDashboardFixed = ({ userProfile }: AdminDashboardProps) => {
         supabase.from('spare_parts').select('*').order('created_at', { ascending: false }),
         supabase.from('document_uploads').select('*').order('uploaded_at', { ascending: false })
       ]);
+      // Users
+      if (usersResult.status === 'fulfilled' && usersResult.value.data) setUsers(usersResult.value.data);
+      if (robotsResult.status === 'fulfilled' && robotsResult.value.data) setRobots(robotsResult.value.data);
+      if (servicesResult.status === 'fulfilled' && servicesResult.value.data) setServices(servicesResult.value.data);
+      if (sparePartsResult.status === 'fulfilled' && sparePartsResult.value.data) setSpareParts(sparePartsResult.value.data);
+      if (documentsResult.status === 'fulfilled' && documentsResult.value.data) setDocuments(documentsResult.value.data);
 
-      // Handle results and update state
-      if (usersResult.status === 'fulfilled' && usersResult.value.data) {
-        setUsers(usersResult.value.data);
-      }
-      if (robotsResult.status === 'fulfilled' && robotsResult.value.data) {
-        setRobots(robotsResult.value.data);
-      }
-      if (servicesResult.status === 'fulfilled' && servicesResult.value.data) {
-        setServices(servicesResult.value.data);
-      }
-      if (sparePartsResult.status === 'fulfilled' && sparePartsResult.value.data) {
-        setSpareParts(sparePartsResult.value.data);
-      }
-      if (documentsResult.status === 'fulfilled' && documentsResult.value.data) {
-        setDocuments(documentsResult.value.data);
+      // If any failed, show error
+      if (
+        usersResult.status === 'rejected' ||
+        robotsResult.status === 'rejected' ||
+        servicesResult.status === 'rejected' ||
+        sparePartsResult.status === 'rejected' ||
+        documentsResult.status === 'rejected'
+      ) {
+        setError('One or more data fetches failed');
       }
 
-      // Calculate stats after load
-      setTimeout(() => calculateStats(), 100);
     } catch (error) {
       console.error('Error fetching admin data:', error);
+      setError('Failed to load admin data');
       toast({
         title: "Error",
         description: "Failed to load admin data",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin, toast]);
 
-  // Function to compute dashboard stats
-  const calculateStats = () => {
-    const totalUsers = users.length;
+  useEffect(() => {
+    if (isAdmin) fetchAllData();
+    // eslint-disable-next-line
+  }, [isAdmin, fetchAllData]);
 
-    // Categorizing users by type
-    const buyers = users.filter(u =>
-      u.user_type === 'buyer' ||
-      u.account_type === 'buyer' ||
-      u.primary_user_type === 'buyer' ||
-      (u.user_roles && u.user_roles.includes('buyer'))
-    ).length;
-
-    const sellers = users.filter(u =>
-      ['robot_seller', 'parts_seller', 'seller', 'spare_parts_seller'].includes(u.user_type || '') ||
-      u.account_type === 'seller' ||
-      ['robot_seller', 'spare_parts_seller'].includes(u.primary_user_type as string) ||
-      (u.user_roles && (u.user_roles.includes('robot_seller') || u.user_roles.includes('spare_parts_seller')))
-    ).length;
-
-    const serviceProviders = users.filter(u =>
-      u.user_type === 'service_provider' ||
-      u.account_type === 'service' ||
-      u.primary_user_type === 'service_provider' ||
-      (u.user_roles && u.user_roles.includes('service_provider'))
-    ).length;
-
-    const logisticsProviders = users.filter(u =>
-      u.user_type === 'logistics_provider' ||
-      u.account_type === 'logistics' ||
-      u.primary_user_type === 'logistics_provider' ||
-      (u.user_roles && u.user_roles.includes('logistics_provider'))
-    ).length;
-
-    const financeProviders = users.filter(u =>
-      u.user_type === 'finance_provider' ||
-      u.account_type === 'finance' ||
-      u.primary_user_type === 'finance_provider' ||
-      (u.user_roles && u.user_roles.includes('finance_provider'))
-    ).length;
-
-    const admins = users.filter(u =>
-      u.account_type === 'admin' ||
-      (u.user_roles && u.user_roles.includes('admin'))
-    ).length;
-
-    // For current month stats
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    const newThisMonth = users.filter(u => {
-      const createdDate = new Date(u.created_at);
-      return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
-    }).length;
-
-    // Equipment stats
-    const totalRobots = robots.length;
-    const totalSpareParts = spareParts.length;
-    const totalServices = services.length;
-    const robotValue = robots.reduce((sum, r) => sum + (Number(r.price) || 0), 0);
-    const partsValue = spareParts.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
-    const totalValue = robotValue + partsValue;
-    const activeRobots = robots.filter(r => r.availability === 'available').length;
-    const activeParts = spareParts.filter(p => (p.quantity || 0) > 0).length;
-    const activeListings = activeRobots + activeParts + totalServices;
-
-    // Sold items this month
-    const soldRobots = robots.filter(r => r.availability === 'sold').length;
-    const soldParts = spareParts.filter(p => (p.quantity || 0) === 0).length;
-    const soldThisMonth = soldRobots + soldParts;
-
-    // Set stats state
-    setDashboardStats({
-      users: {
-        total: totalUsers,
-        active: users.filter(u => u.registration_complete).length,
-        buyers,
-        sellers,
-        serviceProviders,
-        newThisMonth,
-        logistics: logisticsProviders,
-        finance: financeProviders,
-        admins
-      },
-      equipment: {
-        totalRobots,
-        totalSpareParts,
-        totalServices,
-        totalValue,
-        activeListings,
-        soldThisMonth
-      }
-    });
-  };
-
-  // If user isn't admin, show access denied
   if (!isAdmin) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -255,8 +247,6 @@ const AdminDashboardFixed = ({ userProfile }: AdminDashboardProps) => {
       </div>
     );
   }
-
-  // Show loader if data is loading
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -269,8 +259,27 @@ const AdminDashboardFixed = ({ userProfile }: AdminDashboardProps) => {
       </div>
     );
   }
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-700">Error Loading Dashboard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchAllData}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Retry
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  // Render main dashboard layout with props
   return (
     <AdminDashboardLayout
       userProfile={userProfile}
@@ -282,6 +291,6 @@ const AdminDashboardFixed = ({ userProfile }: AdminDashboardProps) => {
       onRefresh={fetchAllData}
     />
   );
-};
-
+});
+AdminDashboardFixed.displayName = 'AdminDashboardFixed';
 export default AdminDashboardFixed;
