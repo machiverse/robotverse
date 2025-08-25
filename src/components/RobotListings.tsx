@@ -110,6 +110,15 @@ const RobotListings = () => {
     topBrands: [] as string[],
     trendingTypes: [] as string[],
   });
+const [activeCompanyIndex, setActiveCompanyIndex] = useState(0);
+const companyEntries = Object.entries(getCompanyGroups());
+useEffect(() => {
+  const interval = setInterval(() => {
+    setActiveCompanyIndex(prev => (prev + 1) % companyEntries.length);
+  }, 10000);
+  return () => clearInterval(interval);
+}, [companyEntries.length]);
+
 
   // Unique lists for filter dropdowns
   const uniqueTypes = [
@@ -788,12 +797,16 @@ const RobotListings = () => {
               : Object.entries(getCategoryGroups()).slice(0, displayCount)
             ).map(([groupKey, groupRobots]) =>
               groupBy === "company" ? (
-                <SellerRobotCarousel
-                  key={groupKey}
-                  sellerRobots={groupRobots}
-                  sellerProfile={sellerProfiles[groupKey] || {}}
-                  imageClassName="w-full h-full object-cover rounded-lg"
-                />
+                <div className="w-full">
+  {companyEntries.length > 0 && (
+    <SellerRobotCarousel
+      key={companyEntries[activeCompanyIndex]}
+      sellerRobots={companyEntries[activeCompanyIndex]}
+      sellerProfile={sellerProfiles[companyEntries[activeCompanyIndex]] || {}}
+      imageClassName="w-full h-full object-cover rounded-lg"
+    />
+  )}
+</div>
               ) : (
                 <CategoryRobotCarousel
                   key={groupKey}
