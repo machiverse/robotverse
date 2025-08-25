@@ -24,14 +24,43 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
     { id: "analytics", label: "Analytics", icon: PieChart },
   ], []);
 
-  const handleToggleCollapse = useCallback(() => setCollapsed(prev => !prev), []);
-  const handleSectionChange = useCallback((section: string) => onSectionChange(section), [onSectionChange]);
+  const handleToggleCollapse = useCallback(() => {
+    setCollapsed(prev => !prev);
+  }, []);
 
-  const getInitials = (name: string) =>
-    name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'A';
+  const handleSectionChange = useCallback((section: string) => {
+    onSectionChange(section);
+  }, [onSectionChange]);
+
+  const getInitials = useCallback((name: string) => {
+    return name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'A';
+  }, []);
+
+  const renderedMenuItems = useMemo(() => {
+    return menuItems.map((item) => {
+      const Icon = item.icon;
+      const isActive = activeSection === item.id;
+      
+      return (
+        <button
+          key={item.id}
+          onClick={() => handleSectionChange(item.id)}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            isActive 
+              ? 'bg-primary text-primary-foreground' 
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          } ${collapsed ? 'justify-center' : ''}`}
+        >
+          <Icon className="h-4 w-4 flex-shrink-0" />
+          {!collapsed && <span>{item.label}</span>}
+        </button>
+      );
+    });
+  }, [menuItems, activeSection, collapsed, handleSectionChange]);
 
   return (
     <div className={`bg-card border-r border-border flex flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+      {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           {!collapsed && (
@@ -50,29 +79,17 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
           </Button>
         </div>
       </div>
+
+      {/* Navigation */}
       <div className="flex-1 p-4">
         <nav className="space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSectionChange(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                } ${collapsed ? 'justify-center' : ''}`}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+          {renderedMenuItems}
         </nav>
       </div>
+
       <Separator />
+
+      {/* User Info */}
       <div className="p-4">
         <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
           <Avatar className="h-8 w-8">
@@ -81,6 +98,7 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
               {getInitials(userProfile?.full_name || userProfile?.email || 'Admin')}
             </AvatarFallback>
           </Avatar>
+          
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
@@ -95,6 +113,7 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
             </div>
           )}
         </div>
+
         {!collapsed && (
           <Button
             variant="ghost"
@@ -110,5 +129,6 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
     </div>
   );
 });
+
 AdminSidebar.displayName = 'AdminSidebar';
 export default AdminSidebar;
