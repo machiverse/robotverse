@@ -1313,7 +1313,143 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
             </div>
           </CardContent>
         </Card>
+{/* Custom Specification Fields */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Custom Specifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Field Name (e.g., Payload Capacity)"
+                value={newFieldName}
+                onChange={(e) => setNewFieldName(e.target.value)}
+                className="flex-1"
+              />
+              <Input
+                placeholder="Field Value (e.g., 165kg)"
+                value={newFieldValue}
+                onChange={(e) => setNewFieldValue(e.target.value)}
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                onClick={addCustomField} 
+                size="sm" 
+                disabled={!newFieldName.trim() || !newFieldValue.trim()}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {customFields.length > 0 && (
+              <div className="space-y-2">
+                <Label>Custom Fields</Label>
+                <div className="grid gap-2">
+                  {customFields.map((field, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <span className="font-medium">{field.field_name}:</span>
+                        <span className="ml-2">{field.field_value}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCustomField(index)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
+        {/* Documents and Media */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Documents & Media
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Brochure Upload */}
+            <div className="space-y-2">
+              <Label>Brochure/Datasheet (PDF)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleBrochureUpload}
+                  className="flex-1"
+                />
+                {brochureFile && (
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <FileText className="w-4 h-4" />
+                    {brochureFile.name}
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">Upload robot brochure or datasheet (PDF, max 10MB)</p>
+            </div>
+
+            {/* Video Upload */}
+            <div className="space-y-4">
+              <Label>Video</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={videoType === 'upload' ? 'default' : 'outline'}
+                  onClick={() => setVideoType('upload')}
+                  size="sm"
+                >
+                  Upload Video
+                </Button>
+                <Button
+                  type="button"
+                  variant={videoType === 'youtube' ? 'default' : 'outline'}
+                  onClick={() => setVideoType('youtube')}
+                  size="sm"
+                >
+                  YouTube Link
+                </Button>
+              </div>
+
+              {videoType === 'upload' ? (
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                  />
+                  {videoFile && (
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <Camera className="w-4 h-4" />
+                      {videoFile.name}
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">Upload robot demonstration video (max 100MB)</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">Add YouTube link for robot demonstration</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         {/* Pricing */}
         <Card>
           <CardHeader>
@@ -1613,145 +1749,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           </CardContent>
         </Card>
 
-        {/* Custom Specification Fields */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              Custom Specifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Field Name (e.g., Payload Capacity)"
-                value={newFieldName}
-                onChange={(e) => setNewFieldName(e.target.value)}
-                className="flex-1"
-              />
-              <Input
-                placeholder="Field Value (e.g., 165kg)"
-                value={newFieldValue}
-                onChange={(e) => setNewFieldValue(e.target.value)}
-                className="flex-1"
-              />
-              <Button 
-                type="button" 
-                onClick={addCustomField} 
-                size="sm" 
-                disabled={!newFieldName.trim() || !newFieldValue.trim()}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            {customFields.length > 0 && (
-              <div className="space-y-2">
-                <Label>Custom Fields</Label>
-                <div className="grid gap-2">
-                  {customFields.map((field, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div>
-                        <span className="font-medium">{field.field_name}:</span>
-                        <span className="ml-2">{field.field_value}</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeCustomField(index)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Documents and Media */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Documents & Media
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Brochure Upload */}
-            <div className="space-y-2">
-              <Label>Brochure/Datasheet (PDF)</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleBrochureUpload}
-                  className="flex-1"
-                />
-                {brochureFile && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <FileText className="w-4 h-4" />
-                    {brochureFile.name}
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">Upload robot brochure or datasheet (PDF, max 10MB)</p>
-            </div>
-
-            {/* Video Upload */}
-            <div className="space-y-4">
-              <Label>Video</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={videoType === 'upload' ? 'default' : 'outline'}
-                  onClick={() => setVideoType('upload')}
-                  size="sm"
-                >
-                  Upload Video
-                </Button>
-                <Button
-                  type="button"
-                  variant={videoType === 'youtube' ? 'default' : 'outline'}
-                  onClick={() => setVideoType('youtube')}
-                  size="sm"
-                >
-                  YouTube Link
-                </Button>
-              </div>
-
-              {videoType === 'upload' ? (
-                <div className="space-y-2">
-                  <Input
-                    type="file"
-                    accept="video/*"
-                    onChange={handleVideoUpload}
-                  />
-                  {videoFile && (
-                    <div className="flex items-center gap-2 text-sm text-green-600">
-                      <Camera className="w-4 h-4" />
-                      {videoFile.name}
-                    </div>
-                  )}
-                  <p className="text-sm text-muted-foreground">Upload robot demonstration video (max 100MB)</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Input
-                    placeholder="https://youtube.com/watch?v=..."
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                  />
-                  <p className="text-sm text-muted-foreground">Add YouTube link for robot demonstration</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Description */}
+              {/* Description */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
