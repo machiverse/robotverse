@@ -11,21 +11,38 @@ interface UserProfile {
   avatar_url?: string;
   company_name?: string;
   phone?: string;
-  account_type: 'admin' | 'buyer' | 'seller' | 'service' | 'logistics' | 'finance';
+  account_type?: string;
   user_type?: string;
   user_roles?: string[];
   primary_user_type?: string;
   registration_complete?: boolean;
   created_at: string;
+  [key: string]: any; // Allow additional fields from Supabase
 }
 
 interface Equipment {
   id: string;
   name?: string;
-  price: number | string;
-  availability?: 'available' | 'sold';
+  price?: number | string;
+  availability?: string;
   quantity?: number;
   created_at: string;
+  [key: string]: any; // Allow additional fields from Supabase
+}
+
+interface Service {
+  id: string;
+  name?: string;
+  service_type?: string;
+  description?: string;
+  location?: string;
+  price_range?: string;
+  coverage?: string;
+  specializations?: string[];
+  provider_id?: string;
+  created_at: string;
+  updated_at: string;
+  [key: string]: any;
 }
 
 interface DashboardStats {
@@ -63,7 +80,7 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [robots, setRobots] = useState<Equipment[]>([]);
-  const [services, setServices] = useState<Equipment[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [spareParts, setSpareParts] = useState<Equipment[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
