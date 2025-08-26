@@ -1856,27 +1856,32 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             </Card>
 
 
-            {/* AI Analysis Section */}
-            {user && (
-              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
-                <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center text-xl">
-                    <Brain className="w-6 h-6 mr-2" />
-                    🚀 Advanced AI Market Intelligence
-                  </CardTitle>
-                  <p className="text-blue-100 text-sm">
-                    Discover suppliers, services, financing & logistics with AI-powered recommendations
-                  </p>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {!aiAnalysis ? (
-                    <div className="text-center py-8">
-                      <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                        <Brain className="w-10 h-10 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-3">
-                        Unlock Smart Market Insights
-                      </h3>
+            {/* --- AI Market Intelligence Sidebar --- */}
+    <div className="space-y-6">
+      {user && (
+        <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+            <CardTitle className="flex items-center text-xl">
+              <Brain className="w-6 h-6 mr-2" />
+              🚀 Advanced AI Market Intelligence
+            </CardTitle>
+            <p className="text-blue-100 text-sm">
+              Discover suppliers, services, financing & logistics with AI-powered recommendations
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            {!aiAnalysis ? (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Brain className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-3">
+                  Unlock Smart Market Insights
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
+                  Get AI-powered recommendations for spare parts, services, financing, and logistics 
+                  specifically matched to this robot with intelligent market analysis.
+                      
                       <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
                         Get AI-powered recommendations for spare parts, services, financing, and logistics 
                         specifically matched to this robot with intelligent market analysis.
@@ -1899,35 +1904,35 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         </div>
                       </div>
                       <Button 
-                        onClick={handleAIAnalysis}
-                        disabled={analysisLoading}
-                        size="lg"
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                      >
-                        {analysisLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Analyzing Market...
-                          </>
-                        ) : (
-                          <>
-                            <Brain className="w-5 h-5 mr-2" />
-                            Generate Smart Analysis
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                  onClick={handleAIAnalysis}
+                  disabled={analysisLoading}
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  {analysisLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Analyzing Market...
+                    </>
                   ) : (
-                    <AIAnalysisResult 
-                      analysis={aiAnalysis.analysis} 
-                      cached={aiAnalysis.cached || false}
-                      currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
-                      className="mt-6"
-                    />
+                    <>
+                      <Brain className="w-5 h-5 mr-2" />
+                      Generate Smart Analysis
+                    </>
                   )}
-                </CardContent>
-              </Card>
+                </Button>
+              </div>
+            ) : (
+              <AIAnalysisResult 
+                analysis={aiAnalysis.analysis} 
+                cached={aiAnalysis.cached || false}
+                currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
+                className="mt-6"
+              />
             )}
+          </CardContent>
+        </Card>
+      )}
           </div>
 
           {/* EMI Calculator Modal */}
