@@ -47,9 +47,14 @@ export const useButtonTracking = () => {
   }, [user]);
 
   const trackButtonClick = async (data: ButtonTrackingData) => {
-    if (!user) return;
+    if (!user) {
+      console.log('🚫 Button tracking skipped: No user logged in');
+      return;
+    }
 
     setIsTracking(true);
+    console.log('📊 Starting button tracking for:', data.buttonName, 'Type:', data.buttonType);
+    
     try {
       // Enhanced tracking data with complete user and seller details
       const trackingData = {
@@ -81,15 +86,21 @@ export const useButtonTracking = () => {
         },
       };
 
-      const { error } = await supabase
+      console.log('📊 Tracking data prepared:', trackingData);
+
+      const { data: insertedData, error } = await supabase
         .from('button_interactions')
-        .insert([trackingData]);
+        .insert([trackingData])
+        .select();
 
       if (error) {
-        console.error('Error tracking button click:', error);
+        console.error('❌ Error tracking button click:', error);
+        console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+      } else {
+        console.log('✅ Button interaction tracked successfully:', insertedData);
       }
     } catch (error) {
-      console.error('Error tracking button click:', error);
+      console.error('❌ Exception in button tracking:', error);
     } finally {
       setIsTracking(false);
     }
