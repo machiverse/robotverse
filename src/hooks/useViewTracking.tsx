@@ -37,14 +37,57 @@ export const useViewTracking = () => {
   const [loading, setLoading] = useState(true);
 
   // Track a view when a user visits a product/service
-  const trackView = useCallback(async (targetType: string, targetId: string, viewerId?: string) => {
+  const trackView = useCallback(async (targetType: string, targetId: string, viewerId?: string, additionalData?: any) => {
     try {
       if (!viewerId && !user) return; // Don't track if no user
       
       const userId = viewerId || user?.id;
       if (!userId) return;
 
-      // Insert view record
+      // Get user profile for enhanced tracking
+      let userProfile = null;
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+        userProfile = data;
+      } catch (error) {
+        console.log('Could not fetch user profile for view tracking');
+      }
+
+      // Insert enhanced view record in button_interactions table as well
+      await supabase
+        .from('button_interactions')
+        .insert({
+          user_id: userId,
+          user_name: userProfile?.full_name || user?.user_metadata?.full_name || user?.email || 'Unknown User',
+          button_name: "Page View",
+          button_type: "view",
+          page_url: window.location.href,
+          item_id: targetId,
+          item_type: targetType,
+          additional_data: {
+            ...additionalData,
+            user_details: {
+              user_email: user?.email,
+              user_company: userProfile?.company_name,
+              user_location: userProfile?.location,
+              user_phone: userProfile?.mobile_number || userProfile?.phone,
+              user_type: userProfile?.user_type,
+              account_type: userProfile?.account_type
+            },
+            timestamp: new Date().toISOString(),
+            session_info: {
+              user_agent: navigator.userAgent,
+              screen_resolution: `${screen.width}x${screen.height}`,
+              referrer: document.referrer
+            }
+          }
+        });
+
+      // Insert view record in user_interactions table (for backward compatibility)
       const { error } = await supabase
         .from('user_interactions')
         .insert({

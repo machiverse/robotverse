@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useViewTracking } from "@/hooks/useViewTracking";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
@@ -20,6 +21,7 @@ const Robots = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { getItemViewCount } = useViewTracking();
+  const { trackButtonClick } = useButtonTracking();
 
   // States for filtering & UI
   const [searchQuery, setSearchQuery] = useState("");
@@ -561,7 +563,36 @@ const Robots = () => {
                 {/* Robot Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {robotsGroup.map((robot) => (
-                    <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={() => navigate(`/robots/${robot.id}`)}>
+                     <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={async () => {
+                       await trackButtonClick({
+                         buttonName: "View Robot from List",
+                         buttonType: "navigation",
+                         sellerId: robot.seller_id,
+                         sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+                         itemId: robot.id,
+                         itemType: "robot",
+                         additionalData: {
+                           robotName: robot.name,
+                           robotModel: robot.model,
+                           robotType: robot.robot_type,
+                           robotPrice: robot.price,
+                           viewSource: "robots_listing",
+                           currentFilters: {
+                             searchQuery,
+                             selectedCategory,
+                             selectedLocation,
+                             selectedCondition,
+                             selectedPriceRange,
+                             selectedRobotType,
+                             sortBy,
+                             groupBy,
+                             viewMode
+                           },
+                           groupName: key || "all"
+                         }
+                       });
+                       navigate(`/robots/${robot.id}`);
+                     }}>
                       <div className="aspect-video relative overflow-hidden">
                         <img
                           src={robot.images?.[0] || "/placeholder.svg"}

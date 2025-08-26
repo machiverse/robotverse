@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { useViewTracking } from "@/hooks/useViewTracking";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
 
 interface Robot {
   id: string;
@@ -105,6 +106,7 @@ const RobotDetails = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { trackView, getItemViewCount } = useViewTracking();
+  const { trackButtonClick } = useButtonTracking();
   
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -191,6 +193,23 @@ const RobotDetails = () => {
         
         // Track this view
         await trackView('robots', data.id);
+        
+        // Also track as view interaction in button interactions
+        await trackButtonClick({
+          buttonName: "View Robot Page",
+          buttonType: "view",
+          sellerId: data.seller_id,
+          sellerName: data.profiles?.company_name || data.profiles?.full_name,
+          itemId: data.id,
+          itemType: "robot",
+          additionalData: {
+            robotName: data.name,
+            robotModel: data.model,
+            robotType: data.robot_type,
+            robotPrice: data.price,
+            viewSource: "direct_link"
+          }
+        });
       }
 
     } catch (err) {
@@ -355,7 +374,7 @@ const RobotDetails = () => {
   }, []);
 
   // Contact seller by phone
-  const handleContactSeller = () => {
+  const handleContactSeller = async () => {
     const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
     
     if (!phone) {
@@ -366,6 +385,24 @@ const RobotDetails = () => {
       });
       return;
     }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Contact Seller Phone",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "phone",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerPhone: phone
+      }
+    });
+
     const phoneNumber = phone.replace(/\D/g, '');
     window.open(`tel:${phoneNumber}`, '_self');
     toast({
@@ -375,7 +412,7 @@ const RobotDetails = () => {
   };
 
   // Request quote modal open
-  const handleRequestQuote = () => {
+  const handleRequestQuote = async () => {
     if (!robot?.profiles?.email) {
       toast({
         title: "Email Not Available",
@@ -384,12 +421,49 @@ const RobotDetails = () => {
       });
       return;
     }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Request Quote",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "email",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerEmail: robot?.profiles?.email
+      }
+    });
+
     setShowQuoteModal(true);
   };
 
   // Send quote email
-  const sendQuoteEmail = () => {
+  const sendQuoteEmail = async () => {
     if (!robot?.profiles?.email) return;
+
+    // Track quote email send
+    await trackButtonClick({
+      buttonName: "Send Quote Email",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "email_send",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerEmail: robot?.profiles?.email,
+        messageLength: quoteMessage?.length || 0,
+        hasCustomMessage: !!quoteMessage
+      }
+    });
 
     const subject = `Quote Request for ${robot.name} - ${robot.model}`;
     const body = `Dear ${robot.profiles.full_name},
@@ -443,6 +517,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         const newWatchlist = watchlist.filter((robotId: string) => robotId !== robot!.id);
         localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(newWatchlist));
         setIsInWatchlist(false);
+
+        // Track watchlist removal
+        await trackButtonClick({
+          buttonName: "Remove from Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot?.seller_id,
+          sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+          itemId: robot?.id,
+          itemType: "robot",
+          additionalData: {
+            action: "remove",
+            robotName: robot?.name,
+            robotModel: robot?.model,
+            robotPrice: robot?.price,
+            watchlistCount: newWatchlist.length
+          }
+        });
+
         toast({
           title: "Removed from Watchlist",
           description: `${robot!.name} has been removed from your watchlist.`,
@@ -458,6 +550,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         watchlist.push(robot!.id);
         localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(watchlist));
         setIsInWatchlist(true);
+
+        // Track watchlist addition
+        await trackButtonClick({
+          buttonName: "Add to Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot?.seller_id,
+          sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+          itemId: robot?.id,
+          itemType: "robot",
+          additionalData: {
+            action: "add",
+            robotName: robot?.name,
+            robotModel: robot?.model,
+            robotPrice: robot?.price,
+            watchlistCount: watchlist.length
+          }
+        });
+
         toast({
           title: "Added to Watchlist",
           description: `${robot!.name} has been added to your watchlist.`,
@@ -498,6 +608,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       });
       return;
     }
+
+    // Track AI analysis request
+    await trackButtonClick({
+      buttonName: "AI Analysis",
+      buttonType: "analysis",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotType: robot?.robot_type,
+        robotPrice: robot?.price,
+        analysisRequested: true
+      }
+    });
+
     try {
       setAnalysisLoading(true);
       const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
