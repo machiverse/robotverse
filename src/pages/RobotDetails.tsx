@@ -540,7 +540,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
   // Price formatting helper
   const formatPrice = (price: number, currency: string) => {
-    const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? 'â‚¬' : 'â‚¹';
+    const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
     return `${currencySymbol}${price.toLocaleString()}`;
   };
 
@@ -1182,23 +1182,23 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="font-medium">Brand:</span>
-                          <p className="text-muted-foreground">{robot.brand || 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.brand || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Model:</span>
-                          <p className="text-muted-foreground">{robot.model || 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.model || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Year:</span>
-                          <p className="text-muted-foreground">{robot.year_manufactured || 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.year_manufactured || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Category:</span>
-                          <p className="text-muted-foreground">{robot.robot_type || 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.robot_type || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Condition:</span>
-                          <p className="text-muted-foreground">{robot.condition ? robot.condition.replace('_',' ') : 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.condition ? robot.condition.replace('_',' ') : '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Quantity:</span>
@@ -1212,15 +1212,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="font-medium">City:</span>
-                          <p className="text-muted-foreground">{robot.location || 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.location || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">State:</span>
-                          <p className="text-muted-foreground">{robot.state || 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.state || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Pincode:</span>
-                          <p className="text-muted-foreground">{robot.pincode || 'â€”'}</p>
+                          <p className="text-muted-foreground">{robot.pincode || '—'}</p>
                         </div>
                         <div>
                           <span className="font-medium">Price:</span>
@@ -1471,7 +1471,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     <div className="text-sm">
                                       {part.price ? (
                                         <span className="font-semibold text-green-600">
-                                          {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? 'â‚¬' : 'â‚¹'}
+                                          {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? '€' : '₹'}
                                           {part.price.toLocaleString()}
                                         </span>
                                       ) : (
@@ -1589,7 +1589,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     <div>
                                       <p className="text-muted-foreground">Loan Amount</p>
                                       <p className="font-medium">
-                                        â‚¹{(option.min_amount || 0).toLocaleString()} - â‚¹{option.max_amount.toLocaleString()}
+                                        ₹{(option.min_amount || 0).toLocaleString()} - ₹{option.max_amount.toLocaleString()}
                                       </p>
                                     </div>
                                     <div>
@@ -1697,17 +1697,17 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <div className="grid grid-cols-3 gap-4">
                                 <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-100">
                                   <p className="text-xs text-blue-600 font-medium mb-1">1 Year</p>
-                                  <p className="text-lg font-bold text-blue-900">â‚¹{Math.round(robot.price * 0.09).toLocaleString()}</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.09).toLocaleString()}</p>
                                   <p className="text-xs text-blue-600">/month</p>
                                 </div>
                                 <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-100">
                                   <p className="text-xs text-blue-600 font-medium mb-1">3 Years</p>
-                                  <p className="text-lg font-bold text-blue-900">â‚¹{Math.round(robot.price * 0.032).toLocaleString()}</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.032).toLocaleString()}</p>
                                   <p className="text-xs text-blue-600">/month</p>
                                 </div>
                                 <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-100">
                                   <p className="text-xs text-blue-600 font-medium mb-1">5 Years</p>
-                                  <p className="text-lg font-bold text-blue-900">â‚¹{Math.round(robot.price * 0.021).toLocaleString()}</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.021).toLocaleString()}</p>
                                   <p className="text-xs text-blue-600">/month</p>
                                 </div>
                               </div>
@@ -1766,7 +1766,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                     <div className="text-right">
                                       <Badge variant="secondary" className="bg-orange-50 text-orange-700 mb-2">
-                                        â‚¹{service.base_price || 0}/base + â‚¹{service.price_per_kg || 0}/kg
+                                        ₹{service.base_price || 0}/base + ₹{service.price_per_kg || 0}/kg
                                       </Badge>
                                       <div>
                                         <Badge variant="outline" className="text-xs">
@@ -1856,31 +1856,32 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             </Card>
 
 
-            {/* AI Analysis Section */}
-            {user && (
-              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
-                <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center text-xl">
-                    <Brain className="w-6 h-6 mr-2" />
-                    ðŸš€ Advanced AI Market Intelligence
-                  </CardTitle>
-                  <p className="text-blue-100 text-sm">
-                    Discover suppliers, services, financing & logistics with AI-powered recommendations
-                  </p>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {!aiAnalysis ? (
-                    <div className="text-center py-8">
-                      <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                        <Brain className="w-10 h-10 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-3">
-                        Unlock Smart Market Insights
-                      </h3>
-                      <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
-                        Get AI-powered recommendations for spare parts, services, financing, and logistics 
-                        specifically matched to this robot with intelligent market analysis.
-                      </p>
+            {/* --- AI Market Intelligence Sidebar --- */}
+    <div className="space-y-6">
+      {user && (
+        <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+            <CardTitle className="flex items-center text-xl">
+              <Brain className="w-6 h-6 mr-2" />
+              🚀Advanced AI Market Intelligence
+            </CardTitle>
+            <p className="text-blue-100 text-sm">
+              Discover suppliers, services, financing & logistics with AI-powered recommendations
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            {!aiAnalysis ? (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Brain className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-3">
+                  Unlock Smart Market Insights
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
+                  Get AI-powered recommendations for spare parts, services, financing, and logistics 
+                  specifically matched to this robot with intelligent market analysis.
+                </p>
                       <div className="grid grid-cols-3 gap-4 mb-8">
                         <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
                           <Wrench className="w-8 h-8 text-blue-600 mx-auto mb-2" />
@@ -1899,35 +1900,35 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         </div>
                       </div>
                       <Button 
-                        onClick={handleAIAnalysis}
-                        disabled={analysisLoading}
-                        size="lg"
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                      >
-                        {analysisLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Analyzing Market...
-                          </>
-                        ) : (
-                          <>
-                            <Brain className="w-5 h-5 mr-2" />
-                            Generate Smart Analysis
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                  onClick={handleAIAnalysis}
+                  disabled={analysisLoading}
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  {analysisLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Analyzing Market...
+                    </>
                   ) : (
-                    <AIAnalysisResult 
-                      analysis={aiAnalysis.analysis} 
-                      cached={aiAnalysis.cached || false}
-                      currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
-                      className="mt-6"
-                    />
+                    <>
+                      <Brain className="w-5 h-5 mr-2" />
+                      Generate Smart Analysis
+                    </>
                   )}
-                </CardContent>
-              </Card>
+                </Button>
+              </div>
+            ) : (
+              <AIAnalysisResult 
+                analysis={aiAnalysis.analysis} 
+                cached={aiAnalysis.cached || false}
+                currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
+                className="mt-6"
+              />
             )}
+          </CardContent>
+        </Card>
+      )}
           </div>
 
           {/* EMI Calculator Modal */}
@@ -2044,8 +2045,10 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </Card>
             )}
           </div>
+          </div>
         </div>
       </div>
+    </div>
 
       {/* Fullscreen Image Modal */}
       <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
@@ -2190,6 +2193,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         } : undefined}
         financeProvider={selectedFinanceProvider}
       />
+      </div>
     </div>
   );
 };
