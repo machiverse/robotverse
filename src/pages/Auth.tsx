@@ -257,7 +257,28 @@ const Auth = () => {
       timestamp: Date.now()
     };
     
-    console.log('💾 Saving user data to storage:', dataToSave);
+    console.log('💾 Saving user data to storage for user:', userData.id);
+    console.log('📋 Data to save:', {
+      email: dataToSave.email,
+      fullName: dataToSave.fullName,
+      companyName: dataToSave.companyName,
+      mobileNumber: dataToSave.mobileNumber,
+      location: dataToSave.location,
+      accountType: dataToSave.accountType,
+      hasSellerRoles: dataToSave.sellerRoles?.length > 0,
+      hasLogisticsType: !!dataToSave.logisticsType,
+      hasFinanceType: dataToSave.financeType?.length > 0
+    });
+    
+    // Validate required fields before saving
+    if (!dataToSave.fullName || !dataToSave.companyName || !dataToSave.mobileNumber || !dataToSave.location) {
+      console.error('❌ Missing required fields in user data:', {
+        fullName: !!dataToSave.fullName,
+        companyName: !!dataToSave.companyName,
+        mobileNumber: !!dataToSave.mobileNumber,
+        location: !!dataToSave.location
+      });
+    }
     
     // Save to both localStorage and sessionStorage for reliability
     const dataString = JSON.stringify(dataToSave);
@@ -269,7 +290,6 @@ const Auth = () => {
     sessionStorage.setItem(`robotverse_profile_${userData.id}`, dataString);
     
     console.log('✅ User data saved to storage for email confirmation');
-    console.log('📋 Saved data keys:', Object.keys(dataToSave));
   };
 
   // Load user data from storage after email confirmation (with fallbacks)
@@ -337,32 +357,30 @@ const Auth = () => {
 
         const savedData = loadUserDataFromStorage(currentUser.id);
         console.log('💾 Saved data from storage:', savedData);
+        console.log('📋 Existing profile:', existingProfile);
 
-        // If we have saved data for this user or if the profile is incomplete
+        // Always check if profile is incomplete
+        const isIncomplete = !existingProfile || 
+                           !existingProfile.registration_complete || 
+                           !existingProfile.company_name || 
+                           !existingProfile.mobile_number ||
+                           !existingProfile.location;
+
+        // If we have saved data for this user
         if (savedData && savedData.userId === currentUser.id) {
           try {
-            if (existingProfile) {
-              // Update existing profile if it's incomplete
-              const isIncomplete = !existingProfile.registration_complete || 
-                                   !existingProfile.company_name || 
-                                   !existingProfile.mobile_number;
+            if (existingProfile && isIncomplete) {
+              console.log('🔄 Updating incomplete profile with saved data...');
+              await updateUserProfileFromSavedData(currentUser, savedData);
+              clearSavedUserData(currentUser.id);
               
-              if (isIncomplete) {
-                console.log('🔄 Updating incomplete profile with saved data...');
-                await updateUserProfileFromSavedData(currentUser, savedData);
-                clearSavedUserData(currentUser.id);
-                
-                toast({
-                  title: "Welcome to RobotVerse!",
-                  description: "Your account has been verified and profile updated successfully.",
-                });
-                
-                setTimeout(() => navigate('/dashboard'), 1000);
-              } else {
-                console.log('✅ Profile already complete, clearing saved data');
-                clearSavedUserData(currentUser.id);
-              }
-            } else {
+              toast({
+                title: "Welcome to RobotVerse!",
+                description: "Your account has been verified and profile updated successfully.",
+              });
+              
+              setTimeout(() => navigate('/dashboard'), 1000);
+            } else if (!existingProfile) {
               // Create new profile
               console.log('🆕 Creating new profile from saved data...');
               await createUserProfileFromSavedData(currentUser, savedData);
@@ -374,6 +392,9 @@ const Auth = () => {
               });
               
               setTimeout(() => navigate('/dashboard'), 1000);
+            } else {
+              console.log('✅ Profile already complete, clearing saved data');
+              clearSavedUserData(currentUser.id);
             }
           } catch (error: any) {
             console.error('❌ Error handling profile after email confirmation:', error);
@@ -387,7 +408,7 @@ const Auth = () => {
             // Don't clear saved data in case of error - user might need to retry
             setTimeout(() => navigate('/dashboard'), 2000);
           }
-        } else if (!existingProfile || !existingProfile.registration_complete) {
+        } else if (isIncomplete) {
           // No saved data but user needs to complete profile
           console.log('⚠️ No saved data found for confirmed user, redirecting to complete registration');
           
@@ -461,16 +482,37 @@ const Auth = () => {
   const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Creating complete profile from saved data for user:', user.id);
-      console.log('📋 Profile data:', JSON.stringify(savedData, null, 2));
+      console.log('📋 Profile data to save:', {
+        email: savedData.email,
+        fullName: savedData.fullName,
+        companyName: savedData.companyName,
+        mobileNumber: savedData.mobileNumber,
+        location: savedData.location,
+        accountType: savedData.accountType
+      });
+      
+      // Validate required data
+      if (!savedData.fullName) {
+        throw new Error('Full name is required but missing from saved data');
+      }
+      if (!savedData.companyName) {
+        throw new Error('Company name is required but missing from saved data');
+      }
+      if (!savedData.mobileNumber) {
+        throw new Error('Mobile number is required but missing from saved data');
+      }
+      if (!savedData.location) {
+        throw new Error('Location is required but missing from saved data');
+      }
       
       // Use the database function to create/update the complete profile
       const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
         p_user_id: user.id,
         p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName || null,
-        p_company_name: savedData.companyName || null,
-        p_mobile_number: savedData.mobileNumber || null,
-        p_location: savedData.location || null,
+        p_full_name: savedData.fullName,
+        p_company_name: savedData.companyName,
+        p_mobile_number: savedData.mobileNumber,
+        p_location: savedData.location,
         p_user_type: savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
@@ -486,10 +528,29 @@ const Auth = () => {
 
       if (dbError) {
         console.error('❌ Database function error:', dbError);
-        throw new Error(dbError.message);
+        throw new Error(`Database error: ${dbError.message}`);
       }
 
       console.log('✅ Profile created successfully with ID:', profileId);
+      
+      // Verify the profile was created correctly
+      const { data: verifyProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (verifyError) {
+        console.error('❌ Error verifying created profile:', verifyError);
+      } else {
+        console.log('✅ Profile verification successful:', {
+          hasCompanyName: !!verifyProfile.company_name,
+          hasMobileNumber: !!verifyProfile.mobile_number,
+          hasLocation: !!verifyProfile.location,
+          registrationComplete: verifyProfile.registration_complete
+        });
+      }
+      
       return profileId;
       
     } catch (error: any) {
