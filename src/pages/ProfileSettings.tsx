@@ -327,9 +327,6 @@ const ProfileSettings = () => {
   const userTypes = [
     { value: 'buyer', label: 'Buyer' },
     { value: 'seller', label: 'Seller' },
-    { value: 'robot_seller', label: 'Robot Seller' },
-    { value: 'spare_parts_seller', label: 'Spare Parts Seller' },
-    { value: 'service_provider', label: 'Service Provider' },
     { value: 'logistics_provider', label: 'Logistics Provider' },
     { value: 'finance_provider', label: 'Finance Provider' }
   ];
