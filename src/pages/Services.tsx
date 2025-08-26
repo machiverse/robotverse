@@ -193,30 +193,39 @@ const Services = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <EnhancedHeader />
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 text-gray-900">Robot Services</h1>
-          <p className="text-xl text-gray-600">
-            Connect with certified professionals for robot maintenance, repair, and training services.
-          </p>
+      
+      {/* Hero Section with Gradient Background */}
+      <div className="relative bg-gradient-hero border-b border-border">
+        <div className="absolute inset-0 bg-gradient-primary opacity-10"></div>
+        <div className="relative container mx-auto px-4 py-16">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-5xl font-bold mb-6 text-foreground bg-gradient-primary bg-clip-text text-transparent">
+              Robot Services Marketplace
+            </h1>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              Connect with certified professionals for robot maintenance, repair, programming, and training services. 
+              Find the perfect expert for your robotic needs.
+            </p>
+          </div>
         </div>
+      </div>
 
-        {/* Filters */}
-        <Card className="mb-8">
+      <div className="container mx-auto px-4 py-12">
+
+        {/* Filters Section */}
+        <Card className="mb-8 bg-card border-border shadow-glow">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search services..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-input border-border focus:ring-primary"
                 />
               </div>
 
@@ -269,73 +278,79 @@ const Services = () => {
           </CardContent>
         </Card>
 
-        {/* Loading State */}
+        {/* Content States */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-600" />
-            <p className="text-gray-500">Loading services...</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="bg-card rounded-lg p-8 shadow-glow">
+              <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary mx-auto" />
+              <p className="text-muted-foreground text-center">Loading services...</p>
+            </div>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2 text-gray-900">Unable to load services</h3>
-              <p className="text-gray-500 mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()} variant="outline">
-                Try Again
-              </Button>
-            </div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Card className="max-w-md bg-card border-border shadow-glow">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Unable to load services</h3>
+                <p className="text-muted-foreground mb-6">{error}</p>
+                <Button onClick={() => window.location.reload()} variant="outline" className="border-border">
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         ) : filteredServices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2 text-gray-900">No services available</h3>
-              <p className="text-gray-500">
-                {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
-                  ? "No services match your current filters."
-                  : "Service listings are currently empty."}
-              </p>
-            </div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Card className="max-w-md bg-card border-border shadow-glow">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-lg font-semibold mb-2 text-foreground">No services available</h3>
+                <p className="text-muted-foreground">
+                  {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
+                    ? "No services match your current filters."
+                    : "Service listings are currently empty."}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <>
-            <div className="mb-6">
-              <p className="text-sm text-gray-500">
+            <div className="mb-8">
+              <p className="text-sm text-muted-foreground">
                 {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
               </p>
             </div>
 
-            {/* Service Cards */}
+            {/* Service Cards Grid */}
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredServices.map((service) => (
-                <Card key={service.id} className="hover:shadow-lg transition-all duration-300 border-gray-200 bg-white">
+                <Card key={service.id} className="group bg-card border-border hover:shadow-neon transition-all duration-300 hover:scale-[1.02]">
                   <CardHeader className="pb-4">
                     {/* Provider Info */}
                     <div className="flex items-center space-x-3 mb-4">
-                      <Avatar className="h-12 w-12">
+                      <Avatar className="h-12 w-12 ring-2 ring-primary/20">
                         {service.providerProfile.avatar_url ? (
                           <AvatarImage src={service.providerProfile.avatar_url} alt={service.provider} />
                         ) : (
-                          <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold">
+                          <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
                             {service.provider.charAt(0)}
                           </AvatarFallback>
                         )}
                       </Avatar>
                       <div className="flex-1">
-                        <CardTitle className="text-lg font-bold text-gray-900">{service.name}</CardTitle>
-                        <p className="text-sm text-gray-600">{service.provider}</p>
+                        <CardTitle className="text-lg font-bold text-foreground">{service.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{service.provider}</p>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-semibold">{service.rating}</span>
+                        <Star className="w-4 h-4 fill-accent text-accent" />
+                        <span className="text-sm font-semibold text-foreground">{service.rating}</span>
                       </div>
                     </div>
 
                     {/* Category and Availability */}
                     <div className="flex items-center justify-between">
-                      <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                         {service.category}
                       </Badge>
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                      <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">
                         {service.availability}
                       </Badge>
                     </div>
@@ -344,41 +359,33 @@ const Services = () => {
                   <CardContent className="space-y-4">
                     {/* Price */}
                     <div className="text-center">
-                      <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                         {service.priceRange}
                       </span>
                     </div>
 
                     {/* Location */}
-                    <div className="flex items-center text-gray-600">
-                      <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                    <div className="flex items-center text-muted-foreground">
+                      <MapPin className="w-4 h-4 mr-2 text-primary" />
                       <span className="text-sm font-medium">{service.location}</span>
                     </div>
 
-                    {/* Fixed-Size Description with Custom Scrollbar */}
+                    {/* Description */}
                     <div className="relative">
-                      <div 
-                        className="h-20 overflow-y-auto pr-2 text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border"
-                        style={{
-                          scrollbarWidth: 'thin',
-                          scrollbarColor: '#cbd5e1 #f1f5f9'
-                        }}
-                      >
+                      <div className="h-20 overflow-y-auto pr-2 text-sm text-muted-foreground leading-relaxed bg-muted p-3 rounded-lg border border-border">
                         {service.description}
                       </div>
-                      {/* Custom Scrollbar Indicator */}
-                      <div className="absolute right-1 top-1 bottom-1 w-1 bg-gradient-to-b from-transparent via-blue-300 to-transparent rounded-full pointer-events-none opacity-50" />
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-orange-500" />
-                        <span className="text-gray-700">Response: {service.responseTime}</span>
+                        <Clock className="w-4 h-4 text-accent" />
+                        <span className="text-muted-foreground">Response: {service.responseTime}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Users className="w-4 h-4 text-green-500" />
-                        <span className="text-gray-700">{service.completedJobs} projects</span>
+                        <Users className="w-4 h-4 text-primary" />
+                        <span className="text-muted-foreground">{service.completedJobs} projects</span>
                       </div>
                     </div>
 
@@ -386,7 +393,7 @@ const Services = () => {
                     <div className="flex space-x-2 pt-2">
                       <Button
                         size="sm"
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
+                        className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium shadow-glow"
                         onClick={() => handleRequestQuote(service)}
                       >
                         Get Quote
@@ -396,7 +403,7 @@ const Services = () => {
                         size="sm"
                         onClick={() => handleContactProvider(service)}
                         disabled={!user || (!service.providerProfile?.phone && !service.providerProfile?.mobile_number)}
-                        className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                        className="border-border text-foreground hover:bg-accent/10"
                       >
                         {user ? "Contact" : "Sign In"}
                       </Button>
