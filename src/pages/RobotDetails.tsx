@@ -2019,6 +2019,17 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </Card>
             )}
 
+            {/* AI Market Intelligence Panel */}
+            {user && robot && (
+              <MarketIntelligencePanel
+                robotId={robot.id}
+                onGenerateReport={(insights) => {
+                  setReportInsights(insights);
+                  setShowReportModal(true);
+                }}
+              />
+            )}
+
             {!user && (
               <Card>
                 <CardHeader>
@@ -2218,6 +2229,17 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           type: robot.robot_type
         } : undefined}
         financeProvider={selectedFinanceProvider}
+      />
+
+      {/* Report Generation Modal */}
+      <ReportGenerationModal
+        isOpen={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportInsights(null);
+        }}
+        robotData={robot}
+        insights={reportInsights}
       />
     </div>
   );
