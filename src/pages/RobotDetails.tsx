@@ -1863,7 +1863,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
             <CardTitle className="flex items-center text-xl">
               <Brain className="w-6 h-6 mr-2" />
-              🚀Advanced AI Market Intelligence
+               Advanced AI Market Intelligence
             </CardTitle>
             <p className="text-blue-100 text-sm">
               Discover suppliers, services, financing & logistics with AI-powered recommendations
