@@ -2045,8 +2045,10 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </Card>
             )}
           </div>
+          </div>
         </div>
       </div>
+    </div>
 
       {/* Fullscreen Image Modal */}
       <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
@@ -2191,7 +2193,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         } : undefined}
         financeProvider={selectedFinanceProvider}
       />
-        </div>
       </div>
     </div>
   );
