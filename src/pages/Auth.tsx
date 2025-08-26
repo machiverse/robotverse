@@ -401,9 +401,9 @@ const Auth = () => {
           .from('profiles')
           .select('*')
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single to avoid errors
 
-        if (profileError && profileError.code !== 'PGRST116') {
+        if (profileError) {
           console.error('❌ Error checking existing profile:', profileError);
           return;
         }
@@ -809,10 +809,10 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // Save user data for after email confirmation
+        // Always save user data for email confirmation flow
         saveUserDataToStorage(newUser);
 
-        // If email is already confirmed (no email confirmation required), create profile immediately
+        // If email is already confirmed (email confirmation disabled), create profile immediately
         if (newUser.email_confirmed_at) {
           console.log('📧 Email already confirmed, creating profile immediately...');
           try {
@@ -825,15 +825,20 @@ const Auth = () => {
             });
             
             setTimeout(() => navigate('/dashboard'), 1000);
+            return; // Exit early, no need for email confirmation modal
           } catch (profileError: any) {
             console.error('❌ Failed to create immediate profile:', profileError);
-            // Show email confirmation modal as fallback
-            setShowEmailConfirmationModal(true);
+            toast({
+              variant: "destructive",
+              title: "Profile Creation Error",
+              description: "Account created but profile setup failed. Please complete your profile after email confirmation.",
+            });
           }
-        } else {
-          // Show email confirmation modal
-          setShowEmailConfirmationModal(true);
         }
+
+        // Show email confirmation modal for users who need to confirm email
+        console.log('📧 Email confirmation required, showing modal...');
+        setShowEmailConfirmationModal(true);
 
       } else {
         // Sign in process
