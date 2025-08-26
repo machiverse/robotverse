@@ -189,7 +189,60 @@ const Auth = () => {
     setShowPassword(!showPassword);
   };
 
-  // Handler functions for multi-select checkboxes
+  // Create complete user profile immediately (for when email confirmation is disabled)
+  const createCompleteUserProfile = async (user: SupabaseUser) => {
+    try {
+      console.log('👤 Creating complete profile immediately for user:', user.id);
+      
+      // Validate required data
+      if (!fullName.trim()) {
+        throw new Error('Full name is required');
+      }
+      if (!companyName.trim()) {
+        throw new Error('Company name is required');
+      }
+      if (!mobileNumber.trim()) {
+        throw new Error('Mobile number is required');
+      }
+      if (!location.trim()) {
+        throw new Error('Location is required');
+      }
+      
+      // Use the database function to create the complete profile
+      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+        p_user_id: user.id,
+        p_email: email,
+        p_full_name: fullName,
+        p_company_name: companyName,
+        p_mobile_number: mobileNumber,
+        p_location: location,
+        p_user_type: accountType || 'buyer',
+        p_account_type: accountType || 'buyer',
+        p_seller_roles: sellerRoles?.length > 0 ? sellerRoles : [],
+        p_logistics_type: logisticsType || null,
+        p_logistics_region: logisticsRegion || null,
+        p_transport_modes: transportModes?.length > 0 ? transportModes : [],
+        p_warehouse_storage: warehouseStorage || false,
+        p_finance_type: financeType?.length > 0 ? financeType : [],
+        p_financing_for: financingFor?.length > 0 ? financingFor : [],
+        p_target_audience: targetAudience?.length > 0 ? targetAudience : [],
+        p_government_scheme_support: governmentSchemeSupport || false
+      });
+
+      if (dbError) {
+        console.error('❌ Database function error:', dbError);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      console.log('✅ Complete profile created successfully with ID:', profileId);
+      return profileId;
+      
+    } catch (error: any) {
+      console.error('❌ Error creating complete profile:', error);
+      throw error;
+    }
+  };
+
   const handleSellerRoleChange = (role: string, checked: boolean) => {
     console.log(`🔄 Seller role change: ${role} = ${checked}`);
     if (checked) {
@@ -759,8 +812,28 @@ const Auth = () => {
         // Save user data for after email confirmation
         saveUserDataToStorage(newUser);
 
-        // Show email confirmation modal
-        setShowEmailConfirmationModal(true);
+        // If email is already confirmed (no email confirmation required), create profile immediately
+        if (newUser.email_confirmed_at) {
+          console.log('📧 Email already confirmed, creating profile immediately...');
+          try {
+            await createCompleteUserProfile(newUser);
+            clearSavedUserData(newUser.id);
+            
+            toast({
+              title: "Account Created Successfully!",
+              description: "Welcome to RobotVerse! Your account is ready to use.",
+            });
+            
+            setTimeout(() => navigate('/dashboard'), 1000);
+          } catch (profileError: any) {
+            console.error('❌ Failed to create immediate profile:', profileError);
+            // Show email confirmation modal as fallback
+            setShowEmailConfirmationModal(true);
+          }
+        } else {
+          // Show email confirmation modal
+          setShowEmailConfirmationModal(true);
+        }
 
       } else {
         // Sign in process
