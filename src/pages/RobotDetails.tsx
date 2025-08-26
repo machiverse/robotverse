@@ -187,30 +187,22 @@ const RobotDetails = () => {
           : {}
       });
       
+      // Track watchlist for logged-in users
       if (user) {
         const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
         setIsInWatchlist(watchlist.includes(data.id));
-        
-        // Track this view
-        await trackView('robots', data.id);
-        
-        // Also track as view interaction in button interactions
-        await trackButtonClick({
-          buttonName: "View Robot Page",
-          buttonType: "view",
-          sellerId: data.seller_id,
-          sellerName: data.profiles?.company_name || data.profiles?.full_name,
-          itemId: data.id,
-          itemType: "robot",
-          additionalData: {
-            robotName: data.name,
-            robotModel: data.model,
-            robotType: data.robot_type,
-            robotPrice: data.price,
-            viewSource: "direct_link"
-          }
-        });
       }
+      
+      // Track this view for all visitors (logged in and anonymous)
+      await trackView('robots', data.id, undefined, {
+        robotName: data.name,
+        robotModel: data.model,
+        robotType: data.robot_type,
+        robotPrice: data.price,
+        viewSource: "direct_link",
+        sellerId: data.seller_id,
+        sellerName: data.profiles?.company_name || data.profiles?.full_name
+      });
 
     } catch (err) {
       console.error(err);

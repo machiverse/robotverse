@@ -1,30 +1,43 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
-export interface ViewCount {
+interface ViewCount {
   robots: number;
   spare_parts: number;
   services: number;
   logistics_services: number;
   loan_products: number;
+  [key: string]: number;
 }
 
-export interface UserViewStats {
+interface RecentView {
+  id: string;
+  target_type: string;
+  target_id: string;
+  created_at: string;
+  item_name?: string;
+}
+
+interface UserViewStats {
   totalViews: number;
-  viewsByCategory: ViewCount;
-  recentViews: Array<{
-    target_type: string;
-    target_id: string;
-    created_at: string;
-    user_id: string;
-  }>;
+  categoryViews: ViewCount;
+  viewsByCategory: ViewCount; // Alias for backward compatibility
+  recentViews: RecentView[];
 }
 
 export const useViewTracking = () => {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [viewStats, setViewStats] = useState<UserViewStats>({
     totalViews: 0,
+    categoryViews: {
+      robots: 0,
+      spare_parts: 0,
+      services: 0,
+      logistics_services: 0,
+      loan_products: 0
+    },
     viewsByCategory: {
       robots: 0,
       spare_parts: 0,
@@ -34,192 +47,323 @@ export const useViewTracking = () => {
     },
     recentViews: []
   });
-  const [loading, setLoading] = useState(true);
 
-  // Track a view when a user visits a product/service
-  const trackView = useCallback(async (targetType: string, targetId: string, viewerId?: string, additionalData?: any) => {
+  // Track view for any user (logged in or anonymous)
+  const trackView = async (targetType: string, targetId: string, viewerId?: string, additionalData?: any) => {
+    // Generate anonymous viewer ID if no user is logged in
+    let userId = viewerId || user?.id;
+    let isAnonymous = false;
+    
+    if (!userId) {
+      // Create a persistent anonymous ID for the session
+      let anonymousId = sessionStorage.getItem('anonymous_viewer_id');
+      if (!anonymousId) {
+        anonymousId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('anonymous_viewer_id', anonymousId);
+      }
+      userId = anonymousId;
+      isAnonymous = true;
+    }
+
+    console.log('📊 Starting view tracking for:', targetType, targetId, 'User:', userId, 'Anonymous:', isAnonymous);
+
     try {
-      if (!viewerId && !user) return; // Don't track if no user
-      
-      const userId = viewerId || user?.id;
-      if (!userId) return;
-
-      // Get user profile for enhanced tracking
+      // Fetch user profile for logged-in users only
       let userProfile = null;
-      try {
-        const { data } = await supabase
+      if (!isAnonymous && user?.id === userId) {
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', userId)
           .single();
-        userProfile = data;
-      } catch (error) {
-        console.log('Could not fetch user profile for view tracking');
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+        } else {
+          userProfile = data;
+        }
       }
 
-      // Insert enhanced view record in button_interactions table as well
-      await supabase
-        .from('button_interactions')
-        .insert({
-          user_id: userId,
-          user_name: userProfile?.full_name || user?.user_metadata?.full_name || user?.email || 'Unknown User',
-          button_name: "Page View",
-          button_type: "view",
-          page_url: window.location.href,
-          item_id: targetId,
-          item_type: targetType,
-          additional_data: {
-            ...additionalData,
-            user_details: {
-              user_email: user?.email,
-              user_company: userProfile?.company_name,
-              user_location: userProfile?.location,
-              user_phone: userProfile?.mobile_number || userProfile?.phone,
-              user_type: userProfile?.user_type,
-              account_type: userProfile?.account_type
-            },
-            timestamp: new Date().toISOString(),
-            session_info: {
-              user_agent: navigator.userAgent,
-              screen_resolution: `${screen.width}x${screen.height}`,
-              referrer: document.referrer
-            }
+      // For logged-in users, track in user_interactions table
+      if (!isAnonymous) {
+        const { error: viewError } = await supabase
+          .from('user_interactions')
+          .insert([{
+            user_id: userId,
+            target_type: targetType,
+            target_id: targetId,
+            interaction_type: 'view'
+          }]);
+
+        if (viewError) {
+          console.error('❌ Error tracking view in user_interactions:', viewError);
+        } else {
+          console.log('✅ View tracked successfully in user_interactions');
+        }
+      }
+
+      // Track all views (including anonymous) in button_interactions for overall count
+      const trackingData = {
+        user_id: isAnonymous ? null : userId, // null for anonymous users
+        user_name: isAnonymous ? 'Anonymous Visitor' : (userProfile?.full_name || user?.user_metadata?.full_name || user?.email || 'Unknown User'),
+        seller_id: additionalData?.sellerId || null,
+        seller_name: additionalData?.sellerName || null,
+        button_name: `View ${targetType}`,
+        button_type: 'view',
+        page_url: window.location.href,
+        item_id: targetId,
+        item_type: targetType,
+        additional_data: {
+          ...additionalData,
+          is_anonymous: isAnonymous,
+          anonymous_id: isAnonymous ? userId : null,
+          user_details: !isAnonymous && userProfile ? {
+            user_email: user?.email,
+            user_company: userProfile?.company_name,
+            user_location: userProfile?.location,
+            user_phone: userProfile?.mobile_number || userProfile?.phone,
+            user_type: userProfile?.user_type,
+            account_type: userProfile?.account_type
+          } : {},
+          timestamp: new Date().toISOString(),
+          session_info: {
+            user_agent: navigator.userAgent,
+            screen_resolution: `${screen.width}x${screen.height}`,
+            referrer: document.referrer
           }
-        });
+        },
+      };
 
-      // Insert view record in user_interactions table (for backward compatibility)
-      const { error } = await supabase
-        .from('user_interactions')
-        .insert({
-          user_id: userId,
-          target_type: targetType,
-          target_id: targetId,
-          interaction_type: 'view'
-        });
+      const { error: buttonError } = await supabase
+        .from('button_interactions')
+        .insert([trackingData]);
 
-      if (error) {
-        console.error('Error tracking view:', error);
-        return;
+      if (buttonError) {
+        console.error('❌ Error tracking view in button_interactions:', buttonError);
+      } else {
+        console.log('✅ View tracked successfully in button_interactions');
       }
 
-      console.log(`📊 Tracked view: ${targetType}:${targetId} by ${userId}`);
     } catch (error) {
-      console.error('Error in trackView:', error);
+      console.error('❌ Exception in view tracking:', error);
     }
-  }, [user]);
+  };
 
-  // Get view counts for items owned by a specific user (seller's dashboard)
-  const fetchUserItemViews = useCallback(async (ownerId: string) => {
-    if (!ownerId) return { totalViews: 0, viewsByCategory: { robots: 0, spare_parts: 0, services: 0, logistics_services: 0, loan_products: 0 }, recentViews: [] };
-
+  // Fetch user's item views (for logged-in users only)
+  const fetchUserItemViews = useCallback(async (ownerId: string): Promise<UserViewStats> => {
+    setLoading(true);
     try {
-      setLoading(true);
+      console.log('📊 Fetching user item views for owner:', ownerId);
 
-      // Get all items owned by this user
-      const [robotsData, sparePartsData, servicesData, logisticsData, financeData] = await Promise.all([
-        supabase.from('robots').select('id').eq('seller_id', ownerId),
-        supabase.from('spare_parts').select('id').eq('seller_id', ownerId),
-        supabase.from('services').select('id').eq('provider_id', ownerId),
-        supabase.from('logistics_services').select('id').eq('provider_id', ownerId),
-        supabase.from('loan_products').select('id').eq('provider_id', ownerId)
-      ]);
+      // Get robot IDs first
+      const { data: robotIds } = await supabase
+        .from('robots')
+        .select('id')
+        .eq('seller_id', ownerId);
 
-      const robotIds = robotsData.data?.map(r => r.id) || [];
-      const sparePartIds = sparePartsData.data?.map(s => s.id) || [];
-      const serviceIds = servicesData.data?.map(s => s.id) || [];
-      const logisticsIds = logisticsData.data?.map(l => l.id) || [];
-      const financeIds = financeData.data?.map(f => f.id) || [];
+      // Get spare part IDs
+      const { data: sparePartIds } = await supabase
+        .from('spare_parts')
+        .select('id')
+        .eq('seller_id', ownerId);
 
-      // Get view counts for each category
-      const [robotViews, sparePartViews, serviceViews, logisticsViews, financeViews, recentViewsData] = await Promise.all([
-        robotIds.length > 0 ? supabase
-          .from('user_interactions')
-          .select('*')
-          .eq('interaction_type', 'view')
-          .eq('target_type', 'robots')
-          .in('target_id', robotIds) : { data: [] },
-        sparePartIds.length > 0 ? supabase
-          .from('user_interactions')
-          .select('*')
-          .eq('interaction_type', 'view')
-          .eq('target_type', 'spare_parts')
-          .in('target_id', sparePartIds) : { data: [] },
-        serviceIds.length > 0 ? supabase
-          .from('user_interactions')
-          .select('*')
-          .eq('interaction_type', 'view')
-          .eq('target_type', 'services')
-          .in('target_id', serviceIds) : { data: [] },
-        logisticsIds.length > 0 ? supabase
-          .from('user_interactions')
-          .select('*')
-          .eq('interaction_type', 'view')
-          .eq('target_type', 'logistics_services')
-          .in('target_id', logisticsIds) : { data: [] },
-        financeIds.length > 0 ? supabase
-          .from('user_interactions')
-          .select('*')
-          .eq('interaction_type', 'view')
-          .eq('target_type', 'loan_products')
-          .in('target_id', financeIds) : { data: [] },
+      // Get service IDs
+      const { data: serviceIds } = await supabase
+        .from('services')
+        .select('id')
+        .eq('provider_id', ownerId);
+
+      // Get logistics service IDs
+      const { data: logisticsIds } = await supabase
+        .from('logistics_services')
+        .select('id')
+        .eq('provider_id', ownerId);
+
+      // Get loan product IDs
+      const { data: loanIds } = await supabase
+        .from('loan_products')
+        .select('id')
+        .eq('provider_id', ownerId);
+
+      // Fetch view counts for user's robots
+      const robotViewsPromise = robotIds && robotIds.length > 0 ? 
         supabase
           .from('user_interactions')
-          .select('*')
+          .select('*', { count: 'exact', head: true })
           .eq('interaction_type', 'view')
-          .or(`target_id.in.(${[...robotIds, ...sparePartIds, ...serviceIds, ...logisticsIds, ...financeIds].join(',')}${[...robotIds, ...sparePartIds, ...serviceIds, ...logisticsIds, ...financeIds].length === 0 ? 'none' : ''})`)
-          .order('created_at', { ascending: false })
-          .limit(10)
+          .eq('target_type', 'robots')
+          .in('target_id', robotIds.map(r => r.id)) :
+        Promise.resolve({ count: 0, error: null });
+
+      // Fetch view counts for user's spare parts
+      const sparePartViewsPromise = sparePartIds && sparePartIds.length > 0 ?
+        supabase
+          .from('user_interactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('interaction_type', 'view')
+          .eq('target_type', 'spare_parts')
+          .in('target_id', sparePartIds.map(sp => sp.id)) :
+        Promise.resolve({ count: 0, error: null });
+
+      // Fetch view counts for user's services
+      const serviceViewsPromise = serviceIds && serviceIds.length > 0 ?
+        supabase
+          .from('user_interactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('interaction_type', 'view')
+          .eq('target_type', 'services')
+          .in('target_id', serviceIds.map(s => s.id)) :
+        Promise.resolve({ count: 0, error: null });
+
+      // Fetch view counts for user's logistics services
+      const logisticsViewsPromise = logisticsIds && logisticsIds.length > 0 ?
+        supabase
+          .from('user_interactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('interaction_type', 'view')
+          .eq('target_type', 'logistics_services')
+          .in('target_id', logisticsIds.map(l => l.id)) :
+        Promise.resolve({ count: 0, error: null });
+
+      // Fetch view counts for user's loan products
+      const loanViewsPromise = loanIds && loanIds.length > 0 ?
+        supabase
+          .from('user_interactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('interaction_type', 'view')
+          .eq('target_type', 'loan_products')
+          .in('target_id', loanIds.map(l => l.id)) :
+        Promise.resolve({ count: 0, error: null });
+
+      const [
+        { count: robotViews, error: robotError },
+        { count: sparePartViews, error: sparePartError },
+        { count: serviceViews, error: serviceError },
+        { count: logisticsViews, error: logisticsError },
+        { count: loanViews, error: loanError }
+      ] = await Promise.all([
+        robotViewsPromise,
+        sparePartViewsPromise,
+        serviceViewsPromise,
+        logisticsViewsPromise,
+        loanViewsPromise
       ]);
 
-      const viewsByCategory = {
-        robots: robotViews.data?.length || 0,
-        spare_parts: sparePartViews.data?.length || 0,
-        services: serviceViews.data?.length || 0,
-        logistics_services: logisticsViews.data?.length || 0,
-        loan_products: financeViews.data?.length || 0
+      if (robotError) console.error('Error fetching robot views:', robotError);
+      if (sparePartError) console.error('Error fetching spare part views:', sparePartError);
+      if (serviceError) console.error('Error fetching service views:', serviceError);
+      if (logisticsError) console.error('Error fetching logistics views:', logisticsError);
+      if (loanError) console.error('Error fetching loan product views:', loanError);
+
+      // Fetch recent views for user's items
+      const allIds = [
+        ...(robotIds?.map(r => r.id) || []),
+        ...(sparePartIds?.map(sp => sp.id) || []),
+        ...(serviceIds?.map(s => s.id) || []),
+        ...(logisticsIds?.map(l => l.id) || []),
+        ...(loanIds?.map(l => l.id) || [])
+      ];
+
+      let recentViewsData = [];
+      if (allIds.length > 0) {
+        const { data, error: recentError } = await supabase
+          .from('user_interactions')
+          .select('*')
+          .eq('interaction_type', 'view')
+          .in('target_id', allIds)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (recentError) {
+          console.error('Error fetching recent views:', recentError);
+        } else {
+          recentViewsData = data || [];
+        }
+      }
+
+      const categoryViews = {
+        robots: robotViews || 0,
+        spare_parts: sparePartViews || 0,
+        services: serviceViews || 0,
+        logistics_services: logisticsViews || 0,
+        loan_products: loanViews || 0
       };
 
-      const totalViews = Object.values(viewsByCategory).reduce((sum, count) => sum + count, 0);
+      const totalViews = Object.values(categoryViews).reduce((sum, count) => sum + count, 0);
 
-      const result = {
+      const stats = {
         totalViews,
-        viewsByCategory,
-        recentViews: recentViewsData.data || []
+        categoryViews,
+        viewsByCategory: categoryViews, // Alias for backward compatibility
+        recentViews: recentViewsData
       };
 
-      setViewStats(result);
-      return result;
+      setViewStats(stats);
+      return stats;
+
     } catch (error) {
       console.error('Error fetching user item views:', error);
-      return { totalViews: 0, viewsByCategory: { robots: 0, spare_parts: 0, services: 0, logistics_services: 0, loan_products: 0 }, recentViews: [] };
+      return {
+        totalViews: 0,
+        categoryViews: {
+          robots: 0,
+          spare_parts: 0,
+          services: 0,
+          logistics_services: 0,
+          loan_products: 0
+        },
+        viewsByCategory: {
+          robots: 0,
+          spare_parts: 0,
+          services: 0,
+          logistics_services: 0,
+          loan_products: 0
+        },
+        recentViews: []
+      };
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Get view count for a specific item
-  const getItemViewCount = useCallback(async (targetType: string, targetId: string) => {
+  // Get total view count for a specific item (includes all views - logged in and anonymous)
+  const getItemViewCount = async (targetType: string, targetId: string): Promise<number> => {
     try {
-      const { data, error } = await supabase
-        .from('user_interactions')
-        .select('*')
-        .eq('interaction_type', 'view')
-        .eq('target_type', targetType)
-        .eq('target_id', targetId);
+      // Get total view count from button_interactions table (includes all views - logged in and anonymous)
+      const { count, error } = await supabase
+        .from('button_interactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('item_type', targetType)
+        .eq('item_id', targetId)
+        .eq('button_type', 'view');
 
       if (error) {
-        console.error('Error getting item view count:', error);
-        return 0;
+        console.error('Error fetching view count from button_interactions:', error);
+        
+        // Fallback to user_interactions table for logged-in user views only
+        const { count: fallbackCount, error: fallbackError } = await supabase
+          .from('user_interactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('target_type', targetType)
+          .eq('target_id', targetId)
+          .eq('interaction_type', 'view');
+
+        if (fallbackError) {
+          console.error('Error fetching fallback view count:', fallbackError);
+          return 0;
+        }
+
+        return fallbackCount || 0;
       }
 
-      return data?.length || 0;
+      return count || 0;
     } catch (error) {
-      console.error('Error in getItemViewCount:', error);
+      console.error('Error fetching view count:', error);
       return 0;
     }
-  }, []);
+  };
 
-  // Set up real-time subscription for view updates
+  // Set up real-time subscription for view updates (logged-in users only)
   useEffect(() => {
     if (!user) return;
 
@@ -249,10 +393,10 @@ export const useViewTracking = () => {
   }, [user, fetchUserItemViews]);
 
   return {
-    viewStats,
-    loading,
     trackView,
     fetchUserItemViews,
-    getItemViewCount
+    getItemViewCount,
+    viewStats,
+    loading
   };
 };
