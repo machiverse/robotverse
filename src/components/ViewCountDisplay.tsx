@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useViewTracking } from '@/hooks/useViewTracking';
+import { useGlobalViewTracking } from '@/hooks/useGlobalViewTracking';
 
 interface ViewCountDisplayProps {
   targetType: string;
@@ -10,16 +10,16 @@ interface ViewCountDisplayProps {
 }
 
 const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDisplayProps) => {
-  const { getItemViewCount } = useViewTracking();
+  const { getRobotViewCount } = useGlobalViewTracking();
   const [viewCount, setViewCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchViewCount = async () => {
-      if (!targetId || !targetType) return;
+      if (!targetId || targetType !== 'robots') return;
       setLoading(true);
       try {
-        const count = await getItemViewCount(targetType, targetId);
+        const count = await getRobotViewCount(targetId);
         setViewCount(count);
       } catch (error) {
         console.error('Error fetching view count:', error);
@@ -29,7 +29,12 @@ const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDis
     };
 
     fetchViewCount();
-  }, [targetId, targetType, getItemViewCount]);
+    
+    // Set up interval to refresh count every 30 seconds
+    const interval = setInterval(fetchViewCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, [targetId, targetType, getRobotViewCount]);
 
   if (loading) {
     return (

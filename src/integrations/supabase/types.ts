@@ -816,6 +816,30 @@ export type Database = {
         }
         Relationships: []
       }
+      robot_view_counts: {
+        Row: {
+          created_at: string
+          id: string
+          robot_id: string
+          total_views: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          robot_id: string
+          total_views?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          robot_id?: string
+          total_views?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       robots: {
         Row: {
           applications: string[] | null
@@ -1467,6 +1491,14 @@ export type Database = {
           user_roles: string[]
           user_type: string
         }[]
+      }
+      get_robot_view_count: {
+        Args: { p_robot_id: string }
+        Returns: number
+      }
+      increment_robot_view_count: {
+        Args: { p_robot_id: string }
+        Returns: number
       }
     }
     Enums: {

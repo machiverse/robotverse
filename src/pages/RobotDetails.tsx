@@ -17,7 +17,7 @@ import RobotReportModal from "@/components/RobotReportModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
-import { useViewTracking } from "@/hooks/useViewTracking";
+import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 
 interface Robot {
@@ -105,7 +105,7 @@ const RobotDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { trackView, getItemViewCount } = useViewTracking();
+  const { trackRobotView } = useGlobalViewTracking();
   const { trackButtonClick } = useButtonTracking();
   
   const [robot, setRobot] = useState<Robot | null>(null);
@@ -187,29 +187,12 @@ const RobotDetails = () => {
           : {}
       });
       
+      // Track this view for global counting (works for all users)
+      await trackRobotView(data.id, data);
+      
       if (user) {
         const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
         setIsInWatchlist(watchlist.includes(data.id));
-        
-        // Track this view
-        await trackView('robots', data.id);
-        
-        // Also track as view interaction in button interactions
-        await trackButtonClick({
-          buttonName: "View Robot Page",
-          buttonType: "view",
-          sellerId: data.seller_id,
-          sellerName: data.profiles?.company_name || data.profiles?.full_name,
-          itemId: data.id,
-          itemType: "robot",
-          additionalData: {
-            robotName: data.name,
-            robotModel: data.model,
-            robotType: data.robot_type,
-            robotPrice: data.price,
-            viewSource: "direct_link"
-          }
-        });
       }
 
     } catch (err) {
