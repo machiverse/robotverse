@@ -10,9 +10,10 @@ import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import RobotReportModal from "@/components/RobotReportModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -134,6 +135,15 @@ const RobotDetails = () => {
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
+  
+  // Report generation states
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportData, setReportData] = useState<{
+    report: string;
+    robotData: any;
+    timestamp: string;
+  } | null>(null);
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -628,6 +638,50 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       title: "Import Quote Request Sent",
       description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
     });
+  };
+
+  // Generate robot report using Gemini AI
+  const handleGenerateReport = async () => {
+    if (!robot || !user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to generate robot reports.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setReportLoading(true);
+      setShowReportModal(true);
+      
+      const { data, error } = await supabase.functions.invoke('roboverse-robot-report', {
+        body: { robotId: robot.id },
+      });
+
+      if (error) throw error;
+
+      setReportData({
+        report: data.report,
+        robotData: data.robotData,
+        timestamp: data.timestamp
+      });
+
+      toast({
+        title: "Report Generated",
+        description: "Comprehensive robot analysis report is ready!",
+      });
+
+    } catch (error: any) {
+      console.error('Error generating report:', error);
+      toast({
+        title: "Report Generation Failed",
+        description: error.message || "Failed to generate robot report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   // Purchase inquiry email
@@ -1131,10 +1185,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={handleGetReport}
+                          onClick={handleGenerateReport}
+                          disabled={reportLoading}
                           className="text-orange-600 border-orange-200 hover:bg-orange-50"
                         >
-                          <FileText className="w-4 h-4 mr-2" />
+                          {reportLoading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 h-4 mr-2" />
+                          )}
                           Get Report
                         </Button>
                         <Button 
@@ -2189,6 +2248,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           type: robot.robot_type
         } : undefined}
         financeProvider={selectedFinanceProvider}
+      />
+
+      {/* Robot Report Modal */}
+      <RobotReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportData={reportData}
+        loading={reportLoading}
       />
     </div>
   );

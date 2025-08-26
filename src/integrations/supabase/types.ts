@@ -786,6 +786,36 @@ export type Database = {
           },
         ]
       }
+      robot_reports: {
+        Row: {
+          created_at: string
+          id: string
+          report_content: string
+          robot_data: Json | null
+          robot_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report_content: string
+          robot_data?: Json | null
+          robot_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report_content?: string
+          robot_data?: Json | null
+          robot_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       robots: {
         Row: {
           applications: string[] | null
