@@ -1881,11 +1881,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                 <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
                   Get AI-powered recommendations for spare parts, services, financing, and logistics 
                   specifically matched to this robot with intelligent market analysis.
-                      
-                      <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
-                        Get AI-powered recommendations for spare parts, services, financing, and logistics 
-                        specifically matched to this robot with intelligent market analysis.
-                      </p>
+                </p>
                       <div className="grid grid-cols-3 gap-4 mb-8">
                         <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
                           <Wrench className="w-8 h-8 text-blue-600 mx-auto mb-2" />
@@ -2195,6 +2191,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         } : undefined}
         financeProvider={selectedFinanceProvider}
       />
+        </div>
+      </div>
     </div>
   );
 };
