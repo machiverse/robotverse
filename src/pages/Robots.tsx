@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useViewTracking } from "@/hooks/useViewTracking";
+import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -20,7 +20,7 @@ const Robots = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getItemViewCount } = useViewTracking();
+  const { getRobotViewCount } = useGlobalViewTracking();
   const { trackButtonClick } = useButtonTracking();
 
   // States for filtering & UI
@@ -101,7 +101,7 @@ const Robots = () => {
         // Fetch view counts for each robot and add to data
         const robotsWithViewCounts = await Promise.all(
           (data || []).map(async (robot) => {
-            const viewCount = await getItemViewCount('robots', robot.id);
+            const viewCount = await getRobotViewCount(robot.id);
             return { ...robot, viewCount };
           })
         );
@@ -180,7 +180,7 @@ const Robots = () => {
     };
 
     fetchData();
-  }, [getItemViewCount]);
+  }, [getRobotViewCount]);
 
   // Filter and group robots according to selected filters
   const getFilteredGroups = () => {

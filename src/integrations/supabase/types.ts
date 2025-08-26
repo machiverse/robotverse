@@ -838,7 +838,15 @@ export type Database = {
           total_views?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "robot_view_counts_robot_id_fkey"
+            columns: ["robot_id"]
+            isOneToOne: true
+            referencedRelation: "robots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       robots: {
         Row: {

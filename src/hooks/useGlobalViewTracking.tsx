@@ -165,7 +165,7 @@ export const useGlobalViewTracking = () => {
         .select(`
           robot_id,
           total_views,
-          robots (
+          robots!robot_view_counts_robot_id_fkey (
             id,
             name,
             model,

@@ -9,6 +9,7 @@ import AdminEquipment from "./admin/AdminEquipment";
 import AdminDatabase from "./admin/AdminDatabase";
 import AdminTracking from "./admin/AdminTracking";
 import AdminAnalytics from "./admin/AdminAnalytics";
+import AdminRobotAnalytics from "./admin/AdminRobotAnalytics";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
@@ -63,6 +64,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminTracking />;
       case "analytics":
         return <AdminAnalytics dashboardStats={dashboardStats} users={users} />;
+      case "robot-analytics":
+        return <AdminRobotAnalytics />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
