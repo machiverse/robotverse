@@ -6,13 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Share2, Expand, ExternalLink, Banknote, TrendingUp, Info } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import MarketIntelligencePanel from "@/components/MarketIntelligencePanel";
+import ReportGenerationModal from "@/components/ReportGenerationModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -134,6 +137,9 @@ const RobotDetails = () => {
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportInsights, setReportInsights] = useState<any>(null);
+  const [sellerInfo, setSellerInfo] = useState<any>(null);
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -628,6 +634,29 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       title: "Import Quote Request Sent",
       description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
     });
+  };
+
+  // Handle report generation
+  const handleGenerateReport = (insights: any) => {
+    setReportInsights(insights);
+    setShowReportModal(true);
+  };
+
+  // Share functionality
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: robot?.name,
+        text: `Check out this robot: ${robot?.name}`,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link Copied",
+        description: "Robot link copied to clipboard",
+      });
+    }
   };
 
   // Purchase inquiry email
