@@ -12,6 +12,9 @@ import {
   Package,
   Package as PartsIcon,
   Briefcase as OrdersIcon,
+  Truck,
+  CreditCard,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -20,6 +23,9 @@ const navItems = [
   { name: "Robots", href: "/robots", icon: Bot },
   { name: "Spare Parts", href: "/parts", icon: PartsIcon },
   { name: "Services", href: "/services", icon: Settings },
+  { name: "Logistics", href: "/logistics", icon: Truck },
+  { name: "Financing", href: "/financing", icon: CreditCard },
+  { name: "Blogs", href: "/blogs", icon: BookOpen },
 ];
 
 const EnhancedHeader = () => {

@@ -10,6 +10,9 @@ import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
 import Services from "./pages/Services";
+import Blogs from "./pages/Blogs";
+import BlogDetails from "./pages/BlogDetails";
+import BlogEditor from "./pages/BlogEditor";
 import DashboardPage from "./pages/DashboardPage";
 import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
 import SellerRobots from "./pages/SellerRobots";
@@ -45,6 +48,10 @@ const App = () => (
             <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/blogs" element={<Blogs />} />
+            <Route path="/blogs/create" element={<BlogEditor />} />
+            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/blogs/:id/edit" element={<BlogEditor />} />
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
