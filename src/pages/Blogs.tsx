@@ -74,10 +74,7 @@ const Blogs = () => {
       setLoading(true);
       let query = supabase
         .from('blogs')
-        .select(`
-          *,
-          profiles(full_name, company_name)
-        `)
+        .select('*')
         .eq('status', 'published');
 
       // Apply sorting
@@ -98,7 +95,27 @@ const Blogs = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setBlogs(data as unknown as Blog[] || []);
+
+      // Fetch author info for each blog
+      const blogsWithAuthors = await Promise.all(
+        (data || []).map(async (blog) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, company_name')
+            .eq('user_id', blog.author_id)
+            .maybeSingle();
+          
+          return {
+            ...blog,
+            profiles: profile ? {
+              full_name: profile.full_name || 'Anonymous',
+              company_name: profile.company_name || ''
+            } : null
+          };
+        })
+      );
+
+      setBlogs(blogsWithAuthors as Blog[]);
     } catch (error) {
       console.error('Error fetching blogs:', error);
     } finally {

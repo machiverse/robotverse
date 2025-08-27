@@ -79,16 +79,33 @@ const BlogDetails = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('blogs')
-        .select(`
-          *,
-          profiles(full_name, company_name, user_id)
-        `)
+        .select('*')
         .eq('id', id)
         .eq('status', 'published')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setBlog(data as unknown as Blog);
+      
+      if (!data) {
+        setBlog(null);
+        return;
+      }
+
+      // Fetch author profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, company_name')
+        .eq('user_id', data.author_id)
+        .maybeSingle();
+
+      setBlog({
+        ...data,
+        profiles: profile ? {
+          full_name: profile.full_name || 'Anonymous',
+          company_name: profile.company_name || '',
+          user_id: data.author_id
+        } : null
+      } as Blog);
     } catch (error) {
       console.error('Error fetching blog:', error);
       toast.error('Failed to load blog post');
@@ -112,17 +129,34 @@ const BlogDetails = () => {
       setRelatedLoading(true);
       const { data, error } = await supabase
         .from('blogs')
-        .select(`
-          *,
-          profiles(full_name, company_name)
-        `)
+        .select('*')
         .eq('status', 'published')
         .neq('id', blog.id)
         .limit(3)
         .order('published_at', { ascending: false });
 
       if (error) throw error;
-      setRelatedBlogs(data as unknown as Blog[] || []);
+
+      // Fetch author info for each related blog
+      const blogsWithAuthors = await Promise.all(
+        (data || []).map(async (relatedBlog) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, company_name')
+            .eq('user_id', relatedBlog.author_id)
+            .maybeSingle();
+          
+          return {
+            ...relatedBlog,
+            profiles: profile ? {
+              full_name: profile.full_name || 'Anonymous',
+              company_name: profile.company_name || ''
+            } : null
+          };
+        })
+      );
+
+      setRelatedBlogs(blogsWithAuthors as Blog[]);
     } catch (error) {
       console.error('Error fetching related blogs:', error);
     } finally {
