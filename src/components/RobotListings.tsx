@@ -860,8 +860,7 @@ const RobotListings = () => {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-lg font-bold text-primary">
-                          <IndianRupee className="w-4 h-4 mr-1" />
-                          {formatPrice(robot.price, robot.currency)}
+                           {formatPrice(robot.price, robot.currency)}
                         </div>
                         {robot.payload_capacity && (
                           <span className="text-xs text-muted-foreground">
