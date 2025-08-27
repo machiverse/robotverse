@@ -10,6 +10,8 @@ import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
 import Services from "./pages/Services";
+import Logistics from "./pages/Logistics";
+import Financing from "./pages/Financing";
 import Blogs from "./pages/Blogs";
 import BlogDetails from "./pages/BlogDetails";
 import BlogEditor from "./pages/BlogEditor";
@@ -26,7 +28,7 @@ import MyRobots from "./pages/dashboard/MyRobots";
 import PartsManagement from "./pages/dashboard/PartsManagement";
 import ServicesManagement from "./pages/dashboard/ServicesManagement";
 import Finance from "./pages/dashboard/Finance";
-import Logistics from "./pages/dashboard/Logistics";
+import LogisticsDashboard from "./pages/dashboard/Logistics";
 import Settings from "./pages/dashboard/Settings";
 import Help from "./pages/dashboard/Help";
 import Privacy from "./pages/dashboard/Privacy";
@@ -48,6 +50,8 @@ const App = () => (
             <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/logistics" element={<Logistics />} />
+            <Route path="/financing" element={<Financing />} />
             <Route path="/blogs" element={<Blogs />} />
             <Route path="/blogs/create" element={<BlogEditor />} />
             <Route path="/blogs/:id" element={<BlogDetails />} />
@@ -62,7 +66,7 @@ const App = () => (
             <Route path="/dashboard/parts" element={<PartsManagement />} />
             <Route path="/dashboard/services" element={<ServicesManagement />} />
             <Route path="/dashboard/finance" element={<Finance />} />
-            <Route path="/dashboard/logistics" element={<Logistics />} />
+            <Route path="/dashboard/logistics" element={<LogisticsDashboard />} />
             <Route path="/dashboard/settings" element={<Settings />} />
             <Route path="/dashboard/help" element={<Help />} />
             <Route path="/dashboard/privacy" element={<Privacy />} />
