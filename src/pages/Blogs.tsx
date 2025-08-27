@@ -147,7 +147,7 @@ const Blogs = () => {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">RobotVerse Blog</h1>
+              <h1 className="text-4xl font-bold tracking-tight">Community</h1>
               <p className="text-lg text-muted-foreground mt-2">
                 Insights, tutorials, and updates from the robotics community
               </p>
@@ -312,7 +312,7 @@ const Blogs = () => {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <User className="h-4 w-4" />
                           <span className="truncate font-medium">
-                            {blog.profiles?.full_name || blog.profiles?.company_name || 'Anonymous'}
+                            {user ? (blog.profiles?.full_name || blog.profiles?.company_name || 'Community Member') : 'Community Member'}
                           </span>
                         </div>
                         

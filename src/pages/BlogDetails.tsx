@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow, format } from "date-fns";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import BlogComments from "@/components/BlogComments";
 
 interface Blog {
   id: string;
@@ -325,10 +326,14 @@ const BlogDetails = () => {
               <h1 className="text-5xl font-bold leading-tight tracking-tight">{blog.title}</h1>
               
               <div className="flex flex-wrap items-center justify-center gap-6 text-lg font-semibold text-muted-foreground">
-                <div className="flex items-center gap-3">
-                  <User className="h-5 w-5" />
-                  <span className="font-bold text-foreground">{blog.profiles?.full_name || blog.profiles?.company_name || 'Anonymous'}</span>
-                </div>
+                 <div className="flex items-center gap-3">
+                   <User className="h-5 w-5" />
+                   {user ? (
+                     <span className="font-bold text-foreground">{blog.profiles?.full_name || blog.profiles?.company_name || 'Community Member'}</span>
+                   ) : (
+                     <span className="font-bold text-muted-foreground">Community Member</span>
+                   )}
+                 </div>
                 
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5" />
@@ -365,7 +370,20 @@ const BlogDetails = () => {
 
             {/* Article Content */}
             <div className="prose prose-xl max-w-none mx-auto leading-relaxed">
-              <div className="whitespace-pre-wrap text-lg leading-8 text-foreground">{blog.content}</div>
+              <div 
+                className="text-lg leading-8 text-foreground space-y-4"
+                dangerouslySetInnerHTML={{ 
+                  __html: blog.content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+                    .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>')
+                    .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold mt-6 mb-3">$1</h2>')
+                    .replace(/^### (.+)$/gm, '<h3 class="text-xl font-semibold mt-4 mb-2">$1</h3>')
+                    .replace(/^• (.+)$/gm, '<li class="ml-6">$1</li>')
+                    .replace(/^\d+\. (.+)$/gm, '<li class="ml-6 list-decimal">$1</li>')
+                    .replace(/\n/g, '<br>')
+                }}
+              />
             </div>
 
             {/* Article Footer */}
@@ -425,9 +443,9 @@ const BlogDetails = () => {
                             </p>
                             
                             <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-                              <span>
-                                {relatedBlog.profiles?.full_name || relatedBlog.profiles?.company_name || 'Anonymous'}
-                              </span>
+                             <span>
+                               {user ? (relatedBlog.profiles?.full_name || relatedBlog.profiles?.company_name || 'Community Member') : 'Community Member'}
+                             </span>
                               <span>
                                 {formatDistanceToNow(new Date(relatedBlog.published_at || relatedBlog.created_at), { addSuffix: true })}
                               </span>
@@ -440,10 +458,13 @@ const BlogDetails = () => {
                 </div>
               )}
             </section>
-          )}
-        </div>
-      </main>
-    </div>
+           )}
+
+           {/* Comments Section */}
+           <BlogComments blogId={blog.id} />
+         </div>
+       </main>
+     </div>
   );
 };
 
