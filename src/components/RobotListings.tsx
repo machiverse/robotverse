@@ -42,6 +42,7 @@ import {
   ArrowUpDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice as formatCurrencyPrice, type Currency, convertToINR, comparePrices } from "@/utils/currency";
 
 // Fixed Robot interface to match actual database schema
 interface Robot {
@@ -55,7 +56,7 @@ interface Robot {
   pincode?: string;
   availability: string;
   price: number;
-  currency: string;
+  currency: Currency;
   images: string[];
   category_tags: string[];
   seller_id: string;
@@ -191,15 +192,15 @@ const RobotListings = () => {
   const calculateMarketStats = (robotsData: Robot[]) => {
   const totalListings = robotsData.length;
 
-  // Collect only valid prices (> 0)
-  const prices = robotsData
-    .map(r => r.price || 0)
-    .filter(price => price > 0);
+  // Collect only valid prices (> 0) and convert all to INR for comparison
+  const pricesInINR = robotsData
+    .filter(r => r.price && r.price > 0)
+    .map(r => convertToINR(r.price, r.currency));
 
-  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-  const avgPrice = prices.length > 0
-    ? prices.reduce((sum, p) => sum + p, 0) / prices.length
+  const minPrice = pricesInINR.length > 0 ? Math.min(...pricesInINR) : 0;
+  const maxPrice = pricesInINR.length > 0 ? Math.max(...pricesInINR) : 0;
+  const avgPrice = pricesInINR.length > 0
+    ? pricesInINR.reduce((sum, p) => sum + p, 0) / pricesInINR.length
     : 0;
     
     // Top brands
@@ -269,7 +270,7 @@ const RobotListings = () => {
       filtered = filtered.filter(robot => robot.profiles?.company_name === companyFilter);
     }
 
-    // Price filter
+    // Price filter - convert all prices to INR for comparison
     if (priceFilter !== 'all') {
       const ranges = {
         'under-50k': [0, 50000],
@@ -280,9 +281,10 @@ const RobotListings = () => {
       };
       const range = ranges[priceFilter as keyof typeof ranges];
       if (range) {
-        filtered = filtered.filter(robot => 
-          robot.price >= range[0] && robot.price < range[1]
-        );
+        filtered = filtered.filter(robot => {
+          const priceInINR = convertToINR(robot.price, robot.currency);
+          return priceInINR >= range[0] && priceInINR < range[1];
+        });
       }
     }
 
@@ -313,9 +315,9 @@ const RobotListings = () => {
         case 'oldest':
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case 'price-low':
-          return (a.price || 0) - (b.price || 0);
+          return convertToINR(a.price || 0, a.currency) - convertToINR(b.price || 0, b.currency);
         case 'price-high':
-          return (b.price || 0) - (a.price || 0);
+          return convertToINR(b.price || 0, b.currency) - convertToINR(a.price || 0, a.currency);
         case 'name-az':
           return (a.name || '').localeCompare(b.name || '');
         case 'name-za':
@@ -396,10 +398,9 @@ const RobotListings = () => {
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
+  const formatPrice = (price: number, currency: Currency) => {
     if (!price) return 'Price on request';
-    const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : '€';
-    return `${symbol}${price.toLocaleString()}`;
+    return formatCurrencyPrice(price, currency);
   };
 
   const getConditionColor = (condition: string) => {

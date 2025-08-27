@@ -40,6 +40,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
+import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 
 interface SparePart {
   id: string;
@@ -48,7 +49,7 @@ interface SparePart {
   description?: string;
   quantity: number;
   price: number;
-  currency: string;
+  currency: Currency;
   images: string[];
   compatible_robots: string[];
   category_tags: string[];
@@ -127,7 +128,10 @@ const SparePartsSellerDashboard = () => {
 
       if (error) throw error;
 
-      setSpareParts(data || []);
+      setSpareParts((data || []).map(part => ({
+        ...part,
+        currency: (part.currency as Currency) || 'INR'
+      })));
     } catch (error) {
       console.error('Error fetching spare parts:', error);
       toast({
@@ -145,8 +149,21 @@ const SparePartsSellerDashboard = () => {
     const total = spareParts.length;
     const inStock = spareParts.filter(part => part.quantity > 0).length;
     const outOfStock = spareParts.filter(part => part.quantity === 0).length;
-    const totalValue = spareParts.reduce((sum, part) => sum + (part.price * part.quantity), 0);
-    const avgPrice = total > 0 ? spareParts.reduce((sum, part) => sum + part.price, 0) / total : 0;
+    
+    // Calculate total value in INR for consistent comparison
+    const totalValue = calculateTotalInINR(
+      spareParts.map(part => ({ 
+        price: (part.price || 0) * part.quantity, 
+        currency: part.currency 
+      }))
+    );
+    
+    // Calculate average price in INR
+    const avgPrice = total > 0 
+      ? calculateTotalInINR(
+          spareParts.map(part => ({ price: part.price || 0, currency: part.currency }))
+        ) / total 
+      : 0;
 
     setStats({
       total,
@@ -475,10 +492,10 @@ const SparePartsSellerDashboard = () => {
                     <span className="text-sm text-muted-foreground">Quantity:</span>
                     <span className="font-medium">{part.quantity}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Price:</span>
-                    <span className="font-medium">₹{part.price.toLocaleString()}</span>
-                  </div>
+                   <div className="flex justify-between">
+                     <span className="text-sm text-muted-foreground">Price:</span>
+                     <span className="font-medium">{formatPrice(part.price, part.currency)}</span>
+                   </div>
                   {part.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {part.description}
@@ -508,7 +525,7 @@ const SparePartsSellerDashboard = () => {
                   <TableCell className="font-medium">{part.part_number}</TableCell>
                   <TableCell>{part.name}</TableCell>
                   <TableCell>{part.quantity}</TableCell>
-                  <TableCell>₹{part.price.toLocaleString()}</TableCell>
+                  <TableCell>{formatPrice(part.price, part.currency)}</TableCell>
                   <TableCell>
                     <Badge variant={part.quantity > 0 ? 'default' : 'secondary'}>
                       {part.quantity > 0 ? 'In Stock' : 'Out of Stock'}

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/carousel';
 import { Bot, MapPin, Building, User, Clock, ShoppingCart } from 'lucide-react';
 import { useButtonTracking } from '@/hooks/useButtonTracking';
+import { formatPrice, type Currency } from '@/utils/currency';
 
 interface Robot {
   id: string;
@@ -20,7 +21,7 @@ interface Robot {
   model: string;
   robot_type: string;
   price: number;
-  currency: string;
+  currency: Currency;
   images: string[];
   location: string;
   availability: string;
@@ -80,10 +81,7 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
     };
   }, [api]);
 
-  const formatPrice = (price: number, currency: string) => {
-    const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
-    return `${currencySymbol}${price.toLocaleString()}`;
-  };
+  
 
   const handleCardClick = () => {
     // Navigate to robots page with category filter

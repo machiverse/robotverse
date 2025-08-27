@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, X, Plus, Package } from "lucide-react";
 import { toast } from "sonner";
+import { formatPrice, type Currency } from "@/utils/currency";
 
 interface SparePartFormData {
   name: string;
@@ -16,7 +18,7 @@ interface SparePartFormData {
   compatible_robots: string[];
   quantity: number;
   price: number | null;
-  currency: string;
+  currency: Currency;
   description: string;
   location: string;
   specifications: Record<string, any>;
@@ -352,17 +354,33 @@ const SpareParts = () => {
 
           <div className="space-y-2">
             <Label htmlFor="price">Price</Label>
-            <Input
-              id="price"
-              type="number"
-              min={0}
-              value={formData.price ?? ""}
-              onChange={(e) =>
-                handleInputChange("price", parseFloat(e.target.value) || null)
-              }
-              placeholder="Enter price (optional)"
-              disabled={loading}
-            />
+            <div className="flex gap-2">
+              <Select 
+                value={formData.currency} 
+                onValueChange={(value) => handleInputChange('currency', value as Currency)}
+              >
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INR">₹ INR</SelectItem>
+                  <SelectItem value="USD">$ USD</SelectItem>
+                  <SelectItem value="EUR">€ EUR</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                id="price"
+                type="number"
+                min={0}
+                value={formData.price ?? ""}
+                onChange={(e) =>
+                  handleInputChange("price", parseFloat(e.target.value) || null)
+                }
+                placeholder="Enter price (optional)"
+                className="flex-1"
+                disabled={loading}
+              />
+            </div>
           </div>
 
           {/* Compatible Robots */}

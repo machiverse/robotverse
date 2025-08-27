@@ -36,6 +36,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice, type Currency, CURRENCY_SYMBOLS, convertToINR } from "@/utils/currency";
 
 interface CustomField {
   field_name: string;
@@ -52,7 +53,7 @@ interface RobotFormData {
   state: string;
   pincode: string;
   price: number | null;
-  currency: string;
+  currency: Currency;
   description: string;
   technical_specifications: Record<string, any>;
   category_tags: string[];
@@ -1487,9 +1488,14 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
                     required
                   />
                 </div>
-                {errors.price && (
-                  <p className="text-red-500 text-sm">{errors.price}</p>
-                )}
+                 {errors.price && (
+                   <p className="text-red-500 text-sm">{errors.price}</p>
+                 )}
+                 {formData.price && formData.currency !== 'INR' && (
+                   <p className="text-sm text-muted-foreground">
+                     ≈ ₹{convertToINR(formData.price, formData.currency).toLocaleString()} INR
+                   </p>
+                 )}
               </div>
 
               <div className="space-y-2">
