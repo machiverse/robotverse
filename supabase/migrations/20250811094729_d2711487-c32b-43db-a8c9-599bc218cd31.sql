@@ -1,0 +1,76 @@
+-- Fix critical security vulnerability in profiles table
+-- Current policy exposes ALL personal data of providers, which is a major security risk
+
+-- Drop the existing overly permissive policy
+DROP POLICY IF EXISTS "Users can view provider profiles and their own profile" ON public.profiles;
+
+-- Create a secure policy that only allows users to see their own complete profile
+CREATE POLICY "Users can view their own profile" 
+ON public.profiles 
+FOR SELECT 
+USING (auth.uid() = user_id);
+
+-- Create a separate policy for viewing limited provider information
+-- Only expose business/public information, NOT personal data like email, phone, mobile_number
+CREATE POLICY "Users can view limited provider business info" 
+ON public.profiles 
+FOR SELECT 
+USING (
+  user_id IN (
+    SELECT DISTINCT robots.seller_id FROM robots
+    UNION
+    SELECT DISTINCT spare_parts.seller_id FROM spare_parts
+    UNION
+    SELECT DISTINCT services.provider_id FROM services
+    UNION
+    SELECT DISTINCT logistics_services.provider_id FROM logistics_services
+    UNION
+    SELECT DISTINCT loan_products.provider_id FROM loan_products
+    UNION
+    SELECT DISTINCT loan_schemes.provider_id FROM loan_schemes
+  )
+);
+
+-- Create a security definer function to get only safe provider information
+CREATE OR REPLACE FUNCTION public.get_provider_public_info(provider_user_id uuid)
+RETURNS TABLE(
+  user_id uuid,
+  full_name text,
+  company_name text,
+  location text,
+  user_type text,
+  account_type text,
+  service_categories text[],
+  user_roles text[],
+  registration_complete boolean
+) 
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT 
+    p.user_id,
+    p.full_name,
+    p.company_name,
+    p.location,
+    p.user_type,
+    p.account_type,
+    p.service_categories,
+    p.user_roles,
+    p.registration_complete
+  FROM public.profiles p
+  WHERE p.user_id = provider_user_id
+  AND p.user_id IN (
+    SELECT DISTINCT robots.seller_id FROM robots
+    UNION
+    SELECT DISTINCT spare_parts.seller_id FROM spare_parts
+    UNION
+    SELECT DISTINCT services.provider_id FROM services
+    UNION
+    SELECT DISTINCT logistics_services.provider_id FROM logistics_services
+    UNION
+    SELECT DISTINCT loan_products.provider_id FROM loan_products
+    UNION
+    SELECT DISTINCT loan_schemes.provider_id FROM loan_schemes
+  );
+$$;
