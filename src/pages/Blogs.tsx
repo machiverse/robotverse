@@ -55,7 +55,7 @@ const Blogs = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("latest");
-  const [selectedTag, setSelectedTag] = useState("");
+  const [selectedTag, setSelectedTag] = useState("all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   useEffect(() => {
@@ -128,7 +128,7 @@ const Blogs = () => {
                          blog.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          blog.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesTag = selectedTag === "" || blog.tags.includes(selectedTag);
+    const matchesTag = selectedTag === "all" || blog.tags.includes(selectedTag);
     
     return matchesSearch && matchesTag;
   });
@@ -226,7 +226,7 @@ const Blogs = () => {
                   <SelectValue placeholder="Filter by tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Tags</SelectItem>
+                  <SelectItem value="all">All Tags</SelectItem>
                   {availableTags.map(tag => (
                     <SelectItem key={tag} value={tag}>
                       {tag}
@@ -263,7 +263,7 @@ const Blogs = () => {
             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No blogs found</h3>
             <p className="text-muted-foreground mb-6">
-              {searchTerm || selectedTag 
+              {searchTerm || (selectedTag && selectedTag !== "all")
                 ? "Try adjusting your search or filter criteria." 
                 : "Be the first to share your insights with the community!"
               }
