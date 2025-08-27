@@ -857,6 +857,7 @@ export type Database = {
           category_tags: string[] | null
           certification_standards: string[] | null
           condition: string | null
+          controller_type: string | null
           created_at: string
           currency: string | null
           description: string | null
@@ -896,6 +897,7 @@ export type Database = {
           category_tags?: string[] | null
           certification_standards?: string[] | null
           condition?: string | null
+          controller_type?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -935,6 +937,7 @@ export type Database = {
           category_tags?: string[] | null
           certification_standards?: string[] | null
           condition?: string | null
+          controller_type?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
