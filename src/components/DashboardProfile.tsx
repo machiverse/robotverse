@@ -44,6 +44,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
   const [loading, setLoading] = useState(false);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [logoLoading, setLogoLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: userProfile?.full_name || '',
@@ -55,7 +56,8 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
     website: userProfile?.website || '',
     linkedin_url: userProfile?.linkedin_url || '',
     user_type: userProfile?.user_type || '',
-    avatar_url: userProfile?.avatar_url || ''
+    avatar_url: userProfile?.avatar_url || '',
+    company_logo_url: userProfile?.company_logo_url || ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -169,7 +171,8 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
       website: userProfile?.website || '',
       linkedin_url: userProfile?.linkedin_url || '',
       user_type: userProfile?.user_type || '',
-      avatar_url: userProfile?.avatar_url || ''
+      avatar_url: userProfile?.avatar_url || '',
+      company_logo_url: userProfile?.company_logo_url || ''
     });
     setIsEditing(false);
     setErrors({});
@@ -232,6 +235,66 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
       });
     } finally {
       setAvatarLoading(false);
+    }
+  };
+
+  const handleCompanyLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File too large",
+        description: "Please select an image smaller than 2MB"
+      });
+      return;
+    }
+
+    setLogoLoading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `company-logo-${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `company-logos/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('robot-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('robot-images')
+        .getPublicUrl(filePath);
+
+      // Update profile with new company logo URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ company_logo_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setFormData({ ...formData, company_logo_url: publicUrl });
+      
+      toast({
+        title: "Success!",
+        description: "Company logo updated successfully"
+      });
+      
+      onProfileUpdate();
+    } catch (error) {
+      console.error('Error uploading company logo:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update company logo"
+      });
+    } finally {
+      setLogoLoading(false);
     }
   };
 
@@ -332,7 +395,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
                   <img 
                     src={formData.avatar_url} 
                     alt="Avatar" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-lg"
                   />
                 ) : (
                   <User className="w-12 h-12 text-muted-foreground" />
@@ -500,6 +563,54 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
                 {userProfile?.bio || 'Not set'}
               </p>
             )}
+          </div>
+
+          {/* Company Logo Section */}
+          <div>
+            <Label htmlFor="company_logo">Company Logo</Label>
+            <div className="flex items-center gap-6 mt-2">
+              <div className="relative">
+                <div className="w-20 h-20 border-2 border-dashed border-muted-foreground/30 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                  {formData.company_logo_url ? (
+                    <img 
+                      src={formData.company_logo_url} 
+                      alt="Company Logo" 
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <Building className="w-8 h-8 text-muted-foreground" />
+                  )}
+                </div>
+                {isEditing && (
+                  <div className="absolute bottom-0 right-0">
+                    <label className="cursor-pointer">
+                      <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors">
+                        {logoLoading ? (
+                          <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                        ) : (
+                          <Camera className="w-3 h-3" />
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCompanyLogoUpload}
+                        className="hidden"
+                        disabled={logoLoading}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">
+                  Upload your company logo to display on your profile and listings.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recommended size: 200x200px. Max file size: 2MB.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Website & Social Links */}

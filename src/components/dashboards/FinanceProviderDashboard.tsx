@@ -23,10 +23,13 @@ import {
   Trash2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
 import { supabase } from '@/integrations/supabase/client';
 import LoanProductForm from '@/components/forms/LoanProductForm';
 import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
 import LoanCalculator from '@/components/forms/LoanCalculator';
+import { DashboardHeader } from '@/components/DashboardHeader';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;
@@ -34,6 +37,8 @@ interface FinanceProviderDashboardProps {
 
 const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { viewStats, fetchUserItemViews } = useViewTracking();
   const [loanApplications, setLoanApplications] = useState<any[]>([]);
   const [loanSchemes, setLoanSchemes] = useState<any[]>([]);
   const [loanProducts, setLoanProducts] = useState<any[]>([]);
@@ -59,7 +64,10 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user]);
+    if (user) {
+      fetchUserItemViews(user.id);
+    }
+  }, [user, fetchUserItemViews]);
 
   const fetchDashboardData = async () => {
     if (!user) return;

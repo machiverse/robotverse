@@ -51,7 +51,9 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
 import RobotUpload from '@/components/RobotUpload';
+import { DashboardHeader } from '@/components/DashboardHeader';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -60,6 +62,7 @@ interface RobotSellerDashboardProps {
 const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { viewStats, fetchUserItemViews, loading: viewsLoading } = useViewTracking();
   const [robots, setRobots] = useState<any[]>([]);
   const [filteredRobots, setFilteredRobots] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,7 +110,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user]);
+    if (user) {
+      fetchUserItemViews(user.id);
+    }
+  }, [user, fetchUserItemViews]);
 
   useEffect(() => {
     filterAndSortRobots();
@@ -162,7 +168,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       totalRobots,
       activeListings,
       totalRevenue,
-      totalViews: Math.floor(Math.random() * 1000),
+      totalViews: viewStats.viewsByCategory.robots || 0,
       avgPrice,
       soldThisMonth: 0,
       inquiries: Math.floor(Math.random() * 50),
@@ -497,34 +503,26 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     },
     {
       title: 'Total Views',
-      value: dashboardStats.totalViews,
+      value: viewStats.totalViews || 0,
       icon: Eye,
-      trend: 'All listings',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      change: '+8%'
+      trend: `${viewStats.viewsByCategory.robots} robot views`,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      change: viewsLoading ? '...' : '+8%'
     },
     {
       title: 'Conversion Rate',
       value: `${dashboardStats.conversationRate.toFixed(1)}%`,
       icon: TrendingUp,
       trend: 'Views to inquiries',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
       change: '+3%'
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* SIMPLIFIED Welcome Banner - Only shows "Welcome, [Name]!" */}
-      <Alert className="border-green-200 bg-green-50">
-        <CheckCircle className="w-4 h-4" />
-        <AlertDescription className="text-green-700">
-          <strong>Welcome, {userProfile?.full_name || user?.email || 'User'}!</strong>
-        </AlertDescription>
-      </Alert>
-
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -778,10 +776,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                               <div className="flex items-center space-x-3">
                                 <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                                   {robot.images && robot.images.length > 0 ? (
-                                    <img 
-                                      src={robot.images[0]} 
-                                      alt={robot.name}
-                                      className="w-full h-full object-cover rounded-lg"
+                                     <img 
+                                       src={robot.images[0]} 
+                                       alt={robot.name}
+                                       className="w-full h-full object-contain rounded-lg bg-muted"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
                                       }}
@@ -861,9 +859,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                               <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
                                 {robot.images && robot.images.length > 0 ? (
                                   <img 
-                                    src={robot.images[0]} 
-                                    alt={robot.name}
-                                    className="w-full h-full object-cover"
+                                   src={robot.images[0]} 
+                                   alt={robot.name}
+                                   className="w-full h-full object-contain rounded-lg bg-muted"
                                   />
                                 ) : (
                                   <Bot className="w-8 h-8 text-muted-foreground" />

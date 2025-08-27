@@ -36,6 +36,12 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice, type Currency, CURRENCY_SYMBOLS, convertToINR } from "@/utils/currency";
+
+interface CustomField {
+  field_name: string;
+  field_value: string;
+}
 
 interface RobotFormData {
   name: string;
@@ -47,7 +53,7 @@ interface RobotFormData {
   state: string;
   pincode: string;
   price: number | null;
-  currency: string;
+  currency: Currency;
   description: string;
   technical_specifications: Record<string, any>;
   category_tags: string[];
@@ -66,6 +72,10 @@ interface RobotFormData {
   installation_service: boolean;
   maintenance_contract: boolean;
   financing_available: boolean;
+  controller_type: string;
+  brochure_url: string | null;
+  video_url: string | null;
+  video_type: string;
 }
 
 interface RobotUploadProps {
@@ -88,6 +98,17 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
   const [newAccessory, setNewAccessory] = useState('');
   const [formCompletion, setFormCompletion] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Custom fields state
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldValue, setNewFieldValue] = useState('');
+  
+  // File upload state
+  const [brochureFile, setBrochureFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [videoType, setVideoType] = useState<'upload' | 'youtube'>('upload');
   
   const [formData, setFormData] = useState<RobotFormData>(() => {
     if (editMode && robotData) {
@@ -120,6 +141,10 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         installation_service: robotData.installation_service || false,
         maintenance_contract: robotData.maintenance_contract || false,
         financing_available: robotData.financing_available || false,
+        controller_type: robotData.controller_type || '',
+        brochure_url: robotData.brochure_url || null,
+        video_url: robotData.video_url || null,
+        video_type: robotData.video_type || 'upload',
       };
     }
     return {
@@ -151,6 +176,10 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
       installation_service: false,
       maintenance_contract: false,
       financing_available: false,
+      controller_type: '',
+      brochure_url: null,
+      video_url: null,
+      video_type: 'upload',
     };
   });
 
@@ -161,10 +190,15 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
     'SCARA Robot',
     'Delta Robot',
     'Cartesian Robot',
+    'Gantry Robot',
+    'Linear Robot',
     'Cylindrical Robot',
     'Spherical Robot',
+    'Polar Robot',
+    'Parallel Robot',
     'Humanoid Robot',
     'Mobile Robot',
+    'AMR (Autonomous Mobile Robot)',
     'AGV (Automated Guided Vehicle)',
     'Welding Robot',
     'Painting Robot',
@@ -172,39 +206,153 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
     'Pick and Place Robot',
     'Packaging Robot',
     'Palletizing Robot',
+    'Material Handling Robot',
+    'Machine Tending Robot',
+    'Inspection Robot',
+    'CNC Robot',
+    '7th Axis Linear Track Robot',
+    'Vision-Guided Robot',
+    'Force-Controlled Robot',
     'Service Robot',
+    'Medical Robot',
     'Other'
-  ];
+];
 
   const robotBrands = [
+    // Major Global Brands
     'ABB', 'KUKA', 'Fanuc', 'Yaskawa', 'Kawasaki', 'Mitsubishi', 'Denso', 
     'Epson', 'Universal Robots', 'Staubli', 'Comau', 'Nachi', 'Omron',
-    'Doosan', 'Techman Robot', 'Precise Automation', 'Other'
-  ];
+    'Doosan', 'Techman Robot', 'Precise Automation',
+    
+    // Additional Major Brands
+    'Motoman', 'Adept', 'Reis Robotics', 'Cloos', 'Panasonic', 'Toshiba',
+    'Hitachi', 'Yamaha', 'IAI', 'THK', 'Hiwin', 'Googol Technology',
+    
+    // Collaborative Robot Specialists
+    'Franka Emika', 'Rethink Robotics', 'Cobots', 'Elephant Robotics',
+    'Kassow Robots', 'Hanwha', 'Rainbow Robotics', 'Aubo Robotics',
+    
+    // Indian/Regional Brands
+    'Tata Technologies', 'Hi-Tech Robotics', 'Automech Robotics',
+    'Pari Robotics', 'TAL Manufacturing', 'Grind Master',
+    
+    // Chinese Brands
+    'Siasun', 'ESTUN', 'GSK CNC', 'Effort', 'EFORT', 'Han\'s Robot',
+    'Rokae', 'Elite Robot', 'Jaka Robotics', 'Dobot',
+    
+    'Other'
+];
 
   const conditionOptions = [
-    { value: 'new', label: 'Brand New', description: 'Factory sealed, never used' },
-    { value: 'like_new', label: 'Like New', description: 'Barely used, excellent condition' },
-    { value: 'good', label: 'Good', description: 'Well maintained, minor wear' },
-    { value: 'fair', label: 'Fair', description: 'Functional, shows usage signs' },
-    { value: 'refurbished', label: 'Refurbished', description: 'Professionally restored' }
-  ];
+  { value: 'new', label: 'Brand New', description: 'Factory sealed, never used' },
+  { value: 'like_new', label: 'Like New', description: 'Barely used, excellent condition' },
+  { value: 'good', label: 'Good', description: 'Well maintained, minor wear' },
+  { value: 'used', label: 'Used', description: 'Previously owned and operated' },  // changed this entry
+  { value: 'refurbished', label: 'Refurbished', description: 'Professionally restored' }
+];
 
   const operatingEnvironments = [
-    'Standard Industrial', 'Clean Room', 'Harsh Environment', 'Explosive Atmosphere', 
-    'High Temperature', 'Low Temperature', 'Outdoor', 'Food Grade', 'Pharmaceutical'
-  ];
+    'Standard Industrial',
+    'Clean Room (ISO Class 5-8)',
+    'Harsh Environment',
+    'Explosive Atmosphere (ATEX/IECEx)',
+    'High Temperature (up to 200°C)',
+    'Low Temperature (-40°C to 0°C)',
+    'Outdoor/Weather Resistant',
+    'Food Grade/FDA Compliant',
+    'Pharmaceutical Grade',
+    'Automotive Manufacturing',
+    'Electronics Assembly',
+    'Chemical Processing',
+    'Foundry/Casting',
+    'Aerospace Manufacturing',
+    'Laboratory Environment',
+    'Underwater/Marine',
+    'Radiation Environment',
+    'Dusty Environment (IP65/IP67)',
+    'Corrosive Environment',
+    'Vibration Resistant'
+];
 
   const commonApplications = [
-    'Welding', 'Assembly', 'Pick and Place', 'Packaging', 'Palletizing', 
-    'Material Handling', 'Machine Tending', 'Quality Inspection', 'Painting',
-    'Cutting', 'Grinding', 'Polishing', 'Dispensing', 'Testing'
-  ];
+    // Manufacturing Operations
+    'Welding (Arc, Spot, Laser)',
+    'Assembly (Automated)',
+    'Pick and Place',
+    'Packaging',
+    'Palletizing',
+    'Material Handling',
+    'Machine Tending',
+    'Quality Inspection',
+    'Painting/Coating',
+    'Cutting (Laser, Water Jet, Plasma)',
+    'Grinding',
+    'Polishing',
+    'Dispensing (Adhesive, Sealant)',
+    'Testing/Measurement',
+    
+    // Specialized Operations
+    'Deburring',
+    'Drilling',
+    'Milling',
+    'Surface Treatment',
+    'Loading/Unloading',
+    'Sorting',
+    'Labeling',
+    'Fastening',
+    'Riveting',
+    'Soldering',
+    'Injection Molding',
+    'Press Operations',
+    'Die Casting',
+    'Forging',
+    'Heat Treatment',
+    
+    // Service Applications
+    'Cleaning',
+    'Maintenance',
+    'Security/Surveillance',
+    'Education/Research',
+    'Medical Assistance',
+    'Rehabilitation Therapy'
+];
 
   const certificationStandards = [
-    'ISO 9001', 'CE Marking', 'ANSI/RIA R15.06', 'ISO 10218', 'IEC 61508',
-    'ISO 13849', 'NRTL Listed', 'UL Listed', 'CSA Certified', 'JIS Standards'
-  ];
+    // International Standards
+    'ISO 9001 (Quality Management)',
+    'ISO 10218 (Robot Safety)',
+    'ISO 13849 (Safety Control Systems)',
+    'IEC 61508 (Functional Safety)',
+    'IEC 62061 (Safety Control Systems)',
+    'CE Marking (European Conformity)',
+    
+    // Regional Standards
+    'ANSI/RIA R15.06 (US Robot Safety)',
+    'NRTL Listed (US)',
+    'UL Listed (US)',
+    'CSA Certified (Canada)',
+    'JIS Standards (Japan)',
+    'GB Standards (China)',
+    'BIS (Bureau of Indian Standards)',
+    
+    // Industry-Specific
+    'FDA 21 CFR Part 11 (Pharmaceutical)',
+    'HACCP (Food Safety)',
+    'SIL Rated (Safety Integrity Level)',
+    'ATEX Certified (Explosive Atmospheres)',
+    'IECEx Certified (Explosive Atmospheres)',
+    'IP Rating (Ingress Protection)',
+    'EMC Compliance',
+    'FCC Certified',
+    'RoHS Compliant',
+    'REACH Compliant',
+    
+    // Collaborative Robot Specific
+    'ISO/TS 15066 (Collaborative Robots)',
+    'EN ISO 13849 (Safety Functions)',
+    'OSHA Compliant',
+    'None/Not Specified'
+];
 
   useEffect(() => {
     calculateFormCompletion();
@@ -393,6 +541,87 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
     handleInputChange('included_accessories', formData.included_accessories.filter(acc => acc !== accessoryToRemove));
   };
 
+  // Custom fields functions
+  const addCustomField = () => {
+    if (newFieldName.trim() && newFieldValue.trim()) {
+      const newField: CustomField = {
+        field_name: newFieldName.trim(),
+        field_value: newFieldValue.trim(),
+      };
+      setCustomFields(prev => [...prev, newField]);
+      setNewFieldName('');
+      setNewFieldValue('');
+    }
+  };
+
+  const removeCustomField = (index: number) => {
+    setCustomFields(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // File upload functions
+  const handleBrochureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: "Please upload a PDF file"
+        });
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: "Please upload a file smaller than 10MB"
+        });
+        return;
+      }
+      setBrochureFile(file);
+    }
+  };
+
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('video/')) {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: "Please upload a video file"
+        });
+        return;
+      }
+      if (file.size > 100 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: "Please upload a video smaller than 100MB"
+        });
+        return;
+      }
+      setVideoFile(file);
+    }
+  };
+
+  const uploadFile = async (file: File, folder: string): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${folder}/${user?.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('robot-documents')
+      .upload(fileName, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('robot-documents')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  };
+
   const uploadImages = async (): Promise<string[]> => {
     const uploadedUrls: string[] = [];
 
@@ -446,6 +675,23 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
       // Combine uploaded images with URL images
       const validImageUrls = imageUrls.filter(url => url && url.startsWith('http'));
       const allImageUrls = [...uploadedImageUrls, ...validImageUrls];
+
+      // Upload brochure and video files
+      let brochureUrl = formData.brochure_url;
+      let videoUrl = formData.video_url;
+      let finalVideoType = formData.video_type;
+
+      if (brochureFile) {
+        brochureUrl = await uploadFile(brochureFile, 'brochures');
+      }
+
+      if (videoType === 'upload' && videoFile) {
+        videoUrl = await uploadFile(videoFile, 'videos');
+        finalVideoType = 'upload';
+      } else if (videoType === 'youtube' && youtubeUrl) {
+        videoUrl = youtubeUrl;
+        finalVideoType = 'youtube';
+      }
       
       if (editMode && robotData) {
         // Update existing robot listing
@@ -478,6 +724,10 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           installation_service: formData.installation_service,
           maintenance_contract: formData.maintenance_contract,
           financing_available: formData.financing_available,
+          controller_type: formData.controller_type,
+          brochure_url: brochureUrl,
+          video_url: videoUrl,
+          video_type: finalVideoType,
           updated_at: new Date().toISOString()
         };
 
@@ -492,13 +742,38 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           .eq('id', robotData.id);
 
         if (error) throw error;
+        
+        // Handle custom fields for existing robot
+        const robotId = robotData.id;
+        
+        // Delete existing custom fields
+        await supabase
+          .from('robot_custom_fields')
+          .delete()
+          .eq('robot_id', robotId);
+
+        // Insert new custom fields
+        if (customFields.length > 0) {
+          const { error: customFieldsError } = await supabase
+            .from('robot_custom_fields')
+            .insert(
+              customFields.map(field => ({
+                robot_id: robotId,
+                field_name: field.field_name,
+                field_value: field.field_value,
+              }))
+            );
+
+          if (customFieldsError) throw customFieldsError;
+        }
+        
         toast({
           title: "Success!",
           description: "Robot listing updated successfully!"
         });
       } else {
         // Create new robot listing
-        const { error } = await supabase
+        const { data: robotData, error } = await supabase
           .from('robots')
           .insert({
             seller_id: user.id,
@@ -530,12 +805,34 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
             installation_service: formData.installation_service,
             maintenance_contract: formData.maintenance_contract,
             financing_available: formData.financing_available,
+            controller_type: formData.controller_type,
+            brochure_url: brochureUrl,
+            video_url: videoUrl,
+            video_type: finalVideoType,
             images: allImageUrls,
             availability: 'available',
             created_at: new Date().toISOString()
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Insert custom fields for new robot
+        if (customFields.length > 0 && robotData?.id) {
+          const { error: customFieldsError } = await supabase
+            .from('robot_custom_fields')
+            .insert(
+              customFields.map(field => ({
+                robot_id: robotData.id,
+                field_name: field.field_name,
+                field_value: field.field_value,
+              }))
+            );
+
+          if (customFieldsError) throw customFieldsError;
+        }
+
         toast({
           title: "Success!",
           description: "Robot listing created successfully!"
@@ -572,6 +869,10 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         installation_service: false,
         maintenance_contract: false,
         financing_available: false,
+        controller_type: '',
+        brochure_url: null,
+        video_url: null,
+        video_type: 'upload',
       });
       setImages([]);
       setImageUrls(['']);
@@ -683,7 +984,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
                       <img
                         src={url}
                         alt={`Robot ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border"
+                        className="w-full h-full object-cover rounded-lg border"
                       />
                       {index === 0 && (
                         <Badge className="absolute bottom-1 left-1 text-xs bg-primary">
@@ -1013,7 +1314,143 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
             </div>
           </CardContent>
         </Card>
+{/* Custom Specification Fields */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Custom Specifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Field Name (e.g., Payload Capacity)"
+                value={newFieldName}
+                onChange={(e) => setNewFieldName(e.target.value)}
+                className="flex-1"
+              />
+              <Input
+                placeholder="Field Value (e.g., 165kg)"
+                value={newFieldValue}
+                onChange={(e) => setNewFieldValue(e.target.value)}
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                onClick={addCustomField} 
+                size="sm" 
+                disabled={!newFieldName.trim() || !newFieldValue.trim()}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {customFields.length > 0 && (
+              <div className="space-y-2">
+                <Label>Custom Fields</Label>
+                <div className="grid gap-2">
+                  {customFields.map((field, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <span className="font-medium">{field.field_name}:</span>
+                        <span className="ml-2">{field.field_value}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCustomField(index)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
+        {/* Documents and Media */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Documents & Media
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Brochure Upload */}
+            <div className="space-y-2">
+              <Label>Brochure/Datasheet (PDF)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleBrochureUpload}
+                  className="flex-1"
+                />
+                {brochureFile && (
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <FileText className="w-4 h-4" />
+                    {brochureFile.name}
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">Upload robot brochure or datasheet (PDF, max 10MB)</p>
+            </div>
+
+            {/* Video Upload */}
+            <div className="space-y-4">
+              <Label>Video</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={videoType === 'upload' ? 'default' : 'outline'}
+                  onClick={() => setVideoType('upload')}
+                  size="sm"
+                >
+                  Upload Video
+                </Button>
+                <Button
+                  type="button"
+                  variant={videoType === 'youtube' ? 'default' : 'outline'}
+                  onClick={() => setVideoType('youtube')}
+                  size="sm"
+                >
+                  YouTube Link
+                </Button>
+              </div>
+
+              {videoType === 'upload' ? (
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                  />
+                  {videoFile && (
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <Camera className="w-4 h-4" />
+                      {videoFile.name}
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">Upload robot demonstration video (max 100MB)</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">Add YouTube link for robot demonstration</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         {/* Pricing */}
         <Card>
           <CardHeader>
@@ -1051,9 +1488,14 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
                     required
                   />
                 </div>
-                {errors.price && (
-                  <p className="text-red-500 text-sm">{errors.price}</p>
-                )}
+                 {errors.price && (
+                   <p className="text-red-500 text-sm">{errors.price}</p>
+                 )}
+                 {formData.price && formData.currency !== 'INR' && (
+                   <p className="text-sm text-muted-foreground">
+                     ≈ ₹{convertToINR(formData.price, formData.currency).toLocaleString()} INR
+                   </p>
+                 )}
               </div>
 
               <div className="space-y-2">
@@ -1292,7 +1734,28 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           </CardContent>
         </Card>
 
-        {/* Description */}
+        {/* Controller Type */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Controller Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="controller_type">Controller Type</Label>
+              <Input
+                id="controller_type"
+                value={formData.controller_type}
+                onChange={(e) => handleInputChange('controller_type', e.target.value)}
+                placeholder="e.g., ABB IRC5, FANUC R-30iB, KUKA KRC4"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+              {/* Description */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

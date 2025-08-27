@@ -52,6 +52,8 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
+import { DashboardHeader } from '@/components/DashboardHeader';
 import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
@@ -83,6 +85,7 @@ interface ServiceArea {
 const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { viewStats, fetchUserItemViews, loading: viewsLoading } = useViewTracking();
   
   // States
   const [loading, setLoading] = useState(true);
@@ -129,8 +132,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   useEffect(() => {
     if (user) {
       fetchRealDashboardData();
+      fetchUserItemViews(user.id);
     }
-  }, [user]);
+  }, [user, fetchUserItemViews]);
 
   const fetchRealDashboardData = useCallback(async () => {
     if (!user) {
@@ -332,6 +336,14 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       bgColor: 'bg-blue-50'
     },
     {
+      title: 'Total Views',
+      value: viewStats.totalViews || 0,
+      icon: Eye,
+      trend: `${viewStats.viewsByCategory.logistics_services} service views`,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50'
+    },
+    {
       title: 'Active Services',
       value: logisticsServices.filter(s => s.is_active).length,
       icon: Truck,
@@ -346,14 +358,6 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       trend: 'Coverage locations',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Business Status',
-      value: dashboardStats.businessVerified ? 'Verified' : 'Pending',
-      icon: Shield,
-      trend: 'Verification status',
-      color: dashboardStats.businessVerified ? 'text-green-600' : 'text-yellow-600',
-      bgColor: dashboardStats.businessVerified ? 'bg-green-50' : 'bg-yellow-50'
     }
   ];
 

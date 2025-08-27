@@ -28,6 +28,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice, type Currency, CURRENCY_SYMBOLS, convertToINR } from "@/utils/currency";
 import Papa from 'papaparse';
 
 interface SparePartFormData {
@@ -37,7 +38,7 @@ interface SparePartFormData {
   model: string;
   condition: string;
   price: number | null;
-  currency: string;
+  currency: Currency;
   location: string;
   state: string;
   pincode: string;
@@ -665,7 +666,7 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                           <img
                             src={objectUrl}
                             alt={`Preview ${idx + 1}`}
-                            className="w-full h-20 object-cover"
+                            className="w-full h-full object-cover rounded-lg"
                             onLoad={() => URL.revokeObjectURL(objectUrl)}
                           />
                           <Button
@@ -686,7 +687,7 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                         <img
                           src={url}
                           alt={`URL Preview ${idx + 1}`}
-                          className="w-full h-20 object-cover"
+                          className="w-full h-full object-cover rounded-lg"
                         />
                         <Button
                           type="button"
@@ -835,19 +836,40 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (₹)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={formData.price ?? ""}
-                      onChange={(e) => handleInputChange("price", parseFloat(e.target.value) || null)}
-                      placeholder="Enter price"
-                      disabled={loading}
-                    />
-                  </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="price">Price *</Label>
+                     <div className="flex gap-2">
+                       <Select 
+                         value={formData.currency} 
+                         onValueChange={(value) => handleInputChange('currency', value as Currency)}
+                       >
+                         <SelectTrigger className="w-24">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="INR">₹ INR</SelectItem>
+                           <SelectItem value="USD">$ USD</SelectItem>
+                           <SelectItem value="EUR">€ EUR</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <Input
+                         id="price"
+                         type="number"
+                         min={0}
+                         step="0.01"
+                         value={formData.price ?? ""}
+                         onChange={(e) => handleInputChange("price", parseFloat(e.target.value) || null)}
+                         placeholder="Enter price"
+                         className="flex-1"
+                         disabled={loading}
+                       />
+                     </div>
+                     {formData.price && formData.currency !== 'INR' && (
+                       <p className="text-sm text-muted-foreground">
+                         ≈ ₹{convertToINR(formData.price, formData.currency).toLocaleString()} INR
+                       </p>
+                     )}
+                   </div>
 
                   <div className="space-y-2">
                     <Label>International Shipping</Label>

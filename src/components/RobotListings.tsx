@@ -42,6 +42,7 @@ import {
   ArrowUpDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice as formatCurrencyPrice, type Currency, convertToINR, comparePrices } from "@/utils/currency";
 
 // Fixed Robot interface to match actual database schema
 interface Robot {
@@ -55,7 +56,7 @@ interface Robot {
   pincode?: string;
   availability: string;
   price: number;
-  currency: string;
+  currency: Currency;
   images: string[];
   category_tags: string[];
   seller_id: string;
@@ -94,10 +95,13 @@ const RobotListings = () => {
   const [conditionFilter, setConditionFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
+  const [brandFilter, setBrandFilter] = useState('all');
+  const [companyFilter, setCompanyFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [displayCount, setDisplayCount] = useState(8);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
 
   // Enhanced stats
   const [marketStats, setMarketStats] = useState({
@@ -115,7 +119,11 @@ const RobotListings = () => {
 
   useEffect(() => {
     filterAndSortRobots();
-  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, sortBy]);
+  }, [robots, searchQuery, typeFilter, priceFilter, conditionFilter, locationFilter, stateFilter, brandFilter, companyFilter, sortBy]);
+
+  useEffect(() => {
+    fetchViewCounts();
+  }, [robots]);
 
   const fetchRobots = async () => {
     try {
@@ -156,18 +164,43 @@ const RobotListings = () => {
     }
   };
 
+  const fetchViewCounts = async () => {
+    try {
+      const robotIds = robots.map(r => r.id);
+      if (robotIds.length === 0) return;
+
+      const { data, error } = await supabase
+        .from('user_interactions')
+        .select('target_id')
+        .eq('interaction_type', 'view')
+        .eq('target_type', 'robot')
+        .in('target_id', robotIds);
+
+      if (error) throw error;
+
+      const counts = (data || []).reduce((acc, item) => {
+        acc[item.target_id] = (acc[item.target_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setViewCounts(counts);
+    } catch (error) {
+      console.error('Error fetching view counts:', error);
+    }
+  };
+
   const calculateMarketStats = (robotsData: Robot[]) => {
   const totalListings = robotsData.length;
 
-  // Collect only valid prices (> 0)
-  const prices = robotsData
-    .map(r => r.price || 0)
-    .filter(price => price > 0);
+  // Collect only valid prices (> 0) and convert all to INR for comparison
+  const pricesInINR = robotsData
+    .filter(r => r.price && r.price > 0)
+    .map(r => convertToINR(r.price, r.currency));
 
-  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-  const avgPrice = prices.length > 0
-    ? prices.reduce((sum, p) => sum + p, 0) / prices.length
+  const minPrice = pricesInINR.length > 0 ? Math.min(...pricesInINR) : 0;
+  const maxPrice = pricesInINR.length > 0 ? Math.max(...pricesInINR) : 0;
+  const avgPrice = pricesInINR.length > 0
+    ? pricesInINR.reduce((sum, p) => sum + p, 0) / pricesInINR.length
     : 0;
     
     // Top brands
@@ -217,6 +250,7 @@ const RobotListings = () => {
         robot.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         robot.robot_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         robot.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        robot.profiles?.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         robot.category_tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
@@ -226,7 +260,17 @@ const RobotListings = () => {
       filtered = filtered.filter(robot => robot.robot_type === typeFilter);
     }
 
-    // Price filter
+    // Brand filter
+    if (brandFilter !== 'all') {
+      filtered = filtered.filter(robot => robot.brand === brandFilter);
+    }
+
+    // Company filter
+    if (companyFilter !== 'all') {
+      filtered = filtered.filter(robot => robot.profiles?.company_name === companyFilter);
+    }
+
+    // Price filter - convert all prices to INR for comparison
     if (priceFilter !== 'all') {
       const ranges = {
         'under-50k': [0, 50000],
@@ -237,9 +281,10 @@ const RobotListings = () => {
       };
       const range = ranges[priceFilter as keyof typeof ranges];
       if (range) {
-        filtered = filtered.filter(robot => 
-          robot.price >= range[0] && robot.price < range[1]
-        );
+        filtered = filtered.filter(robot => {
+          const priceInINR = convertToINR(robot.price, robot.currency);
+          return priceInINR >= range[0] && priceInINR < range[1];
+        });
       }
     }
 
@@ -263,18 +308,24 @@ const RobotListings = () => {
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case 'popular':
+          return (viewCounts[b.id] || 0) - (viewCounts[a.id] || 0);
         case 'newest':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'oldest':
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case 'price-low':
-          return (a.price || 0) - (b.price || 0);
+          return convertToINR(a.price || 0, a.currency) - convertToINR(b.price || 0, b.currency);
         case 'price-high':
-          return (b.price || 0) - (a.price || 0);
+          return convertToINR(b.price || 0, b.currency) - convertToINR(a.price || 0, a.currency);
         case 'name-az':
           return (a.name || '').localeCompare(b.name || '');
         case 'name-za':
           return (b.name || '').localeCompare(a.name || '');
+        case 'brand-az':
+          return (a.brand || '').localeCompare(b.brand || '');
+        case 'company-az':
+          return (a.profiles?.company_name || '').localeCompare(b.profiles?.company_name || '');
         default:
           return 0;
       }
@@ -347,10 +398,9 @@ const RobotListings = () => {
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
+  const formatPrice = (price: number, currency: Currency) => {
     if (!price) return 'Price on request';
-    const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : '€';
-    return `${symbol}${price.toLocaleString()}`;
+    return formatCurrencyPrice(price, currency);
   };
 
   const getConditionColor = (condition: string) => {
@@ -365,8 +415,15 @@ const RobotListings = () => {
   };
 
   const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
+  const uniqueBrands = [...new Set(robots.map(r => r.brand).filter(Boolean))];
+  const uniqueCompanies = [...new Set(robots.map(r => r.profiles?.company_name).filter(Boolean))];
   const uniqueLocations = [...new Set(robots.map(r => r.location?.split(',')[0]).filter(Boolean))];
   const uniqueStates = [...new Set(robots.map(r => r.state).filter(Boolean))];
+
+  // Get most popular robots (top 8 by view count)
+  const popularRobots = [...filteredRobots]
+    .sort((a, b) => (viewCounts[b.id] || 0) - (viewCounts[a.id] || 0))
+    .slice(0, 8);
 
   if (loading) {
     return (
@@ -494,6 +551,30 @@ const RobotListings = () => {
                   </SelectContent>
                 </Select>
 
+                <Select value={brandFilter} onValueChange={setBrandFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Brands</SelectItem>
+                    {uniqueBrands.map(brand => (
+                      <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Companies</SelectItem>
+                    {uniqueCompanies.map(company => (
+                      <SelectItem key={company} value={company}>{company}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 <Select value={priceFilter} onValueChange={setPriceFilter}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Price" />
@@ -593,14 +674,17 @@ const RobotListings = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="name-az">Name: A to Z</SelectItem>
-                      <SelectItem value="name-za">Name: Z to A</SelectItem>
-                    </SelectContent>
+                     <SelectContent>
+                       <SelectItem value="popular">Most Popular</SelectItem>
+                       <SelectItem value="newest">Newest First</SelectItem>
+                       <SelectItem value="oldest">Oldest First</SelectItem>
+                       <SelectItem value="price-low">Price: Low to High</SelectItem>
+                       <SelectItem value="price-high">Price: High to Low</SelectItem>
+                       <SelectItem value="name-az">Name: A to Z</SelectItem>
+                       <SelectItem value="name-za">Name: Z to A</SelectItem>
+                       <SelectItem value="brand-az">Brand: A to Z</SelectItem>
+                       <SelectItem value="company-az">Company: A to Z</SelectItem>
+                     </SelectContent>
                   </Select>
 
                   <Button
@@ -612,7 +696,9 @@ const RobotListings = () => {
                       setConditionFilter('all');
                       setLocationFilter('all');
                       setStateFilter('all');
-                      setSortBy('newest');
+                       setBrandFilter('all');
+                       setCompanyFilter('all');
+                       setSortBy('popular');
                     }}
                   >
                     Clear Filters
@@ -660,7 +746,9 @@ const RobotListings = () => {
                       setPriceFilter('all');
                       setConditionFilter('all');
                       setLocationFilter('all');
-                      setStateFilter('all');
+                       setStateFilter('all');
+                       setBrandFilter('all');
+                       setCompanyFilter('all');
                     }}
                   >
                     Clear Filters
@@ -772,8 +860,7 @@ const RobotListings = () => {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-lg font-bold text-primary">
-                          <IndianRupee className="w-4 h-4 mr-1" />
-                          {formatPrice(robot.price, robot.currency)}
+                           {formatPrice(robot.price, robot.currency)}
                         </div>
                         {robot.payload_capacity && (
                           <span className="text-xs text-muted-foreground">

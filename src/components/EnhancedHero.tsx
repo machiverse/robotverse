@@ -112,7 +112,7 @@ const EnhancedHero = () => {
         <img
           src={heroContent.image}
           alt={heroContent.title}
-          className="w-full h-full object-cover opacity-30"
+          className="w-full h-full object-cover rounded-lg opacity-30"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
       </div>

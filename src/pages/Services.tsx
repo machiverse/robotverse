@@ -11,7 +11,6 @@ import {
   Search,
   Grid,
   List,
-  Settings,
   MapPin,
   Star,
   Clock,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Service {
   id: string;
@@ -28,7 +28,6 @@ interface Service {
   priceRange: string;
   location: string;
   provider: string;
-  image: string;
   description: string;
   rating: number;
   responseTime: string;
@@ -37,6 +36,7 @@ interface Service {
   providerProfile: {
     full_name?: string;
     company_name?: string;
+    avatar_url?: string;
     phone?: string;
     mobile_number?: string;
     email?: string;
@@ -70,6 +70,7 @@ const Services = () => {
             profiles!services_provider_id_fkey (
               full_name,
               company_name,
+              avatar_url,
               location,
               phone,
               mobile_number,
@@ -83,24 +84,17 @@ const Services = () => {
 
         const transformedData = (data || []).map((item: any) => ({
           id: item.id,
-          name: item.name,
-          category: item.service_type || "",
+          name: item.name || "Service",
+          category: item.service_type || "General Service",
           priceRange: item.price_range || "Contact for pricing",
           location: item.location || item.profiles?.location || "Location not specified",
           provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
-          image: "/placeholder.svg",
-          description: item.description || "Professional service provider",
-          rating: 4.5,
-          responseTime: "2-4 hours",
-          completedJobs: Math.floor(Math.random() * 100) + 50,
-          availability: "Available",
-          providerProfile: item.profiles || {
-            full_name: "Unknown",
-            company_name: "Service Provider",
-            phone: "",
-            mobile_number: "",
-            email: "",
-          },
+          description: item.description || "Professional service provider offering quality solutions.",
+          rating: item.rating || 4.5,
+          responseTime: item.response_time || "2-4 hours",
+          completedJobs: item.completed_jobs || Math.floor(Math.random() * 100) + 50,
+          availability: item.availability || "Available",
+          providerProfile: item.profiles || {},
           providerId: item.provider_id || "",
         }));
 
@@ -117,7 +111,7 @@ const Services = () => {
     fetchServices();
   }, []);
 
-  // Dynamic category list (split by commas)
+  // Dynamic category list
   const categoryFilterList = [
     { value: "all", label: "All Services" },
     ...Array.from(
@@ -138,31 +132,14 @@ const Services = () => {
     { value: "all", label: "All Locations" },
     ...Array.from(
       new Set(
-        services
-          .filter((service) => {
-            const matchesSearch =
-              service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              service.provider.toLowerCase().includes(searchQuery.toLowerCase());
-
-            const matchesCategory =
-              selectedCategory === "all" ||
-              service.category
-                .split(",")
-                .map(c => c.trim().toLowerCase())
-                .includes(selectedCategory.toLowerCase());
-
-            return matchesSearch && matchesCategory;
-          })
-          .map((s) => s.location)
-          .filter(Boolean)
+        services.map((s) => s.location).filter(Boolean)
       )
     )
       .map((loc) => ({ value: loc, label: loc }))
       .sort((a, b) => a.label.localeCompare(b.label))
   ];
 
-  // Filtered services for display
+  // Filtered services
   const filteredServices = services.filter((service) => {
     const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -198,9 +175,7 @@ const Services = () => {
       return;
     }
 
-    const phone =
-      service.providerProfile?.phone || service.providerProfile?.mobile_number;
-
+    const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
     if (!phone) {
       toast({
         variant: "destructive",
@@ -213,246 +188,225 @@ const Services = () => {
     window.open(`tel:${phone}`, "_self");
     toast({
       title: "Calling Provider",
-      description: `Calling ${
-        service.providerProfile?.company_name ||
-        service.providerProfile?.full_name
-      }...`,
+      description: `Calling ${service.provider}...`,
     });
   };
 
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Robot Services</h1>
-          <p className="text-xl text-gray-700">
-            Connect with certified professionals for robot maintenance, repair, and training services.
-          </p>
+      
+      {/* Hero Section with Gradient Background */}
+      <div className="relative bg-gradient-hero border-b border-border">
+        <div className="absolute inset-0 bg-gradient-primary opacity-10"></div>
+        <div className="relative container mx-auto px-4 py-16">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-5xl font-bold mb-6 text-foreground bg-gradient-primary bg-clip-text text-transparent">
+              Robot Services Marketplace
+            </h1>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              Connect with certified professionals for robot maintenance, repair, programming, and training services. 
+              Find the perfect expert for your robotic needs.
+            </p>
+          </div>
         </div>
+      </div>
 
-        {/* Filters */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Search services..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+      <div className="container mx-auto px-4 py-12">
 
-            {/* Category */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Service Type" />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryFilterList.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Filters Section */}
+        <Card className="mb-8 bg-card border-border shadow-glow">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search services..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-input border-border focus:ring-primary"
+                />
+              </div>
 
-            {/* Dynamic Location Filter */}
-            <Select
-              value={selectedLocation}
-              onValueChange={setSelectedLocation}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent>
-                {locationFilterList.length > 0 ? (
-                  locationFilterList.map((location) => (
+              {/* Category */}
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Service Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryFilterList.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Location */}
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locationFilterList.map((location) => (
                     <SelectItem key={location.value} value={location.value}>
                       {location.label}
                     </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="all">All Locations</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {/* View toggle */}
-            <div className="flex space-x-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-4 h-4" />
-              </Button>
+              {/* View Toggle */}
+              <div className="flex space-x-2">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Content States */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="bg-card rounded-lg p-8 shadow-glow">
+              <Loader2 className="w-12 h-12 animate-spin mb-4 text-primary mx-auto" />
+              <p className="text-muted-foreground text-center">Loading services...</p>
             </div>
           </div>
-        </div>
-
-        {/* Status States */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin mb-4" />
-            <p className="text-gray-500">Loading services...</p>
-          </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Settings className="w-16 h-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Unable to load services</h3>
-            <p className="text-gray-500 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Try Again
-            </Button>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Card className="max-w-md bg-card border-border shadow-glow">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Unable to load services</h3>
+                <p className="text-muted-foreground mb-6">{error}</p>
+                <Button onClick={() => window.location.reload()} variant="outline" className="border-border">
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         ) : filteredServices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Settings className="w-16 h-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No services available</h3>
-            <p className="text-gray-500">
-              {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
-                ? "No services match your current filters."
-                : "Service listings are currently empty."}
-            </p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Card className="max-w-md bg-card border-border shadow-glow">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-lg font-semibold mb-2 text-foreground">No services available</h3>
+                <p className="text-muted-foreground">
+                  {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
+                    ? "No services match your current filters."
+                    : "Service listings are currently empty."}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <>
-            <div className="mb-4">
-              <p className="text-sm text-gray-500">
-                {filteredServices.length}{" "}
-                {filteredServices.length === 1 ? "service" : "services"} found
+            <div className="mb-8">
+              <p className="text-sm text-muted-foreground">
+                {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
               </p>
             </div>
 
-            {/* Cards */}
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                  : "space-y-4"
-              }
-            >
+            {/* Service Cards Grid */}
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredServices.map((service) => (
-                <Card
-                  key={service.id}
-                  className="hover:shadow-xl transition-all duration-300 border border-gray-200 shadow-sm bg-white rounded-xl"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="aspect-video bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center mb-4 border">
-                      <div className="text-center">
-                        <Settings className="w-12 h-12 text-blue-600 mx-auto mb-2" />
-                        <Badge variant="outline" className="text-xs bg-white/90 text-blue-700 border border-blue-200">
-                          Professional Service
-                        </Badge>
+                <Card key={service.id} className="group bg-card border-border hover:shadow-neon transition-all duration-300 hover:scale-[1.02]">
+                  <CardHeader className="pb-4">
+                    {/* Provider Info */}
+                    <div className="flex items-center space-x-3 mb-4">
+                      <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                        {service.providerProfile.avatar_url ? (
+                          <AvatarImage src={service.providerProfile.avatar_url} alt={service.provider} />
+                        ) : (
+                          <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                            {service.provider.charAt(0)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1">
+                        <CardTitle className="text-lg font-bold text-foreground">{service.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{service.provider}</p>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Star className="w-4 h-4 fill-accent text-accent" />
+                        <span className="text-sm font-semibold text-foreground">{service.rating}</span>
                       </div>
                     </div>
-                    <CardTitle className="text-lg font-bold text-gray-900">
-                      {service.name}
-                    </CardTitle>
-                    <div className="flex items-center justify-between mt-1">
-                      <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
+
+                    {/* Category and Availability */}
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                         {service.category}
                       </Badge>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-semibold text-gray-800">
-                          {service.rating}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          ({service.completedJobs})
-                        </span>
-                      </div>
+                      <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">
+                        {service.availability}
+                      </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                          {service.priceRange}
-                        </span>
-                        <Badge className="bg-green-100 text-green-800 border border-green-200">
-                          {service.availability}
-                        </Badge>
-                      </div>
 
-                      <div className="flex items-center text-gray-700">
-                        <MapPin className="w-4 h-4 mr-2 text-blue-600" />
-                        <span className="text-sm font-medium">
-                          {service.location}
-                        </span>
-                      </div>
+                  <CardContent className="space-y-4">
+                    {/* Price */}
+                    <div className="text-center">
+                      <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                        {service.priceRange}
+                      </span>
+                    </div>
 
-                      <div className="border border-gray-200 rounded-lg p-4 bg-white text-sm text-gray-800 leading-relaxed text-justify">
+                    {/* Location */}
+                    <div className="flex items-center text-muted-foreground">
+                      <MapPin className="w-4 h-4 mr-2 text-primary" />
+                      <span className="text-sm font-medium">{service.location}</span>
+                    </div>
+
+                    {/* Description */}
+                    <div className="relative">
+                      <div className="h-20 overflow-y-auto pr-2 text-sm text-muted-foreground leading-relaxed bg-muted p-3 rounded-lg border border-border">
                         {service.description}
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-orange-600" />
-                          <span className="font-medium text-gray-800">
-                            Response: {service.responseTime}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-green-600" />
-                          <span className="font-medium text-gray-800">
-                            {service.completedJobs} projects
-                          </span>
-                        </div>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-4 h-4 text-accent" />
+                        <span className="text-muted-foreground">Response: {service.responseTime}</span>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <Users className="w-4 h-4 text-primary" />
+                        <span className="text-muted-foreground">{service.completedJobs} projects</span>
+                      </div>
+                    </div>
 
-                      <div className="pt-2 border-t border-gray-100">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">
-                              {service.provider.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm">
-                              {service.provider}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              Certified Professional
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-2 pt-1">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
-                          onClick={() => handleRequestQuote(service)}
-                        >
-                          Get Professional Quote
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleContactProvider(service)}
-                          disabled={
-                            !user ||
-                            (!service.providerProfile?.phone &&
-                              !service.providerProfile?.mobile_number)
-                          }
-                          className="border border-blue-200 text-blue-700 hover:bg-blue-50"
-                        >
-                          {user ? "Contact Provider" : "Sign In to Contact"}
-                        </Button>
-                      </div>
+                    {/* Action Buttons */}
+                    <div className="flex space-x-2 pt-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium shadow-glow"
+                        onClick={() => handleRequestQuote(service)}
+                      >
+                        Get Quote
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleContactProvider(service)}
+                        disabled={!user || (!service.providerProfile?.phone && !service.providerProfile?.mobile_number)}
+                        className="border-border text-foreground hover:bg-accent/10"
+                      >
+                        {user ? "Contact" : "Sign In"}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -467,6 +421,24 @@ const Services = () => {
           service={selectedService}
         />
       </div>
+
+      {/* Custom Scrollbar Styles */}
+      <style>{`
+        .h-20::-webkit-scrollbar {
+          width: 4px;
+        }
+        .h-20::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 2px;
+        }
+        .h-20::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 2px;
+        }
+        .h-20::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
     </div>
   );
 };

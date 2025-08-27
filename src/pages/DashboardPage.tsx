@@ -1,19 +1,19 @@
 import { useAuth } from "@/hooks/useAuth";
+import UnifiedDashboard from "@/components/UnifiedDashboard";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
-import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
-import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
-import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
-import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
-import AdminDashboard from "@/components/dashboards/AdminDashboard";
-import MultiRoleDashboard from "@/components/MultiRoleDashboard";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const DashboardPage = () => {
   // Force refresh to clear cached UserTypeSelector references
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,60 +62,59 @@ const DashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <EnhancedHeader />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading dashboard...</p>
-            </div>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
+  // Always use unified dashboard for consistent layout
   const renderDashboard = () => {
-    // Check if user is super admin
-    if (user?.email === 'mark.it@keyleerkorb.com') {
-      return <AdminDashboard userProfile={userProfile} />;
-    }
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <DashboardSidebar userProfile={userProfile} />
+          
+          <div className="flex-1 flex flex-col">
+            {/* Top Header with Menu Toggle */}
+            <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+              <div className="flex items-center justify-between h-full px-4">
+                <div className="flex items-center gap-4">
+                  <SidebarTrigger className="p-2">
+                    <Menu className="h-4 w-4" />
+                  </SidebarTrigger>
+                  <h1 className="text-xl font-semibold">
+                    Dashboard
+                  </h1>
+                </div>
+                
+                {/* Quick access to main site */}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/')}
+                >
+                  Back to RobotVerse
+                </Button>
+              </div>
+            </header>
 
-    // Get user roles from new user_roles array or fallback to legacy fields
-    const userRoles = userProfile?.user_roles || [];
-    
-    // If user has user_roles defined, use multi-role dashboard
-    if (userRoles.length > 0) {
-      return <MultiRoleDashboard userProfile={userProfile} />;
-    }
-
-    // Fallback to legacy single-role dashboard logic
-    switch (userProfile?.user_type || userProfile?.account_type) {
-      case 'buyer':
-        return <BuyerDashboard userProfile={userProfile} />;
-      case 'seller':
-        return <RobotSellerDashboard userProfile={userProfile} />;
-      case 'service_provider':
-        return <ServiceProviderDashboard userProfile={userProfile} />;
-      case 'logistics_provider':
-      case 'logistics':
-        return <LogisticsProviderDashboard userProfile={userProfile} />;
-      case 'finance_provider':
-      case 'finance':
-        return <FinanceProviderDashboard userProfile={userProfile} />;
-      default:
-        // Default to buyer dashboard if no user_type is set
-        return <BuyerDashboard userProfile={userProfile} />;
-    }
+            {/* Main Content */}
+            <main className="flex-1 overflow-auto">
+              <div className="container mx-auto p-6">
+                <UnifiedDashboard userProfile={userProfile} />
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <EnhancedHeader />
-      {renderDashboard()}
-    </div>
-  );
+  return renderDashboard();
 };
 
 export default DashboardPage;

@@ -12,10 +12,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Wrench, Clock, Star, DollarSign, Calendar, MapPin, Plus, Edit, Trash2, CheckCircle, Activity, Loader2,
+  Wrench, Clock, Star, DollarSign, Calendar, MapPin, Plus, Edit, Trash2, CheckCircle, Activity, Loader2, Eye,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
@@ -29,6 +31,8 @@ const SERVICE_TYPE_OPTIONS = [
 
 const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { viewStats, fetchUserItemViews } = useViewTracking();
   const [services, setServices] = useState<any[]>([]);
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState({
@@ -50,8 +54,11 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
   });
 
   useEffect(() => {
-    if (user) fetchDashboardData();
-  }, [user]);
+    if (user) {
+      fetchDashboardData();
+      fetchUserItemViews(user.id);
+    }
+  }, [user, fetchUserItemViews]);
 
   async function fetchDashboardData() {
     setLoading(true);
@@ -209,8 +216,9 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
               <Plus className="w-5 h-5" /> Add New Service
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {[ 
+              { title: "Total Views", val: viewStats.totalViews || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
               { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600" },
               { title: "Active Requests", val: dashboardStats.activeRequests, icon: Clock, variant: "secondary", color: "text-orange-600" },
               { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600" },

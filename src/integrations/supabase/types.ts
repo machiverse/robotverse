@@ -7,13 +7,58 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
+      button_interactions: {
+        Row: {
+          additional_data: Json | null
+          button_name: string
+          button_type: string
+          created_at: string
+          id: string
+          item_id: string | null
+          item_type: string | null
+          page_url: string | null
+          seller_id: string | null
+          seller_name: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          additional_data?: Json | null
+          button_name: string
+          button_type: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type?: string | null
+          page_url?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          additional_data?: Json | null
+          button_name?: string
+          button_type?: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type?: string | null
+          page_url?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       coverage_areas: {
         Row: {
           area_name: string
@@ -578,6 +623,7 @@ export type Database = {
         Row: {
           account_type: string | null
           avatar_url: string | null
+          company_logo_url: string | null
           company_name: string | null
           created_at: string
           email: string | null
@@ -611,6 +657,7 @@ export type Database = {
         Insert: {
           account_type?: string | null
           avatar_url?: string | null
+          company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
           email?: string | null
@@ -644,6 +691,7 @@ export type Database = {
         Update: {
           account_type?: string | null
           avatar_url?: string | null
+          company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
           email?: string | null
@@ -703,14 +751,113 @@ export type Database = {
         }
         Relationships: []
       }
+      robot_custom_fields: {
+        Row: {
+          created_at: string
+          field_name: string
+          field_value: string
+          id: string
+          robot_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_name: string
+          field_value: string
+          id?: string
+          robot_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_name?: string
+          field_value?: string
+          id?: string
+          robot_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "robot_custom_fields_robot_id_fkey"
+            columns: ["robot_id"]
+            isOneToOne: false
+            referencedRelation: "robots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      robot_reports: {
+        Row: {
+          created_at: string
+          id: string
+          report_content: string
+          robot_data: Json | null
+          robot_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report_content: string
+          robot_data?: Json | null
+          robot_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report_content?: string
+          robot_data?: Json | null
+          robot_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      robot_view_counts: {
+        Row: {
+          created_at: string
+          id: string
+          robot_id: string
+          total_views: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          robot_id: string
+          total_views?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          robot_id?: string
+          total_views?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "robot_view_counts_robot_id_fkey"
+            columns: ["robot_id"]
+            isOneToOne: true
+            referencedRelation: "robots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       robots: {
         Row: {
           applications: string[] | null
           availability: string | null
           brand: string | null
+          brochure_url: string | null
           category_tags: string[] | null
           certification_standards: string[] | null
           condition: string | null
+          controller_type: string | null
           created_at: string
           currency: string | null
           description: string | null
@@ -737,6 +884,8 @@ export type Database = {
           technical_specifications: Json | null
           training_included: boolean
           updated_at: string | null
+          video_type: string | null
+          video_url: string | null
           warranty_info: string | null
           year_manufactured: number | null
         }
@@ -744,9 +893,11 @@ export type Database = {
           applications?: string[] | null
           availability?: string | null
           brand?: string | null
+          brochure_url?: string | null
           category_tags?: string[] | null
           certification_standards?: string[] | null
           condition?: string | null
+          controller_type?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -773,6 +924,8 @@ export type Database = {
           technical_specifications?: Json | null
           training_included?: boolean
           updated_at?: string | null
+          video_type?: string | null
+          video_url?: string | null
           warranty_info?: string | null
           year_manufactured?: number | null
         }
@@ -780,9 +933,11 @@ export type Database = {
           applications?: string[] | null
           availability?: string | null
           brand?: string | null
+          brochure_url?: string | null
           category_tags?: string[] | null
           certification_standards?: string[] | null
           condition?: string | null
+          controller_type?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -809,6 +964,8 @@ export type Database = {
           technical_specifications?: Json | null
           training_included?: boolean
           updated_at?: string | null
+          video_type?: string | null
+          video_url?: string | null
           warranty_info?: string | null
           year_manufactured?: number | null
         }
@@ -1239,38 +1396,60 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_complete_user_profile: {
+      complete_user_profile: {
         Args: {
-          p_user_id: string
-          p_email: string
-          p_full_name?: string
-          p_company_name?: string
-          p_mobile_number?: string
-          p_location?: string
-          p_user_type?: string
           p_account_type?: string
-          p_seller_roles?: string[]
-          p_logistics_type?: string
-          p_logistics_region?: string
-          p_transport_modes?: string[]
-          p_warehouse_storage?: boolean
+          p_company_name?: string
+          p_email: string
           p_finance_type?: string[]
           p_financing_for?: string[]
-          p_target_audience?: string[]
+          p_full_name?: string
           p_government_scheme_support?: boolean
+          p_location?: string
+          p_logistics_region?: string
+          p_logistics_type?: string
+          p_mobile_number?: string
+          p_seller_roles?: string[]
+          p_target_audience?: string[]
+          p_transport_modes?: string[]
+          p_user_id: string
+          p_user_type?: string
+          p_warehouse_storage?: boolean
+        }
+        Returns: string
+      }
+      create_complete_user_profile: {
+        Args: {
+          p_account_type?: string
+          p_company_name?: string
+          p_email: string
+          p_finance_type?: string[]
+          p_financing_for?: string[]
+          p_full_name?: string
+          p_government_scheme_support?: boolean
+          p_location?: string
+          p_logistics_region?: string
+          p_logistics_type?: string
+          p_mobile_number?: string
+          p_seller_roles?: string[]
+          p_target_audience?: string[]
+          p_transport_modes?: string[]
+          p_user_id: string
+          p_user_type?: string
+          p_warehouse_storage?: boolean
         }
         Returns: string
       }
       create_user_profile: {
         Args: {
-          p_user_id: string
+          p_account_type?: string
+          p_company_name?: string
           p_email: string
           p_full_name?: string
-          p_company_name?: string
-          p_mobile_number?: string
           p_location?: string
+          p_mobile_number?: string
+          p_user_id: string
           p_user_type?: string
-          p_account_type?: string
         }
         Returns: string
       }
@@ -1279,50 +1458,58 @@ export type Database = {
         Returns: string
       }
       get_logistics_data: {
-        Args: { table_name: string; provider_id: string }
+        Args: { provider_id: string; table_name: string }
         Returns: Json
       }
       get_provider_business_info: {
         Args: { provider_user_id: string }
         Returns: {
-          user_id: string
-          full_name: string
+          account_type: string
           company_name: string
+          full_name: string
           location: string
+          registration_complete: boolean
           service_categories: string[]
+          user_id: string
           user_roles: string[]
           user_type: string
-          account_type: string
-          registration_complete: boolean
         }[]
       }
       get_provider_public_info: {
         Args: { provider_user_id: string }
         Returns: {
-          user_id: string
-          full_name: string
-          company_name: string
-          location: string
-          user_type: string
           account_type: string
-          service_categories: string[]
-          user_roles: string[]
+          company_name: string
+          full_name: string
+          location: string
           registration_complete: boolean
+          service_categories: string[]
+          user_id: string
+          user_roles: string[]
+          user_type: string
         }[]
       }
       get_public_provider_profile: {
         Args: { provider_user_id: string }
         Returns: {
-          user_id: string
-          full_name: string
-          company_name: string
-          location: string
-          user_type: string
           account_type: string
-          service_categories: string[]
-          user_roles: string[]
+          company_name: string
+          full_name: string
+          location: string
           registration_complete: boolean
+          service_categories: string[]
+          user_id: string
+          user_roles: string[]
+          user_type: string
         }[]
+      }
+      get_robot_view_count: {
+        Args: { p_robot_id: string }
+        Returns: number
+      }
+      increment_robot_view_count: {
+        Args: { p_robot_id: string }
+        Returns: number
       }
     }
     Enums: {

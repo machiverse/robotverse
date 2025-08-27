@@ -10,11 +10,15 @@ import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download } from "lucide-react";
+import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import RobotReportModal from "@/components/RobotReportModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
+import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
 
 interface Robot {
   id: string;
@@ -46,6 +50,10 @@ interface Robot {
   certification_standards?: string[];
   applications?: string[];
   included_accessories?: string[];
+  controller_type?: string;
+  brochure_url?: string;
+  video_url?: string;
+  video_type?: string;
   profiles: {
     full_name: string;
     company_name: string;
@@ -54,6 +62,12 @@ interface Robot {
     email: string;
     location: string;
   };
+}
+
+interface CustomField {
+  id: string;
+  field_name: string;
+  field_value: string;
 }
 
 interface AIAnalysisData {
@@ -91,10 +105,13 @@ const RobotDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackRobotView } = useGlobalViewTracking();
+  const { trackButtonClick } = useButtonTracking();
   
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -120,6 +137,15 @@ const RobotDetails = () => {
   const [showEmiCalculator, setShowEmiCalculator] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
+  
+  // Report generation states
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportData, setReportData] = useState<{
+    report: string;
+    robotData: any;
+    timestamp: string;
+  } | null>(null);
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -133,45 +159,51 @@ const RobotDetails = () => {
   };
   const outsideIndia = robot ? !isIndianLocation(robot.state, robot.location) : false;
   useEffect(() => {
-    if (!id) return;
-    const fetchRobot = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('robots')
-          .select(`
-            *,
-            profiles!robots_seller_id_fkey (
-              full_name,
-              company_name,
-              phone,
-              mobile_number,
-              email,
-              location
-            )
-          `)
-          .eq('id', id)
-          .single();
+  if (!id) return;
+  const fetchRobot = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('robots')
+        .select(`
+          *,
+          profiles!seller_id (
+            full_name,
+            company_name,
+            phone,
+            mobile_number,
+            email,
+            location
+          )
+        `)
+        .eq('id', id)
+        .single();
 
-        if (error) throw error;
-        setRobot({
-          ...data,
-          technical_specifications: (data.technical_specifications as Record<string, any>) || {}
-        });
-        
-        if (user) {
-          const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
-          setIsInWatchlist(watchlist.includes(data.id));
-        }
-      } catch (err) {
-        console.error('Error fetching robot:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load robot details');
-      } finally {
-        setLoading(false);
+      if (error) throw error;
+      setRobot({
+        ...data,
+        technical_specifications: typeof data.technical_specifications === 'object' && data.technical_specifications !== null 
+          ? data.technical_specifications as Record<string, any>
+          : {}
+      });
+      
+      // Track this view for global counting (works for all users)
+      await trackRobotView(data.id, data);
+      
+      if (user) {
+        const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
+        setIsInWatchlist(watchlist.includes(data.id));
       }
-    };
-    fetchRobot();
-  }, [id, user]);
+
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to load robot details');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchRobot();
+}, [id, user]);
 
   // Fetch current user's location
   useEffect(() => {
@@ -325,7 +357,7 @@ const RobotDetails = () => {
   }, []);
 
   // Contact seller by phone
-  const handleContactSeller = () => {
+  const handleContactSeller = async () => {
     const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
     
     if (!phone) {
@@ -336,6 +368,24 @@ const RobotDetails = () => {
       });
       return;
     }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Contact Seller Phone",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "phone",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerPhone: phone
+      }
+    });
+
     const phoneNumber = phone.replace(/\D/g, '');
     window.open(`tel:${phoneNumber}`, '_self');
     toast({
@@ -345,7 +395,7 @@ const RobotDetails = () => {
   };
 
   // Request quote modal open
-  const handleRequestQuote = () => {
+  const handleRequestQuote = async () => {
     if (!robot?.profiles?.email) {
       toast({
         title: "Email Not Available",
@@ -354,12 +404,49 @@ const RobotDetails = () => {
       });
       return;
     }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Request Quote",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "email",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerEmail: robot?.profiles?.email
+      }
+    });
+
     setShowQuoteModal(true);
   };
 
   // Send quote email
-  const sendQuoteEmail = () => {
+  const sendQuoteEmail = async () => {
     if (!robot?.profiles?.email) return;
+
+    // Track quote email send
+    await trackButtonClick({
+      buttonName: "Send Quote Email",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "email_send",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerEmail: robot?.profiles?.email,
+        messageLength: quoteMessage?.length || 0,
+        hasCustomMessage: !!quoteMessage
+      }
+    });
 
     const subject = `Quote Request for ${robot.name} - ${robot.model}`;
     const body = `Dear ${robot.profiles.full_name},
@@ -413,6 +500,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         const newWatchlist = watchlist.filter((robotId: string) => robotId !== robot!.id);
         localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(newWatchlist));
         setIsInWatchlist(false);
+
+        // Track watchlist removal
+        await trackButtonClick({
+          buttonName: "Remove from Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot?.seller_id,
+          sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+          itemId: robot?.id,
+          itemType: "robot",
+          additionalData: {
+            action: "remove",
+            robotName: robot?.name,
+            robotModel: robot?.model,
+            robotPrice: robot?.price,
+            watchlistCount: newWatchlist.length
+          }
+        });
+
         toast({
           title: "Removed from Watchlist",
           description: `${robot!.name} has been removed from your watchlist.`,
@@ -428,6 +533,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         watchlist.push(robot!.id);
         localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(watchlist));
         setIsInWatchlist(true);
+
+        // Track watchlist addition
+        await trackButtonClick({
+          buttonName: "Add to Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot?.seller_id,
+          sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+          itemId: robot?.id,
+          itemType: "robot",
+          additionalData: {
+            action: "add",
+            robotName: robot?.name,
+            robotModel: robot?.model,
+            robotPrice: robot?.price,
+            watchlistCount: watchlist.length
+          }
+        });
+
         toast({
           title: "Added to Watchlist",
           description: `${robot!.name} has been added to your watchlist.`,
@@ -468,6 +591,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       });
       return;
     }
+
+    // Track AI analysis request
+    await trackButtonClick({
+      buttonName: "AI Analysis",
+      buttonType: "analysis",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotType: robot?.robot_type,
+        robotPrice: robot?.price,
+        analysisRequested: true
+      }
+    });
+
     try {
       setAnalysisLoading(true);
       const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
@@ -608,6 +749,50 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       title: "Import Quote Request Sent",
       description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
     });
+  };
+
+  // Generate robot report using Gemini AI
+  const handleGenerateReport = async () => {
+    if (!robot || !user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to generate robot reports.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setReportLoading(true);
+      setShowReportModal(true);
+      
+      const { data, error } = await supabase.functions.invoke('roboverse-robot-report', {
+        body: { robotId: robot.id },
+      });
+
+      if (error) throw error;
+
+      setReportData({
+        report: data.report,
+        robotData: data.robotData,
+        timestamp: data.timestamp
+      });
+
+      toast({
+        title: "Report Generated",
+        description: "Comprehensive robot analysis report is ready!",
+      });
+
+    } catch (error: any) {
+      console.error('Error generating report:', error);
+      toast({
+        title: "Report Generation Failed",
+        description: error.message || "Failed to generate robot report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   // Purchase inquiry email
@@ -933,7 +1118,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <img
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
-                        className="w-full h-full object-cover rounded-lg cursor-pointer"
+                        className="w-full h-full object-contain rounded-lg bg-muted cursor-pointer"
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (
@@ -989,7 +1174,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         <img 
                           src={image} 
                           alt={`${robot.name} ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-contain rounded-lg bg-muted"
                         />
                       </div>
                     ))}
@@ -1005,6 +1190,11 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   <div>
                     <CardTitle className="text-2xl">{robot.name}</CardTitle>
                     <p className="text-lg text-muted-foreground">{robot.model}</p>
+                    <div className="flex items-center gap-4 mt-2">
+                           <Badge variant="outline" className="text-xs">
+                        {robot.robot_type}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-3xl font-bold text-primary">
@@ -1045,10 +1235,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <span className="font-medium">Quantity Available:</span>
                       <p>{robot.quantity}</p>
                     </div>
-                    <div>
-                      <span className="font-medium">Views:</span>
-                      <p>29</p> {/* Replace with actual views if available */}
-                    </div>
+                     <div>
+                       <span className="font-medium">Views:</span>
+                       <ViewCountDisplay 
+                         targetType="robots" 
+                         targetId={robot.id} 
+                         className="mt-1"
+                       />
+                     </div>
                   </div>
 
                   {/* Action Buttons for logged in user */}
@@ -1102,10 +1296,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={handleGetReport}
+                          onClick={handleGenerateReport}
+                          disabled={reportLoading}
                           className="text-orange-600 border-orange-200 hover:bg-orange-50"
                         >
-                          <FileText className="w-4 h-4 mr-2" />
+                          {reportLoading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 h-4 mr-2" />
+                          )}
                           Get Report
                         </Button>
                         <Button 
@@ -1426,7 +1625,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                       <img 
                                         src={part.images[0]} 
                                         alt={part.name}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-contain rounded-lg bg-muted"
                                       />
                                     </div>
                                   )}
@@ -2025,7 +2224,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <img 
               src={robot?.images?.[currentImageIndex]} 
               alt={`${robot?.name} ${currentImageIndex + 1}`}
-              className="w-full h-full object-contain max-h-[90vh]"
+              className="w-full h-full object-contain rounded-lg bg-muted max-h-[90vh]"
             />
             <Button
               variant="ghost"
@@ -2160,6 +2359,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           type: robot.robot_type
         } : undefined}
         financeProvider={selectedFinanceProvider}
+      />
+
+      {/* Robot Report Modal */}
+      <RobotReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportData={reportData}
+        loading={reportLoading}
       />
     </div>
   );
