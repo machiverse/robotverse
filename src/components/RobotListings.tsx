@@ -969,7 +969,7 @@ const RobotListings = () => {
 >
   {aiModalLoading ? (
     <span className="flex items-center justify-center space-x-1">
-      <Loader2 className="animate-spin text-white w-4 h-4" />
+      <RefreshCw className="animate-spin text-white w-4 h-4" />
       <span>Analyzing...</span>
     </span>
   ) : (

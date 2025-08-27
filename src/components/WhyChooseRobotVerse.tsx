@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Activity,
   Loader2,
+  RefreshCw,
   Cpu,
   Zap,
   HeartHandshake,
@@ -197,7 +198,7 @@ const WhyChooseRobotVerse = () => {
     return (
       <section className="py-20 bg-gradient-to-br from-background to-muted/20">
         <div className="container mx-auto px-4 text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+          <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Loading marketplace insights...</p>
         </div>
       </section>
