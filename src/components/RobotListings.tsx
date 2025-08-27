@@ -16,6 +16,7 @@ import {
 import { AlertCircle, Package, Bot, Share2, MessageCircle, Brain, Eye, Grid, List, SlidersHorizontal, RefreshCw, MapPin, Building, CheckCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 
 interface Robot {
   id: string;
@@ -111,7 +112,9 @@ const RobotListings = () => {
   const [aiAnalysisRobotId, setAiAnalysisRobotId] = useState<string | null>(null);
   const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<AIAnalysisResult | null>(null);
-
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiModalData, setAiModalData] = useState<AIAnalysisResult | null>(null);
+  const [aiModalLoading, setAiModalLoading] = useState(false);
   // Fetch robots on mount
   useEffect(() => {
     fetchRobots();
@@ -377,68 +380,68 @@ const RobotListings = () => {
   const uniqueStates = [...new Set(robots.map((r) => r.state).filter(Boolean))];
 
   // AI analysis handler fetching data inline and showing results below the robot card
-  const handleAnalyzeRobot = async (robot: Robot) => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Sign In Required",
-        description: "Please sign in to use RobotVerse AI analysis",
-      });
-      return;
-    }
-
-    if (aiAnalysisLoading) return;
-
-    setAiAnalysisRobotId(robot.id);
-    setAiAnalysisLoading(true);
-    setAiAnalysisResult(null);
+ const handleAnalyzeRobot = async (robot: Robot) => {
+  if (!user) {
     toast({
-      title: "Starting AI Analysis",
-      description: `Analyzing ${robot.name} details via AI...`,
+      variant: "destructive",
+      title: "Sign In Required",
+      description: "Please sign in to use RobotVerse AI analysis",
+    });
+    return;
+  }
+
+  if (aiModalLoading) return;
+
+  setAiModalLoading(true);
+  setAiModalData(null);
+  setShowAiModal(true);
+  toast({
+    title: "Starting AI Analysis",
+    description: `Analyzing ${robot.name} via AI...`,
+  });
+
+  try {
+    const { data, error } = await supabase.functions.invoke("roboverse-ai-analyze", {
+      body: { robotId: robot.id },
+    });
+    if (error) throw error;
+
+    const analysisData = typeof data.analysis === "string" ? { summary: data.analysis } : data.analysis;
+
+    setAiModalData({
+      analysis: {
+        summary: analysisData.summary || "",
+        suitability: analysisData.suitability || "",
+        technicalInsights: analysisData.technicalInsights || "",
+        governmentSchemes: analysisData.governmentSchemes || "",
+        suggestedIndustries: analysisData.suggestedIndustries || "",
+        timestamp: analysisData.timestamp || new Date().toISOString(),
+      },
+      cached: data.cached || false,
+      currentUserLocation: data.currentUserLocation || "",
+      recommendations: {
+        spareParts: data.marketEcosystem?.spareParts?.suppliers || [],
+        services: data.marketEcosystem?.services?.providers || [],
+        logistics: data.marketEcosystem?.logistics?.providers || [],
+        finance: data.marketEcosystem?.finance?.providers || [],
+      },
     });
 
-    try {
-      const { data, error } = await supabase.functions.invoke("roboverse-ai-analyze", {
-        body: { robotId: robot.id },
-      });
-
-      if (error) throw error;
-
-      const analysisData = typeof data.analysis === "string" ? { summary: data.analysis } : data.analysis;
-
-      setAiAnalysisResult({
-        analysis: {
-          summary: analysisData.summary || "",
-          suitability: analysisData.suitability || "",
-          technicalInsights: analysisData.technicalInsights || "",
-          governmentSchemes: analysisData.governmentSchemes || "",
-          suggestedIndustries: analysisData.suggestedIndustries || "",
-          timestamp: analysisData.timestamp || new Date().toISOString(),
-        },
-        cached: data.cached || false,
-        currentUserLocation: data.currentUserLocation || "",
-        recommendations: {
-          spareParts: data.marketEcosystem?.spareParts?.suppliers || [],
-          services: data.marketEcosystem?.services?.providers || [],
-          logistics: data.marketEcosystem?.logistics?.providers || [],
-          finance: data.marketEcosystem?.finance?.providers || [],
-        },
-      });
-
-      toast({
-        title: "AI Analysis Complete",
-        description: "AI analysis results loaded.",
-      });
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "AI Analysis Failed",
-        description: err instanceof Error ? err.message : "Failed to get AI analysis",
-      });
-    } finally {
-      setAiAnalysisLoading(false);
-    }
-  };
+    toast({
+      title: "AI Analysis Complete",
+      description: "AI analysis results loaded.",
+    });
+  } catch (err) {
+    toast({
+      variant: "destructive",
+      title: "AI Analysis Error",
+      description: err instanceof Error ? err.message : "Failed to get AI analysis",
+    });
+    setShowAiModal(false);
+  } finally {
+    setAiModalLoading(false);
+  }
+};
 
   // Share robot URL
   const handleShare = (robot: Robot, e: React.MouseEvent) => {
@@ -955,47 +958,64 @@ const RobotListings = () => {
 
                     {/* AI Analysis Button */}
                     <Button
-                      variant={user ? "default" : "secondary"}
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAnalyzeRobot(robot);
-                      }}
-                      disabled={aiAnalysisLoading && aiAnalysisRobotId === robot.id}
-                    >
-                      {aiAnalysisLoading && aiAnalysisRobotId === robot.id ? (
-                        <span className="flex items-center justify-center space-x-1">
-                          <svg
-                            className="animate-spin h-4 w-4 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                            ></path>
-                          </svg>
-                          <span>Analyzing...</span>
-                        </span>
-                      ) : (
-                        <>
-                          <Brain className="w-4 h-4 mr-1" />
-                          {user ? "AI Analysis" : "Sign in for AI Analysis"}
-                        </>
-                      )}
-                    </Button>
-
+  variant={user ? "default" : "secondary"}
+  size="sm"
+  className="w-full"
+  onClick={(e) => {
+    e.stopPropagation();
+    handleAnalyzeRobot(robot);
+  }}
+  disabled={aiModalLoading}
+>
+  {aiModalLoading ? (
+    <span className="flex items-center justify-center space-x-1">
+      <Loader2 className="animate-spin text-white w-4 h-4" />
+      <span>Analyzing...</span>
+    </span>
+  ) : (
+    <>
+      <Brain className="mr-1 w-4 h-4" /> {user ? "AI Analysis" : "Sign in for AI Analysis"}
+    </>
+  )}
+</Button>
+{/* AI Analysis Modal */}
+<Dialog open={showAiModal} onOpenChange={setShowAiModal}>
+  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>AI Analysis Result</DialogTitle>
+      <DialogDescription>
+        {aiModalData ? (
+          <>
+            <p className="mb-4 whitespace-pre-wrap">{aiModalData.analysis.summary}</p>
+            {aiModalData.analysis.suitability && (
+              <>
+                <h4 className="font-semibold mt-4">Suitability</h4>
+                <p className="whitespace-pre-wrap">{aiModalData.analysis.suitability}</p>
+              </>
+            )}
+            {aiModalData.analysis.technicalInsights && (
+              <>
+                <h4 className="font-semibold mt-4">Technical Insights</h4>
+                <p className="whitespace-pre-wrap">{aiModalData.analysis.technicalInsights}</p>
+              </>
+            )}
+            {/* you can add more sections from aiModalData.analysis */}
+            <small className="block mt-6 text-right text-muted">
+              Generated on: {new Date(aiModalData.analysis.timestamp).toLocaleString()}
+            </small>
+          </>
+        ) : aiModalLoading ? (
+          <p>Loading analysis...</p>
+        ) : (
+          <p>No analysis data available</p>
+        )}
+      </DialogDescription>
+    </DialogHeader>
+    <DialogClose asChild>
+      <Button className="absolute top-3 right-3 p-1 rounded-full">✕</Button>
+    </DialogClose>
+  </DialogContent>
+</Dialog>
                     {/* Show AI Analysis result below card if available */}
                     {aiAnalysisResult && aiAnalysisRobotId === robot.id && (
                       <Card className="mt-3 p-4 bg-blue-50 rounded-md border border-blue-200">
