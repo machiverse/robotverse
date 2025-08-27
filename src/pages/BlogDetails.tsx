@@ -207,9 +207,9 @@ const BlogDetails = () => {
         <div className="container mx-auto px-4 py-16">
           <div className="text-center max-w-md mx-auto">
             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-4">Access Restricted</h1>
+            <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
             <p className="text-muted-foreground mb-6">
-              Please sign in to read our blog content.
+              Please sign in to read our blog content and interact with posts.
             </p>
             <Link to="/auth">
               <Button>Sign In to Continue</Button>
@@ -320,31 +320,31 @@ const BlogDetails = () => {
           </div>
 
           {/* Article Header */}
-          <article className="space-y-6">
-            <header className="space-y-4">
-              <h1 className="text-4xl font-bold leading-tight">{blog.title}</h1>
+          <article className="space-y-8">
+            <header className="space-y-6 text-center">
+              <h1 className="text-5xl font-bold leading-tight tracking-tight">{blog.title}</h1>
               
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span>{blog.profiles?.full_name || blog.profiles?.company_name || 'Anonymous'}</span>
+              <div className="flex flex-wrap items-center justify-center gap-6 text-lg font-semibold text-muted-foreground">
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5" />
+                  <span className="font-bold text-foreground">{blog.profiles?.full_name || blog.profiles?.company_name || 'Anonymous'}</span>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>{format(new Date(blog.published_at || blog.created_at), 'MMMM d, yyyy')}</span>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5" />
+                  <span className="font-bold text-foreground">{format(new Date(blog.published_at || blog.created_at), 'MMMM d, yyyy')}</span>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  <span>{blog.view_count} views</span>
+                <div className="flex items-center gap-3">
+                  <Eye className="h-5 w-5" />
+                  <span className="font-bold text-primary text-xl">{blog.view_count || 0} views</span>
                 </div>
               </div>
 
               {blog.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap justify-center gap-3 pt-4">
                   {blog.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
+                    <Badge key={tag} variant="secondary" className="text-sm font-semibold px-3 py-1">
                       {tag}
                     </Badge>
                   ))}
@@ -354,7 +354,7 @@ const BlogDetails = () => {
 
             {/* Featured Image */}
             {blog.image_url && (
-              <div className="aspect-video overflow-hidden rounded-lg">
+              <div className="aspect-video overflow-hidden rounded-xl shadow-lg mx-auto max-w-4xl">
                 <img
                   src={blog.image_url}
                   alt={blog.title}
@@ -364,17 +364,17 @@ const BlogDetails = () => {
             )}
 
             {/* Article Content */}
-            <div className="prose prose-lg max-w-none">
-              <div className="whitespace-pre-wrap">{blog.content}</div>
+            <div className="prose prose-xl max-w-none mx-auto leading-relaxed">
+              <div className="whitespace-pre-wrap text-lg leading-8 text-foreground">{blog.content}</div>
             </div>
 
             {/* Article Footer */}
-            <footer className="pt-8 border-t">
+            <footer className="pt-8 border-t border-border">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Published {formatDistanceToNow(new Date(blog.published_at || blog.created_at), { addSuffix: true })}
+                <div className="text-sm font-medium text-muted-foreground">
+                  <span className="font-bold">Published</span> {formatDistanceToNow(new Date(blog.published_at || blog.created_at), { addSuffix: true })}
                   {blog.updated_at !== blog.created_at && (
-                    <span> • Updated {formatDistanceToNow(new Date(blog.updated_at), { addSuffix: true })}</span>
+                    <span> • <span className="font-bold">Updated</span> {formatDistanceToNow(new Date(blog.updated_at), { addSuffix: true })}</span>
                   )}
                 </div>
               </div>
@@ -383,8 +383,8 @@ const BlogDetails = () => {
 
           {/* Related Articles */}
           {relatedBlogs.length > 0 && (
-            <section className="mt-16">
-              <h2 className="text-2xl font-bold mb-6">Related Articles</h2>
+            <section className="mt-20">
+              <h2 className="text-3xl font-bold mb-8 text-center">Related Articles</h2>
               
               {relatedLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
