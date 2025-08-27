@@ -136,6 +136,11 @@ const RobotListings = () => {
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
   const [aiDialogData, setAiDialogData] = useState<AIAnalysisResult | null>(null);
+  
+  // AI Analysis inline states
+  const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
+  const [aiAnalysisRobotId, setAiAnalysisRobotId] = useState<string | null>(null);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<AIAnalysisResult | null>(null);
 
   // Fetch robots on mount
   useEffect(() => {
