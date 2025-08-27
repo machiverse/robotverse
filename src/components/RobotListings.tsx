@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Package, Bot, Share2, MessageCircle, Brain, Eye, Grid, List, SlidersHorizontal, RefreshCw, MapPin, Building, CheckCircle } from "lucide-react";
+import { AlertCircle, Package, Bot, Share2, MessageCircle, Brain, Eye, Grid, List, SlidersHorizontal, RefreshCw, MapPin, Building, CheckCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
 
