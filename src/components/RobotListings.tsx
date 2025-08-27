@@ -13,9 +13,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Package, Bot, Share2, MessageCircle, Brain, Eye, Grid, List, SlidersHorizontal, RefreshCw, MapPin, Building, CheckCircle, Search } from "lucide-react";
+import {
+  AlertCircle,
+  Package,
+  Bot,
+  Share2,
+  MessageCircle,
+  Brain,
+  Eye,
+  Grid,
+  List,
+  SlidersHorizontal,
+  RefreshCw,
+  MapPin,
+  Building,
+  CheckCircle,
+  Search,
+  Loader2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface Robot {
   id: string;
@@ -107,17 +132,17 @@ const RobotListings = () => {
     trendingTypes: [] as string[],
   });
 
-  // AI Analysis states
-  const [aiAnalysisRobotId, setAiAnalysisRobotId] = useState<string | null>(null);
-  const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
-  const [aiAnalysisResult, setAiAnalysisResult] = useState<AIAnalysisResult | null>(null);
+  // AI Analysis dialog states
+  const [showAiDialog, setShowAiDialog] = useState(false);
+  const [aiDialogLoading, setAiDialogLoading] = useState(false);
+  const [aiDialogData, setAiDialogData] = useState<AIAnalysisResult | null>(null);
 
   // Fetch robots on mount
   useEffect(() => {
     fetchRobots();
   }, []);
 
-  // Filter and sort whenever state changes
+  // Filter and sort whenever dependencies change
   useEffect(() => {
     filterAndSortRobots();
   }, [
@@ -272,7 +297,6 @@ const RobotListings = () => {
           )
       );
     }
-
     if (typeFilter !== "all") {
       filtered = filtered.filter((robot) => robot.robot_type === typeFilter);
     }
@@ -324,13 +348,9 @@ const RobotListings = () => {
         case "popular":
           return (viewCounts[b.id] || 0) - (viewCounts[a.id] || 0);
         case "newest":
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case "oldest":
-          return (
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case "price-low":
           return convertToINR(a.price || 0, a.currency) - convertToINR(b.price || 0, b.currency);
         case "price-high":
@@ -369,14 +389,14 @@ const RobotListings = () => {
     return colors[condition as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
-  // Derived unique filter options
+  // Unique filter options
   const uniqueTypes = [...new Set(robots.map((r) => r.robot_type).filter(Boolean))];
   const uniqueBrands = [...new Set(robots.map((r) => r.brand).filter(Boolean))];
   const uniqueCompanies = [...new Set(robots.map((r) => r.profiles?.company_name).filter(Boolean))];
   const uniqueLocations = [...new Set(robots.map((r) => r.location?.split(",")[0]).filter(Boolean))];
   const uniqueStates = [...new Set(robots.map((r) => r.state).filter(Boolean))];
 
-  // AI analysis handler fetching data inline and showing results below the robot card
+  // Handle AI analysis dialog popup
   const handleAnalyzeRobot = async (robot: Robot) => {
     if (!user) {
       toast({
@@ -386,27 +406,20 @@ const RobotListings = () => {
       });
       return;
     }
-
-    if (aiAnalysisLoading) return;
-
-    setAiAnalysisRobotId(robot.id);
-    setAiAnalysisLoading(true);
-    setAiAnalysisResult(null);
+    setShowAiDialog(true);
+    setAiDialogLoading(true);
+    setAiDialogData(null);
     toast({
       title: "Starting AI Analysis",
-      description: `Analyzing ${robot.name} details via AI...`,
+      description: `Analyzing ${robot.name} via AI...`,
     });
-
     try {
       const { data, error } = await supabase.functions.invoke("roboverse-ai-analyze", {
         body: { robotId: robot.id },
       });
-
       if (error) throw error;
-
       const analysisData = typeof data.analysis === "string" ? { summary: data.analysis } : data.analysis;
-
-      setAiAnalysisResult({
+      setAiDialogData({
         analysis: {
           summary: analysisData.summary || "",
           suitability: analysisData.suitability || "",
@@ -424,7 +437,6 @@ const RobotListings = () => {
           finance: data.marketEcosystem?.finance?.providers || [],
         },
       });
-
       toast({
         title: "AI Analysis Complete",
         description: "AI analysis results loaded.",
@@ -435,15 +447,15 @@ const RobotListings = () => {
         title: "AI Analysis Failed",
         description: err instanceof Error ? err.message : "Failed to get AI analysis",
       });
+      setShowAiDialog(false);
     } finally {
-      setAiAnalysisLoading(false);
+      setAiDialogLoading(false);
     }
   };
 
-  // Share robot URL
+  // Share handler (same as your code)
   const handleShare = (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
-
     if (navigator.share) {
       navigator.share({
         title: robot.name,
@@ -459,7 +471,7 @@ const RobotListings = () => {
     }
   };
 
-  // Contact seller handler
+  // Contact seller handler (same as your code)
   const handleContactSeller = (robot: Robot, e: React.MouseEvent) => {
     e.stopPropagation();
     const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
@@ -520,49 +532,50 @@ const RobotListings = () => {
   }
 
   return (
-    <section className="py-16 bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto px-4">
-        {/* Title and Stats */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Robot Marketplace
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover cutting-edge industrial robots from verified sellers worldwide
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
-            <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-800">{marketStats.totalListings}</div>
-                <div className="text-sm text-blue-600">Active Listings</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-800">₹{(marketStats.minPrice / 100000).toFixed(1)}L</div>
-                <div className="text-sm text-green-600">Min Price</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-800">₹{(marketStats.avgPrice / 100000).toFixed(1)}L</div>
-                <div className="text-sm text-yellow-600">Avg Price</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-red-50 to-rose-50 border-red-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-800">₹{(marketStats.maxPrice / 100000).toFixed(1)}L</div>
-                <div className="text-sm text-red-600">Max Price</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-800">{marketStats.topBrands.length}</div>
-                <div className="text-sm text-purple-600">Top Brands</div>
-              </CardContent>
-            </Card>
+    <>
+      <section className="py-16 bg-gradient-to-br from-background to-muted/20">
+        <div className="container mx-auto px-4">
+          {/* Title and Stats */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Robot Marketplace
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Discover cutting-edge industrial robots from verified sellers worldwide
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
+              <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-800">{marketStats.totalListings}</div>
+                  <div className="text-sm text-blue-600">Active Listings</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-green-800">₹{(marketStats.minPrice / 100000).toFixed(1)}L</div>
+                  <div className="text-sm text-green-600">Min Price</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-yellow-800">₹{(marketStats.avgPrice / 100000).toFixed(1)}L</div>
+                  <div className="text-sm text-yellow-600">Avg Price</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-r from-red-50 to-rose-50 border-red-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-red-800">₹{(marketStats.maxPrice / 100000).toFixed(1)}L</div>
+                  <div className="text-sm text-red-600">Max Price</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-purple-800">{marketStats.topBrands.length}</div>
+                  <div className="text-sm text-purple-600">Top Brands</div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
 
         {/* Search and Filters */}
         <Card className="mb-8">
@@ -1049,7 +1062,62 @@ const RobotListings = () => {
         )}
       </div>
     </section>
+      {/* AI Analysis Result Dialog */}
+      <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
+        <DialogContent className="bg-white text-gray-900 max-w-3xl max-h-[80vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle>Robot AI Analysis</DialogTitle>
+            <DialogClose asChild>
+              <button className="absolute top-3 right-3 rounded p-1 hover:bg-gray-200">✕</button>
+            </DialogClose>
+          </DialogHeader>
+          <DialogDescription className="mt-4 whitespace-pre-wrap text-gray-900">
+            {aiDialogLoading && (
+              <div className="flex items-center gap-2">
+                <Loader2 className="animate-spin w-6 h-6" /> Loading AI analysis...
+              </div>
+            )}
+            {!aiDialogLoading && aiDialogData ? (
+              <>
+                <section className="mb-4">
+                  <h3 className="font-semibold text-lg mb-1">Summary</h3>
+                  <p>{aiDialogData.analysis.summary}</p>
+                </section>
+                {aiDialogData.analysis.suitability && (
+                  <section className="mb-4">
+                    <h3 className="font-semibold text-lg mb-1">Suitability</h3>
+                    <p>{aiDialogData.analysis.suitability}</p>
+                  </section>
+                )}
+                {aiDialogData.analysis.technicalInsights && (
+                  <section className="mb-4">
+                    <h3 className="font-semibold text-lg mb-1">Technical Insights</h3>
+                    <p>{aiDialogData.analysis.technicalInsights}</p>
+                  </section>
+                )}
+                {aiDialogData.analysis.governmentSchemes && (
+                  <section className="mb-4">
+                    <h3 className="font-semibold text-lg mb-1">Government Schemes</h3>
+                    <p>{aiDialogData.analysis.governmentSchemes}</p>
+                  </section>
+                )}
+                {aiDialogData.analysis.suggestedIndustries && (
+                  <section className="mb-4">
+                    <h3 className="font-semibold text-lg mb-1">Suggested Industries</h3>
+                    <p>{aiDialogData.analysis.suggestedIndustries}</p>
+                  </section>
+                )}
+                <footer className="text-xs text-right text-muted border-t pt-2">
+                  Generated: {new Date(aiDialogData.analysis.timestamp).toLocaleString()}
+                </footer>
+              </>
+            ) : (!aiDialogLoading && !aiDialogData) ? (
+              <p>No analysis data available.</p>
+            ) : null}
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
-
 export default RobotListings;
