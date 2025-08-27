@@ -361,7 +361,53 @@ const RobotListings = () => {
     }
   };
 
-  // Share and contact handlers omitted for brevity (use your existing code)
+  // Share and contact handlers
+  const handleShare = async (robot: Robot) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${robot.name} - ${robot.brand}`,
+          text: `Check out this ${robot.robot_type} from ${robot.profiles.company_name}`,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link copied",
+          description: "Robot listing link copied to clipboard",
+        });
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      toast({
+        variant: "destructive",
+        title: "Share failed",
+        description: "Could not share this listing",
+      });
+    }
+  };
+
+  const handleContactSeller = (robot: Robot) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Sign In Required",
+        description: "Please sign in to contact sellers",
+      });
+      return;
+    }
+    
+    const message = `Hi, I'm interested in your ${robot.name} (${robot.model}). Could you please provide more details?`;
+    const subject = `Inquiry about ${robot.name}`;
+    const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+    
+    window.open(mailtoLink);
+    
+    toast({
+      title: "Email client opened",
+      description: "Your default email client should open with a pre-filled message",
+    });
+  };
 
   // Unique filters options
   const uniqueTypes = [...new Set(robots.map(r => r.robot_type).filter(Boolean))];
@@ -607,7 +653,7 @@ const RobotListings = () => {
                     </div>
                   )}
                   <Badge className={`absolute top-2 left-2 ${getConditionColor(robot.condition || "used")}`}>{robot.condition?.replace("_", " ") || "Used"}</Badge>
-                  <Button size="sm" variant="ghost" className="absolute top-2 right-2 p-1" onClick={e => { e.stopPropagation(); handleShare(robot, e); }}>
+                  <Button size="sm" variant="ghost" className="absolute top-2 right-2 p-1" onClick={e => { e.stopPropagation(); handleShare(robot); }}>
                     <Share2 className="w-4 h-4" />
                   </Button>
                   {robot.training_included && <Badge className="absolute bottom-2 left-2" variant="secondary">Training</Badge>}
@@ -626,7 +672,7 @@ const RobotListings = () => {
                     <Button variant="outline" size="sm" onClick={e => { e.stopPropagation(); navigate(`/robots/${robot.id}`); }}>
                       <Eye className="w-4 h-4 mr-1" /> Details
                     </Button>
-                    <Button variant="outline" size="sm" onClick={e => { e.stopPropagation(); if(!user) { toast({variant:"destructive", title:"Sign in required", description:"Sign in to contact sellers"}); return; } handleContactSeller(robot, e); }} disabled={!user || (!robot.profiles.phone && !robot.profiles.mobile_number)}>
+                    <Button variant="outline" size="sm" onClick={e => { e.stopPropagation(); if(!user) { toast({variant:"destructive", title:"Sign in required", description:"Sign in to contact sellers"}); return; } handleContactSeller(robot); }} disabled={!user || (!robot.profiles.phone && !robot.profiles.mobile_number)}>
                       <MessageCircle className="w-4 h-4 mr-1" /> Contact
                     </Button>
                   </div>
