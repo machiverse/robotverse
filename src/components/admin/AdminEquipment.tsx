@@ -426,7 +426,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
               <Input
                 id="name"
                 value={editFormData.name || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter name"
               />
             </div>
@@ -436,7 +436,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                 id="price"
                 type="number"
                 value={editFormData.price || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, price: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
                 placeholder="Enter price"
               />
             </div>
@@ -451,7 +451,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Input
                     id="model"
                     value={editFormData.model || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, model: e.target.value })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, model: e.target.value }))}
                     placeholder="Enter model"
                   />
                 </div>
@@ -459,7 +459,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Label htmlFor="availability">Availability</Label>
                   <Select
                     value={editFormData.availability || 'available'}
-                    onValueChange={(value) => setEditFormData({ ...editFormData, availability: value })}
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, availability: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -478,7 +478,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Input
                     id="brand"
                     value={editFormData.brand || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, brand: e.target.value })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
                     placeholder="Enter brand"
                   />
                 </div>
@@ -487,7 +487,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Input
                     id="location"
                     value={editFormData.location || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="Enter location"
                   />
                 </div>
@@ -504,7 +504,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Input
                     id="service_type"
                     value={editFormData.service_type || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, service_type: e.target.value })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, service_type: e.target.value }))}
                     placeholder="Enter service type"
                   />
                 </div>
@@ -513,7 +513,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Input
                     id="location"
                     value={editFormData.location || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
                     placeholder="Enter location"
                   />
                 </div>
@@ -530,7 +530,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Input
                     id="part_number"
                     value={editFormData.part_number || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, part_number: e.target.value })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, part_number: e.target.value }))}
                     placeholder="Enter part number"
                   />
                 </div>
@@ -540,7 +540,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                     id="quantity"
                     type="number"
                     value={editFormData.quantity || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, quantity: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
                     placeholder="Enter quantity"
                   />
                 </div>
@@ -551,7 +551,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Input
                     id="brand"
                     value={editFormData.brand || ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, brand: e.target.value })}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
                     placeholder="Enter brand"
                   />
                 </div>
@@ -559,7 +559,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                   <Label htmlFor="condition">Condition</Label>
                   <Select
                     value={editFormData.condition || 'new'}
-                    onValueChange={(value) => setEditFormData({ ...editFormData, condition: value })}
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, condition: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -580,7 +580,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
             <Textarea
               id="description"
               value={editFormData.description || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+              onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Enter description"
               rows={3}
             />
