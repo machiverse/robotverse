@@ -14,6 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
+      blog_comments: {
+        Row: {
+          blog_id: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blog_id: string
+          content: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blog_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blog_views: {
+        Row: {
+          blog_id: string
+          id: string
+          ip_address: string | null
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          blog_id: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          blog_id?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_views_blog_id_fkey"
+            columns: ["blog_id"]
+            isOneToOne: false
+            referencedRelation: "blogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blogs: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          like_count: number | null
+          published_at: string | null
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          view_count: number | null
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          like_count?: number | null
+          published_at?: string | null
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          like_count?: number | null
+          published_at?: string | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       button_interactions: {
         Row: {
           additional_data: Json | null
@@ -1505,6 +1612,10 @@ export type Database = {
       }
       get_robot_view_count: {
         Args: { p_robot_id: string }
+        Returns: number
+      }
+      increment_blog_view_count: {
+        Args: { p_blog_id: string }
         Returns: number
       }
       increment_robot_view_count: {
