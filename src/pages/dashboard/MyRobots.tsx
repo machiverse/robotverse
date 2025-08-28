@@ -137,11 +137,14 @@ const MyRobots = () => {
           <div className="grid gap-4">
             {robots.map((robot) => (
               <div key={robot.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                <img 
-                  src={robot.image} 
-                  alt={robot.name}
-                  className="w-16 h-16 object-contain rounded-lg bg-muted"
-                />
+                <div className="w-16 bg-muted rounded-lg flex items-center justify-center">
+                  <img 
+                    src={robot.image} 
+                    alt={robot.name}
+                    className="w-full object-contain rounded-lg max-h-16"
+                    style={{ height: "auto" }}
+                  />
+                </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>

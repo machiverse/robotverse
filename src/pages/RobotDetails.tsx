@@ -1112,13 +1112,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             {/* Image Gallery */}
             <Card>
               <CardContent className="p-6">
-                <div className="relative aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                <div className="relative bg-muted rounded-lg flex items-center justify-center mb-4 min-h-96">
                   {robot.images && robot.images.length > 0 ? (
                     <>
                       <img
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
-                        className="w-full h-full object-contain rounded-lg bg-muted cursor-pointer"
+                        className="w-full object-contain rounded-lg bg-muted cursor-pointer max-h-96"
+                        style={{ height: "auto" }}
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (

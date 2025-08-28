@@ -816,17 +816,25 @@ const RobotListings = () => {
                 {/* Robot Image */}
                 <div
                   className={`relative bg-gradient-to-br from-muted to-muted/50 ${
-                    viewMode === "list" ? "w-48 h-32" : "h-48"
+                    viewMode === "list" ? "w-48" : ""
                   }`}
                 >
                   {robot.images && robot.images.length > 0 ? (
                     <img
                       src={robot.images[0]}
                       alt={robot.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className={`w-full object-contain group-hover:scale-105 transition-transform duration-300 ${
+                        viewMode === "list" ? "h-32" : "min-h-48 max-h-72"
+                      }`}
+                      style={{ 
+                        height: viewMode === "grid" ? "auto" : "128px",
+                        aspectRatio: viewMode === "grid" ? "auto" : "3/2"
+                      }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className={`w-full flex items-center justify-center ${
+                      viewMode === "list" ? "h-32" : "h-48"
+                    }`}>
                       <Bot className="w-16 h-16 text-muted-foreground" />
                     </div>
                   )}
