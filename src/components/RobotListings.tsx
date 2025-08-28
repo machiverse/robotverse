@@ -960,6 +960,7 @@ const RobotListings = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="whitespace-nowrap px-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!user) {
