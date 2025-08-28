@@ -54,24 +54,26 @@ const WhyChooseRobotVerse = () => {
   const fetchRealData = async () => {
     try {
       const [
+        totalProfilesResult,
         profilesResult,
         robotsResult,
         servicesResult,
         sparePartsResult
       ] = await Promise.allSettled([
-        supabase.from('profiles').select('*'),
+        supabase.rpc('get_total_profiles_count'),
+        supabase.from('profiles').select('user_type, full_name, email, phone, company_name'),
         supabase.from('robots').select('availability, robot_type, location').eq('availability', 'available'),
         supabase.from('services').select('service_type, location'),
         supabase.from('spare_parts').select('quantity').gt('quantity', 0)
       ]);
 
+      const totalUsers = totalProfilesResult.status === 'fulfilled' ? totalProfilesResult.value.data || 0 : 0;
       const profiles = profilesResult.status === 'fulfilled' ? profilesResult.value.data || [] : [];
       const robots = robotsResult.status === 'fulfilled' ? robotsResult.value.data || [] : [];
       const services = servicesResult.status === 'fulfilled' ? servicesResult.value.data || [] : [];
       const spareParts = sparePartsResult.status === 'fulfilled' ? sparePartsResult.value.data || [] : [];
 
-      // Count ALL profiles in the database, matching LiveStats component
-      const totalUsers = profiles.length;
+      // Use the total count from the database function
       const verifiedUsers = profiles.filter(p => 
         p.full_name && p.email && (p.phone || p.company_name)
       ).length;

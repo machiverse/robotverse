@@ -1627,6 +1627,10 @@ export type Database = {
         Args: { p_robot_id: string }
         Returns: number
       }
+      get_total_profiles_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       increment_blog_view_count: {
         Args: { p_blog_id: string }
         Returns: number
