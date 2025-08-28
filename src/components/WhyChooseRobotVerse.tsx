@@ -59,7 +59,7 @@ const WhyChooseRobotVerse = () => {
         servicesResult,
         sparePartsResult
       ] = await Promise.allSettled([
-        supabase.from('profiles').select('user_type, full_name, email, phone, company_name, created_at'),
+        supabase.from('profiles').select('id, user_type, full_name, email, phone, company_name, created_at'),
         supabase.from('robots').select('availability, robot_type, location').eq('availability', 'available'),
         supabase.from('services').select('service_type, location'),
         supabase.from('spare_parts').select('quantity').gt('quantity', 0)
@@ -70,6 +70,7 @@ const WhyChooseRobotVerse = () => {
       const services = servicesResult.status === 'fulfilled' ? servicesResult.value.data || [] : [];
       const spareParts = sparePartsResult.status === 'fulfilled' ? sparePartsResult.value.data || [] : [];
 
+      // Count ALL profiles in the database, matching LiveStats component
       const totalUsers = profiles.length;
       const verifiedUsers = profiles.filter(p => 
         p.full_name && p.email && (p.phone || p.company_name)
