@@ -96,8 +96,12 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
   }, [toast, onRefresh]);
 
   const handleImageUpload = useCallback((urls: string[]) => {
-    setEditFormData({ ...editFormData, images: urls });
-  }, [editFormData]);
+    console.log('Image upload completed, updating form data with URLs:', urls);
+    setEditFormData(prevData => ({
+      ...prevData,
+      images: urls
+    }));
+  }, []);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editingItem) return;
@@ -106,6 +110,9 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
     try {
       const { type, item } = editingItem;
       const tableName = type === 'robot' ? 'robots' : type === 'service' ? 'services' : 'spare_parts';
+      
+      console.log('Saving edit with form data:', editFormData);
+      console.log('Images to update:', editFormData.images);
       
       const { error } = await supabase
         .from(tableName)
