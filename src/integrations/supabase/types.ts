@@ -1523,7 +1523,20 @@ export type Database = {
           p_user_type?: string
           p_warehouse_storage?: boolean
         }
-        Returns: string
+        Returns: {
+          account_type: string
+          company_name: string
+          created_at: string
+          email: string
+          full_name: string
+          location: string
+          mobile_number: string
+          profile_id: string
+          registration_complete: boolean
+          updated_at: string
+          user_id: string
+          user_roles: string[]
+        }[]
       }
       create_complete_user_profile: {
         Args: {

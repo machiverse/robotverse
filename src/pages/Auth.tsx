@@ -208,34 +208,65 @@ const Auth = () => {
         throw new Error('Location is required');
       }
       
-      // Use the database function to create the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+      // Prepare data - ensure empty strings become null for proper database storage
+      const profileParams = {
         p_user_id: user.id,
-        p_email: email,
-        p_full_name: fullName,
-        p_company_name: companyName,
-        p_mobile_number: mobileNumber,
-        p_location: location,
+        p_email: email?.trim() || user.email || '',
+        p_full_name: fullName?.trim() || null,
+        p_company_name: companyName?.trim() || null,
+        p_mobile_number: mobileNumber?.trim() || null,
+        p_location: location?.trim() || null,
         p_user_type: accountType || 'buyer',
         p_account_type: accountType || 'buyer',
         p_seller_roles: sellerRoles?.length > 0 ? sellerRoles : [],
-        p_logistics_type: logisticsType || null,
-        p_logistics_region: logisticsRegion || null,
+        p_logistics_type: logisticsType?.trim() || null,
+        p_logistics_region: logisticsRegion?.trim() || null,
         p_transport_modes: transportModes?.length > 0 ? transportModes : [],
         p_warehouse_storage: warehouseStorage || false,
         p_finance_type: financeType?.length > 0 ? financeType : [],
         p_financing_for: financingFor?.length > 0 ? financingFor : [],
         p_target_audience: targetAudience?.length > 0 ? targetAudience : [],
         p_government_scheme_support: governmentSchemeSupport || false
+      };
+
+      console.log('📝 Profile data being sent:', {
+        email: profileParams.p_email,
+        fullName: profileParams.p_full_name,
+        companyName: profileParams.p_company_name,
+        mobileNumber: profileParams.p_mobile_number,
+        location: profileParams.p_location,
+        accountType: profileParams.p_account_type,
+        sellerRoles: profileParams.p_seller_roles,
+        logisticsType: profileParams.p_logistics_type,
+        financeType: profileParams.p_finance_type
       });
+      
+      // Use the database function to create the complete profile - returns table
+      const { data: profileResult, error: dbError } = await supabase.rpc('complete_user_profile', profileParams);
 
       if (dbError) {
         console.error('❌ Database function error:', dbError);
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      console.log('✅ Complete profile created successfully with ID:', profileId);
-      return profileId;
+      if (!profileResult || profileResult.length === 0) {
+        console.error('❌ No profile data returned from function');
+        throw new Error('Profile creation failed - no data returned');
+      }
+
+      const createdProfile = profileResult[0];
+      console.log('✅ Complete profile created successfully:', {
+        profileId: createdProfile.profile_id,
+        userId: createdProfile.user_id,
+        fullName: createdProfile.full_name,
+        companyName: createdProfile.company_name,
+        mobileNumber: createdProfile.mobile_number,
+        location: createdProfile.location,
+        accountType: createdProfile.account_type,
+        registrationComplete: createdProfile.registration_complete
+      });
+      
+      return createdProfile;
       
     } catch (error: any) {
       console.error('❌ Error creating complete profile:', error);
@@ -494,36 +525,62 @@ const Auth = () => {
   const updateUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Updating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
+      console.log('📋 Saved data being processed:', {
+        email: savedData.email,
+        fullName: savedData.fullName,
+        companyName: savedData.companyName,
+        mobileNumber: savedData.mobileNumber,
+        location: savedData.location,
+        accountType: savedData.accountType
+      });
       
-      // Use the database function to update the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+      // Prepare data - ensure empty strings become null
+      const updateParams = {
         p_user_id: user.id,
-        p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName || null,
-        p_company_name: savedData.companyName || null,
-        p_mobile_number: savedData.mobileNumber || null,
-        p_location: savedData.location || null,
+        p_email: savedData.email?.trim() || user.email || '',
+        p_full_name: savedData.fullName?.trim() || null,
+        p_company_name: savedData.companyName?.trim() || null,
+        p_mobile_number: savedData.mobileNumber?.trim() || null,
+        p_location: savedData.location?.trim() || null,
         p_user_type: savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
-        p_logistics_type: savedData.logisticsType || null,
-        p_logistics_region: savedData.logisticsRegion || null,
+        p_logistics_type: savedData.logisticsType?.trim() || null,
+        p_logistics_region: savedData.logisticsRegion?.trim() || null,
         p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
         p_warehouse_storage: savedData.warehouseStorage || false,
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
         p_government_scheme_support: savedData.governmentSchemeSupport || false
-      });
+      };
+      
+      // Use the database function to update the complete profile - returns table
+      const { data: updateResult, error: dbError } = await supabase.rpc('complete_user_profile', updateParams);
 
       if (dbError) {
         console.error('❌ Database function error:', dbError);
         throw new Error(dbError.message);
       }
 
-      console.log('✅ Profile updated successfully with ID:', profileId);
-      return profileId;
+      if (!updateResult || updateResult.length === 0) {
+        console.error('❌ No profile data returned from update function');
+        throw new Error('Profile update failed - no data returned');
+      }
+
+      const updatedProfile = updateResult[0];
+      console.log('✅ Profile updated successfully:', {
+        profileId: updatedProfile.profile_id,
+        userId: updatedProfile.user_id,
+        fullName: updatedProfile.full_name,
+        companyName: updatedProfile.company_name,
+        mobileNumber: updatedProfile.mobile_number,
+        location: updatedProfile.location,
+        accountType: updatedProfile.account_type,
+        registrationComplete: updatedProfile.registration_complete
+      });
+      
+      return updatedProfile;
 
     } catch (error: any) {
       console.error('❌ Profile update exception:', error);
@@ -545,48 +602,66 @@ const Auth = () => {
       });
       
       // Validate required data
-      if (!savedData.fullName) {
+      if (!savedData.fullName?.trim()) {
         throw new Error('Full name is required but missing from saved data');
       }
-      if (!savedData.companyName) {
+      if (!savedData.companyName?.trim()) {
         throw new Error('Company name is required but missing from saved data');
       }
-      if (!savedData.mobileNumber) {
+      if (!savedData.mobileNumber?.trim()) {
         throw new Error('Mobile number is required but missing from saved data');
       }
-      if (!savedData.location) {
+      if (!savedData.location?.trim()) {
         throw new Error('Location is required but missing from saved data');
       }
       
-      // Use the database function to create/update the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+      // Prepare data - ensure empty strings become null
+      const createParams = {
         p_user_id: user.id,
-        p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName,
-        p_company_name: savedData.companyName,
-        p_mobile_number: savedData.mobileNumber,
-        p_location: savedData.location,
+        p_email: savedData.email?.trim() || user.email || '',
+        p_full_name: savedData.fullName?.trim() || null,
+        p_company_name: savedData.companyName?.trim() || null,
+        p_mobile_number: savedData.mobileNumber?.trim() || null,
+        p_location: savedData.location?.trim() || null,
         p_user_type: savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
-        p_logistics_type: savedData.logisticsType || null,
-        p_logistics_region: savedData.logisticsRegion || null,
+        p_logistics_type: savedData.logisticsType?.trim() || null,
+        p_logistics_region: savedData.logisticsRegion?.trim() || null,
         p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
         p_warehouse_storage: savedData.warehouseStorage || false,
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
         p_government_scheme_support: savedData.governmentSchemeSupport || false
-      });
+      };
+      
+      // Use the database function to create the complete profile - returns table
+      const { data: createResult, error: dbError } = await supabase.rpc('complete_user_profile', createParams);
 
       if (dbError) {
         console.error('❌ Database function error:', dbError);
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      console.log('✅ Profile created successfully with ID:', profileId);
+      if (!createResult || createResult.length === 0) {
+        console.error('❌ No profile data returned from create function');
+        throw new Error('Profile creation failed - no data returned');
+      }
+
+      const createdProfile = createResult[0];
+      console.log('✅ Profile created successfully:', {
+        profileId: createdProfile.profile_id,
+        userId: createdProfile.user_id,
+        fullName: createdProfile.full_name,
+        companyName: createdProfile.company_name,
+        mobileNumber: createdProfile.mobile_number,
+        location: createdProfile.location,
+        accountType: createdProfile.account_type,
+        registrationComplete: createdProfile.registration_complete
+      });
       
-      // Verify the profile was created correctly
+      // Additional verification by querying the profile directly
       const { data: verifyProfile, error: verifyError } = await supabase
         .from('profiles')
         .select('*')
@@ -596,15 +671,16 @@ const Auth = () => {
       if (verifyError) {
         console.error('❌ Error verifying created profile:', verifyError);
       } else {
-        console.log('✅ Profile verification successful:', {
+        console.log('✅ Profile verification successful - stored in DB:', {
           hasCompanyName: !!verifyProfile.company_name,
           hasMobileNumber: !!verifyProfile.mobile_number,
           hasLocation: !!verifyProfile.location,
+          hasUserRoles: verifyProfile.user_roles?.length > 0,
           registrationComplete: verifyProfile.registration_complete
         });
       }
       
-      return profileId;
+      return createdProfile;
       
     } catch (error: any) {
       console.error('❌ Error creating profile from saved data:', error);
