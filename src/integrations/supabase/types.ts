@@ -1622,6 +1622,10 @@ export type Database = {
         Args: { p_robot_id: string }
         Returns: number
       }
+      is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       seller_role_enum: "robot_seller" | "parts_seller" | "service_provider"
