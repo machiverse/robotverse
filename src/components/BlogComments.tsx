@@ -140,15 +140,14 @@ const BlogComments = ({ blogId }: BlogCommentsProps) => {
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Share your thoughts... (Use **bold**, *italic*, • for bullets, 1. for numbers)"
+                  placeholder="Share your thoughts..."
                   className="min-h-[100px] resize-none"
                   disabled={submitting}
                 />
               </div>
               <div className="flex justify-between items-center">
                 <p className="text-xs text-muted-foreground">
-                  Tip: Use **bold**, *italic*, • for bullets, 1. for numbered lists
-                </p>
+                                </p>
                 <Button 
                   onClick={handleSubmitComment}
                   disabled={submitting || !newComment.trim()}
