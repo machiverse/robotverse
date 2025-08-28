@@ -19,6 +19,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
 import SellerRobots from "./pages/SellerRobots";
 import ProfileSettings from "./pages/ProfileSettings";
+import TestImageMigration from "./pages/TestImageMigration";
 import NotFound from "./pages/NotFound";
 
 // Dashboard Pages
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/parts" element={<Parts />} />
             <Route path="/services" element={<Services />} />
             <Route path="/logistics" element={<Logistics />} />
+            <Route path="/test-image-migration" element={<TestImageMigration />} />
             <Route path="/financing" element={<Financing />} />
             <Route path="/blogs" element={<Blogs />} />
             <Route path="/blogs/create" element={<BlogEditor />} />
