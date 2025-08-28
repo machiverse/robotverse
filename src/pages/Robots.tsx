@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye } from "lucide-react";
@@ -593,12 +594,16 @@ const Robots = () => {
                        });
                        navigate(`/robots/${robot.id}`);
                      }}>
-                      <div className="aspect-video relative overflow-hidden">
-                        <img
-                          src={robot.images?.[0] || "/placeholder.svg"}
-                          alt={robot.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                       <div className="relative">
+                         <ResponsiveImage
+                           src={robot.images?.[0] || "/placeholder.svg"}
+                           alt={robot.name}
+                           aspectRatio="auto"
+                           objectFit="contain"
+                           backgroundColor="hsl(var(--muted))"
+                           hoverEffect={true}
+                           containerClassName="aspect-video"
+                         />
                         <div className="absolute top-2 right-2">
                           <ViewCountDisplay targetType="robots" targetId={robot.id} />
                         </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1112,13 +1113,16 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             {/* Image Gallery */}
             <Card>
               <CardContent className="p-6">
-                <div className="relative aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
+                <div className="relative mb-4">
                   {robot.images && robot.images.length > 0 ? (
                     <>
-                      <img
+                      <ResponsiveImage
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
-                        className="w-full h-full object-contain rounded-lg bg-muted cursor-pointer"
+                        aspectRatio="auto"
+                        objectFit="contain"
+                        backgroundColor="hsl(var(--muted))"
+                        containerClassName="aspect-video rounded-lg cursor-pointer"
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (
@@ -1171,10 +1175,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         }`}
                         onClick={() => setCurrentImageIndex(index)}
                       >
-                        <img 
+                        <ResponsiveImage
                           src={image} 
                           alt={`${robot.name} ${index + 1}`}
-                          className="w-full h-full object-contain rounded-lg bg-muted"
+                          aspectRatio="square"
+                          objectFit="contain"
+                          backgroundColor="hsl(var(--muted))"
+                          containerClassName="w-full h-full rounded-lg"
                         />
                       </div>
                     ))}
