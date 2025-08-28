@@ -79,11 +79,12 @@ function extractUserRoles(profile: any): string[] {
     }
   };
 
-  // ONLY extract from fields that exist in your schema
+  // Extract from all role-related fields that exist in your schema
   addRole(profile?.account_type);
   addRole(profile?.user_type);
   addRole(profile?.seller_roles);
-  // Removed profile?.roles since it doesn't exist
+  addRole(profile?.user_roles);
+  addRole(profile?.primary_user_type);
 
   // Normalize to lowercase for consistent matching
   return roles.map(role => role.toLowerCase().trim()).filter(Boolean);
@@ -116,17 +117,20 @@ const LiveStats = () => {
       setRefreshing(true);
       setError(null);
 
-      // FIXED: Only select fields that exist in your schema
+      // Fetch ALL profiles from the table
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, account_type, user_type, seller_roles');
-        // Removed 'roles' from select since it doesn't exist
+        .select('id, account_type, user_type, seller_roles, user_roles, primary_user_type, registration_complete')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       if (!profiles || !Array.isArray(profiles)) {
         throw new Error('No profile data received');
       }
+
+      console.log('📊 Raw profiles data:', profiles.length, 'profiles');
+      console.log('📊 First few profiles:', profiles.slice(0, 3));
 
       // Use Sets to ensure no duplicate counting per user
       const uniqueUsers = new Set<string>();
@@ -137,13 +141,21 @@ const LiveStats = () => {
       const financeProviders = new Set<string>();
 
       profiles.forEach((profile) => {
-        if (!profile.id) return;
+        if (!profile.id) {
+          console.warn('⚠️ Profile without ID found:', profile);
+          return;
+        }
         
-        // Count unique users
+        // Count ALL users with IDs
         uniqueUsers.add(profile.id);
         
         // Extract all roles for this user
         const userRoles = extractUserRoles(profile);
+        
+        // Debug logging for role categorization
+        if (userRoles.length > 0) {
+          console.log(`User ${profile.id} roles:`, userRoles);
+        }
         
         // Check each role category (user counted once per category max)
         if (userRoles.some(role => 
@@ -153,7 +165,7 @@ const LiveStats = () => {
         }
         
         if (userRoles.some(role => 
-          ['parts_seller', 'spare_parts_seller', 'partsseller', 'partseller'].includes(role)
+          ['parts_seller', 'spare_parts_seller', 'partsseller', 'partseller', 'spare_parts_seller'].includes(role)
         )) {
           partsSellers.add(profile.id);
         }
@@ -189,6 +201,7 @@ const LiveStats = () => {
 
       setLastUpdated(new Date());
       console.log('✅ Live stats updated successfully:', {
+        totalProfilesInDB: profiles.length,
         totalUsers: uniqueUsers.size,
         robotSellers: robotSellers.size,
         partsSellers: partsSellers.size,
