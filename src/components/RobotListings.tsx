@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -816,22 +815,18 @@ const RobotListings = () => {
               >
                 {/* Robot Image */}
                 <div
-                  className={`relative ${
+                  className={`relative bg-gradient-to-br from-muted to-muted/50 ${
                     viewMode === "list" ? "w-48 h-32" : "h-48"
                   }`}
                 >
                   {robot.images && robot.images.length > 0 ? (
-                    <ResponsiveImage
+                    <img
                       src={robot.images[0]}
                       alt={robot.name}
-                      aspectRatio={viewMode === "list" ? "video" : "auto"}
-                      objectFit="contain"
-                      backgroundColor="hsl(var(--muted))"
-                      hoverEffect={true}
-                      containerClassName="h-full rounded-lg"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50 rounded-lg">
+                    <div className="w-full h-full flex items-center justify-center">
                       <Bot className="w-16 h-16 text-muted-foreground" />
                     </div>
                   )}
