@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Bot, Wrench, Package, Search, Eye, Edit, Trash2, Save, X } from "lucide-react";
+import { EnhancedImageUpload } from "@/components/EnhancedImageUpload";
 
 interface AdminEquipmentProps {
   robots: any[];
@@ -93,6 +94,10 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
       setLoading(false);
     }
   }, [toast, onRefresh]);
+
+  const handleImageUpload = useCallback((urls: string[]) => {
+    setEditFormData({ ...editFormData, images: urls });
+  }, [editFormData]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editingItem) return;
@@ -571,6 +576,20 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
               onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
               placeholder="Enter description"
               rows={3}
+            />
+          </div>
+
+          {/* Image Upload Section */}
+          <div>
+            <Label>Images</Label>
+            <EnhancedImageUpload
+              bucket="robot-images"
+              maxImages={10}
+              onImagesUploaded={handleImageUpload}
+              initialImages={editFormData.images || []}
+              enhance={true}
+              title="Upload Images"
+              description="Upload images or provide image URLs. Images will be automatically enhanced for better quality."
             />
           </div>
         </div>
