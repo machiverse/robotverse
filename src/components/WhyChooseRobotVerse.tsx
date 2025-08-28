@@ -59,7 +59,7 @@ const WhyChooseRobotVerse = () => {
         servicesResult,
         sparePartsResult
       ] = await Promise.allSettled([
-        supabase.from('profiles').select('id, user_type, full_name, email, phone, company_name, created_at'),
+        supabase.from('profiles').select('*'),
         supabase.from('robots').select('availability, robot_type, location').eq('availability', 'available'),
         supabase.from('services').select('service_type, location'),
         supabase.from('spare_parts').select('quantity').gt('quantity', 0)
