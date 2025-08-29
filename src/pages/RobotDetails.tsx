@@ -2293,7 +2293,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
         {/* Import Quote Modal */}
       <Dialog open={showImportQuote} onOpenChange={setShowImportQuote}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg { max-width: 32rem !important; }">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Plane className="w-5 h-5 mr-2" />
