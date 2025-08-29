@@ -164,6 +164,14 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     const totalRevenue = robotData.reduce((sum, r) => sum + (r.price || 0), 0);
     const avgPrice = totalRobots > 0 ? totalRevenue / totalRobots : 0;
 
+    // Debug view stats
+    console.log('📊 View Stats Debug:', {
+      totalViews: viewStats.totalViews,
+      robotViews: viewStats.viewsByCategory.robots,
+      viewsByCategory: viewStats.viewsByCategory,
+      recentViews: viewStats.recentViews.length
+    });
+
     setDashboardStats({
       totalRobots,
       activeListings,
@@ -958,6 +966,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                     <div>
                       <p className="font-medium">Total Views</p>
                       <p className="text-2xl font-bold text-purple-600">{viewStats.totalViews || 0}</p>
+                      {dashboardStats.totalRobots === 0 && (
+                        <p className="text-xs text-muted-foreground">Upload robots to get views</p>
+                      )}
                     </div>
                     <Eye className="w-8 h-8 text-purple-600" />
                   </div>
@@ -965,10 +976,13 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                     <div>
                       <p className="font-medium">Robot Views</p>
                       <p className="text-2xl font-bold text-blue-600">{viewStats.viewsByCategory.robots || 0}</p>
+                      {dashboardStats.totalRobots === 0 && (
+                        <p className="text-xs text-muted-foreground">No robots uploaded yet</p>
+                      )}
                     </div>
                     <Bot className="w-8 h-8 text-blue-600" />
                   </div>
-                  {viewStats.recentViews.length > 0 && (
+                  {viewStats.recentViews.length > 0 ? (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium mb-2">Recent Views</h4>
                       <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -982,6 +996,12 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                      <Eye className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">No views yet</p>
+                      <p className="text-xs text-muted-foreground">Upload products to start tracking views</p>
                     </div>
                   )}
                 </div>
