@@ -2318,8 +2318,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold">
-                    <span>Estimated Total:</span>
-                    <span>{formatPrice((robot?.price || 0) + importDuty, robot?.currency || 'USD')}</span>
+                    <span className="font-bold text-blue-700">Estimated Total:</span>
+                    <span className="font-bold text-blue-700">{formatPrice((robot?.price || 0) + importDuty, robot?.currency || 'USD')}</span>
                   </div>
                 </div>
               </div>
