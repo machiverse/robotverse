@@ -62,9 +62,11 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
   }, []);
 
   const handleEditItem = useCallback((type: 'robot' | 'service' | 'part', item: any) => {
+    console.log('🔧 Starting edit for:', type, item);
     setEditingItem({ type, item });
     setEditFormData({ ...item });
     setShowEditDialog(true);
+    console.log('✅ Edit form data initialized:', { ...item });
   }, []);
 
   const handleDeleteItem = useCallback(async (type: 'robot' | 'service' | 'part', item: any) => {
@@ -111,31 +113,37 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
       const { type, item } = editingItem;
       const tableName = type === 'robot' ? 'robots' : type === 'service' ? 'services' : 'spare_parts';
       
-      console.log('Saving edit with form data:', editFormData);
-      console.log('Images to update:', editFormData.images);
-      console.log('Table name:', tableName);
-      console.log('Item ID:', item.id);
+      console.log('💾 Saving edit with form data:', editFormData);
+      console.log('📊 Images to update:', editFormData.images);
+      console.log('🗃️ Table name:', tableName);
+      console.log('🆔 Item ID:', item.id);
+      
+      // Clean form data - remove fields that shouldn't be updated
+      const cleanFormData = { ...editFormData };
+      delete cleanFormData.id;
+      delete cleanFormData.created_at;
+      delete cleanFormData.seller_id;
+      delete cleanFormData.provider_id;
       
       // Ensure required fields are present
-      const updateData = { ...editFormData };
-      if (!updateData.updated_at) {
-        updateData.updated_at = new Date().toISOString();
+      if (!cleanFormData.updated_at) {
+        cleanFormData.updated_at = new Date().toISOString();
       }
       
-      console.log('Final update data:', updateData);
+      console.log('🧹 Clean update data:', cleanFormData);
       
       const { data, error } = await supabase
         .from(tableName)
-        .update(updateData)
+        .update(cleanFormData)
         .eq('id', item.id)
         .select();
 
       if (error) {
-        console.error('Database error details:', error);
+        console.error('❌ Database error details:', error);
         throw error;
       }
 
-      console.log('Update successful, returned data:', data);
+      console.log('✅ Update successful, returned data:', data);
 
       toast({
         title: "Success",
@@ -147,7 +155,7 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
       setEditFormData({});
       onRefresh();
     } catch (error: any) {
-      console.error('Update error:', error);
+      console.error('❌ Update error:', error);
       toast({
         title: "Error",
         description: error?.message || `Failed to update ${editingItem.type}`,
