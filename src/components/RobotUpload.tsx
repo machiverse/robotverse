@@ -736,12 +736,21 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           updateData.images = allImageUrls;
         }
 
-        const { error } = await supabase
+        console.log('Updating robot with data:', updateData);
+        console.log('Robot ID:', robotData.id);
+
+        const { data, error } = await supabase
           .from('robots')
           .update(updateData)
-          .eq('id', robotData.id);
+          .eq('id', robotData.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Robot update error details:', error);
+          throw error;
+        }
+
+        console.log('Robot update successful:', data);
         
         // Handle custom fields for existing robot
         const robotId = robotData.id;
@@ -886,10 +895,11 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
 
     } catch (error: any) {
       console.error('Error processing robot listing:', error);
+      console.error('Error details:', error?.message, error?.details, error?.hint);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process robot listing"
+        description: error?.message || "Failed to process robot listing"
       });
     } finally {
       setLoading(false);

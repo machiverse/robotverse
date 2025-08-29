@@ -113,13 +113,29 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
       
       console.log('Saving edit with form data:', editFormData);
       console.log('Images to update:', editFormData.images);
+      console.log('Table name:', tableName);
+      console.log('Item ID:', item.id);
       
-      const { error } = await supabase
+      // Ensure required fields are present
+      const updateData = { ...editFormData };
+      if (!updateData.updated_at) {
+        updateData.updated_at = new Date().toISOString();
+      }
+      
+      console.log('Final update data:', updateData);
+      
+      const { data, error } = await supabase
         .from(tableName)
-        .update(editFormData)
-        .eq('id', item.id);
+        .update(updateData)
+        .eq('id', item.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error details:', error);
+        throw error;
+      }
+
+      console.log('Update successful, returned data:', data);
 
       toast({
         title: "Success",
@@ -130,11 +146,11 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
       setEditingItem(null);
       setEditFormData({});
       onRefresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Update error:', error);
       toast({
         title: "Error",
-        description: `Failed to update ${editingItem.type}`,
+        description: error?.message || `Failed to update ${editingItem.type}`,
         variant: "destructive",
       });
     } finally {
