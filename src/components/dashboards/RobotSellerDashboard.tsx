@@ -168,7 +168,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       totalRobots,
       activeListings,
       totalRevenue,
-      totalViews: viewStats.viewsByCategory.robots || 0,
+      totalViews: viewStats.totalViews || 0,
       avgPrice,
       soldThisMonth: 0,
       inquiries: Math.floor(Math.random() * 50),
@@ -941,6 +941,49 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                     </div>
                     <TrendingUp className="w-8 h-8 text-blue-600" />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="w-5 h-5" />
+                  Views Analytics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50">
+                    <div>
+                      <p className="font-medium">Total Views</p>
+                      <p className="text-2xl font-bold text-purple-600">{viewStats.totalViews || 0}</p>
+                    </div>
+                    <Eye className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                    <div>
+                      <p className="font-medium">Robot Views</p>
+                      <p className="text-2xl font-bold text-blue-600">{viewStats.viewsByCategory.robots || 0}</p>
+                    </div>
+                    <Bot className="w-8 h-8 text-blue-600" />
+                  </div>
+                  {viewStats.recentViews.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2">Recent Views</h4>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {viewStats.recentViews.slice(0, 5).map((view, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 rounded bg-muted/30">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs capitalize">{view.target_type.replace('_', ' ')}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {new Date(view.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
