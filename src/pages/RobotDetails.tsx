@@ -1119,9 +1119,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <ResponsiveImage
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
-                        aspectRatio="video"
-                        objectFit="cover"
-                        containerClassName="h-96 cursor-pointer"
+                        aspectRatio="auto"
+                        objectFit="contain"
+                        containerClassName="h-96 min-h-96 max-h-[500px] bg-muted/30 flex items-center justify-center cursor-pointer"
+                        className="max-w-full max-h-full"
+                        style={{ 
+                          imageRendering: "auto"
+                        }}
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (
@@ -1177,10 +1181,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         <ResponsiveImage 
                           src={image} 
                           alt={`${robot.name} ${index + 1}`}
-                          aspectRatio="square"
-                          objectFit="cover"
-                          containerClassName="w-full h-full"
-                          className="rounded-lg"
+                          aspectRatio="auto"
+                          objectFit="contain"
+                          containerClassName="w-full h-full bg-muted/30 flex items-center justify-center"
+                          className="rounded-lg max-w-full max-h-full"
+                          style={{ 
+                            imageRendering: "auto"
+                          }}
                         />
                       </div>
                     ))}

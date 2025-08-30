@@ -598,11 +598,14 @@ const Robots = () => {
                           <ResponsiveImage
                             src={robot.images?.[0] || "/placeholder.svg"}
                             alt={robot.name}
-                            aspectRatio="square"
-                            objectFit="cover"
+                            aspectRatio="auto"
+                            objectFit="contain"
                             hoverEffect={true}
-                            containerClassName="h-48"
-                            className="transition-transform duration-300"
+                            containerClassName="h-48 min-h-48 max-h-64 bg-muted/30 flex items-center justify-center"
+                            className="transition-transform duration-300 max-w-full max-h-full"
+                            style={{ 
+                              imageRendering: "auto"
+                            }}
                           />
                         <div className="absolute top-2 right-2">
                           <ViewCountDisplay targetType="robots" targetId={robot.id} />

@@ -824,12 +824,19 @@ const RobotListings = () => {
                      <ResponsiveImage
                        src={robot.images[0]}
                        alt={robot.name}
-                       aspectRatio={viewMode === "list" ? "auto" : "square"}
-                       objectFit="cover"
+                       aspectRatio="auto"
+                       objectFit="contain"
                        hoverEffect={true}
-                       containerClassName={viewMode === "list" ? "h-32" : "h-48"}
-                       className="transition-transform duration-300"
-                     />
+                       containerClassName={`${
+                         viewMode === "list" 
+                           ? "h-32 min-h-32 max-h-32" 
+                           : "h-48 min-h-48 max-h-64"
+                        } bg-muted/30 flex items-center justify-center`}
+                        className="transition-transform duration-300 max-w-full max-h-full"
+                        style={{ 
+                          imageRendering: "auto"
+                        }}
+                      />
                    ) : (
                      <div className={`w-full flex items-center justify-center bg-muted rounded-lg ${
                        viewMode === "list" ? "h-32" : "h-48"
