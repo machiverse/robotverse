@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
@@ -1112,14 +1113,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             {/* Image Gallery */}
             <Card>
               <CardContent className="p-6">
-                <div className="relative bg-muted rounded-lg flex items-center justify-center mb-4 min-h-96">
+                <div className="relative rounded-lg overflow-hidden mb-4">
                   {robot.images && robot.images.length > 0 ? (
                     <>
-                      <img
+                      <ResponsiveImage
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
-                        className="w-full object-contain rounded-lg bg-muted cursor-pointer max-h-96"
-                        style={{ height: "auto" }}
+                        aspectRatio="video"
+                        objectFit="cover"
+                        containerClassName="h-96 cursor-pointer"
                         onClick={() => setShowFullscreen(true)}
                       />
                       {robot.images.length > 1 && (
@@ -1172,10 +1174,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         }`}
                         onClick={() => setCurrentImageIndex(index)}
                       >
-                        <img 
+                        <ResponsiveImage 
                           src={image} 
                           alt={`${robot.name} ${index + 1}`}
-                          className="w-full h-full object-contain rounded-lg bg-muted"
+                          aspectRatio="square"
+                          objectFit="cover"
+                          containerClassName="w-full h-full"
+                          className="rounded-lg"
                         />
                       </div>
                     ))}

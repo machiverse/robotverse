@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye } from "lucide-react";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
@@ -593,13 +594,16 @@ const Robots = () => {
                        });
                        navigate(`/robots/${robot.id}`);
                      }}>
-                       <div className="relative overflow-hidden">
-                         <img
-                           src={robot.images?.[0] || "/placeholder.svg"}
-                           alt={robot.name}
-                           className="w-full object-contain group-hover:scale-105 transition-transform duration-300 min-h-48 max-h-72"
-                           style={{ height: "auto" }}
-                         />
+                        <div className="relative overflow-hidden">
+                          <ResponsiveImage
+                            src={robot.images?.[0] || "/placeholder.svg"}
+                            alt={robot.name}
+                            aspectRatio="square"
+                            objectFit="cover"
+                            hoverEffect={true}
+                            containerClassName="h-48"
+                            className="transition-transform duration-300"
+                          />
                         <div className="absolute top-2 right-2">
                           <ViewCountDisplay targetType="robots" targetId={robot.id} />
                         </div>
