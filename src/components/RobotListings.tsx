@@ -829,8 +829,8 @@ const RobotListings = () => {
                        hoverEffect={true}
                        containerClassName={`${
                          viewMode === "list" 
-                           ? "h-32 min-h-32" 
-                           : "h-48 min-h-48"
+                           ? "h-40 min-h-40" 
+                           : "h-64 min-h-64"
                        } w-full`}
                        className="transition-transform duration-300 w-full h-full"
                        style={{ 
@@ -839,7 +839,7 @@ const RobotListings = () => {
                      />
                    ) : (
                      <div className={`w-full flex items-center justify-center bg-muted rounded-lg ${
-                       viewMode === "list" ? "h-32" : "h-48"
+                       viewMode === "list" ? "h-40" : "h-64"
                      }`}>
                        <Bot className="w-16 h-16 text-muted-foreground" />
                      </div>

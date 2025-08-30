@@ -1121,7 +1121,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         alt={`${robot.name} ${currentImageIndex + 1}`}
                         aspectRatio="auto"
                         objectFit="cover"
-                        containerClassName="h-96 min-h-96 w-full cursor-pointer"
+                        containerClassName="h-[500px] min-h-[500px] w-full cursor-pointer"
                         className="w-full h-full"
                         style={{ 
                           imageRendering: "auto"
@@ -1173,7 +1173,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     {robot.images.map((image, index) => (
                       <div
                         key={index}
-                        className={`flex-shrink-0 aspect-square w-20 h-20 bg-muted rounded-lg flex items-center justify-center cursor-pointer border-2 ${
+                        className={`flex-shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden cursor-pointer border-2 ${
                           index === currentImageIndex ? 'border-primary' : 'border-transparent'
                         }`}
                         onClick={() => setCurrentImageIndex(index)}
