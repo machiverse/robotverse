@@ -594,15 +594,15 @@ const Robots = () => {
                        });
                        navigate(`/robots/${robot.id}`);
                      }}>
-                        <div className="relative overflow-hidden">
+                        <div className="relative overflow-hidden rounded-lg">
                           <ResponsiveImage
                             src={robot.images?.[0] || "/placeholder.svg"}
                             alt={robot.name}
                             aspectRatio="auto"
-                            objectFit="contain"
+                            objectFit="cover"
                             hoverEffect={true}
-                            containerClassName="h-48 min-h-48 max-h-64 bg-muted/30 flex items-center justify-center"
-                            className="transition-transform duration-300 max-w-full max-h-full"
+                            containerClassName="h-48 min-h-48 w-full"
+                            className="transition-transform duration-300 w-full h-full"
                             style={{ 
                               imageRendering: "auto"
                             }}

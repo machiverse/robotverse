@@ -1120,9 +1120,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
                         aspectRatio="auto"
-                        objectFit="contain"
-                        containerClassName="h-96 min-h-96 max-h-[500px] bg-muted/30 flex items-center justify-center cursor-pointer"
-                        className="max-w-full max-h-full"
+                        objectFit="cover"
+                        containerClassName="h-96 min-h-96 w-full cursor-pointer"
+                        className="w-full h-full"
                         style={{ 
                           imageRendering: "auto"
                         }}
@@ -1182,9 +1182,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           src={image} 
                           alt={`${robot.name} ${index + 1}`}
                           aspectRatio="auto"
-                          objectFit="contain"
-                          containerClassName="w-full h-full bg-muted/30 flex items-center justify-center"
-                          className="rounded-lg max-w-full max-h-full"
+                          objectFit="cover"
+                          containerClassName="w-full h-full"
+                          className="rounded-lg w-full h-full"
                           style={{ 
                             imageRendering: "auto"
                           }}
