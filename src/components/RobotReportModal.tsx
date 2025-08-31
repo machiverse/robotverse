@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Brain, Clock, DollarSign, Tag } from 'lucide-react';
 
 interface UserDetails {
   fullName: string;
@@ -36,26 +36,6 @@ interface RobotReportModalProps {
 
 const RobotReportModal = ({ isOpen, onClose, reportData, loading }: RobotReportModalProps) => {
   const [downloading, setDownloading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'report'>('details');
-  const [userDetails, setUserDetails] = useState<UserDetails>({
-    fullName: '',
-    email: '',
-    company: '',
-    phone: '',
-    location: '',
-    industryType: '',
-    applicationArea: '',
-    budget: '',
-    requirements: ''
-  });
-
-  const handleInputChange = (field: keyof UserDetails, value: string) => {
-    setUserDetails(prev => ({ ...prev, [field]: value }));
-  };
-
-  const isFormValid = () => {
-    return userDetails.fullName && userDetails.email && userDetails.company && userDetails.phone;
-  };
 
   const formatReportForDisplay = (report: string) => {
     // Split the report into sections and format for better readability
@@ -67,13 +47,14 @@ const RobotReportModal = ({ isOpen, onClose, reportData, loading }: RobotReportM
       const content = lines.slice(1).join('\n');
       
       return (
-        <div key={index} className="mb-6">
+        <div key={index} className="mb-8">
           {title && (
-            <h3 className="text-lg font-semibold text-foreground mb-3 border-b border-border pb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-3 border-b border-border pb-2 flex items-center gap-2">
+              <div className="w-1 h-6 bg-primary rounded-full"></div>
               {title.replace(/^\d+\.\s*/, '')}
             </h3>
           )}
-          <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+          <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap pl-6">
             {content}
           </div>
         </div>
@@ -82,7 +63,7 @@ const RobotReportModal = ({ isOpen, onClose, reportData, loading }: RobotReportM
   };
 
   const downloadAsPDF = async () => {
-    if (!reportData || !isFormValid()) return;
+    if (!reportData) return;
     
     setDownloading(true);
     try {
@@ -92,225 +73,316 @@ const RobotReportModal = ({ isOpen, onClose, reportData, loading }: RobotReportM
         <html>
         <head>
           <title>Robot Analysis Report - ${reportData.robotData.name}</title>
+          <meta charset="UTF-8">
           <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
             body { 
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              margin: 30px; 
               line-height: 1.6; 
               color: #333;
               font-size: 14px;
+              background: #fff;
             }
+            
+            .container {
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 30px;
+            }
+            
             .header { 
               border-bottom: 3px solid #2563eb; 
-              padding-bottom: 25px; 
-              margin-bottom: 35px; 
+              padding: 30px 0;
+              margin-bottom: 40px; 
               text-align: center;
-            }
-            .header h1 { 
-              color: #2563eb; 
-              margin-bottom: 10px; 
-              font-size: 28px;
-              font-weight: bold;
-            }
-            .header p { 
-              color: #666; 
-              margin: 5px 0;
-              font-size: 16px;
+              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+              border-radius: 10px;
+              padding: 40px;
             }
             
-            .user-details { 
-              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
-              padding: 25px; 
-              margin: 25px 0; 
-              border-radius: 12px; 
-              border-left: 5px solid #2563eb;
+            .logo {
+              font-size: 32px;
+              font-weight: bold;
+              color: #2563eb;
+              margin-bottom: 10px;
             }
-            .robot-info { 
-              background: linear-gradient(135deg, #fefefe 0%, #f1f5f9 100%); 
-              padding: 25px; 
-              margin: 25px 0; 
-              border-radius: 12px;
-              border-left: 5px solid #10b981;
+            
+            .header h1 { 
+              color: #1e40af; 
+              margin: 15px 0;
+              font-size: 28px;
+              font-weight: 700;
             }
-            .analysis-section { 
-              background: #ffffff;
-              padding: 25px; 
-              margin: 25px 0; 
+            
+            .header .subtitle { 
+              color: #64748b; 
+              font-size: 16px;
+              margin: 10px 0;
+            }
+            
+            .meta-info {
+              background: #f1f5f9;
+              padding: 15px;
+              border-radius: 8px;
+              margin-top: 20px;
+              border-left: 4px solid #2563eb;
+            }
+            
+            .robot-overview { 
+              background: linear-gradient(135deg, #fefefe 0%, #f8fafc 100%); 
+              padding: 30px; 
+              margin: 30px 0; 
               border-radius: 12px;
               border: 1px solid #e2e8f0;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             }
             
-            h1 { color: #2563eb; margin-bottom: 15px; font-size: 24px; }
+            .analysis-section { 
+              background: #ffffff;
+              padding: 30px; 
+              margin: 30px 0; 
+              border-radius: 12px;
+              border: 1px solid #e2e8f0;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            
             h2 { 
               color: #1e40af; 
               border-bottom: 2px solid #e2e8f0; 
-              padding-bottom: 10px; 
-              margin: 25px 0 15px 0;
-              font-size: 20px;
-            }
-            h3 { 
-              color: #374151; 
-              margin: 20px 0 10px 0; 
-              font-size: 16px;
+              padding-bottom: 12px; 
+              margin: 30px 0 20px 0;
+              font-size: 22px;
               font-weight: 600;
+              display: flex;
+              align-items: center;
+              gap: 10px;
             }
             
-            .details-grid { 
-              display: grid; 
-              grid-template-columns: 1fr 1fr; 
-              gap: 15px; 
-              margin: 15px 0; 
-            }
-            .detail-item { 
-              padding: 10px 15px; 
-              background: white;
+            h3 { 
+              color: #374151; 
+              margin: 25px 0 15px 0; 
+              font-size: 18px;
+              font-weight: 600;
+              padding-left: 20px;
+              border-left: 4px solid #3b82f6;
+              background: #f8fafc;
+              padding: 15px 20px;
               border-radius: 8px;
-              border-left: 3px solid #3b82f6;
             }
-            .detail-label { 
+            
+            .specs-grid { 
+              display: grid; 
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+              gap: 20px; 
+              margin: 20px 0; 
+            }
+            
+            .spec-card { 
+              padding: 20px; 
+              background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+              border-radius: 10px;
+              border: 1px solid #e2e8f0;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+              transition: transform 0.2s ease;
+            }
+            
+            .spec-card:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            
+            .spec-label { 
               font-weight: 600; 
               color: #374151;
               display: block;
-              margin-bottom: 5px;
-            }
-            .detail-value { 
-              color: #6b7280;
-              word-wrap: break-word;
+              margin-bottom: 8px;
+              font-size: 13px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
             }
             
-            .spec-grid { 
-              display: grid; 
-              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-              gap: 15px; 
-              margin: 15px 0; 
-            }
-            .spec-item { 
-              padding: 12px; 
-              background: #f8fafc;
-              border-radius: 8px;
-              border: 1px solid #e2e8f0;
+            .spec-value { 
+              color: #1f2937;
+              font-size: 16px;
+              font-weight: 500;
             }
             
             .analysis-content {
-              margin: 20px 0;
-              padding: 20px;
-              background: #fafbfc;
-              border-radius: 8px;
+              margin: 25px 0;
+              padding: 25px;
+              background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
+              border-radius: 10px;
               white-space: pre-wrap;
               line-height: 1.8;
+              border-left: 4px solid #10b981;
+            }
+            
+            .price-highlight {
+              background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+              color: #92400e;
+              padding: 15px 20px;
+              border-radius: 8px;
+              font-weight: 600;
+              font-size: 18px;
+              text-align: center;
+              margin: 20px 0;
+              border: 2px solid #f59e0b;
+            }
+            
+            .badge {
+              display: inline-block;
+              background: #2563eb;
+              color: white;
+              padding: 5px 12px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: 500;
+              margin: 5px 5px 5px 0;
             }
             
             .footer { 
-              margin-top: 50px; 
-              padding-top: 25px; 
+              margin-top: 60px; 
+              padding: 30px 0; 
               border-top: 2px solid #e2e8f0; 
               text-align: center; 
               color: #6b7280;
-              font-size: 12px;
+              background: #f8fafc;
+              border-radius: 10px;
             }
             
-            .page-break { page-break-before: always; }
+            .footer .company-info {
+              font-weight: 600;
+              color: #2563eb;
+              font-size: 16px;
+              margin-bottom: 10px;
+            }
+            
+            .footer .disclaimer {
+              font-size: 12px;
+              margin-top: 15px;
+              line-height: 1.5;
+            }
+            
+            .page-break { 
+              page-break-before: always; 
+            }
             
             @media print {
-              body { margin: 20px; }
+              body { margin: 0; }
+              .container { padding: 20px; }
               .header { page-break-after: avoid; }
-              .user-details { page-break-inside: avoid; }
-              .robot-info { page-break-inside: avoid; }
+              .robot-overview { page-break-inside: avoid; }
+              .analysis-section { page-break-inside: avoid; }
+            }
+            
+            .icon {
+              width: 20px;
+              height: 20px;
+              display: inline-block;
+              margin-right: 8px;
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>🤖 Comprehensive Robot Analysis Report</h1>
-            <p><strong>Robot:</strong> ${reportData.robotData.name} - ${reportData.robotData.model}</p>
-            <p><strong>Report Generated:</strong> ${new Date(reportData.timestamp).toLocaleString()}</p>
-          </div>
-          
-          <div class="user-details">
-            <h2>📋 Customer Information</h2>
-            <div class="details-grid">
-              <div class="detail-item">
-                <span class="detail-label">👤 Full Name:</span>
-                <div class="detail-value">${userDetails.fullName}</div>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">📧 Email:</span>
-                <div class="detail-value">${userDetails.email}</div>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">🏢 Company:</span>
-                <div class="detail-value">${userDetails.company}</div>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">📞 Phone:</span>
-                <div class="detail-value">${userDetails.phone}</div>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">📍 Location:</span>
-                <div class="detail-value">${userDetails.location || 'Not specified'}</div>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">🏭 Industry Type:</span>
-                <div class="detail-value">${userDetails.industryType || 'Not specified'}</div>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">⚙️ Application Area:</span>
-                <div class="detail-value">${userDetails.applicationArea || 'Not specified'}</div>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">💰 Budget Range:</span>
-                <div class="detail-value">${userDetails.budget || 'Not specified'}</div>
+          <div class="container">
+            <div class="header">
+              <div class="logo">🤖 RoboVerse</div>
+              <h1>Comprehensive Robot Analysis Report</h1>
+              <div class="subtitle">Professional AI-Powered Robot Evaluation</div>
+              <div class="meta-info">
+                <strong>Robot:</strong> ${reportData.robotData.name} - ${reportData.robotData.model}<br>
+                <strong>Report Generated:</strong> ${new Date(reportData.timestamp).toLocaleString()}<br>
+                <strong>Report ID:</strong> ${reportData.robotData.name.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}
               </div>
             </div>
-            ${userDetails.requirements ? `
-              <div style="margin-top: 20px;">
-                <span class="detail-label">📝 Special Requirements:</span>
-                <div class="detail-value" style="margin-top: 10px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
-                  ${userDetails.requirements}
+            
+            <div class="robot-overview">
+              <h2>🤖 Robot Specifications Overview</h2>
+              <div class="specs-grid">
+                <div class="spec-card">
+                  <span class="spec-label">Robot Name</span>
+                  <div class="spec-value">${reportData.robotData.name}</div>
+                </div>
+                <div class="spec-card">
+                  <span class="spec-label">Model</span>
+                  <div class="spec-value">${reportData.robotData.model}</div>
+                </div>
+                <div class="spec-card">
+                  <span class="spec-label">Type</span>
+                  <div class="spec-value">${reportData.robotData.type}</div>
+                </div>
+                <div class="spec-card">
+                  <span class="spec-label">Brand</span>
+                  <div class="spec-value">${reportData.robotData.brand || 'Not specified'}</div>
+                </div>
+                <div class="spec-card">
+                  <span class="spec-label">Condition</span>
+                  <div class="spec-value">${reportData.robotData.condition || 'Not specified'}</div>
+                </div>
+                <div class="spec-card">
+                  <span class="spec-label">Year</span>
+                  <div class="spec-value">${reportData.robotData.year_manufactured || 'Not specified'}</div>
+                </div>
+                <div class="spec-card">
+                  <span class="spec-label">Location</span>
+                  <div class="spec-value">${reportData.robotData.location}</div>
+                </div>
+                <div class="spec-card">
+                  <span class="spec-label">Availability</span>
+                  <div class="spec-value">${reportData.robotData.availability || 'Available'}</div>
                 </div>
               </div>
-            ` : ''}
-          </div>
-          
-          <div class="robot-info">
-            <h2>🤖 Robot Overview</h2>
-            <div class="spec-grid">
-              <div class="spec-item"><strong>Name:</strong> ${reportData.robotData.name}</div>
-              <div class="spec-item"><strong>Model:</strong> ${reportData.robotData.model}</div>
-              <div class="spec-item"><strong>Type:</strong> ${reportData.robotData.type}</div>
-              <div class="spec-item"><strong>Brand:</strong> ${reportData.robotData.brand || 'Not specified'}</div>
-              <div class="spec-item"><strong>Price:</strong> ${reportData.robotData.price ? `${reportData.robotData.currency} ${reportData.robotData.price}` : 'Price on request'}</div>
-              <div class="spec-item"><strong>Location:</strong> ${reportData.robotData.location}</div>
-              <div class="spec-item"><strong>Condition:</strong> ${reportData.robotData.condition || 'Not specified'}</div>
-              <div class="spec-item"><strong>Availability:</strong> ${reportData.robotData.availability || 'Available'}</div>
+              
+              ${reportData.robotData.price ? `
+                <div class="price-highlight">
+                  💰 Price: ${reportData.robotData.currency} ${reportData.robotData.price}
+                </div>
+              ` : `
+                <div class="price-highlight">
+                  💰 Price: Available on Request
+                </div>
+              `}
+              
+              ${reportData.robotData.description ? `
+                <div style="margin-top: 25px;">
+                  <h3>📝 Description</h3>
+                  <div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 15px;">
+                    ${reportData.robotData.description}
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${reportData.robotData.applications && reportData.robotData.applications.length > 0 ? `
+                <div style="margin-top: 25px;">
+                  <h3>⚙️ Applications</h3>
+                  <div style="margin-top: 15px;">
+                    ${reportData.robotData.applications.map(app => `<span class="badge">${app}</span>`).join('')}
+                  </div>
+                </div>
+              ` : ''}
             </div>
-            ${reportData.robotData.description ? `
-              <div style="margin-top: 20px;">
-                <strong>Description:</strong>
-                <div style="margin-top: 10px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
-                  ${reportData.robotData.description}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-          
-          <div class="page-break"></div>
-          
-          <div class="analysis-section">
-            <h2>🧠 AI-Powered Analysis Report</h2>
-            <div class="analysis-content">
+            
+            <div class="page-break"></div>
+            
+            <div class="analysis-section">
+              <h2>🧠 AI-Powered Analysis Report</h2>
+              <div class="analysis-content">
 ${reportData.report.replace(/\*\*(.*?)\*\*/g, '<h3>$1</h3>').replace(/\n/g, '<br>')}
+              </div>
             </div>
-          </div>
-          
-          <div class="footer">
-            <p><strong>RoboVerse AI Analysis System</strong></p>
-            <p>This report was generated using advanced AI technology to provide comprehensive insights.</p>
-            <p>For questions about this report, please contact our support team.</p>
-            <p style="margin-top: 10px; font-size: 10px;">
-              Report ID: ${reportData.robotData.name.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}
-            </p>
+            
+            <div class="footer">
+              <div class="company-info">RoboVerse AI Analysis System</div>
+              <p>This comprehensive report was generated using advanced artificial intelligence technology to provide detailed insights into robot specifications, performance capabilities, and market analysis.</p>
+              <div class="disclaimer">
+                <strong>Disclaimer:</strong> This analysis is based on available data and AI algorithms. For critical decisions, please consult with technical experts and conduct thorough due diligence. RoboVerse provides this information for reference purposes only.
+              </div>
+            </div>
           </div>
         </body>
         </html>
@@ -336,19 +408,19 @@ ${reportData.report.replace(/\*\*(.*?)\*\*/g, '<h3>$1</h3>').replace(/\n/g, '<br
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] p-0">
+      <DialogContent className="max-w-5xl max-h-[95vh] p-0">
         <DialogHeader className="p-6 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <FileText className="h-5 w-5 text-primary" />
+              <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
+                <FileText className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-xl">Robot Analysis Report</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-2xl font-bold">Robot Analysis Report</DialogTitle>
+                <DialogDescription className="text-base mt-1">
                   {reportData?.robotData ? 
-                    `${reportData.robotData.name} - ${reportData.robotData.model}` : 
-                    'Comprehensive robot analysis with user details'}
+                    `Comprehensive analysis for ${reportData.robotData.name} - ${reportData.robotData.model}` : 
+                    'AI-powered robot evaluation and market analysis'}
                 </DialogDescription>
               </div>
             </div>
@@ -364,15 +436,28 @@ ${reportData.report.replace(/\*\*(.*?)\*\*/g, '<h3>$1</h3>').replace(/\n/g, '<br
           
           {reportData?.robotData && (
             <div className="flex items-center gap-2 mt-4">
-              <Badge variant="secondary">{reportData.robotData.type}</Badge>
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Building className="h-3 w-3" />
+                {reportData.robotData.type}
+              </Badge>
               {reportData.robotData.brand && (
-                <Badge variant="outline">{reportData.robotData.brand}</Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Tag className="h-3 w-3" />
+                  {reportData.robotData.brand}
+                </Badge>
               )}
-              <Badge variant="outline">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <DollarSign className="h-3 w-3" />
                 {reportData.robotData.price ? 
                   `${reportData.robotData.currency} ${reportData.robotData.price}` : 
                   'Price on request'}
               </Badge>
+              {reportData.robotData.location && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {reportData.robotData.location}
+                </Badge>
+              )}
             </div>
           )}
         </DialogHeader>
@@ -381,217 +466,142 @@ ${reportData.report.replace(/\*\*(.*?)\*\*/g, '<h3>$1</h3>').replace(/\n/g, '<br
 
         <div className="flex-1 overflow-hidden">
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                <p className="text-muted-foreground">Generating comprehensive analysis report...</p>
-                <p className="text-sm text-muted-foreground mt-2">This may take a few moments</p>
+            <div className="flex items-center justify-center h-96">
+              <div className="text-center space-y-4">
+                <div className="relative">
+                  <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+                  <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-lg font-medium">Generating Comprehensive Analysis</p>
+                  <p className="text-muted-foreground">Our AI is analyzing robot specifications, market data, and performance metrics...</p>
+                  <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                </div>
               </div>
             </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="h-full">
-              <TabsList className="w-full justify-start px-6 bg-muted/50">
-                <TabsTrigger value="details" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Your Details
-                </TabsTrigger>
-                <TabsTrigger value="report" disabled={!reportData} className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  AI Analysis Report
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="details" className="m-0 h-[calc(100%-60px)]">
-                <ScrollArea className="h-full px-6">
-                  <div className="py-6 space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <User className="h-5 w-5" />
-                          Contact Information
-                        </CardTitle>
-                        <CardDescription>
-                          Please provide your details to personalize the robot analysis report
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="fullName">Full Name *</Label>
-                            <Input
-                              id="fullName"
-                              value={userDetails.fullName}
-                              onChange={(e) => handleInputChange('fullName', e.target.value)}
-                              placeholder="Enter your full name"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email Address *</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={userDetails.email}
-                              onChange={(e) => handleInputChange('email', e.target.value)}
-                              placeholder="Enter your email address"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="company">Company Name *</Label>
-                            <Input
-                              id="company"
-                              value={userDetails.company}
-                              onChange={(e) => handleInputChange('company', e.target.value)}
-                              placeholder="Enter your company name"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="phone">Phone Number *</Label>
-                            <Input
-                              id="phone"
-                              value={userDetails.phone}
-                              onChange={(e) => handleInputChange('phone', e.target.value)}
-                              placeholder="Enter your phone number"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="location">Location</Label>
-                            <Input
-                              id="location"
-                              value={userDetails.location}
-                              onChange={(e) => handleInputChange('location', e.target.value)}
-                              placeholder="City, State, Country"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="industryType">Industry Type</Label>
-                            <Input
-                              id="industryType"
-                              value={userDetails.industryType}
-                              onChange={(e) => handleInputChange('industryType', e.target.value)}
-                              placeholder="e.g., Manufacturing, Automotive"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="applicationArea">Application Area</Label>
-                            <Input
-                              id="applicationArea"
-                              value={userDetails.applicationArea}
-                              onChange={(e) => handleInputChange('applicationArea', e.target.value)}
-                              placeholder="e.g., Welding, Assembly, Painting"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="budget">Budget Range</Label>
-                            <Input
-                              id="budget"
-                              value={userDetails.budget}
-                              onChange={(e) => handleInputChange('budget', e.target.value)}
-                              placeholder="e.g., $50,000 - $100,000"
-                            />
-                          </div>
+          ) : reportData ? (
+            <>
+              {/* Robot Overview Section */}
+              <div className="p-6 border-b">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Building className="h-5 w-5 text-primary" />
+                      Robot Overview
+                    </CardTitle>
+                    <CardDescription>
+                      Key specifications and details for {reportData.robotData.name}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium text-muted-foreground">Name</p>
+                        <p className="font-semibold mt-1">{reportData.robotData.name}</p>
+                      </div>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium text-muted-foreground">Model</p>
+                        <p className="font-semibold mt-1">{reportData.robotData.model}</p>
+                      </div>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium text-muted-foreground">Type</p>
+                        <p className="font-semibold mt-1">{reportData.robotData.type}</p>
+                      </div>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium text-muted-foreground">Condition</p>
+                        <p className="font-semibold mt-1 capitalize">{reportData.robotData.condition || 'Not specified'}</p>
+                      </div>
+                      {reportData.robotData.brand && (
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-sm font-medium text-muted-foreground">Brand</p>
+                          <p className="font-semibold mt-1">{reportData.robotData.brand}</p>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="requirements">Special Requirements</Label>
-                          <Textarea
-                            id="requirements"
-                            value={userDetails.requirements}
-                            onChange={(e) => handleInputChange('requirements', e.target.value)}
-                            placeholder="Describe any specific requirements, features, or considerations for your robot selection..."
-                            rows={4}
-                          />
+                      )}
+                      {reportData.robotData.year_manufactured && (
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <p className="text-sm font-medium text-muted-foreground">Year</p>
+                          <p className="font-semibold mt-1">{reportData.robotData.year_manufactured}</p>
                         </div>
-                      </CardContent>
-                    </Card>
-
-                    {reportData && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5" />
-                            Report Preview
-                          </CardTitle>
-                          <CardDescription>
-                            Your personalized report is ready! Switch to the "AI Analysis Report" tab to view the full analysis.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-primary/10 rounded-lg">
-                                <FileText className="h-4 w-4 text-primary" />
-                              </div>
-                              <div>
-                                <p className="font-medium">Comprehensive Analysis Ready</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Generated on {new Date(reportData.timestamp).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              onClick={() => setActiveTab('report')}
-                              variant="outline"
-                              className="flex items-center gap-2"
-                            >
-                              View Report
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="report" className="m-0 h-[calc(100%-60px)]">
-                {reportData ? (
-                  <ScrollArea className="h-full px-6">
-                    <div className="py-6">
-                      {formatReportForDisplay(reportData.report)}
+                      )}
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium text-muted-foreground">Price</p>
+                        <p className="font-semibold mt-1">
+                          {reportData.robotData.price ? 
+                            `${reportData.robotData.currency} ${reportData.robotData.price}` : 
+                            'Price on request'}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium text-muted-foreground">Availability</p>
+                        <p className="font-semibold mt-1 capitalize">{reportData.robotData.availability || 'Available'}</p>
+                      </div>
                     </div>
-                  </ScrollArea>
-                ) : (
-                  <div className="flex items-center justify-center h-64">
-                    <p className="text-muted-foreground">No report data available</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
+                    {reportData.robotData.description && (
+                      <div className="mt-4 p-4 bg-background border rounded-lg">
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
+                        <p className="text-sm leading-relaxed">{reportData.robotData.description}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* AI Analysis Report Section */}
+              <ScrollArea className="h-[50vh] px-6">
+                <div className="py-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Brain className="h-5 w-5 text-primary" />
+                        AI Analysis Report
+                      </CardTitle>
+                      <CardDescription>
+                        Comprehensive insights including performance evaluation, use cases, and market analysis
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {formatReportForDisplay(reportData.report)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center space-y-2">
+                <FileText className="h-16 w-16 text-muted-foreground mx-auto" />
+                <p className="text-lg font-medium">No Report Available</p>
+                <p className="text-muted-foreground">Please generate a new analysis report</p>
+              </div>
+            </div>
           )}
         </div>
 
-        {!loading && (
+        {!loading && reportData && (
           <>
             <Separator />
             <DialogFooter className="p-6">
               <div className="flex items-center justify-between w-full">
-                <div className="text-sm text-muted-foreground">
-                  {reportData ? (
-                    `Generated on ${new Date(reportData.timestamp).toLocaleString()}`
-                  ) : (
-                    "Complete your details to enable PDF download"
-                  )}
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Generated on {new Date(reportData.timestamp).toLocaleString()}
                 </div>
                 <div className="flex items-center gap-3">
-                  {reportData && (
-                    <Button
-                      variant="outline"
-                      onClick={downloadAsPDF}
-                      disabled={downloading || !isFormValid()}
-                      className="flex items-center gap-2"
-                    >
-                      {downloading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4" />
-                      )}
-                      Download PDF Report
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    onClick={downloadAsPDF}
+                    disabled={downloading}
+                    className="flex items-center gap-2"
+                  >
+                    {downloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    Download PDF Report
+                  </Button>
                   <Button onClick={onClose}>Close</Button>
                 </div>
               </div>
