@@ -1280,10 +1280,10 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           variant="outline" 
                           size="sm"
                           onClick={handleGenerateReport}
-                          className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                          className="text-primary border-primary/20 hover:bg-primary/5 font-medium"
                         >
                           <FileText className="w-4 h-4 mr-2" />
-                          Get Report
+                          Get Professional Report
                         </Button>
                         <Button 
                           variant="outline" 
