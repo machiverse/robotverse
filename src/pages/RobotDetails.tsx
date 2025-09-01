@@ -141,12 +141,6 @@ const RobotDetails = () => {
   
   // Report generation states
   const [showReportModal, setShowReportModal] = useState(false);
-  const [reportLoading, setReportLoading] = useState(false);
-  const [reportData, setReportData] = useState<{
-    report: string;
-    robotData: any;
-    timestamp: string;
-  } | null>(null);
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -763,37 +757,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       return;
     }
 
-    try {
-      setReportLoading(true);
-      setShowReportModal(true);
-      
-      const { data, error } = await supabase.functions.invoke('roboverse-robot-report', {
-        body: { robotId: robot.id },
-      });
-
-      if (error) throw error;
-
-      setReportData({
-        report: data.report,
-        robotData: data.robotData,
-        timestamp: data.timestamp
-      });
-
-      toast({
-        title: "Report Generated",
-        description: "Comprehensive robot analysis report is ready!",
-      });
-
-    } catch (error: any) {
-      console.error('Error generating report:', error);
-      toast({
-        title: "Report Generation Failed",
-        description: error.message || "Failed to generate robot report. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setReportLoading(false);
-    }
+    // Simply open the modal - report generation will happen inside the modal
+    setShowReportModal(true);
+    
+    toast({
+      title: "Opening Report Generator",
+      description: "Preparing comprehensive robot analysis...",
+    });
   };
 
   // Purchase inquiry email
@@ -1310,14 +1280,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           variant="outline" 
                           size="sm"
                           onClick={handleGenerateReport}
-                          disabled={reportLoading}
                           className="text-orange-600 border-orange-200 hover:bg-orange-50"
                         >
-                          {reportLoading ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <FileText className="w-4 h-4 mr-2" />
-                          )}
+                          <FileText className="w-4 h-4 mr-2" />
                           Get Report
                         </Button>
                         <Button 
@@ -2378,8 +2343,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       <RobotReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
-        reportData={reportData}
-        loading={reportLoading}
+        robotData={robot}
       />
     </div>
   );
