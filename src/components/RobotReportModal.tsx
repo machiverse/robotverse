@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, X, MapPin, Building, Clock, DollarSign, Settings, Brain, Tag } from "lucide-react";
+import { FileText, X, MapPin, Building, Clock, DollarSign, Settings, Brain, Tag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RobotReportModalProps {
