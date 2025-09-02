@@ -31,6 +31,7 @@ const Robots = () => {
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedRobotType, setSelectedRobotType] = useState("all");
+  const [selectedCompany, setSelectedCompany] = useState("all");
   const [sortBy, setSortBy] = useState("views"); // Default sort by view count
   const [groupBy, setGroupBy] = useState<"company" | "category" | "all">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -47,6 +48,7 @@ const Robots = () => {
   const [categories, setCategories] = useState([{ value: "all", label: "All Categories" }]);
   const [locations, setLocations] = useState([{ value: "all", label: "All Locations" }]);
   const [conditions, setConditions] = useState([{ value: "all", label: "All Conditions" }]);
+  const [companies, setCompanies] = useState([{ value: "all", label: "All Companies" }]);
   const [priceRanges] = useState([
     { value: "all", label: "All Prices" },
     { value: "under-50k", label: "Under ₹50,000" },
@@ -124,6 +126,7 @@ const Robots = () => {
         const uniqueLocations = new Set<string>();
         const uniqueConditions = new Set<string>();
         const uniqueRobotTypes = new Set<string>();
+        const uniqueCompanies = new Set<string>();
 
         data?.forEach((robot) => {
           if (robot.robot_type) uniqueRobotTypes.add(robot.robot_type);
@@ -131,6 +134,7 @@ const Robots = () => {
           if (robot.category_tags) robot.category_tags.forEach((tag: string) => tag && uniqueCategories.add(tag.trim()));
           if (robot.location) uniqueLocations.add(robot.location.trim());
           if (robot.condition) uniqueConditions.add(robot.condition.trim());
+          if (robot.profiles?.company_name) uniqueCompanies.add(robot.profiles.company_name.trim());
         });
 
         setCategories([
@@ -170,6 +174,16 @@ const Robots = () => {
             .map((type) => ({
               value: type.toLowerCase().replace(/\s+/g, "-"),
               label: type,
+            })),
+        ]);
+
+        setCompanies([
+          { value: "all", label: "All Companies" },
+          ...Array.from(uniqueCompanies)
+            .sort()
+            .map((company) => ({
+              value: company.toLowerCase().replace(/\s+/g, "-"),
+              label: company,
             })),
         ]);
       } catch (err) {
@@ -247,6 +261,14 @@ const Robots = () => {
       };
       const [min, max] = ranges[selectedPriceRange] || [0, Infinity];
       filteredRobots = filteredRobots.filter((r) => r.price >= min && r.price < max);
+    }
+
+    // Filter by company
+    if (selectedCompany !== "all") {
+      const companyLabel = getLabelFromValue(companies, selectedCompany).toLowerCase();
+      filteredRobots = filteredRobots.filter(
+        (r) => r.profiles?.company_name?.toLowerCase() === companyLabel
+      );
     }
 
     // Sort robots based on selected criteria
@@ -400,17 +422,17 @@ const Robots = () => {
             </div>
 
             {/* Secondary Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select value={selectedCondition} onValueChange={setSelectedCondition}>
                 <SelectTrigger>
                   <SelectValue placeholder="Condition" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Conditions</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="like-new">Like New</SelectItem>
-                  <SelectItem value="used">Used</SelectItem>
-                  <SelectItem value="refurbished">Refurbished</SelectItem>
+                  {conditions.map((cond) => (
+                    <SelectItem key={cond.value} value={cond.value}>
+                      {cond.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -419,15 +441,24 @@ const Robots = () => {
                   <SelectValue placeholder="Robot Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {robots
-                    .map((r) => r.robot_type)
-                    .filter((v, i, a) => v && a.indexOf(v) === i)
-                    .map((type) => (
-                      <SelectItem key={type} value={type.toLowerCase().replace(/\s+/g, "-")}>
-                        {type}
-                      </SelectItem>
-                    ))}
+                  {robotTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.value} value={company.value}>
+                      {company.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
