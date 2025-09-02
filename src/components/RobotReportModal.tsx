@@ -5,9 +5,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, X, MapPin, Settings, Brain, Loader2, Download } from "lucide-react";
+import { FileText, X, MapPin, Building, Clock, DollarSign, Settings, Brain, Tag, Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import robotverseLogo from "@/assets/robotverse-logo.png";
 
 interface RobotReportModalProps {
   isOpen: boolean;
@@ -73,12 +74,12 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
     }
   }
 
-  function formatPrice(price: number, currency: string) {
+  function formatPrice(price:number, currency:string) {
     const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
     return `${symbol}${price.toLocaleString()}`;
   }
 
-  const formatReportForDisplay = (text: string) => {
+  const formatReportForDisplay = (text:string) => {
     return text.split(/\n{2,}/g).map((block, i) => (
       <p key={i} style={{ whiteSpace: 'pre-line', marginBottom: '1rem' }}>
         {block}
@@ -98,6 +99,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
     
     setDownloading(true);
     try {
+      // Create professional HTML report with RobotVerse branding
       const htmlContent = `
         <!DOCTYPE html>
         <html lang="en">
@@ -108,7 +110,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
               line-height: 1.6; 
               color: #333; 
               background: #fff;
@@ -122,22 +124,12 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
               justify-content: space-between;
               align-items: center;
             }
-            .logo-section { 
-              display: flex;
-              align-items: center;
-              gap: 15px;
+            .logo { 
+              width: 120px; 
+              height: auto; 
             }
-            .logo-placeholder {
-              width: 80px;
-              height: 80px;
-              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-              border-radius: 12px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-weight: bold;
-              font-size: 18px;
+            .company-info {
+              text-align: right;
             }
             .company-name {
               font-size: 24px;
@@ -162,6 +154,11 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
               margin: 25px 0 15px; 
               padding-bottom: 5px;
               border-bottom: 2px solid #e5e7eb;
+            }
+            h3 { 
+              color: #4b5563; 
+              font-size: 16px; 
+              margin: 20px 0 10px; 
             }
             .robot-overview {
               background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
@@ -225,20 +222,34 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
               color: #6b7280;
               font-size: 12px;
             }
-            .generated-date {
+            .footer .generated-date {
               font-weight: 600;
               color: #374151;
+            }
+            .robot-image {
+              max-width: 300px;
+              height: auto;
+              border-radius: 10px;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              margin: 20px 0;
+            }
+            .section {
+              margin-bottom: 35px;
+            }
+            @media print {
+              body { padding: 20px; }
+              .header { page-break-after: avoid; }
             }
           </style>
         </head>
         <body>
           <div class="header">
-            <div class="logo-section">
-              <div class="logo-placeholder">RV</div>
-              <div>
-                <div class="company-name">RobotVerse</div>
-                <div class="tagline">Industrial Robotics Marketplace</div>
-              </div>
+            <div>
+              <img src="${robotverseLogo}" alt="RobotVerse Logo" class="logo" />
+            </div>
+            <div class="company-info">
+              <div class="company-name">RobotVerse</div>
+              <div class="tagline">Industrial Robotics Marketplace</div>
             </div>
           </div>
           
@@ -268,6 +279,10 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
             <div class="price-highlight">
               Price: ${formatPrice(robotData.price, robotData.currency)}
             </div>
+            
+            ${robotData.images && robotData.images.length ? 
+              `<img src="${robotData.images[0]}" alt="Robot Image" class="robot-image" />` : ''
+            }
           </div>
 
           <div class="section">
@@ -422,7 +437,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Price</p>
-                    <p className="font-semibold text-primary">{formatPrice(robotData?.price || 0, robotData?.currency || 'INR')}</p>
+                    <p className="font-semibold text-primary">{formatPrice(robotData?.price, robotData?.currency)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Location</p>
