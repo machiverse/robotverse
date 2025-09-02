@@ -14,28 +14,11 @@ serve(async (req) => {
   }
 
   try {
+    // Create Supabase client with service role for database access
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    // Get the current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const { robotId } = await req.json();
 
@@ -273,13 +256,13 @@ Please format the report in a professional, structured manner suitable for busin
       );
     }
 
-    // Store the report in database for future reference
+    // Store the report in database for future reference (optional)
     try {
       await supabaseClient
         .from('robot_reports')
         .insert({
           robot_id: robotId,
-          user_id: user.id,
+          user_id: '00000000-0000-0000-0000-000000000000', // Default user since no auth
           report_content: reportContent,
           robot_data: robotData,
           created_at: new Date().toISOString()

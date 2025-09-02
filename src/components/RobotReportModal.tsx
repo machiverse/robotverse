@@ -30,18 +30,8 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setError("Please sign in to view the robot analysis report.");
-        return;
-      }
-
       const res = await supabase.functions.invoke('roboverse-robot-report', { 
-        body: { robotId: robotData.id },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        }
+        body: { robotId: robotData.id }
       });
       
       if (res.error) {
