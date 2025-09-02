@@ -30,11 +30,29 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
     setLoading(true);
     setError(null);
     try {
-      const res = await supabase.functions.invoke('roboverse-robot-report', { body: { robotId: robotData.id } });
-      if (res.error) throw res.error;
-      setReportContent(res.data?.report || "No report found.");
-    } catch (e) {
-      setError("Failed to fetch report.");
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setError("Please sign in to view the robot analysis report.");
+        return;
+      }
+
+      const res = await supabase.functions.invoke('roboverse-robot-report', { 
+        body: { robotId: robotData.id },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        }
+      });
+      
+      if (res.error) {
+        console.error('Report fetch error:', res.error);
+        throw new Error(res.error.message || 'Failed to fetch report');
+      }
+      
+      setReportContent(res.data?.report || "No report content available.");
+    } catch (e: any) {
+      console.error('Error fetching report:', e);
+      setError(e.message || "Failed to fetch report. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -141,7 +159,12 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
               <Loader2 className="animate-spin w-10 h-10 text-gray-500" />
             </div>
           ) : error ? (
-            <div className="text-center text-red-600">{error}</div>
+            <div className="text-center py-8">
+              <div className="text-red-600 mb-4">{error}</div>
+              <Button onClick={fetchReport} variant="outline">
+                Retry
+              </Button>
+            </div>
           ) : (
             <>
               {/* You can add more detailed render here if needed */}
