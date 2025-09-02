@@ -19,4 +19,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  esbuild: false, // Disable esbuild to avoid the corrupted binary
+  build: {
+    minify: 'terser' // Use terser instead of esbuild for minification
+  },
 }));
