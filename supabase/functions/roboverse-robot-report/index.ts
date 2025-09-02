@@ -59,6 +59,37 @@ serve(async (req) => {
       .select('field_name, field_value')
       .eq('robot_id', robotId);
 
+    // Check for existing cached report first
+    const { data: existingReport } = await supabaseClient
+      .from('robot_reports')
+      .select('*')
+      .eq('robot_id', robotId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // If cached report exists and is recent (within 7 days), return it
+    if (existingReport && existingReport.report_content) {
+      const reportAge = new Date().getTime() - new Date(existingReport.created_at).getTime();
+      const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+      
+      if (reportAge < sevenDaysInMs) {
+        console.log('Returning cached report for robot:', robotId);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            report: existingReport.report_content,
+            robotData: existingReport.robot_data,
+            timestamp: existingReport.created_at,
+            cached: true
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
     // Fetch AI analysis if available
     const { data: aiAnalysis } = await supabaseClient
       .from('robot_ai_analysis')
@@ -256,8 +287,15 @@ Please format the report in a professional, structured manner suitable for busin
       );
     }
 
-    // Store the report in database for future reference (optional)
+    // Store the report in database for caching
     try {
+      // Delete any existing reports for this robot to keep only the latest
+      await supabaseClient
+        .from('robot_reports')
+        .delete()
+        .eq('robot_id', robotId);
+
+      // Insert the new report
       await supabaseClient
         .from('robot_reports')
         .insert({
@@ -267,6 +305,8 @@ Please format the report in a professional, structured manner suitable for busin
           robot_data: robotData,
           created_at: new Date().toISOString()
         });
+      
+      console.log('Report cached successfully for robot:', robotId);
     } catch (dbError) {
       console.error('Error saving report to database:', dbError);
       // Continue anyway - the report was generated successfully
@@ -277,7 +317,8 @@ Please format the report in a professional, structured manner suitable for busin
         success: true,
         report: reportContent,
         robotData: robotData,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        cached: false
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
