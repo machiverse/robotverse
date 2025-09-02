@@ -97,14 +97,15 @@ const ResponsiveImage = forwardRef<HTMLImageElement, ResponsiveImageProps>(
         case 'video':
           return 'aspect-video';
         case 'portrait':
-          return 'aspect-[3/4]';
+          return 'aspect-[4/5]'; // Slightly taller for better vertical image display
         case 'auto':
           if (naturalAspectRatio !== null) {
-            return naturalAspectRatio > 1 ? 'aspect-video' : 'aspect-[3/4]';
+            // Better handling for vertical images - use taller ratio for vertical images
+            return naturalAspectRatio > 1.2 ? 'aspect-video' : 'aspect-[4/5]';
           }
-          return 'aspect-video'; // fallback
+          return 'aspect-[4/5]'; // Better fallback for robot images
         default:
-          return 'aspect-video';
+          return 'aspect-[4/5]';
       }
     };
 

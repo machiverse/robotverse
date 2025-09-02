@@ -632,7 +632,7 @@ const Robots = () => {
                             aspectRatio="auto"
                             objectFit="cover"
                             hoverEffect={true}
-                            containerClassName="h-64 min-h-64 w-full"
+                            containerClassName="h-72 min-h-72 w-full"
                             className="transition-transform duration-300 w-full h-full"
                             style={{ 
                               imageRendering: "auto"

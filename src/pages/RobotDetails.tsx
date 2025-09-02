@@ -1090,8 +1090,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         src={robot.images[currentImageIndex]}
                         alt={`${robot.name} ${currentImageIndex + 1}`}
                         aspectRatio="auto"
-                        objectFit="cover"
-                        containerClassName="h-[500px] min-h-[500px] w-full cursor-pointer"
+                        objectFit="contain"
+                        containerClassName="h-[600px] min-h-[600px] w-full cursor-pointer bg-muted/20"
                         className="w-full h-full"
                         style={{ 
                           imageRendering: "auto"
