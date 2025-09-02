@@ -630,9 +630,9 @@ const Robots = () => {
                             src={robot.images?.[0] || "/placeholder.svg"}
                             alt={robot.name}
                             aspectRatio="auto"
-                            objectFit="cover"
+                            objectFit="contain"
                             hoverEffect={true}
-                            containerClassName="h-72 min-h-72 w-full"
+                            containerClassName="h-80 min-h-80 w-full bg-muted/10"
                             className="transition-transform duration-300 w-full h-full"
                             style={{ 
                               imageRendering: "auto"
