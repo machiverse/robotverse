@@ -9,9 +9,10 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
+import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import RobotReportModal from "@/components/RobotReportModal";
@@ -141,6 +142,11 @@ const RobotDetails = () => {
   
   // Report generation states
   const [showReportModal, setShowReportModal] = useState(false);
+  
+  // Quote form states
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -232,7 +238,7 @@ const RobotDetails = () => {
     console.log('Logistics services loaded:', logisticsServices);
   }, [logisticsServices]);
 
-  // Fetch all services from database
+  // Fetch services sorted by location proximity
   const fetchRelatedServices = async () => {
     setLoadingServices(true);
     try {
@@ -244,6 +250,8 @@ const RobotDetails = () => {
             full_name,
             company_name,
             phone,
+            mobile_number,
+            email,
             location,
             avatar_url
           )
@@ -251,7 +259,18 @@ const RobotDetails = () => {
         .limit(10);
 
       if (error) throw error;
-      setServices(data || []);
+      
+      // Sort by location proximity if user location is available
+      const sortedData = data?.sort((a, b) => {
+        if (!currentUserLocation) return 0;
+        
+        const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        const bDistance = b.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        
+        return aDistance - bDistance;
+      });
+
+      setServices(sortedData || []);
     } catch (err) {
       console.error('Error fetching services:', err);
     } finally {
@@ -259,11 +278,11 @@ const RobotDetails = () => {
     }
   };
 
-  // Fetch all spare parts from database
+  // Fetch spare parts filtered by robot compatibility
   const fetchCompatibleSpareParts = async () => {
     setLoadingSpareParts(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('spare_parts')
         .select(`
           *,
@@ -271,13 +290,32 @@ const RobotDetails = () => {
             full_name,
             company_name,
             phone,
+            mobile_number,
+            email,
             location
           )
-        `)
-        .limit(12);
+        `);
+
+      // Filter by robot compatibility if robot is loaded
+      if (robot) {
+        query = query.or(`compatible_robots.cs.{${robot.model}},compatible_robots.cs.{${robot.brand}},compatible_robots.cs.{${robot.name}}`);
+      }
+
+      const { data, error } = await query.limit(12);
 
       if (error) throw error;
-      setSpareParts(data || []);
+      
+      // Sort by location proximity if user location is available
+      const sortedData = data?.sort((a, b) => {
+        if (!currentUserLocation) return 0;
+        
+        const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        const bDistance = b.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        
+        return aDistance - bDistance;
+      });
+
+      setSpareParts(sortedData || []);
     } catch (err) {
       console.error('Error fetching spare parts:', err);
     } finally {
@@ -313,7 +351,7 @@ const RobotDetails = () => {
   };
 
 
-  // Fetch all logistics services from database
+  // Fetch logistics services sorted by location proximity
   const fetchLogisticsServices = async () => {
     setLoadingLogistics(true);
     try {
@@ -334,7 +372,18 @@ const RobotDetails = () => {
         .limit(10);
 
       if (error) throw error;
-      setLogisticsServices(data || []);
+      
+      // Sort by location proximity if user location is available
+      const sortedData = data?.sort((a, b) => {
+        if (!currentUserLocation) return 0;
+        
+        const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        const bDistance = b.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        
+        return aDistance - bDistance;
+      });
+
+      setLogisticsServices(sortedData || []);
     } catch (err) {
       console.error('Error fetching logistics services:', err);
     } finally {
@@ -342,14 +391,60 @@ const RobotDetails = () => {
     }
   };
 
-  // Load related data when component mounts (not dependent on robot)
+  // Load related data when component mounts and when robot/user location changes
   useEffect(() => {
-    // Fetch all data when component mounts
     fetchRelatedServices();
     fetchCompatibleSpareParts();
     fetchFinancingOptions();
     fetchLogisticsServices();
-  }, []);
+  }, [robot, currentUserLocation]);
+
+  // Contact handlers for suppliers
+  const handleContactSupplier = async (supplierPhone: string, supplierName: string, itemType: string) => {
+    if (!supplierPhone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: `${supplierName}'s phone number is not provided.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const phoneNumber = supplierPhone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Supplier",
+      description: `Calling ${supplierName} at ${supplierPhone}`,
+    });
+  };
+
+  const handleGetQuote = (supplier: any, item: any, itemType: 'spare_part' | 'service' | 'logistics') => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to request quotes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedSupplier({
+      name: supplier.profiles?.full_name || supplier.profiles?.company_name || 'Unknown',
+      email: supplier.profiles?.email || '',
+      company: supplier.profiles?.company_name || supplier.profiles?.full_name || '',
+      phone: supplier.profiles?.phone || supplier.profiles?.mobile_number
+    });
+
+    setSelectedItem({
+      type: itemType,
+      name: item.name || item.service_name || item.service_type,
+      id: item.id,
+      model: item.model,
+      category: item.category || item.service_type
+    });
+
+    setShowQuoteForm(true);
+  };
 
   // Contact seller by phone
   const handleContactSeller = async () => {
@@ -1965,16 +2060,16 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                    <div className="flex gap-2">
                                      <Button 
                                        className="flex-1 bg-orange-600 hover:bg-orange-700"
-                                       onClick={() => handleGetLogisticsQuote(service)}
+                                       onClick={() => handleGetQuote(service.profiles, service, 'logistics')}
                                        disabled={!user}
                                      >
-                                       <Package className="w-4 h-4 mr-2" />
+                                       <Truck className="w-4 h-4 mr-2" />
                                        Get Quote
                                      </Button>
                                      <Button 
                                        variant="outline"
-                                       onClick={() => handleContactLogistics(service)}
-                                       disabled={!user}
+                                       onClick={() => handleContactSupplier(service.profiles?.phone || service.profiles?.mobile_number, service.profiles?.company_name || service.profiles?.full_name, 'Logistics')}
+                                       disabled={!user || !service.profiles?.phone}
                                      >
                                        <PhoneCall className="w-4 h-4 mr-2" />
                                        Call
@@ -1986,15 +2081,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           ))}
                         </div>
                       ) : (
-                        <div className="text-center py-8">
-                          <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">No Logistics Services Available</h3>
-                          <p className="text-muted-foreground mb-4">No logistics providers are currently available.</p>
-                          <Button variant="outline">
-                            <Package className="w-4 h-4 mr-2" />
-                            Request Logistics Quote
-                          </Button>
-                        </div>
+                         <div className="text-center py-8">
+                           <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                           <h3 className="text-lg font-semibold mb-2">No Logistics Services Available</h3>
+                           <p className="text-muted-foreground mb-4">No logistics providers are currently available for your location.</p>
+                           <Button variant="outline">
+                             <Truck className="w-4 h-4 mr-2" />
+                             Request Logistics Quote
+                           </Button>
+                         </div>
                       )}
                     </div>
                   </TabsContent>
