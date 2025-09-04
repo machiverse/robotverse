@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { useUniversalViewTracking, ViewAnalytics, ItemType } from '@/hooks/useUniversalViewTracking';
 import { useAuth } from '@/hooks/useAuth';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface ViewAnalyticsDashboardProps {
   sellerId?: string;
@@ -25,6 +24,59 @@ interface ViewAnalyticsDashboardProps {
 }
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', 'hsl(var(--destructive))'];
+
+// Simple chart components to replace recharts
+const SimpleBarChart = ({ data }: { data: any[] }) => (
+  <div className="flex items-end justify-center gap-2 h-64 p-4">
+    {data.map((item, index) => (
+      <div key={index} className="flex flex-col items-center gap-1">
+        <div 
+          className="bg-primary rounded-t-sm min-w-[40px] flex items-end justify-center"
+          style={{ 
+            height: `${Math.max((item.views / Math.max(...data.map(d => d.views))) * 200, 10)}px` 
+          }}
+        >
+          <span className="text-primary-foreground text-xs font-medium mb-1">
+            {item.views}
+          </span>
+        </div>
+        <span className="text-xs text-center max-w-[60px] truncate">
+          {item.name}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+const SimplePieChart = ({ data }: { data: any[] }) => {
+  const total = data.reduce((sum, item) => sum + item.views, 0);
+  
+  return (
+    <div className="flex flex-col items-center justify-center h-64">
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div 
+              className="w-4 h-4 rounded-full" 
+              style={{ backgroundColor: COLORS[index % COLORS.length] }}
+            />
+            <span className="text-sm">{item.name}</span>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-center">
+        {data.map((item, index) => (
+          <div key={index} className="p-2 border rounded">
+            <div className="font-semibold">{item.views}</div>
+            <div className="text-xs text-muted-foreground">
+              {((item.views / total) * 100).toFixed(1)}%
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   robots: 'Robots',
@@ -230,25 +282,7 @@ export const ViewAnalyticsDashboard = ({ sellerId, className = "" }: ViewAnalyti
             <CardTitle>Views by Category</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="views"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <SimplePieChart data={chartData} />
           </CardContent>
         </Card>
 
@@ -257,15 +291,7 @@ export const ViewAnalyticsDashboard = ({ sellerId, className = "" }: ViewAnalyti
             <CardTitle>Top 5 Items</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topItemsChart}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="views" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
+            <SimpleBarChart data={topItemsChart} />
           </CardContent>
         </Card>
       </div>
