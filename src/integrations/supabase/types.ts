@@ -255,6 +255,33 @@ export type Database = {
           },
         ]
       }
+      item_view_counts: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          total_views: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          total_views?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          total_views?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loan_applications: {
         Row: {
           amount_requested: number
@@ -1681,6 +1708,10 @@ export type Database = {
         Args: { length: number }
         Returns: string
       }
+      get_item_view_count: {
+        Args: { p_item_id: string; p_item_type: string }
+        Returns: number
+      }
       get_logistics_data: {
         Args: { provider_id: string; table_name: string }
         Returns: Json
@@ -1737,6 +1768,10 @@ export type Database = {
       }
       increment_blog_view_count: {
         Args: { p_blog_id: string }
+        Returns: number
+      }
+      increment_item_view_count: {
+        Args: { p_item_id: string; p_item_type: string }
         Returns: number
       }
       increment_robot_view_count: {

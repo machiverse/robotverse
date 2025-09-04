@@ -55,6 +55,7 @@ import { useViewTracking } from '@/hooks/useViewTracking';
 import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 
 interface RobotSellerDashboardProps {
   userProfile: any;

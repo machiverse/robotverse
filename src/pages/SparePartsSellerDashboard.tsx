@@ -42,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 
 interface SparePart {
@@ -425,8 +426,9 @@ const SparePartsSellerDashboard = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
+          <TabsTrigger value="views">View Statistics</TabsTrigger>
           <TabsTrigger value="requests">User Requests</TabsTrigger>
         </TabsList>
 
@@ -574,6 +576,10 @@ const SparePartsSellerDashboard = () => {
           </Table>
         </Card>
       )}
+        </TabsContent>
+
+        <TabsContent value="views" className="mt-6">
+          <ViewAnalyticsDashboard sellerId={user?.id} />
         </TabsContent>
 
         <TabsContent value="requests" className="mt-6">

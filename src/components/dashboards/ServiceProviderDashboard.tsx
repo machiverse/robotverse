@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",

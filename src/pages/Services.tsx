@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 
 interface Service {
   id: string;
@@ -47,6 +48,7 @@ interface Service {
 const Services = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { trackItemView } = useUniversalViewTracking();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -391,10 +393,13 @@ const Services = () => {
 
                     {/* Action Buttons */}
                     <div className="flex space-x-2 pt-2">
-                      <Button
+                       <Button
                         size="sm"
                         className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium shadow-glow"
-                        onClick={() => handleRequestQuote(service)}
+                        onClick={() => {
+                          trackItemView('services', service.id, service);
+                          handleRequestQuote(service);
+                        }}
                       >
                         Get Quote
                       </Button>

@@ -30,6 +30,7 @@ import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
 import LoanCalculator from '@/components/forms/LoanCalculator';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;

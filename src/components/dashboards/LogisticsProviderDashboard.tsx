@@ -56,6 +56,7 @@ import { useViewTracking } from '@/hooks/useViewTracking';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
 type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
