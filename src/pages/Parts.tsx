@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Part {
   id: string;
@@ -40,6 +41,7 @@ const Parts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const categories = [
     { value: "all", label: "All Parts" },
@@ -113,7 +115,16 @@ const Parts = () => {
   }, []);
 
   // Handle contact seller
-  const handleContactSeller = (part: Part) => {
+  const handleContactSeller = async (part: Part) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please login to contact the seller.",
+      });
+      return;
+    }
+
     const phone = part.seller?.phone || part.seller?.mobile_number;
     
     if (!phone) {
@@ -123,6 +134,52 @@ const Parts = () => {
         description: "Seller's phone number is not available.",
       });
       return;
+    }
+
+    try {
+      // Log the contact request
+      const { error: requestError } = await supabase
+        .from('user_requests')
+        .insert({
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || 'Unknown User',
+          company_name: user.user_metadata?.company_name || '',
+          mobile_number: user.user_metadata?.phone || '',
+          email_address: user.email || '',
+          location: user.user_metadata?.location || '',
+          request_type: 'Contact Seller',
+          item_type: 'spare_parts',
+          item_id: part.id,
+          item_name: part.name,
+          seller_id: part.sellerId || '',
+          status: 'pending',
+          requirements: `User contacted seller for spare part: ${part.name}`
+        });
+
+      if (requestError) {
+        console.error('Error logging request:', requestError);
+      }
+
+      // Create notification for seller
+      if (part.sellerId) {
+        const { error: notificationError } = await supabase
+          .from('seller_notifications')
+          .insert({
+            seller_id: part.sellerId,
+            user_id: user.id,
+            type: 'contact_request',
+            title: 'New Contact Request',
+            message: `${user.user_metadata?.full_name || 'A user'} wants to contact you about ${part.name}`,
+            item_type: 'spare_parts',
+            item_id: part.id
+          });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing contact request:', error);
     }
     
     window.open(`tel:${phone}`, '_self');
