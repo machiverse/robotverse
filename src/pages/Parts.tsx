@@ -189,19 +189,19 @@ const Parts = () => {
     });
   };
 
-  // Handle add to cart
-  const handleAddToCart = async (part: Part) => {
+  // Handle request quote
+  const handleRequestQuote = async (part: Part) => {
     if (!user) {
       toast({
         variant: "destructive",
         title: "Login Required",
-        description: "Please login to add items to cart.",
+        description: "Please login to request a quote.",
       });
       return;
     }
 
     try {
-      // Log the add to cart request
+      // Log the quote request
       const { error: requestError } = await supabase
         .from('user_requests')
         .insert({
@@ -211,13 +211,13 @@ const Parts = () => {
           mobile_number: user.user_metadata?.phone || '',
           email_address: user.email || '',
           location: user.user_metadata?.location || '',
-          request_type: 'Add to Cart',
+          request_type: 'Request Quote',
           item_type: 'spare_parts',
           item_id: part.id,
           item_name: part.name,
           seller_id: part.sellerId || '',
           status: 'pending',
-          requirements: `User added spare part to cart: ${part.name}`
+          requirements: `User requested quote for spare part: ${part.name}`
         });
 
       if (requestError) {
@@ -231,9 +231,9 @@ const Parts = () => {
           .insert({
             seller_id: part.sellerId,
             user_id: user.id,
-            type: 'cart_request',
-            title: 'Item Added to Cart',
-            message: `${user.user_metadata?.full_name || 'A user'} added ${part.name} to their cart`,
+            type: 'quote_request',
+            title: 'Quote Request',
+            message: `${user.user_metadata?.full_name || 'A user'} requested a quote for ${part.name}`,
             item_type: 'spare_parts',
             item_id: part.id
           });
@@ -244,15 +244,15 @@ const Parts = () => {
       }
 
       toast({
-        title: "Added to Cart",
-        description: `${part.name} has been added to your cart.`,
+        title: "Quote Requested",
+        description: `Quote request sent for ${part.name}.`,
       });
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add item to cart. Please try again.",
+        description: "Failed to send quote request. Please try again.",
       });
     }
   };
@@ -439,10 +439,10 @@ const Parts = () => {
                         <Button 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => handleAddToCart(part)}
+                          onClick={() => handleRequestQuote(part)}
                           disabled={!user}
                         >
-                          {user ? "Add to Cart" : "Login to Add"}
+          {user ? "Request Quote" : "Login to Quote"}
                         </Button>
                         <Button 
                           variant="outline" 
