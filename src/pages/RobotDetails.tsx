@@ -1640,14 +1640,26 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                        <MapPin className="w-3 h-3 mr-1" />
                                        {service.location || service.profiles?.location || 'Location not specified'}
                                      </div>
-                                     <Button 
-                                       size="sm" 
-                                       variant="outline"
-                                       disabled={!user}
-                                     >
-                                       <MessageCircle className="w-3 h-3 mr-1" />
-                                       Contact
-                                     </Button>
+                                     <div className="flex gap-2">
+                                       <Button 
+                                         size="sm" 
+                                         className="bg-blue-600 hover:bg-blue-700"
+                                         onClick={() => handleGetQuote(service, service, 'service')}
+                                         disabled={!user}
+                                       >
+                                         <Mail className="w-3 h-3 mr-1" />
+                                         Get Quote
+                                       </Button>
+                                       <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         onClick={() => handleContactSupplier(service.profiles?.phone || service.profiles?.mobile_number, service.profiles?.company_name || service.profiles?.full_name, 'Service')}
+                                         disabled={!user || !service.profiles?.phone}
+                                       >
+                                         <PhoneCall className="w-3 h-3 mr-1" />
+                                         Call
+                                       </Button>
+                                     </div>
                                    </div>
                                 </div>
                               </CardContent>
@@ -1743,14 +1755,26 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                        <MapPin className="w-3 h-3 mr-1" />
                                        {part.location || 'Not specified'}
                                      </div>
-                                     <Button 
-                                       size="sm" 
-                                       variant="outline"
-                                       disabled={!user}
-                                     >
-                                       <MessageCircle className="w-3 h-3 mr-1" />
-                                       Inquire
-                                     </Button>
+                                     <div className="flex gap-2">
+                                       <Button 
+                                         size="sm" 
+                                         className="bg-green-600 hover:bg-green-700"
+                                         onClick={() => handleGetQuote(part, part, 'spare_part')}
+                                         disabled={!user}
+                                       >
+                                         <Mail className="w-3 h-3 mr-1" />
+                                         Get Quote
+                                       </Button>
+                                       <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         onClick={() => handleContactSupplier(part.profiles?.phone || part.profiles?.mobile_number, part.profiles?.company_name || part.profiles?.full_name, 'Spare Part')}
+                                         disabled={!user || !part.profiles?.phone}
+                                       >
+                                         <PhoneCall className="w-3 h-3 mr-1" />
+                                         Call
+                                       </Button>
+                                     </div>
                                    </div>
                                 </div>
                               </CardContent>
@@ -2440,6 +2464,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         onClose={() => setShowReportModal(false)}
         robotData={robot}
       />
+
+      {/* Supplier Quote Form Modal */}
+      {showQuoteForm && selectedSupplier && selectedItem && (
+        <SupplierQuoteForm
+          onClose={() => {
+            setShowQuoteForm(false);
+            setSelectedSupplier(null);
+            setSelectedItem(null);
+          }}
+          supplierInfo={selectedSupplier}
+          itemInfo={selectedItem}
+          robotInfo={robot ? {
+            name: robot.name,
+            model: robot.model,
+            id: robot.id
+          } : undefined}
+        />
+      )}
     </div>
   );
 };
