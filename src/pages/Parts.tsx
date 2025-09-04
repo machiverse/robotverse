@@ -189,7 +189,73 @@ const Parts = () => {
     });
   };
 
-  // Filter parts based on search and selections
+  // Handle add to cart
+  const handleAddToCart = async (part: Part) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please login to add items to cart.",
+      });
+      return;
+    }
+
+    try {
+      // Log the add to cart request
+      const { error: requestError } = await supabase
+        .from('user_requests')
+        .insert({
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || 'Unknown User',
+          company_name: user.user_metadata?.company_name || '',
+          mobile_number: user.user_metadata?.phone || '',
+          email_address: user.email || '',
+          location: user.user_metadata?.location || '',
+          request_type: 'Add to Cart',
+          item_type: 'spare_parts',
+          item_id: part.id,
+          item_name: part.name,
+          seller_id: part.sellerId || '',
+          status: 'pending',
+          requirements: `User added spare part to cart: ${part.name}`
+        });
+
+      if (requestError) {
+        console.error('Error logging request:', requestError);
+      }
+
+      // Create notification for seller
+      if (part.sellerId) {
+        const { error: notificationError } = await supabase
+          .from('seller_notifications')
+          .insert({
+            seller_id: part.sellerId,
+            user_id: user.id,
+            type: 'cart_request',
+            title: 'Item Added to Cart',
+            message: `${user.user_metadata?.full_name || 'A user'} added ${part.name} to their cart`,
+            item_type: 'spare_parts',
+            item_id: part.id
+          });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+        }
+      }
+
+      toast({
+        title: "Added to Cart",
+        description: `${part.name} has been added to your cart.`,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+      });
+    }
+  };
   const filteredParts = parts.filter((part) => {
     const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -370,16 +436,21 @@ const Parts = () => {
                         <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
                       </div>
                       <div className="flex space-x-2 pt-2">
-                        <Button size="sm" className="flex-1">
-                          Add to Cart
+                        <Button 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleAddToCart(part)}
+                          disabled={!user}
+                        >
+                          {user ? "Add to Cart" : "Login to Add"}
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleContactSeller(part)}
-                          disabled={!part.seller?.phone && !part.seller?.mobile_number}
+                          disabled={!user || (!part.seller?.phone && !part.seller?.mobile_number)}
                         >
-                          Contact Seller
+                          {user ? "Contact Seller" : "Login to Contact"}
                         </Button>
                       </div>
                     </div>
