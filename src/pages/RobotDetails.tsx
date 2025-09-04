@@ -1702,9 +1702,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       ) : spareParts.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {spareParts.map((part) => (
-                            <Card key={part.id} className="hover:shadow-md transition-shadow">
+                            <Card key={part.id} className="hover:shadow-md transition-shadow border border-gray-200">
                               <CardContent className="p-4">
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                   {part.images && part.images.length > 0 && (
                                     <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                                       <img 
@@ -1715,27 +1715,27 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                   )}
                                   
-                                  <div>
-                                    <h4 className="font-semibold line-clamp-1">{part.name}</h4>
+                                  <div className="space-y-2">
+                                    <h4 className="font-semibold line-clamp-1 text-lg">{part.name}</h4>
                                     {part.part_number && (
-                                      <p className="text-xs text-muted-foreground">Part #: {part.part_number}</p>
+                                      <p className="text-sm text-muted-foreground">Part #: {part.part_number}</p>
                                     )}
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between">
-                                    <div className="text-sm">
-                                      {part.price ? (
-                                        <span className="font-semibold text-green-600">
-                                          {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? '€' : '₹'}
-                                          {part.price.toLocaleString()}
-                                        </span>
-                                      ) : (
-                                        <span className="text-muted-foreground">Price on Request</span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center text-xs text-muted-foreground">
-                                      <Package className="w-3 h-3 mr-1" />
-                                      Qty: {part.quantity}
+                                    
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm">
+                                        {part.price ? (
+                                          <span className="font-semibold text-green-600 text-lg">
+                                            {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? '€' : '₹'}
+                                            {part.price.toLocaleString()}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">Price on Request</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center text-xs text-muted-foreground">
+                                        <Package className="w-3 h-3 mr-1" />
+                                        Qty: {part.quantity}
+                                      </div>
                                     </div>
                                   </div>
                                   
@@ -1750,32 +1750,36 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                   )}
                                   
-                                   <div className="flex items-center justify-between text-sm">
-                                     <div className="flex items-center text-muted-foreground">
-                                       <MapPin className="w-3 h-3 mr-1" />
-                                       {part.location || 'Not specified'}
-                                     </div>
-                                     <div className="flex gap-2">
-                                       <Button 
-                                         size="sm" 
-                                         className="bg-green-600 hover:bg-green-700"
-                                         onClick={() => handleGetQuote(part, part, 'spare_part')}
-                                         disabled={!user}
-                                       >
-                                         <Mail className="w-3 h-3 mr-1" />
-                                         Get Quote
-                                       </Button>
-                                       <Button 
-                                         size="sm" 
-                                         variant="outline"
-                                         onClick={() => handleContactSupplier(part.profiles?.phone || part.profiles?.mobile_number, part.profiles?.company_name || part.profiles?.full_name, 'Spare Part')}
-                                         disabled={!user || !part.profiles?.phone}
-                                       >
-                                         <PhoneCall className="w-3 h-3 mr-1" />
-                                         Call
-                                       </Button>
-                                     </div>
-                                   </div>
+                                  <div className="flex items-center text-sm text-muted-foreground border-t pt-3">
+                                    <MapPin className="w-4 h-4 mr-2" />
+                                    <span className="flex-1">{part.profiles?.location || part.location || 'Location not specified'}</span>
+                                  </div>
+                                  
+                                  {/* Professional Action Buttons */}
+                                  <div className="space-y-2 pt-2">
+                                    <Button 
+                                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium py-2.5"
+                                      onClick={() => handleGetQuote(part, part, 'spare_part')}
+                                      disabled={!user}
+                                    >
+                                      <Mail className="w-4 h-4 mr-2" />
+                                      Request Quote & Pricing
+                                    </Button>
+                                    <Button 
+                                      variant="outline"
+                                      className="w-full border-green-600 text-green-700 hover:bg-green-50 font-medium py-2.5"
+                                      onClick={() => handleContactSupplier(part.profiles?.phone || part.profiles?.mobile_number, part.profiles?.company_name || part.profiles?.full_name, 'Spare Part')}
+                                      disabled={!user || !part.profiles?.phone}
+                                    >
+                                      <PhoneCall className="w-4 h-4 mr-2" />
+                                      Contact Supplier
+                                    </Button>
+                                    {!user && (
+                                      <p className="text-xs text-center text-muted-foreground mt-1">
+                                        Please login to contact suppliers
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
