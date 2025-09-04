@@ -55,6 +55,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
 type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
@@ -514,7 +515,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-12">
+        <TabsList className="grid w-full grid-cols-6 h-12">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Overview
@@ -526,6 +527,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           <TabsTrigger value="coverage" className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             Coverage ({serviceAreas.length})
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            User Requests
           </TabsTrigger>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
@@ -937,6 +942,11 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* User Requests Tab */}
+        <TabsContent value="requests" className="mt-6">
+          <UserRequestsManagement />
         </TabsContent>
 
         {/* Profile Setup Tab */}

@@ -123,6 +123,125 @@ const SupplierQuoteForm = ({ onClose, supplierInfo, itemInfo, robotInfo }: Suppl
       if (dbError) {
         console.error('Error logging request:', dbError);
         // Don't fail the entire process if logging fails
+      } else {
+        // Cross-provider notifications for spare parts enquiries
+        if (itemInfo.type === 'spare_part') {
+          try {
+            // Find related service providers
+            const { data: serviceProviders } = await supabase
+              .from('profiles')
+              .select('user_id')
+              .or('account_type.eq.seller,primary_user_type.eq.service_provider')
+              .contains('user_roles', ['service_provider']);
+
+            // Find related logistics providers
+            const { data: logisticsProviders } = await supabase
+              .from('profiles')
+              .select('user_id')
+              .or('account_type.eq.logistics,primary_user_type.eq.logistics_provider')
+              .contains('user_roles', ['logistics_provider']);
+
+            // Find related finance providers
+            const { data: financeProviders } = await supabase
+              .from('profiles')
+              .select('user_id')
+              .or('account_type.eq.finance,primary_user_type.eq.finance_provider')
+              .contains('user_roles', ['finance_provider']);
+
+            // Create cross-notifications
+            const crossNotifications = [];
+            
+            if (serviceProviders) {
+              serviceProviders.slice(0, 3).forEach(provider => {
+                crossNotifications.push({
+                  user_id: user.id,
+                  seller_id: provider.user_id,
+                  item_id: itemInfo.id,
+                  item_type: `${itemInfo.type}_enquiry`,
+                  item_name: itemInfo.name,
+                  request_type: 'Related Service Enquiry',
+                  user_name: formData.customerName,
+                  company_name: formData.company || '',
+                  mobile_number: formData.customerPhone || '',
+                  email_address: formData.customerEmail,
+                  location: user.user_metadata?.location || '',
+                  requirements: `Related enquiry for ${itemInfo.name} - potential service opportunity`,
+                  urgency: formData.urgency,
+                  additional_data: {
+                    original_item: itemInfo.name,
+                    cross_notification: true,
+                    source_request: itemInfo.type
+                  }
+                });
+              });
+            }
+
+            if (logisticsProviders) {
+              logisticsProviders.slice(0, 3).forEach(provider => {
+                crossNotifications.push({
+                  user_id: user.id,
+                  seller_id: provider.user_id,
+                  item_id: itemInfo.id,
+                  item_type: `${itemInfo.type}_enquiry`,
+                  item_name: itemInfo.name,
+                  request_type: 'Shipping Enquiry',
+                  user_name: formData.customerName,
+                  company_name: formData.company || '',
+                  mobile_number: formData.customerPhone || '',
+                  email_address: formData.customerEmail,
+                  location: user.user_metadata?.location || '',
+                  requirements: `Potential shipping requirement for: ${itemInfo.name}`,
+                  urgency: formData.urgency,
+                  additional_data: {
+                    original_item: itemInfo.name,
+                    cross_notification: true,
+                    source_request: itemInfo.type
+                  }
+                });
+              });
+            }
+
+            if (financeProviders) {
+              financeProviders.slice(0, 3).forEach(provider => {
+                crossNotifications.push({
+                  user_id: user.id,
+                  seller_id: provider.user_id,
+                  item_id: itemInfo.id,
+                  item_type: `${itemInfo.type}_enquiry`,
+                  item_name: itemInfo.name,
+                  request_type: 'Financing Enquiry',
+                  user_name: formData.customerName,
+                  company_name: formData.company || '',
+                  mobile_number: formData.customerPhone || '',
+                  email_address: formData.customerEmail,
+                  location: user.user_metadata?.location || '',
+                  requirements: `Potential financing requirement for: ${itemInfo.name}`,
+                  urgency: formData.urgency,
+                  additional_data: {
+                    original_item: itemInfo.name,
+                    cross_notification: true,
+                    source_request: itemInfo.type
+                  }
+                });
+              });
+            }
+
+            // Insert cross-notifications
+            if (crossNotifications.length > 0) {
+              const { error: crossError } = await supabase
+                .from('user_requests')
+                .insert(crossNotifications);
+              
+              if (crossError) {
+                console.warn('Cross-notification error:', crossError);
+                // Don't fail the main request for cross-notification errors
+              }
+            }
+          } catch (crossNotificationError) {
+            console.warn('Cross-notification setup error:', crossNotificationError);
+            // Don't fail the main request
+          }
+        }
       }
 
       // Send email via edge function

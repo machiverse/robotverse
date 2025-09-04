@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   CreditCard,
   TrendingUp,
-  Users,
   DollarSign,
   Calculator,
   FileText,
@@ -30,6 +29,7 @@ import LoanProductForm from '@/components/forms/LoanProductForm';
 import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
 import LoanCalculator from '@/components/forms/LoanCalculator';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;
@@ -234,6 +234,13 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       icon: AlertTriangle,
       trend: 'Portfolio quality',
       color: 'text-red-600'
+    },
+    {
+      title: 'Total Views',
+      value: viewStats?.totalViews || 0,
+      icon: Eye,
+      trend: 'Product engagement',
+      color: 'text-blue-600'
     }
   ];
 
@@ -272,7 +279,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -298,10 +305,11 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="applications" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="applications">Loan Applications</TabsTrigger>
           <TabsTrigger value="schemes">Loan Schemes</TabsTrigger>
           <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+          <TabsTrigger value="requests">User Requests</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -624,6 +632,10 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-6">
+          <UserRequestsManagement />
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-6">
