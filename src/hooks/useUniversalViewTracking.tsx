@@ -186,6 +186,8 @@ export const useUniversalViewTracking = () => {
     try {
       setLoading(true);
       
+      console.log(`📊 Fetching analytics for seller: ${sellerId}`);
+      
       // Get all items owned by this seller
       const [robotsQuery, sparePartsQuery, servicesQuery, logisticsQuery, financeQuery] = await Promise.all([
         supabase
@@ -214,8 +216,10 @@ export const useUniversalViewTracking = () => {
 
       // Process robots
       if (robotsQuery.data) {
+        console.log(`📊 Processing ${robotsQuery.data.length} robots`);
         for (const robot of robotsQuery.data) {
           const viewCount = await getItemViewCount('robots', robot.id);
+          console.log(`📊 Robot ${robot.name}: ${viewCount} views`);
           allItems.push({
             itemId: robot.id,
             itemType: 'robots',
@@ -231,8 +235,10 @@ export const useUniversalViewTracking = () => {
 
       // Process spare parts
       if (sparePartsQuery.data) {
+        console.log(`📊 Processing ${sparePartsQuery.data.length} spare parts`);
         for (const part of sparePartsQuery.data) {
           const viewCount = await getItemViewCount('spare_parts', part.id);
+          console.log(`📊 Part ${part.name}: ${viewCount} views`);
           allItems.push({
             itemId: part.id,
             itemType: 'spare_parts',
@@ -297,6 +303,8 @@ export const useUniversalViewTracking = () => {
       // Sort by total views (highest first)
       allItems.sort((a, b) => b.totalViews - a.totalViews);
 
+      console.log(`📊 Total items processed: ${allItems.length}, Total views: ${allItems.reduce((sum, item) => sum + item.totalViews, 0)}`);
+      
       return allItems;
     } catch (error) {
       console.error('Error getting seller analytics:', error);

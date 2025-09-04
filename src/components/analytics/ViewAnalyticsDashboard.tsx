@@ -105,6 +105,11 @@ export const ViewAnalyticsDashboard = ({ sellerId, className = "" }: ViewAnalyti
     try {
       const data = await getSellerAnalytics(currentSellerId, dateRange);
       setAnalytics(data);
+      
+      // Force refresh view counts to ensure we have latest data
+      if (data.length > 0) {
+        console.log(`📊 Fetched ${data.length} items with total views:`, data.reduce((sum, item) => sum + item.totalViews, 0));
+      }
     } catch (error) {
       console.error('Error fetching analytics:', error);
     }
