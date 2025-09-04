@@ -54,6 +54,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -608,10 +609,14 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-12">
+        <TabsList className="grid w-full grid-cols-4 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            User Requests
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
@@ -1008,6 +1013,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-6">
+          <UserRequestsManagement />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

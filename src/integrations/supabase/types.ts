@@ -1086,6 +1086,47 @@ export type Database = {
           },
         ]
       }
+      seller_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string
+          request_id: string | null
+          seller_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type?: string
+          request_id?: string | null
+          seller_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string
+          request_id?: string | null
+          seller_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "user_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_appointments: {
         Row: {
           appointment_date: string
@@ -1495,6 +1536,69 @@ export type Database = {
           target_id?: string
           target_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_requests: {
+        Row: {
+          additional_data: Json | null
+          company_name: string | null
+          created_at: string
+          email_address: string
+          id: string
+          item_id: string | null
+          item_name: string | null
+          item_type: string
+          location: string | null
+          mobile_number: string | null
+          request_type: string
+          requirements: string | null
+          seller_id: string
+          status: string | null
+          updated_at: string
+          urgency: string | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          additional_data?: Json | null
+          company_name?: string | null
+          created_at?: string
+          email_address: string
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type: string
+          location?: string | null
+          mobile_number?: string | null
+          request_type: string
+          requirements?: string | null
+          seller_id: string
+          status?: string | null
+          updated_at?: string
+          urgency?: string | null
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          additional_data?: Json | null
+          company_name?: string | null
+          created_at?: string
+          email_address?: string
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type?: string
+          location?: string | null
+          mobile_number?: string | null
+          request_type?: string
+          requirements?: string | null
+          seller_id?: string
+          status?: string | null
+          updated_at?: string
+          urgency?: string | null
+          user_id?: string
+          user_name?: string
         }
         Relationships: []
       }

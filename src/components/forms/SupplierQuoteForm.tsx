@@ -17,6 +17,7 @@ interface SupplierQuoteFormProps {
     email: string;
     company: string;
     phone?: string;
+    sellerId?: string; // Add sellerId to track which seller this is for
   };
   itemInfo: {
     type: 'spare_part' | 'service' | 'logistics';
@@ -87,6 +88,43 @@ const SupplierQuoteForm = ({ onClose, supplierInfo, itemInfo, robotInfo }: Suppl
     setLoading(true);
 
     try {
+      // First, log the user request in the database
+      const requestData = {
+        user_id: user.id,
+        seller_id: supplierInfo.sellerId || null, // This should be passed from the calling component
+        request_type: 'get_quote',
+        item_type: itemInfo.type,
+        item_id: itemInfo.id,
+        item_name: itemInfo.name,
+        user_name: formData.customerName,
+        company_name: formData.company || null,
+        mobile_number: formData.customerPhone || null,
+        email_address: formData.customerEmail,
+        location: user.user_metadata?.location || null,
+        requirements: formData.requirements,
+        urgency: formData.urgency,
+        additional_data: {
+          item_model: itemInfo.model,
+          item_category: itemInfo.category,
+          robot_info: robotInfo,
+          additional_info: formData.additionalInfo,
+          supplier_info: {
+            name: supplierInfo.name,
+            email: supplierInfo.email,
+            company: supplierInfo.company
+          }
+        }
+      };
+
+      const { error: dbError } = await supabase
+        .from('user_requests')
+        .insert([requestData]);
+
+      if (dbError) {
+        console.error('Error logging request:', dbError);
+        // Don't fail the entire process if logging fails
+      }
+
       // Send email via edge function
       const { data, error } = await supabase.functions.invoke('send-quote-request', {
         body: {

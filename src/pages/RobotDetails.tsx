@@ -432,7 +432,8 @@ const RobotDetails = () => {
       name: supplier.profiles?.full_name || supplier.profiles?.company_name || 'Unknown',
       email: supplier.profiles?.email || '',
       company: supplier.profiles?.company_name || supplier.profiles?.full_name || '',
-      phone: supplier.profiles?.phone || supplier.profiles?.mobile_number
+      phone: supplier.profiles?.phone || supplier.profiles?.mobile_number,
+      sellerId: supplier.seller_id || supplier.provider_id || supplier.id
     });
 
     setSelectedItem({
