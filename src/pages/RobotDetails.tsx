@@ -21,6 +21,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { type RobotSEOData } from "@/utils/seo";
+import { useRobotSEO } from "@/hooks/useRobotSEO";
 
 interface Robot {
   id: string;
@@ -147,6 +149,9 @@ const RobotDetails = () => {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  
+  // SEO hook
+  const { seoElements, generateSEO } = useRobotSEO();
   const isIndianLocation = (state?: string, location?: string) => {
     const s = (state || '').toLowerCase().replace(/\s+/g, '');
     const loc = (location || '').toLowerCase();
@@ -187,6 +192,28 @@ const RobotDetails = () => {
           ? data.technical_specifications as Record<string, any>
           : {}
       });
+      
+      // Generate SEO elements for this robot
+      const robotSEOData: RobotSEOData = {
+        id: data.id,
+        brand: data.brand,
+        model: data.model,
+        payload_capacity: data.payload_capacity,
+        controller_type: data.controller_type,
+        year_manufactured: data.year_manufactured,
+        condition: data.condition,
+        reach: data.reach,
+        location: data.location,
+        state: data.state,
+        price: data.price,
+        currency: data.currency,
+        seller_name: data.profiles?.full_name,
+        company_name: data.profiles?.company_name,
+        applications: data.applications || [],
+        images: data.images || []
+      };
+      
+      generateSEO(robotSEOData);
       
       // Track this view for global counting (works for all users)
       await trackRobotView(data.id, data);
@@ -1184,7 +1211,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <>
                       <ResponsiveImage
                         src={robot.images[currentImageIndex]}
-                        alt={`${robot.name} ${currentImageIndex + 1}`}
+                        alt={seoElements ? seoElements.imageAltText : `${robot.name} ${currentImageIndex + 1}`}
                         aspectRatio="auto"
                         objectFit="contain"
                         containerClassName="h-[600px] min-h-[600px] w-full cursor-pointer bg-muted/20"
@@ -1246,7 +1273,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       >
                         <ResponsiveImage 
                           src={image} 
-                          alt={`${robot.name} ${index + 1}`}
+                          alt={seoElements ? `${seoElements.imageAltText} - View ${index + 1}` : `${robot.name} ${index + 1}`}
                           aspectRatio="auto"
                           objectFit="cover"
                           containerClassName="w-full h-full"
@@ -1421,7 +1448,21 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   
                   {/* Overview */}
                   <TabsContent value="overview" className="p-6">
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                      {/* SEO Content Block */}
+                      {seoElements && (
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold">About This Robot</h3>
+                          <div className="prose prose-sm max-w-none text-muted-foreground">
+                            {seoElements.seoContentBlock.split('\n\n').map((paragraph: string, index: number) => (
+                              <p key={index} className="mb-4 leading-relaxed">
+                                {paragraph.trim()}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       <h3 className="text-lg font-semibold">Basic Information</h3>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>

@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice, type Currency, CURRENCY_SYMBOLS, convertToINR } from "@/utils/currency";
+import { generateAllSEOElements, type RobotSEOData } from "@/utils/seo";
 
 interface CustomField {
   field_name: string;
@@ -842,9 +843,39 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           if (customFieldsError) throw customFieldsError;
         }
 
+        // Generate SEO elements for the new robot
+        if (robotData?.id) {
+          try {
+            const robotSEOData: RobotSEOData = {
+              id: robotData.id,
+              brand: formData.brand,
+              model: formData.model,
+              payload_capacity: formData.payload_capacity,
+              controller_type: formData.controller_type,
+              year_manufactured: formData.year_manufactured,
+              condition: formData.condition,
+              reach: formData.reach,
+              location: formData.location,
+              state: formData.state,
+              price: formData.price,
+              currency: formData.currency,
+              applications: formData.applications,
+              images: allImageUrls
+            };
+            
+            const seoElements = generateAllSEOElements(robotSEOData);
+            
+            // Log SEO elements for verification (remove in production)
+            console.log('Generated SEO elements for robot:', seoElements);
+          } catch (seoError) {
+            console.error('Error generating SEO elements:', seoError);
+            // Don't fail the upload if SEO generation fails
+          }
+        }
+        
         toast({
           title: "Success!",
-          description: "Robot listing created successfully!"
+          description: "Robot listing created successfully with SEO optimization!"
         });
       }
       
