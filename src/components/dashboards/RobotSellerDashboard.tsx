@@ -973,7 +973,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                       <p className="font-medium">Total Views</p>
                       <p className="text-2xl font-bold text-purple-600">{viewStats.totalViews || 0}</p>
                        <Badge variant="outline" className="text-sm">
-                      {robotsGroup.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
+                      {robots.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
                     </Badge>
                       {dashboardStats.totalRobots === 0 && (
                         <p className="text-xs text-muted-foreground">Upload robots to get views</p>
