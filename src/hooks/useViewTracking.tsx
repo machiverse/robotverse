@@ -162,13 +162,19 @@ export const useViewTracking = () => {
           .eq('interaction_type', 'view')
           .eq('target_type', 'loan_products')
           .in('target_id', financeIds) : { data: [] },
-        supabase
-          .from('user_interactions')
-          .select('*')
-          .eq('interaction_type', 'view')
-          .or(`target_id.in.(${[...robotIds, ...sparePartIds, ...serviceIds, ...logisticsIds, ...financeIds].join(',')}${[...robotIds, ...sparePartIds, ...serviceIds, ...logisticsIds, ...financeIds].length === 0 ? 'none' : ''})`)
-          .order('created_at', { ascending: false })
-          .limit(10)
+        (() => {
+          const allIds = [...robotIds, ...sparePartIds, ...serviceIds, ...logisticsIds, ...financeIds];
+          if (allIds.length === 0) {
+            return Promise.resolve({ data: [] });
+          }
+          return supabase
+            .from('user_interactions')
+            .select('*')
+            .eq('interaction_type', 'view')
+            .in('target_id', allIds)
+            .order('created_at', { ascending: false })
+            .limit(10);
+        })()
       ]);
 
       const viewsByCategory = {
