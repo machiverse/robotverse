@@ -513,12 +513,12 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     },
     {
       title: 'Total Views',
-      value: viewStats.totalViews || 0,
-      icon: Eye,
-      trend: `${viewStats.viewsByCategory.robots} robot views`,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      change: viewsLoading ? '...' : '+8%'
+  value: typeof viewStats?.totalViews === 'number' ? viewStats.totalViews : 0,
+  icon: Eye,
+  trend: `${viewStats?.viewsCategory?.robots ?? 0} robot views`,
+  color: 'text-purple-600',
+  bgColor: 'bg-purple-50',
+  change: viewsLoading ? '...' : '+8%'
     },
     {
       title: 'Conversion Rate',
@@ -967,65 +967,54 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-  <div className="space-y-4">
-    <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50">
-      <div>
-        {/* Always show "Total Views" as a number, never blank */}
-        <p className="font-medium">Total Views</p>
-        <p className="text-2xl font-bold text-purple-600">
-          {typeof viewStats?.totalViews === 'number' && viewStats?.totalViews >= 0
-            ? viewStats.totalViews
-            : 0}
-        </p>
-        {/* Always show robot view sum, never blank */}
-        <Badge variant="outline" className="text-sm">
-          {robots && robots.length > 0
-            ? robots.reduce((total, robot) => total + (robot.viewCount || 0), 0)
-            : 0} total views
-        </Badge>
-        {dashboardStats?.totalRobots === 0 && (
-          <p className="text-xs text-muted-foreground">Upload robots to get views</p>
-        )}
-      </div>
-      <Eye className="w-8 h-8 text-purple-600" />
-    </div>
-    <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
-      <div>
-        <p className="font-medium">Robot Views</p>
-        <p className="text-2xl font-bold text-blue-600">
-          {/* fallback to 0 if missing */}
-          {viewStats?.viewsByCategory?.robots ?? 0}
-        </p>
-        {dashboardStats?.totalRobots === 0 && (
-          <p className="text-xs text-muted-foreground">No robots uploaded yet</p>
-        )}
-      </div>
-      <Bot className="w-8 h-8 text-blue-600" />
-    </div>
-    {(viewStats?.recentViews?.length ?? 0) > 0 ? (
-      <div className="mt-4">
-        <h4 className="text-sm font-medium mb-2">Recent Views</h4>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          {viewStats.recentViews.slice(0, 5).map((view, index) => (
-            <div key={index} className="flex items-center gap-2 p-2 rounded bg-muted/30">
-              <Clock className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs capitalize">{view.target_type.replace('_', ' ')}</span>
-              <span className="text-xs text-muted-foreground ml-auto">
-                {new Date(view.created_at).toLocaleDateString()}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    ) : (
-      <div className="mt-4 p-4 text-center border-2 border-dashed border-gray-200 rounded-lg">
-        <Eye className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">No views yet</p>
-        <p className="text-xs text-muted-foreground">Upload products to start tracking views</p>
-      </div>
-    )}
-  </div>
-</CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50">
+                    <div>
+                      <p className="font-medium">Total Views</p>
+                      <p className="text-2xl font-bold text-purple-600">{viewStats.totalViews || 0}</p>
+                       <Badge variant="outline" className="text-sm">
+                      {robots.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
+                    </Badge>
+                      {dashboardStats.totalRobots === 0 && (
+                        <p className="text-xs text-muted-foreground">Upload robots to get views</p>
+                      )}
+                    </div>
+                    <Eye className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                    <div>
+                      <p className="font-medium">Robot Views</p>
+                      <p className="text-2xl font-bold text-blue-600">{viewStats.viewsByCategory.robots || 0}</p>
+                      {dashboardStats.totalRobots === 0 && (
+                        <p className="text-xs text-muted-foreground">No robots uploaded yet</p>
+                      )}
+                    </div>
+                    <Bot className="w-8 h-8 text-blue-600" />
+                  </div>
+                  {viewStats.recentViews.length > 0 ? (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2">Recent Views</h4>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {viewStats.recentViews.slice(0, 5).map((view, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 rounded bg-muted/30">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs capitalize">{view.target_type.replace('_', ' ')}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {new Date(view.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                      <Eye className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">No views yet</p>
+                      <p className="text-xs text-muted-foreground">Upload products to start tracking views</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
             </Card>
           </div>
         </TabsContent>
