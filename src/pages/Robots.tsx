@@ -428,7 +428,7 @@ const Robots = () => {
             </div>
 
             {/* Secondary Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select value={selectedCondition} onValueChange={setSelectedCondition}>
                 <SelectTrigger>
                   <SelectValue placeholder="Condition" />

@@ -37,7 +37,6 @@ import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDas
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
 import AdminDashboard from "@/components/dashboards/AdminDashboard";
-import TotalViewsDisplay from "@/components/TotalViewsDisplay";
 
 interface UnifiedDashboardProps {
   userProfile: any;
@@ -225,10 +224,6 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
 
       {/* Main Dashboard Content */}
       <div className="container mx-auto px-4 py-6">
-        {/* Total Views Card for all dashboard types */}
-        <div className="mb-6">
-          <TotalViewsDisplay />
-        </div>
         {/* Always show Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 5)}, 1fr)` }}>
