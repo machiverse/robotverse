@@ -515,7 +515,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       title: 'Total Views',
   value: typeof viewStats?.totalViews === 'number' ? viewStats.totalViews : 0,
   icon: Eye,
-  trend: `${viewStats?.viewsCategory?.robots ?? 0} robot views`,
+  trend: `${viewStats?.viewsByCategory?.robots ?? 0} robot views`,
   color: 'text-purple-600',
   bgColor: 'bg-purple-50',
   change: viewsLoading ? '...' : '+8%'
