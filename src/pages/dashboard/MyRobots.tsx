@@ -1,42 +1,73 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Plus, Edit, Eye, MoreHorizontal } from "lucide-react";
+import { Bot, Plus, Edit, Eye, MoreHorizontal, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
+import { useNavigate } from "react-router-dom";
 
 const MyRobots = () => {
-  const robots = [
-    {
-      id: 1,
-      name: "Industrial Welding Robot",
-      model: "WR-2000X",
-      price: "$45,000",
-      status: "active",
-      views: 156,
-      inquiries: 12,
-      image: "/lovable-uploads/3125a7b8-84d8-4a1a-82bf-0e0b04587669.png"
-    },
-    {
-      id: 2,
-      name: "Precision Assembly Robot",
-      model: "PA-1500",
-      price: "$32,000",
-      status: "pending",
-      views: 89,
-      inquiries: 7,
-      image: "/lovable-uploads/6dce9e75-c21d-4fdb-b0b5-4aaca330d043.png"
-    },
-    {
-      id: 3,
-      name: "Automated Packaging Robot",
-      model: "APR-3000",
-      price: "$28,500",
-      status: "sold",
-      views: 245,
-      inquiries: 23,
-      image: "/lovable-uploads/3125a7b8-84d8-4a1a-82bf-0e0b04587669.png"
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { getItemViewCount } = useUniversalViewTracking();
+  const [robots, setRobots] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    totalViews: 0,
+    inquiries: 0
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchRobots();
     }
-  ];
+  }, [user]);
+
+  const fetchRobots = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('robots')
+        .select('*')
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const robotsWithViews = await Promise.all(
+        (data || []).map(async (robot) => {
+          const viewCount = await getItemViewCount('robots', robot.id);
+          return { ...robot, views: viewCount };
+        })
+      );
+
+      setRobots(robotsWithViews);
+      calculateStats(robotsWithViews);
+    } catch (error) {
+      console.error('Error fetching robots:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (robotData: any[]) => {
+    const total = robotData.length;
+    const active = robotData.filter(r => r.availability === 'available').length;
+    const totalViews = robotData.reduce((sum, r) => sum + (r.views || 0), 0);
+    
+    setStats({
+      total,
+      active,
+      totalViews,
+      inquiries: Math.floor(totalViews * 0.05) // Estimate 5% inquiry rate
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,9 +103,9 @@ const MyRobots = () => {
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">
-              +2 from last month
+              Robot listings
             </p>
           </CardContent>
         </Card>
@@ -87,7 +118,7 @@ const MyRobots = () => {
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{stats.active}</div>
             <p className="text-xs text-muted-foreground">
               Currently available
             </p>
@@ -102,9 +133,9 @@ const MyRobots = () => {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
+            <div className="text-2xl font-bold">{stats.totalViews}</div>
             <p className="text-xs text-muted-foreground">
-              +15% from last week
+              All time views
             </p>
           </CardContent>
         </Card>
@@ -117,9 +148,9 @@ const MyRobots = () => {
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">42</div>
+            <div className="text-2xl font-bold">{stats.inquiries}</div>
             <p className="text-xs text-muted-foreground">
-              This month
+              Estimated inquiries
             </p>
           </CardContent>
         </Card>
@@ -134,60 +165,88 @@ const MyRobots = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            {robots.map((robot) => (
-              <div key={robot.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                <div className="w-16 bg-muted rounded-lg flex items-center justify-center">
-                  <img 
-                    src={robot.image} 
-                    alt={robot.name}
-                    className="w-full object-contain rounded-lg max-h-16"
-                    style={{ height: "auto" }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">{robot.name}</h4>
-                      <p className="text-sm text-muted-foreground">Model: {robot.model}</p>
-                      <div className="flex items-center gap-4 mt-2">
-                        <span className="text-sm font-medium">{robot.price}</span>
-                        <Badge className={getStatusColor(robot.status)}>
-                          {robot.status.charAt(0).toUpperCase() + robot.status.slice(1)}
-                        </Badge>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading robots...</span>
+            </div>
+          ) : robots.length === 0 ? (
+            <div className="text-center py-8">
+              <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No robots found</h3>
+              <p className="text-muted-foreground mb-4">You haven't added any robot listings yet.</p>
+              <Button onClick={() => navigate('/dashboard?tab=seller')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Robot
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {robots.map((robot) => (
+                <div key={robot.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <div className="w-16 bg-muted rounded-lg flex items-center justify-center">
+                    {robot.images && robot.images[0] ? (
+                      <img 
+                        src={robot.images[0]} 
+                        alt={robot.name}
+                        className="w-full h-16 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <Bot className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-medium">{robot.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {robot.model && `Model: ${robot.model}`}
+                          {robot.robot_type && ` | Type: ${robot.robot_type}`}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-sm font-medium">
+                            ₹{robot.price ? robot.price.toLocaleString() : 'Price not set'}
+                          </span>
+                          <Badge className={getStatusColor(robot.availability || 'available')}>
+                            {(robot.availability || 'available').charAt(0).toUpperCase() + 
+                             (robot.availability || 'available').slice(1)}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right text-sm">
-                        <div className="font-medium">{robot.views} views</div>
-                        <div className="text-muted-foreground">{robot.inquiries} inquiries</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right text-sm">
+                          <div className="font-medium">{robot.views || 0} views</div>
+                          <div className="text-muted-foreground">
+                            {Math.floor((robot.views || 0) * 0.05)} inquiries
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => navigate(`/robot/${robot.id}`)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate('/dashboard?tab=seller')}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Listing
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">
+                              Remove Listing
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Listing
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            Remove Listing
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
