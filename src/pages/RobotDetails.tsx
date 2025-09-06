@@ -1749,11 +1749,11 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                 <div className="space-y-4">
                                   {part.images && part.images.length > 0 && (
                                     <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                                      <img 
-                                        src={part.images[0]} 
-                                        alt={part.name}
-                                        className="w-full h-full object-contain rounded-lg bg-muted"
-                                      />
+                                       <img 
+                                         src={part.images[0]} 
+                                         alt={part.name}
+                                         className="w-full h-full object-cover rounded-lg bg-muted"
+                                       />
                                     </div>
                                   )}
                                   
