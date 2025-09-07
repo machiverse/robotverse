@@ -1320,86 +1320,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <span>{robot.location}</span>
                   </div>
                   {robot.description && (
-                    <div className="space-y-3">
-                      <h4 className="font-semibold mb-3 text-lg flex items-center">
-                        <Bot className="w-5 h-5 mr-2 text-primary" />
-                        About This Robot
-                      </h4>
-                      <div className="bg-gradient-to-r from-background to-muted/50 p-4 rounded-lg border">
-                        <div className="space-y-2">
-                          {robot.description.split('.').filter(sentence => sentence.trim()).map((sentence, index) => (
-                            <div key={index} className="flex items-start gap-2">
-                              <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                              <p className="text-muted-foreground leading-relaxed">{sentence.trim()}.</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      {/* Professional Specifications Summary */}
-                      <div className="grid md:grid-cols-2 gap-4 mt-4">
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center">
-                            <Settings className="w-4 h-4 mr-2" />
-                            Key Features
-                          </h5>
-                          <ul className="space-y-1 text-sm">
-                            <li className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                              <span>Model: <strong>{robot.model}</strong></span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                              <span>Type: <strong>{robot.robot_type}</strong></span>
-                            </li>
-                            {robot.brand && (
-                              <li className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                                <span>Brand: <strong>{robot.brand}</strong></span>
-                              </li>
-                            )}
-                            {robot.condition && (
-                              <li className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                                <span>Condition: <strong>{robot.condition}</strong></span>
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                        
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                          <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center">
-                            <Wrench className="w-4 h-4 mr-2" />
-                            Technical Specs
-                          </h5>
-                          <ul className="space-y-1 text-sm">
-                            {robot.payload_capacity && (
-                              <li className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                                <span>Payload: <strong>{robot.payload_capacity}kg</strong></span>
-                              </li>
-                            )}
-                            {robot.reach && (
-                              <li className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                                <span>Reach: <strong>{robot.reach}mm</strong></span>
-                              </li>
-                            )}
-                            {robot.repeatability && (
-                              <li className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                                <span>Repeatability: <strong>±{robot.repeatability}mm</strong></span>
-                              </li>
-                            )}
-                            {robot.year_manufactured && (
-                              <li className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                                <span>Year: <strong>{robot.year_manufactured}</strong></span>
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                      </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Description</h4>
+                      <p className="text-muted-foreground">{robot.description}</p>
                     </div>
                   )}
                   {/* Quantity & Views */}
