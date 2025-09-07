@@ -889,43 +889,33 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     });
   };
 
-  // Purchase inquiry email
-  const handlePurchaseInquiry = () => {
-    if (!robot?.profiles?.email) {
+  // WhatsApp inquiry
+  const handleWhatsAppInquiry = () => {
+    if (!robot?.profiles?.phone) {
       toast({
-        title: "Email Not Available",
-        description: "Seller's email address is not provided.",
+        title: "Phone Number Not Available",
+        description: "Seller's phone number is not provided.",
         variant: "destructive",
       });
       return;
     }
-    const subject = `Purchase Inquiry for ${robot.name}`;
-    const body = `Dear ${robot.profiles.full_name},
+    
+    const message = `Hi! I'm interested in asking the latest price for:
 
-I would like to make a purchase inquiry for:
+🤖 *${robot.name}*
+📦 Model: ${robot.model}
+💰 Listed Price: ${robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
 
-Robot: ${robot.name}
-Model: ${robot.model}
-Listed Price: ${robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
+Could you please share the latest pricing and availability details?
 
-Please provide:
-1. Best pricing terms
-2. Payment options
-3. Delivery arrangements
-4. Technical documentation
-5. Training and support
+Thank you!`;
 
-Looking forward to your response.
-
-Best regards,
-${user?.user_metadata?.full_name || 'Interested Buyer'}`;
-
-    const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink, '_blank');
+    const whatsappUrl = `https://wa.me/${robot.profiles.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
     
     toast({
-      title: "Purchase Inquiry Sent",
-      description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
+      title: "Opening WhatsApp",
+      description: `Redirecting to chat with ${robot.profiles.company_name || robot.profiles.full_name}`,
     });
   };
 
@@ -1365,12 +1355,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         </Button>
                       ) : (
                         <Button 
-                          onClick={handlePurchaseInquiry}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={handleWhatsAppInquiry}
+                          className="bg-green-600 hover:bg-green-700 text-white"
                           size="lg"
                         >
-                          <MessageCircle className="w-4 h-4 mr-2" />
-                          Purchase Inquiry
+                          <span className="mr-2">💬</span>
+                          Ask Latest Price
                         </Button>
                       )}
                       <Button 
