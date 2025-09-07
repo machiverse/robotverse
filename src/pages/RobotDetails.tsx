@@ -1439,19 +1439,162 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   {/* Overview */}
                   <TabsContent value="overview" className="p-6">
                     <div className="space-y-6">
-                      {/* SEO Content Block */}
-                      {seoElements && (
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold">About This Robot</h3>
-                          <div className="prose prose-sm max-w-none text-muted-foreground">
-                            {seoElements.seoContentBlock.split('\n\n').map((paragraph: string, index: number) => (
-                              <p key={index} className="mb-4 leading-relaxed">
-                                {paragraph.trim()}
-                              </p>
-                            ))}
+                      {/* About This Robot - Enhanced Structure */}
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Bot className="w-5 h-5 text-primary" />
+                          <h3 className="text-xl font-semibold">About This Robot</h3>
+                        </div>
+                        
+                        {/* Robot Description */}
+                        {robot.description && (
+                          <div className="bg-muted/30 rounded-lg p-4 border">
+                            <p className="text-sm leading-relaxed text-muted-foreground">
+                              {robot.description}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Key Highlights */}
+                        <div className="grid md:grid-cols-2 gap-6">
+                          {/* Technical Overview */}
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Settings className="w-4 h-4 text-primary" />
+                              Technical Overview
+                            </h4>
+                            <div className="space-y-2">
+                              {robot.brand && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Brand:</span>
+                                  <span className="text-muted-foreground">{robot.brand}</span>
+                                </div>
+                              )}
+                              {robot.model && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Model:</span>
+                                  <span className="text-muted-foreground">{robot.model}</span>
+                                </div>
+                              )}
+                              {robot.payload_capacity && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Payload Capacity:</span>
+                                  <span className="text-muted-foreground">{robot.payload_capacity} kg</span>
+                                </div>
+                              )}
+                              {robot.reach && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Reach:</span>
+                                  <span className="text-muted-foreground">{robot.reach} mm</span>
+                                </div>
+                              )}
+                              {robot.controller_type && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Controller:</span>
+                                  <span className="text-muted-foreground">{robot.controller_type}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Applications & Features */}
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Wrench className="w-4 h-4 text-primary" />
+                              Key Features
+                            </h4>
+                            <div className="space-y-2">
+                              {robot.year_manufactured && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Year:</span>
+                                  <span className="text-muted-foreground">{robot.year_manufactured}</span>
+                                </div>
+                              )}
+                              {robot.condition && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Condition:</span>
+                                  <span className="text-muted-foreground capitalize">{robot.condition.replace('_', ' ')}</span>
+                                </div>
+                              )}
+                              {robot.operating_environment && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Environment:</span>
+                                  <span className="text-muted-foreground">{robot.operating_environment}</span>
+                                </div>
+                              )}
+                              {robot.warranty_info && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Warranty:</span>
+                                  <span className="text-muted-foreground">{robot.warranty_info}</span>
+                                </div>
+                              )}
+                              {robot.repeatability && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Repeatability:</span>
+                                  <span className="text-muted-foreground">±{robot.repeatability} mm</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      )}
+                        
+                        {/* Applications */}
+                        {robot.applications && robot.applications.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Tag className="w-4 h-4 text-primary" />
+                              Suitable Applications
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {robot.applications.map((app: string, index: number) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {app}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Certification Standards */}
+                        {robot.certification_standards && robot.certification_standards.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Shield className="w-4 h-4 text-primary" />
+                              Certifications
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {robot.certification_standards.map((cert: string, index: number) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {cert}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* SEO Content Block */}
+                        {seoElements && (
+                          <div className="bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg p-4 border">
+                            <div className="prose prose-sm max-w-none text-muted-foreground">
+                              {seoElements.seoContentBlock.split('\n\n').map((paragraph: string, index: number) => (
+                                <p key={index} className="mb-3 last:mb-0 leading-relaxed text-sm">
+                                  {paragraph.trim()}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       
                       <h3 className="text-lg font-semibold">Basic Information</h3>
                       <div className="grid grid-cols-2 gap-4 text-sm">
