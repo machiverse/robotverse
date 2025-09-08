@@ -1181,101 +1181,259 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <EnhancedHeader />
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <Button variant="ghost" onClick={() => navigate('/robots')} className="mb-6">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Robots
-        </Button>
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        {/* Header Navigation */}
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="outline" onClick={() => navigate('/robots')} className="shadow-sm">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Robots
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <ViewCountDisplay targetType="robots" targetId={robot.id} />
+            <Button
+              onClick={() => setShowReportModal(true)}
+              variant="outline"
+              size="sm"
+              className="shadow-sm"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Generate Report
+            </Button>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content - Left Side (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="relative rounded-lg overflow-hidden mb-4">
-                  {robot.images && robot.images.length > 0 ? (
-                    <>
-                      <ResponsiveImage
-                        src={robot.images[currentImageIndex]}
-                        alt={seoElements ? seoElements.imageAltText : `${robot.name} ${currentImageIndex + 1}`}
-                        aspectRatio="auto"
-                        objectFit="contain"
-                        containerClassName="h-[600px] min-h-[600px] w-full cursor-pointer bg-muted/20"
-                        className="w-full h-full"
-                        style={{ 
-                          imageRendering: "auto"
-                        }}
-                        onClick={() => setShowFullscreen(true)}
-                      />
-                      {robot.images.length > 1 && (
+            {/* Hero Section with Image Gallery and Basic Info */}
+            <Card className="overflow-hidden shadow-lg border-0 bg-white">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-0">
+                  {/* Image Gallery */}
+                  <div className="relative bg-gray-50">
+                    <div className="aspect-square relative overflow-hidden">
+                      {robot.images && robot.images.length > 0 ? (
                         <>
+                          <ResponsiveImage
+                            src={robot.images[currentImageIndex]}
+                            alt={`${robot.name} - Image ${currentImageIndex + 1}`}
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                            onClick={() => setShowFullscreen(true)}
+                          />
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
-                            onClick={prevImage}
+                            onClick={() => setShowFullscreen(true)}
+                            className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full"
+                            size="sm"
                           >
-                            <ChevronLeft className="w-4 h-4" />
+                            <Maximize2 className="w-4 h-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
-                            onClick={nextImage}
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
+                          {robot.images.length > 1 && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                                onClick={prevImage}
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                                onClick={nextImage}
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                              <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                {currentImageIndex + 1} / {robot.images.length}
+                              </div>
+                            </>
+                          )}
                         </>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
-                        onClick={() => setShowFullscreen(true)}
-                      >
-                        <Maximize2 className="w-4 h-4" />
-                      </Button>
-                      {robot.images.length > 1 && (
-                        <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                          {currentImageIndex + 1} / {robot.images.length}
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                          <Bot className="w-24 h-24 text-gray-400" />
                         </div>
                       )}
-                    </>
-                  ) : (
-                    <Bot className="w-24 h-24 text-muted-foreground" />
-                  )}
-                </div>
+                    </div>
 
-                {/* Thumbnail Gallery */}
-                {robot.images && robot.images.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {robot.images.map((image, index) => (
-                      <div
-                        key={index}
-                        className={`flex-shrink-0 w-24 h-24 bg-muted rounded-lg overflow-hidden cursor-pointer border-2 ${
-                          index === currentImageIndex ? 'border-primary' : 'border-transparent'
-                        }`}
-                        onClick={() => setCurrentImageIndex(index)}
-                      >
-                        <ResponsiveImage 
-                          src={image} 
-                          alt={seoElements ? `${seoElements.imageAltText} - View ${index + 1}` : `${robot.name} ${index + 1}`}
-                          aspectRatio="auto"
-                          objectFit="cover"
-                          containerClassName="w-full h-full"
-                          className="rounded-lg w-full h-full"
-                          style={{ 
-                            imageRendering: "auto"
-                          }}
-                        />
+                    {/* Thumbnail Navigation */}
+                    {robot.images && robot.images.length > 1 && (
+                      <div className="p-4 border-t bg-white">
+                        <div className="flex gap-2 overflow-x-auto">
+                          {robot.images.map((image, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentImageIndex(index)}
+                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                currentImageIndex === index 
+                                  ? 'border-primary shadow-lg scale-105' 
+                                  : 'border-gray-200 hover:border-gray-300 hover:scale-102'
+                              }`}
+                            >
+                              <ResponsiveImage
+                                src={image}
+                                alt={`Thumbnail ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+
+                  {/* Robot Basic Info */}
+                  <div className="p-6 space-y-6 bg-white">
+                    <div>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+                            {robot.name}
+                          </h1>
+                          <div className="flex flex-wrap items-center gap-2 mb-4">
+                            <Badge variant="secondary" className="text-sm font-semibold px-3 py-1">
+                              {robot.model}
+                            </Badge>
+                            <Badge variant="outline" className="text-sm border-blue-200 text-blue-700">
+                              {robot.robot_type}
+                            </Badge>
+                            {robot.brand && (
+                              <Badge variant="outline" className="text-sm border-green-200 text-green-700">
+                                {robot.brand}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <Button
+                          onClick={handleAddToWatchlist}
+                          variant="outline"
+                          size="sm"
+                          className={`ml-4 transition-all duration-200 ${
+                            isInWatchlist 
+                              ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
+                              : 'hover:bg-gray-50'
+                          }`}
+                          disabled={addingToWatchlist || !user}
+                        >
+                          {addingToWatchlist ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Heart className={`w-4 h-4 mr-2 ${isInWatchlist ? 'fill-current' : ''}`} />
+                          )}
+                          {isInWatchlist ? 'Saved' : 'Save'}
+                        </Button>
+                      </div>
+
+                      {/* Price and Key Details */}
+                      <div className="space-y-6">
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-4xl font-bold text-blue-600">
+                            {formatPrice(robot.price, robot.currency)}
+                          </span>
+                          {outsideIndia && (
+                            <Button
+                              onClick={handleImportQuote}
+                              variant="outline"
+                              size="sm"
+                              className="text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
+                            >
+                              <Plane className="w-3 h-3 mr-1" />
+                              Import Quote
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <span className="text-gray-600 text-xs uppercase tracking-wide">Location</span>
+                              <p className="font-semibold text-gray-900">{robot.location}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <Package className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <span className="text-gray-600 text-xs uppercase tracking-wide">Availability</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={robot.availability === 'In Stock' ? 'default' : 'secondary'} className="text-xs">
+                                  {robot.availability}
+                                </Badge>
+                                {robot.quantity && (
+                                  <span className="text-gray-900 font-semibold">({robot.quantity} units)</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {robot.condition && (
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <Settings className="w-4 h-4 text-purple-600" />
+                              </div>
+                              <div>
+                                <span className="text-gray-600 text-xs uppercase tracking-wide">Condition</span>
+                                <p className="font-semibold text-gray-900">{robot.condition}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-3">
+                      <div className="flex flex-col gap-3">
+                        <Button
+                          onClick={handleRequestQuote}
+                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200 py-3"
+                          disabled={!user}
+                          size="lg"
+                        >
+                          <MessageCircle className="w-5 h-5 mr-2" />
+                          Ask Latest Price via WhatsApp
+                        </Button>
+                        <Button
+                          onClick={handleContactSeller}
+                          variant="outline"
+                          className="w-full border-green-300 text-green-700 hover:bg-green-50 shadow-sm hover:shadow-md transition-all duration-200 py-3"
+                          disabled={!user}
+                          size="lg"
+                        >
+                          <PhoneCall className="w-5 h-5 mr-2" />
+                          Contact Seller
+                        </Button>
+                      </div>
+                      
+                      {!user && (
+                        <div className="text-center bg-amber-50 border border-amber-200 rounded-lg p-4">
+                          <p className="text-sm text-amber-800">
+                            Please{' '}
+                            <Button 
+                              variant="link" 
+                              className="p-0 h-auto text-amber-700 font-semibold underline" 
+                              onClick={() => navigate('/auth')}
+                            >
+                              log in
+                            </Button>{' '}
+                            to contact the seller or request quotes
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
