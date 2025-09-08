@@ -1437,149 +1437,54 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </CardContent>
             </Card>
 
-            {/* Robot Info and Quick Actions */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-2xl">{robot.name}</CardTitle>
-                    <p className="text-lg text-muted-foreground">{robot.model}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                           <Badge variant="outline" className="text-xs">
-                        {robot.robot_type}
-                      </Badge>
-                    </div>
+            {/* Quick Actions */}
+            {user && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleAIAnalysis}
+                      className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      AI Analysis
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleGenerateReport}
+                      className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Get Report
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleCheckLoan}
+                      className="text-green-600 border-green-200 hover:bg-green-50"
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Check Loan
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleFindSimilar}
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Find Similar
+                    </Button>
                   </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-primary">
-                      {robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
-                    </div>
-                    {outsideIndia && (
-                      <div className="text-sm text-orange-600 mt-1">
-                        + Import duties and logistics costs
-                      </div>
-                    )}
-                    <Badge variant={robot.availability === 'available' ? 'default' : 'secondary'} className="mt-2">
-                      {robot.availability}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{robot.robot_type}</Badge>
-                    {robot.category_tags?.map((tag, index) => (
-                      <Badge key={index} variant="secondary">{tag}</Badge>
-                    ))}
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    <span>{robot.location}</span>
-                  </div>
-                  {robot.description && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Description</h4>
-                      <p className="text-muted-foreground">{robot.description}</p>
-                    </div>
-                  )}
-                  {/* Quantity & Views */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Quantity Available:</span>
-                      <p>{robot.quantity}</p>
-                    </div>
-                     <div>
-                       <span className="font-medium">Views:</span>
-                       <ViewCountDisplay 
-                         targetType="robots" 
-                         targetId={robot.id} 
-                         className="mt-1"
-                       />
-                     </div>
-                  </div>
-
-                  {/* Action Buttons for logged in user */}
-                  {user && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-                      {outsideIndia ? (
-                        <Button 
-                          onClick={handleImportQuote}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                          size="lg"
-                        >
-                          <Plane className="w-4 h-4 mr-2" />
-                          Import Quote
-                        </Button>
-                      ) : (
-                        <Button 
-                          onClick={handleWhatsAppInquiry}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          size="lg"
-                        >
-                          <span className="mr-2">💬</span>
-                          Ask Latest Price
-                        </Button>
-                      )}
-                      <Button 
-                        onClick={handleContactSeller}
-                        variant="outline"
-                        className="border-green-600 text-green-600 hover:bg-green-50"
-                        size="lg"
-                      >
-                        <PhoneCall className="w-4 h-4 mr-2" />
-                        Contact
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Quick Actions */}
-                  {user && (
-                    <div className="mt-6">
-                      <h4 className="font-semibold mb-3">Quick Actions</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleAIAnalysis}
-                          className="text-purple-600 border-purple-200 hover:bg-purple-50"
-                        >
-                          <Brain className="w-4 h-4 mr-2" />
-                          AI Analysis
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleGenerateReport}
-                          className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          Get Report
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleCheckLoan}
-                          className="text-green-600 border-green-200 hover:bg-green-50"
-                        >
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Check Loan
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleFindSimilar}
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                        >
-                          <Search className="w-4 h-4 mr-2" />
-                          Find Similar
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Tabs for Details */}
             <Card>
