@@ -1596,33 +1596,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         )}
                       </div>
                       
-                      <h3 className="text-lg font-semibold">Basic Information</h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Brand:</span>
-                          <p className="text-muted-foreground">{robot.brand || '—'}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Model:</span>
-                          <p className="text-muted-foreground">{robot.model || '—'}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Year:</span>
-                          <p className="text-muted-foreground">{robot.year_manufactured || '—'}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Category:</span>
-                          <p className="text-muted-foreground">{robot.robot_type || '—'}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Condition:</span>
-                          <p className="text-muted-foreground">{robot.condition ? robot.condition.replace('_',' ') : '—'}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium">Quantity:</span>
-                          <p className="text-muted-foreground">{robot.quantity}</p>
-                        </div>
-                      </div>
+                     
 
                       <Separator />
 
