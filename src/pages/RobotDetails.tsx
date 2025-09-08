@@ -1639,17 +1639,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                             </CardContent>
                           </Card>
                         )}
-                        <Card className="border-blue-200 bg-blue-50/50">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div>
-                              <div className="font-semibold">Logistics Providers</div>
-                              <div className="text-sm text-muted-foreground">
-                                {loadingLogistics ? 'Loading...' : `${logisticsServices.length} available`}
-                              </div>
-                            </div>
-                            <Button size="sm" variant="outline" onClick={() => setActiveTab('logistics')}>View</Button>
-                          </CardContent>
-                        </Card>
+                        
                       </div>
                     </div>
                   </TabsContent>
