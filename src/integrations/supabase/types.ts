@@ -1629,6 +1629,39 @@ export type Database = {
         }
         Relationships: []
       }
+      watchlists: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          notes: string | null
+          priority: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          notes?: string | null
+          priority?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          notes?: string | null
+          priority?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1766,6 +1799,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_user_watchlist_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       increment_blog_view_count: {
         Args: { p_blog_id: string }
         Returns: number
@@ -1780,6 +1817,10 @@ export type Database = {
       }
       is_admin_user: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_item_in_watchlist: {
+        Args: { p_item_id: string; p_item_type: string; p_user_id: string }
         Returns: boolean
       }
     }

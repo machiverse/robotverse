@@ -20,6 +20,7 @@ import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
 import SellerRobots from "./pages/SellerRobots";
 import ProfileSettings from "./pages/ProfileSettings";
 import TestImageMigration from "./pages/TestImageMigration";
+import WatchlistDashboard from "./pages/WatchlistDashboard";
 import NotFound from "./pages/NotFound";
 
 // Dashboard Pages
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/dashboard/help" element={<Help />} />
             <Route path="/dashboard/privacy" element={<Privacy />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
+            <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

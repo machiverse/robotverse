@@ -218,9 +218,17 @@ const RobotDetails = () => {
       // Track this view for global counting (works for all users)
       await trackRobotView(data.id, data);
       
+      // Check if robot is in user's watchlist
       if (user) {
-        const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
-        setIsInWatchlist(watchlist.includes(data.id));
+        const { data: watchlistData } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('item_type', 'robot')
+          .eq('item_id', data.id)
+          .single();
+        
+        setIsInWatchlist(!!watchlistData);
       }
 
     } catch (err) {
@@ -610,68 +618,80 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       });
       return;
     }
+
+    if (!robot) return;
+
     try {
       setAddingToWatchlist(true);
-      const watchlist = JSON.parse(localStorage.getItem(`watchlist_${user.id}`) || '[]');
       
       if (isInWatchlist) {
-        const newWatchlist = watchlist.filter((robotId: string) => robotId !== robot!.id);
-        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(newWatchlist));
+        // Remove from watchlist
+        const { error } = await supabase
+          .from('watchlists')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_type', 'robot')
+          .eq('item_id', robot.id);
+
+        if (error) throw error;
+
         setIsInWatchlist(false);
 
         // Track watchlist removal
         await trackButtonClick({
           buttonName: "Remove from Watchlist",
           buttonType: "wishlist",
-          sellerId: robot?.seller_id,
-          sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
-          itemId: robot?.id,
+          sellerId: robot.seller_id,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          itemId: robot.id,
           itemType: "robot",
           additionalData: {
             action: "remove",
-            robotName: robot?.name,
-            robotModel: robot?.model,
-            robotPrice: robot?.price,
-            watchlistCount: newWatchlist.length
+            robotName: robot.name,
+            robotModel: robot.model,
+            robotPrice: robot.price
           }
         });
 
         toast({
           title: "Removed from Watchlist",
-          description: `${robot!.name} has been removed from your watchlist.`,
+          description: `${robot.name} has been removed from your watchlist.`,
         });
       } else {
-        if (watchlist.includes(robot!.id)) {
-          toast({
-            title: "Already in Watchlist",
-            description: "This robot is already in your watchlist.",
+        // Add to watchlist
+        const { error } = await supabase
+          .from('watchlists')
+          .insert({
+            user_id: user.id,
+            item_type: 'robot',
+            item_id: robot.id,
+            notes: `${robot.name} - ${robot.model}`,
+            priority: 'medium'
           });
-          return;
-        }
-        watchlist.push(robot!.id);
-        localStorage.setItem(`watchlist_${user.id}`, JSON.stringify(watchlist));
+
+        if (error) throw error;
+
         setIsInWatchlist(true);
 
         // Track watchlist addition
         await trackButtonClick({
           buttonName: "Add to Watchlist",
           buttonType: "wishlist",
-          sellerId: robot?.seller_id,
-          sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
-          itemId: robot?.id,
+          sellerId: robot.seller_id,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          itemId: robot.id,
           itemType: "robot",
           additionalData: {
             action: "add",
-            robotName: robot?.name,
-            robotModel: robot?.model,
-            robotPrice: robot?.price,
-            watchlistCount: watchlist.length
+            robotName: robot.name,
+            robotModel: robot.model,
+            robotPrice: robot.price
           }
         });
 
         toast({
           title: "Added to Watchlist",
-          description: `${robot!.name} has been added to your watchlist.`,
+          description: `${robot.name} has been added to your watchlist.`,
         });
       }
     } catch (error: any) {
