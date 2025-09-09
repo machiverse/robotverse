@@ -1343,7 +1343,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           {/* Robot information panel */}
           <div className="p-6 bg-card rounded-lg shadow-inner text-gray-900 flex flex-col justify-between">
             <div>
-              <h1 className="text-4xl font-extrabold text-blue-600">{robot?.name}</h1>
+              <h1 className="text-3xl font-bold leading-tight mb-4">{robot?.name}</h1>
               <div className="flex flex-wrap gap-2 mb-6">
                 <Badge variant="secondary" className="text-sm">{robot?.model}</Badge>
                 <Badge variant="outline" className="text-sm text-blue-700 border-blue-300">{robot?.robot_type}</Badge>
@@ -1399,14 +1399,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               >
                 <MessageSquare className="w-5 h-5 mr-2" /> Ask Latest Price via WhatsApp
               </Button>
-              <Button
+              {/*<Button
                 className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
                 onClick={handleContactSeller}
                 disabled={!user}
                 size="lg"
               >
                 <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
-              </Button>
+              </Button>*/}
               {!user && (
                 <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
                   Please{' '}
