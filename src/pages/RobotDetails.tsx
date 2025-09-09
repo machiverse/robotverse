@@ -1255,11 +1255,11 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           {/* Main Content - Left Side (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Hero Section with Image Gallery and Basic Info */}
-            <Card className="overflow-hidden shadow-lg border-0 bg-background">
+            <Card className="overflow-hidden shadow-lg border-0 bg-card/50">
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-2 gap-0">
                   {/* Image Gallery */}
-                  <div className="relative bg-gray-50">
+                  <div className="relative bg-muted/20">
                     <div className="aspect-square relative overflow-hidden">
                       {robot.images && robot.images.length > 0 ? (
                         <>
@@ -1301,7 +1301,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           )}
                         </>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <div className="w-full h-full flex items-center justify-center bg-muted/30">
                           <Bot className="w-24 h-24 text-gray-400" />
                         </div>
                       )}
@@ -1309,7 +1309,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
                     {/* Thumbnail Navigation */}
                     {robot.images && robot.images.length > 1 && (
-                      <div className="p-4 border-t bg-background">
+                      <div className="p-4 border-t bg-card/30">
                         <div className="flex gap-2 overflow-x-auto">
                           {robot.images.map((image, index) => (
                             <button
@@ -1363,7 +1363,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           className={`ml-4 transition-all duration-200 ${
                             isInWatchlist 
                               ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
-                              : 'hover:bg-gray-50'
+                              : 'hover:bg-muted/20'
                           }`}
                           disabled={addingToWatchlist || !user}
                         >
@@ -1387,7 +1387,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               onClick={handleImportQuote}
                               variant="outline"
                               size="sm"
-                              className="text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
+                              className="text-xs border-orange-300 text-orange-700 hover:bg-orange-100/50"
                             >
                               <Plane className="w-3 h-3 mr-1" />
                               Import Quote
@@ -1395,9 +1395,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-1 gap-4 text-sm bg-muted/30 p-4 rounded-lg">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-blue-100/50 rounded-full flex items-center justify-center">
                               <MapPin className="w-4 h-4 text-blue-600" />
                             </div>
                             <div>
@@ -1407,7 +1407,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           </div>
                           
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-green-100/50 rounded-full flex items-center justify-center">
                               <Package className="w-4 h-4 text-green-600" />
                             </div>
                             <div>
@@ -1425,7 +1425,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           
                           {robot.condition && (
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                              <div className="w-8 h-8 bg-purple-100/50 rounded-full flex items-center justify-center">
                                 <Settings className="w-4 h-4 text-purple-600" />
                               </div>
                               <div>
@@ -1453,7 +1453,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         <Button
                           onClick={handleContactSeller}
                           variant="outline"
-                          className="w-full border-green-300 text-green-700 hover:bg-green-50 shadow-sm hover:shadow-md transition-all duration-200 py-3"
+                          className="w-full border-green-300 text-green-700 hover:bg-green-100/50 shadow-sm hover:shadow-md transition-all duration-200 py-3"
                           disabled={!user}
                           size="lg"
                         >
@@ -1463,7 +1463,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       </div>
                       
                       {!user && (
-                        <div className="text-center bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="text-center bg-amber-100/30 border border-amber-200 rounded-lg p-4">
                           <p className="text-sm text-amber-800">
                             Please{' '}
                             <Button 
@@ -1495,7 +1495,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       variant="outline" 
                       size="sm"
                       onClick={handleAIAnalysis}
-                      className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                      className="text-purple-600 border-purple-200 hover:bg-purple-100/50"
                     >
                       <Brain className="w-4 h-4 mr-2" />
                       AI Analysis
@@ -1504,7 +1504,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       variant="outline" 
                       size="sm"
                       onClick={handleGenerateReport}
-                      className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                      className="text-orange-600 border-orange-200 hover:bg-orange-100/50"
                     >
                       <FileText className="w-4 h-4 mr-2" />
                       Get Report
@@ -1513,7 +1513,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       variant="outline" 
                       size="sm"
                       onClick={handleCheckLoan}
-                      className="text-green-600 border-green-200 hover:bg-green-50"
+                      className="text-green-600 border-green-200 hover:bg-green-100/50"
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
                       Check Loan
@@ -1522,7 +1522,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       variant="outline" 
                       size="sm"
                       onClick={handleFindSimilar}
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-100/50"
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Find Similar
@@ -1732,7 +1732,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       {/* Import & Logistics Summary */}
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         {outsideIndia && (
-                          <Card className="border-orange-200 bg-orange-50/50">
+                          <Card className="border-orange-200 bg-orange-100/30">
                             <CardContent className="p-4">
                               <div className="font-semibold mb-1">Import to India</div>
                               {robot.price && importDuty ? (
