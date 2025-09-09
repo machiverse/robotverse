@@ -12,7 +12,7 @@ import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck, MessageSquare } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import RobotReportModal from "@/components/RobotReportModal";
@@ -520,6 +520,61 @@ const RobotDetails = () => {
     });
   };
 
+  // WhatsApp handler for latest price inquiry
+  const handleWhatsAppInquiry = async () => {
+    if (!robot) return;
+
+    const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
+    
+    if (!phone) {
+      toast({
+        title: "WhatsApp Not Available",
+        description: "Seller's phone number is not provided for WhatsApp contact.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "WhatsApp Latest Price",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "whatsapp",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerPhone: phone
+      }
+    });
+
+    const message = `Hi! I'm interested in getting the latest price for:
+
+🤖 *${robot.name}*
+📦 Model: ${robot.model}
+🏷️ Type: ${robot.robot_type}
+📍 Location: ${robot.location}
+${robot.price ? `💰 Listed Price: ${robot.currency} ${robot.price}` : '💰 Price: On Request'}
+
+Could you please share the latest price and availability details?
+
+Thank you!`;
+
+    const phoneNumber = phone.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`;
+    
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "Opening WhatsApp",
+      description: `Redirecting to WhatsApp chat with ${robot.profiles.company_name || robot.profiles.full_name}`,
+    });
+  };
+
   // Request quote modal open
   const handleRequestQuote = async () => {
     if (!robot?.profiles?.email) {
@@ -909,35 +964,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     });
   };
 
-  // WhatsApp inquiry
-  const handleWhatsAppInquiry = () => {
-    if (!robot?.profiles?.phone) {
-      toast({
-        title: "Phone Number Not Available",
-        description: "Seller's phone number is not provided.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const message = `Hi! I'm interested in asking the latest price for:
-
-🤖 *${robot.name}*
-📦 Model: ${robot.model}
-💰 Listed Price: ${robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}
-
-Could you please share the latest pricing and availability details?
-
-Thank you!`;
-
-    const whatsappUrl = `https://wa.me/${robot.profiles.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    
-    toast({
-      title: "Opening WhatsApp",
-      description: `Redirecting to chat with ${robot.profiles.company_name || robot.profiles.full_name}`,
-    });
-  };
 
   // Navigate to find similar robots
   const handleFindSimilar = () => {
@@ -1229,7 +1255,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           {/* Main Content - Left Side (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Hero Section with Image Gallery and Basic Info */}
-            <Card className="overflow-hidden shadow-lg border-0 bg-white">
+            <Card className="overflow-hidden shadow-lg border-0 bg-background">
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-2 gap-0">
                   {/* Image Gallery */}
@@ -1283,7 +1309,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
                     {/* Thumbnail Navigation */}
                     {robot.images && robot.images.length > 1 && (
-                      <div className="p-4 border-t bg-white">
+                      <div className="p-4 border-t bg-background">
                         <div className="flex gap-2 overflow-x-auto">
                           {robot.images.map((image, index) => (
                             <button
@@ -1416,12 +1442,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <div className="space-y-3">
                       <div className="flex flex-col gap-3">
                         <Button
-                          onClick={handleRequestQuote}
-                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200 py-3"
+                          onClick={handleWhatsAppInquiry}
+                          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200 py-3"
                           disabled={!user}
                           size="lg"
                         >
-                          <MessageCircle className="w-5 h-5 mr-2" />
+                          <MessageSquare className="w-5 h-5 mr-2" />
                           Ask Latest Price via WhatsApp
                         </Button>
                         <Button
