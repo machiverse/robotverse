@@ -1251,7 +1251,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           </div>
         </div>
 
-        <div className="p-6 space-y-6 bg-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content - Left Side (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Hero Section with Image Gallery and Basic Info */}
