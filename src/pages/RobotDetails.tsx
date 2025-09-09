@@ -1255,23 +1255,28 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           {/* Main Content - Left Side (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Hero Section with Image Gallery and Basic Info */}
-            <Card className="overflow-hidden shadow-lg border-0 bg-card/50">
+            <Card className="overflow-hidden shadow-lg border-0 bg-card">
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-2 gap-0">
                   {/* Image Gallery */}
-                  <div className="relative bg-muted/20">
-                    <div className="aspect-square relative overflow-hidden">
+                  <div className="relative bg-muted/10">
+                    <div className="aspect-square relative overflow-hidden group">
                       {robot.images && robot.images.length > 0 ? (
                         <>
                           <ResponsiveImage
                             src={robot.images[currentImageIndex]}
                             alt={`${robot.name} - Image ${currentImageIndex + 1}`}
-                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover cursor-pointer transition-all duration-500 ease-in-out group-hover:scale-110 group-hover:rotate-0"
+                            style={{ 
+                              imageOrientation: 'from-image',
+                              objectFit: 'cover',
+                              objectPosition: 'center'
+                            }}
                             onClick={() => setShowFullscreen(true)}
                           />
                           <Button
                             onClick={() => setShowFullscreen(true)}
-                            className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full"
+                            className="absolute top-4 right-4 bg-background/80 hover:bg-background/90 text-foreground p-2 rounded-full shadow-lg backdrop-blur-sm"
                             size="sm"
                           >
                             <Maximize2 className="w-4 h-4" />
@@ -1281,7 +1286,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background/90 text-foreground rounded-full shadow-lg backdrop-blur-sm"
                                 onClick={prevImage}
                               >
                                 <ChevronLeft className="w-4 h-4" />
@@ -1289,42 +1294,47 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background/90 text-foreground rounded-full shadow-lg backdrop-blur-sm"
                                 onClick={nextImage}
                               >
                                 <ChevronRight className="w-4 h-4" />
                               </Button>
-                              <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                              <div className="absolute bottom-4 right-4 bg-background/90 text-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg backdrop-blur-sm">
                                 {currentImageIndex + 1} / {robot.images.length}
                               </div>
                             </>
                           )}
                         </>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                          <Bot className="w-24 h-24 text-gray-400" />
+                        <div className="w-full h-full flex items-center justify-center bg-muted/20">
+                          <Bot className="w-24 h-24 text-muted-foreground" />
                         </div>
                       )}
                     </div>
 
                     {/* Thumbnail Navigation */}
                     {robot.images && robot.images.length > 1 && (
-                      <div className="p-4 border-t bg-card/30">
-                        <div className="flex gap-2 overflow-x-auto">
+                      <div className="p-4 border-t bg-card">
+                        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                           {robot.images.map((image, index) => (
                             <button
                               key={index}
                               onClick={() => setCurrentImageIndex(index)}
-                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 hover:scale-110 ${
                                 currentImageIndex === index 
-                                  ? 'border-primary shadow-lg scale-105' 
-                                  : 'border-gray-200 hover:border-gray-300 hover:scale-102'
+                                  ? 'border-primary shadow-lg scale-105 ring-2 ring-primary/20' 
+                                  : 'border-border hover:border-primary/50 hover:shadow-md'
                               }`}
                             >
                               <ResponsiveImage
                                 src={image}
                                 alt={`Thumbnail ${index + 1}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full transition-transform duration-300 hover:scale-105"
+                                style={{ 
+                                  imageOrientation: 'from-image',
+                                  objectFit: 'cover',
+                                  objectPosition: 'center'
+                                }}
                               />
                             </button>
                           ))}
@@ -1395,29 +1405,29 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 text-sm bg-muted/30 p-4 rounded-lg">
+                        <div className="grid grid-cols-1 gap-4 text-sm bg-muted/20 p-4 rounded-lg border border-border/50">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-100/50 rounded-full flex items-center justify-center">
-                              <MapPin className="w-4 h-4 text-blue-600" />
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <MapPin className="w-4 h-4 text-primary" />
                             </div>
                             <div>
-                              <span className="text-gray-600 text-xs uppercase tracking-wide">Location</span>
-                              <p className="font-semibold text-gray-900">{robot.location}</p>
+                              <span className="text-muted-foreground text-xs uppercase tracking-wide">Location</span>
+                              <p className="font-semibold text-foreground">{robot.location}</p>
                             </div>
                           </div>
                           
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-green-100/50 rounded-full flex items-center justify-center">
-                              <Package className="w-4 h-4 text-green-600" />
+                            <div className="w-8 h-8 bg-emerald-500/10 rounded-full flex items-center justify-center">
+                              <Package className="w-4 h-4 text-emerald-600" />
                             </div>
                             <div>
-                              <span className="text-gray-600 text-xs uppercase tracking-wide">Availability</span>
+                              <span className="text-muted-foreground text-xs uppercase tracking-wide">Availability</span>
                               <div className="flex items-center gap-2">
                                 <Badge variant={robot.availability === 'In Stock' ? 'default' : 'secondary'} className="text-xs">
                                   {robot.availability}
                                 </Badge>
                                 {robot.quantity && (
-                                  <span className="text-gray-900 font-semibold">({robot.quantity} units)</span>
+                                  <span className="text-foreground font-semibold">({robot.quantity} units)</span>
                                 )}
                               </div>
                             </div>
@@ -1425,12 +1435,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           
                           {robot.condition && (
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-purple-100/50 rounded-full flex items-center justify-center">
-                                <Settings className="w-4 h-4 text-purple-600" />
+                              <div className="w-8 h-8 bg-violet-500/10 rounded-full flex items-center justify-center">
+                                <Settings className="w-4 h-4 text-violet-600" />
                               </div>
                               <div>
-                                <span className="text-gray-600 text-xs uppercase tracking-wide">Condition</span>
-                                <p className="font-semibold text-gray-900">{robot.condition}</p>
+                                <span className="text-muted-foreground text-xs uppercase tracking-wide">Condition</span>
+                                <p className="font-semibold text-foreground">{robot.condition}</p>
                               </div>
                             </div>
                           )}
@@ -1463,12 +1473,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       </div>
                       
                       {!user && (
-                        <div className="text-center bg-amber-100/30 border border-amber-200 rounded-lg p-4">
-                          <p className="text-sm text-amber-800">
+                        <div className="text-center bg-card/80 border border-border rounded-lg p-4">
+                          <p className="text-sm text-muted-foreground">
                             Please{' '}
                             <Button 
                               variant="link" 
-                              className="p-0 h-auto text-amber-700 font-semibold underline" 
+                              className="p-0 h-auto text-primary font-semibold underline" 
                               onClick={() => navigate('/auth')}
                             >
                               log in
