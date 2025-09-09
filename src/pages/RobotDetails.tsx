@@ -2411,17 +2411,17 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         specifically matched to this robot with intelligent market analysis.
                       </p>
                       <div className="grid grid-cols-3 gap-4 mb-8">
-                        <div className="p-4 bg-card rounded-xl border border-blue-200 shadow-sm">
+                        <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
                           <Wrench className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                           <div className="text-sm font-semibold text-gray-700">Spare Parts</div>
                           <div className="text-xs text-gray-500">Smart Matching</div>
                         </div>
-                        <div className="p-4 bg-card rounded-xl border border-green-200 shadow-sm">
+                        <div className="p-4 bg-white rounded-xl border border-green-200 shadow-sm">
                           <Settings className="w-8 h-8 text-green-600 mx-auto mb-2" />
                           <div className="text-sm font-semibold text-gray-700">Services</div>
                           <div className="text-xs text-gray-500">Expert Providers</div>
                         </div>
-                        <div className="p-4 bg-card rounded-xl border border-purple-200 shadow-sm">
+                        <div className="p-4 bg-white rounded-xl border border-purple-200 shadow-sm">
                           <DollarSign className="w-8 h-8 text-purple-600 mx-auto mb-2" />
                           <div className="text-sm font-semibold text-gray-700">Finance</div>
                           <div className="text-xs text-gray-500">Funding Solutions</div>
