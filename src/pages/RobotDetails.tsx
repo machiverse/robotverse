@@ -1358,24 +1358,27 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   )}
                 </div>
 
-                <div className="bg-muted/20 p-4 rounded-lg border border-border grid gap-4 text-gray-800">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-primary" />
-                    <div>
-                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Location</p>
-                      <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Package className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Availability</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>{robot?.availability}</Badge>
-                        {robot?.quantity && <span>({robot.quantity} units)</span>}
-                      </div>
-                    </div>
-                  </div>
+               <div className="bg-muted/30 p-4 rounded-lg border border-border grid gap-6 text-gray-900">
+  <div className="flex items-center gap-3">
+    <MapPin className="w-5 h-5 text-primary" />
+    <div>
+      <p className="uppercase text-xs font-semibold tracking-wider text-gray-600">Location</p>
+      <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
+    </div>
+  </div>
+  <div className="flex items-center gap-3">
+    <Package className="w-5 h-5 text-emerald-600" />
+    <div>
+      <p className="uppercase text-xs font-semibold tracking-wider text-gray-600">Availability</p>
+      <div className="flex items-center gap-2">
+        <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>
+          {robot?.availability ?? 'Unknown'}
+        </Badge>
+        {robot?.quantity && <span>({robot.quantity} units)</span>}
+      </div>
+    </div>
+  </div>
+</div>
 
                   {robot?.condition && (
                     <div className="flex items-center gap-3">
