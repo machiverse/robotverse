@@ -1352,7 +1352,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
               <div className="space-y-6">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-extrabold text-blue-600">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
+                  <span className="text-4xl font-semibold text-blue-800">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
                   {outsideIndia && (
                     <Button variant="outline" size="sm" className="text-orange-700 border-orange-400 hover:bg-orange-100" onClick={handleImportQuote}>Import Quote</Button>
                   )}
@@ -1399,14 +1399,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               >
                 <MessageSquare className="w-5 h-5 mr-2" /> Ask Latest Price via WhatsApp
               </Button>
-              {/*<Button
+              <Button
                 className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
                 onClick={handleContactSeller}
                 disabled={!user}
                 size="lg"
               >
                 <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
-              </Button>*/}
+              </Button>
               {!user && (
                 <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
                   Please{' '}
