@@ -1228,7 +1228,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
     return (
       <div className="min-h-screen bg-muted/20">
-      <EnhancedHeader />
+        <EnhancedHeader />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header Navigation */}
         <div className="flex items-center justify-between mb-6">
@@ -1425,9 +1425,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       </CardContent>
     </Card>
 
-            {/* Quick Actions */}
-            {user && (
-              <Card>
+    {/* Quick Actions */}
+    {user && (
+      <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Quick Actions</CardTitle>
                 </CardHeader>
@@ -2316,7 +2316,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </CardContent>
             </Card>
 
-
             {/* AI Analysis Section */}
             {user && (
               <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
@@ -2391,7 +2390,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             )}
           </div>
 
-          {/* EMI Calculator Modal */}
+        {/* EMI Calculator Modal */}
           <Dialog open={showEmiCalculator} onOpenChange={setShowEmiCalculator}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -2506,6 +2505,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* Fullscreen Image Modal */}
