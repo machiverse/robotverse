@@ -1194,8 +1194,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-muted/20">
         <EnhancedHeader />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-12">
@@ -1209,7 +1209,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
   if (error || !robot) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-muted/20">
         <EnhancedHeader />
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center py-12">
@@ -1226,8 +1226,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
+    return (
+      <div className="min-h-screen bg-muted/20">
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header Navigation */}
