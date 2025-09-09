@@ -1844,7 +1844,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Services */}
-                  <TabsContent value="services" className="p-6">
+                  <TabsContent value="services" className="p-6 bg-white">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Available Services</h3>
@@ -1865,7 +1865,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       ) : services.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {services.map((service) => (
-                            <Card key={service.id} className="hover:shadow-md transition-shadow">
+                            <Card key={service.id} className="hover:shadow-md transition-shadow bg-white border border-gray-200">
                               <CardContent className="p-4">
                                 <div className="space-y-3">
                                   <div className="flex items-start justify-between">
@@ -1939,7 +1939,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Spare Parts */}
-                  <TabsContent value="spareparts" className="p-6">
+                  <TabsContent value="spareparts" className="p-6 bg-white">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Compatible Spare Parts</h3>
@@ -1960,7 +1960,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       ) : spareParts.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {spareParts.map((part) => (
-                            <Card key={part.id} className="hover:shadow-md transition-shadow border border-gray-200">
+                            <Card key={part.id} className="hover:shadow-md transition-shadow border border-gray-200 bg-white">
                               <CardContent className="p-4">
                                 <div className="space-y-4">
                                   {part.images && part.images.length > 0 && (
@@ -2058,7 +2058,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Financing */}
-                  <TabsContent value="financing" className="p-6">
+                  <TabsContent value="financing" className="p-6 bg-white">
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div>
@@ -2082,7 +2082,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       ) : financingOptions.length > 0 ? (
                         <div className="grid gap-6">
                           {financingOptions.map((option) => (
-                            <Card key={option.id} className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+                            <Card key={option.id} className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow bg-white">
                               <CardContent className="p-6">
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
@@ -2251,7 +2251,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Logistics */}
-                  <TabsContent value="logistics" className="p-6">
+                  <TabsContent value="logistics" className="p-6 bg-white">
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-xl font-semibold flex items-center">
@@ -2271,7 +2271,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       ) : logisticsServices.length > 0 ? (
                         <div className="grid gap-4">
                           {logisticsServices.map((service) => (
-                            <Card key={service.id} className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
+                            <Card key={service.id} className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow bg-white">
                               <CardContent className="p-6">
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
