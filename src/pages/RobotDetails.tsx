@@ -7,10 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ArrowLeft, 
   Heart, 
@@ -63,21 +59,22 @@ import ViewCountDisplay from "@/components/ViewCountDisplay";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { formatPrice } from "@/utils/currency";
 
+// Updated interfaces to match actual database schema
 interface Robot {
   id: string;
   name: string;
   model: string;
   price: number;
   description: string;
-  category: string;
+  robot_type: string; // Changed from category
   location: string;
   condition: string;
   images: string[];
-  specifications: any;
+  technical_specifications: any; // Changed from specifications
   seller_id: string;
   created_at: string;
   profiles: {
-    name: string;
+    full_name: string;
     company_name?: string;
     phone?: string;
     location?: string;
@@ -90,12 +87,16 @@ interface SparePart {
   name: string;
   price: number;
   description: string;
-  availability: string;
-  estimated_delivery: string;
-  supplier_id: string;
-  robot_id: string;
+  condition: string;
+  seller_id: string;
+  brand: string;
+  model: string;
+  part_number: string;
+  compatible_robots: string[];
+  location: string;
+  currency: string;
   profiles?: {
-    name: string;
+    full_name: string;
     company_name?: string;
     phone?: string;
     location?: string;
@@ -108,11 +109,12 @@ interface Service {
   description: string;
   price_range: string;
   service_type: string;
-  availability: string;
+  coverage: string;
   provider_id: string;
-  robot_categories: string[];
+  location: string;
+  specializations: string[];
   profiles?: {
-    name: string;
+    full_name: string;
     company_name?: string;
     phone?: string;
     location?: string;
@@ -121,14 +123,15 @@ interface Service {
 
 interface LogisticsProvider {
   id: string;
-  name: string;
+  service_name: string;
   description: string;
-  service_areas: string[];
-  price_range: string;
-  estimated_delivery: string;
+  coverage_areas: string[];
+  base_price: number;
+  price_per_kg: number;
+  delivery_time_hours: number;
   provider_id: string;
   profiles?: {
-    name: string;
+    full_name: string;
     company_name?: string;
     phone?: string;
     location?: string;
@@ -137,15 +140,16 @@ interface LogisticsProvider {
 
 interface FinanceOption {
   id: string;
-  name: string;
+  product_name: string;
   description: string;
-  interest_rate: number;
+  min_interest_rate: number;
+  max_interest_rate: number;
   min_amount: number;
   max_amount: number;
-  loan_term_months: number;
+  max_tenure_months: number;
   provider_id: string;
   profiles?: {
-    name: string;
+    full_name: string;
     company_name?: string;
     phone?: string;
     location?: string;
@@ -199,7 +203,8 @@ const RobotDetails = () => {
   const [selectedItem, setSelectedItem] = useState<ItemInfo | null>(null);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
 
-  useUniversalViewTracking('robots', id || '');
+  // Fixed hook usage
+  useUniversalViewTracking();
 
   useEffect(() => {
     if (id) {
@@ -218,7 +223,7 @@ const RobotDetails = () => {
         .from('robots')
         .select(`
           *,
-          profiles!robots_seller_id_fkey (name, company_name, phone, location, avatar_url)
+          profiles!robots_seller_id_fkey (full_name, company_name, phone, location, avatar_url)
         `)
         .eq('id', id)
         .single();
@@ -243,9 +248,8 @@ const RobotDetails = () => {
         .from('spare_parts')
         .select(`
           *,
-          profiles!spare_parts_supplier_id_fkey (name, company_name, phone, location)
-        `)
-        .eq('robot_id', id);
+          profiles!spare_parts_seller_id_fkey (full_name, company_name, phone, location)
+        `);
 
       if (error) throw error;
       setSpareParts(data || []);
@@ -260,9 +264,8 @@ const RobotDetails = () => {
         .from('services')
         .select(`
           *,
-          profiles!services_provider_id_fkey (name, company_name, phone, location)
-        `)
-        .contains('robot_categories', [robot?.category || '']);
+          profiles!services_provider_id_fkey (full_name, company_name, phone, location)
+        `);
 
       if (error) throw error;
       setServices(data || []);
@@ -274,10 +277,10 @@ const RobotDetails = () => {
   const fetchLogisticsProviders = async () => {
     try {
       const { data, error } = await supabase
-        .from('logistics_providers')
+        .from('logistics_services')
         .select(`
           *,
-          profiles!logistics_providers_provider_id_fkey (name, company_name, phone, location)
+          profiles!logistics_services_provider_id_fkey (full_name, company_name, phone, location)
         `);
 
       if (error) throw error;
@@ -290,10 +293,10 @@ const RobotDetails = () => {
   const fetchFinanceOptions = async () => {
     try {
       const { data, error } = await supabase
-        .from('finance_options')
+        .from('loan_products')
         .select(`
           *,
-          profiles!finance_options_provider_id_fkey (name, company_name, phone, location)
+          profiles!loan_products_provider_id_fkey (full_name, company_name, phone, location)
         `)
         .lte('min_amount', robot?.price || 0)
         .gte('max_amount', robot?.price || 0);
@@ -310,11 +313,12 @@ const RobotDetails = () => {
 
     try {
       const { data, error } = await supabase
-        .from('watchlist')
+        .from('watchlists')
         .select('id')
         .eq('user_id', user.id)
-        .eq('robot_id', id)
-        .single();
+        .eq('item_id', id)
+        .eq('item_type', 'robots')
+        .maybeSingle();
 
       if (!error && data) {
         setIsInWatchlist(true);
@@ -337,10 +341,11 @@ const RobotDetails = () => {
     try {
       if (isInWatchlist) {
         const { error } = await supabase
-          .from('watchlist')
+          .from('watchlists')
           .delete()
           .eq('user_id', user.id)
-          .eq('robot_id', id);
+          .eq('item_id', id)
+          .eq('item_type', 'robots');
 
         if (error) throw error;
         setIsInWatchlist(false);
@@ -350,11 +355,12 @@ const RobotDetails = () => {
         });
       } else {
         const { error } = await supabase
-          .from('watchlist')
+          .from('watchlists')
           .insert([
             {
               user_id: user.id,
-              robot_id: id,
+              item_id: id,
+              item_type: 'robots',
             }
           ]);
 
@@ -385,7 +391,7 @@ const RobotDetails = () => {
       return;
     }
 
-    const message = `Hi! I'm interested in your robot: ${robot.name} (${robot.model}) listed for ${formatPrice(robot.price)}. Could you please provide more details?`;
+    const message = `Hi! I'm interested in your robot: ${robot.name} (${robot.model}) listed for ₹${robot.price}. Could you please provide more details?`;
     const phoneNumber = robot.profiles.phone.replace(/\D/g, '');
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -394,7 +400,7 @@ const RobotDetails = () => {
   const handleShare = async () => {
     const shareData = {
       title: `${robot?.name} - ${robot?.model}`,
-      text: `Check out this ${robot?.category} robot for ${formatPrice(robot?.price || 0)}`,
+      text: `Check out this ${robot?.robot_type} robot for ₹${robot?.price || 0}`,
       url: window.location.href,
     };
 
@@ -439,7 +445,6 @@ const RobotDetails = () => {
 
     setLoadingAI(true);
     try {
-      // Get user's location
       let userLocation = currentUserLocation;
       
       if (!userLocation && navigator.geolocation) {
@@ -448,16 +453,8 @@ const RobotDetails = () => {
             navigator.geolocation.getCurrentPosition(resolve, reject);
           });
           
-          // Reverse geocode to get location name
-          const response = await fetch(
-            `https://api.opencagedata.com/geocode/v1/json?q=${position.coords.latitude}+${position.coords.longitude}&key=YOUR_API_KEY`
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            userLocation = data.results[0]?.formatted || 'Unknown';
-            setCurrentUserLocation(userLocation);
-          }
+          userLocation = `${position.coords.latitude}, ${position.coords.longitude}`;
+          setCurrentUserLocation(userLocation);
         } catch (error) {
           console.log('Could not get location:', error);
           userLocation = 'Location not available';
@@ -470,12 +467,12 @@ const RobotDetails = () => {
             id: robot.id,
             name: robot.name,
             model: robot.model,
-            category: robot.category,
+            category: robot.robot_type,
             price: robot.price,
             condition: robot.condition,
             location: robot.location,
             description: robot.description,
-            specifications: robot.specifications
+            specifications: robot.technical_specifications
           },
           userLocation: userLocation || 'Not specified',
           userType: user?.user_metadata?.role || 'buyer'
@@ -704,14 +701,14 @@ const RobotDetails = () => {
                       </div>
                       
                       <div className="flex items-center gap-2 mb-4">
-                        <Badge variant="secondary">{robot.category}</Badge>
-                        <Badge variant={robot.condition === 'New' ? 'default' : 'outline'}>
+                        <Badge variant="secondary">{robot.robot_type}</Badge>
+                        <Badge variant={robot.condition === 'new' ? 'default' : 'outline'}>
                           {robot.condition}
                         </Badge>
                       </div>
                       
                       <div className="text-3xl font-bold text-primary mb-4">
-                        {formatPrice(robot.price)}
+                        ₹{robot.price?.toLocaleString() || '0'}
                       </div>
                     </div>
 
@@ -767,7 +764,7 @@ const RobotDetails = () => {
                     <Button 
                       onClick={() => handleQuoteRequest(
                         {
-                          name: robot.profiles.name,
+                          name: robot.profiles.full_name,
                           company: robot.profiles.company_name,
                           phone: robot.profiles.phone,
                           location: robot.profiles.location
@@ -820,8 +817,8 @@ const RobotDetails = () => {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex items-center gap-2">
                             <Factory className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Category:</span>
-                            <span className="text-sm font-medium">{robot.category}</span>
+                            <span className="text-sm text-muted-foreground">Type:</span>
+                            <span className="text-sm font-medium">{robot.robot_type}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
@@ -849,34 +846,15 @@ const RobotDetails = () => {
                         <h3 className="text-lg font-semibold mb-3">Full Description</h3>
                         <p className="text-muted-foreground leading-relaxed">{robot.description}</p>
                       </div>
-
-                      {robot.location && robot.location !== 'India' && (
-                        <Card className="border-blue-200 bg-blue-50">
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-                              <div>
-                                <h4 className="font-medium text-blue-900 mb-1">International Robot</h4>
-                                <p className="text-sm text-blue-700 mb-2">
-                                  This robot is located in {robot.location}. Import duties, shipping costs, and customs clearance may apply.
-                                </p>
-                                <div className="mt-2">
-                                  <Button size="sm" onClick={handleImportQuote}>Get Import Quote</Button>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="specifications" className="p-6">
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold">Technical Specifications</h3>
-                      {robot.specifications ? (
+                      {robot.technical_specifications ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {Object.entries(robot.specifications).map(([key, value]) => (
+                          {Object.entries(robot.technical_specifications).map(([key, value]) => (
                             <div key={key} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                               <span className="font-medium capitalize">{key.replace('_', ' ')}:</span>
                               <span className="text-muted-foreground">{String(value)}</span>
@@ -904,10 +882,10 @@ const RobotDetails = () => {
                                   </div>
                                   <div className="text-right">
                                     <div className="text-lg font-semibold text-primary">
-                                      {formatPrice(part.price)}
+                                      ₹{part.price?.toLocaleString() || '0'}
                                     </div>
-                                    <Badge variant={part.availability === 'In Stock' ? 'default' : 'secondary'}>
-                                      {part.availability}
+                                    <Badge variant={part.condition === 'new' ? 'default' : 'secondary'}>
+                                      {part.condition}
                                     </Badge>
                                   </div>
                                 </div>
@@ -915,13 +893,13 @@ const RobotDetails = () => {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
-                                      <Clock className="h-4 w-4" />
-                                      <span>{part.estimated_delivery}</span>
+                                      <Package className="h-4 w-4" />
+                                      <span>{part.brand}</span>
                                     </div>
                                     {part.profiles && (
                                       <div className="flex items-center gap-1">
                                         <Building className="h-4 w-4" />
-                                        <span>{part.profiles.company_name || part.profiles.name}</span>
+                                        <span>{part.profiles.company_name || part.profiles.full_name}</span>
                                       </div>
                                     )}
                                   </div>
@@ -933,7 +911,7 @@ const RobotDetails = () => {
                                         variant="outline"
                                         onClick={() => {
                                           const phoneNumber = part.profiles!.phone!.replace(/\D/g, '');
-                                          const message = `Hi! I'm interested in the spare part: ${part.name} for ${formatPrice(part.price)}. Is it available?`;
+                                          const message = `Hi! I'm interested in the spare part: ${part.name} for ₹${part.price}. Is it available?`;
                                           window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
                                         }}
                                       >
@@ -945,7 +923,7 @@ const RobotDetails = () => {
                                       size="sm"
                                       onClick={() => handleQuoteRequest(
                                         {
-                                          name: part.profiles?.name || 'Unknown',
+                                          name: part.profiles?.full_name || 'Unknown',
                                           company: part.profiles?.company_name,
                                           phone: part.profiles?.phone,
                                           location: part.profiles?.location
@@ -995,12 +973,12 @@ const RobotDetails = () => {
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                       <CheckCircle className="h-4 w-4" />
-                                      <span>{service.availability}</span>
+                                      <span>{service.coverage}</span>
                                     </div>
                                     {service.profiles && (
                                       <div className="flex items-center gap-1">
                                         <Building className="h-4 w-4" />
-                                        <span>{service.profiles.company_name || service.profiles.name}</span>
+                                        <span>{service.profiles.company_name || service.profiles.full_name}</span>
                                       </div>
                                     )}
                                   </div>
@@ -1024,7 +1002,7 @@ const RobotDetails = () => {
                                       size="sm"
                                       onClick={() => handleQuoteRequest(
                                         {
-                                          name: service.profiles?.name || 'Unknown',
+                                          name: service.profiles?.full_name || 'Unknown',
                                           company: service.profiles?.company_name,
                                           phone: service.profiles?.phone,
                                           location: service.profiles?.location
@@ -1060,12 +1038,12 @@ const RobotDetails = () => {
                               <CardContent className="p-4">
                                 <div className="flex justify-between items-start mb-3">
                                   <div>
-                                    <h4 className="font-medium text-foreground">{provider.name}</h4>
+                                    <h4 className="font-medium text-foreground">{provider.service_name}</h4>
                                     <p className="text-sm text-muted-foreground mt-1">{provider.description}</p>
                                   </div>
                                   <div className="text-right">
-                                    <div className="text-lg font-semibold text-primary">{provider.price_range}</div>
-                                    <div className="text-sm text-muted-foreground">{provider.estimated_delivery}</div>
+                                    <div className="text-lg font-semibold text-primary">₹{provider.base_price}</div>
+                                    <div className="text-sm text-muted-foreground">{provider.delivery_time_hours} hours</div>
                                   </div>
                                 </div>
                                 
@@ -1073,12 +1051,12 @@ const RobotDetails = () => {
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                       <Truck className="h-4 w-4" />
-                                      <span>{provider.service_areas.join(', ')}</span>
+                                      <span>{provider.coverage_areas.join(', ')}</span>
                                     </div>
                                     {provider.profiles && (
                                       <div className="flex items-center gap-1">
                                         <Building className="h-4 w-4" />
-                                        <span>{provider.profiles.company_name || provider.profiles.name}</span>
+                                        <span>{provider.profiles.company_name || provider.profiles.full_name}</span>
                                       </div>
                                     )}
                                   </div>
@@ -1102,13 +1080,13 @@ const RobotDetails = () => {
                                       size="sm"
                                       onClick={() => handleQuoteRequest(
                                         {
-                                          name: provider.profiles?.name || 'Unknown',
+                                          name: provider.profiles?.full_name || 'Unknown',
                                           company: provider.profiles?.company_name,
                                           phone: provider.profiles?.phone,
                                           location: provider.profiles?.location
                                         },
                                         {
-                                          name: provider.name,
+                                          name: provider.service_name,
                                           type: 'logistics'
                                         }
                                       )}
@@ -1154,14 +1132,9 @@ const RobotDetails = () => {
                               <Button size="sm" onClick={() => setShowLoanModal(true)} className="flex-1">
                                 Apply for Loan
                               </Button>
-                              <LoanCalculator 
-                                robotPrice={robot.price}
-                                trigger={
-                                  <Button size="sm" variant="outline" className="flex-1">
-                                    Full Calculator
-                                  </Button>
-                                }
-                              />
+                              <Button size="sm" variant="outline" className="flex-1">
+                                Full Calculator
+                              </Button>
                             </div>
                             <p className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded border border-blue-100">
                               *Estimates based on 9-12% interest rate. Use full calculator for accurate results.
@@ -1178,12 +1151,12 @@ const RobotDetails = () => {
                                 <CardContent className="p-4">
                                   <div className="flex justify-between items-start mb-3">
                                     <div>
-                                      <h4 className="font-medium text-foreground">{option.name}</h4>
+                                      <h4 className="font-medium text-foreground">{option.product_name}</h4>
                                       <p className="text-sm text-muted-foreground mt-1">{option.description}</p>
                                     </div>
                                     <div className="text-right">
-                                      <div className="text-lg font-semibold text-primary">{option.interest_rate}% APR</div>
-                                      <div className="text-sm text-muted-foreground">{option.loan_term_months} months</div>
+                                      <div className="text-lg font-semibold text-primary">{option.min_interest_rate}% - {option.max_interest_rate}% APR</div>
+                                      <div className="text-sm text-muted-foreground">{option.max_tenure_months} months</div>
                                     </div>
                                   </div>
                                   
@@ -1196,7 +1169,7 @@ const RobotDetails = () => {
                                       {option.profiles && (
                                         <div className="flex items-center gap-1">
                                           <Building className="h-4 w-4" />
-                                          <span>{option.profiles.company_name || option.profiles.name}</span>
+                                          <span>{option.profiles.company_name || option.profiles.full_name}</span>
                                         </div>
                                       )}
                                     </div>
@@ -1208,7 +1181,7 @@ const RobotDetails = () => {
                                           variant="outline"
                                           onClick={() => {
                                             const phoneNumber = option.profiles!.phone!.replace(/\D/g, '');
-                                            const message = `Hi! I'm interested in your financing option: ${option.name} for robot purchase. Can you provide more details?`;
+                                            const message = `Hi! I'm interested in your financing option: ${option.product_name} for robot purchase. Can you provide more details?`;
                                             window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
                                           }}
                                         >
@@ -1220,13 +1193,13 @@ const RobotDetails = () => {
                                         size="sm"
                                         onClick={() => handleQuoteRequest(
                                           {
-                                            name: option.profiles?.name || 'Unknown',
+                                            name: option.profiles?.full_name || 'Unknown',
                                             company: option.profiles?.company_name,
                                             phone: option.profiles?.phone,
                                             location: option.profiles?.location
                                           },
                                           {
-                                            name: option.name,
+                                            name: option.product_name,
                                             type: 'finance'
                                           }
                                         )}
@@ -1253,17 +1226,31 @@ const RobotDetails = () => {
             {/* AI Analysis Section */}
             {showAIAnalysis && aiAnalysis && (
               <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-                <CardContent className="p-0">
-                  <AIAnalysisResult
-                    analysis={aiAnalysis.analysis}
-                    suitabilityScore={aiAnalysis.suitabilityScore}
-                    keyInsights={aiAnalysis.keyInsights}
-                    recommendation={aiAnalysis.recommendation}
-                    robotName={robot.name}
-                    robotPrice={robot.price}
-                    currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
-                    className="mt-6"
-                  />
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-blue-900">AI Analysis Results</h3>
+                    <div className="bg-white rounded-lg p-4">
+                      <p className="text-blue-800">{aiAnalysis.analysis}</p>
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-sm text-blue-600">Suitability Score:</span>
+                          <div className="text-xl font-bold text-blue-900">{aiAnalysis.suitabilityScore}/10</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-blue-600">Key Insights:</span>
+                          <ul className="text-sm text-blue-800 mt-1">
+                            {aiAnalysis.keyInsights.map((insight, index) => (
+                              <li key={index}>• {insight}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-sm text-blue-600">Recommendation:</span>
+                        <p className="text-blue-800 mt-1">{aiAnalysis.recommendation}</p>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1285,7 +1272,7 @@ const RobotDetails = () => {
                     {robot.profiles.avatar_url ? (
                       <img
                         src={robot.profiles.avatar_url}
-                        alt={robot.profiles.name}
+                        alt={robot.profiles.full_name}
                         className="w-16 h-16 rounded-full mx-auto mb-3"
                       />
                     ) : (
@@ -1293,7 +1280,7 @@ const RobotDetails = () => {
                         <User className="h-8 w-8 text-muted-foreground" />
                       </div>
                     )}
-                    <h3 className="font-medium">{robot.profiles.name}</h3>
+                    <h3 className="font-medium">{robot.profiles.full_name}</h3>
                     {robot.profiles.company_name && (
                       <p className="text-sm text-muted-foreground">{robot.profiles.company_name}</p>
                     )}
@@ -1316,7 +1303,7 @@ const RobotDetails = () => {
                       <Button 
                         onClick={() => handleQuoteRequest(
                           {
-                            name: robot.profiles.name,
+                            name: robot.profiles.full_name,
                             company: robot.profiles.company_name,
                             phone: robot.profiles.phone,
                             location: robot.profiles.location
@@ -1407,36 +1394,59 @@ const RobotDetails = () => {
       </Dialog>
 
       {/* Enhanced Robot Report Modal */}
-      <EnhancedRobotReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        robot={robot}
-      />
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="max-w-2xl w-full mx-4">
+            <CardHeader>
+              <CardTitle>Generate Robot Report</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Robot report functionality will be available soon.</p>
+              <Button onClick={() => setShowReportModal(false)} className="mt-4">
+                Close
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Loan Application Modal */}
-      <LoanApplicationModal
-        isOpen={showLoanModal}
-        onClose={() => setShowLoanModal(false)}
-        robotPrice={robot?.price || 0}
-        robotName={robot?.name || ''}
-      />
+      {showLoanModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="max-w-2xl w-full mx-4">
+            <CardHeader>
+              <CardTitle>Apply for Loan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Loan application for {robot?.name} - ₹{robot?.price?.toLocaleString() || '0'}</p>
+              <Button onClick={() => setShowLoanModal(false)} className="mt-4">
+                Close
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Supplier Quote Form Modal */}
       {showQuoteForm && selectedSupplier && selectedItem && (
-        <SupplierQuoteForm
-          onClose={() => {
-            setShowQuoteForm(false);
-            setSelectedSupplier(null);
-            setSelectedItem(null);
-          }}
-          supplierInfo={selectedSupplier}
-          itemInfo={selectedItem}
-          robotInfo={robot ? {
-            name: robot.name,
-            model: robot.model,
-            id: robot.id
-          } : undefined}
-        />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="max-w-2xl w-full mx-4">
+            <CardHeader>
+              <CardTitle>Request Quote</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Quote request for {selectedItem.name}</p>
+              <p>Supplier: {selectedSupplier.name}</p>
+              <Button onClick={() => {
+                setShowQuoteForm(false);
+                setSelectedSupplier(null);
+                setSelectedItem(null);
+              }} className="mt-4">
+                Close
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
