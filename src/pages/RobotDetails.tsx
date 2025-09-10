@@ -1344,7 +1344,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           {/* Robot information panel */}
           <div className="p-6 bg-card rounded-lg shadow-inner text-gray-900 flex flex-col justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-primary leading-tight">{robot?.name}</h1>
+              {/*} <h1 className="text-2xl font-bold text-primary leading-tight">{robot?.name}</h1>*/}
               <div className="flex flex-wrap gap-2 mb-6">
                 
                <Card>
@@ -1364,7 +1364,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               <div className="space-y-6">
                 <div className="flex items-baseline gap-3">
                   <h1 className="text-2xl font-bold text-primary leading-tight">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</h1>
-                  <span className="text-3xl font-semibold text-blue-900">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
+                  {/*<span className="text-3xl font-semibold text-blue-900">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>*/}
                   {outsideIndia && (
                     <Button variant="outline" size="sm" className="text-orange-700 border-orange-400 hover:bg-orange-100" onClick={handleImportQuote}>Import Quote</Button>
                   )}
