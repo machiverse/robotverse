@@ -12,7 +12,7 @@ import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
-import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck, MessageSquare, Calendar, Share2 } from "lucide-react";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck, MessageSquare } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import RobotReportModal from "@/components/RobotReportModal";
@@ -1313,109 +1313,114 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               )}
             </div>
             {/* Thumbnails */}
-            {robot.images?.length > 1 && (
-                <div className="p-4">
-                  <div className="flex space-x-2 overflow-x-auto">
-                    {robot.images.map((image, index) => (
-                     <button
-                        key={index}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all group ${
-                          index === currentImageIndex 
-                            ? 'border-primary' 
-                            : 'border-muted hover:border-muted-foreground'
-                        }`}
-                        onClick={() => setCurrentImageIndex(index)}
-                      >
-                        <img
-                          src={image}
-                          alt={`${robot.name} ${index + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
-                          style={{
-                            imageOrientation: 'from-image'
-                          }}
-                        />
-                      </button>
+            {robot?.images && robot.images.length > 1 && (
+              <div className="mt-4 border-t border-border bg-card p-4 rounded-b-lg">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                  {robot.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-transform duration-300 ${
+                        currentImageIndex === idx
+                          ? 'border-primary shadow-lg scale-105 ring-2 ring-primary/30'
+                          : 'border-border hover:border-primary hover:shadow-md'
+                      }`}
+                      aria-label={`Select image ${idx + 1}`}
+                    >
+                      <ResponsiveImage
+                        src={img}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover object-center"
+                        style={{ imageOrientation: 'from-image' }}
+                      />
+                    </button>
                   ))}
                 </div>
               </div>
             )}
           </div>
 
-           {/* Robot Information */}
-          <div className="space-y-6">
-            {/* Basic Info Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl font-bold text-primary leading-tight">{robot.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1 font-medium">{robot.robot_type}</p>
-                  </div>
-                  <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50 font-semibold">
-                    {robot.availability}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-3xl font-bold text-primary">
-                      {formatPrice(robot.price, robot.currency)}
-                    </span>
-                    <div className="flex items-center space-x-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span className="font-medium">{robot.location}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-card p-3 rounded-lg border">
-                    <div className="flex items-center space-x-2">
-                      <Settings className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Condition:</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{robot.condition}</span>
-                  </div>
-                  <div className="bg-card p-3 rounded-lg border">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Year:</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
-                  </div>
+          {/* Robot information panel */}
+          <div className="p-6 bg-card rounded-lg shadow-inner text-gray-900 flex flex-col justify-between">
+            <div>
+              <h1 className="text-3xl font-semibold text-blue-900">{robot?.name}</h1>
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Badge variant="secondary" className="text-sm">{robot?.model}</Badge>
+                <Badge variant="outline" className="text-sm text-blue-700 border-blue-300">{robot?.robot_type}</Badge>
+                {robot?.brand && <Badge variant="outline" className="text-sm text-green-700 border-green-300">{robot.brand}</Badge>}
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-semibold text-blue-900">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
+                  {outsideIndia && (
+                    <Button variant="outline" size="sm" className="text-orange-700 border-orange-400 hover:bg-orange-100" onClick={handleImportQuote}>Import Quote</Button>
+                  )}
                 </div>
 
-                {/* Contact Actions */}
-                <div className="pt-4 border-t space-y-3">
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                    size="lg"
-                    onClick={handleWhatsAppInquiry}
-                  >
-                    <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.251"/>
-                    </svg>
-                    Ask Latest Price via WhatsApp
-                  </Button>
-                  
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={handleAddToWatchlist}
-                    >
-                      <Heart className={`h-4 w-4 mr-2 ${isInWatchlist ? 'fill-current text-red-500' : ''}`} />
-                      {isInWatchlist ? 'Saved' : 'Save'}
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share
-                    </Button>
+                <div className="bg-muted/20 p-4 rounded-lg border border-border grid gap-4 text-gray-800">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Location</p>
+                      <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
+                    </div>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <Package className="w-5 h-5 text-emerald-600" />
+                    <div>
+                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Availability</p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>{robot?.availability}</Badge>
+                        {robot?.quantity && <span>({robot.quantity} units)</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {robot?.condition && (
+                    <div className="flex items-center gap-3">
+                      <Settings className="w-5 h-5 text-violet-600" />
+                      <div>
+                        <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
+                        <p className="capitalize font-semibold">{robot.condition.replace(/_/g, ' ')}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col space-y-3">
+              <Button
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+                onClick={handleWhatsAppInquiry}
+                disabled={!user}
+                size="lg"
+              >
+                <MessageSquare className="w-5 h-5 mr-2" /> Ask Latest Price via WhatsApp
+              </Button>
+              <Button
+                className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
+                onClick={handleContactSeller}
+                disabled={!user}
+                size="lg"
+              >
+                <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
+              </Button>
+              {!user && (
+                <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
+                  Please{' '}
+                  <Button variant="link" className="p-0 text-primary underline" onClick={() => navigate('/auth')}>
+                    log in
+                  </Button>{' '}
+                  to contact the seller or request quotes.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 
             {/* Quick Actions */}
             {user && (
@@ -2492,17 +2497,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       )}
                       {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
                     </Button>
-                   </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
-           </div>
+          </div>
         </div>
-        </CardContent>
-      </Card>
-    </div>
-  </div>
-</div>
+      </div>
 
       {/* Fullscreen Image Modal */}
       <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
