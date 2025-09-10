@@ -328,10 +328,10 @@ const RobotDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Image Gallery */}
           <div className="lg:col-span-2">
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden shadow-lg">
               <div className="relative">
                 <div 
-                  className="aspect-[4/3] bg-muted/20 flex items-center justify-center cursor-pointer group relative overflow-hidden"
+                  className="aspect-[16/10] bg-muted/20 flex items-center justify-center cursor-pointer group relative overflow-hidden"
                   onClick={() => setShowFullscreen(true)}
                 >
                   {currentImage ? (
