@@ -1,558 +1,1221 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { 
-  ArrowLeft, 
-  Heart, 
-  MessageCircle, 
-  Phone, 
-  MapPin, 
-  Calendar,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  Share2,
-  Search,
-  Download,
-  Maximize2,
-  Minimize2,
-  Users,
-  Building,
-  Clock,
-  ShieldCheck,
-  Star,
-  TrendingUp,
-  Zap,
-  Package,
-  Truck,
-  CreditCard,
-  Info,
-  ChevronDown,
-  ExternalLink,
-  MessageSquare,
-  Mail,
-  Globe,
-  User,
-  Factory,
-  Wrench,
-  DollarSign,
-  AlertCircle,
-  CheckCircle,
-  X
-} from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
-import { useToast } from "@/hooks/use-toast";
-import EnhancedHeader from "@/components/EnhancedHeader";
-import { useAuth } from "@/hooks/useAuth";
-import AIAnalysisResult from "@/components/AIAnalysisResult";
-import EnhancedRobotReportModal from "@/components/EnhancedRobotReportModal";
-import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LoanCalculator from "@/components/forms/LoanCalculator";
+import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
+import { Textarea } from "@/components/ui/textarea";
+import AIAnalysisResult from "@/components/AIAnalysisResult";
+import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck, MessageSquare, Calendar, Share2 } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
-import { formatPrice } from "@/utils/currency";
+import EnhancedHeader from "@/components/EnhancedHeader";
+import RobotReportModal from "@/components/RobotReportModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
+import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { type RobotSEOData } from "@/utils/seo";
+import { useRobotSEO } from "@/hooks/useRobotSEO";
 
-// Updated interfaces to match actual database schema
 interface Robot {
   id: string;
   name: string;
   model: string;
+  robot_type: string;
   price: number;
+  currency: string;
   description: string;
-  robot_type: string; // Changed from category
   location: string;
-  condition: string;
+  state?: string;
+  pincode?: string;
+  availability: string;
   images: string[];
-  technical_specifications: any; // Changed from specifications
+  technical_specifications: Record<string, any>;
+  category_tags: string[];
+  quantity: number;
   seller_id: string;
-  created_at: string;
+  // Optional enhanced fields
+  brand?: string;
+  condition?: string;
+  year_manufactured?: number;
+  payload_capacity?: number;
+  reach?: number;
+  repeatability?: number;
+  power_consumption?: number;
+  operating_environment?: string;
+  warranty_info?: string;
+  certification_standards?: string[];
+  applications?: string[];
+  included_accessories?: string[];
+  controller_type?: string;
+  brochure_url?: string;
+  video_url?: string;
+  video_type?: string;
   profiles: {
     full_name: string;
-    company_name?: string;
-    phone?: string;
-    location?: string;
-    avatar_url?: string;
+    company_name: string;
+    phone: string;
+    mobile_number: string;
+    email: string;
+    location: string;
   };
 }
 
-interface SparePart {
+interface CustomField {
   id: string;
-  name: string;
-  price: number;
-  description: string;
-  condition: string;
-  seller_id: string;
-  brand: string;
-  model: string;
-  part_number: string;
-  compatible_robots: string[];
-  location: string;
-  currency: string;
-  profiles?: {
-    full_name: string;
-    company_name?: string;
-    phone?: string;
-    location?: string;
-  };
+  field_name: string;
+  field_value: string;
 }
 
-interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price_range: string;
-  service_type: string;
-  coverage: string;
-  provider_id: string;
-  location: string;
-  specializations: string[];
-  profiles?: {
-    full_name: string;
-    company_name?: string;
-    phone?: string;
-    location?: string;
-  };
+interface AIAnalysisData {
+  summary: string;
+  suitability?: string;
+  technicalInsights?: string;
+  governmentSchemes?: string;
+  suggestedIndustries?: string;
+  timestamp: string;
 }
 
-interface LogisticsProvider {
-  id: string;
-  service_name: string;
-  description: string;
-  coverage_areas: string[];
-  base_price: number;
-  price_per_kg: number;
-  delivery_time_hours: number;
-  provider_id: string;
-  profiles?: {
-    full_name: string;
-    company_name?: string;
-    phone?: string;
-    location?: string;
-  };
-}
-
-interface FinanceOption {
-  id: string;
-  product_name: string;
-  description: string;
-  min_interest_rate: number;
-  max_interest_rate: number;
-  min_amount: number;
-  max_amount: number;
-  max_tenure_months: number;
-  provider_id: string;
-  profiles?: {
-    full_name: string;
-    company_name?: string;
-    phone?: string;
-    location?: string;
-  };
-}
-
-interface AIAnalysis {
-  analysis: string;
-  suitabilityScore: number;
-  keyInsights: string[];
-  recommendation: string;
+interface AIAnalysisResult {
+  analysis: AIAnalysisData;
+  cached?: boolean;
   currentUserLocation?: string;
+  recommendations: {
+    spareParts: any[];
+    services: any[];
+    logistics: any[];
+    finance: any[];
+  };
 }
 
-interface SupplierInfo {
-  name: string;
-  company?: string;
-  phone?: string;
-  location?: string;
-}
-
-interface ItemInfo {
-  name: string;
-  price?: number;
-  type: 'part' | 'service' | 'logistics' | 'finance';
-}
+const INDIAN_STATES = [
+  'andhra pradesh', 'arunachal pradesh', 'assam', 'bihar', 'chhattisgarh', 'goa', 'gujarat',
+  'haryana', 'himachal pradesh', 'jharkhand', 'karnataka', 'kerala', 'madhya pradesh',
+  'maharashtra', 'manipur', 'meghalaya', 'mizoram', 'nagaland', 'odisha', 'punjab',
+  'rajasthan', 'sikkim', 'tamil nadu', 'telangana', 'tripura', 'uttar pradesh',
+  'uttarakhand', 'west bengal', 'delhi', 'jammu and kashmir', 'ladakh', 'chandigarh',
+  'dadra and nagar haveli and daman and diu', 'lakshadweep', 'puducherry'
+];
 
 const RobotDetails = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { trackRobotView } = useGlobalViewTracking();
+  const { trackButtonClick } = useButtonTracking();
   
   const [robot, setRobot] = useState<Robot | null>(null);
-  const [spareParts, setSpareParts] = useState<SparePart[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [logisticsProviders, setLogisticsProviders] = useState<LogisticsProvider[]>([]);
-  const [financeOptions, setFinanceOptions] = useState<FinanceOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Data states for tabs
+  const [services, setServices] = useState<any[]>([]);
+  const [spareParts, setSpareParts] = useState<any[]>([]);
+  const [financingOptions, setFinancingOptions] = useState<any[]>([]);
+  const [logisticsServices, setLogisticsServices] = useState<any[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingSpareParts, setLoadingSpareParts] = useState(false);
+  const [loadingFinancing, setLoadingFinancing] = useState(false);
+  const [loadingLogistics, setLoadingLogistics] = useState(false);
+  
+  // Enhanced states
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullscreen, setShowFullscreen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showLoanModal, setShowLoanModal] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
-  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
-  const [showQuoteForm, setShowQuoteForm] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<SupplierInfo | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ItemInfo | null>(null);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [quoteMessage, setQuoteMessage] = useState('');
+  const [addingToWatchlist, setAddingToWatchlist] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
-
-  // Fixed hook usage
-  useUniversalViewTracking();
-
+  const [showImportQuote, setShowImportQuote] = useState(false);
+  const [importDuty, setImportDuty] = useState<number | null>(null);
+  const [showEmiCalculator, setShowEmiCalculator] = useState(false);
+  const [currentUserLocation, setCurrentUserLocation] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'spareparts' | 'services' | 'logistics' | 'financing'>('overview');
+  
+  // Report generation states
+  const [showReportModal, setShowReportModal] = useState(false);
+  
+  // Quote form states
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  
+  // SEO hook
+  const { seoElements, generateSEO } = useRobotSEO();
+  const isIndianLocation = (state?: string, location?: string) => {
+    const s = (state || '').toLowerCase().replace(/\s+/g, '');
+    const loc = (location || '').toLowerCase();
+    
+    // Normalize INDIAN_STATES for comparison (remove spaces)
+    const normalizedStates = INDIAN_STATES.map(state => state.replace(/\s+/g, ''));
+    
+    if (s && normalizedStates.includes(s)) return true;
+    if (loc.includes('india')) return true;
+    return INDIAN_STATES.some(st => loc.includes(st));
+  };
+  const outsideIndia = robot ? !isIndianLocation(robot.state, robot.location) : false;
   useEffect(() => {
-    if (id) {
-      fetchRobotDetails();
-      fetchSpareParts();
-      fetchServices();
-      fetchLogisticsProviders();
-      fetchFinanceOptions();
-      checkWatchlistStatus();
-    }
-  }, [id, user]);
-
-  const fetchRobotDetails = async () => {
+  if (!id) return;
+  const fetchRobot = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('robots')
         .select(`
           *,
-          profiles!robots_seller_id_fkey (full_name, company_name, phone, location, avatar_url)
+          profiles!seller_id (
+            full_name,
+            company_name,
+            phone,
+            mobile_number,
+            email,
+            location
+          )
         `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      setRobot(data);
-    } catch (error) {
-      console.error('Error fetching robot details:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load robot details",
-        variant: "destructive",
+      setRobot({
+        ...data,
+        technical_specifications: typeof data.technical_specifications === 'object' && data.technical_specifications !== null 
+          ? data.technical_specifications as Record<string, any>
+          : {}
       });
+      
+      // Generate SEO elements for this robot
+      const robotSEOData: RobotSEOData = {
+        id: data.id,
+        brand: data.brand,
+        model: data.model,
+        payload_capacity: data.payload_capacity,
+        controller_type: data.controller_type,
+        year_manufactured: data.year_manufactured,
+        condition: data.condition,
+        reach: data.reach,
+        location: data.location,
+        state: data.state,
+        price: data.price,
+        currency: data.currency,
+        seller_name: data.profiles?.full_name,
+        company_name: data.profiles?.company_name,
+        applications: data.applications || [],
+        images: data.images || []
+      };
+      
+      generateSEO(robotSEOData);
+      
+      // Track this view for global counting (works for all users)
+      await trackRobotView(data.id, data);
+      
+      // Check if robot is in user's watchlist
+      if (user) {
+        const { data: watchlistData } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('item_type', 'robot')
+          .eq('item_id', data.id)
+          .single();
+        
+        setIsInWatchlist(!!watchlistData);
+      }
+
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to load robot details');
     } finally {
       setLoading(false);
     }
   };
+  fetchRobot();
+}, [id, user]);
 
-  const fetchSpareParts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('spare_parts')
-        .select(`
-          *,
-          profiles!spare_parts_seller_id_fkey (full_name, company_name, phone, location)
-        `);
+  // Fetch current user's location
+  useEffect(() => {
+    const fetchUserLocation = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('location')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching user location:', error);
+          return;
+        }
+        
+        if (data?.location) {
+          setCurrentUserLocation(data.location);
+        }
+      } catch (err) {
+        console.error('Error fetching user location:', err);
+      }
+    };
+    
+    fetchUserLocation();
+  }, [user]);
 
-      if (error) throw error;
-      setSpareParts(data || []);
-    } catch (error) {
-      console.error('Error fetching spare parts:', error);
-    }
-  };
+  useEffect(() => {
+    console.log('Logistics services loaded:', logisticsServices);
+  }, [logisticsServices]);
 
-  const fetchServices = async () => {
+  // Fetch services sorted by location proximity
+  const fetchRelatedServices = async () => {
+    setLoadingServices(true);
     try {
       const { data, error } = await supabase
         .from('services')
         .select(`
           *,
-          profiles!services_provider_id_fkey (full_name, company_name, phone, location)
-        `);
+          profiles!services_provider_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            mobile_number,
+            email,
+            location,
+            avatar_url
+          )
+        `)
+        .limit(10);
 
       if (error) throw error;
-      setServices(data || []);
-    } catch (error) {
-      console.error('Error fetching services:', error);
+      
+      // Sort by location proximity if user location is available
+      const sortedData = data?.sort((a, b) => {
+        if (!currentUserLocation) return 0;
+        
+        const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        const bDistance = b.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        
+        return aDistance - bDistance;
+      });
+
+      setServices(sortedData || []);
+    } catch (err) {
+      console.error('Error fetching services:', err);
+    } finally {
+      setLoadingServices(false);
     }
   };
 
-  const fetchLogisticsProviders = async () => {
+  // Fetch spare parts filtered by robot compatibility
+  const fetchCompatibleSpareParts = async () => {
+    setLoadingSpareParts(true);
     try {
-      const { data, error } = await supabase
-        .from('logistics_services')
+      let query = supabase
+        .from('spare_parts')
         .select(`
           *,
-          profiles!logistics_services_provider_id_fkey (full_name, company_name, phone, location)
+          profiles!spare_parts_seller_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            mobile_number,
+            email,
+            location
+          )
         `);
 
+      // Filter by robot compatibility if robot is loaded
+      if (robot) {
+        query = query.or(`compatible_robots.cs.{${robot.model}},compatible_robots.cs.{${robot.brand}},compatible_robots.cs.{${robot.name}}`);
+      }
+
+      const { data, error } = await query.limit(12);
+
       if (error) throw error;
-      setLogisticsProviders(data || []);
-    } catch (error) {
-      console.error('Error fetching logistics providers:', error);
+      
+      // Sort by location proximity if user location is available
+      const sortedData = data?.sort((a, b) => {
+        if (!currentUserLocation) return 0;
+        
+        const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        const bDistance = b.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        
+        return aDistance - bDistance;
+      });
+
+      setSpareParts(sortedData || []);
+    } catch (err) {
+      console.error('Error fetching spare parts:', err);
+    } finally {
+      setLoadingSpareParts(false);
     }
   };
 
-  const fetchFinanceOptions = async () => {
+  // Fetch all financing options from database
+  const fetchFinancingOptions = async () => {
+    setLoadingFinancing(true);
     try {
       const { data, error } = await supabase
         .from('loan_products')
         .select(`
           *,
-          profiles!loan_products_provider_id_fkey (full_name, company_name, phone, location)
+          profiles!loan_products_provider_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            location
+          )
         `)
-        .lte('min_amount', robot?.price || 0)
-        .gte('max_amount', robot?.price || 0);
+        .eq('is_active', true)
+        .limit(10);
 
       if (error) throw error;
-      setFinanceOptions(data || []);
-    } catch (error) {
-      console.error('Error fetching finance options:', error);
+      setFinancingOptions(data || []);
+    } catch (err) {
+      console.error('Error fetching financing:', err);
+    } finally {
+      setLoadingFinancing(false);
     }
   };
 
-  const checkWatchlistStatus = async () => {
-    if (!user || !id) return;
 
+  // Fetch logistics services sorted by location proximity
+  const fetchLogisticsServices = async () => {
+    setLoadingLogistics(true);
     try {
       const { data, error } = await supabase
-        .from('watchlists')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('item_id', id)
-        .eq('item_type', 'robots')
-        .maybeSingle();
+        .from('logistics_services')
+        .select(`
+          *,
+          profiles!logistics_services_provider_id_fkey (
+            full_name,
+            company_name,
+            phone,
+            location,
+            email,
+            mobile_number
+          )
+        `)
+        .eq('is_active', true)
+        .limit(10);
 
-      if (!error && data) {
-        setIsInWatchlist(true);
-      }
-    } catch (error) {
-      console.error('Error checking watchlist status:', error);
+      if (error) throw error;
+      
+      // Sort by location proximity if user location is available
+      const sortedData = data?.sort((a, b) => {
+        if (!currentUserLocation) return 0;
+        
+        const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        const bDistance = b.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
+        
+        return aDistance - bDistance;
+      });
+
+      setLogisticsServices(sortedData || []);
+    } catch (err) {
+      console.error('Error fetching logistics services:', err);
+    } finally {
+      setLoadingLogistics(false);
     }
   };
 
+  // Load related data when component mounts and when robot/user location changes
+  useEffect(() => {
+    fetchRelatedServices();
+    fetchCompatibleSpareParts();
+    fetchFinancingOptions();
+    fetchLogisticsServices();
+  }, [robot, currentUserLocation]);
+
+  // Contact handlers for suppliers
+  const handleContactSupplier = async (supplierPhone: string, supplierName: string, itemType: string) => {
+    if (!supplierPhone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: `${supplierName}'s phone number is not provided.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const phoneNumber = supplierPhone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Supplier",
+      description: `Calling ${supplierName} at ${supplierPhone}`,
+    });
+  };
+
+  const handleGetQuote = (supplier: any, item: any, itemType: 'spare_part' | 'service' | 'logistics') => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to request quotes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedSupplier({
+      name: supplier.profiles?.full_name || supplier.profiles?.company_name || 'Unknown',
+      email: supplier.profiles?.email || '',
+      company: supplier.profiles?.company_name || supplier.profiles?.full_name || '',
+      phone: supplier.profiles?.phone || supplier.profiles?.mobile_number,
+      sellerId: supplier.seller_id || supplier.provider_id || supplier.id
+    });
+
+    setSelectedItem({
+      type: itemType,
+      name: item.name || item.service_name || item.service_type,
+      id: item.id,
+      model: item.model,
+      category: item.category || item.service_type
+    });
+
+    setShowQuoteForm(true);
+  };
+
+  // Contact seller by phone
+  const handleContactSeller = async () => {
+    const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
+    
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Seller's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Contact Seller Phone",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "phone",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerPhone: phone
+      }
+    });
+
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Seller",
+      description: `Calling ${robot.profiles.company_name || robot.profiles.full_name} at ${phone}`,
+    });
+  };
+
+  // WhatsApp handler for latest price inquiry
+  const handleWhatsAppInquiry = async () => {
+    if (!robot) return;
+
+    const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
+    
+    if (!phone) {
+      toast({
+        title: "WhatsApp Not Available",
+        description: "Seller's phone number is not provided for WhatsApp contact.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "WhatsApp Latest Price",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "whatsapp",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerPhone: phone
+      }
+    });
+
+    const message = `Hi! I'm interested in getting the latest price for:
+
+🤖 *${robot.name}*
+📦 Model: ${robot.model}
+🏷️ Type: ${robot.robot_type}
+📍 Location: ${robot.location}
+${robot.price ? `💰 Listed Price: ${robot.currency} ${robot.price}` : '💰 Price: On Request'}
+
+Could you please share the latest price and availability details?
+
+Thank you!`;
+
+    const phoneNumber = phone.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`;
+    
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "Opening WhatsApp",
+      description: `Redirecting to WhatsApp chat with ${robot.profiles.company_name || robot.profiles.full_name}`,
+    });
+  };
+
+  // Request quote modal open
+  const handleRequestQuote = async () => {
+    if (!robot?.profiles?.email) {
+      toast({
+        title: "Email Not Available",
+        description: "Seller's email address is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Request Quote",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "email",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerEmail: robot?.profiles?.email
+      }
+    });
+
+    setShowQuoteModal(true);
+  };
+
+  // Send quote email
+  const sendQuoteEmail = async () => {
+    if (!robot?.profiles?.email) return;
+
+    // Track quote email send
+    await trackButtonClick({
+      buttonName: "Send Quote Email",
+      buttonType: "contact",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        contactMethod: "email_send",
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotPrice: robot?.price,
+        sellerEmail: robot?.profiles?.email,
+        messageLength: quoteMessage?.length || 0,
+        hasCustomMessage: !!quoteMessage
+      }
+    });
+
+    const subject = `Quote Request for ${robot.name} - ${robot.model}`;
+    const body = `Dear ${robot.profiles.full_name},
+
+I am interested in the following robot:
+
+Robot: ${robot.name}
+Model: ${robot.model}
+Type: ${robot.robot_type}
+Listed Price: ${robot.price ? `${robot.currency} ${robot.price}` : 'Price on Request'}
+
+${quoteMessage ? `Additional Message:\n${quoteMessage}` : ''}
+
+Please provide me with:
+1. Best price quote
+2. Availability and delivery timeline
+3. Technical specifications
+4. Warranty and support details
+5. Installation and training options
+
+Best regards,
+${user?.user_metadata?.full_name || 'Interested Buyer'}`;
+
+    const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+    
+    setShowQuoteModal(false);
+    setQuoteMessage('');
+    
+    toast({
+      title: "Quote Request Sent",
+      description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
+    });
+  };
+
+  // Add/Remove to/from watchlist
   const handleAddToWatchlist = async () => {
     if (!user) {
       toast({
         title: "Login Required",
-        description: "Please login to add robots to your watchlist",
+        description: "Please log in to add items to your watchlist.",
         variant: "destructive",
       });
       return;
     }
 
+    if (!robot) return;
+
     try {
+      setAddingToWatchlist(true);
+      
       if (isInWatchlist) {
+        // Remove from watchlist
         const { error } = await supabase
           .from('watchlists')
           .delete()
           .eq('user_id', user.id)
-          .eq('item_id', id)
-          .eq('item_type', 'robots');
+          .eq('item_type', 'robot')
+          .eq('item_id', robot.id);
 
         if (error) throw error;
+
         setIsInWatchlist(false);
+
+        // Track watchlist removal
+        await trackButtonClick({
+          buttonName: "Remove from Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot.seller_id,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          itemId: robot.id,
+          itemType: "robot",
+          additionalData: {
+            action: "remove",
+            robotName: robot.name,
+            robotModel: robot.model,
+            robotPrice: robot.price
+          }
+        });
+
         toast({
           title: "Removed from Watchlist",
-          description: "Robot removed from your watchlist",
+          description: `${robot.name} has been removed from your watchlist.`,
         });
       } else {
+        // Add to watchlist
         const { error } = await supabase
           .from('watchlists')
-          .insert([
-            {
-              user_id: user.id,
-              item_id: id,
-              item_type: 'robots',
-            }
-          ]);
+          .insert({
+            user_id: user.id,
+            item_type: 'robot',
+            item_id: robot.id,
+            notes: `${robot.name} - ${robot.model}`,
+            priority: 'medium'
+          });
 
         if (error) throw error;
+
         setIsInWatchlist(true);
+
+        // Track watchlist addition
+        await trackButtonClick({
+          buttonName: "Add to Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot.seller_id,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          itemId: robot.id,
+          itemType: "robot",
+          additionalData: {
+            action: "add",
+            robotName: robot.name,
+            robotModel: robot.model,
+            robotPrice: robot.price
+          }
+        });
+
         toast({
           title: "Added to Watchlist",
-          description: "Robot added to your watchlist",
+          description: `${robot.name} has been added to your watchlist.`,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating watchlist:', error);
       toast({
-        title: "Error",
-        description: "Failed to update watchlist",
+        title: "Failed to Update",
+        description: "Could not update watchlist. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setAddingToWatchlist(false);
     }
   };
 
-  const handleWhatsAppInquiry = () => {
-    if (!robot?.profiles?.phone) {
+  // Image navigation
+  const nextImage = () => {
+    if (robot?.images && robot.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % robot.images.length);
+    }
+  };
+
+  const prevImage = () => {
+    if (robot?.images && robot.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + robot.images.length) % robot.images.length);
+    }
+  };
+
+  // AI analysis call
+  const handleAIAnalysis = async () => {
+    if (!robot || !user) {
       toast({
-        title: "No Contact Information",
-        description: "Phone number not available for this seller",
+        title: "Login Required",
+        description: "Please log in to access AI analysis features.",
         variant: "destructive",
       });
       return;
     }
 
-    const message = `Hi! I'm interested in your robot: ${robot.name} (${robot.model}) listed for ₹${robot.price}. Could you please provide more details?`;
-    const phoneNumber = robot.profiles.phone.replace(/\D/g, '');
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
-  const handleShare = async () => {
-    const shareData = {
-      title: `${robot?.name} - ${robot?.model}`,
-      text: `Check out this ${robot?.robot_type} robot for ₹${robot?.price || 0}`,
-      url: window.location.href,
-    };
+    // Track AI analysis request
+    await trackButtonClick({
+      buttonName: "AI Analysis",
+      buttonType: "analysis",
+      sellerId: robot?.seller_id,
+      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
+      itemId: robot?.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot?.name,
+        robotModel: robot?.model,
+        robotType: robot?.robot_type,
+        robotPrice: robot?.price,
+        analysisRequested: true
+      }
+    });
 
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast({
-          title: "Link Copied",
-          description: "Robot link copied to clipboard",
-        });
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-      toast({
-        title: "Share Failed",
-        description: "Could not share robot link",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const nextImage = () => {
-    if (robot?.images) {
-      setCurrentImageIndex((prev) => 
-        prev === robot.images.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const prevImage = () => {
-    if (robot?.images) {
-      setCurrentImageIndex((prev) => 
-        prev === 0 ? robot.images.length - 1 : prev - 1
-      );
-    }
-  };
-
-  const handleAIAnalysis = async () => {
-    if (!robot) return;
-
-    setLoadingAI(true);
-    try {
-      let userLocation = currentUserLocation;
-      
-      if (!userLocation && navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject);
-          });
-          
-          userLocation = `${position.coords.latitude}, ${position.coords.longitude}`;
-          setCurrentUserLocation(userLocation);
-        } catch (error) {
-          console.log('Could not get location:', error);
-          userLocation = 'Location not available';
-        }
-      }
-
+      setAnalysisLoading(true);
       const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
-        body: {
-          robot: {
-            id: robot.id,
-            name: robot.name,
-            model: robot.model,
-            category: robot.robot_type,
-            price: robot.price,
-            condition: robot.condition,
-            location: robot.location,
-            description: robot.description,
-            specifications: robot.technical_specifications
-          },
-          userLocation: userLocation || 'Not specified',
-          userType: user?.user_metadata?.role || 'buyer'
-        }
+        body: { robotId: robot.id },
       });
-
       if (error) throw error;
-
-      setAiAnalysis({
-        ...data,
-        currentUserLocation: userLocation
-      });
-      setShowAIAnalysis(true);
       
+      // Handle both new structured analysis and legacy format
+      const analysisData = data.analysis || {};
+      const structuredAnalysis = {
+        summary: typeof analysisData === 'string' ? analysisData : (analysisData.summary || ''),
+        suitability: analysisData.suitability || '',
+        technicalInsights: analysisData.technicalInsights || '',
+        governmentSchemes: analysisData.governmentSchemes || '',
+        suggestedIndustries: analysisData.suggestedIndustries || '',
+        timestamp: analysisData.timestamp || new Date().toISOString()
+      };
+      
+      setAiAnalysis({
+        analysis: structuredAnalysis,
+        cached: data.cached || false,
+        currentUserLocation: data.currentUserLocation,
+        recommendations: {
+          spareParts: data.marketEcosystem?.spareParts?.suppliers || [],
+          services: data.marketEcosystem?.services?.providers || [],
+          logistics: data.marketEcosystem?.logistics?.providers || [],
+          finance: data.marketEcosystem?.finance?.providers || [],
+        },
+      });
+      
+      const message = data.cached ? 
+        "Cached analysis retrieved successfully" : 
+        "New AI analysis generated successfully";
+        
       toast({
         title: "AI Analysis Complete",
-        description: "Smart insights generated for this robot",
+        description: message,
       });
-    } catch (error) {
-      console.error('Error getting AI analysis:', error);
+    } catch (err) {
+      console.error('Error getting AI analysis:', err);
       toast({
         title: "Analysis Failed",
-        description: "Could not generate AI analysis. Please try again.",
+        description: err instanceof Error ? err.message : 'Failed to generate AI analysis',
         variant: "destructive",
       });
     } finally {
-      setLoadingAI(false);
+      setAnalysisLoading(false);
     }
   };
 
+  // Price formatting helper
+  const formatPrice = (price: number, currency: string) => {
+    const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹';
+    return `${currencySymbol}${price.toLocaleString()}`;
+  };
+
+  // Calculate import duty if outside India (~18%)
+  const calculateImportDuty = (basePrice: number, currency: string) => {
+    // List of Indian states for checking
+    const indianStates = [
+      'andhra pradesh', 'arunachal pradesh', 'assam', 'bihar', 'chhattisgarh', 'goa', 'gujarat', 
+      'haryana', 'himachal pradesh', 'jharkhand', 'karnataka', 'kerala', 'madhya pradesh', 
+      'maharashtra', 'manipur', 'meghalaya', 'mizoram', 'nagaland', 'odisha', 'punjab', 
+      'rajasthan', 'sikkim', 'tamil nadu', 'telangana', 'tripura', 'uttar pradesh', 
+      'uttarakhand', 'west bengal', 'delhi', 'jammu and kashmir', 'ladakh', 'chandigarh', 
+      'dadra and nagar haveli and daman and diu', 'lakshadweep', 'puducherry'
+    ];
+    
+    const isInIndia = robot?.state && indianStates.includes(robot.state.toLowerCase());
+    const isOutsideIndia = !isInIndia;
+    
+    if (isOutsideIndia && basePrice) {
+      const dutyRate = 0.18;
+      const duty = basePrice * dutyRate;
+      setImportDuty(duty);
+      return duty;
+    }
+    setImportDuty(null);
+    return 0;
+  };
+
+  useEffect(() => {
+    if (robot?.price) {
+      calculateImportDuty(robot.price, robot.currency);
+    }
+  }, [robot]);
+
+  // Import quote modal open
   const handleImportQuote = () => {
+    if (!robot?.profiles?.email) {
+      toast({
+        title: "Email Not Available",
+        description: "Seller's email address is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowImportQuote(true);
+  };
+
+  // Send import quote email
+  const sendImportQuoteEmail = () => {
+    if (!robot?.profiles?.email) return;
+    
+    const basePrice = robot.price || 0;
+    const duty = importDuty || 0;
+    const totalPrice = basePrice + duty;
+    const subject = `Import Quote Request for ${robot.name} - ${robot.model}`;
+    const body = `Dear ${robot.profiles.full_name},
+
+I am interested in importing the following robot to India:
+
+Robot: ${robot.name}
+Model: ${robot.model}
+Type: ${robot.robot_type}
+Base Price: ${formatPrice(basePrice, robot.currency)}
+${duty > 0 ? `Estimated Import Duty (18%): ${formatPrice(duty, robot.currency)}` : ''}
+${duty > 0 ? `Total Estimated Cost: ${formatPrice(totalPrice, robot.currency)}` : ''}
+
+Please provide detailed information on:
+1. Complete pricing including all applicable duties and taxes
+2. Import documentation and procedures
+3. Shipping and logistics arrangements
+4. Delivery timeline to India
+5. Installation and commissioning support
+6. Warranty terms for imported equipment
+7. After-sales service availability in India
+
+Best regards,
+${user?.user_metadata?.full_name || 'Interested Buyer'}`;
+
+    const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+    
+    setShowImportQuote(false);
+    
     toast({
-      title: "Import Quote Request",
-      description: "Our logistics team will contact you with import details and pricing.",
+      title: "Import Quote Request Sent",
+      description: `Email sent to ${robot.profiles.company_name || robot.profiles.full_name}`,
     });
   };
 
-  const calculateEMI = (amount: number, rate: number, months: number) => {
-    const monthlyRate = rate / 100 / 12;
-    const emi = (amount * monthlyRate * Math.pow(1 + monthlyRate, months)) / 
-                 (Math.pow(1 + monthlyRate, months) - 1);
-    return Math.round(emi);
+  // Generate robot report using Gemini AI
+  const handleGenerateReport = async () => {
+    if (!robot || !user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to generate robot reports.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Simply open the modal - report generation will happen inside the modal
+    setShowReportModal(true);
+    
+    toast({
+      title: "Opening Report Generator",
+      description: "Preparing comprehensive robot analysis...",
+    });
   };
 
-  const handleQuoteRequest = (supplierInfo: SupplierInfo, itemInfo: ItemInfo) => {
-    setSelectedSupplier(supplierInfo);
-    setSelectedItem(itemInfo);
-    setShowQuoteForm(true);
+
+  // Navigate to find similar robots
+  const handleFindSimilar = () => {
+    const searchParams = new URLSearchParams({
+      type: robot?.robot_type || '',
+      category: robot?.category_tags?.[0] || ''
+    });
+    navigate(`/robots?${searchParams.toString()}`);
+    toast({
+      title: "Finding Similar Robots",
+      description: "Redirecting to search results...",
+    });
+  };
+
+  // Show loan application form state
+  const [showLoanApplication, setShowLoanApplication] = useState(false);
+  const [selectedFinanceProvider, setSelectedFinanceProvider] = useState<any>(null);
+
+  // Contact service provider by phone  
+  const handleContactService = (service: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to contact service providers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = service.profiles?.phone || service.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Service provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Service Provider",
+      description: `Calling ${service.profiles?.company_name || service.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Contact spare parts provider by phone
+  const handleContactSpareParts = (part: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required", 
+        description: "Please log in to contact spare parts providers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = part.profiles?.phone || part.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Spare parts provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Parts Provider",
+      description: `Calling ${part.profiles?.company_name || part.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Contact logistics provider by phone
+  const handleContactLogistics = (service: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to contact logistics providers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = service.profiles?.phone || service.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available", 
+        description: "Logistics provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Logistics Provider",
+      description: `Calling ${service.profiles?.company_name || service.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Contact finance provider by phone
+  const handleContactFinance = (option: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to contact finance providers.", 
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const phone = option.profiles?.phone || option.profiles?.mobile_number;
+    if (!phone) {
+      toast({
+        title: "Phone Number Not Available",
+        description: "Finance provider's phone number is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const phoneNumber = phone.replace(/\D/g, '');
+    window.open(`tel:${phoneNumber}`, '_self');
+    toast({
+      title: "Calling Finance Provider",
+      description: `Calling ${option.profiles?.company_name || option.profiles?.full_name} at ${phone}`,
+    });
+  };
+
+  // Get quote for logistics with robot details
+  const handleGetLogisticsQuote = (service: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to request logistics quotes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!service.profiles?.email) {
+      toast({
+        title: "Email Not Available",
+        description: "Logistics provider's email address is not provided.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const subject = `Logistics Quote Request for ${robot?.name} - ${robot?.model}`;
+    const body = `Dear ${service.profiles.full_name},
+
+I need logistics services for the following robot equipment:
+
+Robot: ${robot?.name}
+Model: ${robot?.model}
+Type: ${robot?.robot_type}
+Price: ${robot?.price ? `${robot.currency} ${robot.price}` : 'Price on Request'}
+Current Location: ${robot?.location}
+My Location: ${currentUserLocation}
+
+Service Required: ${service.service_name}
+Service Type: ${service.service_type}
+
+Please provide:
+1. Detailed logistics quote
+2. Transit time and delivery schedule
+3. Insurance and safety measures
+4. Special handling requirements
+5. Payment terms
+
+Best regards,
+${user?.user_metadata?.full_name || 'Interested Buyer'}`;
+
+    const mailtoLink = `mailto:${service.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+    
+    toast({
+      title: "Quote Request Sent",
+      description: `Email sent to ${service.profiles.company_name || service.profiles.full_name}`,
+    });
+  };
+
+  // Apply for loan with robot details
+  const handleApplyLoan = (option: any) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to apply for loans.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedFinanceProvider(option);
+    setShowLoanApplication(true);
+  };
+
+  // Placeholder functions for report and loan check
+  const handleGetReport = () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to access technical reports.",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: "Technical Report",
+      description: "Generating detailed technical specifications report...",
+    });
+  };
+
+  const handleCheckLoan = () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to check financing options.",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: "Financing Options",
+      description: "Checking available loan and financing options...",
+    });
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-muted/20">
+  return (
+    <div className="min-h-screen bg-muted/20">
         <EnhancedHeader />
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-muted rounded w-1/4"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <div className="h-96 bg-muted rounded"></div>
-              </div>
-              <div className="space-y-4">
-                <div className="h-32 bg-muted rounded"></div>
-                <div className="h-24 bg-muted rounded"></div>
-              </div>
-            </div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mr-2" />
+            <span>Loading robot details...</span>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!robot) {
+  if (error || !robot) {
     return (
       <div className="min-h-screen bg-muted/20">
         <EnhancedHeader />
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-muted-foreground mb-4">Robot Not Found</h1>
-            <p className="text-muted-foreground mb-6">The robot you're looking for doesn't exist or has been removed.</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center justify-center py-12">
+            <Bot className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Robot Not Found</h3>
+            <p className="text-muted-foreground mb-4">{error || 'The requested robot could not be found.'}</p>
             <Button onClick={() => navigate('/robots')} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Robots
@@ -563,8 +1226,8 @@ const RobotDetails = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-muted/20">
+    return (
+      <div className="min-h-screen bg-muted/20">
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header Navigation */}
@@ -589,164 +1252,166 @@ const RobotDetails = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left main content (2/3 width) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Card container */}
-            <Card className="overflow-hidden shadow-lg border border-border bg-card">
-              <CardContent className="p-0">
-                <div className="grid md:grid-cols-2 gap-0">
-                  {/* Image gallery section */}
-                  <div className="relative bg-card p-4 rounded-lg shadow-inner">
-                    <div className="aspect-square rounded-lg overflow-hidden">
-                      {robot?.images && robot.images.length > 0 ? (
-                        <>
-                          <ResponsiveImage
-                            src={robot.images[currentImageIndex]}
-                            alt={`${robot.name} - Image ${currentImageIndex + 1}`}
-                            className="w-full h-full object-cover cursor-zoom-in transition-transform hover:scale-105"
-                            onClick={() => setShowFullscreen(true)}
-                          />
-                          
-                          {/* Image navigation */}
-                          {robot.images.length > 1 && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="absolute left-6 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm hover:bg-background"
-                                onClick={prevImage}
-                              >
-                                <ChevronLeft className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="absolute right-6 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm hover:bg-background"
-                                onClick={nextImage}
-                              >
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          
-                          {/* Action buttons overlay */}
-                          <div className="absolute top-4 right-4 flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="bg-background/80 backdrop-blur-sm hover:bg-background"
-                              onClick={() => setShowFullscreen(true)}
-                            >
-                              <Maximize2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="bg-background/80 backdrop-blur-sm hover:bg-background"
-                              onClick={handleShare}
-                            >
-                              <Share2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          
-                          {/* Image counter */}
-                          {robot.images.length > 1 && (
-                            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-                              <div className="bg-background/80 backdrop-blur-sm rounded-full px-3 py-1 text-sm">
-                                {currentImageIndex + 1} / {robot.images.length}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
-                          <div className="text-center">
-                            <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground">No images available</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Thumbnail strip */}
-                    {robot?.images && robot.images.length > 1 && (
-                      <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-                        {robot.images.map((image, index) => (
-                          <button
-                            key={index}
-                            className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                              index === currentImageIndex ? 'border-primary' : 'border-transparent'
-                            }`}
-                            onClick={() => setCurrentImageIndex(index)}
-                          >
-                            <ResponsiveImage
-                              src={image}
-                              alt={`${robot.name} thumbnail ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Robot information section */}
-                  <div className="p-6 space-y-6">
-                    <div>
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h1 className="text-2xl font-bold text-foreground">{robot.name}</h1>
-                          <p className="text-lg text-muted-foreground">{robot.model}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mb-4">
-                        <Badge variant="secondary">{robot.robot_type}</Badge>
-                        <Badge variant={robot.condition === 'new' ? 'default' : 'outline'}>
-                          {robot.condition}
-                        </Badge>
-                      </div>
-                      
-                      <div className="text-3xl font-bold text-primary mb-4">
-                        ₹{robot.price?.toLocaleString() || '0'}
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>{robot.location}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>Listed {new Date(robot.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-muted-foreground text-sm leading-relaxed">
-                        {robot.description}
-                      </p>
-                    </div>
-
-                    {/* AI Analysis Button */}
-                    <div className="pt-4">
+  {/* Left main content (2/3 width) */}
+  <div className="lg:col-span-2 space-y-6">
+    {/* Card container */}
+    <Card className="overflow-hidden shadow-lg border border-border bg-card">
+      <CardContent className="p-0">
+        <div className="grid md:grid-cols-2 gap-0">
+          {/* Image gallery section */}
+          <div className="relative bg-card p-4 rounded-lg shadow-inner">
+            <div className="aspect-square rounded-lg overflow-hidden">
+              {robot?.images && robot.images.length > 0 ? (
+                <>
+                  <ResponsiveImage
+                    src={robot.images[currentImageIndex]}
+                    alt={`${robot.name} - Image ${currentImageIndex + 1}`}
+                    className="w-full h-full object-cover object-center transition-transform duration-500 ease-in-out cursor-pointer"
+                    style={{
+                      imageOrientation: 'from-image',
+                    }}
+                    onClick={() => setShowFullscreen(true)}
+                  />
+                  <Button
+                    onClick={() => setShowFullscreen(true)}
+                    className="absolute top-4 right-4 bg-background/80 hover:bg-background/90 text-foreground p-2 rounded-full shadow-lg backdrop-blur-sm"
+                    size="sm"
+                    aria-label="View fullscreen"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </Button>
+                  {robot.images.length > 1 && (
+                    <>
                       <Button
-                        onClick={handleAIAnalysis}
-                        disabled={loadingAI}
-                        className="w-full"
-                        variant="outline"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background/90 text-foreground rounded-full shadow-lg backdrop-blur-sm"
+                        onClick={() => setCurrentImageIndex((prev) => prev === 0 ? robot.images.length - 1 : prev -1 )}
+                        aria-label="Previous image"
                       >
-                        <Zap className="w-4 h-4 mr-2" />
-                        {loadingAI ? 'Analyzing...' : 'Get AI Analysis'}
+                        <ChevronLeft className="w-4 h-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background/90 text-foreground rounded-full shadow-lg backdrop-blur-sm"
+                        onClick={() => setCurrentImageIndex((prev) => (prev + 1) % robot.images.length)}
+                        aria-label="Next image"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                      <div className="absolute bottom-4 right-4 bg-background/90 text-foreground px-3 py-1 rounded-full shadow-lg backdrop-blur-sm text-sm font-semibold select-none">
+                        {currentImageIndex + 1} / {robot.images.length}
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg">
+                  <Bot className="w-20 h-20 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            {/* Thumbnails */}
+            {robot.images?.length > 1 && (
+                <div className="p-4">
+                  <div className="flex space-x-2 overflow-x-auto">
+                    {robot.images.map((image, index) => (
+                     <button
+                        key={index}
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all group ${
+                          index === currentImageIndex 
+                            ? 'border-primary' 
+                            : 'border-muted hover:border-muted-foreground'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img
+                          src={image}
+                          alt={`${robot.name} ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                          style={{
+                            imageOrientation: 'from-image'
+                          }}
+                        />
+                      </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+           {/* Robot Information */}
+          <div className="space-y-6">
+            {/* Basic Info Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-2xl font-bold text-primary leading-tight">{robot.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1 font-medium">{robot.robot_type}</p>
+                  </div>
+                  <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50 font-semibold">
+                    {robot.availability}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-muted/30 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-bold text-primary">
+                      {formatPrice(robot.price, robot.currency)}
+                    </span>
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span className="font-medium">{robot.location}</span>
                     </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-card p-3 rounded-lg border">
+                    <div className="flex items-center space-x-2">
+                      <Settings className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">Condition:</span>
+                    </div>
+                    <span className="font-semibold text-foreground">{robot.condition}</span>
+                  </div>
+                  <div className="bg-card p-3 rounded-lg border">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">Year:</span>
+                    </div>
+                    <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
+                  </div>
+                </div>
+
+                {/* Contact Actions */}
+                <div className="pt-4 border-t space-y-3">
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                    size="lg"
+                    onClick={handleWhatsAppInquiry}
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.251"/>
+                    </svg>
+                    Ask Latest Price via WhatsApp
+                  </Button>
+                  
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={handleAddToWatchlist}
+                    >
+                      <Heart className={`h-4 w-4 mr-2 ${isInWatchlist ? 'fill-current text-red-500' : ''}`} />
+                      {isInWatchlist ? 'Saved' : 'Save'}
+                    </Button>
+                    <Button variant="outline" className="flex-1">
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -755,39 +1420,43 @@ const RobotDetails = () => {
             {/* Quick Actions */}
             {user && (
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex gap-2">
-                    <Button onClick={handleWhatsAppInquiry} className="flex-1">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      WhatsApp Seller
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleAIAnalysis}
+                      className="text-purple-600 border-purple-200 hover:bg-purple-100/50"
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      AI Analysis
                     </Button>
                     <Button 
-                      onClick={() => handleQuoteRequest(
-                        {
-                          name: robot.profiles.full_name,
-                          company: robot.profiles.company_name,
-                          phone: robot.profiles.phone,
-                          location: robot.profiles.location
-                        },
-                        {
-                          name: robot.name,
-                          price: robot.price,
-                          type: 'part' as const
-                        }
-                      )}
                       variant="outline" 
-                      className="flex-1"
+                      size="sm"
+                      onClick={handleGenerateReport}
+                      className="text-orange-600 border-orange-200 hover:bg-orange-100/50"
                     >
                       <FileText className="w-4 h-4 mr-2" />
-                      Request Quote
-                    </Button>
-                    <Button onClick={handleShare} variant="outline" size="icon">
-                      <Share2 className="w-4 h-4" />
+                      Get Report
                     </Button>
                     <Button 
-                      onClick={() => navigate('/robots')}
-                      variant="outline"
-                      className="flex-1"
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleCheckLoan}
+                      className="text-green-600 border-green-200 hover:bg-green-100/50"
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Check Loan
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleFindSimilar}
+                      className="text-blue-600 border-blue-200 hover:bg-blue-100/50"
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Find Similar
@@ -809,537 +1478,979 @@ const RobotDetails = () => {
                     <TabsTrigger value="logistics">Logistics</TabsTrigger>
                     <TabsTrigger value="financing">Financing</TabsTrigger>
                   </TabsList>
-
+                  
+                  {/* Overview */}
                   <TabsContent value="overview" className="p-6">
                     <div className="space-y-6">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Robot Overview</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="flex items-center gap-2">
-                            <Factory className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Type:</span>
-                            <span className="text-sm font-medium">{robot.robot_type}</span>
+                      {/* About This Robot - Enhanced Structure */}
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Bot className="w-5 h-5 text-primary" />
+                          <h3 className="text-xl font-semibold">About This Robot</h3>
+                        </div>
+                        
+                        {/* Robot Description */}
+                        {robot.description && (
+                          <div className="bg-muted/30 rounded-lg p-4 border">
+                            <p className="text-sm leading-relaxed text-muted-foreground">
+                              {robot.description}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Condition:</span>
-                            <span className="text-sm font-medium">{robot.condition}</span>
+                        )}
+                        
+                        {/* Key Highlights */}
+                        <div className="grid md:grid-cols-2 gap-6">
+                          {/* Technical Overview */}
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Settings className="w-4 h-4 text-primary" />
+                              Technical Overview
+                            </h4>
+                            <div className="space-y-2">
+                              {robot.brand && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Brand:</span>
+                                  <span className="text-muted-foreground">{robot.brand}</span>
+                                </div>
+                              )}
+                              {robot.model && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Model:</span>
+                                  <span className="text-muted-foreground">{robot.model}</span>
+                                </div>
+                              )}
+                              {robot.payload_capacity && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Payload Capacity:</span>
+                                  <span className="text-muted-foreground">{robot.payload_capacity} kg</span>
+                                </div>
+                              )}
+                              {robot.reach && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Reach:</span>
+                                  <span className="text-muted-foreground">{robot.reach} mm</span>
+                                </div>
+                              )}
+                              {robot.controller_type && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Controller:</span>
+                                  <span className="text-muted-foreground">{robot.controller_type}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Location:</span>
-                            <span className="text-sm font-medium">{robot.location}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Listed:</span>
-                            <span className="text-sm font-medium">
-                              {new Date(robot.created_at).toLocaleDateString()}
-                            </span>
+                          
+                          {/* Applications & Features */}
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Wrench className="w-4 h-4 text-primary" />
+                              Key Features
+                            </h4>
+                            <div className="space-y-2">
+                              {robot.year_manufactured && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Year:</span>
+                                  <span className="text-muted-foreground">{robot.year_manufactured}</span>
+                                </div>
+                              )}
+                              {robot.condition && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Condition:</span>
+                                  <span className="text-muted-foreground capitalize">{robot.condition.replace('_', ' ')}</span>
+                                </div>
+                              )}
+                              {robot.operating_environment && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Environment:</span>
+                                  <span className="text-muted-foreground">{robot.operating_environment}</span>
+                                </div>
+                              )}
+                              {robot.warranty_info && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Warranty:</span>
+                                  <span className="text-muted-foreground">{robot.warranty_info}</span>
+                                </div>
+                              )}
+                              {robot.repeatability && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                  <span className="font-medium">Repeatability:</span>
+                                  <span className="text-muted-foreground">±{robot.repeatability} mm</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        
+                        {/* Applications */}
+                        {robot.applications && robot.applications.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Tag className="w-4 h-4 text-primary" />
+                              Suitable Applications
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {robot.applications.map((app: string, index: number) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {app}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Certification Standards */}
+                        {robot.certification_standards && robot.certification_standards.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className="flex items-center gap-2 font-semibold text-base">
+                              <Shield className="w-4 h-4 text-primary" />
+                              Certifications
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {robot.certification_standards.map((cert: string, index: number) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {cert}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* SEO Content Block */}
+                        {seoElements && (
+                          <div className="bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg p-4 border">
+                            <div className="prose prose-sm max-w-none text-muted-foreground">
+                              {seoElements.seoContentBlock.split('\n\n').map((paragraph: string, index: number) => (
+                                <p key={index} className="mb-3 last:mb-0 leading-relaxed text-sm">
+                                  {paragraph.trim()}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
+                      
+                     
 
                       <Separator />
 
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Full Description</h3>
-                        <p className="text-muted-foreground leading-relaxed">{robot.description}</p>
+                      <h3 className="text-lg font-semibold">Location & Pricing</h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">City:</span>
+                          <p className="text-muted-foreground">{robot.location || '—'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">State:</span>
+                          <p className="text-muted-foreground">{robot.state || '—'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Pincode:</span>
+                          <p className="text-muted-foreground">{robot.pincode || '—'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Price:</span>
+                          <p className="text-muted-foreground">{robot.price ? formatPrice(robot.price, robot.currency) : 'Price on Request'}</p>
+                        </div>
+                      </div>
+
+                      {/* Import & Logistics Summary */}
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {outsideIndia && (
+                          <Card className="border-orange-200 bg-orange-100/30">
+                            <CardContent className="p-4">
+                              <div className="font-semibold mb-1">Import to India</div>
+                              {robot.price && importDuty ? (
+                                <p className="text-sm text-orange-700">
+                                  Estimated import duty: {formatPrice(importDuty, robot.currency)}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-orange-700">Import duties may apply. Get a detailed quote.</p>
+                              )}
+                              <div className="mt-2">
+                                <Button size="sm" onClick={handleImportQuote}>Get Import Quote</Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
                       </div>
                     </div>
                   </TabsContent>
 
+                  {/* Specifications */}
                   <TabsContent value="specifications" className="p-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Technical Specifications</h3>
-                      {robot.technical_specifications ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {Object.entries(robot.technical_specifications).map(([key, value]) => (
-                            <div key={key} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                              <span className="font-medium capitalize">{key.replace('_', ' ')}:</span>
-                              <span className="text-muted-foreground">{String(value)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">No specifications available for this robot.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="spareparts" className="p-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Available Spare Parts</h3>
-                      {spareParts.length > 0 ? (
-                        <div className="grid gap-4">
-                          {spareParts.map((part) => (
-                            <Card key={part.id} className="border border-border hover:shadow-md transition-shadow">
-                              <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                  <div>
-                                    <h4 className="font-medium text-foreground">{part.name}</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">{part.description}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-lg font-semibold text-primary">
-                                      ₹{part.price?.toLocaleString() || '0'}
-                                    </div>
-                                    <Badge variant={part.condition === 'new' ? 'default' : 'secondary'}>
-                                      {part.condition}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                      <Package className="h-4 w-4" />
-                                      <span>{part.brand}</span>
-                                    </div>
-                                    {part.profiles && (
-                                      <div className="flex items-center gap-1">
-                                        <Building className="h-4 w-4" />
-                                        <span>{part.profiles.company_name || part.profiles.full_name}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex gap-2">
-                                    {part.profiles?.phone && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          const phoneNumber = part.profiles!.phone!.replace(/\D/g, '');
-                                          const message = `Hi! I'm interested in the spare part: ${part.name} for ₹${part.price}. Is it available?`;
-                                          window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-                                        }}
-                                      >
-                                        <MessageCircle className="w-4 h-4 mr-1" />
-                                        WhatsApp
-                                      </Button>
-                                    )}
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleQuoteRequest(
-                                        {
-                                          name: part.profiles?.full_name || 'Unknown',
-                                          company: part.profiles?.company_name,
-                                          phone: part.profiles?.phone,
-                                          location: part.profiles?.location
-                                        },
-                                        {
-                                          name: part.name,
-                                          price: part.price,
-                                          type: 'part'
-                                        }
-                                      )}
-                                    >
-                                      <FileText className="w-4 h-4 mr-1" />
-                                      Get Quote
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">No spare parts available for this robot.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="services" className="p-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Related Services</h3>
-                      {services.length > 0 ? (
-                        <div className="grid gap-4">
-                          {services.map((service) => (
-                            <Card key={service.id} className="border border-border hover:shadow-md transition-shadow">
-                              <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                  <div>
-                                    <h4 className="font-medium text-foreground">{service.name}</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-lg font-semibold text-primary">{service.price_range}</div>
-                                    <Badge variant="outline">{service.service_type}</Badge>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                      <CheckCircle className="h-4 w-4" />
-                                      <span>{service.coverage}</span>
-                                    </div>
-                                    {service.profiles && (
-                                      <div className="flex items-center gap-1">
-                                        <Building className="h-4 w-4" />
-                                        <span>{service.profiles.company_name || service.profiles.full_name}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex gap-2">
-                                    {service.profiles?.phone && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          const phoneNumber = service.profiles!.phone!.replace(/\D/g, '');
-                                          const message = `Hi! I'm interested in your service: ${service.name}. Can you provide more details?`;
-                                          window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-                                        }}
-                                      >
-                                        <MessageCircle className="w-4 h-4 mr-1" />
-                                        WhatsApp
-                                      </Button>
-                                    )}
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleQuoteRequest(
-                                        {
-                                          name: service.profiles?.full_name || 'Unknown',
-                                          company: service.profiles?.company_name,
-                                          phone: service.profiles?.phone,
-                                          location: service.profiles?.location
-                                        },
-                                        {
-                                          name: service.name,
-                                          type: 'service'
-                                        }
-                                      )}
-                                    >
-                                      <FileText className="w-4 h-4 mr-1" />
-                                      Get Quote
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">No services available for this robot category.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="logistics" className="p-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Logistics Partners</h3>
-                      {logisticsProviders.length > 0 ? (
-                        <div className="grid gap-4">
-                          {logisticsProviders.map((provider) => (
-                            <Card key={provider.id} className="border border-border hover:shadow-md transition-shadow">
-                              <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                  <div>
-                                    <h4 className="font-medium text-foreground">{provider.service_name}</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">{provider.description}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-lg font-semibold text-primary">₹{provider.base_price}</div>
-                                    <div className="text-sm text-muted-foreground">{provider.delivery_time_hours} hours</div>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                      <Truck className="h-4 w-4" />
-                                      <span>{provider.coverage_areas.join(', ')}</span>
-                                    </div>
-                                    {provider.profiles && (
-                                      <div className="flex items-center gap-1">
-                                        <Building className="h-4 w-4" />
-                                        <span>{provider.profiles.company_name || provider.profiles.full_name}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex gap-2">
-                                    {provider.profiles?.phone && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          const phoneNumber = provider.profiles!.phone!.replace(/\D/g, '');
-                                          const message = `Hi! I need logistics support for robot transport. Can you help?`;
-                                          window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-                                        }}
-                                      >
-                                        <MessageCircle className="w-4 h-4 mr-1" />
-                                        Call
-                                      </Button>
-                                    )}
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleQuoteRequest(
-                                        {
-                                          name: provider.profiles?.full_name || 'Unknown',
-                                          company: provider.profiles?.company_name,
-                                          phone: provider.profiles?.phone,
-                                          location: provider.profiles?.location
-                                        },
-                                        {
-                                          name: provider.service_name,
-                                          type: 'logistics'
-                                        }
-                                      )}
-                                    >
-                                      <FileText className="w-4 h-4 mr-1" />
-                                      Get Quote
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">No logistics providers available.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="financing" className="p-6">
                     <div className="space-y-6">
-                      <h3 className="text-lg font-semibold">Financing Options</h3>
-                      
-                      {robot && (
-                        <Card className="border-green-200 bg-green-50">
-                          <CardContent className="p-4">
-                            <h4 className="font-semibold text-green-900 mb-3">Quick EMI Calculator</h4>
-                            <div className="grid grid-cols-3 gap-4 text-center">
-                              <div>
-                                <div className="text-lg font-semibold text-green-800">₹{calculateEMI(robot.price, 9, 12).toLocaleString()}</div>
-                                <div className="text-xs text-green-600">12 months @ 9%</div>
-                              </div>
-                              <div>
-                                <div className="text-lg font-semibold text-green-800">₹{calculateEMI(robot.price, 10, 24).toLocaleString()}</div>
-                                <div className="text-xs text-green-600">24 months @ 10%</div>
-                              </div>
-                              <div>
-                                <div className="text-lg font-semibold text-green-800">₹{calculateEMI(robot.price, 12, 36).toLocaleString()}</div>
-                                <div className="text-xs text-green-600">36 months @ 12%</div>
-                              </div>
-                            </div>
-                            <div className="mt-4 flex gap-2">
-                              <Button size="sm" onClick={() => setShowLoanModal(true)} className="flex-1">
-                                Apply for Loan
-                              </Button>
-                              <Button size="sm" variant="outline" className="flex-1">
-                                Full Calculator
-                              </Button>
-                            </div>
-                            <p className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded border border-blue-100">
-                              *Estimates based on 9-12% interest rate. Use full calculator for accurate results.
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
+                      {/* Known Specifications */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {robot.payload_capacity !== undefined && robot.payload_capacity !== null && (
+                          <div>
+                            <span className="font-medium">Payload Capacity:</span>
+                            <p className="text-muted-foreground">{robot.payload_capacity} kg</p>
+                          </div>
+                        )}
+                        {robot.reach !== undefined && robot.reach !== null && (
+                          <div>
+                            <span className="font-medium">Reach:</span>
+                            <p className="text-muted-foreground">{robot.reach} mm</p>
+                          </div>
+                        )}
+                        {robot.repeatability !== undefined && robot.repeatability !== null && (
+                          <div>
+                            <span className="font-medium">Repeatability:</span>
+                            <p className="text-muted-foreground">{robot.repeatability} mm</p>
+                          </div>
+                        )}
+                        {robot.power_consumption !== undefined && robot.power_consumption !== null && (
+                          <div>
+                            <span className="font-medium">Power:</span>
+                            <p className="text-muted-foreground">{robot.power_consumption} kW</p>
+                          </div>
+                        )}
+                        {robot.operating_environment && (
+                          <div>
+                            <span className="font-medium">Operating Environment:</span>
+                            <p className="text-muted-foreground">{robot.operating_environment}</p>
+                          </div>
+                        )}
+                        {robot.warranty_info && (
+                          <div>
+                            <span className="font-medium">Warranty:</span>
+                            <p className="text-muted-foreground">{robot.warranty_info}</p>
+                          </div>
+                        )}
+                        {robot.applications && robot.applications.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="font-medium">Applications:</span>
+                            <p className="text-muted-foreground">{robot.applications.join(', ')}</p>
+                          </div>
+                        )}
+                        {robot.certification_standards && robot.certification_standards.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="font-medium">Certifications:</span>
+                            <p className="text-muted-foreground">{robot.certification_standards.join(', ')}</p>
+                          </div>
+                        )}
+                        {robot.included_accessories && robot.included_accessories.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="font-medium">Included Accessories:</span>
+                            <p className="text-muted-foreground">{robot.included_accessories.join(', ')}</p>
+                          </div>
+                        )}
+                      </div>
 
-                      <div className="space-y-4">
-                        {financeOptions.length > 0 ? (
-                          <div className="grid gap-4">
-                            {financeOptions.map((option) => (
-                              <Card key={option.id} className="border border-border hover:shadow-md transition-shadow">
-                                <CardContent className="p-4">
-                                  <div className="flex justify-between items-start mb-3">
+                      {/* Technical Specifications JSON */}
+                      {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 ? (
+                        <div>
+                          <h4 className="text-md font-semibold mb-4">Technical Specifications</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            {Object.entries(robot.technical_specifications).map(([key, value]) => (
+                              <div key={key}>
+                                <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                                <p className="text-muted-foreground">{String(value)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No technical specifications available.</p>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Services */}
+                  <TabsContent value="services" className="p-6 bg-white">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Available Services</h3>
+                        <Button variant="outline" onClick={() => navigate('/services')}>
+                          <Search className="w-4 h-4 mr-2" />
+                          Browse All Services
+                        </Button>
+                      </div>
+                      
+                      {loadingServices ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-32 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : services.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {services.map((service) => (
+                            <Card key={service.id} className="hover:shadow-md transition-shadow bg-white border border-gray-200">
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between">
                                     <div>
-                                      <h4 className="font-medium text-foreground">{option.product_name}</h4>
-                                      <p className="text-sm text-muted-foreground mt-1">{option.description}</p>
+                                      <h4 className="font-semibold">{service.name}</h4>
+                                      <p className="text-sm text-muted-foreground">{service.service_type}</p>
+                                    </div>
+                                    <Badge variant="secondary">{service.price_range || 'Contact for Quote'}</Badge>
+                                  </div>
+                                  
+                                  <p className="text-sm line-clamp-2">{service.description}</p>
+                                  
+                                  {service.specializations && service.specializations.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {service.specializations.slice(0, 3).map((spec: string, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          {spec}
+                                        </Badge>
+                                      ))}
+                                      {service.specializations.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{service.specializations.length - 3} more
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                   <div className="flex items-center justify-between text-sm">
+                                     <div className="flex items-center text-muted-foreground">
+                                       <MapPin className="w-3 h-3 mr-1" />
+                                       {service.location || service.profiles?.location || 'Location not specified'}
+                                     </div>
+                                     <div className="flex gap-2">
+                                       <Button 
+                                         size="sm" 
+                                         className="bg-blue-600 hover:bg-blue-700"
+                                         onClick={() => handleGetQuote(service, service, 'service')}
+                                         disabled={!user}
+                                       >
+                                         <Mail className="w-3 h-3 mr-1" />
+                                         Get Quote
+                                       </Button>
+                                       <Button 
+                                         size="sm" 
+                                         variant="outline"
+                                         onClick={() => handleContactSupplier(service.profiles?.phone || service.profiles?.mobile_number, service.profiles?.company_name || service.profiles?.full_name, 'Service')}
+                                         disabled={!user || !service.profiles?.phone}
+                                       >
+                                         <PhoneCall className="w-3 h-3 mr-1" />
+                                         Call
+                                       </Button>
+                                     </div>
+                                   </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Settings className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
+                          <p className="text-muted-foreground mb-4">No specialized services found for this robot type.</p>
+                          <Button onClick={() => navigate('/services')}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Browse All Services
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Spare Parts */}
+                  <TabsContent value="spareparts" className="p-6 bg-white">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Compatible Spare Parts</h3>
+                        <Button variant="outline" onClick={() => navigate('/parts')}>
+                          <Search className="w-4 h-4 mr-2" />
+                          Browse All Parts
+                        </Button>
+                      </div>
+                      
+                      {loadingSpareParts ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-40 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : spareParts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {spareParts.map((part) => (
+                            <Card key={part.id} className="hover:shadow-md transition-shadow border border-gray-200 bg-white">
+                              <CardContent className="p-4">
+                                <div className="space-y-4">
+                                  {part.images && part.images.length > 0 && (
+                                    <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                                       <img 
+                                         src={part.images[0]} 
+                                         alt={part.name}
+                                         className="w-full h-full object-cover rounded-lg bg-muted"
+                                       />
+                                    </div>
+                                  )}
+                                  
+                                  <div className="space-y-2">
+                                    <h4 className="font-semibold line-clamp-1 text-lg">{part.name}</h4>
+                                    {part.part_number && (
+                                      <p className="text-sm text-muted-foreground">Part #: {part.part_number}</p>
+                                    )}
+                                    
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm">
+                                        {part.price ? (
+                                          <span className="font-semibold text-green-600 text-lg">
+                                            {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? '€' : '₹'}
+                                            {part.price.toLocaleString()}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">Price on Request</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center text-xs text-muted-foreground">
+                                        <Package className="w-3 h-3 mr-1" />
+                                        Qty: {part.quantity}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {part.category_tags && part.category_tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {part.category_tags.slice(0, 2).map((tag: string, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          <Tag className="w-2 h-2 mr-1" />
+                                          {tag}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex items-center text-sm text-muted-foreground border-t pt-3">
+                                    <MapPin className="w-4 h-4 mr-2" />
+                                    <span className="flex-1">{part.profiles?.location || part.location || 'Location not specified'}</span>
+                                  </div>
+                                  
+                                  {/* Professional Action Buttons */}
+                                  <div className="space-y-2 pt-2">
+                                    <Button 
+                                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium py-2.5"
+                                      onClick={() => handleGetQuote(part, part, 'spare_part')}
+                                      disabled={!user}
+                                    >
+                                      <Mail className="w-4 h-4 mr-2" />
+                                      Request Quote & Pricing
+                                    </Button>
+                                    <Button 
+                                      variant="outline"
+                                      className="w-full border-green-600 text-green-700 hover:bg-green-50 font-medium py-2.5"
+                                      onClick={() => handleContactSupplier(part.profiles?.phone || part.profiles?.mobile_number, part.profiles?.company_name || part.profiles?.full_name, 'Spare Part')}
+                                      disabled={!user || !part.profiles?.phone}
+                                    >
+                                      <PhoneCall className="w-4 h-4 mr-2" />
+                                      Contact Supplier
+                                    </Button>
+                                    {!user && (
+                                      <p className="text-xs text-center text-muted-foreground mt-1">
+                                        Please login to contact suppliers
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Wrench className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Parts Found</h3>
+                          <p className="text-muted-foreground mb-4">No compatible spare parts found for this robot model.</p>
+                          <Button onClick={() => navigate('/parts')}>
+                            <Wrench className="w-4 h-4 mr-2" />
+                            Browse All Parts
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Financing */}
+                  <TabsContent value="financing" className="p-6 bg-white">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold">Financing Options</h3>
+                          <p className="text-sm text-muted-foreground">Explore financing solutions for this equipment</p>
+                        </div>
+                        <Button variant="outline" onClick={() => setShowEmiCalculator(true)}>
+                          <Calculator className="w-4 h-4 mr-2" />
+                          EMI Calculator
+                        </Button>
+                      </div>
+                      
+                      {loadingFinancing ? (
+                        <div className="space-y-4">
+                          {[...Array(2)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-32 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : financingOptions.length > 0 ? (
+                        <div className="grid gap-6">
+                          {financingOptions.map((option) => (
+                            <Card key={option.id} className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow bg-white">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-semibold text-lg">
+                                        {option.profiles?.company_name || option.profiles?.full_name}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{option.product_name}</p>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {option.loan_type?.map((type: string, idx: number) => (
+                                          <Badge key={idx} variant="secondary" className="text-xs">
+                                            {type}
+                                          </Badge>
+                                        ))}
+                                      </div>
                                     </div>
                                     <div className="text-right">
-                                      <div className="text-lg font-semibold text-primary">{option.min_interest_rate}% - {option.max_interest_rate}% APR</div>
-                                      <div className="text-sm text-muted-foreground">{option.max_tenure_months} months</div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                      <div className="flex items-center gap-1">
-                                        <DollarSign className="h-4 w-4" />
-                                        <span>₹{option.min_amount.toLocaleString()} - ₹{option.max_amount.toLocaleString()}</span>
-                                      </div>
-                                      {option.profiles && (
-                                        <div className="flex items-center gap-1">
-                                          <Building className="h-4 w-4" />
-                                          <span>{option.profiles.company_name || option.profiles.full_name}</span>
+                                      <Badge variant="secondary" className="bg-green-50 text-green-700 mb-2">
+                                        {option.min_interest_rate}% - {option.max_interest_rate}%
+                                      </Badge>
+                                      {option.quick_approval && (
+                                        <div>
+                                          <Badge variant="outline" className="text-xs">
+                                            <Clock className="w-2 h-2 mr-1" />
+                                            Quick Approval
+                                          </Badge>
                                         </div>
                                       )}
                                     </div>
-                                    
-                                    <div className="flex gap-2">
-                                      {option.profiles?.phone && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            const phoneNumber = option.profiles!.phone!.replace(/\D/g, '');
-                                            const message = `Hi! I'm interested in your financing option: ${option.product_name} for robot purchase. Can you provide more details?`;
-                                            window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
-                                          }}
-                                        >
-                                          <MessageCircle className="w-4 h-4 mr-1" />
-                                          Call
-                                        </Button>
-                                      )}
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleQuoteRequest(
-                                          {
-                                            name: option.profiles?.full_name || 'Unknown',
-                                            company: option.profiles?.company_name,
-                                            phone: option.profiles?.phone,
-                                            location: option.profiles?.location
-                                          },
-                                          {
-                                            name: option.product_name,
-                                            type: 'finance'
-                                          }
-                                        )}
-                                      >
-                                        <FileText className="w-4 h-4 mr-1" />
-                                        Apply
-                                      </Button>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Loan Amount</p>
+                                      <p className="font-medium">
+                                        ₹{(option.min_amount || 0).toLocaleString()} - ₹{option.max_amount.toLocaleString()}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Tenure</p>
+                                      <p className="font-medium">
+                                        {option.min_tenure_months} - {option.max_tenure_months} months
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Processing Fee</p>
+                                      <p className="font-medium">{option.processing_fee_percentage}%</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Interest Rate</p>
+                                      <p className="font-medium">
+                                        {option.min_interest_rate}% - {option.max_interest_rate}%
+                                      </p>
                                     </div>
                                   </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">No financing options available for this price range.</p>
-                        )}
-                      </div>
+                                  
+                                  {option.description && (
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">{option.description}</p>
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex flex-wrap gap-2">
+                                    {option.collateral_required && (
+                                      <Badge variant="outline" className="text-xs">
+                                        <Shield className="w-2 h-2 mr-1" />
+                                        Collateral Required
+                                      </Badge>
+                                    )}
+                                    {option.digital_process && (
+                                      <Badge variant="outline" className="text-xs">
+                                        <Star className="w-2 h-2 mr-1" />
+                                        Digital Process
+                                      </Badge>
+                                    )}
+                                    {option.prepayment_allowed && (
+                                      <Badge variant="outline" className="text-xs">
+                                        <Star className="w-2 h-2 mr-1" />
+                                        Prepayment Allowed
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  
+                                   <div className="flex gap-2">
+                                     <Button 
+                                       className="flex-1 bg-green-600 hover:bg-green-700"
+                                       onClick={() => handleApplyLoan(option)}
+                                       disabled={!user}
+                                     >
+                                       <CreditCard className="w-4 h-4 mr-2" />
+                                       Apply Now
+                                     </Button>
+                                     <Button 
+                                       variant="outline"
+                                       onClick={() => handleContactFinance(option)}
+                                       disabled={!user}
+                                     >
+                                       <PhoneCall className="w-4 h-4 mr-2" />
+                                       Call
+                                     </Button>
+                                   </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <DollarSign className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Financing Options</h3>
+                          <p className="text-muted-foreground mb-4">No financing options available at the moment.</p>
+                          <Button variant="outline">
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            Contact for Custom Financing
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {robot?.price && (
+                        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:shadow-lg transition-all duration-300">
+                          <CardContent className="p-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-lg font-bold text-blue-900 flex items-center">
+                                  <Calculator className="w-5 h-5 mr-2" />
+                                  Quick EMI Estimate
+                                </h4>
+                                <Button 
+                                  onClick={() => setShowEmiCalculator(true)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                                >
+                                  <Calculator className="w-4 h-4 mr-1" />
+                                  Full Calculator
+                                </Button>
+                              </div>
+                              <p className="text-sm text-blue-700 font-medium">
+                                For equipment price of <span className="font-bold">{formatPrice(robot.price, robot.currency)}</span>
+                              </p>
+                              <div className="grid grid-cols-3 gap-4">
+                                <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
+                                  <p className="text-xs text-blue-600 font-medium mb-1">1 Year</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.09).toLocaleString()}</p>
+                                  <p className="text-xs text-blue-600">/month</p>
+                                </div>
+                                <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
+                                  <p className="text-xs text-blue-600 font-medium mb-1">3 Years</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.032).toLocaleString()}</p>
+                                  <p className="text-xs text-blue-600">/month</p>
+                                </div>
+                                <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
+                                  <p className="text-xs text-blue-600 font-medium mb-1">5 Years</p>
+                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.021).toLocaleString()}</p>
+                                  <p className="text-xs text-blue-600">/month</p>
+                                </div>
+                              </div>
+                              <p className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded border border-blue-100">
+                                *Estimates based on 9-12% interest rate. Use full calculator for accurate results.
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                   </TabsContent>
+
+                  {/* Logistics */}
+                  <TabsContent value="logistics" className="p-6 bg-white">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-semibold flex items-center">
+                          <Package className="w-5 h-5 mr-2 text-orange-600" />
+                          Logistics & Shipping Partners
+                        </h3>
+                        <Badge variant="outline" className="text-orange-600">
+                          {logisticsServices.length} Providers Available
+                        </Badge>
+                      </div>
+                      
+                      {loadingLogistics ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                          <span>Loading logistics services...</span>
+                        </div>
+                      ) : logisticsServices.length > 0 ? (
+                        <div className="grid gap-4">
+                          {logisticsServices.map((service) => (
+                            <Card key={service.id} className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow bg-white">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-semibold text-lg">
+                                        {service.profiles?.company_name || service.profiles?.full_name || 'Logistics Provider'}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">{service.service_name}</p>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        <Badge variant="secondary" className="text-xs">{service.service_type}</Badge>
+                                        {service.tracking_available && (
+                                          <Badge variant="secondary" className="text-xs">GPS Tracking</Badge>
+                                        )}
+                                        {service.insurance_included && (
+                                          <Badge variant="secondary" className="text-xs">Insurance Included</Badge>
+                                        )}
+                                        {service.emergency_delivery && (
+                                          <Badge variant="secondary" className="text-xs">Emergency Delivery</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <Badge variant="secondary" className="bg-orange-50 text-orange-700 mb-2">
+                                        ₹{service.base_price || 0}/base + ₹{service.price_per_kg || 0}/kg
+                                      </Badge>
+                                      <div>
+                                        <Badge variant="outline" className="text-xs">
+                                          <Clock className="w-2 h-2 mr-1" />
+                                          {service.delivery_time_hours || 24}h delivery
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Coverage</p>
+                                      <p className="font-medium">
+                                        {service.coverage_areas?.length > 0 ? 
+                                          `${service.coverage_areas.slice(0, 2).join(', ')}${service.coverage_areas.length > 2 ? '...' : ''}` : 
+                                          service.is_international ? 'International' : 'Domestic'
+                                        }
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Max Weight</p>
+                                      <p className="font-medium">{service.max_weight_kg || 'No limit'} kg</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Transport</p>
+                                      <p className="font-medium">
+                                        {service.transport_modes?.length > 0 ? 
+                                          service.transport_modes.slice(0, 2).join(', ') : 
+                                          'Various'
+                                        }
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Special</p>
+                                      <p className="font-medium">
+                                        {service.special_handling ? 'Special Handling' : 'Standard'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  {service.description && (
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">{service.description}</p>
+                                    </div>
+                                  )}
+                                  
+                                   <div className="flex gap-2">
+                                     <Button 
+                                       className="flex-1 bg-orange-600 hover:bg-orange-700"
+                                       onClick={() => handleGetQuote(service.profiles, service, 'logistics')}
+                                       disabled={!user}
+                                     >
+                                       <Truck className="w-4 h-4 mr-2" />
+                                       Get Quote
+                                     </Button>
+                                     <Button 
+                                       variant="outline"
+                                       onClick={() => handleContactSupplier(service.profiles?.phone || service.profiles?.mobile_number, service.profiles?.company_name || service.profiles?.full_name, 'Logistics')}
+                                       disabled={!user || !service.profiles?.phone}
+                                     >
+                                       <PhoneCall className="w-4 h-4 mr-2" />
+                                       Call
+                                     </Button>
+                                   </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                         <div className="text-center py-8">
+                           <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                           <h3 className="text-lg font-semibold mb-2">No Logistics Services Available</h3>
+                           <p className="text-muted-foreground mb-4">No logistics providers are currently available for your location.</p>
+                           <Button variant="outline">
+                             <Truck className="w-4 h-4 mr-2" />
+                             Request Logistics Quote
+                           </Button>
+                         </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
                 </Tabs>
               </CardContent>
             </Card>
 
+
             {/* AI Analysis Section */}
-            {showAIAnalysis && aiAnalysis && (
-              <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+            {user && (
+              <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center text-xl">
+                    <Brain className="w-6 h-6 mr-2" />
+                    🚀 Advanced AI Market Intelligence
+                  </CardTitle>
+                  <p className="text-blue-100 text-sm">
+                    Discover suppliers, services, financing & logistics with AI-powered recommendations
+                  </p>
+                </CardHeader>
                 <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-blue-900">AI Analysis Results</h3>
-                    <div className="bg-white rounded-lg p-4">
-                      <p className="text-blue-800">{aiAnalysis.analysis}</p>
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div>
-                          <span className="text-sm text-blue-600">Suitability Score:</span>
-                          <div className="text-xl font-bold text-blue-900">{aiAnalysis.suitabilityScore}/10</div>
+                  {!aiAnalysis ? (
+                    <div className="text-center py-8">
+                      <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Brain className="w-10 h-10 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-800 mb-3">
+                        Unlock Smart Market Insights
+                      </h3>
+                      <p className="text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
+                        Get AI-powered recommendations for spare parts, services, financing, and logistics 
+                        specifically matched to this robot with intelligent market analysis.
+                      </p>
+                      <div className="grid grid-cols-3 gap-4 mb-8">
+                        <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
+                          <Wrench className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-gray-700">Spare Parts</div>
+                          <div className="text-xs text-gray-500">Smart Matching</div>
                         </div>
-                        <div>
-                          <span className="text-sm text-blue-600">Key Insights:</span>
-                          <ul className="text-sm text-blue-800 mt-1">
-                            {aiAnalysis.keyInsights.map((insight, index) => (
-                              <li key={index}>• {insight}</li>
-                            ))}
-                          </ul>
+                        <div className="p-4 bg-white rounded-xl border border-green-200 shadow-sm">
+                          <Settings className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-gray-700">Services</div>
+                          <div className="text-xs text-gray-500">Expert Providers</div>
+                        </div>
+                        <div className="p-4 bg-white rounded-xl border border-purple-200 shadow-sm">
+                          <DollarSign className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-gray-700">Finance</div>
+                          <div className="text-xs text-gray-500">Funding Solutions</div>
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <span className="text-sm text-blue-600">Recommendation:</span>
-                        <p className="text-blue-800 mt-1">{aiAnalysis.recommendation}</p>
-                      </div>
+                      <Button 
+                        onClick={handleAIAnalysis}
+                        disabled={analysisLoading}
+                        size="lg"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                      >
+                        {analysisLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Analyzing Market...
+                          </>
+                        ) : (
+                          <>
+                            <Brain className="w-5 h-5 mr-2" />
+                            Generate Smart Analysis
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  </div>
+                  ) : (
+                    <AIAnalysisResult 
+                      analysis={aiAnalysis.analysis} 
+                      cached={aiAnalysis.cached || false}
+                      currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
+                      className="mt-6"
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Right sidebar (1/3 width) */}
+          {/* EMI Calculator Modal */}
+          <Dialog open={showEmiCalculator} onOpenChange={setShowEmiCalculator}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>EMI Calculator for {robot?.name}</DialogTitle>
+                <DialogDescription>
+                  Calculate your loan EMI for this robot equipment
+                </DialogDescription>
+              </DialogHeader>
+              <LoanCalculator 
+                defaultAmount={robot?.price || 1000000}
+                defaultRate={10.5}
+                defaultTenure={60}
+                onClose={() => setShowEmiCalculator(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
+          {/* Sidebar with Seller info and Contact buttons */}
           <div className="space-y-6">
-            {/* Seller Information */}
-            {robot.profiles && (
+            {user && robot.profiles && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Seller Information
-                  </CardTitle>
+                  <CardTitle>Seller Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center">
-                    {robot.profiles.avatar_url ? (
-                      <img
-                        src={robot.profiles.avatar_url}
-                        alt={robot.profiles.full_name}
-                        className="w-16 h-16 rounded-full mx-auto mb-3"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                        <User className="h-8 w-8 text-muted-foreground" />
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <span>{robot.profiles.full_name}</span>
+                    </div>
+                    {robot.profiles.company_name && (
+                      <div className="flex items-center">
+                        <Building className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span>{robot.profiles.company_name}</span>
                       </div>
                     )}
-                    <h3 className="font-medium">{robot.profiles.full_name}</h3>
-                    {robot.profiles.company_name && (
-                      <p className="text-sm text-muted-foreground">{robot.profiles.company_name}</p>
+                    {robot.profiles.phone && (
+                      <div className="flex items-center">
+                        <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span>{robot.profiles.phone}</span>
+                      </div>
+                    )}
+                    {robot.profiles.email && (
+                      <div className="flex items-center">
+                        <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span className="text-sm">{robot.profiles.email}</span>
+                      </div>
+                    )}
+                    {robot.profiles.location && (
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span>{robot.profiles.location}</span>
+                      </div>
                     )}
                   </div>
-                  
-                  {robot.profiles.location && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span>{robot.profiles.location}</span>
-                    </div>
-                  )}
-
-                  {/* Contact Actions */}
-                  {user && (
-                    <div className="space-y-3">
-                      <Button onClick={handleWhatsAppInquiry} className="w-full">
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        WhatsApp Seller
-                      </Button>
-                      <Button 
-                        onClick={() => handleQuoteRequest(
-                          {
-                            name: robot.profiles.full_name,
-                            company: robot.profiles.company_name,
-                            phone: robot.profiles.phone,
-                            location: robot.profiles.location
-                          },
-                          {
-                            name: robot.name,
-                            price: robot.price,
-                            type: 'part' as const
-                          }
-                        )}
-                        variant="outline" 
-                        className="w-full"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Request Quote
-                      </Button>
-                      <Button
-                        onClick={handleAddToWatchlist}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Heart className={`w-4 h-4 mr-2 ${isInWatchlist ? 'fill-current text-red-500' : ''}`} />
-                        {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             )}
 
             {!user && (
-              <Card className="border-blue-200 bg-blue-50">
-                <CardContent className="p-4 text-center">
-                  <h3 className="font-medium mb-2">Want to Contact the Seller?</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Login to contact the seller and access premium features
+              <Card>
+                <CardHeader>
+                  <CardTitle>Login Required</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    Please log in to view seller information and access AI analysis features.
                   </p>
                   <Button onClick={() => navigate('/auth')} className="w-full">
                     Login / Sign Up
@@ -1347,9 +2458,51 @@ const RobotDetails = () => {
                 </CardContent>
               </Card>
             )}
-          </div>
+
+            {user && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="space-y-3">
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700" 
+                      size="lg"
+                      onClick={handleContactSeller}
+                    >
+                      <PhoneCall className="w-4 h-4 mr-2" />
+                      Contact Seller
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+                      onClick={handleRequestQuote}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Request Quote
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                      onClick={handleAddToWatchlist}
+                      disabled={addingToWatchlist}
+                    >
+                      {addingToWatchlist ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Heart className={`w-4 h-4 mr-2 ${isInWatchlist ? 'fill-current' : ''}`} />
+                      )}
+                      {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                    </Button>
+                   </div>
+                </CardContent>
+              </Card>
+            )}
+           </div>
         </div>
-      </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+</div>
 
       {/* Fullscreen Image Modal */}
       <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
@@ -1361,92 +2514,163 @@ const RobotDetails = () => {
               className="w-full h-full object-contain rounded-lg bg-muted max-h-[90vh]"
             />
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm"
+              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
               onClick={() => setShowFullscreen(false)}
             >
-              <X className="h-4 w-4" />
+              <X className="w-4 h-4" />
             </Button>
-            
             {robot?.images && robot.images.length > 1 && (
               <>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
                   onClick={prevImage}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="w-6 h-6" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
                   onClick={nextImage}
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="w-6 h-6" />
                 </Button>
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded">
+                  {currentImageIndex + 1} / {robot.images.length}
+                </div>
               </>
             )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Enhanced Robot Report Modal */}
-      {showReportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="max-w-2xl w-full mx-4">
-            <CardHeader>
-              <CardTitle>Generate Robot Report</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Robot report functionality will be available soon.</p>
-              <Button onClick={() => setShowReportModal(false)} className="mt-4">
-                Close
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Quote Request Modal */}
+      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Quote</DialogTitle>
+            <DialogDescription>
+              Send a quote request to {robot?.profiles?.company_name || robot?.profiles?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Add any specific requirements or questions..."
+              value={quoteMessage}
+              onChange={(e) => setQuoteMessage(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuoteModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={sendQuoteEmail}>
+              <Mail className="w-4 h-4 mr-2" />
+              Send Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+        {/* Import Quote Modal */}
+      <Dialog open={showImportQuote} onOpenChange={setShowImportQuote}>
+        <DialogContent className="sm:max-w-lg { max-width: 32rem !important; }">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Plane className="w-5 h-5 mr-2" />
+              Import Quote Request
+            </DialogTitle>
+            <DialogDescription>
+              Request detailed import pricing including duties and logistics
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {importDuty && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <h4 className="font-semibold mb-2 text-orange-700">Estimated Import Costs</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="font-bold text-blue-700">Base Price:</span>
+                    <span className="font-bold text-blue-700">{formatPrice(robot?.price || 0, robot?.currency || 'USD')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-orange-600">Import Duty (18%):</span>
+                    <span className="text-orange-600">{formatPrice(importDuty, robot?.currency || 'USD')}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold">
+                    <span className="font-bold text-blue-700">Estimated Total:</span>
+                    <span className="font-bold text-blue-700">{formatPrice((robot?.price || 0) + importDuty, robot?.currency || 'USD')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <Textarea
+              placeholder="Additional requirements for import (customs clearance, shipping preferences, etc.)..."
+              value={quoteMessage}
+              onChange={(e) => setQuoteMessage(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImportQuote(false)}>
+              Cancel
+            </Button>
+            <Button onClick={sendImportQuoteEmail}>
+              <Mail className="w-4 h-4 mr-2" />
+              Send Import Quote Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Loan Application Modal */}
-      {showLoanModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="max-w-2xl w-full mx-4">
-            <CardHeader>
-              <CardTitle>Apply for Loan</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Loan application for {robot?.name} - ₹{robot?.price?.toLocaleString() || '0'}</p>
-              <Button onClick={() => setShowLoanModal(false)} className="mt-4">
-                Close
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <LoanApplicationModal
+        open={showLoanApplication}
+        onOpenChange={(open) => {
+          setShowLoanApplication(open);
+          if (!open) {
+            setSelectedFinanceProvider(null);
+          }
+        }}
+        robotDetails={robot ? {
+          name: robot.name,
+          model: robot.model,
+          price: robot.price || 0,
+          currency: robot.currency || 'INR',
+          type: robot.robot_type
+        } : undefined}
+        financeProvider={selectedFinanceProvider}
+      />
+
+      {/* Robot Report Modal */}
+      <RobotReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        robotData={robot}
+      />
 
       {/* Supplier Quote Form Modal */}
       {showQuoteForm && selectedSupplier && selectedItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="max-w-2xl w-full mx-4">
-            <CardHeader>
-              <CardTitle>Request Quote</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Quote request for {selectedItem.name}</p>
-              <p>Supplier: {selectedSupplier.name}</p>
-              <Button onClick={() => {
-                setShowQuoteForm(false);
-                setSelectedSupplier(null);
-                setSelectedItem(null);
-              }} className="mt-4">
-                Close
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <SupplierQuoteForm
+          onClose={() => {
+            setShowQuoteForm(false);
+            setSelectedSupplier(null);
+            setSelectedItem(null);
+          }}
+          supplierInfo={selectedSupplier}
+          itemInfo={selectedItem}
+          robotInfo={robot ? {
+            name: robot.name,
+            model: robot.model,
+            id: robot.id
+          } : undefined}
+        />
       )}
     </div>
   );
