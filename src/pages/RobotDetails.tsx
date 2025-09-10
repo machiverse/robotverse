@@ -1359,6 +1359,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </Badge>
                 </div>
               </CardHeader>
+               </Card>
 
               <div className="space-y-6">
                 <div className="flex items-baseline gap-3">
