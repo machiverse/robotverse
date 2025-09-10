@@ -1369,9 +1369,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   )}
                 </div>
 
-                <div className="bg-muted/20 p-4 rounded-lg border border-border grid gap-4 text-gray-800">
+                <div className="bg-muted/20 p-5 rounded-lg border border-border text-gray-800 grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-primary" />
+                    <MapPin className="w-6 h-6 text-primary" />
                     <div>
                       <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Location</p>
                       <p className="font-semibold text-foreground">{robot?.location ?? 'N/A'}</p>
@@ -1381,7 +1381,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       <Calendar className="w-6 h-6 text-primary" />
       <div>
         <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Manufacture Year</p> {/* changed label for clarity */}
-        <p className="font-semibold">{robot.year_manufactured}</p>
+        <p className="font-semibold text-foreground">{robot.year_manufactured}</p>
       </div>
     </div>
 
@@ -1390,7 +1390,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <Settings className="w-5 h-5 text-violet-600" />
                       <div>
                         <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
-                        <p className="capitalize font-semibold">{robot.condition.replace(/_/g, ' ')}</p>
+                        <p className="font-semibold text-foreground">{robot.condition.replace(/_/g, ' ')}</p>
                       </div>
                     </div>
                   )}
