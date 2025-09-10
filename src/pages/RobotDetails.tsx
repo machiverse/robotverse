@@ -1347,19 +1347,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               <h1 className="text-2xl font-bold text-primary leading-tight">{robot?.name}</h1>
               <div className="flex flex-wrap gap-2 mb-6">
                 
-               <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl font-bold text-primary leading-tight">{robot.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1 font-medium">{robot.robot_type}</p>
-                  </div>
-                  <Badge variant="outline" className="text-sm text-muted-foreground mt-1 font-medium">
-                    {robot.availability}
-                  </Badge>
-                </div>
-              </CardHeader>
-               </Card>
+                <Badge variant="outline" className="text-sm text-muted-foreground mt-1 font-medium">{robot?.robot_type}</Badge>
+                {robot?.brand && <Badge variant="outline" className="text-sm text-muted-foreground mt-1 font-medium">{robot.brand}</Badge>}
+              </div>
 
               <div className="space-y-6">
                 <div className="flex items-baseline gap-3">
