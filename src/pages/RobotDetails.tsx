@@ -1344,9 +1344,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           {/* Robot information panel */}
           <div className="p-6 bg-card rounded-lg shadow-inner text-gray-900 flex flex-col justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-blue-900">{robot?.name}</h1>
+              <h1 className="text-2xl font-bold text-primary leading-tight">{robot?.name}</h1>
               <div className="flex flex-wrap gap-2 mb-6">
-                <Badge variant="secondary" className="text-sm">{robot?.model}</Badge>
+                
                 <Badge variant="outline" className="text-sm text-blue-700 border-blue-300">{robot?.robot_type}</Badge>
                 {robot?.brand && <Badge variant="outline" className="text-sm text-green-700 border-green-300">{robot.brand}</Badge>}
               </div>
