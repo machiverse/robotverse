@@ -1394,7 +1394,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <Settings className="w-5 h-5 text-violet-600" />
                       <div>
                         <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
-                        <p className="font-semibold text-foregroundd">{robot.condition.replace(/_/g, ' ')}</p>
+                        <p className="font-semibold text-foreground">{robot.condition.replace(/_/g, ' ')}</p>
                       </div>
                     </div>
                   )}
