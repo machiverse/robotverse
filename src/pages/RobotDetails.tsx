@@ -1343,93 +1343,94 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
           {/* Robot information panel */}
           <div className="space-y-6">
-            {/* Basic Info Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl font-bold text-primary leading-tight">{robot.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1 font-medium">{robot.robot_type}</p>
-                  </div>
-                  <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50 font-semibold">
-                    {robot.availability}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-3xl font-bold text-primary">
-                      {formatCurrency(robot.price, robot.currency)}
-                    </span>
-                    <div className="flex items-center space-x-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span className="font-medium">{robot.location}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-card p-3 rounded-lg border">
-                    <div className="flex items-center space-x-2">
-                      <Settings className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Condition:</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{robot.condition}</span>
-                  </div>
-                  <div className="bg-card p-3 rounded-lg border">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Year:</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
-                  </div>
-                </div>
+  {/* Basic Info Card */}
+  <Card>
+    <CardHeader>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <CardTitle className="text-2xl font-bold text-primary leading-tight">{robot.name}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">{robot.robot_type}</p>
+        </div>
+        <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50 font-semibold">
+          {robot.availability}
+        </Badge>
+      </div>
+    </CardHeader>
 
-                  {robot?.condition && (
-                    <div className="flex items-center gap-3">
-                      <Settings className="w-5 h-5 text-violet-600" />
-                      <div>
-                        <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
-                        <p className="capitalize font-semibold">{robot.condition.replace(/_/g, ' ')}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-col space-y-3">
-              <Button
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
-                onClick={handleWhatsAppInquiry}
-                disabled={!user}
-                size="lg"
-              >
-                <MessageSquare className="w-5 h-5 mr-2" /> Ask Latest Price via WhatsApp
-              </Button>
-              <Button
-                className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
-                onClick={handleContactSeller}
-                disabled={!user}
-                size="lg"
-              >
-                <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
-              </Button>
-              {!user && (
-                <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
-                  Please{' '}
-                  <Button variant="link" className="p-0 text-primary underline" onClick={() => navigate('/auth')}>
-                    log in
-                  </Button>{' '}
-                  to contact the seller or request quotes.
-                </div>
-              )}
-            </div>
+    <CardContent className="space-y-6">
+      <div className="bg-muted/30 p-4 rounded-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-3xl font-bold text-primary">
+            {formatCurrency(robot.price, robot.currency)}
+          </span>
+          <div className="flex items-center space-x-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <span className="font-medium">{robot.location}</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-card p-3 rounded-lg border">
+          <div className="flex items-center space-x-2">
+            <Settings className="h-4 w-4 text-primary" />
+            <span className="text-sm text-muted-foreground">Condition:</span>
+          </div>
+          <span className="font-semibold text-foreground">{robot.condition}</span>
+        </div>
+
+        <div className="bg-card p-3 rounded-lg border">
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="text-sm text-muted-foreground">Year:</span>
+          </div>
+          <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
+        </div>
+      </div>
+
+      {robot?.condition && (
+        <div className="flex items-center gap-3">
+          <Settings className="w-5 h-5 text-violet-600" />
+          <div>
+            <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
+            <p className="capitalize font-semibold">{robot.condition.replace(/_/g, ' ')}</p>
+          </div>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+
+  <div className="mt-6 flex flex-col space-y-3">
+    <Button
+      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+      onClick={handleWhatsAppInquiry}
+      disabled={!user}
+      size="lg"
+    >
+      <MessageSquare className="w-5 h-5 mr-2" /> Ask Latest Price via WhatsApp
+    </Button>
+
+    <Button
+      className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
+      onClick={handleContactSeller}
+      disabled={!user}
+      size="lg"
+    >
+      <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
+    </Button>
+
+    {!user && (
+      <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
+        Please{' '}
+        <Button variant="link" className="p-0 text-primary underline" onClick={() => navigate('/auth')}>
+          log in
+        </Button>{' '}
+        to contact the seller or request quotes.
+      </div>
+    )}
+  </div>
+</div>
+
 
             {/* Quick Actions */}
             {user && (
