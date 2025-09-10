@@ -1340,7 +1340,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </div>
             )}
           </div>
-        </div>
 
           {/* Robot information panel */}
           <div className="p-6 bg-card rounded-lg shadow-inner text-gray-900 flex flex-col justify-between">
@@ -1348,23 +1347,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               <h1 className="text-2xl font-bold text-primary leading-tight">{robot?.name}</h1>
               <div className="flex flex-wrap gap-2 mb-6">
                 
-               <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl font-bold text-primary leading-tight">{robot.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1 font-medium">{robot.robot_type}</p>
-                  </div>
-                  <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50 font-semibold">
-                    {robot.availability}
-                  </Badge>
-                </div>
-              </CardHeader>
-               </Card>
+                <Badge variant="outline" className="text-sm text-muted-foreground mt-1 font-medium">{robot?.robot_type}</Badge>
+                {robot?.brand && <Badge variant="outline" className="text-sm text-muted-foreground mt-1 font-medium">{robot.brand}</Badge>}
+              </div>
 
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-primary leading-tight">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-semibold text-blue-900">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
                   {outsideIndia && (
                     <Button variant="outline" size="sm" className="text-orange-700 border-orange-400 hover:bg-orange-100" onClick={handleImportQuote}>Import Quote</Button>
                   )}
