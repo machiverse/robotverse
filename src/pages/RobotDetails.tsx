@@ -1336,8 +1336,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         />
                     </button>
                   ))}
-                </div>
-              </div>
+                 </div>
+               </div>
             )}
           </div>
 
@@ -1432,10 +1432,11 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                 </div>
               )}
             </div>
-          </div>
+           </div>
+         </div>
         </div>
-      </CardContent>
-    </Card>
+       </CardContent>
+     </Card>
 
             {/* Quick Actions */}
             {user && (
@@ -1703,9 +1704,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           </Card>
                         )}
                         
-                      </div>
-                    </div>
-                  </TabsContent>
+                       </div>
+                     </div>
+                   </TabsContent>
 
                   {/* Specifications */}
                   <TabsContent value="specifications" className="p-6">
