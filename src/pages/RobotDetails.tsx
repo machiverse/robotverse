@@ -1374,16 +1374,16 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     <MapPin className="w-5 h-5 text-primary" />
                     <div>
                       <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Location</p>
-                      <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
+                      <p className="font-semibold text-foreground">{robot?.location ?? 'N/A'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Year:</span>
-                      <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
-                  </div>
-                  </div>
+      <Calendar className="w-6 h-6 text-primary" />
+      <div>
+        <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Manufacture Year</p> {/* changed label for clarity */}
+        <p className="font-semibold">{robot.year_manufactured}</p>
+      </div>
+    </div>
 
                   {robot?.condition && (
                     <div className="flex items-center gap-3">
