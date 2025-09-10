@@ -1380,13 +1380,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </div>
                   <div className="flex items-center gap-3">
                     <Package className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Availability</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>{robot?.availability}</Badge>
-                        {robot?.quantity && <span>({robot.quantity} units)</span>}
-                      </div>
+                    <div className="bg-card p-3 rounded-lg border">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">Year:</span>
                     </div>
+                    <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
+                  </div>
                   </div>
 
                   {robot?.condition && (
@@ -1394,7 +1394,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       <Settings className="w-5 h-5 text-violet-600" />
                       <div>
                         <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
-                        <p className="font-semibold text-foreground">{robot.condition.replace(/_/g, ' ')}</p>
+                        <p className="capitalize font-semibold">{robot.condition.replace(/_/g, ' ')}</p>
                       </div>
                     </div>
                   )}
