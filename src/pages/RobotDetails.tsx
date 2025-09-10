@@ -1228,7 +1228,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
     return (
       <div className="min-h-screen bg-muted/20">
-        <EnhancedHeader />
+      <EnhancedHeader />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header Navigation */}
         <div className="flex items-center justify-between mb-6">
@@ -1358,27 +1358,24 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   )}
                 </div>
 
-               <div className="bg-muted/30 p-4 rounded-lg border border-border grid gap-6 text-gray-900">
-  <div className="flex items-center gap-3">
-    <MapPin className="w-5 h-5 text-primary" />
-    <div>
-      <p className="uppercase text-xs font-semibold tracking-wider text-gray-600">Location</p>
-      <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
-    </div>
-  </div>
-  <div className="flex items-center gap-3">
-    <Package className="w-5 h-5 text-emerald-600" />
-    <div>
-      <p className="uppercase text-xs font-semibold tracking-wider text-gray-600">Availability</p>
-      <div className="flex items-center gap-2">
-        <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>
-          {robot?.availability ?? 'Unknown'}
-        </Badge>
-        {robot?.quantity && <span>({robot.quantity} units)</span>}
-      </div>
-    </div>
-  </div>
-</div>
+                <div className="bg-muted/20 p-4 rounded-lg border border-border grid gap-4 text-gray-800">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Location</p>
+                      <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Package className="w-5 h-5 text-emerald-600" />
+                    <div>
+                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Availability</p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>{robot?.availability}</Badge>
+                        {robot?.quantity && <span>({robot.quantity} units)</span>}
+                      </div>
+                    </div>
+                  </div>
 
                   {robot?.condition && (
                     <div className="flex items-center gap-3">
@@ -1425,9 +1422,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       </CardContent>
     </Card>
 
-    {/* Quick Actions */}
-    {user && (
-      <Card>
+            {/* Quick Actions */}
+            {user && (
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Quick Actions</CardTitle>
                 </CardHeader>
@@ -2316,6 +2313,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </CardContent>
             </Card>
 
+
             {/* AI Analysis Section */}
             {user && (
               <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-purple-50/80">
@@ -2390,7 +2388,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             )}
           </div>
 
-        {/* EMI Calculator Modal */}
+          {/* EMI Calculator Modal */}
           <Dialog open={showEmiCalculator} onOpenChange={setShowEmiCalculator}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -2505,7 +2503,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             )}
           </div>
         </div>
-      </div>
       </div>
 
       {/* Fullscreen Image Modal */}
