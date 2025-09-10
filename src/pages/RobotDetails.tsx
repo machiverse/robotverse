@@ -1340,6 +1340,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </div>
             )}
           </div>
+        </div>
 
           {/* Robot information panel */}
           <div className="p-6 bg-card rounded-lg shadow-inner text-gray-900 flex flex-col justify-between">
