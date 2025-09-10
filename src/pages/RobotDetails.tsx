@@ -1313,26 +1313,27 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               )}
             </div>
             {/* Thumbnails */}
-            {robot?.images && robot.images.length > 1 && (
-              <div className="mt-4 border-t border-border bg-card p-4 rounded-b-lg">
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                  {robot.images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentImageIndex(idx)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-transform duration-300 ${
-                        currentImageIndex === idx
-                          ? 'border-primary shadow-lg scale-105 ring-2 ring-primary/30'
-                          : 'border-border hover:border-primary hover:shadow-md'
-                      }`}
-                      aria-label={`Select image ${idx + 1}`}
-                    >
-                      <ResponsiveImage
-                        src={img}
-                        alt={`Thumbnail ${idx + 1}`}
-                        className="w-full h-full object-cover object-center"
-                        style={{ imageOrientation: 'from-image' }}
-                      />
+            {robot.images?.length > 1 && (
+                <div className="p-4">
+                  <div className="flex space-x-2 overflow-x-auto">
+                    {robot.images.map((image, index) => (
+                      <button
+                        key={index}
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all group ${
+                          index === currentImageIndex 
+                            ? 'border-primary' 
+                            : 'border-muted hover:border-muted-foreground'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img
+                          src={image}
+                          alt={`${robot.name} ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                          style={{
+                            imageOrientation: 'from-image'
+                          }}
+                        />
                     </button>
                   ))}
                 </div>
