@@ -1362,8 +1362,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                </Card>
 
               <div className="space-y-6">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-primary">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold text-primary leading-tight">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
                   {outsideIndia && (
                     <Button variant="outline" size="sm" className="text-orange-700 border-orange-400 hover:bg-orange-100" onClick={handleImportQuote}>Import Quote</Button>
                   )}
