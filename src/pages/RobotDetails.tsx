@@ -1378,13 +1378,10 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Package className="w-5 h-5 text-emerald-600" />
-                    <div className="bg-card p-3 rounded-lg border">
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4 text-primary" />
                       <span className="text-sm text-muted-foreground">Year:</span>
-                    </div>
-                    <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
+                      <span className="font-semibold text-foreground">{robot.year_manufactured}</span>
                   </div>
                   </div>
 
