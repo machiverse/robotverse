@@ -1313,26 +1313,27 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               )}
             </div>
             {/* Thumbnails */}
-            {robot?.images && robot.images.length > 1 && (
-              <div className="mt-4 border-t border-border bg-card p-4 rounded-b-lg">
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                  {robot.images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentImageIndex(idx)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-transform duration-300 ${
-                        currentImageIndex === idx
-                          ? 'border-primary shadow-lg scale-105 ring-2 ring-primary/30'
-                          : 'border-border hover:border-primary hover:shadow-md'
-                      }`}
-                      aria-label={`Select image ${idx + 1}`}
-                    >
-                      <ResponsiveImage
-                        src={img}
-                        alt={`Thumbnail ${idx + 1}`}
-                        className="w-full h-full object-cover object-center"
-                        style={{ imageOrientation: 'from-image' }}
-                      />
+            {robot.images?.length > 1 && (
+                <div className="p-4">
+                  <div className="flex space-x-2 overflow-x-auto">
+                    {robot.images.map((image, index) => (
+                      <button
+                        key={index}
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all group ${
+                          index === currentImageIndex 
+                            ? 'border-primary' 
+                            : 'border-muted hover:border-muted-foreground'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img
+                          src={image}
+                          alt={`${robot.name} ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                          style={{
+                            imageOrientation: 'from-image'
+                          }}
+                        />
                     </button>
                   ))}
                 </div>
@@ -1340,87 +1341,119 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             )}
           </div>
 
-          {/* Robot information panel */}
-          <div className="p-6 bg-card rounded-lg shadow-inner text-gray-900 flex flex-col justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold text-blue-900">{robot?.name}</h1>
-              <div className="flex flex-wrap gap-2 mb-6">
-                <Badge variant="secondary" className="text-sm">{robot?.model}</Badge>
-                <Badge variant="outline" className="text-sm text-blue-700 border-blue-300">{robot?.robot_type}</Badge>
-                {robot?.brand && <Badge variant="outline" className="text-sm text-green-700 border-green-300">{robot.brand}</Badge>}
-              </div>
+          {/* Robot Information */}
+<div className="space-y-6">
+  <Card>
+    <CardHeader>
+      <div className="flex flex-col items-start justify-between md:flex-row md:items-center">
+        <div className="flex-1">
+          {/* Name */}
+          <h1 className="text-3xl font-semibold text-blue-900">{robot?.name}</h1>
 
-              <div className="space-y-6">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-semibold text-blue-900">{formatPrice(robot?.price ?? 0, robot?.currency ?? '')}</span>
-                  {outsideIndia && (
-                    <Button variant="outline" size="sm" className="text-orange-700 border-orange-400 hover:bg-orange-100" onClick={handleImportQuote}>Import Quote</Button>
-                  )}
-                </div>
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            <Badge variant="secondary" className="text-sm">{robot?.model}</Badge>
+            <Badge variant="outline" className="text-sm text-blue-700 border-blue-300">{robot?.robot_type}</Badge>
+            {robot?.brand && (
+              <Badge variant="outline" className="text-sm text-green-700 border-green-300">
+                {robot.brand}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    </CardHeader>
 
-                <div className="bg-muted/20 p-4 rounded-lg border border-border grid gap-4 text-gray-800">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-primary" />
-                    <div>
-                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Location</p>
-                      <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Package className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Availability</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>{robot?.availability}</Badge>
-                        {robot?.quantity && <span>({robot.quantity} units)</span>}
-                      </div>
-                    </div>
-                  </div>
+    <CardContent className="space-y-6">
+      {/* Price + Import Quote */}
+      <div className="flex items-baseline gap-3">
+        <span className="text-3xl font-semibold text-blue-900">
+          {formatPrice(robot?.price ?? 0, robot?.currency ?? '')}
+        </span>
+        {outsideIndia && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-orange-700 border-orange-400 hover:bg-orange-100"
+            onClick={handleImportQuote}
+          >
+            Import Quote
+          </Button>
+        )}
+      </div>
 
-                  {robot?.condition && (
-                    <div className="flex items-center gap-3">
-                      <Settings className="w-5 h-5 text-violet-600" />
-                      <div>
-                        <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
-                        <p className="capitalize font-semibold">{robot.condition.replace(/_/g, ' ')}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+      {/* Info Section */}
+      <div className="bg-muted/20 p-4 rounded-lg border border-border grid gap-4 text-gray-800">
+        <div className="flex items-center gap-3">
+          <MapPin className="w-5 h-5 text-primary" />
+          <div>
+            <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Location</p>
+            <p className="font-semibold">{robot?.location ?? 'N/A'}</p>
+          </div>
+        </div>
 
-            <div className="mt-6 flex flex-col space-y-3">
-              <Button
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
-                onClick={handleWhatsAppInquiry}
-                disabled={!user}
-                size="lg"
-              >
-                <MessageSquare className="w-5 h-5 mr-2" /> Ask Latest Price via WhatsApp
-              </Button>
-              <Button
-                className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
-                onClick={handleContactSeller}
-                disabled={!user}
-                size="lg"
-              >
-                <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
-              </Button>
-              {!user && (
-                <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
-                  Please{' '}
-                  <Button variant="link" className="p-0 text-primary underline" onClick={() => navigate('/auth')}>
-                    log in
-                  </Button>{' '}
-                  to contact the seller or request quotes.
-                </div>
-              )}
+        <div className="flex items-center gap-3">
+          <Package className="w-5 h-5 text-emerald-600" />
+          <div>
+            <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Availability</p>
+            <div className="flex items-center gap-2">
+              <Badge variant={robot?.availability === 'In Stock' ? 'default' : 'secondary'}>
+                {robot?.availability}
+              </Badge>
+              {robot?.quantity && <span>({robot.quantity} units)</span>}
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {robot?.condition && (
+          <div className="flex items-center gap-3">
+            <Settings className="w-5 h-5 text-violet-600" />
+            <div>
+              <p className="uppercase text-xs font-semibold tracking-wider text-muted-foreground">Condition</p>
+              <p className="capitalize font-semibold">{robot.condition.replace(/_/g, ' ')}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="mt-6 flex flex-col space-y-3">
+        <Button
+          className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+          onClick={handleWhatsAppInquiry}
+          disabled={!user}
+          size="lg"
+        >
+          <MessageSquare className="w-5 h-5 mr-2" /> Ask Latest Price via WhatsApp
+        </Button>
+
+        <Button
+          className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
+          onClick={handleContactSeller}
+          disabled={!user}
+          size="lg"
+        >
+          <PhoneCall className="w-5 h-5 mr-2" /> Contact Seller
+        </Button>
+
+        {!user && (
+          <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
+            Please{' '}
+            <Button
+              variant="link"
+              className="p-0 text-primary underline"
+              onClick={() => navigate('/auth')}
+            >
+              log in
+            </Button>{' '}
+            to contact the seller or request quotes.
+          </div>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+</div>
+
 
             {/* Quick Actions */}
             {user && (
