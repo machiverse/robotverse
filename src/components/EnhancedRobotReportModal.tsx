@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -15,7 +14,6 @@ import {
   DollarSign, 
   Settings, 
   Brain, 
-  Tag, 
   Loader2,
   Download,
   Eye,
@@ -73,7 +71,6 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
       
       setReportData(res.data);
       
-      // Show toast if using cached data
       if (res.data?.cached) {
         toast({
           title: "Cached Report Loaded",
@@ -94,16 +91,14 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
   }
 
   const formatReportForDisplay = (text: string) => {
-    // Split by double newlines and format sections
     const sections = text.split(/\n{2,}/g);
     return sections.map((section, i) => {
-      // Check if section starts with a number or asterisk (likely a header)
-      if (section.match(/^\d+\.\s*\*.*\*/) || section.match(/^\*.*\*/)) {
+      if (section.match(/^\d+\.\s***.***/) || section.match(/^**.***/)) {
         const [header, ...content] = section.split('\n');
         return (
           <div key={i} className="mb-6">
             <h3 className="text-lg font-semibold text-primary mb-2 border-b border-border pb-1">
-              {header.replace(/\*/g, '').replace(/^\d+\.\s*/, '')}
+              {header.replace(/**/g, '').replace(/^\d+\.\s*/, '')}
             </h3>
             <div className="text-muted-foreground leading-relaxed">
               {content.map((line, j) => (
@@ -310,7 +305,7 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
               ` : ''}
               <div class="ai-analysis">
                 <h3>🤖 AI Market Intelligence Analysis</h3>
-                ${reportData.report.replace(/\*/g, '').replace(/\n/g, '<br/>')}
+                ${reportData.report.replace(/**/g, '').replace(/\n/g, '<br/>')}
               </div>
             </div>
             
