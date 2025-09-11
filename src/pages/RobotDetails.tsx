@@ -2030,31 +2030,31 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       ) : financingOptions.length > 0 ? (
                         <div className="grid gap-6">
                           {financingOptions.map((option) => (
-                            <Card key={option.id} className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow bg-white">
+                            <Card key={option.id} className="border-l-4 border-l-green-500 hover:shadow-xl transition-all duration-300 bg-card/90 backdrop-blur-sm">
                               <CardContent className="p-6">
-                                <div className="space-y-4">
+                                <div className="space-y-5">
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <h4 className="font-semibold text-lg">
+                                      <h4 className="font-bold text-xl text-card-foreground leading-tight">
                                         {option.profiles?.company_name || option.profiles?.full_name}
                                       </h4>
-                                      <p className="text-sm text-muted-foreground">{option.product_name}</p>
-                                      <div className="flex flex-wrap gap-1 mt-1">
+                                      <p className="text-base text-muted-foreground font-semibold mt-1">{option.product_name}</p>
+                                      <div className="flex flex-wrap gap-2 mt-2">
                                         {option.loan_type?.map((type: string, idx: number) => (
-                                          <Badge key={idx} variant="secondary" className="text-xs">
+                                          <Badge key={idx} variant="secondary" className="text-sm font-semibold">
                                             {type}
                                           </Badge>
                                         ))}
                                       </div>
                                     </div>
                                     <div className="text-right">
-                                      <Badge variant="secondary" className="bg-green-50 text-green-700 mb-2">
+                                      <Badge variant="secondary" className="bg-green-50 text-green-700 mb-2 font-bold text-base px-3 py-1">
                                         {option.min_interest_rate}% - {option.max_interest_rate}%
                                       </Badge>
                                       {option.quick_approval && (
                                         <div>
-                                          <Badge variant="outline" className="text-xs">
-                                            <Clock className="w-2 h-2 mr-1" />
+                                          <Badge variant="outline" className="text-sm font-semibold">
+                                            <Clock className="w-3 h-3 mr-1" />
                                             Quick Approval
                                           </Badge>
                                         </div>
@@ -2062,26 +2062,26 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                   </div>
                                   
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-base">
                                     <div>
-                                      <p className="text-muted-foreground">Loan Amount</p>
-                                      <p className="font-medium">
+                                      <p className="text-muted-foreground font-semibold mb-1">Loan Amount</p>
+                                      <p className="font-bold text-card-foreground">
                                         ₹{(option.min_amount || 0).toLocaleString()} - ₹{option.max_amount.toLocaleString()}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Tenure</p>
-                                      <p className="font-medium">
+                                      <p className="text-muted-foreground font-semibold mb-1">Tenure</p>
+                                      <p className="font-bold text-card-foreground">
                                         {option.min_tenure_months} - {option.max_tenure_months} months
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Processing Fee</p>
-                                      <p className="font-medium">{option.processing_fee_percentage}%</p>
+                                      <p className="text-muted-foreground font-semibold mb-1">Processing Fee</p>
+                                      <p className="font-bold text-card-foreground">{option.processing_fee_percentage}%</p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Interest Rate</p>
-                                      <p className="font-medium">
+                                      <p className="text-muted-foreground font-semibold mb-1">Interest Rate</p>
+                                      <p className="font-bold text-card-foreground">
                                         {option.min_interest_rate}% - {option.max_interest_rate}%
                                       </p>
                                     </div>
@@ -2215,52 +2215,52 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       </div>
                       
                       {loadingLogistics ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                          <span>Loading logistics services...</span>
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin mr-3 text-primary" />
+                          <span className="text-lg font-semibold text-card-foreground">Loading logistics services...</span>
                         </div>
                       ) : logisticsServices.length > 0 ? (
                         <div className="grid gap-4">
                           {logisticsServices.map((service) => (
-                            <Card key={service.id} className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow bg-white">
+                            <Card key={service.id} className="border-l-4 border-l-orange-500 hover:shadow-xl transition-all duration-300 bg-card/90 backdrop-blur-sm">
                               <CardContent className="p-6">
-                                <div className="space-y-4">
+                                <div className="space-y-5">
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <h4 className="font-semibold text-lg">
+                                      <h4 className="font-bold text-xl text-card-foreground leading-tight">
                                         {service.profiles?.company_name || service.profiles?.full_name || 'Logistics Provider'}
                                       </h4>
-                                      <p className="text-sm text-muted-foreground">{service.service_name}</p>
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        <Badge variant="secondary" className="text-xs">{service.service_type}</Badge>
+                                      <p className="text-base text-muted-foreground font-semibold mt-1">{service.service_name}</p>
+                                      <div className="flex flex-wrap gap-2 mt-2">
+                                        <Badge variant="secondary" className="text-sm font-semibold">{service.service_type}</Badge>
                                         {service.tracking_available && (
-                                          <Badge variant="secondary" className="text-xs">GPS Tracking</Badge>
+                                          <Badge variant="secondary" className="text-sm font-semibold">GPS Tracking</Badge>
                                         )}
                                         {service.insurance_included && (
-                                          <Badge variant="secondary" className="text-xs">Insurance Included</Badge>
+                                          <Badge variant="secondary" className="text-sm font-semibold">Insurance Included</Badge>
                                         )}
                                         {service.emergency_delivery && (
-                                          <Badge variant="secondary" className="text-xs">Emergency Delivery</Badge>
+                                          <Badge variant="secondary" className="text-sm font-semibold">Emergency Delivery</Badge>
                                         )}
                                       </div>
                                     </div>
                                     <div className="text-right">
-                                      <Badge variant="secondary" className="bg-orange-50 text-orange-700 mb-2">
+                                      <Badge variant="secondary" className="bg-orange-50 text-orange-700 mb-2 font-bold text-base px-3 py-1">
                                         ₹{service.base_price || 0}/base + ₹{service.price_per_kg || 0}/kg
                                       </Badge>
                                       <div>
-                                        <Badge variant="outline" className="text-xs">
-                                          <Clock className="w-2 h-2 mr-1" />
+                                        <Badge variant="outline" className="text-sm font-semibold">
+                                          <Clock className="w-3 h-3 mr-1" />
                                           {service.delivery_time_hours || 24}h delivery
                                         </Badge>
                                       </div>
                                     </div>
                                   </div>
                                   
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-base">
                                     <div>
-                                      <p className="text-muted-foreground">Coverage</p>
-                                      <p className="font-medium">
+                                      <p className="text-muted-foreground font-semibold mb-1">Coverage</p>
+                                      <p className="font-bold text-card-foreground">
                                         {service.coverage_areas?.length > 0 ? 
                                           `${service.coverage_areas.slice(0, 2).join(', ')}${service.coverage_areas.length > 2 ? '...' : ''}` : 
                                           service.is_international ? 'International' : 'Domestic'
@@ -2268,12 +2268,12 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Max Weight</p>
-                                      <p className="font-medium">{service.max_weight_kg || 'No limit'} kg</p>
+                                      <p className="text-muted-foreground font-semibold mb-1">Max Weight</p>
+                                      <p className="font-bold text-card-foreground">{service.max_weight_kg || 'No limit'} kg</p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Transport</p>
-                                      <p className="font-medium">
+                                      <p className="text-muted-foreground font-semibold mb-1">Transport</p>
+                                      <p className="font-bold text-card-foreground">
                                         {service.transport_modes?.length > 0 ? 
                                           service.transport_modes.slice(0, 2).join(', ') : 
                                           'Various'
@@ -2281,8 +2281,8 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Special</p>
-                                      <p className="font-medium">
+                                      <p className="text-muted-foreground font-semibold mb-1">Special</p>
+                                      <p className="font-bold text-card-foreground">
                                         {service.special_handling ? 'Special Handling' : 'Standard'}
                                       </p>
                                     </div>
