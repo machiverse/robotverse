@@ -145,9 +145,8 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
           </Button>
         </DialogHeader>
         
-        <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-auto max-h-[calc(95vh-140px)]">
+          <div className="p-6 space-y-6">
             {loading ? (
               <div className="flex justify-center items-center h-[400px]">
                 <div className="text-center">
@@ -332,11 +331,10 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                     )}
                   </CardContent>
                 </Card>
-               </div>
-             )}
-             </div>
-           </ScrollArea>
-         </div>
+                </div>
+              )}
+              </div>
+            </div>
 
         <Separator className="shrink-0" />
 
