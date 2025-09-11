@@ -2190,9 +2190,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       <span className="text-base font-normal text-blue-700">/month</span>
     </p>
     <p className="text-xs text-gray-500 mb-2">Total: ₹{Math.round(robot.price * 0.032 * 36).toLocaleString()} for 36 months</p>
-    <span className="absolute top-4 right-4 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full shadow">
+    {/*<span className="absolute top-4 right-4 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full shadow">
       SAVE {((1 - (0.032 * 36)/(0.09 * 12)) * 100).toFixed(0)}%
-    </span>
+    </span>*/}
   </div>
 
   {/* 5 Year Plan */}
@@ -2203,9 +2203,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       <span className="text-base font-normal text-blue-700">/month</span>
     </p>
     <p className="text-xs text-gray-500 mb-2">Total: ₹{Math.round(robot.price * 0.021 * 60).toLocaleString()} for 60 months</p>
-    <span className="absolute top-4 right-4 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full shadow">
+    {/*<span className="absolute top-4 right-4 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full shadow">
       SAVE {((1 - (0.021 * 60)/(0.09 * 12)) * 100).toFixed(0)}%
-    </span>
+    </span>*/}
   </div>
 </div>
 
