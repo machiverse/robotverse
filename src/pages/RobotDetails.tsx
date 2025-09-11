@@ -2171,45 +2171,41 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <p className="text-sm font-bold text-blue-700 font-bold">
                                 For equipment price of <span className="font-bold">{formatPrice(robot.price, robot.currency)}</span>
                               </p>
-                              <div className="grid grid-cols-3 gap-4">
+                              <div className="grid grid-cols-3 gap-6">
   {/* 1 Year Plan */}
-  <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100 shadow">
-    <p className="text-xs text-blue-600 font-bold mb-1">1 Year Plan</p>
-    <p className="text-lg font-bold text-blue-900">
+  <div className="text-center p-5 bg-white rounded-xl border border-blue-200 shadow-sm flex flex-col items-center justify-center">
+    <p className="text-sm text-blue-600 font-semibold mb-2">1 Year Plan</p>
+    <p className="text-2xl font-extrabold text-blue-900 mb-1">
       ₹{Math.round(robot.price * 0.09).toLocaleString()}
-      <span className="text-xs font-normal">/month</span>
+      <span className="text-base font-normal text-blue-700">/month</span>
     </p>
-    <p className="text-xs text-blue-600">Total: ₹{Math.round(robot.price * 0.09 * 12).toLocaleString()} for 12 months</p>
+    <p className="text-xs text-gray-500 mb-2">Total: ₹{Math.round(robot.price * 0.09 * 12).toLocaleString()} for 12 months</p>
   </div>
 
   {/* 3 Year Plan */}
-  <div className="text-center p-3 bg-white rounded-lg border border-blue-100 shadow-lg">
-    <p className="text-xs text-blue-600 font-bold mb-1">3 Year Plan</p>
-    <p className="text-lg font-bold text-blue-900">
-      ₹{Math.round(robot.price * 0.03).toLocaleString()}
-      <span className="text-xs font-normal">/month</span>
+  <div className="text-center p-5 bg-white rounded-xl border border-blue-200 shadow-lg flex flex-col items-center justify-center relative">
+    <p className="text-sm text-blue-600 font-semibold mb-2">3 Year Plan</p>
+    <p className="text-2xl font-extrabold text-blue-900 mb-1">
+      ₹{Math.round(robot.price * 0.032).toLocaleString()}
+      <span className="text-base font-normal text-blue-700">/month</span>
     </p>
-    <p className="text-xs text-blue-600">Total: ₹{Math.round(robot.price * 0.03 * 36).toLocaleString()} for 36 months</p>
-    <div className="mt-2 p-2 bg-white rounded shadow">
-      <p className="text-xs text-green-600 font-bold">
-        Save ₹{Math.round(robot.price * 0.09 * 36 - robot.price * 0.03 * 36).toLocaleString()} ({(100 - (0.03 / 0.09 * 100)).toFixed(0)}%)
-      </p>
-    </div>
+    <p className="text-xs text-gray-500 mb-2">Total: ₹{Math.round(robot.price * 0.032 * 36).toLocaleString()} for 36 months</p>
+    <span className="absolute top-4 right-4 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full shadow">
+      SAVE {((1 - (0.032 * 36)/(0.09 * 12)) * 100).toFixed(0)}%
+    </span>
   </div>
 
   {/* 5 Year Plan */}
-  <div className="text-center p-3 bg-white rounded-lg border border-blue-100 shadow-lg">
-    <p className="text-xs text-blue-600 font-bold mb-1">5 Year Plan</p>
-    <p className="text-lg font-bold text-blue-900">
-      ₹{Math.round(robot.price * 0.019).toLocaleString()}
-      <span className="text-xs font-normal">/month</span>
+  <div className="text-center p-5 bg-white rounded-xl border border-blue-200 shadow-lg flex flex-col items-center justify-center relative">
+    <p className="text-sm text-blue-600 font-semibold mb-2">5 Year Plan</p>
+    <p className="text-2xl font-extrabold text-blue-900 mb-1">
+      ₹{Math.round(robot.price * 0.021).toLocaleString()}
+      <span className="text-base font-normal text-blue-700">/month</span>
     </p>
-    <p className="text-xs text-blue-600">Total: ₹{Math.round(robot.price * 0.019 * 60).toLocaleString()} for 60 months</p>
-    <div className="mt-2 p-2 bg-white rounded shadow">
-      <p className="text-xs text-green-600 font-bold">
-        Save ₹{Math.round(robot.price * 0.09 * 60 - robot.price * 0.019 * 60).toLocaleString()} ({(100 - (0.019 / 0.09 * 100)).toFixed(0)}%)
-      </p>
-    </div>
+    <p className="text-xs text-gray-500 mb-2">Total: ₹{Math.round(robot.price * 0.021 * 60).toLocaleString()} for 60 months</p>
+    <span className="absolute top-4 right-4 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full shadow">
+      SAVE {((1 - (0.021 * 60)/(0.09 * 12)) * 100).toFixed(0)}%
+    </span>
   </div>
 </div>
 
