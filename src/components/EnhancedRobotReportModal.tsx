@@ -347,8 +347,8 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border shrink-0">
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-primary">
@@ -387,7 +387,8 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 p-6">
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full p-6">
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="text-center">
@@ -717,7 +718,8 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
               <p className="text-muted-foreground">No analysis data available</p>
             </div>
           )}
-        </ScrollArea>
+          </ScrollArea>
+        </div>
 
         {reportData && (
           <div className="border-t border-border p-4 bg-muted/30">

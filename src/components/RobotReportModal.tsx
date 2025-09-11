@@ -131,19 +131,19 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-6 overflow-hidden">
-        <DialogHeader className="flex justify-between items-center mb-4">
+      <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="flex justify-between items-center p-6 pb-4 border-b shrink-0">
           <div>
             <DialogTitle className="text-2xl font-bold flex items-center gap-3">
               <FileText /> Robot Analysis Report
             </DialogTitle>
-            <p className="text-sm text-gray-600">{robotData?.name} - {robotData?.model}</p>
+            <p className="text-sm text-muted-foreground">{robotData?.name} - {robotData?.model}</p>
           </div>
           <Button variant="ghost" onClick={onClose}>
             <X />
           </Button>
         </DialogHeader>
-        <ScrollArea className="h-[70vh]">
+        <ScrollArea className="flex-1 p-6">
           {loading ? (
             <div className="flex justify-center items-center h-full">
               <Loader2 className="animate-spin w-10 h-10 text-gray-500" />
@@ -183,12 +183,12 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
           )}
         </ScrollArea>
 
-        <Separator />
+        <Separator className="shrink-0" />
 
-        <DialogFooter className="flex justify-between">
-          <p className="text-xs text-gray-500">Generated on {new Date().toLocaleDateString()}</p>
-          <div className="space-x-2">
-            <Button onClick={onClose}>Close</Button>
+        <DialogFooter className="flex justify-between items-center p-6 pt-4 shrink-0">
+          <p className="text-xs text-muted-foreground">Generated on {new Date().toLocaleDateString()}</p>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>Close</Button>
             <Button onClick={downloadReport} disabled={downloading || loading}>
               {downloading ? 'Generating...' : 'Download Report'}
             </Button>
