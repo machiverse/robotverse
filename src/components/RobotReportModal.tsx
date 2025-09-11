@@ -131,66 +131,212 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="flex justify-between items-center p-6 pb-4 border-b shrink-0">
           <div>
             <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-              <FileText /> Robot Analysis Report
+              <FileText className="w-6 h-6 text-primary" /> 
+              Robot Analysis Report
             </DialogTitle>
             <p className="text-sm text-muted-foreground">{robotData?.name} - {robotData?.model}</p>
           </div>
-          <Button variant="ghost" onClick={onClose}>
-            <X />
+          <Button variant="ghost" onClick={onClose} size="sm">
+            <X className="w-4 h-4" />
           </Button>
         </DialogHeader>
-        <ScrollArea className="flex-1 p-6">
-          {loading ? (
-            <div className="flex justify-center items-center h-full">
-              <Loader2 className="animate-spin w-10 h-10 text-gray-500" />
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <div className="text-red-600 mb-4">{error}</div>
-              <Button onClick={fetchReport} variant="outline">
-                Retry
-              </Button>
-            </div>
-          ) : (
-            <>
-              {/* You can add more detailed render here if needed */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Robot Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p><strong>Name:</strong> {robotData.name}</p>
-                  <p><strong>Model:</strong> {robotData.model}</p>
-                  <p><strong>Brand:</strong> {robotData.brand || 'N/A'}</p>
-                  <p><strong>Price:</strong> {formatPrice(robotData.price, robotData.currency)}</p>
-                  <p><strong>Location:</strong> {robotData.location}</p>
-                  <p><strong>Availability:</strong> {robotData.availability}</p>
-                </CardContent>
-              </Card>
-              <Card className="mt-4">
-                <CardHeader>
-                  <CardTitle>AI Report</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className="whitespace-pre-wrap">{reportContent}</pre>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </ScrollArea>
+        
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full p-6">
+            {loading ? (
+              <div className="flex justify-center items-center h-[400px]">
+                <div className="text-center">
+                  <Loader2 className="animate-spin w-10 h-10 text-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground">Generating comprehensive robot report...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <div className="text-destructive mb-4 font-medium">{error}</div>
+                <Button onClick={fetchReport} variant="outline">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Retry Report Generation
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Robot Overview Card */}
+                <Card className="border-2">
+                  <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-primary" />
+                      Robot Overview
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Name:</span>
+                        <span className="font-semibold">{robotData.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Model:</span>
+                        <span className="font-semibold">{robotData.model}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Brand:</span>
+                        <span className="font-semibold">{robotData.brand || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Type:</span>
+                        <Badge variant="secondary">{robotData.robot_type}</Badge>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Price:</span>
+                        <span className="font-bold text-primary text-lg">{formatPrice(robotData.price, robotData.currency)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Location:</span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                          {robotData.location}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Availability:</span>
+                        <Badge variant={robotData.availability === 'Available' ? 'default' : 'secondary'}>
+                          {robotData.availability}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Condition:</span>
+                        <span className="font-semibold">{robotData.condition || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Technical Specifications Card */}
+                {(robotData.payload_capacity || robotData.reach || robotData.repeatability || 
+                  robotData.power_consumption || robotData.operating_environment || robotData.warranty_info) && (
+                  <Card className="border-2">
+                    <CardHeader className="bg-gradient-to-r from-orange-500/5 to-orange-500/10">
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="w-5 h-5 text-orange-600" />
+                        Technical Specifications
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {robotData.payload_capacity && (
+                          <div className="flex justify-between py-2 border-b">
+                            <span className="font-medium">Payload Capacity:</span>
+                            <span className="font-semibold">{robotData.payload_capacity} kg</span>
+                          </div>
+                        )}
+                        {robotData.reach && (
+                          <div className="flex justify-between py-2 border-b">
+                            <span className="font-medium">Reach:</span>
+                            <span className="font-semibold">{robotData.reach} mm</span>
+                          </div>
+                        )}
+                        {robotData.repeatability && (
+                          <div className="flex justify-between py-2 border-b">
+                            <span className="font-medium">Repeatability:</span>
+                            <span className="font-semibold">{robotData.repeatability} mm</span>
+                          </div>
+                        )}
+                        {robotData.power_consumption && (
+                          <div className="flex justify-between py-2 border-b">
+                            <span className="font-medium">Power Consumption:</span>
+                            <span className="font-semibold">{robotData.power_consumption} kW</span>
+                          </div>
+                        )}
+                        {robotData.operating_environment && (
+                          <div className="flex justify-between py-2 border-b">
+                            <span className="font-medium">Operating Environment:</span>
+                            <span className="font-semibold">{robotData.operating_environment}</span>
+                          </div>
+                        )}
+                        {robotData.warranty_info && (
+                          <div className="flex justify-between py-2 border-b">
+                            <span className="font-medium">Warranty:</span>
+                            <span className="font-semibold">{robotData.warranty_info}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Description Card */}
+                {robotData.description && (
+                  <Card className="border-2">
+                    <CardHeader className="bg-gradient-to-r from-blue-500/5 to-blue-500/10">
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        Description
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                        {robotData.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* AI Analysis Report Card */}
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="w-5 h-5 text-primary" />
+                      AI Analysis Report
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="max-h-[50vh] overflow-y-auto p-6 bg-gradient-to-b from-background to-muted/20">
+                      <div className="prose prose-sm max-w-none text-foreground">
+                        {reportContent ? (
+                          <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                            {formatReportForDisplay(reportContent)}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground italic">No AI analysis available for this robot.</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </ScrollArea>
+        </div>
 
         <Separator className="shrink-0" />
 
-        <DialogFooter className="flex justify-between items-center p-6 pt-4 shrink-0">
-          <p className="text-xs text-muted-foreground">Generated on {new Date().toLocaleDateString()}</p>
+        <DialogFooter className="flex justify-between items-center p-6 pt-4 shrink-0 bg-muted/30">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock className="w-3 h-3" />
+            <span>Generated on {new Date().toLocaleDateString()}</span>
+          </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>Close</Button>
-            <Button onClick={downloadReport} disabled={downloading || loading}>
-              {downloading ? 'Generating...' : 'Download Report'}
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <Button onClick={downloadReport} disabled={downloading || loading} className="gap-2">
+              {downloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4" />
+                  Download Report
+                </>
+              )}
             </Button>
           </div>
         </DialogFooter>
