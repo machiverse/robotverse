@@ -131,7 +131,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="flex justify-between items-center p-6 pb-4 border-b shrink-0">
           <div>
             <DialogTitle className="text-2xl font-bold flex items-center gap-3">
@@ -146,7 +146,8 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full p-6">
+          <ScrollArea className="h-full">
+            <div className="p-6 space-y-6">
             {loading ? (
               <div className="flex justify-center items-center h-[400px]">
                 <div className="text-center">
@@ -293,26 +294,36 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                     <CardTitle className="flex items-center gap-2">
                       <Brain className="w-5 h-5 text-primary" />
                       AI Analysis Report
+                      <Badge variant="secondary" className="ml-auto">
+                        Scroll to view full report
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="max-h-[50vh] overflow-y-auto p-6 bg-gradient-to-b from-background to-muted/20">
-                      <div className="prose prose-sm max-w-none text-foreground">
-                        {reportContent ? (
-                          <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                            {formatReportForDisplay(reportContent)}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground italic">No AI analysis available for this robot.</p>
-                        )}
+                    <ScrollArea className="h-[60vh] border-t">
+                      <div className="p-6 bg-gradient-to-b from-background to-muted/20">
+                        <div className="prose prose-sm max-w-none text-foreground">
+                          {reportContent ? (
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed space-y-4 font-mono">
+                              {formatReportForDisplay(reportContent)}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                              <p className="text-muted-foreground italic text-lg">No AI analysis available for this robot.</p>
+                              <p className="text-muted-foreground text-sm mt-2">Report generation may still be in progress.</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </ScrollArea>
                   </CardContent>
                 </Card>
-              </div>
-            )}
-          </ScrollArea>
-        </div>
+               </div>
+             )}
+             </div>
+           </ScrollArea>
+         </div>
 
         <Separator className="shrink-0" />
 
