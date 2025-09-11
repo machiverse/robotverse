@@ -2162,28 +2162,28 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                   onClick={() => setShowEmiCalculator(true)}
                                   variant="outline"
                                   size="sm"
-                                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                                  className="border-blue-300 font-bold text-blue-700 hover:bg-blue-100"
                                 >
                                   <Calculator className="w-4 h-4 mr-1" />
                                   Full Calculator
                                 </Button>
                               </div>
-                              <p className="text-sm text-blue-700 font-medium">
+                              <p className="text-sm font-bold text-blue-700 font-bold">
                                 For equipment price of <span className="font-bold">{formatPrice(robot.price, robot.currency)}</span>
                               </p>
                               <div className="grid grid-cols-3 gap-4">
                                 <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
-                                  <p className="text-xs text-blue-600 font-medium mb-1">1 Year</p>
+                                  <p className="text-xs text-blue-600 font-bold mb-1">1 Year</p>
                                   <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.09).toLocaleString()}</p>
                                   <p className="text-xs text-blue-600">/month</p>
                                 </div>
                                 <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
-                                  <p className="text-xs text-blue-600 font-medium mb-1">3 Years</p>
+                                  <p className="text-xs text-blue-600 font-bold mb-1">3 Years</p>
                                   <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.032).toLocaleString()}</p>
                                   <p className="text-xs text-blue-600">/month</p>
                                 </div>
                                 <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
-                                  <p className="text-xs text-blue-600 font-medium mb-1">5 Years</p>
+                                  <p className="text-xs text-blue-600 font-bold mb-1">5 Years</p>
                                   <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.021).toLocaleString()}</p>
                                   <p className="text-xs text-blue-600">/month</p>
                                 </div>
