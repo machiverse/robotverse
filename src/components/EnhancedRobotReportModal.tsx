@@ -25,7 +25,8 @@ import {
   Wrench,
   FileVideo,
   Image as ImageIcon,
-  ExternalLink
+  ExternalLink,
+  MinusSquare
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -49,6 +50,7 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [minimized, setMinimized] = useState(false);
 
   useEffect(() => {
     if (isOpen && robotData) {
@@ -96,12 +98,12 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
     const sections = text.split(/\n{2,}/g);
     return sections.map((section, i) => {
       // Check if section starts with a number or asterisk (likely a header)
-      if (section.match(/^\d+\.\s*\*\*.*\*\*/) || section.match(/^\*\*.*\*\*/)) {
+      if (section.match(/^\d+\.\s***.***/) || section.match(/^**.***/)) {
         const [header, ...content] = section.split('\n');
         return (
           <div key={i} className="mb-6">
             <h3 className="text-lg font-semibold text-primary mb-2 border-b border-border pb-1">
-              {header.replace(/\*\*/g, '').replace(/^\d+\.\s*/, '')}
+              {header.replace(/**/g, '').replace(/^\d+\.\s*/, '')}
             </h3>
             <div className="text-muted-foreground leading-relaxed">
               {content.map((line, j) => (
@@ -245,12 +247,10 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                   </div>
                 </div>
               </div>
-
               <div class="section">
                 <h2>Description</h2>
                 <p>${robotData.description || 'No description available.'}</p>
               </div>
-
               <div class="section">
                 <h2>Technical Specifications</h2>
                 <div class="specs-grid">
@@ -292,7 +292,6 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                   ` : ''}
                 </div>
               </div>
-
               ${robotData.applications?.length ? `
                 <div class="section">
                   <h2>Applications</h2>
@@ -301,7 +300,6 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                   </div>
                 </div>
               ` : ''}
-
               ${robotData.certification_standards?.length ? `
                 <div class="section">
                   <h2>Certifications</h2>
@@ -310,10 +308,9 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                   </div>
                 </div>
               ` : ''}
-
               <div class="ai-analysis">
                 <h3>🤖 AI Market Intelligence Analysis</h3>
-                ${reportData.report.replace(/\*\*/g, '').replace(/\n/g, '<br/>')}
+                ${reportData.report.replace(/**/g, '').replace(/\n/g, '<br/>')}
               </div>
             </div>
             
@@ -347,30 +344,397 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border shrink-0">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-primary">
-                <Brain className="h-7 w-7" />
-                Robot Analysis Report
-              </DialogTitle>
-              <p className="text-muted-foreground mt-1">
-                {robotData?.name} - {robotData?.model}
-              </p>
-              {reportData?.cached && (
-                <Badge variant="secondary" className="mt-2">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Cached Report
-                </Badge>
+      <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden flex flex-col">
+        <DialogHeader className="p-6 pb-4 border-b border-border flex justify-between items-center">
+          <div className="flex-1">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-primary">
+              <Brain className="h-7 w-7" />
+              Robot Analysis Report
+            </DialogTitle>
+            <p className="text-muted-foreground mt-1">
+              {robotData?.name} - {robotData?.model}
+            </p>
+            {reportData?.cached && (
+              <Badge variant="secondary" className="mt-2 inline-flex items-center">
+                <Clock className="h-3 w-3 mr-1" />
+                Cached Report
+              </Badge>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMinimized((m) => !m)}
+              aria-label={minimized ? "Maximize Window" : "Minimize Window"}
+              title={minimized ? "Maximize Window" : "Minimize Window"}
+              className="flex items-center gap-1"
+            >
+              <MinusSquare className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadReport}
+              disabled={downloading || loading || !reportData}
+              className="flex items-center gap-2"
+              aria-label="Download Report"
+              title="Download Report"
+            >
+              {downloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
               )}
-            </div>
+              Download PDF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="Close Window"
+              title="Close Window"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+        {!minimized && (
+          <ScrollArea className="flex-1 p-6">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-center">
+                  <Loader2 className="animate-spin w-12 h-12 text-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground">Generating comprehensive analysis...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <div className="text-destructive mb-4 text-lg">{error}</div>
+                <Button onClick={fetchReport} variant="outline" className="inline-flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Retry Analysis
+                </Button>
+              </div>
+            ) : reportData ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="overview" className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="specs" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Specifications
+                  </TabsTrigger>
+                  <TabsTrigger value="media" className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Media & Files
+                  </TabsTrigger>
+                  <TabsTrigger value="analysis" className="flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    AI Analysis
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Building className="h-5 w-5" />
+                          Basic Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Name:</span>
+                          <span className="font-medium">{robotData.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Model:</span>
+                          <span className="font-medium">{robotData.model}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Brand:</span>
+                          <span className="font-medium">{robotData.brand || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Type:</span>
+                          <Badge variant="secondary">{robotData.robot_type}</Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <DollarSign className="h-5 w-5" />
+                          Pricing & Location
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Price:</span>
+                          <span className="font-bold text-lg text-primary">
+                            {formatPrice(robotData.price, robotData.currency)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Location:</span>
+                          <span className="font-medium flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {robotData.location}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Availability:</span>
+                          <Badge variant="outline">{robotData.availability}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Condition:</span>
+                          <Badge variant="secondary">{robotData.condition || 'N/A'}</Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Description</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {robotData.description || 'No description available.'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="specs" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Zap className="h-5 w-5" />
+                          Performance Specifications
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {robotData.payload_capacity && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Payload Capacity:</span>
+                            <span className="font-medium">{robotData.payload_capacity} kg</span>
+                          </div>
+                        )}
+                        {robotData.reach && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Reach:</span>
+                            <span className="font-medium">{robotData.reach} mm</span>
+                          </div>
+                        )}
+                        {robotData.repeatability && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Repeatability:</span>
+                            <span className="font-medium">{robotData.repeatability} mm</span>
+                          </div>
+                        )}
+                        {robotData.power_consumption && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Power Consumption:</span>
+                            <span className="font-medium">{robotData.power_consumption} kW</span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5" />
+                          Manufacturing & Support
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {robotData.year_manufactured && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Year Manufactured:</span>
+                            <span className="font-medium">{robotData.year_manufactured}</span>
+                          </div>
+                        )}
+                        {robotData.operating_environment && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Environment:</span>
+                            <span className="font-medium">{robotData.operating_environment}</span>
+                          </div>
+                        )}
+                        {robotData.warranty_info && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Warranty:</span>
+                            <Badge variant="outline">
+                              <Shield className="h-3 w-3 mr-1" />
+                              {robotData.warranty_info}
+                            </Badge>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                  {(robotData.applications?.length || robotData.certification_standards?.length) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {robotData.applications?.length && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Wrench className="h-5 w-5" />
+                              Applications
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                              {robotData.applications.map((app: string, index: number) => (
+                                <Badge key={index} variant="secondary">
+                                  {app}
+                                </Badge>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      {robotData.certification_standards?.length && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Shield className="h-5 w-5" />
+                              Certifications
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                              {robotData.certification_standards.map((cert: string, index: number) => (
+                                <Badge key={index} variant="outline">
+                                  {cert}
+                                </Badge>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="media" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {robotData.images?.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <ImageIcon className="h-5 w-5" />
+                            Images
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 gap-4">
+                            {robotData.images.slice(0, 4).map((image: string, index: number) => (
+                              <div key={index} className="aspect-square rounded-lg overflow-hidden border border-border">
+                                <img 
+                                  src={image} 
+                                  alt={`Robot ${index + 1}`}
+                                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                                  onClick={() => window.open(image, '_blank')}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Documents & Media
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {robotData.brochure_url && (
+                          <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span>Product Brochure</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(robotData.brochure_url, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {robotData.video_url && (
+                          <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <FileVideo className="h-4 w-4 text-muted-foreground" />
+                              <span>Product Video</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(robotData.video_url, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {!robotData.brochure_url && !robotData.video_url && (
+                          <p className="text-muted-foreground text-center py-8">
+                            No additional media files available
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+                <TabsContent value="analysis" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5" />
+                        AI Market Intelligence Analysis
+                        {reportData.cached && (
+                          <Badge variant="secondary" className="ml-2">
+                            Cached
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="prose prose-sm max-w-none">
+                        {formatReportForDisplay(reportData.report)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <div className="text-center py-12">
+                <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No analysis data available</p>
+              </div>
+            )}
+          </ScrollArea>
+        )}
+        {reportData && (
+          <div className="border-t border-border p-4 bg-muted/30 flex justify-between items-center">
+            <p className="text-xs text-muted-foreground">
+              Report generated on {new Date(reportData.timestamp).toLocaleDateString()} • 
+              {reportData.cached ? ' Using cached analysis' : ' Fresh analysis'}
+            </p>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadReport}
-                disabled={downloading || loading || !reportData}
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+              <Button 
+                onClick={downloadReport} 
+                disabled={downloading}
                 className="flex items-center gap-2"
               >
                 {downloading ? (
@@ -378,373 +742,8 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                Download PDF
+                Download Report
               </Button>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full p-6">
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="text-center">
-                <Loader2 className="animate-spin w-12 h-12 text-primary mx-auto mb-4" />
-                <p className="text-muted-foreground">Generating comprehensive analysis...</p>
-              </div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <div className="text-destructive mb-4 text-lg">{error}</div>
-              <Button onClick={fetchReport} variant="outline">
-                <Eye className="h-4 w-4 mr-2" />
-                Retry Analysis
-              </Button>
-            </div>
-          ) : reportData ? (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-6">
-                <TabsTrigger value="overview" className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="specs" className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Specifications
-                </TabsTrigger>
-                <TabsTrigger value="media" className="flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4" />
-                  Media & Files
-                </TabsTrigger>
-                <TabsTrigger value="analysis" className="flex items-center gap-2">
-                  <Brain className="h-4 w-4" />
-                  AI Analysis
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Building className="h-5 w-5" />
-                        Basic Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Name:</span>
-                        <span className="font-medium">{robotData.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Model:</span>
-                        <span className="font-medium">{robotData.model}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Brand:</span>
-                        <span className="font-medium">{robotData.brand || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Type:</span>
-                        <Badge variant="secondary">{robotData.robot_type}</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
-                        Pricing & Location
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Price:</span>
-                        <span className="font-bold text-lg text-primary">
-                          {formatPrice(robotData.price, robotData.currency)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Location:</span>
-                        <span className="font-medium flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {robotData.location}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Availability:</span>
-                        <Badge variant="outline">{robotData.availability}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Condition:</span>
-                        <Badge variant="secondary">{robotData.condition || 'N/A'}</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Description</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {robotData.description || 'No description available.'}
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="specs" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Zap className="h-5 w-5" />
-                        Performance Specifications
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {robotData.payload_capacity && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Payload Capacity:</span>
-                          <span className="font-medium">{robotData.payload_capacity} kg</span>
-                        </div>
-                      )}
-                      {robotData.reach && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Reach:</span>
-                          <span className="font-medium">{robotData.reach} mm</span>
-                        </div>
-                      )}
-                      {robotData.repeatability && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Repeatability:</span>
-                          <span className="font-medium">{robotData.repeatability} mm</span>
-                        </div>
-                      )}
-                      {robotData.power_consumption && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Power Consumption:</span>
-                          <span className="font-medium">{robotData.power_consumption} kW</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        Manufacturing & Support
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {robotData.year_manufactured && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Year Manufactured:</span>
-                          <span className="font-medium">{robotData.year_manufactured}</span>
-                        </div>
-                      )}
-                      {robotData.operating_environment && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Environment:</span>
-                          <span className="font-medium">{robotData.operating_environment}</span>
-                        </div>
-                      )}
-                      {robotData.warranty_info && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Warranty:</span>
-                          <Badge variant="outline">
-                            <Shield className="h-3 w-3 mr-1" />
-                            {robotData.warranty_info}
-                          </Badge>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {(robotData.applications?.length || robotData.certification_standards?.length) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {robotData.applications?.length && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Wrench className="h-5 w-5" />
-                            Applications
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            {robotData.applications.map((app: string, index: number) => (
-                              <Badge key={index} variant="secondary">
-                                {app}
-                              </Badge>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {robotData.certification_standards?.length && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Shield className="h-5 w-5" />
-                            Certifications
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            {robotData.certification_standards.map((cert: string, index: number) => (
-                              <Badge key={index} variant="outline">
-                                {cert}
-                              </Badge>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="media" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {robotData.images?.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <ImageIcon className="h-5 w-5" />
-                          Images
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 gap-4">
-                          {robotData.images.slice(0, 4).map((image: string, index: number) => (
-                            <div key={index} className="aspect-square rounded-lg overflow-hidden border border-border">
-                              <img 
-                                src={image} 
-                                alt={`Robot ${index + 1}`}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                                onClick={() => window.open(image, '_blank')}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Documents & Media
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {robotData.brochure_url && (
-                        <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span>Product Brochure</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(robotData.brochure_url, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {robotData.video_url && (
-                        <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <FileVideo className="h-4 w-4 text-muted-foreground" />
-                            <span>Product Video</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(robotData.video_url, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {!robotData.brochure_url && !robotData.video_url && (
-                        <p className="text-muted-foreground text-center py-8">
-                          No additional media files available
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="analysis" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5" />
-                      AI Market Intelligence Analysis
-                      {reportData.cached && (
-                        <Badge variant="secondary" className="ml-2">
-                          Cached
-                        </Badge>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none">
-                      {formatReportForDisplay(reportData.report)}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="text-center py-12">
-              <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No analysis data available</p>
-            </div>
-          )}
-          </ScrollArea>
-        </div>
-
-        {reportData && (
-          <div className="border-t border-border p-4 bg-muted/30">
-            <div className="flex justify-between items-center">
-              <p className="text-xs text-muted-foreground">
-                Report generated on {new Date(reportData.timestamp).toLocaleDateString()} • 
-                {reportData.cached ? ' Using cached analysis' : ' Fresh analysis'}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={onClose}>
-                  Close
-                </Button>
-                <Button 
-                  onClick={downloadReport} 
-                  disabled={downloading}
-                  className="flex items-center gap-2"
-                >
-                  {downloading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  Download Report
-                </Button>
-              </div>
             </div>
           </div>
         )}
