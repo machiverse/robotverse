@@ -1785,49 +1785,52 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Services */}
-                  <TabsContent value="services" className="p-6 bg-white">
-                    <div className="space-y-4">
+                  <TabsContent value="services" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
+                    <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Available Services</h3>
-                        <Button variant="outline" onClick={() => navigate('/services')}>
+                        <div>
+                          <h3 className="text-2xl font-bold text-card-foreground tracking-tight">Available Services</h3>
+                          <p className="text-muted-foreground font-medium mt-1">Professional services for your robot</p>
+                        </div>
+                        <Button variant="outline" onClick={() => navigate('/services')} className="font-semibold shadow-sm">
                           <Search className="w-4 h-4 mr-2" />
                           Browse All Services
                         </Button>
                       </div>
                       
                       {loadingServices ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {[...Array(4)].map((_, i) => (
                             <div key={i} className="animate-pulse">
-                              <div className="h-32 bg-muted rounded-lg"></div>
+                              <div className="h-40 bg-muted/40 rounded-xl shadow-sm"></div>
                             </div>
                           ))}
                         </div>
                       ) : services.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {services.map((service) => (
-                            <Card key={service.id} className="hover:shadow-md transition-shadow bg-white border border-gray-200">
-                              <CardContent className="p-4">
-                                <div className="space-y-3">
+                            <Card key={service.id} className="hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm">
+                              <CardContent className="p-5">
+                                <div className="space-y-4">
                                   <div className="flex items-start justify-between">
-                                    <div>
-                                      <h4 className="font-semibold">{service.name}</h4>
-                                      <p className="text-sm text-muted-foreground">{service.service_type}</p>
+                                    <div className="flex-1">
+                                      <h4 className="font-bold text-lg text-card-foreground leading-tight">{service.name}</h4>
+                                      <p className="text-sm text-muted-foreground font-semibold mt-1">{service.service_type}</p>
                                     </div>
-                                    <Badge variant="secondary">{service.price_range || 'Contact for Quote'}</Badge>
+                                    <Badge variant="secondary" className="text-sm font-semibold whitespace-nowrap ml-3">{service.price_range || 'Contact for Quote'}</Badge>
                                   </div>
                                   
-                                  <p className="text-sm line-clamp-2">{service.description}</p>
+                                  <p className="text-sm line-clamp-2 text-muted-foreground font-medium leading-relaxed">{service.description}</p>
                                   
                                   {service.specializations && service.specializations.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="flex flex-wrap gap-2">
                                       {service.specializations.slice(0, 3).map((spec: string, idx: number) => (
-                                        <Badge key={idx} variant="outline" className="text-xs">
+                                        <Badge key={idx} variant="outline" className="text-sm font-medium">
                                           {spec}
                                         </Badge>
                                       ))}
                                       {service.specializations.length > 3 && (
-                                        <Badge variant="outline" className="text-xs">
+                                        <Badge variant="outline" className="text-sm font-medium">
                                           +{service.specializations.length - 3} more
                                         </Badge>
                                       )}
@@ -1835,27 +1838,28 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                   )}
                                   
                                    <div className="flex items-center justify-between text-sm">
-                                     <div className="flex items-center text-muted-foreground">
-                                       <MapPin className="w-3 h-3 mr-1" />
+                                     <div className="flex items-center text-muted-foreground font-medium">
+                                       <MapPin className="w-4 h-4 mr-2" />
                                        {service.location || service.profiles?.location || 'Location not specified'}
                                      </div>
                                      <div className="flex gap-2">
                                        <Button 
                                          size="sm" 
-                                         className="bg-blue-600 hover:bg-blue-700"
+                                         className="bg-blue-600 hover:bg-blue-700 font-semibold"
                                          onClick={() => handleGetQuote(service, service, 'service')}
                                          disabled={!user}
                                        >
-                                         <Mail className="w-3 h-3 mr-1" />
+                                         <Mail className="w-4 h-4 mr-2" />
                                          Get Quote
                                        </Button>
                                        <Button 
                                          size="sm" 
                                          variant="outline"
+                                         className="font-semibold"
                                          onClick={() => handleContactSupplier(service.profiles?.phone || service.profiles?.mobile_number, service.profiles?.company_name || service.profiles?.full_name, 'Service')}
                                          disabled={!user || !service.profiles?.phone}
                                        >
-                                         <PhoneCall className="w-3 h-3 mr-1" />
+                                         <PhoneCall className="w-4 h-4 mr-2" />
                                          Call
                                        </Button>
                                      </div>
@@ -1880,69 +1884,72 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Spare Parts */}
-                  <TabsContent value="spareparts" className="p-6 bg-white">
-                    <div className="space-y-4">
+                  <TabsContent value="spareparts" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
+                    <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Compatible Spare Parts</h3>
-                        <Button variant="outline" onClick={() => navigate('/parts')}>
+                        <div>
+                          <h3 className="text-2xl font-bold text-card-foreground tracking-tight">Compatible Spare Parts</h3>
+                          <p className="text-muted-foreground font-medium mt-1">High-quality parts for your robot</p>
+                        </div>
+                        <Button variant="outline" onClick={() => navigate('/parts')} className="font-semibold shadow-sm">
                           <Search className="w-4 h-4 mr-2" />
                           Browse All Parts
                         </Button>
                       </div>
                       
                       {loadingSpareParts ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {[...Array(6)].map((_, i) => (
                             <div key={i} className="animate-pulse">
-                              <div className="h-40 bg-muted rounded-lg"></div>
+                              <div className="h-48 bg-muted/40 rounded-xl shadow-sm"></div>
                             </div>
                           ))}
                         </div>
                       ) : spareParts.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {spareParts.map((part) => (
-                            <Card key={part.id} className="hover:shadow-md transition-shadow border border-gray-200 bg-white">
-                              <CardContent className="p-4">
+                            <Card key={part.id} className="hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm">
+                              <CardContent className="p-5">
                                 <div className="space-y-4">
                                   {part.images && part.images.length > 0 && (
-                                    <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                                    <div className="aspect-square bg-muted/30 rounded-xl overflow-hidden shadow-inner">
                                        <img 
                                          src={part.images[0]} 
                                          alt={part.name}
-                                         className="w-full h-full object-cover rounded-lg bg-muted"
+                                         className="w-full h-full object-cover rounded-xl transition-transform duration-300 hover:scale-105"
                                        />
                                     </div>
                                   )}
                                   
-                                  <div className="space-y-2">
-                                    <h4 className="font-semibold line-clamp-1 text-lg">{part.name}</h4>
+                                  <div className="space-y-3">
+                                    <h4 className="font-bold line-clamp-1 text-xl text-card-foreground leading-tight">{part.name}</h4>
                                     {part.part_number && (
-                                      <p className="text-sm text-muted-foreground">Part #: {part.part_number}</p>
+                                      <p className="text-sm text-muted-foreground font-semibold">Part #: {part.part_number}</p>
                                     )}
                                     
                                     <div className="flex items-center justify-between">
                                       <div className="text-sm">
                                         {part.price ? (
-                                          <span className="font-semibold text-green-600 text-lg">
+                                          <span className="font-bold text-green-600 text-xl">
                                             {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? '€' : '₹'}
                                             {part.price.toLocaleString()}
                                           </span>
                                         ) : (
-                                          <span className="text-muted-foreground">Price on Request</span>
+                                          <span className="text-muted-foreground font-medium">Price on Request</span>
                                         )}
                                       </div>
-                                      <div className="flex items-center text-xs text-muted-foreground">
-                                        <Package className="w-3 h-3 mr-1" />
+                                      <div className="flex items-center text-sm text-muted-foreground font-medium">
+                                        <Package className="w-4 h-4 mr-1" />
                                         Qty: {part.quantity}
                                       </div>
                                     </div>
                                   </div>
                                   
                                   {part.category_tags && part.category_tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="flex flex-wrap gap-2">
                                       {part.category_tags.slice(0, 2).map((tag: string, idx: number) => (
-                                        <Badge key={idx} variant="outline" className="text-xs">
-                                          <Tag className="w-2 h-2 mr-1" />
+                                        <Badge key={idx} variant="outline" className="text-sm font-medium">
+                                          <Tag className="w-3 h-3 mr-1" />
                                           {tag}
                                         </Badge>
                                       ))}
@@ -1999,14 +2006,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Financing */}
-                  <TabsContent value="financing" className="p-6 bg-white">
+                  <TabsContent value="financing" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-lg font-semibold">Financing Options</h3>
-                          <p className="text-sm text-muted-foreground">Explore financing solutions for this equipment</p>
+                          <h3 className="text-2xl font-bold text-card-foreground tracking-tight">Financing Options</h3>
+                          <p className="text-muted-foreground font-medium mt-1">Flexible payment plans and loan solutions</p>
                         </div>
-                        <Button variant="outline" onClick={() => setShowEmiCalculator(true)}>
+                        <Button variant="outline" onClick={() => setShowEmiCalculator(true)} className="font-semibold shadow-sm">
                           <Calculator className="w-4 h-4 mr-2" />
                           EMI Calculator
                         </Button>
@@ -2192,14 +2199,17 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   </TabsContent>
 
                   {/* Logistics */}
-                  <TabsContent value="logistics" className="p-6 bg-white">
+                  <TabsContent value="logistics" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-semibold flex items-center">
-                          <Package className="w-5 h-5 mr-2 text-orange-600" />
-                          Logistics & Shipping Partners
-                        </h3>
-                        <Badge variant="outline" className="text-orange-600">
+                        <div>
+                          <h3 className="text-2xl font-bold text-card-foreground flex items-center tracking-tight">
+                            <Package className="w-7 h-7 mr-3 text-orange-600" />
+                            Logistics & Shipping Partners
+                          </h3>
+                          <p className="text-muted-foreground font-medium mt-1 ml-10">Professional shipping and delivery services</p>
+                        </div>
+                        <Badge variant="outline" className="text-orange-600 border-orange-300 font-semibold text-sm">
                           {logisticsServices.length} Providers Available
                         </Badge>
                       </div>
