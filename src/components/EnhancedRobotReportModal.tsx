@@ -340,6 +340,8 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="min-h-full flex flex-col">
         <DialogHeader className="p-6 pb-4 border-b border-border flex justify-between items-center">
           <div className="flex-1">
             <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-primary">
@@ -702,7 +704,7 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="prose prose-sm max-w-none">
+                      <div className="prose prose-sm max-w-none max-h-[60vh] overflow-y-auto overflow-x-hidden">
                         {formatReportForDisplay(reportData.report)}
                       </div>
                     </CardContent>
@@ -742,6 +744,8 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
             </div>
           </div>
         )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
