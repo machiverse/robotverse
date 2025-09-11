@@ -2171,23 +2171,25 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <p className="text-sm font-bold text-blue-700 font-bold">
                                 For equipment price of <span className="font-bold">{formatPrice(robot.price, robot.currency)}</span>
                               </p>
-                              <div className="grid grid-cols-3 gap-4">
-                                <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
-                                  <p className="border-blue-300 font-bold text-blue-700 hover:bg-blue-100">1 Year</p>
-                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.09).toLocaleString()}</p>
-                                  <p className="text-xs text-blue-600">/month</p>
-                                </div>
-                                <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
-                                  <p className="border-blue-300 font-bold text-blue-700 hover:bg-blue-100">3 Years</p>
-                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.032).toLocaleString()}</p>
-                                  <p className="text-xs text-blue-600">/month</p>
-                                </div>
-                                <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
-                                  <p className="border-blue-300 font-bold text-blue-700 hover:bg-blue-100">5 Years</p>
-                                  <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.021).toLocaleString()}</p>
-                                  <p className="text-xs text-blue-600">/month</p>
-                                </div>
-                              </div>
+                             <div className="grid grid-cols-3 gap-4">
+  <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
+    <p className="text-xs text-blue-600 font-bold mb-1">1 Year Plan</p>
+    <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.09).toLocaleString()}<span className="text-xs font-normal">/month</span></p>
+    <p className="text-xs text-blue-600">Total: ₹{Math.round(robot.price * 0.09 * 12).toLocaleString()} for 12 months</p>
+  </div>
+  <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
+    <p className="text-xs text-blue-600 font-bold mb-1">3 Year Plan</p>
+    <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.032).toLocaleString()}<span className="text-xs font-normal">/month</span></p>
+    <p className="text-xs text-blue-600">Total: ₹{Math.round(robot.price * 0.032 * 36).toLocaleString()} for 36 months</p>
+    <p className="text-xs text-green-600">Save {((1 - (0.032 * 36) / (0.09 * 12)) * 100).toFixed(0)}%</p>
+  </div>
+  <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100">
+    <p className="text-xs text-blue-600 font-bold mb-1">5 Year Plan</p>
+    <p className="text-lg font-bold text-blue-900">₹{Math.round(robot.price * 0.021).toLocaleString()}<span className="text-xs font-normal">/month</span></p>
+    <p className="text-xs text-blue-600">Total: ₹{Math.round(robot.price * 0.021 * 60).toLocaleString()} for 60 months</p>
+    <p className="text-xs text-green-600">Save {((1 - (0.021 * 60) / (0.09 * 12)) * 100).toFixed(0)}%</p>
+  </div>
+</div>
                               <p className="text-xs text-blue-600 text-center bg-blue-50 p-2 rounded border border-blue-100">
                                 *Estimates based on 9-12% interest rate. Use full calculator for accurate results.
                               </p>
