@@ -289,23 +289,47 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                 )}
 
                 {/* AI Analysis Report Card */}
-                <Card className="border-2 border-primary/20">
-                  <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-primary" />
-                      AI Analysis Report
-                      <Badge variant="secondary" className="ml-auto">
-                        Scroll to view full report
-                      </Badge>
+                <Card className="border-2 border-primary/20 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 sticky top-0 z-10">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-primary" />
+                        AI Analysis Report
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs animate-pulse">
+                          📜 Scroll for full report
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Full Analysis
+                        </Badge>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <ScrollArea className="h-[60vh] border-t">
-                      <div className="p-6 bg-gradient-to-b from-background to-muted/20">
-                        <div className="prose prose-sm max-w-none text-foreground">
+                    <div className="relative">
+                      <ScrollArea className="h-[70vh] border-t border-primary/20">
+                        <div className="p-6 bg-gradient-to-b from-background via-muted/10 to-muted/20">
                           {reportContent ? (
-                            <div className="whitespace-pre-wrap text-sm leading-relaxed space-y-4 font-mono">
-                              {formatReportForDisplay(reportContent)}
+                            <div className="space-y-6">
+                              <div className="text-center mb-6">
+                                <Badge variant="default" className="mb-2">
+                                  🤖 Comprehensive AI Analysis
+                                </Badge>
+                                <p className="text-xs text-muted-foreground">
+                                  Scroll down to read the complete analysis report
+                                </p>
+                              </div>
+                              <div className="prose prose-sm max-w-none text-foreground">
+                                <div className="whitespace-pre-wrap text-sm leading-relaxed space-y-4 bg-card/50 p-4 rounded-lg border">
+                                  {formatReportForDisplay(reportContent)}
+                                </div>
+                              </div>
+                              <div className="text-center pt-4 border-t">
+                                <Badge variant="secondary" className="text-xs">
+                                  ✅ End of AI Analysis Report
+                                </Badge>
+                              </div>
                             </div>
                           ) : (
                             <div className="text-center py-12">
@@ -315,8 +339,14 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                             </div>
                           )}
                         </div>
+                      </ScrollArea>
+                      {/* Scroll indicators */}
+                      <div className="absolute top-2 right-2 pointer-events-none">
+                        <div className="bg-primary/20 backdrop-blur-sm rounded-full p-1">
+                          <div className="w-2 h-6 bg-gradient-to-b from-primary to-transparent rounded-full animate-pulse"></div>
+                        </div>
                       </div>
-                    </ScrollArea>
+                    </div>
                   </CardContent>
                 </Card>
                </div>
