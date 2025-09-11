@@ -290,63 +290,46 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
 
                 {/* AI Analysis Report Card */}
                 <Card className="border-2 border-primary/20 shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 sticky top-0 z-10">
+                  <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Brain className="w-5 h-5 text-primary" />
                         AI Analysis Report
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs animate-pulse">
-                          📜 Scroll for full report
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          Full Analysis
-                        </Badge>
-                      </div>
+                      <Badge variant="default" className="text-xs">
+                        🤖 Full Analysis
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="relative">
-                      <ScrollArea className="h-[70vh] border-t border-primary/20">
-                        <div className="p-6 bg-gradient-to-b from-background via-muted/10 to-muted/20">
-                          {reportContent ? (
-                            <div className="space-y-6">
-                              <div className="text-center mb-6">
-                                <Badge variant="default" className="mb-2">
-                                  🤖 Comprehensive AI Analysis
-                                </Badge>
-                                <p className="text-xs text-muted-foreground">
-                                  Scroll down to read the complete analysis report
-                                </p>
-                              </div>
-                              <div className="prose prose-sm max-w-none text-foreground">
-                                <div className="whitespace-pre-wrap text-sm leading-relaxed space-y-4 bg-card/50 p-4 rounded-lg border">
-                                  {formatReportForDisplay(reportContent)}
-                                </div>
-                              </div>
-                              <div className="text-center pt-4 border-t">
-                                <Badge variant="secondary" className="text-xs">
-                                  ✅ End of AI Analysis Report
-                                </Badge>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-12">
-                              <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                              <p className="text-muted-foreground italic text-lg">No AI analysis available for this robot.</p>
-                              <p className="text-muted-foreground text-sm mt-2">Report generation may still be in progress.</p>
-                            </div>
-                          )}
+                  <CardContent className="p-6">
+                    {reportContent ? (
+                      <div className="space-y-6">
+                        <div className="text-center mb-6">
+                          <Badge variant="secondary" className="mb-2">
+                            📊 Comprehensive AI Market Analysis
+                          </Badge>
+                          <p className="text-xs text-muted-foreground">
+                            Complete analysis report with market insights and recommendations
+                          </p>
                         </div>
-                      </ScrollArea>
-                      {/* Scroll indicators */}
-                      <div className="absolute top-2 right-2 pointer-events-none">
-                        <div className="bg-primary/20 backdrop-blur-sm rounded-full p-1">
-                          <div className="w-2 h-6 bg-gradient-to-b from-primary to-transparent rounded-full animate-pulse"></div>
+                        <div className="prose prose-sm max-w-none text-foreground">
+                          <div className="whitespace-pre-wrap text-sm leading-relaxed space-y-4 bg-gradient-to-b from-muted/20 to-background p-6 rounded-lg border border-primary/10">
+                            {formatReportForDisplay(reportContent)}
+                          </div>
+                        </div>
+                        <div className="text-center pt-4 border-t border-primary/20">
+                          <Badge variant="outline" className="text-xs">
+                            ✅ End of AI Analysis Report
+                          </Badge>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground italic text-lg">No AI analysis available for this robot.</p>
+                        <p className="text-muted-foreground text-sm mt-2">Report generation may still be in progress.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
                </div>
