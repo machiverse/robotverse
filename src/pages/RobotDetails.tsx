@@ -2171,7 +2171,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                               <p className="text-sm font-bold text-blue-700 font-bold">
                                 For equipment price of <span className="font-bold">{formatPrice(robot.price, robot.currency)}</span>
                               </p>
-                              <<div className="grid grid-cols-3 gap-4">
+                              <div className="grid grid-cols-3 gap-4">
   {/* 1 Year Plan */}
   <div className="text-center p-3 bg-card/70 rounded-lg border border-blue-100 shadow">
     <p className="text-xs text-blue-600 font-bold mb-1">1 Year Plan</p>
