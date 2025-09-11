@@ -703,9 +703,11 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                         )}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm max-w-none max-h-[60vh] overflow-y-auto overflow-x-hidden">
-                        {formatReportForDisplay(reportData.report)}
+                    <CardContent className="p-0">
+                      <div className="h-[70vh] overflow-y-auto p-6 border border-border rounded-lg bg-background/50">
+                        <div className="prose prose-sm max-w-none text-foreground">
+                          {formatReportForDisplay(reportData.report)}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
