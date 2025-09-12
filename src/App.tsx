@@ -34,6 +34,13 @@ import LogisticsDashboard from "./pages/dashboard/Logistics";
 import Settings from "./pages/dashboard/Settings";
 import Help from "./pages/dashboard/Help";
 import Privacy from "./pages/dashboard/Privacy";
+import Contact from "./pages/Contact";
+import Terms from "./pages/Terms";
+import SellerGuide from "./pages/SellerGuide";
+import BuyerGuide from "./pages/BuyerGuide";
+import Cookies from "./pages/Cookies";
+import Sitemap from "./pages/Sitemap";
+import Accessibility from "./pages/Accessibility";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +84,13 @@ const App = () => (
             <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
             <Route path="/settings" element={<ProfileSettings />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/seller-guide" element={<SellerGuide />} />
+            <Route path="/buyer-guide" element={<BuyerGuide />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/sitemap" element={<Sitemap />} />
+            <Route path="/accessibility" element={<Accessibility />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
