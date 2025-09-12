@@ -12,8 +12,8 @@ const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">RV</span>
+              <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold">R</span>
               </div>
               <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 RobotVerse
@@ -68,13 +68,13 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Support</h3>
             <nav className="flex flex-col space-y-2">
-              <a href="/help" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              <a href="/dashboard/help" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Help Center
               </a>
               <a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Contact Us
               </a>
-              <a href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              <a href="/dashboard/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Privacy Policy
               </a>
               <a href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -96,18 +96,18 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <MapPin className="h-4 w-4 text-primary mt-0.5" />
                 <div className="text-sm text-muted-foreground">
-                  <p>123 Innovation Drive</p>
-                  <p>Tech City, TC 12345</p>
-                  <p>United States</p>
+                  <p>SIPCOT IT Park, 5-B/9,</p>
+                  <p>6th Cross St, Siruseri,</p>
+                  <p>Chennai, Tamil Nadu 603103</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">+1 (555) 123-4567</span>
+                <span className="text-sm text-muted-foreground">+918610925352</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">info@robotverse.com</span>
+                <span className="text-sm text-muted-foreground">support@robotverse.in</span>
               </div>
             </div>
           </div>
