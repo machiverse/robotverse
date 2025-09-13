@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { HelpCircle, Search, MessageCircle, FileText, Video, Phone, Mail } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Help = () => {
   const { toast } = useToast();
@@ -73,22 +73,37 @@ const Help = () => {
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'chat':
+        // Simulate opening a chat widget
         toast({
-          title: "Live Chat",
-          description: "Opening chat window...",
+          title: "Live Chat Started",
+          description: "Chat window is opening. You'll be connected to our support team shortly.",
         });
+        // In a real app, this would open a chat widget
+        setTimeout(() => {
+          window.open('https://tawk.to/chat', '_blank', 'width=400,height=600');
+        }, 1000);
         break;
       case 'email':
-        window.location.href = "mailto:support@robotverse.in";
+        const emailSubject = "Support Request from RobotVerse";
+        const emailBody = "Hello RobotVerse Support Team,\n\nI need assistance with:\n\n[Please describe your issue here]\n\nBest regards";
+        window.open(`mailto:support@robotverse.in?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`, '_self');
         break;
       case 'phone':
-        window.location.href = "tel:+918610925352";
+        toast({
+          title: "Calling Support",
+          description: "Dialing +91 8610925352...",
+        });
+        window.open("tel:+918610925352", '_self');
         break;
       case 'videos':
         toast({
           title: "Video Tutorials",
-          description: "Redirecting to tutorial section...",
+          description: "Opening video tutorial section...",
         });
+        // In a real app, this would navigate to tutorials section
+        setTimeout(() => {
+          window.open('https://www.youtube.com/results?search_query=robotics+tutorial', '_blank');
+        }, 1000);
         break;
     }
   };
