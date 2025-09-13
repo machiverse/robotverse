@@ -103,11 +103,15 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">+918610925352</span>
+                <a href="tel:+918610925352" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  +918610925352
+                </a>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">support@robotverse.in</span>
+                <a href="mailto:support@robotverse.in" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  support@robotverse.in
+                </a>
               </div>
             </div>
           </div>
