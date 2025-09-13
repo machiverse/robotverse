@@ -5,8 +5,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { HelpCircle, Search, MessageCircle, FileText, Video, Phone, Mail } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 const Help = () => {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: ""
+  });
+
   const faqs = [
     {
       id: 1,
@@ -59,6 +70,64 @@ const Help = () => {
     }
   ];
 
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'chat':
+        toast({
+          title: "Live Chat",
+          description: "Opening chat window...",
+        });
+        break;
+      case 'email':
+        window.location.href = "mailto:support@robotverse.in";
+        break;
+      case 'phone':
+        window.location.href = "tel:+918610925352";
+        break;
+      case 'videos':
+        toast({
+          title: "Video Tutorials",
+          description: "Redirecting to tutorial section...",
+        });
+        break;
+    }
+  };
+
+  const handleCreateTicket = () => {
+    toast({
+      title: "Create Ticket",
+      description: "Ticket creation form will open here",
+    });
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Message Sent",
+      description: "Your support request has been submitted. We'll get back to you within 24 hours.",
+    });
+    
+    setFormData({ name: "", email: "", subject: "", message: "" });
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const filteredFaqs = faqs.filter(faq => 
+    faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-yellow-100 text-yellow-700';
@@ -100,7 +169,12 @@ const Help = () => {
             <CardDescription>Chat with our support team</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('chat')}
+            >
               Start Chat
             </Button>
           </CardContent>
@@ -115,7 +189,12 @@ const Help = () => {
             <CardDescription>Send us a detailed message</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('email')}
+            >
               Send Email
             </Button>
           </CardContent>
@@ -130,7 +209,12 @@ const Help = () => {
             <CardDescription>Call us for urgent issues</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('phone')}
+            >
               Call Now
             </Button>
           </CardContent>
@@ -145,7 +229,12 @@ const Help = () => {
             <CardDescription>Watch how-to videos</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('videos')}
+            >
               Watch Videos
             </Button>
           </CardContent>
@@ -168,11 +257,16 @@ const Help = () => {
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input placeholder="Search FAQs..." className="pl-10" />
+                <Input 
+                  placeholder="Search FAQs..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
               
               <Accordion type="single" collapsible className="w-full">
-                {faqs.map((faq) => (
+                {filteredFaqs.map((faq) => (
                   <AccordionItem key={faq.id} value={`item-${faq.id}`}>
                     <AccordionTrigger className="text-left">
                       {faq.question}
@@ -200,7 +294,7 @@ const Help = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleCreateTicket}>
                 Create New Ticket
               </Button>
               
@@ -240,29 +334,47 @@ const Help = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <form onSubmit={handleFormSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Name</label>
-                <Input placeholder="Your name" />
+                <Input 
+                  placeholder="Your name" 
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email</label>
-                <Input type="email" placeholder="your.email@example.com" />
+                <Input 
+                  type="email" 
+                  placeholder="your.email@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Subject</label>
-              <Input placeholder="Brief description of your issue" />
+              <Input 
+                placeholder="Brief description of your issue"
+                value={formData.subject}
+                onChange={(e) => handleInputChange('subject', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Message</label>
-              <Textarea placeholder="Describe your issue in detail..." rows={4} />
+              <Textarea 
+                placeholder="Describe your issue in detail..." 
+                rows={4}
+                value={formData.message}
+                onChange={(e) => handleInputChange('message', e.target.value)}
+              />
             </div>
-            <Button>
+            <Button type="submit">
               Send Message
             </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </div>
