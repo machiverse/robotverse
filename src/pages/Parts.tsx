@@ -9,6 +9,7 @@ import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
 
 interface Part {
   id: string;
@@ -40,6 +41,8 @@ const Parts = () => {
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [selectedPart, setSelectedPart] = useState<Part | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -190,7 +193,7 @@ const Parts = () => {
   };
 
   // Handle request quote
-  const handleRequestQuote = async (part: Part) => {
+  const handleRequestQuote = (part: Part) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -199,62 +202,9 @@ const Parts = () => {
       });
       return;
     }
-
-    try {
-      // Log the quote request
-      const { error: requestError } = await supabase
-        .from('user_requests')
-        .insert({
-          user_id: user.id,
-          user_name: user.user_metadata?.full_name || 'Unknown User',
-          company_name: user.user_metadata?.company_name || '',
-          mobile_number: user.user_metadata?.phone || '',
-          email_address: user.email || '',
-          location: user.user_metadata?.location || '',
-          request_type: 'Request Quote',
-          item_type: 'spare_parts',
-          item_id: part.id,
-          item_name: part.name,
-          seller_id: part.sellerId || '',
-          status: 'pending',
-          requirements: `User requested quote for spare part: ${part.name}`
-        });
-
-      if (requestError) {
-        console.error('Error logging request:', requestError);
-      }
-
-      // Create notification for seller
-      if (part.sellerId) {
-        const { error: notificationError } = await supabase
-          .from('seller_notifications')
-          .insert({
-            seller_id: part.sellerId,
-            user_id: user.id,
-            type: 'quote_request',
-            title: 'Quote Request',
-            message: `${user.user_metadata?.full_name || 'A user'} requested a quote for ${part.name}`,
-            item_type: 'spare_parts',
-            item_id: part.id
-          });
-
-        if (notificationError) {
-          console.error('Error creating notification:', notificationError);
-        }
-      }
-
-      toast({
-        title: "Quote Requested",
-        description: `Quote request sent for ${part.name}.`,
-      });
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send quote request. Please try again.",
-      });
-    }
+    
+    setSelectedPart(part);
+    setIsQuoteModalOpen(true);
   };
   const filteredParts = parts.filter((part) => {
     const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -470,6 +420,15 @@ const Parts = () => {
           </>
         )}
       </div>
+
+      {/* Quote Modal */}
+      <SparePartQuoteModal
+        isOpen={isQuoteModalOpen}
+        onClose={() => setIsQuoteModalOpen(false)}
+        part={selectedPart}
+        userEmail={user?.email || ''}
+        userName={user?.user_metadata?.full_name || 'User'}
+      />
     </div>
   );
 };
