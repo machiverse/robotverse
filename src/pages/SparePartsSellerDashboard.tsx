@@ -178,7 +178,7 @@ const SparePartsSellerDashboard = () => {
       outOfStock,
       totalValue,
       avgPrice,
-      recentSales: 0 // This would come from sales data
+      recentSales: 0 // Will be calculated from actual sales data when available
     });
   };
 

@@ -180,10 +180,16 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       totalRevenue,
       totalViews: viewStats.totalViews || 0,
       avgPrice,
-      soldThisMonth: 0,
-      inquiries: Math.floor(Math.random() * 50),
-      conversationRate: Math.random() * 10,
-      avgResponseTime: 2.3,
+      soldThisMonth: robotData.filter(r => {
+        const soldDate = new Date(r.updated_at);
+        const now = new Date();
+        return r.availability === 'sold' && 
+               soldDate.getMonth() === now.getMonth() && 
+               soldDate.getFullYear() === now.getFullYear();
+      }).length,
+      inquiries: 0, // Will be calculated from user_requests table when available
+      conversationRate: 0, // Will be calculated from actual interactions
+      avgResponseTime: 0, // Will be calculated from actual response data
       topPerforming: robotData[0] || null
     });
   };

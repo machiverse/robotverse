@@ -40,10 +40,16 @@ const MyRobots = () => {
 
       if (error) throw error;
 
+      // Fetch view counts for all robots
       const robotsWithViews = await Promise.all(
         (data || []).map(async (robot) => {
-          const viewCount = await getItemViewCount('robots', robot.id);
-          return { ...robot, views: viewCount };
+          try {
+            const viewCount = await getItemViewCount('robots', robot.id);
+            return { ...robot, views: viewCount || 0 };
+          } catch (error) {
+            console.error(`Error fetching view count for robot ${robot.id}:`, error);
+            return { ...robot, views: 0 };
+          }
         })
       );
 
