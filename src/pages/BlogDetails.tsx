@@ -183,16 +183,17 @@ const BlogDetails = () => {
   };
 
   const handleShare = async () => {
+    const shareUrl = `https://robotverse.in/blogs/${id}`;
     try {
       await navigator.share({
         title: blog?.title,
         text: blog?.excerpt,
-        url: window.location.href,
+        url: shareUrl,
       });
     } catch (error) {
       // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard');
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('RobotVerse link copied to clipboard');
     }
   };
 
