@@ -201,25 +201,7 @@ const BlogDetails = () => {
     return content.substring(0, maxLength).trim() + "...";
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background">
-        <EnhancedHeader />
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center max-w-md mx-auto">
-            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
-            <p className="text-muted-foreground mb-6">
-              Please sign in to read our blog content and interact with posts.
-            </p>
-            <Link to="/auth">
-              <Button>Sign In to Continue</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Remove authentication requirement for viewing articles
 
   if (loading) {
     return (
@@ -460,8 +442,8 @@ const BlogDetails = () => {
             </section>
            )}
 
-           {/* Comments Section */}
-           <BlogComments blogId={blog.id} />
+          {/* Comments Section - Only show for authenticated users */}
+          {user && <BlogComments blogId={blog.id} />}
          </div>
        </main>
      </div>
