@@ -225,9 +225,9 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
       {/* Main Dashboard Content */}
       <div className="container mx-auto px-4 py-6">
         {/* Real Data Notification */}
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+        {/*<div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
           ✅ All dashboard data is now live from your Supabase database - showing real robots, parts, services, and analytics.
-        </div>
+        </div>*/}
         {/* Always show Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(finalRoles.length, 5)}, 1fr)` }}>
