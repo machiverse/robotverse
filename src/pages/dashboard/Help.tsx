@@ -5,8 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { HelpCircle, Search, MessageCircle, FileText, Video, Phone, Mail } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { CreateTicketModal } from "@/components/CreateTicketModal";
 
 const Help = () => {
   const { toast } = useToast();
@@ -17,6 +19,11 @@ const Help = () => {
     subject: "",
     message: ""
   });
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const contactFormRef = useRef<HTMLDivElement>(null);
 
   const faqs = [
     {
@@ -46,73 +53,96 @@ const Help = () => {
     }
   ];
 
-  const tickets = [
-    {
-      id: 1,
-      subject: "Unable to upload robot images",
-      status: "open",
-      priority: "high",
-      created: "2024-01-15"
-    },
-    {
-      id: 2,
-      subject: "Payment processing issue",
-      status: "in_progress",
-      priority: "urgent",
-      created: "2024-01-14"
-    },
-    {
-      id: 3,
-      subject: "Question about commission fees",
-      status: "resolved",
-      priority: "low",
-      created: "2024-01-12"
+  // Fetch user data and tickets
+  useEffect(() => {
+    const fetchUserAndTickets = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (user) {
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserProfile(profile);
+          setFormData(prev => ({
+            ...prev,
+            name: profile.full_name || "",
+            email: profile.email || user.email || ""
+          }));
+        }
+        
+        // Fetch user tickets
+        await fetchTickets();
+      }
+    };
+
+    fetchUserAndTickets();
+  }, []);
+
+  const fetchTickets = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching tickets:", error);
+    } else {
+      setTickets(data || []);
     }
-  ];
+  };
 
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'chat':
-        // Simulate opening a chat widget
-        toast({
-          title: "Live Chat Started",
-          description: "Chat window is opening. You'll be connected to our support team shortly.",
-        });
-        // In a real app, this would open a chat widget
-        setTimeout(() => {
-          window.open('https://tawk.to/chat', '_blank', 'width=400,height=600');
-        }, 1000);
+        // Redirect to WhatsApp chat
+        const whatsappNumber = "918610925352";
+        const whatsappMessage = "Hello! I need support with my RobotVerse account.";
+        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+        window.open(whatsappUrl, '_blank');
         break;
       case 'email':
-        const emailSubject = "Support Request from RobotVerse";
-        const emailBody = "Hello RobotVerse Support Team,\n\nI need assistance with:\n\n[Please describe your issue here]\n\nBest regards";
-        window.open(`mailto:support@robotverse.in?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`, '_self');
+        // Scroll to contact form with prefilled data
+        contactFormRef.current?.scrollIntoView({ behavior: 'smooth' });
+        toast({
+          title: "Contact Form",
+          description: "Scrolled to contact form with your details prefilled.",
+        });
         break;
       case 'phone':
-        toast({
-          title: "Calling Support",
-          description: "Dialing +91 8610925352...",
-        });
+        // Direct call
         window.open("tel:+918610925352", '_self');
         break;
       case 'videos':
-        toast({
-          title: "Video Tutorials",
-          description: "Opening video tutorial section...",
-        });
-        // In a real app, this would navigate to tutorials section
-        setTimeout(() => {
-          window.open('https://www.youtube.com/results?search_query=robotics+tutorial', '_blank');
-        }, 1000);
+        // Open RobotVerse YouTube channel
+        window.open('https://www.youtube.com/@Robotverse-in', '_blank');
         break;
     }
   };
 
   const handleCreateTicket = () => {
-    toast({
-      title: "Create Ticket",
-      description: "Ticket creation form will open here",
-    });
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create a support ticket",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsTicketModalOpen(true);
+  };
+
+  const handleTicketCreated = () => {
+    fetchTickets();
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -126,12 +156,15 @@ const Help = () => {
       return;
     }
     
-    toast({
-      title: "Message Sent",
-      description: "Your support request has been submitted. We'll get back to you within 24 hours.",
-    });
+    // Send email to support
+    const subject = `Support Request: ${formData.subject}`;
+    const body = `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`;
+    window.open(`mailto:support@robotverse.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    toast({
+      title: "Email Client Opened",
+      description: "Your default email client has been opened with the message. Please send it to complete your request.",
+    });
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -314,26 +347,40 @@ const Help = () => {
               </Button>
               
               <div className="space-y-3">
-                {tickets.map((ticket) => (
-                  <div key={ticket.id} className="p-3 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">{ticket.subject}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Created: {new Date(ticket.created).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Badge className={getStatusColor(ticket.status)}>
-                          {ticket.status.replace('_', ' ')}
-                        </Badge>
-                        <Badge className={getPriorityColor(ticket.priority)}>
-                          {ticket.priority}
-                        </Badge>
+                {tickets.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    No tickets found. Create your first support ticket above.
+                  </p>
+                ) : (
+                  tickets.map((ticket) => (
+                    <div key={ticket.id} className="p-3 border rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-sm">{ticket.subject}</h4>
+                            <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                              {ticket.ticket_id}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Created: {new Date(ticket.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            Category: {ticket.category}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Badge className={getStatusColor(ticket.status)}>
+                            {ticket.status.replace('_', ' ')}
+                          </Badge>
+                          <Badge className={getPriorityColor(ticket.priority)}>
+                            {ticket.priority}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </CardContent>
@@ -341,7 +388,7 @@ const Help = () => {
       </div>
 
       {/* Contact Form */}
-      <Card>
+      <Card ref={contactFormRef}>
         <CardHeader>
           <CardTitle>Contact Our Support Team</CardTitle>
           <CardDescription>
@@ -392,6 +439,12 @@ const Help = () => {
           </form>
         </CardContent>
       </Card>
+
+      <CreateTicketModal 
+        isOpen={isTicketModalOpen}
+        onClose={() => setIsTicketModalOpen(false)}
+        onTicketCreated={handleTicketCreated}
+      />
     </div>
   );
 };
