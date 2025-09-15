@@ -1,66 +1,87 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Plus, Eye, MoreHorizontal, TrendingUp, DollarSign } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Finance = () => {
-  const loanProducts = [
-    {
-      id: 1,
-      name: "Robot Purchase Loan",
-      interestRate: "5.5%",
-      maxAmount: "$500,000",
-      term: "5 years",
-      status: "active",
-      applications: 24
-    },
-    {
-      id: 2,
-      name: "Equipment Finance",
-      interestRate: "6.2%",
-      maxAmount: "$250,000",
-      term: "3 years",
-      status: "active",
-      applications: 18
-    },
-    {
-      id: 3,
-      name: "Working Capital Loan",
-      interestRate: "4.8%",
-      maxAmount: "$100,000",
-      term: "2 years",
-      status: "pending",
-      applications: 12
-    }
-  ];
+  const { user } = useAuth();
+  const [loanProducts, setLoanProducts] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [stats, setStats] = useState({
+    activeProducts: 0,
+    totalApplications: 0,
+    approvedLoans: 0,
+    totalDisbursed: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const applications = [
-    {
-      id: 1,
-      applicant: "TechManufacturing Inc.",
-      product: "Robot Purchase Loan",
-      amount: "$125,000",
-      status: "under_review",
-      submittedDate: "2024-01-15"
-    },
-    {
-      id: 2,
-      applicant: "AutoParts Solutions",
-      product: "Equipment Finance",
-      amount: "$75,000",
-      status: "approved",
-      submittedDate: "2024-01-14"
-    },
-    {
-      id: 3,
-      applicant: "Industrial Robotics Co.",
-      product: "Working Capital Loan",
-      amount: "$50,000",
-      status: "pending",
-      submittedDate: "2024-01-13"
+  useEffect(() => {
+    if (user) {
+      fetchLoanProducts();
+      fetchApplications();
     }
-  ];
+  }, [user]);
+
+  const fetchLoanProducts = async () => {
+    if (!user) return;
+
+    try {
+      const { data: productsData, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('provider_id', user.id);
+
+      if (error) {
+        console.error('Error fetching loan products:', error);
+        return;
+      }
+
+      setLoanProducts(productsData || []);
+      
+      const activeProducts = productsData?.filter(p => p.is_active).length || 0;
+      setStats(prev => ({ ...prev, activeProducts }));
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const fetchApplications = async () => {
+    if (!user) return;
+
+    try {
+      const { data: applicationsData, error } = await supabase
+        .from('loan_applications')
+        .select('*')
+        .eq('provider_id', user.id);
+
+      if (error) {
+        console.error('Error fetching applications:', error);
+        return;
+      }
+
+      setApplications(applicationsData || []);
+      
+      const totalApplications = applicationsData?.length || 0;
+      const approvedLoans = applicationsData?.filter(app => app.status === 'approved').length || 0;
+      const totalDisbursed = applicationsData?.filter(app => app.status === 'approved')
+        .reduce((sum, app) => sum + (parseFloat(app.amount_requested?.toString() || '0') || 0), 0) || 0;
+
+      setStats(prev => ({ 
+        ...prev, 
+        totalApplications, 
+        approvedLoans,
+        totalDisbursed 
+      }));
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -98,7 +119,7 @@ const Finance = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{stats.activeProducts}</div>
             <p className="text-xs text-muted-foreground">
               Currently available
             </p>
@@ -113,9 +134,9 @@ const Finance = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">54</div>
+            <div className="text-2xl font-bold">{stats.totalApplications}</div>
             <p className="text-xs text-muted-foreground">
-              This month
+              All time
             </p>
           </CardContent>
         </Card>
@@ -128,9 +149,9 @@ const Finance = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">32</div>
+            <div className="text-2xl font-bold">{stats.approvedLoans}</div>
             <p className="text-xs text-muted-foreground">
-              89% approval rate
+              {stats.totalApplications > 0 ? Math.round((stats.approvedLoans / stats.totalApplications) * 100) : 0}% approval rate
             </p>
           </CardContent>
         </Card>
@@ -143,9 +164,9 @@ const Finance = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$2.4M</div>
+            <div className="text-2xl font-bold">₹{stats.totalDisbursed.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              This quarter
+              All approved loans
             </p>
           </CardContent>
         </Card>
@@ -160,56 +181,71 @@ const Finance = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {loanProducts.map((product) => (
-              <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-start gap-3">
-                  <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">{product.name}</h4>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-sm text-muted-foreground">
-                        Rate: {product.interestRate}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Max: {product.maxAmount}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Term: {product.term}
-                      </span>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : loanProducts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No loan products created yet</p>
+              <p className="text-sm">Add your first loan product to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {loanProducts.map((product) => (
+                <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <h4 className="font-medium">{product.product_name}</h4>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-sm text-muted-foreground">
+                          Rate: {product.min_interest_rate}% - {product.max_interest_rate}%
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Max: ₹{product.max_amount?.toLocaleString()}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Term: {product.min_tenure_months}-{product.max_tenure_months} months
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {product.description?.substring(0, 100)}{product.description?.length > 100 ? '...' : ''}
+                      </p>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-sm font-medium">{product.applications} applications</div>
-                    <Badge className={getStatusColor(product.status)}>
-                      {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-                    </Badge>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-sm font-medium">Active Product</div>
+                      <Badge className={getStatusColor(product.is_active ? 'active' : 'inactive')}>
+                        {product.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          Edit Product
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          {product.is_active ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        Edit Product
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        Deactivate
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -222,49 +258,68 @@ const Finance = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {applications.map((application) => (
-              <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-start gap-3">
-                  <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">{application.applicant}</h4>
-                    <p className="text-sm text-muted-foreground">{application.product}</p>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-sm font-medium">{application.amount}</span>
-                      <span className="text-sm text-muted-foreground">
-                        Submitted: {new Date(application.submittedDate).toLocaleDateString()}
-                      </span>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No applications received yet</p>
+              <p className="text-sm">Applications will appear here when customers apply</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {applications.map((application) => (
+                <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <h4 className="font-medium">{application.applicant_name}</h4>
+                      <p className="text-sm text-muted-foreground">{application.application_id}</p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-sm font-medium">₹{application.amount_requested?.toLocaleString()}</span>
+                        <span className="text-sm text-muted-foreground">
+                          Applied: {new Date(application.applied_date || application.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Purpose: {application.purpose || 'Not specified'}
+                      </p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <Badge className={getStatusColor(application.status)}>
+                      {application.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Review Application
+                        </DropdownMenuItem>
+                        {application.status === 'pending' && (
+                          <>
+                            <DropdownMenuItem className="text-green-600">
+                              Approve
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">
+                              Reject
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge className={getStatusColor(application.status)}>
-                    {application.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </Badge>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Review Application
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-green-600">
-                        Approve
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        Reject
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
