@@ -15,6 +15,7 @@ import AIAnalysisResult from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck, MessageSquare, Camera, ZoomIn, Share2, Calendar } from "lucide-react";import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import RobotReportModal from "@/components/RobotReportModal";
+import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -143,6 +144,7 @@ const RobotDetails = () => {
   
   // Report generation states
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showMarketAnalysis, setShowMarketAnalysis] = useState(false);
   
   // Quote form states
   const [showQuoteForm, setShowQuoteForm] = useState(false);
@@ -1246,6 +1248,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             >
               <FileText className="w-4 h-4 mr-2" />
               Generate Report
+            </Button>
+            <Button
+              onClick={() => setShowMarketAnalysis(true)}
+              variant="default"
+              size="sm"
+              className="shadow-sm bg-primary hover:bg-primary/90"
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              AI Market Analysis
             </Button>
           </div>
         </div>
@@ -2696,6 +2707,13 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       <RobotReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
+        robotData={robot}
+      />
+
+      {/* Comprehensive AI Market Analysis Modal */}
+      <ComprehensiveAIMarketAnalysis
+        isOpen={showMarketAnalysis}
+        onClose={() => setShowMarketAnalysis(false)}
         robotData={robot}
       />
 
