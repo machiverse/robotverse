@@ -26,8 +26,6 @@ import {
 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface ComprehensiveAIMarketAnalysisProps {
   isOpen: boolean;
@@ -120,211 +118,74 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
   };
 
   async function downloadAsPDF() {
-    if (!robotData || !analysisData) return;
-    setDownloading(true);
+    // Simplified download - will download as HTML for now
+    const content = generateReportHTML();
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${robotData.name.replace(/\s+/g, '_')}_Market_Analysis_Report.html`;
+    a.click();
+    window.URL.revokeObjectURL(url);
     
-    try {
-      const pdfContainer = document.createElement('div');
-      pdfContainer.style.position = 'absolute';
-      pdfContainer.style.left = '-9999px';
-      pdfContainer.style.width = '210mm';
-      pdfContainer.style.padding = '20mm';
-      pdfContainer.style.backgroundColor = 'white';
-      pdfContainer.style.fontFamily = 'Arial, sans-serif';
-      pdfContainer.style.color = '#333';
-      pdfContainer.style.lineHeight = '1.6';
-      
-      pdfContainer.innerHTML = `
-        <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 4px solid #3b82f6;">
-          <h1 style="margin: 0; color: #1e40af; font-size: 32px; font-weight: bold;">AI Market Intelligence Report</h1>
-          <h2 style="margin: 10px 0; color: #6b7280; font-size: 20px;">${robotData.name} - ${robotData.model}</h2>
-          <p style="margin: 5px 0 0; color: #9ca3af; font-size: 14px;">Comprehensive Market Analysis Generated on ${new Date().toLocaleDateString()}</p>
+    toast({
+      title: "Report Downloaded",
+      description: "The market analysis report has been downloaded as HTML.",
+    });
+  }
+
+  function generateReportHTML() {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${robotData.name} - Market Analysis Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+          .header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px; }
+          .section { margin-bottom: 30px; }
+          .section h2 { color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+          .point { margin-bottom: 10px; padding-left: 20px; }
+          .point:before { content: "• "; color: #3b82f6; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>AI Market Intelligence Report</h1>
+          <h2>${robotData.name} - ${robotData.model}</h2>
+          <p>Generated on ${new Date().toLocaleDateString()}</p>
         </div>
         
-        <div style="margin-bottom: 30px;">
-          <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">Executive Summary</h2>
-          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 6px solid #3b82f6;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-              <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <strong style="color: #374151;">Robot:</strong> ${robotData.name}
-              </div>
-              <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <strong style="color: #374151;">Model:</strong> ${robotData.model}
-              </div>
-              <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <strong style="color: #374151;">Type:</strong> ${robotData.robot_type}
-              </div>
-              <div style="background: #ecfdf5; padding: 15px; border-radius: 6px; border: 1px solid #d1fae5;">
-                <strong style="color: #059669;">Price:</strong> ${formatCurrency(robotData.price, robotData.currency)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        ${analysisData.marketOverview ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">📊 Market Overview</h2>
-            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; border-left: 6px solid #0ea5e9;">
-              ${formatSection(analysisData.marketOverview).map(point => `
-                <p style="margin-bottom: 12px; color: #0369a1; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.competitiveAnalysis ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">🏆 Competitive Analysis</h2>
-            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 6px solid #f59e0b;">
-              ${formatSection(analysisData.competitiveAnalysis).map(point => `
-                <p style="margin-bottom: 12px; color: #92400e; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.targetMarkets ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">🎯 Target Markets</h2>
-            <div style="background: #f3e8ff; padding: 20px; border-radius: 8px; border-left: 6px solid #a855f7;">
-              ${formatSection(analysisData.targetMarkets).map(point => `
-                <p style="margin-bottom: 12px; color: #7c2d12; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.priceAnalysis ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">💰 Price Analysis</h2>
-            <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; border-left: 6px solid #10b981;">
-              ${formatSection(analysisData.priceAnalysis).map(point => `
-                <p style="margin-bottom: 12px; color: #065f46; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.technologyTrends ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">⚡ Technology Trends</h2>
-            <div style="background: #fef2f2; padding: 20px; border-radius: 8px; border-left: 6px solid #ef4444;">
-              ${formatSection(analysisData.technologyTrends).map(point => `
-                <p style="margin-bottom: 12px; color: #991b1b; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.riskAssessment ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">🛡️ Risk Assessment</h2>
-            <div style="background: #fef7f2; padding: 20px; border-radius: 8px; border-left: 6px solid #f97316;">
-              ${formatSection(analysisData.riskAssessment).map(point => `
-                <p style="margin-bottom: 12px; color: #9a3412; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.investmentOutlook ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">📈 Investment Outlook</h2>
-            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; border-left: 6px solid #22c55e;">
-              ${formatSection(analysisData.investmentOutlook).map(point => `
-                <p style="margin-bottom: 12px; color: #15803d; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.businessOpportunities ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">💡 Business Opportunities</h2>
-            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; border-left: 6px solid #0ea5e9;">
-              ${formatSection(analysisData.businessOpportunities).map(point => `
-                <p style="margin-bottom: 12px; color: #0369a1; line-height: 1.7;">• ${point}</p>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${analysisData.recommendations ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #1e40af; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">🎯 Strategic Recommendations</h2>
-            <div style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 2px solid #3b82f6;">
-              ${formatSection(analysisData.recommendations).map(point => `
-                <p style="margin-bottom: 12px; color: #1e40af; line-height: 1.7; font-weight: 500;">• ${point}</p>
-              `).join('')}
-            </div>
+        ${analysisData?.marketOverview ? `
+          <div class="section">
+            <h2>📊 Market Overview</h2>
+            ${formatSection(analysisData.marketOverview).map(point => `<div class="point">${point}</div>`).join('')}
           </div>
         ` : ''}
         
-        <div style="text-align: center; padding: 25px; background: #f1f5f9; border-radius: 8px; margin-top: 40px;">
-          <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">
-            AI Market Intelligence Report | RoboVerse Analytics Platform
-          </p>
-          <p style="margin: 8px 0 0; color: #64748b; font-size: 12px;">
-            Professional market analysis powered by advanced AI technology | Generated ${new Date().toLocaleDateString()}
-          </p>
-          <p style="margin: 5px 0 0; color: #64748b; font-size: 12px;">
-            This report provides strategic insights for informed business decision-making
-          </p>
-        </div>
-      `;
-      
-      document.body.appendChild(pdfContainer);
-      
-      const canvas = await html2canvas(pdfContainer, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-      
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-      
-      pdf.save(`${robotData.name.replace(/\s+/g, '_')}_Market_Analysis_Report.pdf`);
-      
-      document.body.removeChild(pdfContainer);
-      
-      toast({
-        title: "PDF Downloaded",
-        description: "The comprehensive market analysis report has been downloaded successfully.",
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        title: "Download Failed",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setDownloading(false);
-    }
+        ${analysisData?.competitiveAnalysis ? `
+          <div class="section">
+            <h2>🏆 Competitive Analysis</h2>
+            ${formatSection(analysisData.competitiveAnalysis).map(point => `<div class="point">${point}</div>`).join('')}
+          </div>
+        ` : ''}
+        
+        ${analysisData?.targetMarkets ? `
+          <div class="section">
+            <h2>🎯 Target Markets</h2>
+            ${formatSection(analysisData.targetMarkets).map(point => `<div class="point">${point}</div>`).join('')}
+          </div>
+        ` : ''}
+        
+        ${analysisData?.recommendations ? `
+          <div class="section">
+            <h2>🎯 Strategic Recommendations</h2>
+            ${formatSection(analysisData.recommendations).map(point => `<div class="point">${point}</div>`).join('')}
+          </div>
+        ` : ''}
+      </body>
+      </html>
+    `;
   }
 
   const SectionCard = ({ 
@@ -397,7 +258,7 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
                 ) : (
                   <Download className="w-4 h-4 mr-2" />
                 )}
-                Download PDF
+                Download HTML Report
               </Button>
             )}
             <Button variant="ghost" onClick={onClose} size="sm">
