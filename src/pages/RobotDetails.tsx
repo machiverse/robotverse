@@ -193,6 +193,15 @@ const RobotDetails = () => {
           ? data.technical_specifications as Record<string, any>
           : {}
       });
+
+      // Track robot view for both logged-in and anonymous users
+      trackRobotView(data.id, {
+        name: data.name,
+        model: data.model,
+        price: data.price,
+        seller_id: data.seller_id,
+        category: data.robot_type
+      });
       
       // Generate SEO elements for this robot
       const robotSEOData: RobotSEOData = {
@@ -1365,6 +1374,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                   <div className="flex-1">
                     <CardTitle className="text-2xl font-bold text-primary leading-tight">{robot.name}</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1 font-medium">{robot.robot_type}</p>
+                    <ViewCountDisplay targetType="robots" targetId={robot.id} className="mt-2" />
                   </div>
                   <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50 font-semibold">
                     {robot.availability}
