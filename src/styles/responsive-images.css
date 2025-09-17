@@ -148,7 +148,7 @@
 
 /* Image overlay effects */
 .img-overlay {
-  @apply relative overflow-hidden group;
+  @apply relative overflow-hidden;
 }
 
 .img-overlay::after {
@@ -164,6 +164,7 @@
 /* Print-friendly image styles */
 @media print {
   .img-print {
-    @apply max-w-full h-auto page-break-inside-avoid;
+    @apply max-w-full h-auto;
+    page-break-inside: avoid;
   }
 }

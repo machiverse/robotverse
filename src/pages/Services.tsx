@@ -163,6 +163,14 @@ const Services = () => {
   });
 
   const handleRequestQuote = (service: Service) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please sign in to request a quote from service providers.",
+      });
+      return;
+    }
     setSelectedService(service);
     setShowRequestModal(true);
   };
@@ -391,7 +399,7 @@ const Services = () => {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
+                     {/* Action Buttons */}
                     <div className="flex space-x-2 pt-2">
                        <Button
                         size="sm"
@@ -400,8 +408,9 @@ const Services = () => {
                           trackItemView('services', service.id, service);
                           handleRequestQuote(service);
                         }}
+                        disabled={!user}
                       >
-                        Get Quote
+                        {user ? "Get Quote" : "Sign In to Quote"}
                       </Button>
                       <Button
                         variant="outline"
