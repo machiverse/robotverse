@@ -412,15 +412,17 @@ const Services = () => {
                       >
                         {user ? "Get Quote" : "Sign In to Quote"}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleContactProvider(service)}
-                        disabled={!user || (!service.providerProfile?.phone && !service.providerProfile?.mobile_number)}
-                        className="border-border text-foreground hover:bg-accent/10"
-                      >
-                        {user ? "Contact" : "Sign In"}
-                      </Button>
+                      {user && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleContactProvider(service)}
+                          disabled={!service.providerProfile?.phone && !service.providerProfile?.mobile_number}
+                          className="border-border text-foreground hover:bg-accent/10"
+                        >
+                          Contact
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
