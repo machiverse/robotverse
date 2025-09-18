@@ -34,8 +34,8 @@ interface CommunityPost {
   tags: string[];
   view_count: number;
   like_count: number;
-  comment_count: number;
-  share_count: number;
+  comment_count?: number;
+  share_count?: number;
   created_at: string;
   author_id: string;
   profiles?: {
@@ -138,7 +138,9 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
       const shareData = {
         title: post.title || 'Community Post',
         text: post.excerpt || post.content?.substring(0, 100) + '...',
-        url: `${window.location.origin}/community/${post.id}`
+        url: post.post_type === 'blog' && !post.media_url 
+          ? `${window.location.origin}/blogs/${post.id}`
+          : `${window.location.origin}/community/${post.id}`
       };
       
       if (navigator.share && navigator.canShare(shareData)) {
@@ -177,7 +179,7 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
 
   return (
     <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/20 bg-card overflow-hidden">
-      <Link to={`/community/${post.id}`}>
+      <Link to={post.post_type === 'blog' && !post.media_url ? `/blogs/${post.id}` : `/community/${post.id}`}>
         {/* Media Preview */}
         {post.media_url && (
           <div className="relative aspect-video overflow-hidden">
@@ -286,7 +288,7 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
 
               <Button variant="ghost" size="sm" className="h-8 px-2">
                 <MessageCircle className="h-4 w-4" />
-                <span className="ml-1 text-xs">{post.comment_count}</span>
+                <span className="ml-1 text-xs">{post.comment_count || 0}</span>
               </Button>
 
               <Button
@@ -296,7 +298,7 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
                 className="h-8 px-2"
               >
                 <Share2 className="h-4 w-4" />
-                <span className="ml-1 text-xs">{post.share_count}</span>
+                <span className="ml-1 text-xs">{post.share_count || 0}</span>
               </Button>
             </div>
           </div>

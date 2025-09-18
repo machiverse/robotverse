@@ -63,6 +63,8 @@ const App = () => (
             <Route path="/test-image-migration" element={<TestImageMigration />} />
             <Route path="/financing" element={<Financing />} />
             <Route path="/blogs" element={<Blogs />} />
+            <Route path="/community" element={<Blogs />} />
+            <Route path="/community/:id" element={<BlogDetails />} />
             <Route path="/blogs/create" element={<BlogEditor />} />
             <Route path="/blogs/:id" element={<BlogDetails />} />
             <Route path="/blogs/:id/edit" element={<BlogEditor />} />

@@ -75,41 +75,48 @@ const Community = () => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      let query = supabase
+      
+      // Fetch new community posts
+      let communityQuery = supabase
         .from('community_posts')
         .select('*')
         .eq('status', 'published');
 
       // Apply post type filter
       if (filterType !== 'all') {
-        query = query.eq('post_type', filterType);
+        communityQuery = communityQuery.eq('post_type', filterType);
       }
 
-      // Apply sorting
-      switch (sortBy) {
-        case 'latest':
-          query = query.order('published_at', { ascending: false });
-          break;
-        case 'most_viewed':
-          query = query.order('view_count', { ascending: false });
-          break;
-        case 'most_liked':
-          query = query.order('like_count', { ascending: false });
-          break;
-        case 'trending':
-          query = query.order('like_count', { ascending: false });
-          break;
-        default:
-          query = query.order('published_at', { ascending: false });
+      const { data: communityData, error: communityError } = await communityQuery;
+      if (communityError) throw communityError;
+
+      // Fetch old blogs (only if not filtering by specific post type or if filtering by blog)
+      let blogData: any[] = [];
+      if (filterType === 'all' || filterType === 'blog') {
+        const { data: oldBlogs, error: blogError } = await supabase
+          .from('blogs')
+          .select('*')
+          .eq('status', 'published');
+
+        if (blogError) throw blogError;
+
+        // Transform old blogs to match new community post format
+        blogData = (oldBlogs || []).map(blog => ({
+          ...blog,
+          post_type: 'blog',
+          comment_count: 0,
+          share_count: 0,
+          media_url: blog.image_url,
+          media_type: blog.image_url ? 'image' : null
+        }));
       }
 
-      const { data, error } = await query;
+      // Combine both data sources
+      const allPosts = [...(communityData || []), ...blogData];
 
-      if (error) throw error;
-
-      // Fetch author profiles for each post
+      // Fetch author profiles for all posts
       const postsWithProfiles = await Promise.all(
-        (data || []).map(async (post) => {
+        allPosts.map(async (post) => {
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name, company_name, avatar_url')
@@ -123,18 +130,44 @@ const Community = () => {
         })
       );
 
+      // Apply sorting
+      let sortedPosts = [...postsWithProfiles];
+      switch (sortBy) {
+        case 'latest':
+          sortedPosts.sort((a, b) => new Date(b.published_at || b.created_at).getTime() - new Date(a.published_at || a.created_at).getTime());
+          break;
+        case 'most_viewed':
+          sortedPosts.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+          break;
+        case 'most_liked':
+          sortedPosts.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+          break;
+        case 'trending':
+          // Simple trending algorithm: recent posts with good engagement
+          sortedPosts.sort((a, b) => {
+            const aScore = (a.like_count || 0) + (a.comment_count || 0) + (a.view_count || 0) * 0.1;
+            const bScore = (b.like_count || 0) + (b.comment_count || 0) + (b.view_count || 0) * 0.1;
+            const aRecency = new Date(a.published_at || a.created_at).getTime();
+            const bRecency = new Date(b.published_at || b.created_at).getTime();
+            
+            // Combine engagement score with recency
+            return (bScore + bRecency / 1000000) - (aScore + aRecency / 1000000);
+          });
+          break;
+      }
+
       // If user is authenticated, check which posts they've liked
-      let postsWithLikes = postsWithProfiles;
-      if (user) {
+      let postsWithLikes = sortedPosts;
+      if (user && communityData && communityData.length > 0) {
         const { data: likesData } = await supabase
           .from('post_likes')
           .select('post_id')
           .eq('user_id', user.id)
-          .in('post_id', postsWithProfiles.map(p => p.id));
+          .in('post_id', communityData.map(p => p.id));
 
         const likedPostIds = new Set(likesData?.map(l => l.post_id) || []);
         
-        postsWithLikes = postsWithProfiles.map(post => ({
+        postsWithLikes = sortedPosts.map(post => ({
           ...post,
           user_liked: likedPostIds.has(post.id)
         }));
