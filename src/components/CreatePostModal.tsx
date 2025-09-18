@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import MediaPreview from "@/components/MediaPreview";
+import RichTextEditor from "@/components/RichTextEditor";
 
 interface CreatePostModalProps {
   onPostCreated?: () => void;
@@ -410,125 +411,14 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
           {/* Rich Text Content Editor */}
           <div className="space-y-2">
             <Label htmlFor="content">Content</Label>
-            
-            {/* Rich Text Toolbar */}
-            <div className="border rounded-lg p-2 bg-muted/50">
-              <div className="flex flex-wrap gap-2">
-                {/* Text Formatting */}
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyFormat('bold')}
-                    className="h-8 w-8 p-0"
-                    title="Bold"
-                  >
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyFormat('italic')}
-                    className="h-8 w-8 p-0"
-                    title="Italic"
-                  >
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyFormat('underline')}
-                    className="h-8 w-8 p-0"
-                    title="Underline"
-                  >
-                    <Underline className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="w-px h-6 bg-border"></div>
-
-                {/* Lists */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => applyFormat('bullet')}
-                  className="h-8 w-8 p-0"
-                  title="Bullet List"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-
-                <div className="w-px h-6 bg-border"></div>
-
-                {/* Alignment */}
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyFormat('align-left')}
-                    className="h-8 w-8 p-0"
-                    title="Align Left"
-                  >
-                    <AlignLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyFormat('align-center')}
-                    className="h-8 w-8 p-0"
-                    title="Align Center"
-                  >
-                    <AlignCenter className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyFormat('align-right')}
-                    className="h-8 w-8 p-0"
-                    title="Align Right"
-                  >
-                    <AlignRight className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="w-px h-6 bg-border"></div>
-
-                {/* Link */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => applyFormat('link')}
-                  className="h-8 w-8 p-0"
-                  title="Insert Link"
-                >
-                  <Link className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <Textarea
-              ref={textareaRef}
-              id="content"
+            <RichTextEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={
-                postType === 'short_post' 
-                  ? "What's on your mind? Share your thoughts with the robotics community..."
-                  : postType === 'blog'
-                  ? "Write your article content here..."
-                  : postType === 'video'
-                  ? "Describe your video content..."
-                  : "Describe your media content..."
-              }
-              className={`w-full resize-none font-mono ${
-                postType === 'blog' ? 'min-h-[200px]' : postType === 'video' ? 'min-h-[120px]' : 'min-h-[100px]'
-              }`}
+              onChange={setContent}
+              placeholder="Write your post content..."
+              className="min-h-[250px]"
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{content.length} / 10,000 characters</span>
-              {content.length > 10000 && (
-                <span className="text-destructive">Content too long!</span>
-              )}
+            <div className="text-xs text-muted-foreground">
+              Use the toolbar above for formatting: bold, italic, lists, alignment, links, and more
             </div>
           </div>
 

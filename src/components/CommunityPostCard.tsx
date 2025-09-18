@@ -41,6 +41,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
+import FormattedContent from "@/components/FormattedContent";
+import ResponsiveMedia from "@/components/ResponsiveMedia";
 
 interface CommunityPost {
   id: string;
@@ -290,43 +292,26 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
 
           {/* Content */}
           {post.content && (
-            <p className="text-muted-foreground line-clamp-4 leading-relaxed mb-3">
-              {post.excerpt || generateExcerpt(post.content, 200)}
-            </p>
+            <div className="text-muted-foreground line-clamp-4 leading-relaxed mb-3">
+              <FormattedContent 
+                content={post.excerpt || generateExcerpt(post.content, 200)}
+                className="prose-sm"
+              />
+            </div>
           )}
         </div>
 
         {/* Media Preview */}
         {post.media_url && (
-          <div className="relative overflow-hidden bg-muted/30">
-            {post.post_type === 'video' ? (
-              <div className="relative aspect-video">
-                <video
-                  src={post.media_url}
-                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
-                  poster={post.media_url}
-                />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <div className="bg-white/95 backdrop-blur-sm rounded-full p-4 shadow-lg group-hover:scale-110 transition-transform">
-                    <Play className="h-8 w-8 text-primary fill-primary" />
-                  </div>
-                </div>
-                {post.video_duration && (
-                  <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs px-2 py-1 rounded-md font-medium">
-                    {formatDuration(post.video_duration)}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="aspect-video">
-                <img
-                  src={post.media_url}
-                  alt={post.title || 'Post media'}
-                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
-                />
-              </div>
-            )}
-          </div>
+          <ResponsiveMedia
+            src={post.media_url}
+            type={post.post_type === 'video' || post.media_type === 'video' ? 'video' : 'image'}
+            alt={post.title || 'Post media'}
+            title={post.title}
+            videoDuration={post.video_duration}
+            controls={false}
+            className="aspect-video"
+          />
         )}
       </Link>
 

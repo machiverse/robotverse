@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import FormattedContent from "@/components/FormattedContent";
+import ResponsiveMedia from "@/components/ResponsiveMedia";
 
 interface CommunityPost {
   id: string;
@@ -422,43 +424,24 @@ const CommunityPostDetails = () => {
 
             {/* Media */}
             {post.media_url && (
-              <div className="relative">
-                {post.post_type === 'video' ? (
-                  <div className="relative aspect-video bg-black">
-                    <video
-                      src={post.media_url}
-                      controls
-                      className="w-full h-full"
-                      poster={post.media_url}
-                    />
-                    {post.video_duration && (
-                      <div className="absolute bottom-4 right-4 bg-black/80 text-white text-sm px-3 py-1 rounded-md">
-                        {formatDuration(post.video_duration)}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="aspect-video">
-                    <img
-                      src={post.media_url}
-                      alt={post.title || 'Post media'}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-              </div>
+              <ResponsiveMedia
+                src={post.media_url}
+                type={post.post_type === 'video' || post.media_type === 'video' ? 'video' : 'image'}
+                alt={post.title || 'Post media'}
+                title={post.title}
+                videoDuration={post.video_duration}
+                controls={true}
+                className="w-full"
+              />
             )}
 
             {/* Content */}
             {post.content && (
               <div className="p-6">
-                <div className="prose prose-lg max-w-none dark:prose-invert">
-                  {post.content.split('\n').map((paragraph, index) => (
-                    <p key={index} className="mb-4 leading-relaxed">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
+                <FormattedContent 
+                  content={post.content}
+                  className="prose-lg max-w-none"
+                />
               </div>
             )}
 
