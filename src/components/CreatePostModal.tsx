@@ -25,7 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import RichTextEditor from "@/components/RichTextEditor";
+import { Textarea } from "@/components/ui/textarea";
 import MediaPreview from "@/components/MediaPreview";
 
 interface CreatePostModalProps {
@@ -331,30 +331,23 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
           {/* Content */}
           <div className="space-y-2">
             <Label htmlFor="content">Content</Label>
-            {postType === 'blog' ? (
-              <RichTextEditor
-                content={content}
-                onChange={setContent}
-                placeholder="Write your article content here..."
-                className="w-full"
-              />
-            ) : (
-              <textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={
-                  postType === 'short_post' 
-                    ? "What's on your mind? Share your thoughts with the robotics community..."
-                    : postType === 'video'
-                    ? "Describe your video content..."
-                    : "Describe your media content..."
-                }
-                className={`w-full resize-none border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  postType === 'video' ? 'min-h-[120px]' : 'min-h-[100px]'
-                }`}
-              />
-            )}
+            <Textarea
+              id="content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={
+                postType === 'short_post' 
+                  ? "What's on your mind? Share your thoughts with the robotics community..."
+                  : postType === 'blog'
+                  ? "Write your article content here..."
+                  : postType === 'video'
+                  ? "Describe your video content..."
+                  : "Describe your media content..."
+              }
+              className={`w-full resize-none ${
+                postType === 'blog' ? 'min-h-[200px]' : postType === 'video' ? 'min-h-[120px]' : 'min-h-[100px]'
+              }`}
+            />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{content.length} / 10,000 characters</span>
               {content.length > 10000 && (
