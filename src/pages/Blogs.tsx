@@ -158,14 +158,29 @@ const Community = () => {
 
       // If user is authenticated, check which posts they've liked
       let postsWithLikes = sortedPosts;
-      if (user && communityData && communityData.length > 0) {
-        const { data: likesData } = await supabase
-          .from('post_likes')
-          .select('post_id')
-          .eq('user_id', user.id)
-          .in('post_id', communityData.map(p => p.id));
-
-        const likedPostIds = new Set(likesData?.map(l => l.post_id) || []);
+      if (user) {
+        // Check community post likes
+        let likedPostIds = new Set<string>();
+        if (communityData && communityData.length > 0) {
+          const { data: communityLikes } = await supabase
+            .from('post_likes')
+            .select('post_id')
+            .eq('user_id', user.id)
+            .in('post_id', communityData.map(p => p.id));
+          
+          communityLikes?.forEach(like => likedPostIds.add(like.post_id));
+        }
+        
+        // Check blog likes
+        if (blogData && blogData.length > 0) {
+          const { data: blogLikes } = await supabase
+            .from('blog_likes')
+            .select('blog_id')
+            .eq('user_id', user.id)
+            .in('blog_id', blogData.map(p => p.id));
+          
+          blogLikes?.forEach(like => likedPostIds.add(like.blog_id));
+        }
         
         postsWithLikes = sortedPosts.map(post => ({
           ...post,

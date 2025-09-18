@@ -94,25 +94,42 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
     try {
       setIsLiking(true);
       
+      // Determine if this is a blog post or community post
+      const isBlogPost = post.post_type === 'blog' && !post.media_url;
+      
       if (post.user_liked) {
         // Unlike the post
-        const { error } = await supabase
-          .from('post_likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('user_id', user?.id);
-
-        if (error) throw error;
+        if (isBlogPost) {
+          const { error } = await supabase
+            .from('blog_likes')
+            .delete()
+            .eq('blog_id', post.id)
+            .eq('user_id', user?.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('post_likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('user_id', user?.id);
+          if (error) throw error;
+        }
         
         onLikeUpdate?.(post.id, post.like_count - 1, false);
       } else {
         // Like the post - allow all users to like
         if (user) {
-          const { error } = await supabase
-            .from('post_likes')
-            .insert({ post_id: post.id, user_id: user.id });
-
-          if (error) throw error;
+          if (isBlogPost) {
+            const { error } = await supabase
+              .from('blog_likes')
+              .insert({ blog_id: post.id, user_id: user.id });
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from('post_likes')
+              .insert({ post_id: post.id, user_id: user.id });
+            if (error) throw error;
+          }
           
           onLikeUpdate?.(post.id, post.like_count + 1, true);
         } else {

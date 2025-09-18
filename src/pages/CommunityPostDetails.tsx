@@ -181,15 +181,26 @@ const CommunityPostDetails = () => {
     try {
       setIsLiking(true);
       
+      // Determine if this is a blog post or community post
+      const isBlogPost = post.post_type === 'blog' && !post.media_url;
+      
       if (post.user_liked) {
         // Unlike the post
-        const { error } = await supabase
-          .from('post_likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('user_id', user?.id);
-
-        if (error) throw error;
+        if (isBlogPost) {
+          const { error } = await supabase
+            .from('blog_likes')
+            .delete()
+            .eq('blog_id', post.id)
+            .eq('user_id', user?.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('post_likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('user_id', user?.id);
+          if (error) throw error;
+        }
         
         setPost(prev => prev ? { 
           ...prev, 
@@ -199,11 +210,17 @@ const CommunityPostDetails = () => {
       } else {
         // Like the post
         if (user) {
-          const { error } = await supabase
-            .from('post_likes')
-            .insert({ post_id: post.id, user_id: user.id });
-
-          if (error) throw error;
+          if (isBlogPost) {
+            const { error } = await supabase
+              .from('blog_likes')
+              .insert({ blog_id: post.id, user_id: user.id });
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from('post_likes')
+              .insert({ post_id: post.id, user_id: user.id });
+            if (error) throw error;
+          }
           
           setPost(prev => prev ? { 
             ...prev, 
