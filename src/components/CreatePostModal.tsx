@@ -69,20 +69,38 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
   const handleFileUpload = async (file: File) => {
     try {
+      console.log('Starting file upload:', file.name, file.size, file.type);
+      
+      // Check file size (limit to 50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error('File size must be less than 50MB');
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `community-media/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('robot-images')
-        .upload(filePath, file);
+      console.log('Uploading to path:', filePath);
 
-      if (uploadError) throw uploadError;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('robot-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('Upload successful:', uploadData);
 
       const { data } = supabase.storage
         .from('robot-images')
         .getPublicUrl(filePath);
 
+      console.log('Public URL generated:', data.publicUrl);
       return data.publicUrl;
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -114,8 +132,10 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
       // Upload media file if provided
       if (mediaFile) {
+        console.log('Uploading file:', mediaFile.name, mediaFile.type);
         uploadedMediaUrl = await handleFileUpload(mediaFile);
         mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
+        console.log('File uploaded successfully:', uploadedMediaUrl);
       } else if (mediaUrl) {
         // Determine media type from URL
         const isVideo = /\.(mp4|webm|mov|avi)$/i.test(mediaUrl) || mediaUrl.includes('youtube') || mediaUrl.includes('vimeo');
@@ -138,12 +158,19 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
         published_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      console.log('Creating post with data:', postData);
+
+      const { data, error } = await supabase
         .from('community_posts')
-        .insert([postData]);
+        .insert([postData])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
+      console.log('Post created successfully:', data);
       toast.success('Post created successfully!');
       
       // Reset form
@@ -159,7 +186,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       onPostCreated?.();
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
+      toast.error(`Failed to create post: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
