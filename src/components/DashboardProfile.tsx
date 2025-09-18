@@ -128,14 +128,14 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
     
     setLoading(true);
     try {
-      // Fixed: Use 'id' instead of 'user_id' for the profiles table
+      // Update profile using user_id (correct column for profiles table)
       const { error } = await supabase
         .from('profiles')
         .update({
           ...formData,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id); // Fixed: Use 'id' not 'user_id'
+        .eq('user_id', user.id); // Use 'user_id' which is the correct foreign key
 
       if (error) throw error;
 
@@ -214,7 +214,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
 
       if (updateError) throw updateError;
 

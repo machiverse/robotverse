@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +7,118 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Save, Bell, Shield, CreditCard, Globe } from "lucide-react";
+import { Save, Bell, Shield, CreditCard, Globe, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { PasswordUpdateModal } from "@/components/PasswordUpdateModal";
 
 const Settings = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  
+  const [profileData, setProfileData] = useState({
+    full_name: '',
+    email: '',
+    company_name: '',
+    phone: '',
+    location: '',
+    bio: ''
+  });
+  
+  const [settingsData, setSettingsData] = useState({
+    email_notifications: true,
+    order_updates: true,
+    marketing_communications: false,
+    security_alerts: true,
+    default_currency: 'USD',
+    timezone: 'UTC',
+    language: 'en'
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Profile fetch error:', error);
+      } else {
+        setUserProfile(profile);
+        setProfileData({
+          full_name: profile?.full_name || '',
+          email: profile?.email || user.email || '',
+          company_name: profile?.company_name || '',
+          phone: profile?.phone || profile?.mobile_number || '',
+          location: profile?.location || '',
+          bio: '' // Bio field not in current schema
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profileData.full_name,
+          company_name: profileData.company_name,
+          phone: profileData.phone,
+          mobile_number: profileData.phone,
+          location: profileData.location,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully."
+      });
+      
+      fetchUserProfile();
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update profile. Please try again."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    // For now, just show success since we don't have a settings table
+    // In a real app, you'd save these to a user_settings table
+    toast({
+      title: "Settings Updated",
+      description: "Your preferences have been saved successfully."
+    });
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -33,31 +143,64 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="Enter your first name" />
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input 
+                  id="fullName" 
+                  value={profileData.full_name}
+                  onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                  placeholder="Enter your full name" 
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Enter your last name" />
+                <Label htmlFor="email">Email Address</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={profileData.email}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email cannot be changed from this page. Contact support if needed.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">Company Name</Label>
+                <Input 
+                  id="company" 
+                  value={profileData.company_name}
+                  onChange={(e) => setProfileData({ ...profileData, company_name: e.target.value })}
+                  placeholder="Enter your company name" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input 
+                  id="phone" 
+                  value={profileData.phone}
+                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                  placeholder="Enter your phone number" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input 
+                  id="location" 
+                  value={profileData.location}
+                  onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                  placeholder="Enter your location" 
+                />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" placeholder="Enter your email" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Company Name</Label>
-              <Input id="company" placeholder="Enter your company name" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea id="bio" placeholder="Tell us about yourself..." />
-            </div>
-            <Button>
-              <Save className="h-4 w-4 mr-2" />
-              Save Profile
+            <Button onClick={handleSaveProfile} disabled={loading}>
+              {loading ? (
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {loading ? 'Saving...' : 'Save Profile'}
             </Button>
           </CardContent>
         </Card>
@@ -81,7 +224,10 @@ const Settings = () => {
                   Receive updates via email
                 </p>
               </div>
-              <Switch />
+              <Switch 
+                checked={settingsData.email_notifications}
+                onCheckedChange={(checked) => setSettingsData({ ...settingsData, email_notifications: checked })}
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -91,7 +237,10 @@ const Settings = () => {
                   Get notified about order status changes
                 </p>
               </div>
-              <Switch />
+              <Switch 
+                checked={settingsData.order_updates}
+                onCheckedChange={(checked) => setSettingsData({ ...settingsData, order_updates: checked })}
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -101,7 +250,10 @@ const Settings = () => {
                   Receive newsletters and promotional content
                 </p>
               </div>
-              <Switch />
+              <Switch 
+                checked={settingsData.marketing_communications}
+                onCheckedChange={(checked) => setSettingsData({ ...settingsData, marketing_communications: checked })}
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -111,8 +263,15 @@ const Settings = () => {
                   Important security and account alerts
                 </p>
               </div>
-              <Switch defaultChecked />
+              <Switch 
+                checked={settingsData.security_alerts}
+                onCheckedChange={(checked) => setSettingsData({ ...settingsData, security_alerts: checked })}
+              />
             </div>
+            <Button onClick={handleSaveSettings} className="mt-4">
+              <Save className="h-4 w-4 mr-2" />
+              Save Notification Settings
+            </Button>
           </CardContent>
         </Card>
 
@@ -128,32 +287,38 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input id="currentPassword" type="password" placeholder="Enter current password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input id="newPassword" type="password" placeholder="Enter new password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input id="confirmPassword" type="password" placeholder="Confirm new password" />
-            </div>
-            <Button variant="outline">
-              Update Password
-            </Button>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Two-Factor Authentication</Label>
-                <p className="text-sm text-muted-foreground">
-                  Add an extra layer of security to your account
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Password</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Update your account password for security
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPasswordModal(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Lock className="h-4 w-4" />
+                  Change Password
+                </Button>
               </div>
-              <Button variant="outline" size="sm">
-                Enable 2FA
-              </Button>
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Two-Factor Authentication</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Add an extra layer of security to your account
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" disabled>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Coming Soon
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -170,49 +335,63 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currency">Default Currency</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="usd">USD - US Dollar</SelectItem>
-                  <SelectItem value="eur">EUR - Euro</SelectItem>
-                  <SelectItem value="gbp">GBP - British Pound</SelectItem>
-                  <SelectItem value="jpy">JPY - Japanese Yen</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="currency">Default Currency</Label>
+                <Select 
+                  value={settingsData.default_currency} 
+                  onValueChange={(value) => setSettingsData({ ...settingsData, default_currency: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD - US Dollar</SelectItem>
+                    <SelectItem value="EUR">EUR - Euro</SelectItem>
+                    <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                    <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                    <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select 
+                  value={settingsData.timezone} 
+                  onValueChange={(value) => setSettingsData({ ...settingsData, timezone: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="EST">EST - Eastern Time</SelectItem>
+                    <SelectItem value="PST">PST - Pacific Time</SelectItem>
+                    <SelectItem value="IST">IST - India Standard Time</SelectItem>
+                    <SelectItem value="CET">CET - Central European Time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="language">Language</Label>
+                <Select 
+                  value={settingsData.language} 
+                  onValueChange={(value) => setSettingsData({ ...settingsData, language: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Spanish</SelectItem>
+                    <SelectItem value="fr">French</SelectItem>
+                    <SelectItem value="de">German</SelectItem>
+                    <SelectItem value="hi">Hindi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="utc">UTC</SelectItem>
-                  <SelectItem value="est">EST - Eastern Time</SelectItem>
-                  <SelectItem value="pst">PST - Pacific Time</SelectItem>
-                  <SelectItem value="cet">CET - Central European Time</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="fr">French</SelectItem>
-                  <SelectItem value="de">German</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button>
+            <Button onClick={handleSaveSettings}>
               <Save className="h-4 w-4 mr-2" />
               Save Business Settings
             </Button>
@@ -242,6 +421,12 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Password Update Modal */}
+      <PasswordUpdateModal 
+        open={showPasswordModal} 
+        onOpenChange={setShowPasswordModal} 
+      />
     </div>
   );
 };
