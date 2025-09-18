@@ -230,10 +230,16 @@ const CommunityPostDetails = () => {
     if (!post) return;
     
     try {
+      // Use custom domain for sharing
+      const baseUrl = 'https://robotverse.in';
+      const shareUrl = post.post_type === 'blog' && !post.media_url 
+        ? `${baseUrl}/blogs/${post.id}`
+        : `${baseUrl}/community/${post.id}`;
+      
       const shareData = {
-        title: post.title || 'Community Post',
+        title: post.title || 'Community Post - RobotVerse',
         text: post.excerpt || post.content?.substring(0, 100) + '...',
-        url: window.location.href
+        url: shareUrl
       };
       
       if (navigator.share && navigator.canShare(shareData)) {
