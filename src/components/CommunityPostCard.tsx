@@ -4,6 +4,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Heart, 
   MessageCircle, 
@@ -15,7 +31,10 @@ import {
   BookOpen,
   Video,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MoreVertical,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,11 +69,14 @@ interface CommunityPost {
 interface CommunityPostCardProps {
   post: CommunityPost;
   onLikeUpdate?: (postId: string, newLikeCount: number, userLiked: boolean) => void;
+  onPostDeleted?: (postId: string) => void;
 }
 
-const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
+const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostCardProps) => {
   const { user } = useAuth();
   const [isLiking, setIsLiking] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const getPostTypeIcon = () => {
     switch (post.post_type) {

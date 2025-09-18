@@ -223,6 +223,10 @@ const Community = () => {
     ));
   };
 
+  const handlePostDeleted = (postId: string) => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
@@ -393,6 +397,7 @@ const Community = () => {
                   key={post.id}
                   post={post}
                   onLikeUpdate={handleLikeUpdate}
+                  onPostDeleted={handlePostDeleted}
                 />
               ))}
               

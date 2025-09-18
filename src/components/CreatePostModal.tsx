@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,13 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   PlusCircle, 
@@ -27,11 +19,14 @@ import {
   Video, 
   FileText, 
   Image as ImageIcon,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import RichTextEditor from "@/components/RichTextEditor";
+import MediaPreview from "@/components/MediaPreview";
 
 interface CreatePostModalProps {
   onPostCreated?: () => void;
@@ -48,6 +43,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaUrl, setMediaUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const postTypes = [
     { value: 'short_post', label: 'Short Post', icon: FileText, description: 'Quick thoughts and updates' },
@@ -55,6 +51,14 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     { value: 'video', label: 'Video', icon: Video, description: 'Video content and demonstrations' },
     { value: 'media', label: 'Media', icon: ImageIcon, description: 'Images and visual content' },
   ];
+
+  const allowedFileTypes = {
+    image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    video: ['video/mp4', 'video/webm', 'video/mov', 'video/avi'],
+    document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  };
+
+  const maxFileSize = 50 * 1024 * 1024; // 50MB
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -67,13 +71,54 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
+  const validateFile = (file: File): string[] => {
+    const errors: string[] = [];
+    
+    // Check file size
+    if (file.size > maxFileSize) {
+      errors.push(`File size must be less than 50MB. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+    }
+    
+    // Check file type
+    const allAllowedTypes = [
+      ...allowedFileTypes.image,
+      ...allowedFileTypes.video,
+      ...allowedFileTypes.document
+    ];
+    
+    if (!allAllowedTypes.includes(file.type)) {
+      errors.push(`File type "${file.type}" is not supported. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX`);
+    }
+    
+    return errors;
+  };
+
+  const handleFileSelect = (file: File | null) => {
+    if (!file) {
+      setMediaFile(null);
+      setValidationErrors([]);
+      return;
+    }
+    
+    const errors = validateFile(file);
+    setValidationErrors(errors);
+    
+    if (errors.length === 0) {
+      setMediaFile(file);
+      setMediaUrl(''); // Clear URL if file is selected
+    } else {
+      setMediaFile(null);
+    }
+  };
+
   const handleFileUpload = async (file: File) => {
     try {
       console.log('Starting file upload:', file.name, file.size, file.type);
       
-      // Check file size (limit to 50MB)
-      if (file.size > 50 * 1024 * 1024) {
-        throw new Error('File size must be less than 50MB');
+      // Validate file before upload
+      const errors = validateFile(file);
+      if (errors.length > 0) {
+        throw new Error(errors.join(', '));
       }
 
       const fileExt = file.name.split('.').pop();
@@ -108,19 +153,41 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     }
   };
 
-  const handleSubmit = async () => {
+  const validateForm = (): string[] => {
+    const errors: string[] = [];
+    
     if (!user) {
-      toast.error('Please sign in to create posts');
-      return;
+      errors.push('Please sign in to create posts');
+      return errors;
     }
 
     if ((postType === 'blog' || postType === 'video') && !title.trim()) {
-      toast.error('Title is required for this post type');
-      return;
+      errors.push('Title is required for blog articles and videos');
     }
 
     if (!content.trim() && !mediaFile && !mediaUrl) {
-      toast.error('Please add some content to your post');
+      errors.push('Please add some content, upload a file, or provide a media URL');
+    }
+
+    if (mediaFile && validationErrors.length > 0) {
+      errors.push(...validationErrors);
+    }
+
+    if (content.length > 10000) {
+      errors.push('Content is too long (maximum 10,000 characters)');
+    }
+
+    if (title && title.length > 200) {
+      errors.push('Title is too long (maximum 200 characters)');
+    }
+
+    return errors;
+  };
+
+  const handleSubmit = async () => {
+    const errors = validateForm();
+    if (errors.length > 0) {
+      toast.error(errors[0]);
       return;
     }
 
@@ -181,6 +248,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       setMediaFile(null);
       setMediaUrl('');
       setPostType('short_post');
+      setValidationErrors([]);
       setOpen(false);
       
       onPostCreated?.();
@@ -263,79 +331,112 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
           {/* Content */}
           <div className="space-y-2">
             <Label htmlFor="content">Content</Label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={
-                postType === 'short_post' 
-                  ? "What's on your mind? Share your thoughts with the robotics community..."
-                  : postType === 'blog'
-                  ? "Write your article content here..."
-                  : "Describe your video or media content..."
-              }
-              className={`w-full resize-none ${
-                postType === 'blog' ? 'min-h-[200px]' : 'min-h-[100px]'
-              }`}
-            />
+            {postType === 'blog' ? (
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+                placeholder="Write your article content here..."
+                className="w-full"
+              />
+            ) : (
+              <textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={
+                  postType === 'short_post' 
+                    ? "What's on your mind? Share your thoughts with the robotics community..."
+                    : postType === 'video'
+                    ? "Describe your video content..."
+                    : "Describe your media content..."
+                }
+                className={`w-full resize-none border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary ${
+                  postType === 'video' ? 'min-h-[120px]' : 'min-h-[100px]'
+                }`}
+              />
+            )}
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{content.length} / 10,000 characters</span>
+              {content.length > 10000 && (
+                <span className="text-destructive">Content too long!</span>
+              )}
+            </div>
           </div>
 
           {/* Enhanced Media Upload */}
           <div className="space-y-4">
             <Label className="text-base font-semibold">Media Upload</Label>
+            
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+              <div className="border border-destructive rounded-lg p-3 bg-destructive/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">Upload Issues</span>
+                </div>
+                <ul className="text-xs text-destructive space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
             <div className="space-y-4">
               {/* File Upload with Preview */}
-              <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-gradient-to-br from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-all">
-                <div className="text-center">
-                  <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-primary" />
-                  </div>
-                  <h4 className="font-semibold text-foreground mb-2">Upload High-Quality Media</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Share images, videos, or documents up to 50MB
-                  </p>
-                  <Input
-                    type="file"
-                    accept={postType === 'video' ? 'video/*' : 'image/*,video/*'}
-                    onChange={(e) => setMediaFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="media-upload"
-                  />
-                  <Label htmlFor="media-upload" className="cursor-pointer">
-                    <Button variant="default" size="sm" className="rounded-full px-6">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Choose File
-                    </Button>
-                  </Label>
-                  {mediaFile && (
-                    <div className="mt-4 p-3 bg-card border rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <p className="text-sm font-medium text-primary">
-                          {mediaFile.name} ({(mediaFile.size / 1024 / 1024).toFixed(1)} MB)
-                        </p>
-                      </div>
+              {!mediaFile ? (
+                <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-gradient-to-br from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-all">
+                  <div className="text-center">
+                    <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                      <Upload className="h-8 w-8 text-primary" />
                     </div>
-                  )}
+                    <h4 className="font-semibold text-foreground mb-2">Upload High-Quality Media</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Supported: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX (max 50MB)
+                    </p>
+                    <Input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
+                      onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="media-upload"
+                    />
+                    <Label htmlFor="media-upload" className="cursor-pointer">
+                      <Button variant="default" size="sm" className="rounded-full px-6">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Choose File
+                      </Button>
+                    </Label>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <MediaPreview 
+                  file={mediaFile} 
+                  onRemove={() => handleFileSelect(null)} 
+                />
+              )}
 
               {/* URL Input */}
-              <div className="relative">
-                <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
-                  Or embed from URL
-                </Label>
-                <Input
-                  id="media-url"
-                  value={mediaUrl}
-                  onChange={(e) => setMediaUrl(e.target.value)}
-                  placeholder="YouTube, Vimeo, or direct media URL"
-                  className="mt-2 h-12 text-base"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Supports YouTube, Vimeo, and direct image/video links
-                </p>
-              </div>
+              {!mediaFile && (
+                <div className="relative">
+                  <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
+                    Or embed from URL
+                  </Label>
+                  <Input
+                    id="media-url"
+                    value={mediaUrl}
+                    onChange={(e) => {
+                      setMediaUrl(e.target.value);
+                      if (e.target.value) setValidationErrors([]);
+                    }}
+                    placeholder="YouTube, Vimeo, or direct media URL"
+                    className="mt-2 h-12 text-base"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Supports YouTube, Vimeo, and direct image/video links
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -378,7 +479,11 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting || validateForm().length > 0}
+              className="min-w-[120px]"
+            >
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {isSubmitting ? 'Creating...' : 'Create Post'}
             </Button>
