@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,15 @@ import {
   FileText, 
   Image as ImageIcon,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Bold,
+  List,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Link,
+  Italic,
+  Underline
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +42,9 @@ interface CreatePostModalProps {
 
 const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
   const [open, setOpen] = useState(false);
   const [postType, setPostType] = useState<'blog' | 'video' | 'short_post' | 'media'>('short_post');
   const [title, setTitle] = useState('');
@@ -44,6 +55,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const [mediaUrl, setMediaUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [activeFormats, setActiveFormats] = useState<string[]>([]);
 
   const postTypes = [
     { value: 'short_post', label: 'Short Post', icon: FileText, description: 'Quick thoughts and updates' },
@@ -59,6 +71,64 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   };
 
   const maxFileSize = 50 * 1024 * 1024; // 50MB
+
+  // Rich text formatting functions
+  const applyFormat = (format: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    let newText = '';
+    let newContent = '';
+
+    switch (format) {
+      case 'bold':
+        newText = selectedText ? `**${selectedText}**` : '****';
+        break;
+      case 'italic':
+        newText = selectedText ? `*${selectedText}*` : '**';
+        break;
+      case 'underline':
+        newText = selectedText ? `<u>${selectedText}</u>` : '<u></u>';
+        break;
+      case 'bullet':
+        newText = selectedText ? `\n• ${selectedText}` : '\n• ';
+        break;
+      case 'align-left':
+        newText = selectedText ? `<div style="text-align: left;">${selectedText}</div>` : '<div style="text-align: left;"></div>';
+        break;
+      case 'align-center':
+        newText = selectedText ? `<div style="text-align: center;">${selectedText}</div>` : '<div style="text-align: center;"></div>';
+        break;
+      case 'align-right':
+        newText = selectedText ? `<div style="text-align: right;">${selectedText}</div>` : '<div style="text-align: right;"></div>';
+        break;
+      case 'link':
+        const url = prompt('Enter URL:');
+        if (url) {
+          newText = selectedText ? `[${selectedText}](${url})` : `[Link Text](${url})`;
+        } else {
+          return;
+        }
+        break;
+      default:
+        return;
+    }
+
+    newContent = content.substring(0, start) + newText + content.substring(end);
+    setContent(newContent);
+
+    // Set cursor position after formatting
+    setTimeout(() => {
+      if (textarea) {
+        const newCursorPos = start + newText.length;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+      }
+    }, 0);
+  };
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -111,6 +181,15 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     }
   };
 
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    handleFileSelect(file);
+  };
+
   const handleFileUpload = async (file: File) => {
     try {
       console.log('Starting file upload:', file.name, file.size, file.type);
@@ -124,7 +203,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `community-media/${fileName}`;
-
+      
       console.log('Uploading to path:', filePath);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -193,7 +272,6 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
     try {
       setIsSubmitting(true);
-
       let uploadedMediaUrl = mediaUrl;
       let mediaType = '';
 
@@ -249,6 +327,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       setMediaUrl('');
       setPostType('short_post');
       setValidationErrors([]);
+      setActiveFormats([]);
       setOpen(false);
       
       onPostCreated?.();
@@ -277,11 +356,11 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
           Create Post
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Community Post</DialogTitle>
         </DialogHeader>
-
+        
         <div className="space-y-6">
           {/* Post Type Selection */}
           <div className="space-y-3">
@@ -328,10 +407,107 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             </div>
           )}
 
-          {/* Content */}
+          {/* Rich Text Content Editor */}
           <div className="space-y-2">
             <Label htmlFor="content">Content</Label>
+            
+            {/* Rich Text Toolbar */}
+            <div className="border rounded-lg p-2 bg-muted/50">
+              <div className="flex flex-wrap gap-2">
+                {/* Text Formatting */}
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => applyFormat('bold')}
+                    className="h-8 w-8 p-0"
+                    title="Bold"
+                  >
+                    <Bold className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => applyFormat('italic')}
+                    className="h-8 w-8 p-0"
+                    title="Italic"
+                  >
+                    <Italic className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => applyFormat('underline')}
+                    className="h-8 w-8 p-0"
+                    title="Underline"
+                  >
+                    <Underline className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="w-px h-6 bg-border"></div>
+
+                {/* Lists */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => applyFormat('bullet')}
+                  className="h-8 w-8 p-0"
+                  title="Bullet List"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+
+                <div className="w-px h-6 bg-border"></div>
+
+                {/* Alignment */}
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => applyFormat('align-left')}
+                    className="h-8 w-8 p-0"
+                    title="Align Left"
+                  >
+                    <AlignLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => applyFormat('align-center')}
+                    className="h-8 w-8 p-0"
+                    title="Align Center"
+                  >
+                    <AlignCenter className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => applyFormat('align-right')}
+                    className="h-8 w-8 p-0"
+                    title="Align Right"
+                  >
+                    <AlignRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="w-px h-6 bg-border"></div>
+
+                {/* Link */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => applyFormat('link')}
+                  className="h-8 w-8 p-0"
+                  title="Insert Link"
+                >
+                  <Link className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
             <Textarea
+              ref={textareaRef}
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -344,7 +520,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
                   ? "Describe your video content..."
                   : "Describe your media content..."
               }
-              className={`w-full resize-none ${
+              className={`w-full resize-none font-mono ${
                 postType === 'blog' ? 'min-h-[200px]' : postType === 'video' ? 'min-h-[120px]' : 'min-h-[100px]'
               }`}
             />
@@ -387,19 +563,27 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
                     <p className="text-sm text-muted-foreground mb-4">
                       Supported: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX (max 50MB)
                     </p>
-                    <Input
+                    
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
                       type="file"
                       accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
-                      onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                      onChange={handleFileChange}
                       className="hidden"
-                      id="media-upload"
                     />
-                    <Label htmlFor="media-upload" className="cursor-pointer">
-                      <Button variant="default" size="sm" className="rounded-full px-6">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Choose File
-                      </Button>
-                    </Label>
+                    
+                    {/* Custom file upload button */}
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="rounded-full px-6"
+                      onClick={handleFileButtonClick}
+                      type="button"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose File
+                    </Button>
                   </div>
                 </div>
               ) : (
