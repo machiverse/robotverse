@@ -1260,17 +1260,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                 Generate Report
               </Button>
             )}
-            {user && (
-              <Button
-                onClick={() => setShowMarketAnalysis(true)}
-                variant="default"
-                size="sm"
-                className="shadow-sm bg-primary hover:bg-primary/90"
-              >
-                <Brain className="w-4 h-4 mr-2" />
-                AI Market Analysis
-              </Button>
-            )}
           </div>
         </div>
 
