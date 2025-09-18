@@ -143,21 +143,26 @@ const BlogDetails = () => {
         (data || []).map(async (relatedBlog) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, company_name')
+            .select('user_id, full_name, company_name')
             .eq('user_id', relatedBlog.author_id)
             .maybeSingle();
           
           return {
             ...relatedBlog,
             profiles: profile ? {
+              user_id: profile.user_id,
               full_name: profile.full_name || 'Anonymous',
               company_name: profile.company_name || ''
-            } : null
+            } : {
+              user_id: relatedBlog.author_id,
+              full_name: 'Anonymous',
+              company_name: ''
+            }
           };
         })
       );
 
-      setRelatedBlogs(blogsWithAuthors as Blog[]);
+      setRelatedBlogs(blogsWithAuthors);
     } catch (error) {
       console.error('Error fetching related blogs:', error);
     } finally {

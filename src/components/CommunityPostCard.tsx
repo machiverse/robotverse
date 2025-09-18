@@ -21,6 +21,7 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import ViewCountDisplay from "@/components/ViewCountDisplay";
 
 interface CommunityPost {
   id: string;
@@ -171,15 +172,28 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
         toast.success('Link copied to clipboard!');
       }
 
-      // Track share - allow all users to share
+      // Track share - only for authenticated users
       if (user) {
-        await supabase
-          .from('post_shares')
-          .insert({ 
-            post_id: post.id, 
-            user_id: user.id,
-            shared_to: 'external'
-          });
+        // Determine if this is a blog post or community post
+        const isBlogPost = post.post_type === 'blog' && !post.media_url;
+        
+        if (isBlogPost) {
+          await supabase
+            .from('blog_shares')
+            .insert({ 
+              blog_id: post.id, 
+              user_id: user.id,
+              shared_to: navigator.share ? 'native_share' : 'clipboard'
+            });
+        } else {
+          await supabase
+            .from('post_shares')
+            .insert({ 
+              post_id: post.id, 
+              user_id: user.id,
+              shared_to: navigator.share ? 'native_share' : 'clipboard'
+            });
+        }
       }
       
       // Update share count in UI regardless of auth status
@@ -359,15 +373,22 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
               <span className="font-medium">{post.share_count || 0}</span>
             </Button>
           </div>
-
-          {/* View Details Link */}
-          <Link 
-            to={post.post_type === 'blog' && !post.media_url ? `/blogs/${post.id}` : `/community/${post.id}`}
-            className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            View Details →
-          </Link>
+          
+          {/* View Count and Details Link */}
+          <div className="flex items-center gap-2">
+            <ViewCountDisplay 
+              targetType={post.post_type === 'blog' && !post.media_url ? 'blogs' : 'community_posts'} 
+              targetId={post.id} 
+              className="text-xs"
+            />
+            <Link 
+              to={post.post_type === 'blog' && !post.media_url ? `/blogs/${post.id}` : `/community/${post.id}`}
+              className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              View Details →
+            </Link>
+          </div>
         </div>
       </div>
     </Card>

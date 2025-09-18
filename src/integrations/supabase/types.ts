@@ -70,6 +70,38 @@ export type Database = {
           },
         ]
       }
+      blog_shares: {
+        Row: {
+          blog_id: string
+          created_at: string
+          id: string
+          shared_to: string | null
+          user_id: string
+        }
+        Insert: {
+          blog_id: string
+          created_at?: string
+          id?: string
+          shared_to?: string | null
+          user_id: string
+        }
+        Update: {
+          blog_id?: string
+          created_at?: string
+          id?: string
+          shared_to?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_shares_blog_id_fkey"
+            columns: ["blog_id"]
+            isOneToOne: false
+            referencedRelation: "blogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_views: {
         Row: {
           blog_id: string
@@ -112,6 +144,7 @@ export type Database = {
           image_url: string | null
           like_count: number | null
           published_at: string | null
+          share_count: number | null
           status: string
           tags: string[] | null
           title: string
@@ -127,6 +160,7 @@ export type Database = {
           image_url?: string | null
           like_count?: number | null
           published_at?: string | null
+          share_count?: number | null
           status?: string
           tags?: string[] | null
           title: string
@@ -142,6 +176,7 @@ export type Database = {
           image_url?: string | null
           like_count?: number | null
           published_at?: string | null
+          share_count?: number | null
           status?: string
           tags?: string[] | null
           title?: string

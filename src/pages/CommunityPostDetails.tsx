@@ -165,10 +165,9 @@ const CommunityPostDetails = () => {
     if (!id) return;
     
     try {
-      // Increment view count using RPC function
-      await supabase.rpc('increment_item_view_count', {
-        p_item_id: id,
-        p_item_type: 'community_post'
+      // Increment view count using the specific function for community posts
+      await supabase.rpc('increment_community_post_view_count', {
+        p_post_id: id
       });
     } catch (error) {
       console.error('Error incrementing view count:', error);

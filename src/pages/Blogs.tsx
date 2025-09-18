@@ -210,10 +210,15 @@ const Community = () => {
     return matchesSearch && matchesTag;
   });
 
-  const handleLikeUpdate = (postId: string, newLikeCount: number, userLiked: boolean) => {
+  const handleLikeUpdate = (postId: string, newLikeCount: number, userLiked: boolean, newShareCount?: number) => {
     setPosts(prev => prev.map(post => 
       post.id === postId 
-        ? { ...post, like_count: newLikeCount, user_liked: userLiked }
+        ? { 
+            ...post, 
+            like_count: newLikeCount, 
+            user_liked: userLiked,
+            share_count: newShareCount !== undefined ? newShareCount : post.share_count
+          }
         : post
     ));
   };
