@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck, MessageSquare, Camera, ZoomIn, Share2, Calendar } from "lucide-react";import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import RobotReportModal from "@/components/RobotReportModal";
+import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1249,15 +1249,17 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
           
           <div className="flex items-center gap-2">
             <ViewCountDisplay targetType="robots" targetId={robot.id} />
-            <Button
-              onClick={() => setShowReportModal(true)}
-              variant="outline"
-              size="sm"
-              className="shadow-sm"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Generate Report
-            </Button>
+            {user && (
+              <Button
+                onClick={() => setShowReportModal(true)}
+                variant="outline"
+                size="sm"
+                className="shadow-sm"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Generate Report
+              </Button>
+            )}
             {user && (
               <Button
                 onClick={() => setShowMarketAnalysis(true)}
@@ -2716,7 +2718,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
       />
 
       {/* Robot Report Modal */}
-      <RobotReportModal
+      <ProfessionalRobotReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         robotData={robot}
