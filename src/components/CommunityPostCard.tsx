@@ -96,7 +96,8 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
       setIsLiking(true);
       
       // Determine if this is a blog post or community post
-      const isBlogPost = post.post_type === 'blog' && !post.media_url;
+      // A blog post is one that has post_type 'blog' regardless of media_url
+      const isBlogPost = post.post_type === 'blog';
       
       if (post.user_liked) {
         // Unlike the post
@@ -356,7 +357,7 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
                   return;
                 }
                 // Navigate to post with comments focused
-                window.location.href = post.post_type === 'blog' && !post.media_url ? `/blogs/${post.id}#comments` : `/community/${post.id}#comments`;
+                window.location.href = post.post_type === 'blog' ? `/blogs/${post.id}#comments` : `/community/${post.id}#comments`;
               }}
             >
               <MessageCircle className="h-4 w-4 mr-1" />
@@ -377,12 +378,12 @@ const CommunityPostCard = ({ post, onLikeUpdate }: CommunityPostCardProps) => {
           {/* View Count and Details Link */}
           <div className="flex items-center gap-2">
             <ViewCountDisplay 
-              targetType={post.post_type === 'blog' && !post.media_url ? 'blogs' : 'community_posts'} 
+              targetType={post.post_type === 'blog' ? 'blogs' : 'community_posts'} 
               targetId={post.id} 
               className="text-xs"
             />
             <Link 
-              to={post.post_type === 'blog' && !post.media_url ? `/blogs/${post.id}` : `/community/${post.id}`}
+              to={post.post_type === 'blog' ? `/blogs/${post.id}` : `/community/${post.id}`}
               className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
               onClick={(e) => e.stopPropagation()}
             >

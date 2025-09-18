@@ -33,7 +33,7 @@ const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDis
               .from('blogs')
               .select('view_count')
               .eq('id', targetId)
-              .single();
+              .maybeSingle();
             if (blogError) throw blogError;
             count = blog?.view_count || 0;
             break;
@@ -43,7 +43,7 @@ const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDis
               .from('community_posts')
               .select('view_count')
               .eq('id', targetId)
-              .single();
+              .maybeSingle();
             if (postError) throw postError;
             count = post?.view_count || 0;
             break;

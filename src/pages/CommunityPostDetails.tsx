@@ -64,9 +64,15 @@ const CommunityPostDetails = () => {
   useEffect(() => {
     if (id) {
       fetchPost();
-      incrementViewCount();
     }
   }, [id]);
+
+  // Separate useEffect for incrementing view count after post is loaded
+  useEffect(() => {
+    if (post && id) {
+      incrementViewCount();
+    }
+  }, [post, id]);
 
   const getPostTypeIcon = () => {
     if (!post) return <FileText className="h-5 w-5" />;
@@ -162,13 +168,23 @@ const CommunityPostDetails = () => {
   };
 
   const incrementViewCount = async () => {
-    if (!id) return;
+    if (!id || !post) return;
     
     try {
-      // Increment view count using the specific function for community posts
-      await supabase.rpc('increment_community_post_view_count', {
-        p_post_id: id
-      });
+      // Determine if this is a blog post or community post
+      const isBlogPost = post.post_type === 'blog';
+      
+      if (isBlogPost) {
+        // Use blog view count function for blog posts
+        await supabase.rpc('increment_blog_view_count', {
+          p_blog_id: id
+        });
+      } else {
+        // Use community post view count function for community posts
+        await supabase.rpc('increment_community_post_view_count', {
+          p_post_id: id
+        });
+      }
     } catch (error) {
       console.error('Error incrementing view count:', error);
     }
@@ -181,7 +197,8 @@ const CommunityPostDetails = () => {
       setIsLiking(true);
       
       // Determine if this is a blog post or community post
-      const isBlogPost = post.post_type === 'blog' && !post.media_url;
+      // A blog post is one that was fetched from blogs table (has post_type 'blog')
+      const isBlogPost = post.post_type === 'blog';
       
       if (post.user_liked) {
         // Unlike the post
