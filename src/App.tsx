@@ -15,6 +15,7 @@ import Financing from "./pages/Financing";
 import Blogs from "./pages/Blogs";
 import BlogDetails from "./pages/BlogDetails";
 import BlogEditor from "./pages/BlogEditor";
+import CommunityPostDetails from "./pages/CommunityPostDetails";
 import DashboardPage from "./pages/DashboardPage";
 import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
 import SellerRobots from "./pages/SellerRobots";
@@ -64,7 +65,7 @@ const App = () => (
             <Route path="/financing" element={<Financing />} />
             <Route path="/blogs" element={<Blogs />} />
             <Route path="/community" element={<Blogs />} />
-            <Route path="/community/:id" element={<BlogDetails />} />
+            <Route path="/community/:id" element={<CommunityPostDetails />} />
             <Route path="/blogs/create" element={<BlogEditor />} />
             <Route path="/blogs/:id" element={<BlogDetails />} />
             <Route path="/blogs/:id/edit" element={<BlogEditor />} />

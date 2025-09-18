@@ -253,16 +253,19 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             />
           </div>
 
-          {/* Media Upload */}
-          <div className="space-y-3">
-            <Label>Media (Optional)</Label>
-            <div className="space-y-3">
-              {/* File Upload */}
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+          {/* Enhanced Media Upload */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Media Upload</Label>
+            <div className="space-y-4">
+              {/* File Upload with Preview */}
+              <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-gradient-to-br from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-all">
                 <div className="text-center">
-                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Drag & drop or click to upload media
+                  <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <Upload className="h-8 w-8 text-primary" />
+                  </div>
+                  <h4 className="font-semibold text-foreground mb-2">Upload High-Quality Media</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Share images, videos, or documents up to 50MB
                   </p>
                   <Input
                     type="file"
@@ -272,30 +275,39 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
                     id="media-upload"
                   />
                   <Label htmlFor="media-upload" className="cursor-pointer">
-                    <Button variant="outline" size="sm" asChild>
-                      <span>Choose File</span>
+                    <Button variant="default" size="sm" className="rounded-full px-6">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose File
                     </Button>
                   </Label>
                   {mediaFile && (
-                    <p className="text-sm text-primary mt-2">
-                      Selected: {mediaFile.name}
-                    </p>
+                    <div className="mt-4 p-3 bg-card border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <p className="text-sm font-medium text-primary">
+                          {mediaFile.name} ({(mediaFile.size / 1024 / 1024).toFixed(1)} MB)
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* URL Input */}
               <div className="relative">
-                <Label htmlFor="media-url" className="text-sm text-muted-foreground">
-                  Or paste media URL
+                <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
+                  Or embed from URL
                 </Label>
                 <Input
                   id="media-url"
                   value={mediaUrl}
                   onChange={(e) => setMediaUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg or YouTube/Vimeo URL"
-                  className="mt-1"
+                  placeholder="YouTube, Vimeo, or direct media URL"
+                  className="mt-2 h-12 text-base"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Supports YouTube, Vimeo, and direct image/video links
+                </p>
               </div>
             </div>
           </div>

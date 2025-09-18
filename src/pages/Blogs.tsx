@@ -321,50 +321,71 @@ const Community = () => {
           </div>
         </div>
 
-        {/* Posts Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-card rounded-lg border p-6 space-y-4">
-                  <div className="aspect-video bg-muted rounded-md"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-muted rounded w-1/4"></div>
-                    <div className="h-6 bg-muted rounded w-3/4"></div>
-                    <div className="h-4 bg-muted rounded w-full"></div>
-                    <div className="h-4 bg-muted rounded w-2/3"></div>
-                    <div className="flex gap-2">
-                      <div className="h-6 bg-muted rounded w-16"></div>
-                      <div className="h-6 bg-muted rounded w-20"></div>
+        {/* Feed Layout - Professional Social Platform Style */}
+        <div className="max-w-4xl mx-auto">
+          {loading ? (
+            <div className="space-y-6">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-card rounded-xl border p-6 space-y-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-muted rounded-full"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-muted rounded w-32"></div>
+                        <div className="h-3 bg-muted rounded w-20"></div>
+                      </div>
+                    </div>
+                    <div className="aspect-video bg-muted rounded-lg"></div>
+                    <div className="space-y-3">
+                      <div className="h-6 bg-muted rounded w-3/4"></div>
+                      <div className="h-4 bg-muted rounded w-full"></div>
+                      <div className="h-4 bg-muted rounded w-2/3"></div>
+                      <div className="flex justify-between pt-4">
+                        <div className="flex gap-6">
+                          <div className="h-8 bg-muted rounded w-16"></div>
+                          <div className="h-8 bg-muted rounded w-20"></div>
+                          <div className="h-8 bg-muted rounded w-16"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-full p-8 w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+                <BookOpen className="h-16 w-16 text-primary" />
               </div>
-            ))}
-          </div>
-        ) : filteredPosts.length === 0 ? (
-          <div className="text-center py-16">
-            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No posts found</h3>
-            <p className="text-muted-foreground mb-6">
-              {searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all"
-                ? "Try adjusting your search or filter criteria." 
-                : "Be the first to share with the community!"
-              }
-            </p>
-            <CreatePostModal onPostCreated={fetchPosts} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPosts.map((post) => (
-              <CommunityPostCard
-                key={post.id}
-                post={post}
-                onLikeUpdate={handleLikeUpdate}
-              />
-            ))}
-          </div>
-        )}
+              <h3 className="text-2xl font-bold mb-3">Start the Conversation</h3>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
+                {searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all"
+                  ? "No posts match your criteria. Try adjusting your filters to discover more content." 
+                  : "Be the first to share your insights and connect with the robotics community. Your voice matters!"
+                }
+              </p>
+              <CreatePostModal onPostCreated={fetchPosts} />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {filteredPosts.map((post) => (
+                <CommunityPostCard
+                  key={post.id}
+                  post={post}
+                  onLikeUpdate={handleLikeUpdate}
+                />
+              ))}
+              
+              {/* Load More Section */}
+              <div className="text-center py-8">
+                <p className="text-muted-foreground text-sm">
+                  You've reached the end of the feed. Share something new!
+                </p>
+                <CreatePostModal onPostCreated={fetchPosts} />
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
