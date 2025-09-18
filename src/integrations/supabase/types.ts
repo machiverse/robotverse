@@ -2047,6 +2047,10 @@ export type Database = {
         Args: { p_blog_id: string }
         Returns: number
       }
+      increment_community_post_view_count: {
+        Args: { p_post_id: string }
+        Returns: number
+      }
       increment_item_view_count: {
         Args: { p_item_id: string; p_item_type: string }
         Returns: number
