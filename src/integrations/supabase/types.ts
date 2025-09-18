@@ -166,6 +166,69 @@ export type Database = {
         }
         Relationships: []
       }
+      community_posts: {
+        Row: {
+          author_id: string
+          comment_count: number | null
+          content: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          like_count: number | null
+          media_type: string | null
+          media_url: string | null
+          post_type: string
+          published_at: string | null
+          share_count: number | null
+          status: string
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+          video_duration: number | null
+          view_count: number | null
+        }
+        Insert: {
+          author_id: string
+          comment_count?: number | null
+          content?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          like_count?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          post_type: string
+          published_at?: string | null
+          share_count?: number | null
+          status?: string
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          video_duration?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string
+          comment_count?: number | null
+          content?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          like_count?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          post_type?: string
+          published_at?: string | null
+          share_count?: number | null
+          status?: string
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          video_duration?: number | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       coverage_areas: {
         Row: {
           area_name: string
@@ -750,6 +813,115 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          like_count: number | null
+          parent_comment_id: string | null
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          like_count?: number | null
+          parent_comment_id?: string | null
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          like_count?: number | null
+          parent_comment_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_shares: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          shared_to: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          shared_to?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          shared_to?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_shares_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
           },
         ]
       }

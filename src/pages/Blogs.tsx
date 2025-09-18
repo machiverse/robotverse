@@ -1,23 +1,19 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Search, 
-  Calendar, 
-  User, 
-  Eye, 
-  PlusCircle,
   Filter,
-  TrendingUp,
   Clock,
   Heart,
-  BookOpen
+  Eye,
+  TrendingUp,
+  BookOpen,
+  Video,
+  FileText,
+  Image as ImageIcon
 } from "lucide-react";
 import {
   Select,
@@ -26,56 +22,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatDistanceToNow } from "date-fns";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import CommunityPostCard from "@/components/CommunityPostCard";
+import CreatePostModal from "@/components/CreatePostModal";
 
-interface Blog {
+interface CommunityPost {
   id: string;
-  title: string;
-  content: string;
-  excerpt: string;
+  post_type: 'blog' | 'video' | 'short_post' | 'media';
+  title?: string;
+  content?: string;
+  excerpt?: string;
+  media_url?: string;
+  media_type?: string;
+  video_duration?: number;
   tags: string[];
-  image_url?: string;
-  status: string;
-  author_id: string;
   view_count: number;
   like_count: number;
+  comment_count: number;
+  share_count: number;
   created_at: string;
-  updated_at: string;
+  author_id: string;
   published_at?: string;
   profiles?: {
     full_name: string;
     company_name?: string;
+    avatar_url?: string;
   } | null;
+  user_liked?: boolean;
 }
 
-const Blogs = () => {
+const Community = () => {
   const { user } = useAuth();
-  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("latest");
+  const [filterType, setFilterType] = useState("all");
   const [selectedTag, setSelectedTag] = useState("all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchBlogs();
-  }, [sortBy]);
+    fetchPosts();
+  }, [sortBy, filterType]);
 
   useEffect(() => {
-    if (blogs.length > 0) {
-      const tags = Array.from(new Set(blogs.flatMap(blog => blog.tags)));
+    if (posts.length > 0) {
+      const tags = Array.from(new Set(posts.flatMap(post => post.tags)));
       setAvailableTags(tags);
     }
-  }, [blogs]);
+  }, [posts]);
 
-  const fetchBlogs = async () => {
+  const fetchPosts = async () => {
     try {
       setLoading(true);
       let query = supabase
-        .from('blogs')
+        .from('community_posts')
         .select('*')
         .eq('status', 'published');
+
+      // Apply post type filter
+      if (filterType !== 'all') {
+        query = query.eq('post_type', filterType);
+      }
 
       // Apply sorting
       switch (sortBy) {
@@ -88,6 +96,9 @@ const Blogs = () => {
         case 'most_liked':
           query = query.order('like_count', { ascending: false });
           break;
+        case 'trending':
+          query = query.order('like_count', { ascending: false });
+          break;
         default:
           query = query.order('published_at', { ascending: false });
       }
@@ -96,46 +107,67 @@ const Blogs = () => {
 
       if (error) throw error;
 
-      // Fetch author info for each blog
-      const blogsWithAuthors = await Promise.all(
-        (data || []).map(async (blog) => {
+      // Fetch author profiles for each post
+      const postsWithProfiles = await Promise.all(
+        (data || []).map(async (post) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, company_name')
-            .eq('user_id', blog.author_id)
+            .select('full_name, company_name, avatar_url')
+            .eq('user_id', post.author_id)
             .maybeSingle();
           
           return {
-            ...blog,
-            profiles: profile ? {
-              full_name: profile.full_name || 'Anonymous',
-              company_name: profile.company_name || ''
-            } : null
+            ...post,
+            profiles: profile
           };
         })
       );
 
-      setBlogs(blogsWithAuthors as Blog[]);
+      // If user is authenticated, check which posts they've liked
+      let postsWithLikes = postsWithProfiles;
+      if (user) {
+        const { data: likesData } = await supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id)
+          .in('post_id', postsWithProfiles.map(p => p.id));
+
+        const likedPostIds = new Set(likesData?.map(l => l.post_id) || []);
+        
+        postsWithLikes = postsWithProfiles.map(post => ({
+          ...post,
+          user_liked: likedPostIds.has(post.id)
+        }));
+      }
+
+      setPosts(postsWithLikes as CommunityPost[]);
     } catch (error) {
-      console.error('Error fetching blogs:', error);
+      console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredBlogs = blogs.filter(blog => {
-    const matchesSearch = blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         blog.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         blog.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredPosts = posts.filter(post => {
+    const searchContent = [
+      post.title,
+      post.content,
+      post.excerpt,
+      ...post.tags
+    ].filter(Boolean).join(' ').toLowerCase();
     
-    const matchesTag = selectedTag === "all" || blog.tags.includes(selectedTag);
+    const matchesSearch = searchContent.includes(searchTerm.toLowerCase());
+    const matchesTag = selectedTag === "all" || post.tags.includes(selectedTag);
     
     return matchesSearch && matchesTag;
   });
 
-  const generateExcerpt = (content: string, maxLength: number = 150) => {
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength).trim() + "...";
+  const handleLikeUpdate = (postId: string, newLikeCount: number, userLiked: boolean) => {
+    setPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { ...post, like_count: newLikeCount, user_liked: userLiked }
+        : post
+    ));
   };
 
   return (
@@ -149,29 +181,11 @@ const Blogs = () => {
             <div>
               <h1 className="text-4xl font-bold tracking-tight">Community</h1>
               <p className="text-lg text-muted-foreground mt-2">
-                Insights, tutorials, and updates from the robotics community
+                Share ideas, insights, and connect with the robotics community
               </p>
             </div>
             
-            {user ? (
-              <Link to="/blogs/create">
-                <Button className="flex items-center gap-2 font-semibold">
-                  <PlusCircle className="h-4 w-4" />
-                  Write Article
-                </Button>
-              </Link>
-            ) : (
-              <div className="relative group">
-                <Button disabled className="flex items-center gap-2 font-semibold opacity-50 cursor-not-allowed">
-                  <PlusCircle className="h-4 w-4" />
-                  Write Article
-                </Button>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                  Sign in to publish blogs
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-popover rotate-45"></div>
-                </div>
-              </div>
-            )}
+            <CreatePostModal onPostCreated={fetchPosts} />
           </div>
 
           {/* Search and Filters */}
@@ -179,16 +193,53 @@ const Blogs = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search blogs by title, content, or tags..."
+                placeholder="Search posts by content, title, or tags..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 font-medium"
               />
             </div>
+
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full md:w-48 font-medium">
+                <SelectValue placeholder="Post type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    All Types
+                  </div>
+                </SelectItem>
+                <SelectItem value="short_post">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Short Posts
+                  </div>
+                </SelectItem>
+                <SelectItem value="blog">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Blog Articles
+                  </div>
+                </SelectItem>
+                <SelectItem value="video">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
+                    Videos
+                  </div>
+                </SelectItem>
+                <SelectItem value="media">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Media
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
             
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full md:w-48 font-medium">
-                <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -196,6 +247,12 @@ const Blogs = () => {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
                     Latest
+                  </div>
+                </SelectItem>
+                <SelectItem value="trending">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Trending
                   </div>
                 </SelectItem>
                 <SelectItem value="most_viewed">
@@ -222,7 +279,7 @@ const Blogs = () => {
                   <SelectItem value="all">All Tags</SelectItem>
                   {availableTags.map(tag => (
                     <SelectItem key={tag} value={tag}>
-                      {tag}
+                      #{tag}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -231,109 +288,47 @@ const Blogs = () => {
           </div>
         </div>
 
-        {/* Blog Grid */}
+        {/* Posts Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="h-96">
-                <CardHeader>
-                  <Skeleton className="h-48 w-full rounded-md" />
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-6 w-16" />
-                    <Skeleton className="h-6 w-20" />
+              <div key={i} className="animate-pulse">
+                <div className="bg-card rounded-lg border p-6 space-y-4">
+                  <div className="aspect-video bg-muted rounded-md"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-muted rounded w-1/4"></div>
+                    <div className="h-6 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-full"></div>
+                    <div className="h-4 bg-muted rounded w-2/3"></div>
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-muted rounded w-16"></div>
+                      <div className="h-6 bg-muted rounded w-20"></div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
-        ) : filteredBlogs.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No blogs found</h3>
+            <h3 className="text-xl font-semibold mb-2">No posts found</h3>
             <p className="text-muted-foreground mb-6">
-              {searchTerm || (selectedTag && selectedTag !== "all")
+              {searchTerm || (selectedTag && selectedTag !== "all") || filterType !== "all"
                 ? "Try adjusting your search or filter criteria." 
-                : "Be the first to share your insights with the community!"
+                : "Be the first to share with the community!"
               }
             </p>
-            <Link to="/blogs/create">
-              <Button>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Write First Article
-              </Button>
-            </Link>
+            <CreatePostModal onPostCreated={fetchPosts} />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredBlogs.map((blog) => (
-              <Card key={blog.id} className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/20 bg-card">
-                <Link to={`/blogs/${blog.id}`}>
-                  {blog.image_url && (
-                    <div className="aspect-[16/10] overflow-hidden rounded-t-lg">
-                      <img
-                        src={blog.image_url}
-                        alt={blog.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    </div>
-                  )}
-                  
-                  <CardContent className="p-6 space-y-4">
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-bold line-clamp-2 group-hover:text-primary transition-colors leading-tight">
-                        {blog.title}
-                      </h3>
-                      
-                      <p className="text-muted-foreground line-clamp-3 leading-relaxed">
-                        {blog.excerpt || generateExcerpt(blog.content)}
-                      </p>
-                      
-                      {blog.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {blog.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs font-medium">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {blog.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs font-medium">
-                              +{blog.tags.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between text-sm font-medium pt-4 border-t border-border">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <User className="h-4 w-4" />
-                          <span className="truncate font-medium">
-                            {user ? (blog.profiles?.full_name || blog.profiles?.company_name || 'Community Member') : 'Community Member'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Eye className="h-4 w-4" />
-                            <span className="font-bold text-foreground">{blog.view_count || 0}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            <span className="font-medium">
-                              {formatDistanceToNow(new Date(blog.published_at || blog.created_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Link>
-              </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPosts.map((post) => (
+              <CommunityPostCard
+                key={post.id}
+                post={post}
+                onLikeUpdate={handleLikeUpdate}
+              />
             ))}
           </div>
         )}
@@ -342,4 +337,4 @@ const Blogs = () => {
   );
 };
 
-export default Blogs;
+export default Community;
