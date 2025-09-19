@@ -112,6 +112,7 @@ const ResetPassword = () => {
     top: '50%',
     transform: 'translateY(-50%)',
     cursor: 'pointer'
+    color: 'black'
   };
   return (
     <form onSubmit={handlePasswordReset}>
