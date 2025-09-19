@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-// Import lucide-react icons:
 import { Eye, EyeOff } from 'lucide-react';
+import type { CSSProperties } from 'react';
+
+interface ErrorState {
+  newPassword?: string;
+  confirmPassword?: string;
+  api?: string;
+}
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({ newPassword: '', confirmPassword: '' });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<ErrorState>({});
   const [hasValidRecoverySession, setHasValidRecoverySession] = useState(false);
   // State for password visibility toggles:
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -51,7 +57,7 @@ const ResetPassword = () => {
   }, [navigate]);
 
   const validatePasswords = () => {
-    const newErrors = {};
+    const newErrors: ErrorState = {};
     if (!formData.newPassword) newErrors.newPassword = 'New password required';
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Confirm password required';
     if (formData.newPassword !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
@@ -85,7 +91,7 @@ const ResetPassword = () => {
     return <div>Password updated! Redirecting to sign in…</div>;
   }
   // Styles for password inputs:
-  const passwordInputStyle = {
+  const passwordInputStyle: CSSProperties = {
     color: 'black',
     border: '1px solid #ccc',
     borderRadius: 4,
@@ -96,11 +102,11 @@ const ResetPassword = () => {
     marginBottom: 4
   };
   // Container for eye icon position
-  const passwordFieldContainer = {
+  const passwordFieldContainer: CSSProperties = {
     position: 'relative',
     marginBottom: 16
   };
-  const eyeIconStyle = {
+  const eyeIconStyle: CSSProperties = {
     position: 'absolute',
     right: 10,
     top: '50%',
