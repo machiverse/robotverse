@@ -96,9 +96,12 @@ const Auth = () => {
 
   // Remove the old password reset handler since it's now in a separate page
 
-  // Redirect if already logged in
+  // Redirect if already logged in (but not during password recovery)
   useEffect(() => {
-    if (user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRecoveryFlow = urlParams.get('type') === 'recovery';
+    
+    if (user && !isRecoveryFlow) {
       console.log('✅ User already authenticated, redirecting to home');
       navigate('/');
     }

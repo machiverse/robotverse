@@ -84,23 +84,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         console.log('🔄 Auth state change:', event, session ? 'User logged in' : 'User logged out');
         
-        // Check if this is a password recovery flow - don't auto-login during recovery
+        // Check if this is a password recovery flow by checking URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const type = urlParams.get('type');
-        const isRecoveryFlow = type === 'recovery' || window.location.pathname === '/reset-password';
+        const isPasswordRecovery = type === 'recovery';
         
-        if (session && !isRecoveryFlow) {
+        if (isPasswordRecovery && session) {
+          // For password recovery, set session but don't auto-login the user
+          console.log('🔐 Password recovery session detected');
+          setSession(session);
+          setUser(null); // Don't set user as logged in during recovery
+          
+          // Redirect to reset password page if not already there
+          if (window.location.pathname !== '/reset-password') {
+            window.location.href = `/reset-password${window.location.search}`;
+          }
+        } else if (!isPasswordRecovery) {
+          // Normal auth flow - set both session and user
           setSession(session);
           setUser(session?.user ?? null);
-        } else if (!session) {
-          setSession(null);
-          setUser(null);
-        } else if (isRecoveryFlow) {
-          // During recovery, we have a session but don't set the user as "logged in"
-          // This allows the reset password page to work with the session for password update
-          setSession(session);
-          setUser(null); // Don't auto-login during password reset
-          console.log('🔐 Recovery session detected, not auto-logging user in');
         }
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
