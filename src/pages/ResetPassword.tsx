@@ -39,6 +39,22 @@ const ResetPassword = () => {
           description: "The password reset link is invalid or has expired. Please request a new one.",
         });
         navigate('/auth');
+        return;
+      }
+      
+      // Also check if this is actually a password reset session
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+      const type = urlParams.get('type');
+      
+      if (type !== 'recovery' && !accessToken && !refreshToken) {
+        toast({
+          variant: "destructive", 
+          title: "Invalid Reset Link",
+          description: "This page can only be accessed through a password reset email link.",
+        });
+        navigate('/auth');
       }
     };
     
@@ -88,6 +104,9 @@ const ResetPassword = () => {
         newPassword: '',
         confirmPassword: ''
       });
+      
+      // Sign out the user after password reset to force fresh login
+      await supabase.auth.signOut();
       
       // Redirect to sign in after a delay
       setTimeout(() => {

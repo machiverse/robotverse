@@ -21,14 +21,9 @@ const Auth = () => {
   // Form state
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [isResetPassword, setIsResetPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -83,9 +78,10 @@ const Auth = () => {
 
       toast({
         title: "Reset Link Sent",
-        description: "Check your email for the password reset link.",
+        description: "Check your email for the password reset link. The link will take you to a secure page to set your new password.",
       });
       setIsForgotPassword(false);
+      setEmail(''); // Clear email field
     } catch (error: any) {
       console.error('❌ Forgot password error:', error);
       toast({
@@ -98,66 +94,7 @@ const Auth = () => {
     }
   };
 
-  // Handle password reset
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPassword || !confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Required Fields",
-        description: "Please fill in both password fields.",
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Password Mismatch",
-        description: "The passwords do not match.",
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Weak Password",
-        description: "Password must be at least 6 characters long.",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully. You can now sign in.",
-      });
-      
-      // Reset the form and go back to sign in
-      setIsResetPassword(false);
-      setNewPassword('');
-      setConfirmPassword('');
-      navigate('/auth');
-    } catch (error: any) {
-      console.error('❌ Password reset error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to update password.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Remove the old password reset handler since it's now in a separate page
 
   // Redirect if already logged in
   useEffect(() => {
@@ -167,20 +104,14 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  // Check for password reset token and signup parameter in URL
+  // Check for signup parameter in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const isReset = urlParams.get('reset');
     const isSignupMode = urlParams.get('signup');
     
-    if (isReset === 'true') {
-      setIsResetPassword(true);
-      setIsForgotPassword(false);
-      setIsSignUp(false);
-    } else if (isSignupMode === 'true') {
+    if (isSignupMode === 'true') {
       setIsSignUp(true);
       setIsForgotPassword(false);
-      setIsResetPassword(false);
     }
   }, []);
 
@@ -1103,34 +1034,28 @@ const Auth = () => {
               <Bot className="w-10 h-10 text-white" />
             </div>
             <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {isResetPassword
-                ? 'Set New Password'
-                : isForgotPassword 
-                  ? 'Reset Password' 
-                  : isSignUp 
-                    ? 'Join RobotVerse' 
-                    : 'Welcome Back'
+              {isForgotPassword 
+                ? 'Reset Password' 
+                : isSignUp 
+                  ? 'Join RobotVerse' 
+                  : 'Welcome Back'
               }
             </CardTitle>
             <CardDescription className="text-lg mt-2">
-              {isResetPassword
-                ? 'Enter your new password below'
-                : isForgotPassword 
-                  ? 'Enter your email to receive a password reset link'
-                  : isSignUp 
-                    ? 'Create your account to start your robotics journey' 
-                    : 'Sign in to access your robot marketplace'
+              {isForgotPassword 
+                ? 'Enter your email to receive a password reset link'
+                : isSignUp 
+                  ? 'Create your account to start your robotics journey' 
+                  : 'Sign in to access your robot marketplace'
               }
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={
-              isResetPassword 
-                ? handlePasswordReset 
-                : isForgotPassword 
-                  ? handleForgotPassword 
-                  : handleSubmit
+              isForgotPassword 
+                ? handleForgotPassword 
+                : handleSubmit
             } className="space-y-6">
               {/* Basic Information Section - Only for Sign Up */}
               {isSignUp && !isForgotPassword && (
@@ -1212,8 +1137,8 @@ const Auth = () => {
               
               {/* Email and Password Fields */}
               <div className="space-y-4">
-                {/* Email Field - Show for all modes except reset password */}
-                {!isResetPassword && (
+                {/* Email Field */}
+                {(
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address *</Label>
                     <div className="relative">
@@ -1231,81 +1156,8 @@ const Auth = () => {
                   </div>
                 )}
                 
-                {/* Reset Password Fields */}
-                {isResetPassword && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="newPassword"
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Enter your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showNewPassword ? "Hide password" : "Show password"}
-                        >
-                          {showNewPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {newPassword && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Password strength: {newPassword.length >= 8 ? '🟢 Strong' : newPassword.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Confirm your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {confirmPassword && newPassword !== confirmPassword && (
-                        <div className="text-xs text-red-500 mt-1">
-                          ❌ Passwords do not match
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-                
-                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password and Reset Password */}
-                {!isForgotPassword && !isResetPassword && (
+                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password */}
+                {!isForgotPassword && (
                   <div className="space-y-2">
                     <Label htmlFor="password">Password *</Label>
                     <div className="relative">
@@ -1663,25 +1515,18 @@ const Auth = () => {
                 {loading ? (
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>
-                      {isResetPassword
-                        ? 'Updating Password...'
-                        : isForgotPassword 
-                          ? 'Sending Reset Link...' 
-                          : isSignUp 
-                            ? 'Creating Your Account...' 
-                            : 'Signing You In...'
+                     <span>
+                      {isForgotPassword 
+                        ? 'Sending Reset Link...' 
+                        : isSignUp 
+                          ? 'Creating Your Account...' 
+                          : 'Signing You In...'
                       }
                     </span>
                   </div>
                 ) : (
                   <>
-                    {isResetPassword ? (
-                      <>
-                        <Lock className="w-5 h-5 mr-2" />
-                        Update Password
-                      </>
-                    ) : isForgotPassword ? (
+                    {isForgotPassword ? (
                       <>
                         <Mail className="w-5 h-5 mr-2" />
                         Send Reset Link
@@ -1704,15 +1549,15 @@ const Auth = () => {
             
             {/* Toggle between Sign Up, Sign In, Forgot Password, and Reset Password */}
             <div className="mt-8 text-center space-y-3">
-              {isResetPassword ? (
+              {false ? (
                 <button
                   type="button"
                   onClick={() => {
-                    setIsResetPassword(false);
+                    // removed reset password functionality
                     setIsForgotPassword(false);
                     setIsSignUp(false);
-                    setNewPassword('');
-                    setConfirmPassword('');
+                    // removed reset password functionality
+                    // removed reset password functionality
                   }}
                   className="text-primary hover:text-primary/80 transition-colors font-medium"
                 >
