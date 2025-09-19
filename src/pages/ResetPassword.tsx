@@ -21,7 +21,10 @@ const ResetPassword = () => {
     newPassword: '',
     confirmPassword: ''
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{
+    newPassword?: string;
+    confirmPassword?: string;
+  }>({});
   const [hasValidRecoverySession, setHasValidRecoverySession] = useState(false);
 
   useEffect(() => {
@@ -111,7 +114,10 @@ const ResetPassword = () => {
   }, [navigate, toast]);
 
   const validatePasswords = () => {
-    const newErrors = {};
+    const newErrors: {
+      newPassword?: string;
+      confirmPassword?: string;
+    } = {};
     if (!formData.newPassword) {
       newErrors.newPassword = 'New password is required';
     } else if (formData.newPassword.length < 6) {
