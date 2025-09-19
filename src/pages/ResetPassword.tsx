@@ -32,6 +32,24 @@ const ResetPassword = () => {
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check URL parameters first
+      const urlParams = new URLSearchParams(window.location.search);
+      const type = urlParams.get('type');
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+      
+      // Must be a recovery flow with proper tokens
+      if (type !== 'recovery' || (!accessToken && !refreshToken)) {
+        toast({
+          variant: "destructive", 
+          title: "Invalid Reset Link",
+          description: "This page can only be accessed through a password reset email link.",
+        });
+        navigate('/auth');
+        return;
+      }
+      
       if (!session) {
         toast({
           variant: "destructive",
@@ -40,21 +58,6 @@ const ResetPassword = () => {
         });
         navigate('/auth');
         return;
-      }
-      
-      // Also check if this is actually a password reset session
-      const urlParams = new URLSearchParams(window.location.search);
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
-      const type = urlParams.get('type');
-      
-      if (type !== 'recovery' && !accessToken && !refreshToken) {
-        toast({
-          variant: "destructive", 
-          title: "Invalid Reset Link",
-          description: "This page can only be accessed through a password reset email link.",
-        });
-        navigate('/auth');
       }
     };
     

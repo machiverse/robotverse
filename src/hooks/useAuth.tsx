@@ -83,8 +83,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('🔄 Auth state change:', event, session ? 'User logged in' : 'User logged out');
-        setSession(session);
-        setUser(session?.user ?? null);
+        
+        // Check if this is a password recovery flow - don't auto-login during recovery
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = urlParams.get('type');
+        const isRecoveryFlow = type === 'recovery' || window.location.pathname === '/reset-password';
+        
+        if (session && !isRecoveryFlow) {
+          setSession(session);
+          setUser(session?.user ?? null);
+        } else if (!session) {
+          setSession(null);
+          setUser(null);
+        } else if (isRecoveryFlow) {
+          // During recovery, we have a session but don't set the user as "logged in"
+          // This allows the reset password page to work with the session for password update
+          setSession(session);
+          setUser(null); // Don't auto-login during password reset
+          console.log('🔐 Recovery session detected, not auto-logging user in');
+        }
+        
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setLoading(false);
         }
