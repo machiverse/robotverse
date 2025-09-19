@@ -111,7 +111,7 @@ const ResetPassword = () => {
     right: 10,
     top: '50%',
     transform: 'translateY(-50%)',
-    cursor: 'pointer'
+    cursor: 'pointer',
     color: 'black'
   };
   return (
