@@ -7,7 +7,11 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({ newPassword: '', confirmPassword: '' });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{
+    newPassword?: string;
+    confirmPassword?: string;
+    api?: string;
+  }>({});
   const [hasValidRecoverySession, setHasValidRecoverySession] = useState(false);
 
   useEffect(() => {
@@ -54,7 +58,10 @@ const ResetPassword = () => {
   }, [navigate]);
 
   const validatePasswords = () => {
-    const newErrors = {};
+    const newErrors: {
+      newPassword?: string;
+      confirmPassword?: string;
+    } = {};
     if (!formData.newPassword) newErrors.newPassword = 'New password required';
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Confirm password required';
     if (formData.newPassword !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
