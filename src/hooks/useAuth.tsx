@@ -89,17 +89,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const type = urlParams.get('type');
         const isPasswordRecovery = type === 'recovery';
         
-        if (isPasswordRecovery && session) {
+        console.log('🔄 Auth event details:', { event, isPasswordRecovery, pathname: window.location.pathname });
+        
+        if (isPasswordRecovery) {
           // For password recovery, set session but don't auto-login the user
           console.log('🔐 Password recovery session detected');
           setSession(session);
           setUser(null); // Don't set user as logged in during recovery
           
-          // Redirect to reset password page if not already there
-          if (window.location.pathname !== '/reset-password') {
+          // Only redirect if not already on reset password page
+          if (window.location.pathname !== '/reset-password' && session) {
+            console.log('🔄 Redirecting to reset password page...');
             window.location.href = `/reset-password${window.location.search}`;
           }
-        } else if (!isPasswordRecovery) {
+        } else {
           // Normal auth flow - set both session and user
           setSession(session);
           setUser(session?.user ?? null);

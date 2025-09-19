@@ -70,11 +70,18 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      console.log('🔐 Sending password reset email to:', email);
+      
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Reset password error:', error);
+        throw error;
+      }
+
+      console.log('✅ Password reset email sent successfully');
 
       toast({
         title: "Reset Link Sent",
@@ -84,10 +91,22 @@ const Auth = () => {
       setEmail(''); // Clear email field
     } catch (error: any) {
       console.error('❌ Forgot password error:', error);
+      
+      let errorMessage = "Failed to send reset email.";
+      
+      // Handle specific error cases
+      if (error.message?.includes('rate limit')) {
+        errorMessage = "Too many reset attempts. Please wait a few minutes before trying again.";
+      } else if (error.message?.includes('not found')) {
+        errorMessage = "Email address not found. Please check your email and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send reset email.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
