@@ -359,7 +359,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Community Post</DialogTitle>
+          <DialogTitle>Create New RoboBook Post</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">

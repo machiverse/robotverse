@@ -25,7 +25,7 @@ const navItems = [
   { name: "Services", href: "/services", icon: Settings },
   { name: "Logistics", href: "/logistics", icon: Truck },
   { name: "Financing", href: "/financing", icon: CreditCard },
-  { name: "Community", href: "/blogs", icon: BookOpen },
+  { name: "RoboBook", href: "/blogs", icon: BookOpen },
 ];
 
 const EnhancedHeader = () => {

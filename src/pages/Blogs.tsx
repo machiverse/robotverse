@@ -25,6 +25,7 @@ import {
 import EnhancedHeader from "@/components/EnhancedHeader";
 import CommunityPostCard from "@/components/CommunityPostCard";
 import CreatePostModal from "@/components/CreatePostModal";
+import SEOMetaTags from "@/components/SEOMetaTags";
 
 interface CommunityPost {
   id: string;
@@ -229,6 +230,41 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOMetaTags 
+        seoElements={{
+          urlSlug: "/community",
+          pageTitle: "RoboBook - Industrial Robotics Community | RobotVerse",
+          metaDescription: "Join the RoboBook community to connect with robotics professionals, share insights, and discover the latest trends in industrial automation and robotics technology.",
+          h1Heading: "RoboBook",
+          seoContentBlock: "Connect with robotics professionals and share insights on industrial automation",
+          imageAltText: "RoboBook community page",
+          structuredData: {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "RoboBook - Robotics Community",
+            "description": "Connect with robotics professionals and share insights on industrial automation",
+            "url": typeof window !== 'undefined' ? window.location.href : ""
+          },
+          breadcrumbSchema: {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": typeof window !== 'undefined' ? window.location.origin : ""
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "RoboBook",
+                "item": typeof window !== 'undefined' ? window.location.href : ""
+              }
+            ]
+          }
+        }}
+      />
       <EnhancedHeader />
       
       <main className="container mx-auto px-4 py-8">
@@ -236,9 +272,9 @@ const Community = () => {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">Community</h1>
+              <h1 className="text-4xl font-bold tracking-tight">RoboBook</h1>
               <p className="text-lg text-muted-foreground mt-2">
-                Share ideas, insights, and connect with the robotics community
+                Connect, share insights, and stay updated with the latest in industrial robotics and automation technology
               </p>
             </div>
             

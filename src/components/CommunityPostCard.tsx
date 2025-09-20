@@ -184,7 +184,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
         : `${baseUrl}/community/${post.id}`;
       
       const shareData = {
-        title: post.title || 'Community Post - RobotVerse',
+        title: post.title || 'RoboBook Post - RobotVerse',
         text: post.excerpt || post.content?.substring(0, 100) + '...',
         url: shareUrl
       };

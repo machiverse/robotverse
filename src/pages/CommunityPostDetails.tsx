@@ -366,7 +366,7 @@ const CommunityPostDetails = () => {
           className="mb-6 hover:bg-muted/80"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Community
+          Back to RoboBook
         </Button>
 
         {/* Post Content */}
