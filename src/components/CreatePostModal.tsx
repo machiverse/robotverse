@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import MediaPreview from "@/components/MediaPreview";
 import RichTextEditor from "@/components/RichTextEditor";
+import { useNavigate } from "react-router-dom";
 
 interface CreatePostModalProps {
   onPostCreated?: () => void;
@@ -43,6 +44,7 @@ interface CreatePostModalProps {
 
 const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -340,9 +342,13 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     }
   };
 
+  const handleAuthRequired = () => {
+    navigate('/auth');
+  };
+
   if (!user) {
     return (
-      <Button disabled className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+      <Button onClick={handleAuthRequired} className="flex items-center gap-2">
         <PlusCircle className="h-4 w-4" />
         Create Post
       </Button>
