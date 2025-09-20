@@ -59,7 +59,7 @@ const Footer = () => {
                 Logistics
               </a>
               <a href="/blogs" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Blog
+                RoboBook
               </a>
             </nav>
           </div>
