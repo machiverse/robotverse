@@ -430,6 +430,7 @@ const CommunityPostDetails = () => {
                 alt={post.title || 'Post media'}
                 title={post.title}
                 videoDuration={post.video_duration}
+                autoplay={post.post_type === 'video' || post.media_type === 'video'}
                 controls={true}
                 className="w-full"
               />

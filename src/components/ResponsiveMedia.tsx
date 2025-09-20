@@ -70,10 +70,18 @@ const ResponsiveMedia = ({
         autoPlay={autoplay}
         muted={isMuted}
         controls={controls}
+        loop={autoplay}
+        playsInline
         className="w-full h-full object-cover"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onLoadedMetadata={(e) => {
+          const video = e.target as HTMLVideoElement;
+          if (autoplay && video.paused) {
+            video.play().catch(console.error);
+          }
+        }}
+        onCanPlay={(e) => {
           const video = e.target as HTMLVideoElement;
           if (autoplay && video.paused) {
             video.play().catch(console.error);

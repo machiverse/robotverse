@@ -309,6 +309,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
             alt={post.title || 'Post media'}
             title={post.title}
             videoDuration={post.video_duration}
+            autoplay={post.post_type === 'video' || post.media_type === 'video'}
             controls={false}
             className="aspect-video"
           />
