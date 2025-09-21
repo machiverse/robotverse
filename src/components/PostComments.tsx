@@ -49,7 +49,7 @@ const PostComments = ({ postId }: PostCommentsProps) => {
     try {
       setLoading(true);
       
-      // Fetch comments 
+      // Fetch comments with better error handling
       const { data: commentsData, error } = await supabase
         .from('post_comments')
         .select('*')
@@ -57,60 +57,102 @@ const PostComments = ({ postId }: PostCommentsProps) => {
         .is('parent_comment_id', null)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching comments:', error);
+        throw error;
+      }
 
-      // Fetch author profiles for each comment
+      // Fetch author profiles for each comment with error handling
       const commentsWithProfiles = await Promise.all(
         (commentsData || []).map(async (comment) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, company_name, avatar_url')
-            .eq('user_id', comment.user_id)
-            .maybeSingle();
-          
-          return {
-            ...comment,
-            profiles: profile
-          };
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('full_name, company_name, avatar_url')
+              .eq('user_id', comment.user_id)
+              .maybeSingle();
+            
+            if (profileError) {
+              console.warn('Error fetching profile for comment:', profileError);
+            }
+            
+            return {
+              ...comment,
+              profiles: profile
+            };
+          } catch (profileErr) {
+            console.warn('Failed to fetch profile for comment:', profileErr);
+            return {
+              ...comment,
+              profiles: null
+            };
+          }
         })
       );
 
-      // Fetch replies for each comment
+      // Fetch replies for each comment with error handling
       const commentsWithReplies = await Promise.all(
         commentsWithProfiles.map(async (comment) => {
-          const { data: repliesData } = await supabase
-            .from('post_comments')
-            .select('*')
-            .eq('parent_comment_id', comment.id)
-            .order('created_at', { ascending: true });
+          try {
+            const { data: repliesData, error: repliesError } = await supabase
+              .from('post_comments')
+              .select('*')
+              .eq('parent_comment_id', comment.id)
+              .order('created_at', { ascending: true });
 
-          // Fetch profiles for replies
-          const repliesWithProfiles = await Promise.all(
-            (repliesData || []).map(async (reply) => {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name, company_name, avatar_url')
-                .eq('user_id', reply.user_id)
-                .maybeSingle();
-              
-              return {
-                ...reply,
-                profiles: profile
-              };
-            })
-          );
+            if (repliesError) {
+              console.warn('Error fetching replies:', repliesError);
+              return { ...comment, replies: [] };
+            }
 
-          return {
-            ...comment,
-            replies: repliesWithProfiles
-          };
+            // Fetch profiles for replies with error handling
+            const repliesWithProfiles = await Promise.all(
+              (repliesData || []).map(async (reply) => {
+                try {
+                  const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('full_name, company_name, avatar_url')
+                    .eq('user_id', reply.user_id)
+                    .maybeSingle();
+                  
+                  if (profileError) {
+                    console.warn('Error fetching profile for reply:', profileError);
+                  }
+                  
+                  return {
+                    ...reply,
+                    profiles: profile
+                  };
+                } catch (profileErr) {
+                  console.warn('Failed to fetch profile for reply:', profileErr);
+                  return {
+                    ...reply,
+                    profiles: null
+                  };
+                }
+              })
+            );
+
+            return {
+              ...comment,
+              replies: repliesWithProfiles
+            };
+          } catch (repliesErr) {
+            console.warn('Failed to fetch replies for comment:', repliesErr);
+            return { ...comment, replies: [] };
+          }
         })
       );
 
       setComments(commentsWithReplies as Comment[]);
     } catch (error) {
       console.error('Error fetching comments:', error);
-      toast.error('Failed to load comments');
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        toast.error('Connection error. Please check your internet connection and try again.');
+      } else {
+        toast.error('Failed to load comments. Please try refreshing the page.');
+      }
+      setComments([]);
     } finally {
       setLoading(false);
     }
@@ -137,14 +179,23 @@ const PostComments = ({ postId }: PostCommentsProps) => {
           content: newComment.trim()
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error posting comment:', error);
+        throw error;
+      }
 
       setNewComment("");
       await fetchComments();
       toast.success('Comment posted successfully');
     } catch (error) {
       console.error('Error posting comment:', error);
-      toast.error('Failed to post comment');
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        toast.error('Connection error. Please check your internet connection and try again.');
+      } else if (error instanceof Error && error.message.includes('permission')) {
+        toast.error('You do not have permission to comment on this post.');
+      } else {
+        toast.error('Failed to post comment. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +223,10 @@ const PostComments = ({ postId }: PostCommentsProps) => {
           parent_comment_id: parentCommentId
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error posting reply:', error);
+        throw error;
+      }
 
       setReplyContent("");
       setReplyTo(null);
@@ -180,7 +234,13 @@ const PostComments = ({ postId }: PostCommentsProps) => {
       toast.success('Reply posted successfully');
     } catch (error) {
       console.error('Error posting reply:', error);
-      toast.error('Failed to post reply');
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        toast.error('Connection error. Please check your internet connection and try again.');
+      } else if (error instanceof Error && error.message.includes('permission')) {
+        toast.error('You do not have permission to reply to this comment.');
+      } else {
+        toast.error('Failed to post reply. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
