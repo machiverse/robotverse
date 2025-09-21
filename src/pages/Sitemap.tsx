@@ -13,7 +13,7 @@ const Sitemap = () => {
       { name: "Services", path: "/services" },
       { name: "Logistics", path: "/logistics" },
       { name: "Financing", path: "/financing" },
-      { name: "Blog", path: "/blogs" }
+      { name: "RoboBook", path: "/robobook" }
     ],
     "User Account": [
       { name: "Sign In / Sign Up", path: "/auth" },

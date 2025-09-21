@@ -231,12 +231,16 @@ const CommunityPostDetails = () => {
           if (isBlogPost) {
             const { error } = await supabase
               .from('blog_likes')
-              .insert({ blog_id: post.id, user_id: user.id });
+              .upsert({ blog_id: post.id, user_id: user.id }, { 
+                onConflict: 'blog_id,user_id' 
+              });
             if (error) throw error;
           } else {
             const { error } = await supabase
               .from('post_likes')
-              .insert({ post_id: post.id, user_id: user.id });
+              .upsert({ post_id: post.id, user_id: user.id }, { 
+                onConflict: 'post_id,user_id' 
+              });
             if (error) throw error;
           }
           
@@ -268,7 +272,7 @@ const CommunityPostDetails = () => {
       // Use custom domain for sharing
       const baseUrl = 'https://robotverse.in';
       const shareUrl = post.post_type === 'blog' && !post.media_url 
-        ? `${baseUrl}/blogs/${post.id}`
+        ? `${baseUrl}/robobook/${post.id}`
         : `${baseUrl}/community/${post.id}`;
       
       const shareData = {

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -65,12 +65,14 @@ const App = () => (
             <Route path="/logistics" element={<Logistics />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />
             <Route path="/financing" element={<Financing />} />
-            <Route path="/blogs" element={<Blogs />} />
+            <Route path="/robobook" element={<Blogs />} />
             <Route path="/community" element={<Blogs />} />
+            <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
             <Route path="/community/:id" element={<CommunityPostDetails />} />
-            <Route path="/blogs/create" element={<BlogEditor />} />
+            <Route path="/robobook/create" element={<BlogEditor />} />
+            <Route path="/robobook/:id" element={<BlogDetails />} />
+            <Route path="/robobook/:id/edit" element={<BlogEditor />} />
             <Route path="/blogs/:id" element={<BlogDetails />} />
-            <Route path="/blogs/:id/edit" element={<BlogEditor />} />
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />

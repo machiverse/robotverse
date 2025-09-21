@@ -180,7 +180,7 @@ const BlogDetails = () => {
       if (error) throw error;
       
       toast.success('Blog post deleted successfully');
-      navigate('/blogs');
+      navigate('/robobook');
     } catch (error) {
       console.error('Error deleting blog:', error);
       toast.error('Failed to delete blog post');
@@ -188,7 +188,7 @@ const BlogDetails = () => {
   };
 
   const handleShare = async () => {
-    const shareUrl = `https://robotverse.in/blogs/${id}`;
+    const shareUrl = `https://robotverse.in/robobook/${id}`;
     try {
       await navigator.share({
         title: blog?.title,
@@ -240,8 +240,8 @@ const BlogDetails = () => {
             <p className="text-muted-foreground mb-6">
               The blog post you're looking for doesn't exist or has been removed.
             </p>
-            <Link to="/blogs">
-              <Button>Back to Blogs</Button>
+            <Link to="/robobook">
+              <Button>Back to RoboBook</Button>
             </Link>
           </div>
         </div>
@@ -259,10 +259,10 @@ const BlogDetails = () => {
         <div className="max-w-4xl mx-auto">
           {/* Navigation */}
           <div className="flex items-center justify-between mb-6">
-            <Link to="/blogs">
+            <Link to="/robobook">
               <Button variant="ghost" className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Blogs
+                Back to RoboBook
               </Button>
             </Link>
 
@@ -274,7 +274,7 @@ const BlogDetails = () => {
               
               {isAuthor && (
                 <>
-                  <Link to={`/blogs/${blog.id}/edit`}>
+                  <Link to={`/robobook/${blog.id}/edit`}>
                     <Button variant="outline" className="flex items-center gap-2">
                       <Edit className="h-4 w-4" />
                       Edit
@@ -409,7 +409,7 @@ const BlogDetails = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {relatedBlogs.map((relatedBlog) => (
                     <Card key={relatedBlog.id} className="group hover:shadow-lg transition-shadow">
-                      <Link to={`/blogs/${relatedBlog.id}`}>
+                      <Link to={`/robobook/${relatedBlog.id}`}>
                         {relatedBlog.image_url && (
                           <div className="aspect-video overflow-hidden rounded-t-lg">
                             <img

@@ -58,7 +58,7 @@ const Footer = () => {
               <a href="/logistics" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Logistics
               </a>
-              <a href="/blogs" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              <a href="/robobook" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 RoboBook
               </a>
             </nav>

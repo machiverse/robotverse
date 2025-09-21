@@ -148,12 +148,16 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
           if (isBlogPost) {
             const { error } = await supabase
               .from('blog_likes')
-              .insert({ blog_id: post.id, user_id: user.id });
+              .upsert({ blog_id: post.id, user_id: user.id }, { 
+                onConflict: 'blog_id,user_id' 
+              });
             if (error) throw error;
           } else {
             const { error } = await supabase
               .from('post_likes')
-              .insert({ post_id: post.id, user_id: user.id });
+              .upsert({ post_id: post.id, user_id: user.id }, { 
+                onConflict: 'post_id,user_id' 
+              });
             if (error) throw error;
           }
           
@@ -180,7 +184,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
       // Use custom domain for sharing
       const baseUrl = 'https://robotverse.in';
       const shareUrl = post.post_type === 'blog' && !post.media_url 
-        ? `${baseUrl}/blogs/${post.id}`
+        ? `${baseUrl}/robobook/${post.id}`
         : `${baseUrl}/community/${post.id}`;
       
       const shareData = {
@@ -281,7 +285,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
         </Badge>
       </div>
 
-      <Link to={post.post_type === 'blog' && !post.media_url ? `/blogs/${post.id}` : `/community/${post.id}`} className="block">
+      <Link to={post.post_type === 'blog' && !post.media_url ? `/robobook/${post.id}` : `/community/${post.id}`} className="block">
         <div className="px-4 pb-3">
           {/* Title */}
           {post.title && (
@@ -365,7 +369,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
                   return;
                 }
                 // Navigate to post with comments focused
-                window.location.href = post.post_type === 'blog' ? `/blogs/${post.id}#comments` : `/community/${post.id}#comments`;
+                window.location.href = post.post_type === 'blog' ? `/robobook/${post.id}#comments` : `/community/${post.id}#comments`;
               }}
             >
               <MessageCircle className="h-4 w-4 mr-1" />
@@ -391,7 +395,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
               className="text-xs"
             />
             <Link 
-              to={post.post_type === 'blog' ? `/blogs/${post.id}` : `/community/${post.id}`}
+              to={post.post_type === 'blog' ? `/robobook/${post.id}` : `/community/${post.id}`}
               className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
