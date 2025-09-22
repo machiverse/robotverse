@@ -30,9 +30,10 @@ interface Comment {
 
 interface PostCommentsProps {
   postId: string;
+  onCommentCountChange?: (newCount: number) => void;
 }
 
-const PostComments = ({ postId }: PostCommentsProps) => {
+const PostComments = ({ postId, onCommentCountChange }: PostCommentsProps) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -145,6 +146,13 @@ const PostComments = ({ postId }: PostCommentsProps) => {
       );
 
       setComments(commentsWithReplies as Comment[]);
+      
+      // Update comment count
+      const totalComments = commentsWithReplies.reduce((total, comment) => {
+        return total + 1 + (comment.replies?.length || 0);
+      }, 0);
+      onCommentCountChange?.(totalComments);
+      
     } catch (error) {
       console.error('Error fetching comments:', error);
       if (error instanceof Error && error.message.includes('Failed to fetch')) {
@@ -171,13 +179,15 @@ const PostComments = ({ postId }: PostCommentsProps) => {
 
     try {
       setSubmitting(true);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('post_comments')
         .insert([{
           post_id: postId,
           user_id: user.id,
-          content: newComment.trim()
-        }]);
+          content: newComment.trim(),
+          like_count: 0
+        }])
+        .select();
 
       if (error) {
         console.error('Error posting comment:', error);
@@ -185,8 +195,9 @@ const PostComments = ({ postId }: PostCommentsProps) => {
       }
 
       setNewComment("");
+      // Refresh comments to show the new one
       await fetchComments();
-      toast.success('Comment posted successfully');
+      toast.success('Comment posted successfully!');
     } catch (error) {
       console.error('Error posting comment:', error);
       if (error instanceof Error && error.message.includes('Failed to fetch')) {
@@ -214,14 +225,16 @@ const PostComments = ({ postId }: PostCommentsProps) => {
 
     try {
       setSubmitting(true);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('post_comments')
         .insert([{
           post_id: postId,
           user_id: user.id,
           content: replyContent.trim(),
-          parent_comment_id: parentCommentId
-        }]);
+          parent_comment_id: parentCommentId,
+          like_count: 0
+        }])
+        .select();
 
       if (error) {
         console.error('Error posting reply:', error);
@@ -230,8 +243,9 @@ const PostComments = ({ postId }: PostCommentsProps) => {
 
       setReplyContent("");
       setReplyTo(null);
+      // Refresh comments to show the new reply
       await fetchComments();
-      toast.success('Reply posted successfully');
+      toast.success('Reply posted successfully!');
     } catch (error) {
       console.error('Error posting reply:', error);
       if (error instanceof Error && error.message.includes('Failed to fetch')) {

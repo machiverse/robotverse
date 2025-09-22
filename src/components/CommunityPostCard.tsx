@@ -114,13 +114,17 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
     e.preventDefault();
     e.stopPropagation();
     
+    if (!user) {
+      toast.error('Please sign in to like posts');
+      return;
+    }
+    
     if (isLiking) return;
 
     try {
       setIsLiking(true);
       
       // Determine if this is a blog post or community post
-      // A blog post is one that has post_type 'blog' regardless of media_url
       const isBlogPost = post.post_type === 'blog';
       
       if (post.user_liked) {
@@ -130,47 +134,51 @@ const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostC
             .from('blog_likes')
             .delete()
             .eq('blog_id', post.id)
-            .eq('user_id', user?.id);
+            .eq('user_id', user.id);
           if (error) throw error;
         } else {
           const { error } = await supabase
             .from('post_likes')
             .delete()
             .eq('post_id', post.id)
-            .eq('user_id', user?.id);
+            .eq('user_id', user.id);
           if (error) throw error;
         }
         
         onLikeUpdate?.(post.id, post.like_count - 1, false);
+        toast.success('Post unliked');
       } else {
-        // Like the post - allow all users to like
-        if (user) {
-          if (isBlogPost) {
-            const { error } = await supabase
-              .from('blog_likes')
-              .upsert({ blog_id: post.id, user_id: user.id }, { 
-                onConflict: 'blog_id,user_id' 
-              });
-            if (error) throw error;
-          } else {
-            const { error } = await supabase
-              .from('post_likes')
-              .upsert({ post_id: post.id, user_id: user.id }, { 
-                onConflict: 'post_id,user_id' 
-              });
-            if (error) throw error;
-          }
-          
-          onLikeUpdate?.(post.id, post.like_count + 1, true);
+        // Like the post
+        if (isBlogPost) {
+          const { error } = await supabase
+            .from('blog_likes')
+            .upsert({ 
+              blog_id: post.id, 
+              user_id: user.id 
+            }, { 
+              onConflict: 'blog_id,user_id',
+              ignoreDuplicates: false
+            });
+          if (error) throw error;
         } else {
-          // For non-authenticated users, just update the UI
-          onLikeUpdate?.(post.id, post.like_count + 1, false);
-          toast.success('Thanks for the like! Sign in to save your preferences.');
+          const { error } = await supabase
+            .from('post_likes')
+            .upsert({ 
+              post_id: post.id, 
+              user_id: user.id 
+            }, { 
+              onConflict: 'post_id,user_id',
+              ignoreDuplicates: false
+            });
+          if (error) throw error;
         }
+        
+        onLikeUpdate?.(post.id, post.like_count + 1, true);
+        toast.success('Post liked!');
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast.error('Failed to update like');
+      toast.error('Failed to update like. Please try again.');
     } finally {
       setIsLiking(false);
     }

@@ -195,11 +195,14 @@ const CommunityPostDetails = () => {
   const handleLike = async () => {
     if (!post || isLiking) return;
 
+    if (!user) {
+      toast.error('Please sign in to like posts');
+      return;
+    }
+
     try {
       setIsLiking(true);
       
-      // Determine if this is a blog post or community post
-      // A blog post is one that was fetched from blogs table (has post_type 'blog')
       const isBlogPost = post.post_type === 'blog';
       
       if (post.user_liked) {
@@ -209,14 +212,14 @@ const CommunityPostDetails = () => {
             .from('blog_likes')
             .delete()
             .eq('blog_id', post.id)
-            .eq('user_id', user?.id);
+            .eq('user_id', user.id);
           if (error) throw error;
         } else {
           const { error } = await supabase
             .from('post_likes')
             .delete()
             .eq('post_id', post.id)
-            .eq('user_id', user?.id);
+            .eq('user_id', user.id);
           if (error) throw error;
         }
         
@@ -225,41 +228,43 @@ const CommunityPostDetails = () => {
           like_count: prev.like_count - 1, 
           user_liked: false 
         } : null);
+        toast.success('Post unliked');
       } else {
         // Like the post
-        if (user) {
-          if (isBlogPost) {
-            const { error } = await supabase
-              .from('blog_likes')
-              .upsert({ blog_id: post.id, user_id: user.id }, { 
-                onConflict: 'blog_id,user_id' 
-              });
-            if (error) throw error;
-          } else {
-            const { error } = await supabase
-              .from('post_likes')
-              .upsert({ post_id: post.id, user_id: user.id }, { 
-                onConflict: 'post_id,user_id' 
-              });
-            if (error) throw error;
-          }
-          
-          setPost(prev => prev ? { 
-            ...prev, 
-            like_count: prev.like_count + 1, 
-            user_liked: true 
-          } : null);
+        if (isBlogPost) {
+          const { error } = await supabase
+            .from('blog_likes')
+            .upsert({ 
+              blog_id: post.id, 
+              user_id: user.id 
+            }, { 
+              onConflict: 'blog_id,user_id',
+              ignoreDuplicates: false
+            });
+          if (error) throw error;
         } else {
-          setPost(prev => prev ? { 
-            ...prev, 
-            like_count: prev.like_count + 1 
-          } : null);
-          toast.success('Thanks for the like! Sign in to save your preferences.');
+          const { error } = await supabase
+            .from('post_likes')
+            .upsert({ 
+              post_id: post.id, 
+              user_id: user.id 
+            }, { 
+              onConflict: 'post_id,user_id',
+              ignoreDuplicates: false
+            });
+          if (error) throw error;
         }
+        
+        setPost(prev => prev ? { 
+          ...prev, 
+          like_count: prev.like_count + 1, 
+          user_liked: true 
+        } : null);
+        toast.success('Post liked!');
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast.error('Failed to update like');
+      toast.error('Failed to update like. Please try again.');
     } finally {
       setIsLiking(false);
     }
@@ -511,7 +516,12 @@ const CommunityPostDetails = () => {
 
         {/* Comments Section */}
         <div id="comments">
-          <PostComments postId={post.id} />
+          <PostComments 
+            postId={post.id} 
+            onCommentCountChange={(count) => 
+              setPost(prev => prev ? { ...prev, comment_count: count } : null)
+            } 
+          />
         </div>
       </main>
     </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePostInteractions } from "@/hooks/usePostInteractions";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -54,6 +55,7 @@ interface CommunityPost {
 
 const Community = () => {
   const { user } = useAuth();
+  const { toggleLike, initializeInteraction, getInteraction, incrementCommentCount } = usePostInteractions();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -183,10 +185,35 @@ const Community = () => {
           blogLikes?.forEach(like => likedPostIds.add(like.blog_id));
         }
         
-        postsWithLikes = sortedPosts.map(post => ({
-          ...post,
-          user_liked: likedPostIds.has(post.id)
-        }));
+        postsWithLikes = sortedPosts.map(post => {
+          const postWithLike = {
+            ...post,
+            user_liked: likedPostIds.has(post.id)
+          };
+
+          // Initialize interaction state
+          initializeInteraction(post.id, {
+            id: post.id,
+            like_count: post.like_count || 0,
+            comment_count: post.comment_count || 0,
+            share_count: post.share_count || 0,
+            user_liked: likedPostIds.has(post.id)
+          });
+
+          return postWithLike;
+        });
+      } else {
+        // For non-authenticated users, initialize interaction state
+        postsWithLikes = sortedPosts.map(post => {
+          initializeInteraction(post.id, {
+            id: post.id,
+            like_count: post.like_count || 0,
+            comment_count: post.comment_count || 0,
+            share_count: post.share_count || 0,
+            user_liked: false
+          });
+          return post;
+        });
       }
 
       setPosts(postsWithLikes as CommunityPost[]);
@@ -211,7 +238,8 @@ const Community = () => {
     return matchesSearch && matchesTag;
   });
 
-  const handleLikeUpdate = (postId: string, newLikeCount: number, userLiked: boolean, newShareCount?: number) => {
+  const handleLikeUpdate = async (postId: string, newLikeCount: number, userLiked: boolean, newShareCount?: number) => {
+    // Update local state immediately for smooth UI
     setPosts(prev => prev.map(post => 
       post.id === postId 
         ? { 
@@ -222,6 +250,18 @@ const Community = () => {
           }
         : post
     ));
+
+    // Use the hook to handle the actual like toggle if needed
+    const post = posts.find(p => p.id === postId);
+    if (post && user) {
+      const postType = post.post_type === 'blog' ? 'blog' : 'community_posts';
+      const currentInteraction = getInteraction(postId);
+      
+      // Only call toggleLike if the state has actually changed
+      if (currentInteraction && currentInteraction.user_liked !== userLiked) {
+        await toggleLike(postId, postType);
+      }
+    }
   };
 
   const handlePostDeleted = (postId: string) => {
