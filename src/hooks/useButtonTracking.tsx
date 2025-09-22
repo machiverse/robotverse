@@ -2,22 +2,31 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+// Extended interface with full seller details fields
 interface ButtonTrackingData {
   buttonName: string;
   buttonType: string;
   sellerId?: string;
   sellerName?: string;
+  sellerCompany?: string;
+  sellerEmail?: string;
+  sellerMobile?: string;
+  sellerLocation?: string;
   itemId?: string;
   itemType?: string;
   additionalData?: Record<string, any>;
 }
 
+// Custom hook to track button interactions with seller/user details
 export const useButtonTracking = () => {
   const { user } = useAuth();
-  const [isTracking, setIsTracking] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
 
-  // Fetch user profile details when user changes
+  // User profile info fetched from profiles table
+  const [userProfile, setUserProfile] = useState<any>(null);
+  // Loading state for tracking in progress
+  const [isTracking, setIsTracking] = useState(false);
+
+  // Fetch user profile when user changes
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) {
@@ -39,68 +48,74 @@ export const useButtonTracking = () => {
 
         setUserProfile(data);
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('Unexpected error fetching user profile:', error);
       }
     };
 
     fetchUserProfile();
   }, [user]);
 
+  // Function to track button click event
   const trackButtonClick = async (data: ButtonTrackingData) => {
     if (!user) {
-      console.log('🚫 Button tracking skipped: No user logged in');
+      console.warn('No authenticated user, skipping tracking');
       return;
     }
 
     setIsTracking(true);
-    console.log('📊 Starting button tracking for:', data.buttonName, 'Type:', data.buttonType);
-    
+
     try {
-      // Enhanced tracking data with complete user and seller details
-      const trackingData = {
+      // Prepare tracking payload with full seller & user details
+      const trackingPayload = {
         user_id: user.id,
-        user_name: userProfile?.full_name || user.user_metadata?.full_name || user.email || 'Unknown User',
+        user_name:
+          userProfile?.full_name || user.user_metadata?.full_name || user.email || 'Unknown User',
+
         seller_id: data.sellerId || null,
         seller_name: data.sellerName || null,
+        seller_company: data.sellerCompany || null,
+        seller_email: data.sellerEmail || null,
+        seller_mobile: data.sellerMobile || null,
+        seller_location: data.sellerLocation || null,
+
         button_name: data.buttonName,
         button_type: data.buttonType,
         page_url: window.location.href,
         item_id: data.itemId || null,
         item_type: data.itemType || null,
+
         additional_data: {
           ...data.additionalData,
-          user_details: {
-            user_email: user.email,
-            user_company: userProfile?.company_name,
-            user_location: userProfile?.location,
-            user_phone: userProfile?.mobile_number || userProfile?.phone,
-            user_type: userProfile?.user_type,
-            account_type: userProfile?.account_type
-          },
           timestamp: new Date().toISOString(),
           session_info: {
             user_agent: navigator.userAgent,
-            screen_resolution: `${screen.width}x${screen.height}`,
-            referrer: document.referrer
-          }
+            screen_resolution: `${window.screen.width}x${window.screen.height}`,
+            referrer: document.referrer,
+          },
+          user_details: {
+            user_email: user.email,
+            user_company: userProfile?.company_name || null,
+            user_location: userProfile?.location || null,
+            user_phone: userProfile?.mobile_number || userProfile?.phone || null,
+            user_type: userProfile?.user_type || null,
+            account_type: userProfile?.account_type || null,
+          },
         },
       };
 
-      console.log('📊 Tracking data prepared:', trackingData);
-
+      // Insert into Supabase 
       const { data: insertedData, error } = await supabase
         .from('button_interactions')
-        .insert([trackingData])
+        .insert([trackingPayload])
         .select();
 
       if (error) {
-        console.error('❌ Error tracking button click:', error);
-        console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+        console.error('Error inserting button interaction:', error);
       } else {
-        console.log('✅ Button interaction tracked successfully:', insertedData);
+        console.log('Button interaction tracked successfully:', insertedData);
       }
     } catch (error) {
-      console.error('❌ Exception in button tracking:', error);
+      console.error('Unexpected error tracking button click:', error);
     } finally {
       setIsTracking(false);
     }
