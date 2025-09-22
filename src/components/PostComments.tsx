@@ -16,9 +16,10 @@ interface Comment {
   created_at: string;
   updated_at: string;
   user_id: string;
-  post_id: string;
+  blog_id?: string;
+  post_id?: string;
   parent_comment_id?: string;
-  like_count: number;
+  like_count?: number;
   profiles?: {
     full_name: string;
     company_name?: string;
@@ -30,10 +31,11 @@ interface Comment {
 
 interface PostCommentsProps {
   postId: string;
+  postType?: 'blog' | 'community_posts';
   onCommentCountChange?: (newCount: number) => void;
 }
 
-const PostComments = ({ postId, onCommentCountChange }: PostCommentsProps) => {
+const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostCommentsProps) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -52,9 +54,9 @@ const PostComments = ({ postId, onCommentCountChange }: PostCommentsProps) => {
       
       // Fetch comments with better error handling
       const { data: commentsData, error } = await supabase
-        .from('post_comments')
+        .from('blog_comments')
         .select('*')
-        .eq('post_id', postId)
+        .eq('blog_id', postId)
         .is('parent_comment_id', null)
         .order('created_at', { ascending: false });
 
@@ -96,7 +98,7 @@ const PostComments = ({ postId, onCommentCountChange }: PostCommentsProps) => {
         commentsWithProfiles.map(async (comment) => {
           try {
             const { data: repliesData, error: repliesError } = await supabase
-              .from('post_comments')
+              .from('blog_comments')
               .select('*')
               .eq('parent_comment_id', comment.id)
               .order('created_at', { ascending: true });
@@ -145,7 +147,7 @@ const PostComments = ({ postId, onCommentCountChange }: PostCommentsProps) => {
         })
       );
 
-      setComments(commentsWithReplies as Comment[]);
+      setComments(commentsWithReplies);
       
       // Update comment count
       const totalComments = commentsWithReplies.reduce((total, comment) => {
@@ -180,12 +182,11 @@ const PostComments = ({ postId, onCommentCountChange }: PostCommentsProps) => {
     try {
       setSubmitting(true);
       const { data, error } = await supabase
-        .from('post_comments')
+        .from('blog_comments')
         .insert([{
-          post_id: postId,
+          blog_id: postId,
           user_id: user.id,
-          content: newComment.trim(),
-          like_count: 0
+          content: newComment.trim()
         }])
         .select();
 
@@ -226,13 +227,12 @@ const PostComments = ({ postId, onCommentCountChange }: PostCommentsProps) => {
     try {
       setSubmitting(true);
       const { data, error } = await supabase
-        .from('post_comments')
+        .from('blog_comments')
         .insert([{
-          post_id: postId,
+          blog_id: postId,
           user_id: user.id,
           content: replyContent.trim(),
-          parent_comment_id: parentCommentId,
-          like_count: 0
+          parent_comment_id: parentCommentId
         }])
         .select();
 

@@ -55,7 +55,6 @@ interface CommunityPost {
 
 const Community = () => {
   const { user } = useAuth();
-  const { toggleLike, initializeInteraction, getInteraction, incrementCommentCount } = usePostInteractions();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -191,29 +190,13 @@ const Community = () => {
             user_liked: likedPostIds.has(post.id)
           };
 
-          // Initialize interaction state
-          initializeInteraction(post.id, {
-            id: post.id,
-            like_count: post.like_count || 0,
-            comment_count: post.comment_count || 0,
-            share_count: post.share_count || 0,
-            user_liked: likedPostIds.has(post.id)
-          });
+          // Store like state for interaction
 
           return postWithLike;
         });
       } else {
-        // For non-authenticated users, initialize interaction state
-        postsWithLikes = sortedPosts.map(post => {
-          initializeInteraction(post.id, {
-            id: post.id,
-            like_count: post.like_count || 0,
-            comment_count: post.comment_count || 0,
-            share_count: post.share_count || 0,
-            user_liked: false
-          });
-          return post;
-        });
+        // For non-authenticated users, just use the posts as is
+        postsWithLikes = sortedPosts;
       }
 
       setPosts(postsWithLikes as CommunityPost[]);
@@ -247,6 +230,17 @@ const Community = () => {
             like_count: newLikeCount, 
             user_liked: userLiked,
             share_count: newShareCount !== undefined ? newShareCount : post.share_count
+          }
+        : post
+    ));
+  };
+
+  const handleCommentUpdate = (postId: string, newCommentCount: number) => {
+    setPosts(prevPosts => prevPosts.map(post => 
+      post.id === postId 
+        ? { 
+            ...post, 
+            comment_count: newCommentCount
           }
         : post
     ));
@@ -461,6 +455,7 @@ const Community = () => {
                   key={post.id}
                   post={post}
                   onLikeUpdate={handleLikeUpdate}
+                  onCommentUpdate={handleCommentUpdate}
                   onPostDeleted={handlePostDeleted}
                 />
               ))}

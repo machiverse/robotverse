@@ -71,10 +71,11 @@ interface CommunityPost {
 interface CommunityPostCardProps {
   post: CommunityPost;
   onLikeUpdate?: (postId: string, newLikeCount: number, userLiked: boolean) => void;
+  onCommentUpdate?: (postId: string, newCommentCount: number) => void;
   onPostDeleted?: (postId: string) => void;
 }
 
-const CommunityPostCard = ({ post, onLikeUpdate, onPostDeleted }: CommunityPostCardProps) => {
+const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted }: CommunityPostCardProps) => {
   const { user } = useAuth();
   const [isLiking, setIsLiking] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
