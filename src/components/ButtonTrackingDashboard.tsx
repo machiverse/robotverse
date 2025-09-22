@@ -6,24 +6,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Filter, Download, RefreshCw, Activity, Users, MousePointer, Calendar } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { MousePointer, Users, Activity, Calendar, Search, RefreshCw, Download } from 'lucide-react';
 
+// Data structures
 interface ButtonInteraction {
   id: string;
   user_id: string;
   user_name: string;
-  seller_id?: string;
-  seller_name?: string;
   button_name: string;
   button_type: string;
   page_url: string;
+  created_at: string;
+  seller_id?: string;
+  seller_name?: string;
+  seller_company?: string;
+  seller_email?: string;
+  seller_mobile?: string;
   item_id?: string;
   item_type?: string;
-  additional_data: any;
-  created_at: string;
+  additional_data?: any;
 }
-
 interface ButtonTrackingStats {
   totalClicks: number;
   uniqueUsers: number;
@@ -32,7 +34,6 @@ interface ButtonTrackingStats {
 }
 
 const ButtonTrackingDashboard: React.FC = () => {
-  const { toast } = useToast();
   const [interactions, setInteractions] = useState<ButtonInteraction[]>([]);
   const [filteredInteractions, setFilteredInteractions] = useState<ButtonInteraction[]>([]);
   const [stats, setStats] = useState<ButtonTrackingStats>({
@@ -54,134 +55,94 @@ const ButtonTrackingDashboard: React.FC = () => {
     filterInteractions();
   }, [interactions, searchTerm, filterButtonType, filterDateRange]);
 
+  // Fetch all interactions with full seller info
   const fetchButtonInteractions = async () => {
     try {
       setLoading(true);
-      console.log('Fetching button interactions...');
-      
       const { data, error } = await supabase
         .from('button_interactions')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1000);
 
-      console.log('Button interactions result:', { data, error });
-
-      if (error) {
-        console.error('Button interactions error:', error);
-        throw error;
-      }
-
+      if (error) throw error;
       setInteractions(data || []);
       calculateStats(data || []);
-      
-      if ((data || []).length === 0) {
-        console.log('No button interactions found');
-      }
     } catch (error: any) {
+      // handle error (simple console, you may use notification)
       console.error('Error fetching button interactions:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to fetch button interactions: ${error.message || 'Unknown error'}`
-      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Calculate stats for summary cards
   const calculateStats = (data: ButtonInteraction[]) => {
     const totalClicks = data.length;
     const uniqueUsers = new Set(data.map(d => d.user_id)).size;
-
-    // Top buttons
     const buttonCounts: { [key: string]: number } = {};
     data.forEach(item => {
       buttonCounts[item.button_name] = (buttonCounts[item.button_name] || 0) + 1;
     });
-
     const topButtons = Object.entries(buttonCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([button_name, count]) => ({ button_name, count }));
 
-    // Top sellers contacted
     const sellerCounts: { [key: string]: number } = {};
     data.filter(item => item.seller_name).forEach(item => {
-      if (item.seller_name) {
-        sellerCounts[item.seller_name] = (sellerCounts[item.seller_name] || 0) + 1;
-      }
+      sellerCounts[item.seller_name!] = (sellerCounts[item.seller_name!] || 0) + 1;
     });
-
     const topSellers = Object.entries(sellerCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([seller_name, count]) => ({ seller_name, count }));
 
-    setStats({
-      totalClicks,
-      uniqueUsers,
-      topButtons,
-      topSellers
-    });
+    setStats({ totalClicks, uniqueUsers, topButtons, topSellers });
   };
 
+  // Filter data by search, type, date
   const filterInteractions = () => {
     let filtered = [...interactions];
-
-    // Search filter
+    // Search
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(item =>
-        item.user_name?.toLowerCase().includes(term) ||
-        item.seller_name?.toLowerCase().includes(term) ||
-        item.button_name?.toLowerCase().includes(term) ||
-        item.button_type?.toLowerCase().includes(term)
+        (item.user_name || '').toLowerCase().includes(term) ||
+        (item.seller_name || '').toLowerCase().includes(term) ||
+        (item.button_name || '').toLowerCase().includes(term) ||
+        (item.button_type || '').toLowerCase().includes(term)
       );
     }
-
-    // Button type filter
+    // Button Type
     if (filterButtonType !== 'all') {
       filtered = filtered.filter(item => item.button_type === filterButtonType);
     }
-
-    // Date range filter
+    // Date Range
     if (filterDateRange !== 'all') {
       const now = new Date();
       let cutoffDate = new Date();
-      
       switch (filterDateRange) {
-        case 'today':
-          cutoffDate.setHours(0, 0, 0, 0);
-          break;
-        case 'week':
-          cutoffDate.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          cutoffDate.setMonth(now.getMonth() - 1);
-          break;
+        case 'today': cutoffDate.setHours(0, 0, 0, 0); break;
+        case 'week': cutoffDate.setDate(now.getDate() - 7); break;
+        case 'month': cutoffDate.setMonth(now.getMonth() - 1); break;
       }
-      
       filtered = filtered.filter(item => new Date(item.created_at) >= cutoffDate);
     }
-
     setFilteredInteractions(filtered);
   };
 
+  // Export filtered to CSV
   const exportToCSV = () => {
     const csv = [
-      ['Date', 'User Name', 'Button Name', 'Button Type', 'Seller Name', 'Item Type', 'Page URL'].join(','),
+      ['Date', 'User Name', 'Button Name', 'Button Type', 'Seller Name', 'Seller Company', 'Seller Email', 'Seller Mobile', 'Item Type', 'Page URL'].join(','),
       ...filteredInteractions.map(item => [
-        new Date(item.created_at).toLocaleDateString(),
-        item.user_name || '',
-        item.button_name || '',
-        item.button_type || '',
-        item.seller_name || '',
-        item.item_type || '',
-        item.page_url || ''
+        new Date(item.created_at).toLocaleString(),
+        item.user_name || '', item.button_name || '', item.button_type || '',
+        item.seller_name || '', item.seller_company || '', item.seller_email || '', item.seller_mobile || '',
+        item.item_type || '', item.page_url || ''
       ].map(field => `"${field}"`).join(','))
     ].join('\n');
-
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -191,8 +152,9 @@ const ButtonTrackingDashboard: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  // Utility for badge color
   const getButtonTypeColor = (type: string) => {
-    const colors = {
+    const colors: any = {
       contact: "bg-blue-100 text-blue-800",
       navigation: "bg-green-100 text-green-800",
       analysis: "bg-purple-100 text-purple-800",
@@ -201,6 +163,10 @@ const ButtonTrackingDashboard: React.FC = () => {
     return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
+  // Value for all button types (for filtering dropdown)
+  const uniqueButtonTypes = [...new Set(interactions.map(i => i.button_type))];
+
+  // Loading UI
   if (loading) {
     return (
       <div className="space-y-6">
@@ -223,41 +189,38 @@ const ButtonTrackingDashboard: React.FC = () => {
     );
   }
 
-  const uniqueButtonTypes = [...new Set(interactions.map(i => i.button_type))];
-
+  // Dashboard UI
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Clicks</p>
-                <p className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Total Clicks</p>
+                <p className="text-2xl font-bold">{stats.totalClicks}</p>
               </div>
               <MousePointer className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Unique Users</p>
-                <p className="text-2xl font-bold">{stats.uniqueUsers.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Unique Users</p>
+                <p className="text-2xl font-bold">{stats.uniqueUsers}</p>
               </div>
               <Users className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Top Button</p>
+                <p className="text-sm text-muted-foreground">Top Button</p>
                 <p className="text-lg font-bold">{stats.topButtons[0]?.button_name || 'N/A'}</p>
                 <p className="text-sm text-muted-foreground">{stats.topButtons[0]?.count || 0} clicks</p>
               </div>
@@ -265,12 +228,11 @@ const ButtonTrackingDashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Most Contacted</p>
+                <p className="text-sm text-muted-foreground">Most Contacted</p>
                 <p className="text-lg font-bold truncate">{stats.topSellers[0]?.seller_name || 'N/A'}</p>
                 <p className="text-sm text-muted-foreground">{stats.topSellers[0]?.count || 0} contacts</p>
               </div>
@@ -279,20 +241,17 @@ const ButtonTrackingDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Filters and Controls */}
+      {/* Filters & Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             Button Interactions
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={fetchButtonInteractions}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh
               </Button>
               <Button variant="outline" size="sm" onClick={exportToCSV}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
+                <Download className="h-4 w-4 mr-2" /> Export CSV
               </Button>
             </div>
           </CardTitle>
@@ -310,7 +269,6 @@ const ButtonTrackingDashboard: React.FC = () => {
                 />
               </div>
             </div>
-
             <Select value={filterButtonType} onValueChange={setFilterButtonType}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by type" />
@@ -322,7 +280,6 @@ const ButtonTrackingDashboard: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-
             <Select value={filterDateRange} onValueChange={setFilterDateRange}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by date" />
@@ -335,7 +292,6 @@ const ButtonTrackingDashboard: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-
           <div className="text-sm text-muted-foreground mb-4">
             Showing {filteredInteractions.length} of {interactions.length} interactions
             {interactions.length === 0 && (
@@ -344,7 +300,6 @@ const ButtonTrackingDashboard: React.FC = () => {
               </span>
             )}
           </div>
-
           {/* Interactions Table */}
           <div className="rounded-md border">
             <Table>
@@ -354,7 +309,7 @@ const ButtonTrackingDashboard: React.FC = () => {
                   <TableHead>User</TableHead>
                   <TableHead>Button</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Seller</TableHead>
+                  <TableHead>Seller<br />(All Contact Info)</TableHead>
                   <TableHead>Item</TableHead>
                   <TableHead>Page</TableHead>
                 </TableRow>
@@ -363,12 +318,8 @@ const ButtonTrackingDashboard: React.FC = () => {
                 {filteredInteractions.map((interaction) => (
                   <TableRow key={interaction.id}>
                     <TableCell>
-                      <div className="text-sm">
-                        {new Date(interaction.created_at).toLocaleDateString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(interaction.created_at).toLocaleTimeString()}
-                      </div>
+                      <div className="text-sm">{new Date(interaction.created_at).toLocaleDateString()}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(interaction.created_at).toLocaleTimeString()}</div>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{interaction.user_name}</div>
@@ -382,14 +333,13 @@ const ButtonTrackingDashboard: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        {interaction.seller_name || '-'}
-                      </div>
+                      <div className="text-sm font-medium">{interaction.seller_name || '-'}</div>
+                      <div className="text-xs">{interaction.seller_company || '-'}</div>
+                      <div className="text-xs">{interaction.seller_email || '-'}</div>
+                      <div className="text-xs">{interaction.seller_mobile || '-'}</div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        {interaction.item_type || '-'}
-                      </div>
+                      <div className="text-sm">{interaction.item_type || '-'}</div>
                     </TableCell>
                     <TableCell>
                       <div className="text-xs text-muted-foreground truncate max-w-48">
@@ -398,29 +348,28 @@ const ButtonTrackingDashboard: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                </TableBody>
-              </Table>
-              
-              {filteredInteractions.length === 0 && interactions.length === 0 && (
-                <div className="text-center py-8">
-                  <MousePointer className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold text-muted-foreground">No Button Interactions Yet</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Button interaction data will appear here once users start clicking buttons on the platform.
-                  </p>
-                </div>
-              )}
-              
-              {filteredInteractions.length === 0 && interactions.length > 0 && (
-                <div className="text-center py-8">
-                  <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold text-muted-foreground">No Results Found</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Try adjusting your search filters to see more results.
-                  </p>
-                </div>
-              )}
-            </div>
+              </TableBody>
+            </Table>
+            {/* Empty states */}
+            {filteredInteractions.length === 0 && interactions.length === 0 && (
+              <div className="text-center py-8">
+                <MousePointer className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-muted-foreground">No Button Interactions Yet</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Button interaction data will appear here once users start clicking buttons on the platform.
+                </p>
+              </div>
+            )}
+            {filteredInteractions.length === 0 && interactions.length > 0 && (
+              <div className="text-center py-8">
+                <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-muted-foreground">No Results Found</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Try adjusting your search filters to see more results.
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
