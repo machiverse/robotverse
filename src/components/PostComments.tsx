@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { MessageCircle, Send, User, Heart, Reply, Lock } from "lucide-react";
+import { MessageCircle, Send, User, Heart, Lock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface Comment {
@@ -16,17 +16,12 @@ interface Comment {
   created_at: string;
   updated_at: string;
   user_id: string;
-  blog_id?: string;
-  post_id?: string;
-  parent_comment_id?: string;
-  like_count?: number;
+  blog_id: string;
   profiles?: {
     full_name: string;
     company_name?: string;
     avatar_url?: string;
   } | null;
-  user_liked?: boolean;
-  replies?: Comment[];
 }
 
 interface PostCommentsProps {
@@ -39,8 +34,6 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,16 +41,45 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
     fetchComments();
   }, [postId]);
 
+  // Set up real-time subscription for comments
+  useEffect(() => {
+    const channel = supabase
+      .channel(`comments-${postId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'blog_comments',
+          filter: `blog_id=eq.${postId}`
+        },
+        () => {
+          fetchComments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [postId]);
+
   const fetchComments = async () => {
     try {
       setLoading(true);
       
-      // Fetch comments with better error handling
+      // Fetch comments - simplified for flat structure
       const { data: commentsData, error } = await supabase
         .from('blog_comments')
-        .select('*')
+        .select(`
+          id,
+          content,
+          created_at,
+          updated_at,
+          user_id,
+          blog_id
+        `)
         .eq('blog_id', postId)
-        .is('parent_comment_id', null)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -65,95 +87,44 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
         throw error;
       }
 
-      // Fetch author profiles for each comment with error handling
-      const commentsWithProfiles = await Promise.all(
-        (commentsData || []).map(async (comment) => {
+      // Fetch author profiles for each comment
+      const commentsWithProfiles: Comment[] = await Promise.all(
+        (commentsData || []).map(async (comment): Promise<Comment> => {
           try {
-            const { data: profile, error: profileError } = await supabase
+            const { data: profile } = await supabase
               .from('profiles')
               .select('full_name, company_name, avatar_url')
               .eq('user_id', comment.user_id)
               .maybeSingle();
             
-            if (profileError) {
-              console.warn('Error fetching profile for comment:', profileError);
-            }
-            
             return {
-              ...comment,
+              id: comment.id,
+              content: comment.content,
+              created_at: comment.created_at,
+              updated_at: comment.updated_at,
+              user_id: comment.user_id,
+              blog_id: comment.blog_id,
               profiles: profile
             };
           } catch (profileErr) {
             console.warn('Failed to fetch profile for comment:', profileErr);
             return {
-              ...comment,
+              id: comment.id,
+              content: comment.content,
+              created_at: comment.created_at,
+              updated_at: comment.updated_at,
+              user_id: comment.user_id,
+              blog_id: comment.blog_id,
               profiles: null
             };
           }
         })
       );
 
-      // Fetch replies for each comment with error handling
-      const commentsWithReplies = await Promise.all(
-        commentsWithProfiles.map(async (comment) => {
-          try {
-            const { data: repliesData, error: repliesError } = await supabase
-              .from('blog_comments')
-              .select('*')
-              .eq('parent_comment_id', comment.id)
-              .order('created_at', { ascending: true });
-
-            if (repliesError) {
-              console.warn('Error fetching replies:', repliesError);
-              return { ...comment, replies: [] };
-            }
-
-            // Fetch profiles for replies with error handling
-            const repliesWithProfiles = await Promise.all(
-              (repliesData || []).map(async (reply) => {
-                try {
-                  const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('full_name, company_name, avatar_url')
-                    .eq('user_id', reply.user_id)
-                    .maybeSingle();
-                  
-                  if (profileError) {
-                    console.warn('Error fetching profile for reply:', profileError);
-                  }
-                  
-                  return {
-                    ...reply,
-                    profiles: profile
-                  };
-                } catch (profileErr) {
-                  console.warn('Failed to fetch profile for reply:', profileErr);
-                  return {
-                    ...reply,
-                    profiles: null
-                  };
-                }
-              })
-            );
-
-            return {
-              ...comment,
-              replies: repliesWithProfiles
-            };
-          } catch (repliesErr) {
-            console.warn('Failed to fetch replies for comment:', repliesErr);
-            return { ...comment, replies: [] };
-          }
-        })
-      );
-
-      setComments(commentsWithReplies);
+      setComments(commentsWithProfiles);
       
       // Update comment count
-      const totalComments = commentsWithReplies.reduce((total, comment) => {
-        return total + 1 + (comment.replies?.length || 0);
-      }, 0);
-      onCommentCountChange?.(totalComments);
+      onCommentCountChange?.(commentsWithProfiles.length);
       
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -213,53 +184,6 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
     }
   };
 
-  const handleSubmitReply = async (parentCommentId: string) => {
-    if (!user) {
-      toast.error('Please sign in to reply');
-      return;
-    }
-
-    if (!replyContent.trim()) {
-      toast.error('Please enter a reply');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const { data, error } = await supabase
-        .from('blog_comments')
-        .insert([{
-          blog_id: postId,
-          user_id: user.id,
-          content: replyContent.trim(),
-          parent_comment_id: parentCommentId
-        }])
-        .select();
-
-      if (error) {
-        console.error('Error posting reply:', error);
-        throw error;
-      }
-
-      setReplyContent("");
-      setReplyTo(null);
-      // Refresh comments to show the new reply
-      await fetchComments();
-      toast.success('Reply posted successfully!');
-    } catch (error) {
-      console.error('Error posting reply:', error);
-      if (error instanceof Error && error.message.includes('Failed to fetch')) {
-        toast.error('Connection error. Please check your internet connection and try again.');
-      } else if (error instanceof Error && error.message.includes('permission')) {
-        toast.error('You do not have permission to reply to this comment.');
-      } else {
-        toast.error('Failed to post reply. Please try again.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const formatText = (text: string) => {
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -267,8 +191,8 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
       .replace(/\n/g, '<br>');
   };
 
-  const CommentCard = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
-    <Card className={`transition-all hover:shadow-md ${isReply ? 'ml-12 border-l-2 border-primary/20' : ''}`}>
+  const CommentCard = ({ comment }: { comment: Comment }) => (
+    <Card className="transition-all hover:shadow-md">
       <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-start justify-between">
@@ -300,47 +224,9 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
           <div className="flex items-center gap-2 pt-2">
             <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground">
               <Heart className="h-3 w-3 mr-1" />
-              {comment.like_count || 0}
+              0
             </Button>
-            
-            {!isReply && user && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-                className="h-7 px-2 text-muted-foreground"
-              >
-                <Reply className="h-3 w-3 mr-1" />
-                Reply
-              </Button>
-            )}
           </div>
-
-          {/* Reply Form */}
-          {replyTo === comment.id && (
-            <div className="space-y-3 mt-4 p-3 bg-muted/50 rounded-lg">
-              <Textarea
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                placeholder="Write a reply..."
-                className="min-h-[80px] resize-none"
-                disabled={submitting}
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setReplyTo(null)}>
-                  Cancel
-                </Button>
-                <Button 
-                  size="sm"
-                  onClick={() => handleSubmitReply(comment.id)}
-                  disabled={submitting || !replyContent.trim()}
-                >
-                  <Send className="h-3 w-3 mr-1" />
-                  Reply
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
@@ -418,16 +304,6 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
           {comments.map((comment, index) => (
             <div key={comment.id}>
               <CommentCard comment={comment} />
-              
-              {/* Replies */}
-              {comment.replies && comment.replies.length > 0 && (
-                <div className="mt-4 space-y-3">
-                  {comment.replies.map((reply) => (
-                    <CommentCard key={reply.id} comment={reply} isReply />
-                  ))}
-                </div>
-              )}
-              
               {index < comments.length - 1 && <Separator className="my-6" />}
             </div>
           ))}
