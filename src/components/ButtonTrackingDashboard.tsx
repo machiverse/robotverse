@@ -13,6 +13,10 @@ interface ButtonInteraction {
   id: string;
   user_id: string;
   user_name: string;
+  user_email?: string;
+  user_mobile?: string;
+  user_company?: string;
+  user_location?: string;
   seller_id?: string;
   seller_name?: string;
   seller_company?: string;
@@ -53,7 +57,7 @@ const ButtonTrackingDashboard: React.FC = () => {
   useEffect(() => { fetchButtonInteractions(); }, []);
   useEffect(() => { filterInteractions(); }, [interactions, searchTerm, filterButtonType, filterDateRange]);
 
-  const fetchButtonInteractions = async () => {
+  async function fetchButtonInteractions() {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -75,9 +79,9 @@ const ButtonTrackingDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const calculateStats = (data: ButtonInteraction[]) => {
+  function calculateStats(data: ButtonInteraction[]) {
     const totalClicks = data.length;
     const uniqueUsers = new Set(data.map(d => d.user_id)).size;
 
@@ -98,16 +102,24 @@ const ButtonTrackingDashboard: React.FC = () => {
       .map(([seller_name, count]) => ({ seller_name, count }));
 
     setStats({ totalClicks, uniqueUsers, topButtons, topSellers });
-  };
+  }
 
-  const filterInteractions = () => {
+  function filterInteractions() {
     let filtered = [...interactions];
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(item =>
         item.user_name?.toLowerCase().includes(term) ||
+        item.user_email?.toLowerCase().includes(term) ||
+        item.user_mobile?.toLowerCase().includes(term) ||
+        item.user_company?.toLowerCase().includes(term) ||
+        item.user_location?.toLowerCase().includes(term) ||
         item.seller_name?.toLowerCase().includes(term) ||
+        item.seller_email?.toLowerCase().includes(term) ||
+        item.seller_mobile?.toLowerCase().includes(term) ||
+        item.seller_company?.toLowerCase().includes(term) ||
+        item.seller_location?.toLowerCase().includes(term) ||
         item.button_name?.toLowerCase().includes(term) ||
         item.button_type?.toLowerCase().includes(term)
       );
@@ -132,17 +144,22 @@ const ButtonTrackingDashboard: React.FC = () => {
           cutoffDate.setMonth(now.getMonth() - 1);
           break;
       }
+
       filtered = filtered.filter(item => new Date(item.created_at) >= cutoffDate);
     }
 
     setFilteredInteractions(filtered);
-  };
+  }
 
-  const exportToCSV = () => {
+  function exportToCSV() {
     const csv = [
       [
         'Date',
         'User Name',
+        'User Email',
+        'User Mobile',
+        'User Company',
+        'User Location',
         'Button Name',
         'Button Type',
         'Seller Name',
@@ -156,6 +173,10 @@ const ButtonTrackingDashboard: React.FC = () => {
       ...filteredInteractions.map(item => [
         new Date(item.created_at).toLocaleDateString(),
         item.user_name || '',
+        item.user_email || '',
+        item.user_mobile || '',
+        item.user_company || '',
+        item.user_location || '',
         item.button_name || '',
         item.button_type || '',
         item.seller_name || '',
@@ -175,7 +196,7 @@ const ButtonTrackingDashboard: React.FC = () => {
     a.download = `button-interactions-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-  };
+  }
 
   const getButtonTypeColor = (type: string) => {
     const colors = {
@@ -215,50 +236,46 @@ const ButtonTrackingDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Total Clicks */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Clicks</p>
-                <p className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</p>
-              </div>
-              <MousePointer className="h-8 w-8 text-blue-600" />
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Clicks</p>
+              <p className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</p>
             </div>
+            <MousePointer className="h-8 w-8 text-blue-600" />
           </CardContent>
         </Card>
+        {/* Unique Users */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Unique Users</p>
-                <p className="text-2xl font-bold">{stats.uniqueUsers.toLocaleString()}</p>
-              </div>
-              <Users className="h-8 w-8 text-green-600" />
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Unique Users</p>
+              <p className="text-2xl font-bold">{stats.uniqueUsers.toLocaleString()}</p>
             </div>
+            <Users className="h-8 w-8 text-green-600" />
           </CardContent>
         </Card>
+        {/* Top Button */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Top Button</p>
-                <p className="text-lg font-bold">{stats.topButtons[0]?.button_name || 'N/A'}</p>
-                <p className="text-sm text-muted-foreground">{stats.topButtons[0]?.count || 0} clicks</p>
-              </div>
-              <Activity className="h-8 w-8 text-purple-600" />
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Top Button</p>
+              <p className="text-lg font-bold">{stats.topButtons[0]?.button_name || 'N/A'}</p>
+              <p className="text-sm text-muted-foreground">{stats.topButtons[0]?.count || 0} clicks</p>
             </div>
+            <Activity className="h-8 w-8 text-purple-600" />
           </CardContent>
         </Card>
+        {/* Most Contacted */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Most Contacted</p>
-                <p className="text-lg font-bold truncate">{stats.topSellers[0]?.seller_name || 'N/A'}</p>
-                <p className="text-sm text-muted-foreground">{stats.topSellers[0]?.count || 0} contacts</p>
-              </div>
-              <Calendar className="h-8 w-8 text-orange-600" />
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Most Contacted</p>
+              <p className="text-lg font-bold truncate">{stats.topSellers[0]?.seller_name || 'N/A'}</p>
+              <p className="text-sm text-muted-foreground">{stats.topSellers[0]?.count || 0} contacts</p>
             </div>
+            <Calendar className="h-8 w-8 text-orange-600" />
           </CardContent>
         </Card>
       </div>
@@ -270,29 +287,26 @@ const ButtonTrackingDashboard: React.FC = () => {
             Button Interactions
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={fetchButtonInteractions}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh
               </Button>
               <Button variant="outline" size="sm" onClick={exportToCSV}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
+                <Download className="h-4 w-4 mr-2" /> Export CSV
               </Button>
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by user, seller, or button name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <div className="flex-1 min-w-64 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by user, seller, or button name..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
+
             <Select value={filterButtonType} onValueChange={setFilterButtonType}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by type" />
@@ -304,6 +318,7 @@ const ButtonTrackingDashboard: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+
             <Select value={filterDateRange} onValueChange={setFilterDateRange}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by date" />
@@ -327,12 +342,12 @@ const ButtonTrackingDashboard: React.FC = () => {
           </div>
 
           {/* Interactions Table */}
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date & Time</TableHead>
-                  <TableHead>User</TableHead>
+                  <TableHead>User Info</TableHead>
                   <TableHead>Button</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Seller Info</TableHead>
@@ -347,13 +362,25 @@ const ButtonTrackingDashboard: React.FC = () => {
                       <div className="text-sm">{new Date(interaction.created_at).toLocaleDateString()}</div>
                       <div className="text-xs text-muted-foreground">{new Date(interaction.created_at).toLocaleTimeString()}</div>
                     </TableCell>
-                    <TableCell><div className="font-medium">{interaction.user_name}</div></TableCell>
-                    <TableCell><div className="font-medium">{interaction.button_name}</div></TableCell>
+
+                    <TableCell>
+                      <div className="text-sm font-semibold">{interaction.user_name || '-'}</div>
+                      <div className="text-xs">{interaction.user_email || '-'}</div>
+                      <div className="text-xs">{interaction.user_mobile || '-'}</div>
+                      <div className="text-xs">{interaction.user_company || '-'}</div>
+                      <div className="text-xs">{interaction.user_location || '-'}</div>
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="font-medium">{interaction.button_name}</div>
+                    </TableCell>
+
                     <TableCell>
                       <Badge className={getButtonTypeColor(interaction.button_type)}>
                         {interaction.button_type}
                       </Badge>
                     </TableCell>
+
                     <TableCell>
                       <div className="text-sm font-semibold">{interaction.seller_name || '-'}</div>
                       <div className="text-xs">{interaction.seller_company || '-'}</div>
@@ -361,7 +388,9 @@ const ButtonTrackingDashboard: React.FC = () => {
                       <div className="text-xs">{interaction.seller_mobile || '-'}</div>
                       <div className="text-xs">{interaction.seller_location || '-'}</div>
                     </TableCell>
+
                     <TableCell><div className="text-sm">{interaction.item_type || '-'}</div></TableCell>
+
                     <TableCell>
                       <div className="text-xs text-muted-foreground truncate max-w-48">{interaction.page_url}</div>
                     </TableCell>
@@ -374,9 +403,7 @@ const ButtonTrackingDashboard: React.FC = () => {
               <div className="text-center py-8">
                 <MousePointer className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-muted-foreground">No Button Interactions Yet</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Button interaction data will appear here once users start clicking buttons on the platform.
-                </p>
+                <p className="text-sm text-muted-foreground mt-2">Button interaction data will appear here once users start clicking buttons on the platform.</p>
               </div>
             )}
 
@@ -384,9 +411,7 @@ const ButtonTrackingDashboard: React.FC = () => {
               <div className="text-center py-8">
                 <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-muted-foreground">No Results Found</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Try adjusting your search filters to see more results.
-                </p>
+                <p className="text-sm text-muted-foreground mt-2">Try adjusting your search filters to see more results.</p>
               </div>
             )}
           </div>
