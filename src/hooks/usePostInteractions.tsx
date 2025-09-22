@@ -65,23 +65,17 @@ export const usePostInteractions = () => {
         if (isBlogPost) {
           const { error } = await supabase
             .from('blog_likes')
-            .upsert({ 
+            .insert({ 
               blog_id: postId, 
               user_id: user.id 
-            }, { 
-              onConflict: 'blog_id,user_id',
-              ignoreDuplicates: false
             });
           if (error) throw error;
         } else {
           const { error } = await supabase
             .from('post_likes')
-            .upsert({ 
+            .insert({ 
               post_id: postId, 
               user_id: user.id 
-            }, { 
-              onConflict: 'post_id,user_id',
-              ignoreDuplicates: false
             });
           if (error) throw error;
         }

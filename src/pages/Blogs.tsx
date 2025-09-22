@@ -250,18 +250,6 @@ const Community = () => {
           }
         : post
     ));
-
-    // Use the hook to handle the actual like toggle if needed
-    const post = posts.find(p => p.id === postId);
-    if (post && user) {
-      const postType = post.post_type === 'blog' ? 'blog' : 'community_posts';
-      const currentInteraction = getInteraction(postId);
-      
-      // Only call toggleLike if the state has actually changed
-      if (currentInteraction && currentInteraction.user_liked !== userLiked) {
-        await toggleLike(postId, postType);
-      }
-    }
   };
 
   const handlePostDeleted = (postId: string) => {
