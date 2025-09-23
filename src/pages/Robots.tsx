@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye } from "lucide-react";
+import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye, Share2, MessageCircle, Brain, MapPin, Building, CheckCircle, Phone } from "lucide-react";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 const Robots = () => {
@@ -30,6 +32,7 @@ const Robots = () => {
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedRobotType, setSelectedRobotType] = useState("all");
+  const [selectedCompany, setSelectedCompany] = useState("all");
   const [sortBy, setSortBy] = useState("views"); // Default sort by view count
   const [groupBy, setGroupBy] = useState<"company" | "category" | "all">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -41,11 +44,17 @@ const Robots = () => {
   const [sellerProfiles, setSellerProfiles] = useState<{ [key: string]: any }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // AI Analysis states
+  const [showAiDialog, setShowAiDialog] = useState(false);
+  const [aiDialogLoading, setAiDialogLoading] = useState(false);
+  const [aiDialogData, setAiDialogData] = useState<any>(null);
 
   // Dropdown options dynamically extracted from robots data
   const [categories, setCategories] = useState([{ value: "all", label: "All Categories" }]);
   const [locations, setLocations] = useState([{ value: "all", label: "All Locations" }]);
   const [conditions, setConditions] = useState([{ value: "all", label: "All Conditions" }]);
+  const [companies, setCompanies] = useState([{ value: "all", label: "All Companies" }]);
   const [priceRanges] = useState([
     { value: "all", label: "All Prices" },
     { value: "under-50k", label: "Under ₹50,000" },
@@ -123,6 +132,7 @@ const Robots = () => {
         const uniqueLocations = new Set<string>();
         const uniqueConditions = new Set<string>();
         const uniqueRobotTypes = new Set<string>();
+        const uniqueCompanies = new Set<string>();
 
         data?.forEach((robot) => {
           if (robot.robot_type) uniqueRobotTypes.add(robot.robot_type);
@@ -130,6 +140,7 @@ const Robots = () => {
           if (robot.category_tags) robot.category_tags.forEach((tag: string) => tag && uniqueCategories.add(tag.trim()));
           if (robot.location) uniqueLocations.add(robot.location.trim());
           if (robot.condition) uniqueConditions.add(robot.condition.trim());
+          if (robot.profiles?.company_name) uniqueCompanies.add(robot.profiles.company_name.trim());
         });
 
         setCategories([
@@ -169,6 +180,16 @@ const Robots = () => {
             .map((type) => ({
               value: type.toLowerCase().replace(/\s+/g, "-"),
               label: type,
+            })),
+        ]);
+
+        setCompanies([
+          { value: "all", label: "All Companies" },
+          ...Array.from(uniqueCompanies)
+            .sort()
+            .map((company) => ({
+              value: company.toLowerCase().replace(/\s+/g, "-"),
+              label: company,
             })),
         ]);
       } catch (err) {
@@ -246,6 +267,14 @@ const Robots = () => {
       };
       const [min, max] = ranges[selectedPriceRange] || [0, Infinity];
       filteredRobots = filteredRobots.filter((r) => r.price >= min && r.price < max);
+    }
+
+    // Filter by company
+    if (selectedCompany !== "all") {
+      const companyLabel = getLabelFromValue(companies, selectedCompany).toLowerCase();
+      filteredRobots = filteredRobots.filter(
+        (r) => r.profiles?.company_name?.toLowerCase() === companyLabel
+      );
     }
 
     // Sort robots based on selected criteria
@@ -399,17 +428,17 @@ const Robots = () => {
             </div>
 
             {/* Secondary Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select value={selectedCondition} onValueChange={setSelectedCondition}>
                 <SelectTrigger>
                   <SelectValue placeholder="Condition" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Conditions</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="like-new">Like New</SelectItem>
-                  <SelectItem value="used">Used</SelectItem>
-                  <SelectItem value="refurbished">Refurbished</SelectItem>
+                  {conditions.map((cond) => (
+                    <SelectItem key={cond.value} value={cond.value}>
+                      {cond.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -418,15 +447,24 @@ const Robots = () => {
                   <SelectValue placeholder="Robot Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {robots
-                    .map((r) => r.robot_type)
-                    .filter((v, i, a) => v && a.indexOf(v) === i)
-                    .map((type) => (
-                      <SelectItem key={type} value={type.toLowerCase().replace(/\s+/g, "-")}>
-                        {type}
-                      </SelectItem>
-                    ))}
+                  {robotTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.value} value={company.value}>
+                      {company.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -563,7 +601,7 @@ const Robots = () => {
                 {/* Robot Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {robotsGroup.map((robot) => (
-                     <Card key={robot.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group" onClick={async () => {
+                     <Card key={robot.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group" onClick={async () => {
                        await trackButtonClick({
                          buttonName: "View Robot from List",
                          buttonType: "navigation",
@@ -584,6 +622,7 @@ const Robots = () => {
                              selectedCondition,
                              selectedPriceRange,
                              selectedRobotType,
+                             selectedCompany,
                              sortBy,
                              groupBy,
                              viewMode
@@ -591,60 +630,317 @@ const Robots = () => {
                            groupName: key || "all"
                          }
                        });
-                       navigate(`/robots/${robot.id}`);
-                     }}>
-                      <div className="aspect-video relative overflow-hidden">
-                        <img
-                          src={robot.images?.[0] || "/placeholder.svg"}
-                          alt={robot.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute top-2 right-2">
-                          <ViewCountDisplay targetType="robots" targetId={robot.id} />
-                        </div>
-                        {robot.condition && (
-                          <div className="absolute top-2 left-2">
-                            <Badge variant={robot.condition === 'new' ? 'default' : 'secondary'} className="text-xs">
-                              {robot.condition}
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div>
-                            <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">{robot.name}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-1">{robot.model}</p>
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-xs">{robot.robot_type}</Badge>
-                            <span className="text-xs text-muted-foreground">{robot.location}</span>
-                          </div>
+                        // Track comprehensive robot view with seller information
+                        trackButtonClick({
+                          buttonName: "Robot Card View",
+                          buttonType: "robot_listing_click",
+                          sellerId: robot.seller_id,
+                          sellerName: robot.profiles?.full_name,
+                          sellerCompany: robot.profiles?.company_name,
+                          sellerEmail: robot.profiles?.email,
+                          sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                          sellerLocation: robot.location,
+                          itemId: robot.id,
+                          itemType: "robot",
+                          additionalData: {
+                            robotName: robot.name,
+                            robotModel: robot.model,
+                            robotType: robot.robot_type,
+                            price: robot.price,
+                            brand: robot.brand,
+                            viewSource: "robot_listing_page",
+                            groupName: key || "all"
+                          }
+                        });
+                        navigate(`/robots/${robot.id}`);
+                      }}>
+                       {/* Robot Image */}
+                       <div className="relative overflow-hidden rounded-lg">
+                         {robot.images && robot.images.length > 0 ? (
+                           <ResponsiveImage
+                             src={robot.images[0]}
+                             alt={robot.name}
+                             aspectRatio="auto"
+                             objectFit="cover"
+                             hoverEffect={true}
+                             containerClassName="h-80 min-h-80 w-full"
+                             className="transition-transform duration-300 w-full h-full"
+                             style={{ 
+                               imageRendering: "auto"
+                             }}
+                           />
+                         ) : (
+                           <div className="w-full h-80 flex items-center justify-center bg-muted rounded-lg">
+                             <Bot className="w-16 h-16 text-muted-foreground" />
+                           </div>
+                         )}
+                         
+                         {/* Condition Badge */}
+                         <div className="absolute top-2 left-2">
+                           <Badge variant={robot.condition === 'new' ? 'default' : 'secondary'} className="text-xs">
+                             {robot.condition?.replace("_", " ") || "Used"}
+                           </Badge>
+                         </div>
+                         
+                         {/* View Count and Share Button */}
+                         <div className="absolute top-2 right-2 flex gap-1">
+                           <ViewCountDisplay targetType="robots" targetId={robot.id} />
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               if (navigator.share) {
+                                 navigator.share({
+                                   title: robot.name,
+                                   text: `Check out this ${robot.robot_type}: ${robot.name} for ${formatPrice(robot.price, robot.currency)}`,
+                                   url: `${window.location.origin}/robots/${robot.id}`,
+                                 });
+                               } else {
+                                 navigator.clipboard.writeText(`${window.location.origin}/robots/${robot.id}`);
+                                 toast({
+                                   title: "Link copied!",
+                                   description: "Robot listing link copied to clipboard",
+                                 });
+                               }
+                             }}
+                           >
+                             <Share2 className="w-4 h-4 text-gray-600" />
+                           </Button>
+                         </div>
+                       </div>
 
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-xl text-primary">
-                              {formatPrice(robot.price, robot.currency)}
-                            </span>
-                            <Badge variant="secondary" className="text-xs">
-                              {robot.availability}
-                            </Badge>
-                          </div>
-                          
-                          <div className="text-xs text-muted-foreground border-t pt-2">
-                            <span className="font-medium">
-                              by {robot.profiles?.company_name || robot.profiles?.full_name}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                       <CardContent className="p-4">
+                         <div className="space-y-3">
+                           {/* Robot Details */}
+                           <div>
+                             <h3 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-primary transition-colors">
+                               {robot.name}
+                             </h3>
+                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                               <span className="font-medium">{robot.brand || "Unknown Brand"}</span>
+                               {robot.model && (
+                                 <>
+                                   <span>•</span>
+                                   <span>{robot.model}</span>
+                                 </>
+                               )}
+                             </div>
+                             <div className="flex items-center justify-between mb-2">
+                               <Badge variant="outline" className="text-xs">
+                                 {robot.robot_type}
+                               </Badge>
+                               <span className="text-xs text-muted-foreground">Qty: {robot.quantity || 1}</span>
+                             </div>
+                           </div>
+
+                           {/* Location & Price */}
+                           <div className="space-y-2">
+                             <div className="flex items-center text-sm text-muted-foreground">
+                               <MapPin className="w-3 h-3 mr-1" />
+                               <span className="line-clamp-1">{robot.location || "Location not specified"}</span>
+                             </div>
+                             <div className="flex items-center justify-between">
+                               <div className="flex items-center text-lg font-bold text-primary">
+                                 {formatPrice(robot.price, robot.currency)}
+                               </div>
+                               <Badge variant="secondary" className="text-xs">
+                                 {robot.availability}
+                               </Badge>
+                             </div>
+                           </div>
+
+                           {/* Categories Tags */}
+                           {robot.category_tags && robot.category_tags.length > 0 && (
+                             <div className="flex flex-wrap gap-1">
+                               {robot.category_tags.slice(0, 2).map((tag, index) => (
+                                 <Badge key={index} variant="outline" className="text-xs">
+                                   {tag}
+                                 </Badge>
+                               ))}
+                               {robot.category_tags.length > 2 && (
+                                 <Badge variant="outline" className="text-xs">
+                                   +{robot.category_tags.length - 2}
+                                 </Badge>
+                               )}
+                             </div>
+                           )}
+
+                           {/* Seller info */}
+                           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+                             <div className="flex items-center">
+                               <Building className="w-3 h-3 mr-1" />
+                               <span className="line-clamp-1">
+                                 {robot.profiles?.company_name || robot.profiles?.full_name || "Verified Seller"}
+                               </span>
+                             </div>
+                             <div className="flex items-center">
+                               <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
+                               <span>Verified</span>
+                             </div>
+                           </div>
+
+                           {/* Action Buttons */}
+                           <div className="grid grid-cols-2 gap-2 pt-2">
+                             <Button
+                               variant="outline"
+                               size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Track view details button click
+                                  trackButtonClick({
+                                    buttonName: "View Details",
+                                    buttonType: "robot_details_button",
+                                    sellerId: robot.seller_id,
+                                    sellerName: robot.profiles?.full_name,
+                                    sellerCompany: robot.profiles?.company_name,
+                                    sellerEmail: robot.profiles?.email,
+                                    sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                                    sellerLocation: robot.location,
+                                    itemId: robot.id,
+                                    itemType: "robot",
+                                    additionalData: {
+                                      robotName: robot.name,
+                                      robotType: robot.robot_type,
+                                      viewSource: "details_button"
+                                    }
+                                  });
+                                  navigate(`/robots/${robot.id}`);
+                                }}
+                             >
+                               <Eye className="w-3 h-3 mr-1" />
+                               Details
+                             </Button>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               className="whitespace-nowrap px-2"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 if (!user) {
+                                   toast({
+                                     variant: "destructive",
+                                     title: "Sign In Required",
+                                     description: "Please sign in to contact sellers",
+                                   });
+                                   return;
+                                 }
+                                 const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
+                                 if (!phone) {
+                                   toast({
+                                     variant: "destructive",
+                                     title: "Contact Unavailable",
+                                     description: "Contact information not available for this seller",
+                                   });
+                                   return;
+                                 }
+                                 const phoneNumber = phone.replace(/\D/g, "");
+                                 window.open(`tel:${phoneNumber}`, '_self');
+                               }}
+                               disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
+                             >
+                               <MessageCircle className="w-3 h-3 mr-1" />
+                               {user ? "Contact" : "Sign In"}
+                             </Button>
+                           </div>
+
+                           {/* AI Analysis Button */}
+                           <Button
+                             variant={user ? "default" : "secondary"}
+                             size="sm"
+                             className="w-full"
+                             onClick={async (e) => {
+                               e.stopPropagation();
+                               if (!user) {
+                                 toast({
+                                   variant: "destructive",
+                                   title: "Sign In Required",
+                                   description: "Please sign in to use RobotVerse AI analysis",
+                                 });
+                                 return;
+                               }
+                               setShowAiDialog(true);
+                               setAiDialogLoading(true);
+                               setAiDialogData(null);
+                               try {
+                                 const { data, error } = await supabase.functions.invoke("roboverse-ai-analyze", {
+                                   body: { robotId: robot.id },
+                                 });
+                                 if (error) throw error;
+                                 setAiDialogData(data);
+                                 toast({
+                                   title: "AI Analysis Complete",
+                                   description: "AI analysis results loaded.",
+                                 });
+                               } catch (err) {
+                                 toast({
+                                   variant: "destructive",
+                                   title: "AI Analysis Failed",
+                                   description: err instanceof Error ? err.message : "Failed to get AI analysis",
+                                 });
+                                 setShowAiDialog(false);
+                               } finally {
+                                 setAiDialogLoading(false);
+                               }
+                             }}
+                           >
+                             <Brain className="w-4 h-4 mr-1" />
+                             {user ? "AI Analysis" : "Sign in for AI Analysis"}
+                           </Button>
+                         </div>
+                       </CardContent>
+                     </Card>
+                   ))}
+                 </div>
               </div>
             ))}
           </div>
         )}
+        
+        {/* AI Analysis Dialog */}
+        <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
+          <DialogContent className="bg-white text-gray-900 max-w-3xl max-h-[80vh] overflow-y-auto p-6">
+            <DialogHeader>
+              <DialogTitle>Robot AI Analysis</DialogTitle>
+              <DialogClose asChild>
+                <button className="absolute top-3 right-3 rounded p-1 hover:bg-gray-200">✕</button>
+              </DialogClose>
+            </DialogHeader>
+            <DialogDescription className="mt-4 whitespace-pre-wrap text-gray-900">
+              {aiDialogLoading && (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin w-6 h-6" /> Loading AI analysis...
+                </div>
+              )}
+              {!aiDialogLoading && aiDialogData ? (
+                <>
+                  <section className="mb-4">
+                    <h3 className="font-semibold text-lg mb-1">Summary</h3>
+                    <p>{aiDialogData.analysis?.summary || "Analysis data unavailable"}</p>
+                  </section>
+                  {aiDialogData.analysis?.suitability && (
+                    <section className="mb-4">
+                      <h3 className="font-semibold text-lg mb-1">Suitability</h3>
+                      <p>{aiDialogData.analysis.suitability}</p>
+                    </section>
+                  )}
+                  {aiDialogData.analysis?.technicalInsights && (
+                    <section className="mb-4">
+                      <h3 className="font-semibold text-lg mb-1">Technical Insights</h3>
+                      <p>{aiDialogData.analysis.technicalInsights}</p>
+                    </section>
+                  )}
+                  <footer className="text-xs text-right text-muted border-t pt-2">
+                    Generated: {new Date().toLocaleString()}
+                  </footer>
+                </>
+              ) : (!aiDialogLoading && !aiDialogData) ? (
+                <p>No analysis data available.</p>
+              ) : null}
+            </DialogDescription>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

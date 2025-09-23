@@ -1,14 +1,43 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Truck, MapPin, Phone, Mail, Package, Clock, Shield } from "lucide-react";
+import {
+  Search,
+  Truck,
+  MapPin,
+  Phone,
+  Mail,
+  Package,
+  Clock,
+  Shield,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface LogisticsProvider {
@@ -35,10 +64,13 @@ interface LogisticsProvider {
 
 const Logistics = () => {
   const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
   const [providers, setProviders] = useState<LogisticsProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState<LogisticsProvider | null>(null);
+  const [selectedProvider, setSelectedProvider] =
+    useState<LogisticsProvider | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
 
@@ -50,7 +82,8 @@ const Logistics = () => {
     try {
       const { data, error } = await supabase
         .from("logistics_services")
-        .select(`
+        .select(
+          `
           *,
           provider:provider_id (
             full_name,
@@ -59,7 +92,8 @@ const Logistics = () => {
             phone,
             email
           )
-        `)
+        `
+        )
         .eq("is_active", true);
 
       if (error) throw error;
@@ -76,19 +110,64 @@ const Logistics = () => {
     }
   };
 
-  const filteredProviders = providers.filter(provider =>
-    provider.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.coverage_areas.some(area => area.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredProviders = providers.filter(
+    (provider) =>
+      provider.service_name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      provider.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.coverage_areas.some((area) =>
+        area.toLowerCase().includes(searchTerm.toLowerCase())
+      )
   );
 
   const handleViewContact = (provider: LogisticsProvider) => {
+    // Track contact interaction
+    trackButtonClick({
+      buttonName: "Contact Provider",
+      buttonType: "logistics_contact",
+      sellerId: provider.provider_id,
+      sellerName: provider.provider?.full_name,
+      sellerCompany: provider.provider?.company_name,
+      sellerEmail: provider.provider?.email,
+      sellerMobile: provider.provider?.phone,
+      sellerLocation: provider.provider?.location,
+      itemId: provider.id,
+      itemType: "logistics",
+      additionalData: {
+        serviceName: provider.service_name,
+        serviceType: provider.service_type,
+        coverageAreas: provider.coverage_areas,
+        transportModes: provider.transport_modes,
+        basePrice: provider.base_price
+      }
+    });
+
     setSelectedProvider(provider);
     setShowContactModal(true);
   };
 
   const handleGetQuote = (provider: LogisticsProvider) => {
+    // Track quote request interaction
+    trackButtonClick({
+      buttonName: "Get Quote",
+      buttonType: "logistics_quote",
+      sellerId: provider.provider_id,
+      sellerName: provider.provider?.full_name,
+      sellerCompany: provider.provider?.company_name,
+      sellerEmail: provider.provider?.email,
+      sellerMobile: provider.provider?.phone,
+      sellerLocation: provider.provider?.location,
+      itemId: provider.id,
+      itemType: "logistics",
+      additionalData: {
+        serviceName: provider.service_name,
+        serviceType: provider.service_type,
+        deliveryTime: provider.delivery_time_hours
+      }
+    });
+
     setSelectedProvider(provider);
     setShowQuoteModal(true);
   };
@@ -100,7 +179,9 @@ const Logistics = () => {
         <Input placeholder="Enter pickup address" />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Delivery Location</label>
+        <label className="block text-sm font-medium mb-2">
+          Delivery Location
+        </label>
         <Input placeholder="Enter delivery address" />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -109,37 +190,41 @@ const Logistics = () => {
           <Input type="number" placeholder="0" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Dimensions</label>
+          <label className="block text-sm font-medium mb-2">
+            Dimensions
+          </label>
           <Input placeholder="L x W x H (cm)" />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Additional Requirements</label>
-        <textarea 
+        <label className="block text-sm font-medium mb-2">
+          Additional Requirements
+        </label>
+        <textarea
           className="w-full p-2 border rounded-md resize-none"
           rows={3}
           placeholder="Special handling instructions, delivery time requirements, etc."
         />
       </div>
-      <Button className="w-full">
-        Submit Quote Request
-      </Button>
+      <Button className="w-full">Submit Quote Request</Button>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
-      
+
       <main className="container mx-auto px-4 py-8">
+        {/* Search & Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Logistics Providers</h1>
             <p className="text-muted-foreground mt-2">
-              Find reliable logistics partners for your robot transportation needs
+              Find reliable logistics partners for your robot transportation
+              needs
             </p>
           </div>
-          
+
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -151,6 +236,7 @@ const Logistics = () => {
           </div>
         </div>
 
+        {/* Providers grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
@@ -171,36 +257,45 @@ const Logistics = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProviders.map((provider) => (
-              <Card key={provider.id} className="h-full flex flex-col">
+              <Card 
+                key={provider.id} 
+                className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => trackItemView('logistics_services', provider.id, provider)}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Truck className="h-5 w-5 text-primary" />
                     {provider.service_name}
                   </CardTitle>
                   <CardDescription>
-                    {provider.provider?.company_name || provider.provider?.full_name}
+                    {provider.provider?.company_name ||
+                      provider.provider?.full_name}
                   </CardDescription>
                 </CardHeader>
-                
+
                 <CardContent className="flex-1">
                   <p className="text-sm text-muted-foreground mb-4">
                     {provider.description}
                   </p>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{provider.service_type}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{provider.delivery_time_hours}h delivery</span>
+                      <span className="text-sm">
+                        {provider.delivery_time_hours}h delivery
+                      </span>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1">
                       {provider.tracking_available && (
-                        <Badge variant="secondary" className="text-xs">Tracking</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          Tracking
+                        </Badge>
                       )}
                       {provider.insurance_included && (
                         <Badge variant="secondary" className="text-xs">
@@ -209,68 +304,47 @@ const Logistics = () => {
                         </Badge>
                       )}
                       {provider.emergency_delivery && (
-                        <Badge variant="secondary" className="text-xs">Emergency</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          Emergency
+                        </Badge>
                       )}
                     </div>
-                    
+
                     <div className="text-sm text-muted-foreground">
-                      <strong>Coverage:</strong> {provider.coverage_areas.slice(0, 2).join(", ")}
-                      {provider.coverage_areas.length > 2 && ` +${provider.coverage_areas.length - 2} more`}
+                      <strong>Coverage:</strong>{" "}
+                      {provider.coverage_areas.slice(0, 2).join(", ")}
+                      {provider.coverage_areas.length > 2 &&
+                        ` +${provider.coverage_areas.length - 2} more`}
                     </div>
-                    
+
                     <div className="text-sm text-muted-foreground">
-                      <strong>Transport:</strong> {provider.transport_modes.join(", ")}
+                      <strong>Transport:</strong>{" "}
+                      {provider.transport_modes.join(", ")}
                     </div>
                   </div>
                 </CardContent>
-                
+
+                {/* 🚀 Two Action Buttons */}
                 <CardFooter className="flex gap-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            disabled={!user}
-                            onClick={() => handleViewContact(provider)}
-                          >
-                            <Phone className="h-4 w-4 mr-2" />
-                            Contact
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      {!user && (
-                        <TooltipContent>
-                          <p>Sign in to access this feature</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex-1">
-                          <Button
-                            size="sm"
-                            className="w-full"
-                            disabled={!user}
-                            onClick={() => handleGetQuote(provider)}
-                          >
-                            <Package className="h-4 w-4 mr-2" />
-                            Get Quote
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      {!user && (
-                        <TooltipContent>
-                          <p>Sign in to access this feature</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    size="sm"
+                    disabled={!user}
+                    onClick={() => handleViewContact(provider)}
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    Contact
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    size="sm"
+                    disabled={!user}
+                    onClick={() => handleGetQuote(provider)}
+                  >
+                    <Package className="h-4 h-4 mr-2" />
+                    Get Quote
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
@@ -280,9 +354,13 @@ const Logistics = () => {
         {filteredProviders.length === 0 && !loading && (
           <div className="text-center py-12">
             <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No logistics providers found</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              No logistics providers found
+            </h3>
             <p className="text-muted-foreground">
-              {searchTerm ? "Try adjusting your search terms" : "No providers are currently available"}
+              {searchTerm
+                ? "Try adjusting your search terms"
+                : "No providers are currently available"}
             </p>
           </div>
         )}
@@ -294,23 +372,30 @@ const Logistics = () => {
           <DialogHeader>
             <DialogTitle>Contact Details</DialogTitle>
             <DialogDescription>
-              {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
+              {selectedProvider?.provider?.company_name ||
+                selectedProvider?.provider?.full_name}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedProvider?.provider && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.phone || "Not provided"}</span>
+                <span>
+                  {selectedProvider.provider.phone || "Not provided"}
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.email || "Not provided"}</span>
+                <span>
+                  {selectedProvider.provider.email || "Not provided"}
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.location || "Not provided"}</span>
+                <span>
+                  {selectedProvider.provider.location || "Not provided"}
+                </span>
               </div>
             </div>
           )}
@@ -323,7 +408,9 @@ const Logistics = () => {
           <DialogHeader>
             <DialogTitle>Request Quote</DialogTitle>
             <DialogDescription>
-              Get a quote from {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
+              Get a quote from{" "}
+              {selectedProvider?.provider?.company_name ||
+                selectedProvider?.provider?.full_name}
             </DialogDescription>
           </DialogHeader>
           <QuoteRequestForm />

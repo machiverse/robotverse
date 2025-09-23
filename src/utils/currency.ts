@@ -59,6 +59,30 @@ export function formatPrice(amount: number, currency: Currency): string {
 }
 
 /**
+ * Format currency with better handling for any currency string
+ */
+export function formatCurrency(amount: number, currency: string = 'INR'): string {
+  if (amount === null || amount === undefined) {
+    return 'Price on Request';
+  }
+  
+  // Handle legacy currency codes
+  const normalizedCurrency = currency.toUpperCase() as Currency;
+  
+  if (CURRENCY_SYMBOLS[normalizedCurrency]) {
+    return formatPrice(amount, normalizedCurrency);
+  }
+  
+  // Fallback for unknown currencies
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/**
  * Compare two prices by converting both to INR
  */
 export function comparePrices(

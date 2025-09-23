@@ -77,7 +77,7 @@ const BlogEditor = () => {
     } catch (error) {
       console.error('Error fetching blog:', error);
       toast.error('Failed to load blog post');
-      navigate('/blogs');
+      navigate('/robobook');
     } finally {
       setLoading(false);
     }
@@ -193,7 +193,7 @@ const BlogEditor = () => {
 
         if (error) throw error;
         toast.success('Draft saved successfully');
-        navigate(`/blogs/${data.id}/edit`);
+        navigate(`/robobook/${data.id}/edit`);
       }
     } catch (error) {
       console.error('Error saving draft:', error);
@@ -233,12 +233,12 @@ const BlogEditor = () => {
           .single();
 
         if (error) throw error;
-        navigate(`/blogs/${data.id}`);
+        navigate(`/robobook/${data.id}`);
         toast.success('Blog published successfully');
         return;
       }
 
-      navigate(`/blogs/${id}`);
+      navigate(`/robobook/${id}`);
       toast.success('Blog published successfully');
     } catch (error) {
       console.error('Error publishing blog:', error);
@@ -277,10 +277,10 @@ const BlogEditor = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <Link to="/blogs">
+              <Link to="/robobook">
                 <Button variant="ghost" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Blogs
+                  Back to RoboBook
                 </Button>
               </Link>
               <h1 className="text-2xl font-bold">

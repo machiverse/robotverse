@@ -220,9 +220,9 @@ const Privacy = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm">
-              <p><strong>Email:</strong> privacy@robotverse.com</p>
-              <p><strong>Address:</strong> 123 Innovation Drive, Tech City, TC 12345</p>
-              <p><strong>Phone:</strong> +1 (555) 123-4567</p>
+              <p><strong>Email:</strong> support@robotverse.in</p>
+              <p><strong>Address:</strong>  SIPCOT IT Park, 5-B/9, 6th Cross St, Siruseri, Chennai, Tamil Nadu 603103</p>
+              <p><strong>Phone:</strong> +918610925352</p>
             </div>
           </CardContent>
         </Card>

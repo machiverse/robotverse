@@ -7,7 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
+import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
 
 interface Part {
   id: string;
@@ -39,7 +43,12 @@ const Parts = () => {
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [selectedPart, setSelectedPart] = useState<Part | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
 
   const categories = [
     { value: "all", label: "All Parts" },
@@ -113,7 +122,16 @@ const Parts = () => {
   }, []);
 
   // Handle contact seller
-  const handleContactSeller = (part: Part) => {
+  const handleContactSeller = async (part: Part) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please login to contact the seller.",
+      });
+      return;
+    }
+
     const phone = part.seller?.phone || part.seller?.mobile_number;
     
     if (!phone) {
@@ -124,6 +142,73 @@ const Parts = () => {
       });
       return;
     }
+
+    // Track button interaction
+    trackButtonClick({
+      buttonName: "Contact Seller",
+      buttonType: "spare_parts_contact",
+      sellerId: part.sellerId,
+      sellerName: part.seller?.full_name,
+      sellerCompany: part.seller?.company_name,
+      sellerEmail: part.seller?.email,
+      sellerMobile: phone,
+      sellerLocation: part.location,
+      itemId: part.id,
+      itemType: "spare_part",
+      additionalData: {
+        partName: part.name,
+        partNumber: part.partNumber,
+        category: part.category,
+        price: part.price,
+        contactMethod: "phone"
+      }
+    });
+
+    try {
+      // Log the contact request
+      const { error: requestError } = await supabase
+        .from('user_requests')
+        .insert({
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || 'Unknown User',
+          company_name: user.user_metadata?.company_name || '',
+          mobile_number: user.user_metadata?.phone || '',
+          email_address: user.email || '',
+          location: user.user_metadata?.location || '',
+          request_type: 'Contact Seller',
+          item_type: 'spare_parts',
+          item_id: part.id,
+          item_name: part.name,
+          seller_id: part.sellerId || '',
+          status: 'pending',
+          requirements: `User contacted seller for spare part: ${part.name}`
+        });
+
+      if (requestError) {
+        console.error('Error logging request:', requestError);
+      }
+
+      // Create notification for seller
+      if (part.sellerId) {
+        const { error: notificationError } = await supabase
+          .from('seller_notifications')
+          .insert({
+            seller_id: part.sellerId,
+            user_id: user.id,
+            type: 'contact_request',
+            title: 'New Contact Request',
+            message: `${user.user_metadata?.full_name || 'A user'} wants to contact you about ${part.name}`,
+            item_type: 'spare_parts',
+            item_id: part.id
+          });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing contact request:', error);
+    }
     
     window.open(`tel:${phone}`, '_self');
     toast({
@@ -132,7 +217,40 @@ const Parts = () => {
     });
   };
 
-  // Filter parts based on search and selections
+  // Handle request quote
+  const handleRequestQuote = (part: Part) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please login to request a quote.",
+      });
+      return;
+    }
+
+    // Track button interaction
+    trackButtonClick({
+      buttonName: "Request Quote",
+      buttonType: "spare_parts_action",
+      sellerId: part.sellerId,
+      sellerName: part.seller?.full_name,
+      sellerCompany: part.seller?.company_name,
+      sellerEmail: part.seller?.email,
+      sellerMobile: part.seller?.phone || part.seller?.mobile_number,
+      sellerLocation: part.location,
+      itemId: part.id,
+      itemType: "spare_part",
+      additionalData: {
+        partName: part.name,
+        partNumber: part.partNumber,
+        category: part.category,
+        price: part.price
+      }
+    });
+    
+    setSelectedPart(part);
+    setIsQuoteModalOpen(true);
+  };
   const filteredParts = parts.filter((part) => {
     const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -267,7 +385,11 @@ const Parts = () => {
             {/* Results */}
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredParts.map((part) => (
-                <Card key={part.id} className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1">
+                <Card 
+                  key={part.id} 
+                  className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
+                  onClick={() => trackItemView('spare_parts', part.id, part)}
+                >
                   <CardHeader>
                     <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
                       {part.image && part.image !== "/placeholder.svg" ? (
@@ -313,16 +435,21 @@ const Parts = () => {
                         <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
                       </div>
                       <div className="flex space-x-2 pt-2">
-                        <Button size="sm" className="flex-1">
-                          Add to Cart
+                        <Button 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleRequestQuote(part)}
+                          disabled={!user}
+                        >
+          {user ? "Request Quote" : "Login to Quote"}
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => handleContactSeller(part)}
-                          disabled={!part.seller?.phone && !part.seller?.mobile_number}
+                          disabled={!user || (!part.seller?.phone && !part.seller?.mobile_number)}
                         >
-                          Contact Seller
+                          {user ? "Contact Seller" : "Login to Contact"}
                         </Button>
                       </div>
                     </div>
@@ -342,6 +469,15 @@ const Parts = () => {
           </>
         )}
       </div>
+
+      {/* Quote Modal */}
+      <SparePartQuoteModal
+        isOpen={isQuoteModalOpen}
+        onClose={() => setIsQuoteModalOpen(false)}
+        part={selectedPart}
+        userEmail={user?.email || ''}
+        userName={user?.user_metadata?.full_name || 'User'}
+      />
     </div>
   );
 };

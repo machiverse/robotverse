@@ -47,14 +47,15 @@ const BlogComments = ({ blogId }: BlogCommentsProps) => {
 
       if (error) throw error;
 
+      // Only show comments if user is authenticated
+      if (!user) {
+        setComments([]);
+        return;
+      }
+
       // Fetch author info for each comment
       const commentsWithAuthors = await Promise.all(
         (data || []).map(async (comment) => {
-          if (!user) {
-            // Don't fetch author info for non-logged users
-            return comment;
-          }
-          
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name, company_name')

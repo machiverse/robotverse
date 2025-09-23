@@ -39,7 +39,10 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
 import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 
 interface SparePart {
@@ -75,6 +78,7 @@ interface PartFormData {
 const SparePartsSellerDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { viewStats, fetchUserItemViews } = useViewTracking();
 
   // State
   const [spareParts, setSpareParts] = useState<SparePart[]>([]);
@@ -109,7 +113,10 @@ const SparePartsSellerDashboard = () => {
 
   useEffect(() => {
     fetchSpareParts();
-  }, [user]);
+    if (user) {
+      fetchUserItemViews(user.id);
+    }
+  }, [user, fetchUserItemViews]);
 
   useEffect(() => {
     calculateStats();
@@ -171,7 +178,7 @@ const SparePartsSellerDashboard = () => {
       outOfStock,
       totalValue,
       avgPrice,
-      recentSales: 0 // This would come from sales data
+      recentSales: 0 // Will be calculated from actual sales data when available
     });
   };
 
@@ -350,7 +357,7 @@ const SparePartsSellerDashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Parts</CardTitle>
@@ -402,51 +409,73 @@ const SparePartsSellerDashboard = () => {
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{viewStats?.totalViews || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Product engagement
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Filters and Search */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search parts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="inventory" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
+          <TabsTrigger value="views">View Statistics</TabsTrigger>
+          <TabsTrigger value="requests">User Requests</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inventory" className="mt-6">
+          {/* Filters and Search */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search parts..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Parts</SelectItem>
+                  <SelectItem value="in_stock">In Stock</SelectItem>
+                  <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Parts</SelectItem>
-              <SelectItem value="in_stock">In Stock</SelectItem>
-              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="w-4 h-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
 
-      {/* Parts List/Grid */}
-      {filteredParts.length === 0 ? (
+          {/* Parts List/Grid */}
+          {filteredParts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="w-12 h-12 text-gray-400 mb-4" />
@@ -463,9 +492,9 @@ const SparePartsSellerDashboard = () => {
                 Add Your First Part
               </Button>
             )}
-          </CardContent>
-        </Card>
-      ) : viewMode === 'grid' ? (
+              </CardContent>
+            </Card>
+          ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredParts.map((part) => (
             <Card key={part.id} className="overflow-hidden">
@@ -502,12 +531,12 @@ const SparePartsSellerDashboard = () => {
                     </p>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
           <Table>
             <TableHeader>
               <TableRow>
@@ -547,6 +576,16 @@ const SparePartsSellerDashboard = () => {
           </Table>
         </Card>
       )}
+        </TabsContent>
+
+        <TabsContent value="views" className="mt-6">
+          <ViewAnalyticsDashboard sellerId={user?.id} />
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-6">
+          <UserRequestsManagement />
+        </TabsContent>
+      </Tabs>
       </div>
     </div>
   );

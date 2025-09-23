@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
 import {
   Dialog,
@@ -101,6 +104,8 @@ interface AIAnalysisResult {
 const RobotListings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
   const navigate = useNavigate();
 
   // State variables
@@ -814,22 +819,35 @@ const RobotListings = () => {
                 onClick={() => navigate(`/robots/${robot.id}`)}
               >
                 {/* Robot Image */}
-                <div
-                  className={`relative bg-gradient-to-br from-muted to-muted/50 ${
-                    viewMode === "list" ? "w-48 h-32" : "h-48"
+                 <div
+                  className={`relative overflow-hidden rounded-lg ${
+                    viewMode === "list" ? "w-48" : ""
                   }`}
-                >
-                  {robot.images && robot.images.length > 0 ? (
-                    <img
-                      src={robot.images[0]}
-                      alt={robot.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Bot className="w-16 h-16 text-muted-foreground" />
-                    </div>
-                  )}
+                 >
+                   {robot.images && robot.images.length > 0 ? (
+                     <ResponsiveImage
+                       src={robot.images[0]}
+                       alt={robot.name}
+                       aspectRatio="auto"
+                       objectFit="cover"
+                       hoverEffect={true}
+                       containerClassName={`${
+                         viewMode === "list" 
+                           ? "h-40 min-h-40" 
+                           : "h-64 min-h-64"
+                       } w-full`}
+                       className="transition-transform duration-300 w-full h-full"
+                       style={{ 
+                         imageRendering: "auto"
+                       }}
+                     />
+                   ) : (
+                     <div className={`w-full flex items-center justify-center bg-muted rounded-lg ${
+                       viewMode === "list" ? "h-40" : "h-64"
+                     }`}>
+                       <Bot className="w-16 h-16 text-muted-foreground" />
+                     </div>
+                   )}
                   {/* Condition Badge */}
                   <div className="absolute top-2 left-2">
                     <Badge className={getConditionColor(robot.condition || "used")}>
@@ -943,6 +961,25 @@ const RobotListings = () => {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
+                          trackItemView('robots', robot.id, robot);
+                          trackButtonClick({
+                            buttonName: "View Details",
+                            buttonType: "robot_view",
+                            sellerId: robot.seller_id,
+                            sellerName: robot.profiles?.full_name,
+                            sellerCompany: robot.profiles?.company_name,
+                            sellerEmail: robot.profiles?.email,
+                            sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                            sellerLocation: robot.location,
+                            itemId: robot.id,
+                            itemType: "robot",
+                            additionalData: {
+                              robotName: robot.name,
+                              robotType: robot.robot_type,
+                              price: robot.price,
+                              brand: robot.brand
+                            }
+                          });
                           navigate(`/robots/${robot.id}`);
                         }}
                       >
@@ -952,6 +989,7 @@ const RobotListings = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="whitespace-nowrap px-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!user) {
@@ -962,6 +1000,23 @@ const RobotListings = () => {
                             });
                             return;
                           }
+                          trackButtonClick({
+                            buttonName: "Contact Seller",
+                            buttonType: "robot_contact",
+                            sellerId: robot.seller_id,
+                            sellerName: robot.profiles?.full_name,
+                            sellerCompany: robot.profiles?.company_name,
+                            sellerEmail: robot.profiles?.email,
+                            sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                            sellerLocation: robot.location,
+                            itemId: robot.id,
+                            itemType: "robot",
+                            additionalData: {
+                              robotName: robot.name,
+                              robotType: robot.robot_type,
+                              contactMethod: "whatsapp_or_phone"
+                            }
+                          });
                           handleContactSeller(robot, e);
                         }}
                         disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
@@ -978,6 +1033,19 @@ const RobotListings = () => {
                       className="w-full"
                       onClick={(e) => {
                         e.stopPropagation();
+                        trackButtonClick({
+                          buttonName: "AI Analysis",
+                          buttonType: "robot_ai_analysis",
+                          sellerId: robot.seller_id,
+                          sellerName: robot.profiles?.full_name,
+                          sellerCompany: robot.profiles?.company_name,
+                          itemId: robot.id,
+                          itemType: "robot",
+                          additionalData: {
+                            robotName: robot.name,
+                            robotType: robot.robot_type
+                          }
+                        });
                         handleAnalyzeRobot(robot);
                       }}
                       disabled={aiAnalysisLoading && aiAnalysisRobotId === robot.id}

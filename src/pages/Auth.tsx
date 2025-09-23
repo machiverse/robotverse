@@ -21,14 +21,9 @@ const Auth = () => {
   // Form state
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [isResetPassword, setIsResetPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -75,112 +70,70 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?reset=true`,
+      console.log('🔐 Sending password reset email to:', email);
+      
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Reset password error:', error);
+        throw error;
+      }
+
+      console.log('✅ Password reset email sent successfully');
 
       toast({
         title: "Reset Link Sent",
-        description: "Check your email for the password reset link.",
+        description: "Check your email for the password reset link. The link will take you to a secure page to set your new password.",
       });
       setIsForgotPassword(false);
+      setEmail(''); // Clear email field
     } catch (error: any) {
       console.error('❌ Forgot password error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to send reset email.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle password reset
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPassword || !confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Required Fields",
-        description: "Please fill in both password fields.",
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Password Mismatch",
-        description: "The passwords do not match.",
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Weak Password",
-        description: "Password must be at least 6 characters long.",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully. You can now sign in.",
-      });
       
-      // Reset the form and go back to sign in
-      setIsResetPassword(false);
-      setNewPassword('');
-      setConfirmPassword('');
-      navigate('/auth');
-    } catch (error: any) {
-      console.error('❌ Password reset error:', error);
+      let errorMessage = "Failed to send reset email.";
+      
+      // Handle specific error cases
+      if (error.message?.includes('rate limit')) {
+        errorMessage = "Too many reset attempts. Please wait a few minutes before trying again.";
+      } else if (error.message?.includes('not found')) {
+        errorMessage = "Email address not found. Please check your email and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update password.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Redirect if already logged in
+  // Remove the old password reset handler since it's now in a separate page
+
+  // Redirect if already logged in (but not during password recovery)
   useEffect(() => {
-    if (user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRecoveryFlow = urlParams.get('type') === 'recovery';
+    
+    if (user && !isRecoveryFlow) {
       console.log('✅ User already authenticated, redirecting to home');
       navigate('/');
     }
   }, [user, navigate]);
 
-  // Check for password reset token and signup parameter in URL
+  // Check for signup parameter in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const isReset = urlParams.get('reset');
     const isSignupMode = urlParams.get('signup');
     
-    if (isReset === 'true') {
-      setIsResetPassword(true);
-      setIsForgotPassword(false);
-      setIsSignUp(false);
-    } else if (isSignupMode === 'true') {
+    if (isSignupMode === 'true') {
       setIsSignUp(true);
       setIsForgotPassword(false);
-      setIsResetPassword(false);
     }
   }, []);
 
@@ -208,34 +161,65 @@ const Auth = () => {
         throw new Error('Location is required');
       }
       
-      // Use the database function to create the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+      // Prepare data - ensure empty strings become null for proper database storage
+      const profileParams = {
         p_user_id: user.id,
-        p_email: email,
-        p_full_name: fullName,
-        p_company_name: companyName,
-        p_mobile_number: mobileNumber,
-        p_location: location,
+        p_email: email?.trim() || user.email || '',
+        p_full_name: fullName?.trim() || null,
+        p_company_name: companyName?.trim() || null,
+        p_mobile_number: mobileNumber?.trim() || null,
+        p_location: location?.trim() || null,
         p_user_type: accountType || 'buyer',
         p_account_type: accountType || 'buyer',
         p_seller_roles: sellerRoles?.length > 0 ? sellerRoles : [],
-        p_logistics_type: logisticsType || null,
-        p_logistics_region: logisticsRegion || null,
+        p_logistics_type: logisticsType?.trim() || null,
+        p_logistics_region: logisticsRegion?.trim() || null,
         p_transport_modes: transportModes?.length > 0 ? transportModes : [],
         p_warehouse_storage: warehouseStorage || false,
         p_finance_type: financeType?.length > 0 ? financeType : [],
         p_financing_for: financingFor?.length > 0 ? financingFor : [],
         p_target_audience: targetAudience?.length > 0 ? targetAudience : [],
         p_government_scheme_support: governmentSchemeSupport || false
+      };
+
+      console.log('📝 Profile data being sent:', {
+        email: profileParams.p_email,
+        fullName: profileParams.p_full_name,
+        companyName: profileParams.p_company_name,
+        mobileNumber: profileParams.p_mobile_number,
+        location: profileParams.p_location,
+        accountType: profileParams.p_account_type,
+        sellerRoles: profileParams.p_seller_roles,
+        logisticsType: profileParams.p_logistics_type,
+        financeType: profileParams.p_finance_type
       });
+      
+      // Use the database function to create the complete profile - returns table
+      const { data: profileResult, error: dbError } = await supabase.rpc('complete_user_profile', profileParams);
 
       if (dbError) {
         console.error('❌ Database function error:', dbError);
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      console.log('✅ Complete profile created successfully with ID:', profileId);
-      return profileId;
+      if (!profileResult || profileResult.length === 0) {
+        console.error('❌ No profile data returned from function');
+        throw new Error('Profile creation failed - no data returned');
+      }
+
+      const createdProfile = profileResult[0];
+      console.log('✅ Complete profile created successfully:', {
+        profileId: createdProfile.profile_id,
+        userId: createdProfile.user_id,
+        fullName: createdProfile.full_name,
+        companyName: createdProfile.company_name,
+        mobileNumber: createdProfile.mobile_number,
+        location: createdProfile.location,
+        accountType: createdProfile.account_type,
+        registrationComplete: createdProfile.registration_complete
+      });
+      
+      return createdProfile;
       
     } catch (error: any) {
       console.error('❌ Error creating complete profile:', error);
@@ -494,36 +478,62 @@ const Auth = () => {
   const updateUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Updating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
+      console.log('📋 Saved data being processed:', {
+        email: savedData.email,
+        fullName: savedData.fullName,
+        companyName: savedData.companyName,
+        mobileNumber: savedData.mobileNumber,
+        location: savedData.location,
+        accountType: savedData.accountType
+      });
       
-      // Use the database function to update the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+      // Prepare data - ensure empty strings become null
+      const updateParams = {
         p_user_id: user.id,
-        p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName || null,
-        p_company_name: savedData.companyName || null,
-        p_mobile_number: savedData.mobileNumber || null,
-        p_location: savedData.location || null,
+        p_email: savedData.email?.trim() || user.email || '',
+        p_full_name: savedData.fullName?.trim() || null,
+        p_company_name: savedData.companyName?.trim() || null,
+        p_mobile_number: savedData.mobileNumber?.trim() || null,
+        p_location: savedData.location?.trim() || null,
         p_user_type: savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
-        p_logistics_type: savedData.logisticsType || null,
-        p_logistics_region: savedData.logisticsRegion || null,
+        p_logistics_type: savedData.logisticsType?.trim() || null,
+        p_logistics_region: savedData.logisticsRegion?.trim() || null,
         p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
         p_warehouse_storage: savedData.warehouseStorage || false,
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
         p_government_scheme_support: savedData.governmentSchemeSupport || false
-      });
+      };
+      
+      // Use the database function to update the complete profile - returns table
+      const { data: updateResult, error: dbError } = await supabase.rpc('complete_user_profile', updateParams);
 
       if (dbError) {
         console.error('❌ Database function error:', dbError);
         throw new Error(dbError.message);
       }
 
-      console.log('✅ Profile updated successfully with ID:', profileId);
-      return profileId;
+      if (!updateResult || updateResult.length === 0) {
+        console.error('❌ No profile data returned from update function');
+        throw new Error('Profile update failed - no data returned');
+      }
+
+      const updatedProfile = updateResult[0];
+      console.log('✅ Profile updated successfully:', {
+        profileId: updatedProfile.profile_id,
+        userId: updatedProfile.user_id,
+        fullName: updatedProfile.full_name,
+        companyName: updatedProfile.company_name,
+        mobileNumber: updatedProfile.mobile_number,
+        location: updatedProfile.location,
+        accountType: updatedProfile.account_type,
+        registrationComplete: updatedProfile.registration_complete
+      });
+      
+      return updatedProfile;
 
     } catch (error: any) {
       console.error('❌ Profile update exception:', error);
@@ -545,48 +555,66 @@ const Auth = () => {
       });
       
       // Validate required data
-      if (!savedData.fullName) {
+      if (!savedData.fullName?.trim()) {
         throw new Error('Full name is required but missing from saved data');
       }
-      if (!savedData.companyName) {
+      if (!savedData.companyName?.trim()) {
         throw new Error('Company name is required but missing from saved data');
       }
-      if (!savedData.mobileNumber) {
+      if (!savedData.mobileNumber?.trim()) {
         throw new Error('Mobile number is required but missing from saved data');
       }
-      if (!savedData.location) {
+      if (!savedData.location?.trim()) {
         throw new Error('Location is required but missing from saved data');
       }
       
-      // Use the database function to create/update the complete profile
-      const { data: profileId, error: dbError } = await supabase.rpc('complete_user_profile', {
+      // Prepare data - ensure empty strings become null
+      const createParams = {
         p_user_id: user.id,
-        p_email: savedData.email || user.email,
-        p_full_name: savedData.fullName,
-        p_company_name: savedData.companyName,
-        p_mobile_number: savedData.mobileNumber,
-        p_location: savedData.location,
+        p_email: savedData.email?.trim() || user.email || '',
+        p_full_name: savedData.fullName?.trim() || null,
+        p_company_name: savedData.companyName?.trim() || null,
+        p_mobile_number: savedData.mobileNumber?.trim() || null,
+        p_location: savedData.location?.trim() || null,
         p_user_type: savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
-        p_logistics_type: savedData.logisticsType || null,
-        p_logistics_region: savedData.logisticsRegion || null,
+        p_logistics_type: savedData.logisticsType?.trim() || null,
+        p_logistics_region: savedData.logisticsRegion?.trim() || null,
         p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
         p_warehouse_storage: savedData.warehouseStorage || false,
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
         p_government_scheme_support: savedData.governmentSchemeSupport || false
-      });
+      };
+      
+      // Use the database function to create the complete profile - returns table
+      const { data: createResult, error: dbError } = await supabase.rpc('complete_user_profile', createParams);
 
       if (dbError) {
         console.error('❌ Database function error:', dbError);
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      console.log('✅ Profile created successfully with ID:', profileId);
+      if (!createResult || createResult.length === 0) {
+        console.error('❌ No profile data returned from create function');
+        throw new Error('Profile creation failed - no data returned');
+      }
+
+      const createdProfile = createResult[0];
+      console.log('✅ Profile created successfully:', {
+        profileId: createdProfile.profile_id,
+        userId: createdProfile.user_id,
+        fullName: createdProfile.full_name,
+        companyName: createdProfile.company_name,
+        mobileNumber: createdProfile.mobile_number,
+        location: createdProfile.location,
+        accountType: createdProfile.account_type,
+        registrationComplete: createdProfile.registration_complete
+      });
       
-      // Verify the profile was created correctly
+      // Additional verification by querying the profile directly
       const { data: verifyProfile, error: verifyError } = await supabase
         .from('profiles')
         .select('*')
@@ -596,15 +624,16 @@ const Auth = () => {
       if (verifyError) {
         console.error('❌ Error verifying created profile:', verifyError);
       } else {
-        console.log('✅ Profile verification successful:', {
+        console.log('✅ Profile verification successful - stored in DB:', {
           hasCompanyName: !!verifyProfile.company_name,
           hasMobileNumber: !!verifyProfile.mobile_number,
           hasLocation: !!verifyProfile.location,
+          hasUserRoles: verifyProfile.user_roles?.length > 0,
           registrationComplete: verifyProfile.registration_complete
         });
       }
       
-      return profileId;
+      return createdProfile;
       
     } catch (error: any) {
       console.error('❌ Error creating profile from saved data:', error);
@@ -1027,34 +1056,28 @@ const Auth = () => {
               <Bot className="w-10 h-10 text-white" />
             </div>
             <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {isResetPassword
-                ? 'Set New Password'
-                : isForgotPassword 
-                  ? 'Reset Password' 
-                  : isSignUp 
-                    ? 'Join RobotVerse' 
-                    : 'Welcome Back'
+              {isForgotPassword 
+                ? 'Reset Password' 
+                : isSignUp 
+                  ? 'Join RobotVerse' 
+                  : 'Welcome Back'
               }
             </CardTitle>
             <CardDescription className="text-lg mt-2">
-              {isResetPassword
-                ? 'Enter your new password below'
-                : isForgotPassword 
-                  ? 'Enter your email to receive a password reset link'
-                  : isSignUp 
-                    ? 'Create your account to start your robotics journey' 
-                    : 'Sign in to access your robot marketplace'
+              {isForgotPassword 
+                ? 'Enter your email to receive a password reset link'
+                : isSignUp 
+                  ? 'Create your account to start your robotics journey' 
+                  : 'Sign in to access your robot marketplace'
               }
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={
-              isResetPassword 
-                ? handlePasswordReset 
-                : isForgotPassword 
-                  ? handleForgotPassword 
-                  : handleSubmit
+              isForgotPassword 
+                ? handleForgotPassword 
+                : handleSubmit
             } className="space-y-6">
               {/* Basic Information Section - Only for Sign Up */}
               {isSignUp && !isForgotPassword && (
@@ -1136,8 +1159,8 @@ const Auth = () => {
               
               {/* Email and Password Fields */}
               <div className="space-y-4">
-                {/* Email Field - Show for all modes except reset password */}
-                {!isResetPassword && (
+                {/* Email Field */}
+                {(
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address *</Label>
                     <div className="relative">
@@ -1155,81 +1178,8 @@ const Auth = () => {
                   </div>
                 )}
                 
-                {/* Reset Password Fields */}
-                {isResetPassword && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="newPassword"
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Enter your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showNewPassword ? "Hide password" : "Show password"}
-                        >
-                          {showNewPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {newPassword && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Password strength: {newPassword.length >= 8 ? '🟢 Strong' : newPassword.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Confirm your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {confirmPassword && newPassword !== confirmPassword && (
-                        <div className="text-xs text-red-500 mt-1">
-                          ❌ Passwords do not match
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-                
-                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password and Reset Password */}
-                {!isForgotPassword && !isResetPassword && (
+                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password */}
+                {!isForgotPassword && (
                   <div className="space-y-2">
                     <Label htmlFor="password">Password *</Label>
                     <div className="relative">
@@ -1587,25 +1537,18 @@ const Auth = () => {
                 {loading ? (
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>
-                      {isResetPassword
-                        ? 'Updating Password...'
-                        : isForgotPassword 
-                          ? 'Sending Reset Link...' 
-                          : isSignUp 
-                            ? 'Creating Your Account...' 
-                            : 'Signing You In...'
+                     <span>
+                      {isForgotPassword 
+                        ? 'Sending Reset Link...' 
+                        : isSignUp 
+                          ? 'Creating Your Account...' 
+                          : 'Signing You In...'
                       }
                     </span>
                   </div>
                 ) : (
                   <>
-                    {isResetPassword ? (
-                      <>
-                        <Lock className="w-5 h-5 mr-2" />
-                        Update Password
-                      </>
-                    ) : isForgotPassword ? (
+                    {isForgotPassword ? (
                       <>
                         <Mail className="w-5 h-5 mr-2" />
                         Send Reset Link
@@ -1628,15 +1571,15 @@ const Auth = () => {
             
             {/* Toggle between Sign Up, Sign In, Forgot Password, and Reset Password */}
             <div className="mt-8 text-center space-y-3">
-              {isResetPassword ? (
+              {false ? (
                 <button
                   type="button"
                   onClick={() => {
-                    setIsResetPassword(false);
+                    // removed reset password functionality
                     setIsForgotPassword(false);
                     setIsSignUp(false);
-                    setNewPassword('');
-                    setConfirmPassword('');
+                    // removed reset password functionality
+                    // removed reset password functionality
                   }}
                   className="text-primary hover:text-primary/80 transition-colors font-medium"
                 >

@@ -1,52 +1,84 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Wrench, Plus, Edit, MoreHorizontal, Clock, CheckCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const ServicesManagement = () => {
-  const services = [
-    {
-      id: 1,
-      title: "Robot Maintenance & Calibration",
-      category: "Maintenance",
-      price: "$150/hour",
-      status: "active",
-      bookings: 12,
-      rating: 4.8,
-      duration: "2-3 hours"
-    },
-    {
-      id: 2,
-      title: "Industrial Robot Programming",
-      category: "Programming",
-      price: "$200/hour",
-      status: "active",
-      bookings: 8,
-      rating: 4.9,
-      duration: "4-6 hours"
-    },
-    {
-      id: 3,
-      title: "Robot Installation & Setup",
-      category: "Installation",
-      price: "$300/hour",
-      status: "pending",
-      bookings: 5,
-      rating: 4.7,
-      duration: "6-8 hours"
-    },
-    {
-      id: 4,
-      title: "Emergency Robot Repair",
-      category: "Repair",
-      price: "$250/hour",
-      status: "active",
-      bookings: 15,
-      rating: 4.9,
-      duration: "1-2 hours"
+  const { user } = useAuth();
+  const [services, setServices] = useState([]);
+  const [stats, setStats] = useState({
+    activeServices: 0,
+    totalBookings: 0,
+    avgRating: 0,
+    revenue: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchServices();
+      fetchServiceRequests();
     }
-  ];
+  }, [user]);
+
+  const fetchServices = async () => {
+    if (!user) return;
+
+    try {
+      const { data: servicesData, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('provider_id', user.id);
+
+      if (error) {
+        console.error('Error fetching services:', error);
+        return;
+      }
+
+      setServices(servicesData || []);
+      
+      // Calculate stats from services data
+      const activeServices = servicesData?.length || 0;
+      setStats(prev => ({ ...prev, activeServices }));
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchServiceRequests = async () => {
+    if (!user) return;
+
+    try {
+      const { data: requestsData, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('provider_id', user.id);
+
+      if (error) {
+        console.error('Error fetching service requests:', error);
+        return;
+      }
+
+      // Calculate booking stats
+      const totalBookings = requestsData?.length || 0;
+      const completedBookings = requestsData?.filter(req => req.status === 'completed').length || 0;
+      
+      setStats(prev => ({ 
+        ...prev, 
+        totalBookings,
+        avgRating: 4.8, // Will be calculated from reviews when implemented
+        revenue: completedBookings * 200 // Estimated revenue calculation
+      }));
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -82,7 +114,7 @@ const ServicesManagement = () => {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{stats.activeServices}</div>
             <p className="text-xs text-muted-foreground">
               Currently available
             </p>
@@ -97,9 +129,9 @@ const ServicesManagement = () => {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">40</div>
+            <div className="text-2xl font-bold">{stats.totalBookings}</div>
             <p className="text-xs text-muted-foreground">
-              This month
+              All time
             </p>
           </CardContent>
         </Card>
@@ -112,7 +144,7 @@ const ServicesManagement = () => {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.8</div>
+            <div className="text-2xl font-bold">{stats.avgRating}</div>
             <p className="text-xs text-muted-foreground">
               ⭐⭐⭐⭐⭐
             </p>
@@ -127,9 +159,9 @@ const ServicesManagement = () => {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$8,420</div>
+            <div className="text-2xl font-bold">₹{stats.revenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              This month
+              Estimated total
             </p>
           </CardContent>
         </Card>
@@ -144,57 +176,68 @@ const ServicesManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {services.map((service) => (
-              <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Wrench className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">{service.title}</h4>
-                    <p className="text-sm text-muted-foreground">Category: {service.category}</p>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-sm font-medium">{service.price}</span>
-                      <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {service.duration}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        ⭐ {service.rating}
-                      </span>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : services.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No services created yet</p>
+              <p className="text-sm">Add your first service to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {services.map((service) => (
+                <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Wrench className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <h4 className="font-medium">{service.name}</h4>
+                      <p className="text-sm text-muted-foreground">Service Type: {service.service_type}</p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-sm font-medium">{service.price_range || 'Price on request'}</span>
+                        <span className="text-sm text-muted-foreground">
+                          Location: {service.location || 'Not specified'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {service.description?.substring(0, 100)}{service.description?.length > 100 ? '...' : ''}
+                      </p>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-sm font-medium">{service.bookings} bookings</div>
-                    <Badge className={getStatusColor(service.status)}>
-                      {service.status.charAt(0).toUpperCase() + service.status.slice(1)}
-                    </Badge>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-sm font-medium">Active</div>
+                      <Badge className="bg-green-100 text-green-700">
+                        Available
+                      </Badge>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Service
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          View Requests
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          Pause Service
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Service
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        View Bookings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        Pause Service
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

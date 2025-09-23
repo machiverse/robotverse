@@ -3,9 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bot, Wrench, Package, Search, Eye, Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Bot, Wrench, Package, Search, Eye, Edit, Trash2, Save, X } from "lucide-react";
+import { EnhancedImageUpload } from "@/components/EnhancedImageUpload";
 
 interface AdminEquipmentProps {
   robots: any[];
@@ -24,6 +30,11 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<EquipmentDetails | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [editingItem, setEditingItem] = useState<EquipmentDetails | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>({});
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const filteredData = useMemo(() => {
     const filterBySearch = (items: any[], searchKey: string) => {
@@ -48,6 +59,117 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
   const handleCloseDetails = useCallback(() => {
     setShowDetails(false);
     setSelectedItem(null);
+  }, []);
+
+  const handleEditItem = useCallback((type: 'robot' | 'service' | 'part', item: any) => {
+    console.log('🔧 Starting edit for:', type, item);
+    setEditingItem({ type, item });
+    setEditFormData({ ...item });
+    setShowEditDialog(true);
+    console.log('✅ Edit form data initialized:', { ...item });
+  }, []);
+
+  const handleDeleteItem = useCallback(async (type: 'robot' | 'service' | 'part', item: any) => {
+    if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+
+    setLoading(true);
+    try {
+      const tableName = type === 'robot' ? 'robots' : type === 'service' ? 'services' : 'spare_parts';
+      const { error } = await supabase.from(tableName).delete().eq('id', item.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`,
+      });
+
+      onRefresh();
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to delete ${type}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast, onRefresh]);
+
+  const handleImageUpload = useCallback((urls: string[]) => {
+    console.log('Image upload completed, updating form data with URLs:', urls);
+    setEditFormData(prevData => ({
+      ...prevData,
+      images: urls
+    }));
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingItem) return;
+
+    setLoading(true);
+    try {
+      const { type, item } = editingItem;
+      const tableName = type === 'robot' ? 'robots' : type === 'service' ? 'services' : 'spare_parts';
+      
+      console.log('💾 Saving edit with form data:', editFormData);
+      console.log('📊 Images to update:', editFormData.images);
+      console.log('🗃️ Table name:', tableName);
+      console.log('🆔 Item ID:', item.id);
+      
+      // Clean form data - remove fields that shouldn't be updated
+      const cleanFormData = { ...editFormData };
+      delete cleanFormData.id;
+      delete cleanFormData.created_at;
+      delete cleanFormData.seller_id;
+      delete cleanFormData.provider_id;
+      
+      // Ensure required fields are present
+      if (!cleanFormData.updated_at) {
+        cleanFormData.updated_at = new Date().toISOString();
+      }
+      
+      console.log('🧹 Clean update data:', cleanFormData);
+      
+      const { data, error } = await supabase
+        .from(tableName)
+        .update(cleanFormData)
+        .eq('id', item.id)
+        .select();
+
+      if (error) {
+        console.error('❌ Database error details:', error);
+        throw error;
+      }
+
+      console.log('✅ Update successful, returned data:', data);
+
+      toast({
+        title: "Success",
+        description: `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully`,
+      });
+
+      setShowEditDialog(false);
+      setEditingItem(null);
+      setEditFormData({});
+      onRefresh();
+    } catch (error: any) {
+      console.error('❌ Update error:', error);
+      toast({
+        title: "Error",
+        description: error?.message || `Failed to update ${editingItem.type}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [editingItem, editFormData, toast, onRefresh]);
+
+  const handleCancelEdit = useCallback(() => {
+    setShowEditDialog(false);
+    setEditingItem(null);
+    setEditFormData({});
   }, []);
 
   const formatPrice = useCallback((price: number | string) => {
@@ -163,10 +285,16 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
                       <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleItemClick(type, item); }}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEditItem(type, item); }}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-destructive hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteItem(type, item); }}
+                        disabled={loading}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -286,13 +414,230 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
           <Button variant="outline" onClick={handleCloseDetails}>
             Close
           </Button>
-          <Button>
+          <Button onClick={() => editingItem ? null : handleEditItem(selectedItem.type, selectedItem.item)}>
             Edit {type.charAt(0).toUpperCase() + type.slice(1)}
           </Button>
         </div>
       </DialogContent>
     );
-  }, [selectedItem, formatPrice, formatDate, getStatusBadge, handleCloseDetails]);
+  }, [selectedItem, formatPrice, formatDate, getStatusBadge, handleCloseDetails, handleEditItem, editingItem]);
+
+  const renderEditDialog = useCallback(() => {
+    if (!editingItem) return null;
+
+    const { type, item } = editingItem;
+    const title = type === 'robot' ? 'Edit Robot' : type === 'service' ? 'Edit Service' : 'Edit Spare Part';
+
+    return (
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {type === 'robot' && <Bot className="h-5 w-5" />}
+            {type === 'service' && <Wrench className="h-5 w-5" />}
+            {type === 'part' && <Package className="h-5 w-5" />}
+            {title}
+          </DialogTitle>
+          <DialogDescription>
+            Update the details for this {type}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Common fields */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={editFormData.name || ''}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                type="number"
+                value={editFormData.price || ''}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                placeholder="Enter price"
+              />
+            </div>
+          </div>
+
+          {/* Robot specific fields */}
+          {type === 'robot' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="model">Model</Label>
+                  <Input
+                    id="model"
+                    value={editFormData.model || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, model: e.target.value }))}
+                    placeholder="Enter model"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="availability">Availability</Label>
+                  <Select
+                    value={editFormData.availability || 'available'}
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, availability: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="sold">Sold</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="brand">Brand</Label>
+                  <Input
+                    id="brand"
+                    value={editFormData.brand || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
+                    placeholder="Enter brand"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={editFormData.location || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="Enter location"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Service specific fields */}
+          {type === 'service' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="service_type">Service Type</Label>
+                  <Input
+                    id="service_type"
+                    value={editFormData.service_type || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, service_type: e.target.value }))}
+                    placeholder="Enter service type"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={editFormData.location || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="Enter location"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Spare part specific fields */}
+          {type === 'part' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="part_number">Part Number</Label>
+                  <Input
+                    id="part_number"
+                    value={editFormData.part_number || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, part_number: e.target.value }))}
+                    placeholder="Enter part number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={editFormData.quantity || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
+                    placeholder="Enter quantity"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="brand">Brand</Label>
+                  <Input
+                    id="brand"
+                    value={editFormData.brand || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
+                    placeholder="Enter brand"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="condition">Condition</Label>
+                  <Select
+                    value={editFormData.condition || 'new'}
+                    onValueChange={(value) => setEditFormData(prev => ({ ...prev, condition: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="used">Used</SelectItem>
+                      <SelectItem value="refurbished">Refurbished</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          )}
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={editFormData.description || ''}
+              onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter description"
+              rows={3}
+            />
+          </div>
+
+          {/* Image Upload Section */}
+          <div>
+            <Label>Images</Label>
+            <EnhancedImageUpload
+              bucket="robot-images"
+              maxImages={10}
+              onImagesUploaded={handleImageUpload}
+              initialImages={editFormData.images || []}
+              enhance={true}
+              title="Upload Images"
+              description="Upload images or provide image URLs. Images will be automatically enhanced for better quality."
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={handleCancelEdit} disabled={loading}>
+            <X className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+          <Button onClick={handleSaveEdit} disabled={loading}>
+            <Save className="h-4 w-4 mr-2" />
+            {loading ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    );
+  }, [editingItem, editFormData, handleCancelEdit, handleSaveEdit, loading]);
 
   return (
     <div className="space-y-6">
@@ -392,6 +737,11 @@ const AdminEquipment = React.memo(({ robots, services, spareParts, onRefresh }: 
       {/* Details Modal */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
         {renderDetailsModal()}
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        {renderEditDialog()}
       </Dialog>
     </div>
   );

@@ -18,6 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
@@ -105,11 +107,29 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
     }));
   }
 
+  function toggleAllServiceTypes() {
+    setNewService((prev) => ({
+      ...prev, 
+      service_type: prev.service_type.length === SERVICE_TYPE_OPTIONS.length 
+        ? [] 
+        : [...SERVICE_TYPE_OPTIONS]
+    }));
+  }
+
   function toggleCoverage(state: string) {
     setNewService((prev) => ({
       ...prev, coverage: prev.coverage.includes(state)
         ? prev.coverage.filter((s) => s !== state)
         : [...prev.coverage, state],
+    }));
+  }
+
+  function toggleAllCoverageStates() {
+    setNewService((prev) => ({
+      ...prev, 
+      coverage: prev.coverage.length === INDIAN_STATES.length 
+        ? [] 
+        : [...INDIAN_STATES]
     }));
   }
 
@@ -243,8 +263,9 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="requests">Requests</TabsTrigger>
+            <TabsList className="grid grid-cols-5">
+              <TabsTrigger value="requests">Service Requests</TabsTrigger>
+              <TabsTrigger value="user-requests">User Requests</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
               <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
@@ -397,73 +418,142 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* User Requests Tab */}
+            <TabsContent value="user-requests">
+              <UserRequestsManagement />
+            </TabsContent>
           </Tabs>
 
           {/* Add/Edit Service Modal */}
           <Dialog open={showAddModal} onOpenChange={() => { setShowAddModal(false); setEditingService(null); }}>
-            <DialogContent>
-              <DialogTitle>{editingService ? "Edit Service" : "Add New Service"}</DialogTitle>
-              <div className="space-y-4 mt-4">
-                <Input
-                  placeholder="Service Name *"
-                  value={newService.name}
-                  onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                  required
-                  autoFocus
-                />
-                <Textarea
-                  placeholder="Description"
-                  value={newService.description}
-                  onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                  rows={3}
-                />
-                <div>
-                  <label className="block mb-1 font-semibold">Select Service Types *</label>
-                  <div className="max-h-36 overflow-y-auto border rounded p-2 grid grid-cols-2 gap-2">
-                    {SERVICE_TYPE_OPTIONS.map((type) => (
-                      <label key={type} className="flex items-center space-x-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={newService.service_type.includes(type)}
-                          onChange={() => toggleServiceType(type)}
-                        />
-                        <span>{type}</span>
-                      </label>
-                    ))}
-                  </div>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-primary" />
+                {editingService ? "Edit Service" : "Add New Service"}
+              </DialogTitle>
+              <div className="space-y-6 mt-6">
+                {/* Basic Information Section */}
+                <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+                  <h3 className="text-lg font-semibold text-primary">Basic Information</h3>
+                  <Input
+                    placeholder="Service Name *"
+                    value={newService.name}
+                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                    required
+                    autoFocus
+                    className="font-medium"
+                  />
+                  <Textarea
+                    placeholder="Description (Describe your service in detail)"
+                    value={newService.description}
+                    onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                    rows={4}
+                    className="resize-none"
+                  />
                 </div>
-                <div>
-                  <label className="block mb-1 font-semibold">Select Coverage States *</label>
-                  <div className="max-h-40 overflow-y-auto border rounded p-2 grid grid-cols-3 gap-1">
-                    {INDIAN_STATES.map((state) => (
-                      <label key={state} className="flex items-center space-x-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={newService.coverage.includes(state)}
-                          onChange={() => toggleCoverage(state)}
-                        />
-                        <span>{state}</span>
-                      </label>
-                    ))}
+
+                {/* Service Types Section */}
+                <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-primary">Service Types *</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleAllServiceTypes}
+                      className="text-sm"
+                    >
+                      {newService.service_type.length === SERVICE_TYPE_OPTIONS.length ? "Deselect All" : "Select All"}
+                    </Button>
                   </div>
+                  <p className="text-sm text-muted-foreground">Choose the types of services you provide</p>
+                  <div className="max-h-36 overflow-y-auto border rounded-lg p-3 bg-background">
+                    <div className="grid grid-cols-2 gap-3">
+                      {SERVICE_TYPE_OPTIONS.map((type) => (
+                        <label key={type} className="flex items-center space-x-3 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={newService.service_type.includes(type)}
+                            onChange={() => toggleServiceType(type)}
+                            className="w-4 h-4 text-primary border-2 rounded focus:ring-primary"
+                          />
+                          <span className="text-sm font-medium">{type}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {newService.service_type.length} of {SERVICE_TYPE_OPTIONS.length} service types
+                  </p>
                 </div>
-                <Input
-                  placeholder="Price Range *"
-                  value={newService.price_range}
-                  onChange={(e) => setNewService({ ...newService, price_range: e.target.value })}
-                  required
-                />
-                <Input
-                  placeholder="Location (City, Region)"
-                  value={newService.location}
-                  onChange={(e) => setNewService({ ...newService, location: e.target.value })}
-                />
+
+                {/* Coverage States Section */}
+                <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-primary">Coverage States</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleAllCoverageStates}
+                      className="text-sm"
+                    >
+                      {newService.coverage.length === INDIAN_STATES.length ? "Deselect All" : "Select All"}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Select the states where you provide services</p>
+                  <div className="max-h-48 overflow-y-auto border rounded-lg p-3 bg-background">
+                    <div className="grid grid-cols-2 gap-2">
+                      {INDIAN_STATES.map((state) => (
+                        <label key={state} className="flex items-center space-x-3 cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={newService.coverage.includes(state)}
+                            onChange={() => toggleCoverage(state)}
+                            className="w-4 h-4 text-primary border-2 rounded focus:ring-primary"
+                          />
+                          <span className="text-sm">{state}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {newService.coverage.length} of {INDIAN_STATES.length} states
+                  </p>
+                </div>
+
+                {/* Pricing & Location Section */}
+                <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+                  <h3 className="text-lg font-semibold text-primary">Pricing & Location</h3>
+                  <Input
+                    placeholder="Price Range * (e.g., ₹1000-5000/hour)"
+                    value={newService.price_range}
+                    onChange={(e) => setNewService({ ...newService, price_range: e.target.value })}
+                    required
+                    className="font-medium"
+                  />
+                  <Input
+                    placeholder="Primary Location (City, Region)"
+                    value={newService.location}
+                    onChange={(e) => setNewService({ ...newService, location: e.target.value })}
+                  />
+                </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => { setShowAddModal(false); setEditingService(null); }}>
+              <DialogFooter className="flex gap-3 pt-6 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => { setShowAddModal(false); setEditingService(null); }}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleSaveService}>
+                <Button 
+                  onClick={handleSaveService}
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  disabled={!newService.name.trim() || newService.service_type.length === 0 || !newService.price_range.trim()}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
                   {editingService ? "Update Service" : "Add Service"}
                 </Button>
               </DialogFooter>

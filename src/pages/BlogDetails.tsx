@@ -143,21 +143,26 @@ const BlogDetails = () => {
         (data || []).map(async (relatedBlog) => {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, company_name')
+            .select('user_id, full_name, company_name')
             .eq('user_id', relatedBlog.author_id)
             .maybeSingle();
           
           return {
             ...relatedBlog,
             profiles: profile ? {
+              user_id: profile.user_id,
               full_name: profile.full_name || 'Anonymous',
               company_name: profile.company_name || ''
-            } : null
+            } : {
+              user_id: relatedBlog.author_id,
+              full_name: 'Anonymous',
+              company_name: ''
+            }
           };
         })
       );
 
-      setRelatedBlogs(blogsWithAuthors as Blog[]);
+      setRelatedBlogs(blogsWithAuthors);
     } catch (error) {
       console.error('Error fetching related blogs:', error);
     } finally {
@@ -175,7 +180,7 @@ const BlogDetails = () => {
       if (error) throw error;
       
       toast.success('Blog post deleted successfully');
-      navigate('/blogs');
+      navigate('/robobook');
     } catch (error) {
       console.error('Error deleting blog:', error);
       toast.error('Failed to delete blog post');
@@ -183,16 +188,17 @@ const BlogDetails = () => {
   };
 
   const handleShare = async () => {
+    const shareUrl = `https://robotverse.in/robobook/${id}`;
     try {
       await navigator.share({
         title: blog?.title,
         text: blog?.excerpt,
-        url: window.location.href,
+        url: shareUrl,
       });
     } catch (error) {
       // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard');
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('RobotVerse link copied to clipboard');
     }
   };
 
@@ -201,25 +207,7 @@ const BlogDetails = () => {
     return content.substring(0, maxLength).trim() + "...";
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background">
-        <EnhancedHeader />
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center max-w-md mx-auto">
-            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
-            <p className="text-muted-foreground mb-6">
-              Please sign in to read our blog content and interact with posts.
-            </p>
-            <Link to="/auth">
-              <Button>Sign In to Continue</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Remove authentication requirement for viewing articles
 
   if (loading) {
     return (
@@ -252,8 +240,8 @@ const BlogDetails = () => {
             <p className="text-muted-foreground mb-6">
               The blog post you're looking for doesn't exist or has been removed.
             </p>
-            <Link to="/blogs">
-              <Button>Back to Blogs</Button>
+            <Link to="/robobook">
+              <Button>Back to RoboBook</Button>
             </Link>
           </div>
         </div>
@@ -271,10 +259,10 @@ const BlogDetails = () => {
         <div className="max-w-4xl mx-auto">
           {/* Navigation */}
           <div className="flex items-center justify-between mb-6">
-            <Link to="/blogs">
+            <Link to="/robobook">
               <Button variant="ghost" className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Blogs
+                Back to RoboBook
               </Button>
             </Link>
 
@@ -286,7 +274,7 @@ const BlogDetails = () => {
               
               {isAuthor && (
                 <>
-                  <Link to={`/blogs/${blog.id}/edit`}>
+                  <Link to={`/robobook/${blog.id}/edit`}>
                     <Button variant="outline" className="flex items-center gap-2">
                       <Edit className="h-4 w-4" />
                       Edit
@@ -421,7 +409,7 @@ const BlogDetails = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {relatedBlogs.map((relatedBlog) => (
                     <Card key={relatedBlog.id} className="group hover:shadow-lg transition-shadow">
-                      <Link to={`/blogs/${relatedBlog.id}`}>
+                      <Link to={`/robobook/${relatedBlog.id}`}>
                         {relatedBlog.image_url && (
                           <div className="aspect-video overflow-hidden rounded-t-lg">
                             <img
@@ -460,8 +448,8 @@ const BlogDetails = () => {
             </section>
            )}
 
-           {/* Comments Section */}
-           <BlogComments blogId={blog.id} />
+          {/* Comments Section - Only show for authenticated users */}
+          {user && <BlogComments blogId={blog.id} />}
          </div>
        </main>
      </div>

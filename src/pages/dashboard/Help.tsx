@@ -5,8 +5,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { HelpCircle, Search, MessageCircle, FileText, Video, Phone, Mail } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useState, useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { CreateTicketModal } from "@/components/CreateTicketModal";
 
 const Help = () => {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: ""
+  });
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const contactFormRef = useRef<HTMLDivElement>(null);
+
   const faqs = [
     {
       id: 1,
@@ -35,29 +53,128 @@ const Help = () => {
     }
   ];
 
-  const tickets = [
-    {
-      id: 1,
-      subject: "Unable to upload robot images",
-      status: "open",
-      priority: "high",
-      created: "2024-01-15"
-    },
-    {
-      id: 2,
-      subject: "Payment processing issue",
-      status: "in_progress",
-      priority: "urgent",
-      created: "2024-01-14"
-    },
-    {
-      id: 3,
-      subject: "Question about commission fees",
-      status: "resolved",
-      priority: "low",
-      created: "2024-01-12"
+  // Fetch user data and tickets
+  useEffect(() => {
+    const fetchUserAndTickets = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (user) {
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserProfile(profile);
+          setFormData(prev => ({
+            ...prev,
+            name: profile.full_name || "",
+            email: profile.email || user.email || ""
+          }));
+        }
+        
+        // Fetch user tickets
+        await fetchTickets();
+      }
+    };
+
+    fetchUserAndTickets();
+  }, []);
+
+  const fetchTickets = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching tickets:", error);
+    } else {
+      setTickets(data || []);
     }
-  ];
+  };
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'chat':
+        // Redirect to WhatsApp chat
+        const whatsappNumber = "918610925352";
+        const whatsappMessage = "Hello! I need support with my RobotVerse account.";
+        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+        window.open(whatsappUrl, '_blank');
+        break;
+      case 'email':
+        // Scroll to contact form with prefilled data
+        contactFormRef.current?.scrollIntoView({ behavior: 'smooth' });
+        toast({
+          title: "Contact Form",
+          description: "Scrolled to contact form with your details prefilled.",
+        });
+        break;
+      case 'phone':
+        // Direct call
+        window.open("tel:+918610925352", '_self');
+        break;
+      case 'videos':
+        // Open RobotVerse YouTube channel
+        window.open('https://www.youtube.com/@Robotverse-in', '_blank');
+        break;
+    }
+  };
+
+  const handleCreateTicket = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create a support ticket",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsTicketModalOpen(true);
+  };
+
+  const handleTicketCreated = () => {
+    fetchTickets();
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Send email to support
+    const subject = `Support Request: ${formData.subject}`;
+    const body = `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`;
+    window.open(`mailto:support@robotverse.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    
+    toast({
+      title: "Email Client Opened",
+      description: "Your default email client has been opened with the message. Please send it to complete your request.",
+    });
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const filteredFaqs = faqs.filter(faq => 
+    faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,7 +217,12 @@ const Help = () => {
             <CardDescription>Chat with our support team</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('chat')}
+            >
               Start Chat
             </Button>
           </CardContent>
@@ -115,7 +237,12 @@ const Help = () => {
             <CardDescription>Send us a detailed message</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('email')}
+            >
               Send Email
             </Button>
           </CardContent>
@@ -130,7 +257,12 @@ const Help = () => {
             <CardDescription>Call us for urgent issues</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('phone')}
+            >
               Call Now
             </Button>
           </CardContent>
@@ -145,7 +277,12 @@ const Help = () => {
             <CardDescription>Watch how-to videos</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" className="w-full">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => handleQuickAction('videos')}
+            >
               Watch Videos
             </Button>
           </CardContent>
@@ -168,11 +305,16 @@ const Help = () => {
             <div className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input placeholder="Search FAQs..." className="pl-10" />
+                <Input 
+                  placeholder="Search FAQs..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
               
               <Accordion type="single" collapsible className="w-full">
-                {faqs.map((faq) => (
+                {filteredFaqs.map((faq) => (
                   <AccordionItem key={faq.id} value={`item-${faq.id}`}>
                     <AccordionTrigger className="text-left">
                       {faq.question}
@@ -200,31 +342,45 @@ const Help = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleCreateTicket}>
                 Create New Ticket
               </Button>
               
               <div className="space-y-3">
-                {tickets.map((ticket) => (
-                  <div key={ticket.id} className="p-3 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">{ticket.subject}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Created: {new Date(ticket.created).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Badge className={getStatusColor(ticket.status)}>
-                          {ticket.status.replace('_', ' ')}
-                        </Badge>
-                        <Badge className={getPriorityColor(ticket.priority)}>
-                          {ticket.priority}
-                        </Badge>
+                {tickets.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    No tickets found. Create your first support ticket above.
+                  </p>
+                ) : (
+                  tickets.map((ticket) => (
+                    <div key={ticket.id} className="p-3 border rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-sm">{ticket.subject}</h4>
+                            <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                              {ticket.ticket_id}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Created: {new Date(ticket.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            Category: {ticket.category}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Badge className={getStatusColor(ticket.status)}>
+                            {ticket.status.replace('_', ' ')}
+                          </Badge>
+                          <Badge className={getPriorityColor(ticket.priority)}>
+                            {ticket.priority}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </CardContent>
@@ -232,7 +388,7 @@ const Help = () => {
       </div>
 
       {/* Contact Form */}
-      <Card>
+      <Card ref={contactFormRef}>
         <CardHeader>
           <CardTitle>Contact Our Support Team</CardTitle>
           <CardDescription>
@@ -240,31 +396,55 @@ const Help = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <form onSubmit={handleFormSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Name</label>
-                <Input placeholder="Your name" />
+                <Input 
+                  placeholder="Your name" 
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email</label>
-                <Input type="email" placeholder="your.email@example.com" />
+                <Input 
+                  type="email" 
+                  placeholder="your.email@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Subject</label>
-              <Input placeholder="Brief description of your issue" />
+              <Input 
+                placeholder="Brief description of your issue"
+                value={formData.subject}
+                onChange={(e) => handleInputChange('subject', e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Message</label>
-              <Textarea placeholder="Describe your issue in detail..." rows={4} />
+              <Textarea 
+                placeholder="Describe your issue in detail..." 
+                rows={4}
+                value={formData.message}
+                onChange={(e) => handleInputChange('message', e.target.value)}
+              />
             </div>
-            <Button>
+            <Button type="submit">
               Send Message
             </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
+
+      <CreateTicketModal 
+        isOpen={isTicketModalOpen}
+        onClose={() => setIsTicketModalOpen(false)}
+        onTicketCreated={handleTicketCreated}
+      />
     </div>
   );
 };

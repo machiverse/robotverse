@@ -54,6 +54,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -164,16 +166,30 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     const totalRevenue = robotData.reduce((sum, r) => sum + (r.price || 0), 0);
     const avgPrice = totalRobots > 0 ? totalRevenue / totalRobots : 0;
 
+    // Debug view stats
+    console.log('📊 View Stats Debug:', {
+      totalViews: viewStats.totalViews,
+      robotViews: viewStats.viewsByCategory.robots,
+      viewsByCategory: viewStats.viewsByCategory,
+      recentViews: viewStats.recentViews.length
+    });
+
     setDashboardStats({
       totalRobots,
       activeListings,
       totalRevenue,
-      totalViews: viewStats.viewsByCategory.robots || 0,
+      totalViews: viewStats.totalViews || 0,
       avgPrice,
-      soldThisMonth: 0,
-      inquiries: Math.floor(Math.random() * 50),
-      conversationRate: Math.random() * 10,
-      avgResponseTime: 2.3,
+      soldThisMonth: robotData.filter(r => {
+        const soldDate = new Date(r.updated_at);
+        const now = new Date();
+        return r.availability === 'sold' && 
+               soldDate.getMonth() === now.getMonth() && 
+               soldDate.getFullYear() === now.getFullYear();
+      }).length,
+      inquiries: 0, // Will be calculated from user_requests table when available
+      conversationRate: 0, // Will be calculated from actual interactions
+      avgResponseTime: 0, // Will be calculated from actual response data
       topPerforming: robotData[0] || null
     });
   };
@@ -503,12 +519,12 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
     },
     {
       title: 'Total Views',
-      value: viewStats.totalViews || 0,
-      icon: Eye,
-      trend: `${viewStats.viewsByCategory.robots} robot views`,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      change: viewsLoading ? '...' : '+8%'
+  value: typeof viewStats?.totalViews === 'number' ? viewStats.totalViews : 0,
+  icon: Eye,
+  trend: `${viewStats?.viewsByCategory?.robots ?? 0} robot views`,
+  color: 'text-purple-600',
+  bgColor: 'bg-purple-50',
+  change: viewsLoading ? '...' : '+8%'
     },
     {
       title: 'Conversion Rate',
@@ -600,10 +616,14 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-12">
+        <TabsList className="grid w-full grid-cols-4 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            User Requests
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
@@ -944,7 +964,69 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="w-5 h-5" />
+                  Views Analytics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50">
+                    <div>
+                      <p className="font-medium">Total Views</p>
+                      <p className="text-2xl font-bold text-purple-600">{viewStats.totalViews || 0}</p>
+                       <Badge variant="outline" className="text-sm">
+                      {robots.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
+                    </Badge>
+                      {dashboardStats.totalRobots === 0 && (
+                        <p className="text-xs text-muted-foreground">Upload robots to get views</p>
+                      )}
+                    </div>
+                    <Eye className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                    <div>
+                      <p className="font-medium">Robot Views</p>
+                      <p className="text-2xl font-bold text-blue-600">{viewStats.viewsByCategory.robots || 0}</p>
+                      {dashboardStats.totalRobots === 0 && (
+                        <p className="text-xs text-muted-foreground">No robots uploaded yet</p>
+                      )}
+                    </div>
+                    <Bot className="w-8 h-8 text-blue-600" />
+                  </div>
+                  {viewStats.recentViews.length > 0 ? (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2">Recent Views</h4>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {viewStats.recentViews.slice(0, 5).map((view, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 rounded bg-muted/30">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs capitalize">{view.target_type.replace('_', ' ')}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {new Date(view.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                      <Eye className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">No views yet</p>
+                      <p className="text-xs text-muted-foreground">Upload products to start tracking views</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-6">
+          <UserRequestsManagement />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

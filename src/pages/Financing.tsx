@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,8 @@ interface FinanceProvider {
 
 const Financing = () => {
   const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
   const [providers, setProviders] = useState<FinanceProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,16 +91,75 @@ const Financing = () => {
   );
 
   const handleViewContact = (provider: FinanceProvider) => {
+    // Track view contact interaction
+    trackButtonClick({
+      buttonName: "View Contact",
+      buttonType: "finance_contact",
+      sellerId: provider.provider_id,
+      sellerName: provider.provider?.full_name,
+      sellerCompany: provider.provider?.company_name,
+      sellerEmail: provider.provider?.email,
+      sellerMobile: provider.provider?.phone,
+      sellerLocation: provider.provider?.location,
+      itemId: provider.id,
+      itemType: "financing",
+      additionalData: {
+        productName: provider.product_name,
+        loanTypes: provider.loan_type,
+        minAmount: provider.min_amount,
+        maxAmount: provider.max_amount,
+        interestRate: `${provider.min_interest_rate}%-${provider.max_interest_rate}%`
+      }
+    });
+
     setSelectedProvider(provider);
     setShowContactModal(true);
   };
 
   const handleApplyNow = (provider: FinanceProvider) => {
+    // Track apply now interaction
+    trackButtonClick({
+      buttonName: "Apply Now",
+      buttonType: "finance_application",
+      sellerId: provider.provider_id,
+      sellerName: provider.provider?.full_name,
+      sellerCompany: provider.provider?.company_name,
+      sellerEmail: provider.provider?.email,
+      sellerMobile: provider.provider?.phone,
+      sellerLocation: provider.provider?.location,
+      itemId: provider.id,
+      itemType: "financing",
+      additionalData: {
+        productName: provider.product_name,
+        loanTypes: provider.loan_type,
+        minAmount: provider.min_amount,
+        maxAmount: provider.max_amount
+      }
+    });
+
     setSelectedProvider(provider);
     setShowApplicationModal(true);
   };
 
   const handleCallProvider = (provider: FinanceProvider) => {
+    // Track call provider interaction
+    trackButtonClick({
+      buttonName: "Call Provider",
+      buttonType: "finance_call",
+      sellerId: provider.provider_id,
+      sellerName: provider.provider?.full_name,
+      sellerCompany: provider.provider?.company_name,
+      sellerEmail: provider.provider?.email,
+      sellerMobile: provider.provider?.phone,
+      sellerLocation: provider.provider?.location,
+      itemId: provider.id,
+      itemType: "financing",
+      additionalData: {
+        productName: provider.product_name,
+        contactMethod: "phone"
+      }
+    });
+
     setSelectedProvider(provider);
     setShowCallModal(true);
   };
@@ -198,7 +261,11 @@ const Financing = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProviders.map((provider) => (
-              <Card key={provider.id} className="h-full flex flex-col">
+              <Card 
+                key={provider.id} 
+                className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => trackItemView('loan_products', provider.id, provider)}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="h-5 w-5 text-primary" />
