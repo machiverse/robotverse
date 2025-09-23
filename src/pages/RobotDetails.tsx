@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { type RobotSEOData } from "@/utils/seo";
 import { useRobotSEO } from "@/hooks/useRobotSEO";
 
@@ -111,6 +112,7 @@ const RobotDetails = () => {
   const { toast } = useToast();
   const { trackRobotView } = useGlobalViewTracking();
   const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
   
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -194,13 +196,41 @@ const RobotDetails = () => {
           : {}
       });
 
-      // Track robot view for both logged-in and anonymous users
-      trackRobotView(data.id, {
+      // Track comprehensive robot page view with full seller information
+      trackButtonClick({
+        buttonName: "Robot Page View",
+        buttonType: "robot_page_view",
+        sellerId: data.seller_id,
+        sellerName: data.profiles?.full_name,
+        sellerCompany: data.profiles?.company_name,
+        sellerEmail: data.profiles?.email,
+        sellerMobile: data.profiles?.phone || data.profiles?.mobile_number,
+        sellerLocation: data.profiles?.location || data.location,
+        itemId: data.id,
+        itemType: "robot",
+        additionalData: {
+          robotName: data.name,
+          robotModel: data.model,
+          robotType: data.robot_type,
+          price: data.price,
+          currency: data.currency,
+          brand: data.brand,
+          condition: data.condition,
+          location: data.location,
+          state: data.state,
+          pageType: "robot_details",
+          viewSource: "direct_page_visit"
+        }
+      });
+
+      // Also track with universal view tracking for analytics
+      trackItemView('robots', data.id, {
         name: data.name,
         model: data.model,
         price: data.price,
         seller_id: data.seller_id,
-        category: data.robot_type
+        category: data.robot_type,
+        seller_info: data.profiles
       });
       
       // Generate SEO elements for this robot
@@ -224,9 +254,6 @@ const RobotDetails = () => {
       };
       
       generateSEO(robotSEOData);
-      
-      // Track this view for global counting (works for all users)
-      await trackRobotView(data.id, data);
       
       // Check if robot is in user's watchlist
       if (user) {

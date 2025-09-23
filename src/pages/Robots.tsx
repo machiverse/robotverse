@@ -630,8 +630,30 @@ const Robots = () => {
                            groupName: key || "all"
                          }
                        });
-                       navigate(`/robots/${robot.id}`);
-                     }}>
+                        // Track comprehensive robot view with seller information
+                        trackButtonClick({
+                          buttonName: "Robot Card View",
+                          buttonType: "robot_listing_click",
+                          sellerId: robot.seller_id,
+                          sellerName: robot.profiles?.full_name,
+                          sellerCompany: robot.profiles?.company_name,
+                          sellerEmail: robot.profiles?.email,
+                          sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                          sellerLocation: robot.location,
+                          itemId: robot.id,
+                          itemType: "robot",
+                          additionalData: {
+                            robotName: robot.name,
+                            robotModel: robot.model,
+                            robotType: robot.robot_type,
+                            price: robot.price,
+                            brand: robot.brand,
+                            viewSource: "robot_listing_page",
+                            groupName: key || "all"
+                          }
+                        });
+                        navigate(`/robots/${robot.id}`);
+                      }}>
                        {/* Robot Image */}
                        <div className="relative overflow-hidden rounded-lg">
                          {robot.images && robot.images.length > 0 ? (
@@ -764,10 +786,28 @@ const Robots = () => {
                              <Button
                                variant="outline"
                                size="sm"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 navigate(`/robots/${robot.id}`);
-                               }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Track view details button click
+                                  trackButtonClick({
+                                    buttonName: "View Details",
+                                    buttonType: "robot_details_button",
+                                    sellerId: robot.seller_id,
+                                    sellerName: robot.profiles?.full_name,
+                                    sellerCompany: robot.profiles?.company_name,
+                                    sellerEmail: robot.profiles?.email,
+                                    sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                                    sellerLocation: robot.location,
+                                    itemId: robot.id,
+                                    itemType: "robot",
+                                    additionalData: {
+                                      robotName: robot.name,
+                                      robotType: robot.robot_type,
+                                      viewSource: "details_button"
+                                    }
+                                  });
+                                  navigate(`/robots/${robot.id}`);
+                                }}
                              >
                                <Eye className="w-3 h-3 mr-1" />
                                Details
