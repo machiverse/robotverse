@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePostInteractions } from "@/hooks/usePostInteractions";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -55,6 +57,8 @@ interface CommunityPost {
 
 const Community = () => {
   const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -222,6 +226,26 @@ const Community = () => {
   });
 
   const handleLikeUpdate = async (postId: string, newLikeCount: number, userLiked: boolean, newShareCount?: number) => {
+    // Track like/unlike interaction
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      trackButtonClick({
+        buttonName: userLiked ? "Like Post" : "Unlike Post",
+        buttonType: "blog_interaction",
+        sellerId: post.author_id,
+        sellerName: post.profiles?.full_name,
+        sellerCompany: post.profiles?.company_name,
+        itemId: postId,
+        itemType: "blog",
+        additionalData: {
+          postTitle: post.title,
+          postType: post.post_type,
+          action: userLiked ? "like" : "unlike",
+          newLikeCount
+        }
+      });
+    }
+
     // Update local state immediately for smooth UI
     setPosts(prev => prev.map(post => 
       post.id === postId 
@@ -236,6 +260,26 @@ const Community = () => {
   };
 
   const handleCommentUpdate = (postId: string, newCommentCount: number) => {
+    // Track comment interaction
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      trackButtonClick({
+        buttonName: "Comment on Post",
+        buttonType: "blog_interaction",
+        sellerId: post.author_id,
+        sellerName: post.profiles?.full_name,
+        sellerCompany: post.profiles?.company_name,
+        itemId: postId,
+        itemType: "blog",
+        additionalData: {
+          postTitle: post.title,
+          postType: post.post_type,
+          action: "comment",
+          newCommentCount
+        }
+      });
+    }
+
     setPosts(prevPosts => prevPosts.map(post => 
       post.id === postId 
         ? { 
@@ -451,13 +495,14 @@ const Community = () => {
           ) : (
             <div className="space-y-6">
               {filteredPosts.map((post) => (
-                <CommunityPostCard
-                  key={post.id}
-                  post={post}
-                  onLikeUpdate={handleLikeUpdate}
-                  onCommentUpdate={handleCommentUpdate}
-                  onPostDeleted={handlePostDeleted}
-                />
+                <div key={post.id} onClick={() => trackItemView('community_posts', post.id, post)}>
+                  <CommunityPostCard
+                    post={post}
+                    onLikeUpdate={handleLikeUpdate}
+                    onCommentUpdate={handleCommentUpdate}
+                    onPostDeleted={handlePostDeleted}
+                  />
+                </div>
               ))}
               
               {/* Load More Section */}

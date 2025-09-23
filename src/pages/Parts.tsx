@@ -9,6 +9,8 @@ import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
 
 interface Part {
@@ -45,6 +47,8 @@ const Parts = () => {
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
 
   const categories = [
     { value: "all", label: "All Parts" },
@@ -139,6 +143,27 @@ const Parts = () => {
       return;
     }
 
+    // Track button interaction
+    trackButtonClick({
+      buttonName: "Contact Seller",
+      buttonType: "spare_parts_contact",
+      sellerId: part.sellerId,
+      sellerName: part.seller?.full_name,
+      sellerCompany: part.seller?.company_name,
+      sellerEmail: part.seller?.email,
+      sellerMobile: phone,
+      sellerLocation: part.location,
+      itemId: part.id,
+      itemType: "spare_part",
+      additionalData: {
+        partName: part.name,
+        partNumber: part.partNumber,
+        category: part.category,
+        price: part.price,
+        contactMethod: "phone"
+      }
+    });
+
     try {
       // Log the contact request
       const { error: requestError } = await supabase
@@ -202,6 +227,26 @@ const Parts = () => {
       });
       return;
     }
+
+    // Track button interaction
+    trackButtonClick({
+      buttonName: "Request Quote",
+      buttonType: "spare_parts_action",
+      sellerId: part.sellerId,
+      sellerName: part.seller?.full_name,
+      sellerCompany: part.seller?.company_name,
+      sellerEmail: part.seller?.email,
+      sellerMobile: part.seller?.phone || part.seller?.mobile_number,
+      sellerLocation: part.location,
+      itemId: part.id,
+      itemType: "spare_part",
+      additionalData: {
+        partName: part.name,
+        partNumber: part.partNumber,
+        category: part.category,
+        price: part.price
+      }
+    });
     
     setSelectedPart(part);
     setIsQuoteModalOpen(true);
@@ -340,7 +385,11 @@ const Parts = () => {
             {/* Results */}
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredParts.map((part) => (
-                <Card key={part.id} className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1">
+                <Card 
+                  key={part.id} 
+                  className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
+                  onClick={() => trackItemView('spare_parts', part.id, part)}
+                >
                   <CardHeader>
                     <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
                       {part.image && part.image !== "/placeholder.svg" ? (

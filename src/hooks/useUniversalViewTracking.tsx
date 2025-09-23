@@ -7,7 +7,7 @@ interface ViewSession {
   timestamp: number;
 }
 
-export type ItemType = 'robots' | 'spare_parts' | 'services' | 'logistics_services' | 'loan_products';
+export type ItemType = 'robots' | 'spare_parts' | 'services' | 'logistics_services' | 'loan_products' | 'community_posts' | 'blogs';
 
 export interface ViewAnalytics {
   itemId: string;

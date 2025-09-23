@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import {
   Card,
@@ -62,6 +64,8 @@ interface LogisticsProvider {
 
 const Logistics = () => {
   const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
   const [providers, setProviders] = useState<LogisticsProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -119,11 +123,51 @@ const Logistics = () => {
   );
 
   const handleViewContact = (provider: LogisticsProvider) => {
+    // Track contact interaction
+    trackButtonClick({
+      buttonName: "Contact Provider",
+      buttonType: "logistics_contact",
+      sellerId: provider.provider_id,
+      sellerName: provider.provider?.full_name,
+      sellerCompany: provider.provider?.company_name,
+      sellerEmail: provider.provider?.email,
+      sellerMobile: provider.provider?.phone,
+      sellerLocation: provider.provider?.location,
+      itemId: provider.id,
+      itemType: "logistics",
+      additionalData: {
+        serviceName: provider.service_name,
+        serviceType: provider.service_type,
+        coverageAreas: provider.coverage_areas,
+        transportModes: provider.transport_modes,
+        basePrice: provider.base_price
+      }
+    });
+
     setSelectedProvider(provider);
     setShowContactModal(true);
   };
 
   const handleGetQuote = (provider: LogisticsProvider) => {
+    // Track quote request interaction
+    trackButtonClick({
+      buttonName: "Get Quote",
+      buttonType: "logistics_quote",
+      sellerId: provider.provider_id,
+      sellerName: provider.provider?.full_name,
+      sellerCompany: provider.provider?.company_name,
+      sellerEmail: provider.provider?.email,
+      sellerMobile: provider.provider?.phone,
+      sellerLocation: provider.provider?.location,
+      itemId: provider.id,
+      itemType: "logistics",
+      additionalData: {
+        serviceName: provider.service_name,
+        serviceType: provider.service_type,
+        deliveryTime: provider.delivery_time_hours
+      }
+    });
+
     setSelectedProvider(provider);
     setShowQuoteModal(true);
   };
@@ -213,7 +257,11 @@ const Logistics = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProviders.map((provider) => (
-              <Card key={provider.id} className="h-full flex flex-col">
+              <Card 
+                key={provider.id} 
+                className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => trackItemView('logistics_services', provider.id, provider)}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Truck className="h-5 w-5 text-primary" />

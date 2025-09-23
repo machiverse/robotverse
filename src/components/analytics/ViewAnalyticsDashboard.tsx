@@ -83,7 +83,9 @@ const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   spare_parts: 'Spare Parts',
   services: 'Services',
   logistics_services: 'Logistics',
-  loan_products: 'Finance'
+  loan_products: 'Finance',
+  community_posts: 'Community Posts',
+  blogs: 'Blogs'
 };
 
 export const ViewAnalyticsDashboard = ({ sellerId, className = "" }: ViewAnalyticsDashboardProps) => {

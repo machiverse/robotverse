@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
 
 interface Service {
   id: string;
@@ -49,6 +50,7 @@ const Services = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { trackItemView } = useUniversalViewTracking();
+  const { trackButtonClick } = useButtonTracking();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +173,26 @@ const Services = () => {
       });
       return;
     }
+
+    // Track button interaction
+    trackButtonClick({
+      buttonName: "Request Quote",
+      buttonType: "service_action",
+      sellerId: service.providerId,
+      sellerName: service.providerProfile?.full_name || service.provider,
+      sellerCompany: service.providerProfile?.company_name || service.provider,
+      sellerEmail: service.providerProfile?.email,
+      sellerMobile: service.providerProfile?.phone || service.providerProfile?.mobile_number,
+      sellerLocation: service.location,
+      itemId: service.id,
+      itemType: "service",
+      additionalData: {
+        serviceName: service.name,
+        serviceCategory: service.category,
+        priceRange: service.priceRange
+      }
+    });
+
     setSelectedService(service);
     setShowRequestModal(true);
   };
@@ -194,6 +216,25 @@ const Services = () => {
       });
       return;
     }
+
+    // Track button interaction
+    trackButtonClick({
+      buttonName: "Contact Provider",
+      buttonType: "service_contact",
+      sellerId: service.providerId,
+      sellerName: service.providerProfile?.full_name || service.provider,
+      sellerCompany: service.providerProfile?.company_name || service.provider,
+      sellerEmail: service.providerProfile?.email,
+      sellerMobile: phone,
+      sellerLocation: service.location,
+      itemId: service.id,
+      itemType: "service",
+      additionalData: {
+        serviceName: service.name,
+        serviceCategory: service.category,
+        contactMethod: "phone"
+      }
+    });
 
     window.open(`tel:${phone}`, "_self");
     toast({

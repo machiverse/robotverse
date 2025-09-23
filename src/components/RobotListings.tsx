@@ -33,6 +33,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
 import {
   Dialog,
@@ -102,6 +104,8 @@ interface AIAnalysisResult {
 const RobotListings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
   const navigate = useNavigate();
 
   // State variables
@@ -957,6 +961,25 @@ const RobotListings = () => {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
+                          trackItemView('robots', robot.id, robot);
+                          trackButtonClick({
+                            buttonName: "View Details",
+                            buttonType: "robot_view",
+                            sellerId: robot.seller_id,
+                            sellerName: robot.profiles?.full_name,
+                            sellerCompany: robot.profiles?.company_name,
+                            sellerEmail: robot.profiles?.email,
+                            sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                            sellerLocation: robot.location,
+                            itemId: robot.id,
+                            itemType: "robot",
+                            additionalData: {
+                              robotName: robot.name,
+                              robotType: robot.robot_type,
+                              price: robot.price,
+                              brand: robot.brand
+                            }
+                          });
                           navigate(`/robots/${robot.id}`);
                         }}
                       >
@@ -977,6 +1000,23 @@ const RobotListings = () => {
                             });
                             return;
                           }
+                          trackButtonClick({
+                            buttonName: "Contact Seller",
+                            buttonType: "robot_contact",
+                            sellerId: robot.seller_id,
+                            sellerName: robot.profiles?.full_name,
+                            sellerCompany: robot.profiles?.company_name,
+                            sellerEmail: robot.profiles?.email,
+                            sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                            sellerLocation: robot.location,
+                            itemId: robot.id,
+                            itemType: "robot",
+                            additionalData: {
+                              robotName: robot.name,
+                              robotType: robot.robot_type,
+                              contactMethod: "whatsapp_or_phone"
+                            }
+                          });
                           handleContactSeller(robot, e);
                         }}
                         disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
@@ -993,6 +1033,19 @@ const RobotListings = () => {
                       className="w-full"
                       onClick={(e) => {
                         e.stopPropagation();
+                        trackButtonClick({
+                          buttonName: "AI Analysis",
+                          buttonType: "robot_ai_analysis",
+                          sellerId: robot.seller_id,
+                          sellerName: robot.profiles?.full_name,
+                          sellerCompany: robot.profiles?.company_name,
+                          itemId: robot.id,
+                          itemType: "robot",
+                          additionalData: {
+                            robotName: robot.name,
+                            robotType: robot.robot_type
+                          }
+                        });
                         handleAnalyzeRobot(robot);
                       }}
                       disabled={aiAnalysisLoading && aiAnalysisRobotId === robot.id}
