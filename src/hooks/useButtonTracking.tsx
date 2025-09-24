@@ -68,8 +68,11 @@ export const useButtonTracking = () => {
       // Prepare tracking payload with full seller & user details
       const trackingPayload = {
         user_id: user.id,
-        user_name:
-          userProfile?.full_name || user.user_metadata?.full_name || user.email || 'Unknown User',
+        user_name: userProfile?.full_name || user.user_metadata?.full_name || user.email || 'Unknown User',
+        user_email: user.email || 'No Email',
+        user_mobile: userProfile?.mobile_number || userProfile?.phone || 'No Mobile',
+        user_location: userProfile?.location || 'No Location',
+        user_company: userProfile?.company_name || 'No Company',
 
         seller_id: data.sellerId || null,
         seller_name: data.sellerName || null,
@@ -92,13 +95,13 @@ export const useButtonTracking = () => {
             screen_resolution: `${window.screen.width}x${window.screen.height}`,
             referrer: document.referrer,
           },
-          user_details: {
-            user_email: user.email,
-            user_company: userProfile?.company_name || null,
-            user_location: userProfile?.location || null,
-            user_phone: userProfile?.mobile_number || userProfile?.phone || null,
-            user_type: userProfile?.user_type || null,
+          user_profile_complete: {
+            has_name: !!userProfile?.full_name,
+            has_mobile: !!(userProfile?.mobile_number || userProfile?.phone),
+            has_location: !!userProfile?.location,
+            has_company: !!userProfile?.company_name,
             account_type: userProfile?.account_type || null,
+            user_type: userProfile?.user_type || null,
           },
         },
       };
