@@ -196,7 +196,7 @@ const RobotDetails = () => {
           : {}
       });
 
-      // Track comprehensive robot page view with full seller information
+      // Track comprehensive robot page view with full seller and user information (single entry)
       if (!data.profiles) {
         console.warn('⚠️ No seller profile data found for robot:', data.id);
       } else {
@@ -233,18 +233,9 @@ const RobotDetails = () => {
           pageType: "robot_details",
           viewSource: "direct_page_visit",
           sellerProfileExists: !!data.profiles,
-          sellerProfileData: data.profiles // Include full seller profile for debugging
+          // Remove duplicate tracking - this single call handles everything
+          trackingNote: "Single comprehensive robot page view tracking"
         }
-      });
-
-      // Also track with universal view tracking for analytics
-      trackItemView('robots', data.id, {
-        name: data.name,
-        model: data.model,
-        price: data.price,
-        seller_id: data.seller_id,
-        category: data.robot_type,
-        seller_info: data.profiles
       });
       
       // Generate SEO elements for this robot
