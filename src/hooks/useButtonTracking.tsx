@@ -106,16 +106,31 @@ export const useButtonTracking = () => {
         },
       };
 
+      console.log('🔍 Button tracking payload:', {
+        user_details: {
+          user_email: trackingPayload.user_email,
+          user_mobile: trackingPayload.user_mobile,
+          user_location: trackingPayload.user_location,
+          user_company: trackingPayload.user_company
+        },
+        seller_details: {
+          seller_email: trackingPayload.seller_email,
+          seller_mobile: trackingPayload.seller_mobile,
+          seller_location: trackingPayload.seller_location,
+          seller_company: trackingPayload.seller_company
+        }
+      });
+
       // Insert into Supabase 
       const { data: insertedData, error } = await supabase
         .from('button_interactions')
         .insert([trackingPayload])
-        .select();
+        .select('id, user_email, user_mobile, seller_email, seller_mobile');
 
       if (error) {
-        console.error('Error inserting button interaction:', error);
+        console.error('❌ Error inserting button interaction:', error);
       } else {
-        console.log('Button interaction tracked successfully:', insertedData);
+        console.log('✅ Button interaction tracked successfully:', insertedData?.[0]);
       }
     } catch (error) {
       console.error('Unexpected error tracking button click:', error);
