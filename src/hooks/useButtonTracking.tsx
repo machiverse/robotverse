@@ -39,12 +39,27 @@ export const useButtonTracking = () => {
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Changed to maybeSingle to handle no profile cases
 
         if (error) {
-          console.error('Error fetching user profile:', error);
+          console.error('❌ Error fetching user profile for tracking:', error);
           return;
         }
+
+        if (!data) {
+          console.warn('⚠️ No user profile found, using auth data only for user:', user.email);
+          setUserProfile(null);
+          return;
+        }
+
+        console.log('✅ User profile loaded for tracking:', {
+          full_name: data.full_name,
+          email: data.email,
+          mobile_number: data.mobile_number,
+          phone: data.phone,
+          location: data.location,
+          company_name: data.company_name
+        });
 
         setUserProfile(data);
       } catch (error) {
