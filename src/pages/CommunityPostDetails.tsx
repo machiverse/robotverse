@@ -47,6 +47,9 @@ interface CommunityPost {
   created_at: string;
   published_at?: string;
   author_id: string;
+  edited_at?: string;
+  edit_history?: any[];
+  video_thumbnail?: string;
   profiles?: {
     full_name: string;
     company_name?: string;
@@ -124,7 +127,10 @@ const CommunityPostDetails = () => {
             share_count: 0,
             video_duration: null,
             media_url: blogPost.image_url,
-            media_type: blogPost.image_url ? 'image' : null
+            media_type: blogPost.image_url ? 'image' : null,
+            edited_at: null,
+            edit_history: [],
+            video_thumbnail: null
           };
         }
       }

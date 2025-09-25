@@ -196,16 +196,28 @@ const RobotDetails = () => {
           : {}
       });
 
-      // Track comprehensive robot page view with full seller information
-      trackButtonClick({
+      // Track comprehensive robot page view with full seller and user information (single entry)
+      if (!data.profiles) {
+        console.warn('⚠️ No seller profile data found for robot:', data.id);
+      } else {
+        console.log('✅ Seller profile data loaded:', {
+          full_name: data.profiles.full_name,
+          company_name: data.profiles.company_name,
+          email: data.profiles.email,
+          mobile: data.profiles.mobile_number || data.profiles.phone,
+          location: data.profiles.location
+        });
+      }
+      
+      await trackButtonClick({
         buttonName: "Robot Page View",
         buttonType: "robot_page_view",
         sellerId: data.seller_id,
-        sellerName: data.profiles?.full_name,
-        sellerCompany: data.profiles?.company_name,
-        sellerEmail: data.profiles?.email,
-        sellerMobile: data.profiles?.phone || data.profiles?.mobile_number,
-        sellerLocation: data.profiles?.location || data.location,
+        sellerName: data.profiles?.full_name || 'No Name Available',
+        sellerCompany: data.profiles?.company_name || 'No Company Available',
+        sellerEmail: data.profiles?.email || 'No Email Available',
+        sellerMobile: data.profiles?.mobile_number || data.profiles?.phone || 'No Phone Available',
+        sellerLocation: data.profiles?.location || data.location || 'No Location Available',
         itemId: data.id,
         itemType: "robot",
         additionalData: {
@@ -219,18 +231,11 @@ const RobotDetails = () => {
           location: data.location,
           state: data.state,
           pageType: "robot_details",
-          viewSource: "direct_page_visit"
+          viewSource: "direct_page_visit",
+          sellerProfileExists: !!data.profiles,
+          // Remove duplicate tracking - this single call handles everything
+          trackingNote: "Single comprehensive robot page view tracking"
         }
-      });
-
-      // Also track with universal view tracking for analytics
-      trackItemView('robots', data.id, {
-        name: data.name,
-        model: data.model,
-        price: data.price,
-        seller_id: data.seller_id,
-        category: data.robot_type,
-        seller_info: data.profiles
       });
       
       // Generate SEO elements for this robot

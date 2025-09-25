@@ -47,6 +47,9 @@ interface CommunityPost {
   created_at: string;
   author_id: string;
   published_at?: string;
+  edited_at?: string;
+  edit_history?: any[];
+  video_thumbnail?: string;
   profiles?: {
     full_name: string;
     company_name?: string;

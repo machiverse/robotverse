@@ -39,12 +39,27 @@ export const useButtonTracking = () => {
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Changed to maybeSingle to handle no profile cases
 
         if (error) {
-          console.error('Error fetching user profile:', error);
+          console.error('❌ Error fetching user profile for tracking:', error);
           return;
         }
+
+        if (!data) {
+          console.warn('⚠️ No user profile found, using auth data only for user:', user.email);
+          setUserProfile(null);
+          return;
+        }
+
+        console.log('✅ User profile loaded for tracking:', {
+          full_name: data.full_name,
+          email: data.email,
+          mobile_number: data.mobile_number,
+          phone: data.phone,
+          location: data.location,
+          company_name: data.company_name
+        });
 
         setUserProfile(data);
       } catch (error) {
@@ -68,8 +83,11 @@ export const useButtonTracking = () => {
       // Prepare tracking payload with full seller & user details
       const trackingPayload = {
         user_id: user.id,
-        user_name:
-          userProfile?.full_name || user.user_metadata?.full_name || user.email || 'Unknown User',
+        user_name: userProfile?.full_name || user.user_metadata?.full_name || user.email || 'Unknown User',
+        user_email: user.email || 'No Email',
+        user_mobile: userProfile?.mobile_number || userProfile?.phone || 'No Mobile',
+        user_location: userProfile?.location || 'No Location',
+        user_company: userProfile?.company_name || 'No Company',
 
         seller_id: data.sellerId || null,
         seller_name: data.sellerName || null,
@@ -92,27 +110,42 @@ export const useButtonTracking = () => {
             screen_resolution: `${window.screen.width}x${window.screen.height}`,
             referrer: document.referrer,
           },
-          user_details: {
-            user_email: user.email,
-            user_company: userProfile?.company_name || null,
-            user_location: userProfile?.location || null,
-            user_phone: userProfile?.mobile_number || userProfile?.phone || null,
-            user_type: userProfile?.user_type || null,
+          user_profile_complete: {
+            has_name: !!userProfile?.full_name,
+            has_mobile: !!(userProfile?.mobile_number || userProfile?.phone),
+            has_location: !!userProfile?.location,
+            has_company: !!userProfile?.company_name,
             account_type: userProfile?.account_type || null,
+            user_type: userProfile?.user_type || null,
           },
         },
       };
+
+      console.log('🔍 Button tracking payload:', {
+        user_details: {
+          user_email: trackingPayload.user_email,
+          user_mobile: trackingPayload.user_mobile,
+          user_location: trackingPayload.user_location,
+          user_company: trackingPayload.user_company
+        },
+        seller_details: {
+          seller_email: trackingPayload.seller_email,
+          seller_mobile: trackingPayload.seller_mobile,
+          seller_location: trackingPayload.seller_location,
+          seller_company: trackingPayload.seller_company
+        }
+      });
 
       // Insert into Supabase 
       const { data: insertedData, error } = await supabase
         .from('button_interactions')
         .insert([trackingPayload])
-        .select();
+        .select('id, user_email, user_mobile, seller_email, seller_mobile');
 
       if (error) {
-        console.error('Error inserting button interaction:', error);
+        console.error('❌ Error inserting button interaction:', error);
       } else {
-        console.log('Button interaction tracked successfully:', insertedData);
+        console.log('✅ Button interaction tracked successfully:', insertedData?.[0]);
       }
     } catch (error) {
       console.error('Unexpected error tracking button click:', error);

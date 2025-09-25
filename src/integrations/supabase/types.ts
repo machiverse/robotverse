@@ -195,9 +195,17 @@ export type Database = {
           item_id: string | null
           item_type: string | null
           page_url: string | null
+          seller_company: string | null
+          seller_email: string | null
           seller_id: string | null
+          seller_location: string | null
+          seller_mobile: string | null
           seller_name: string | null
+          user_company: string | null
+          user_email: string | null
           user_id: string | null
+          user_location: string | null
+          user_mobile: string | null
           user_name: string | null
         }
         Insert: {
@@ -209,9 +217,17 @@ export type Database = {
           item_id?: string | null
           item_type?: string | null
           page_url?: string | null
+          seller_company?: string | null
+          seller_email?: string | null
           seller_id?: string | null
+          seller_location?: string | null
+          seller_mobile?: string | null
           seller_name?: string | null
+          user_company?: string | null
+          user_email?: string | null
           user_id?: string | null
+          user_location?: string | null
+          user_mobile?: string | null
           user_name?: string | null
         }
         Update: {
@@ -223,9 +239,17 @@ export type Database = {
           item_id?: string | null
           item_type?: string | null
           page_url?: string | null
+          seller_company?: string | null
+          seller_email?: string | null
           seller_id?: string | null
+          seller_location?: string | null
+          seller_mobile?: string | null
           seller_name?: string | null
+          user_company?: string | null
+          user_email?: string | null
           user_id?: string | null
+          user_location?: string | null
+          user_mobile?: string | null
           user_name?: string | null
         }
         Relationships: []
@@ -236,6 +260,8 @@ export type Database = {
           comment_count: number | null
           content: string | null
           created_at: string
+          edit_history: Json | null
+          edited_at: string | null
           excerpt: string | null
           id: string
           like_count: number | null
@@ -249,6 +275,7 @@ export type Database = {
           title: string | null
           updated_at: string
           video_duration: number | null
+          video_thumbnail: string | null
           view_count: number | null
         }
         Insert: {
@@ -256,6 +283,8 @@ export type Database = {
           comment_count?: number | null
           content?: string | null
           created_at?: string
+          edit_history?: Json | null
+          edited_at?: string | null
           excerpt?: string | null
           id?: string
           like_count?: number | null
@@ -269,6 +298,7 @@ export type Database = {
           title?: string | null
           updated_at?: string
           video_duration?: number | null
+          video_thumbnail?: string | null
           view_count?: number | null
         }
         Update: {
@@ -276,6 +306,8 @@ export type Database = {
           comment_count?: number | null
           content?: string | null
           created_at?: string
+          edit_history?: Json | null
+          edited_at?: string | null
           excerpt?: string | null
           id?: string
           like_count?: number | null
@@ -289,6 +321,7 @@ export type Database = {
           title?: string | null
           updated_at?: string
           video_duration?: number | null
+          video_thumbnail?: string | null
           view_count?: number | null
         }
         Relationships: []
