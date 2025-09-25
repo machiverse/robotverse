@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
+import EditPostModal from "@/components/EditPostModal";
 
 interface CommunityPost {
   id: string;
@@ -60,6 +61,9 @@ interface CommunityPost {
   share_count?: number;
   created_at: string;
   author_id: string;
+  edited_at?: string;
+  edit_history?: any[];
+  video_thumbnail?: string;
   profiles?: {
     full_name: string;
     company_name?: string;
@@ -80,6 +84,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
   const [isLiking, setIsLiking] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const getPostTypeIcon = () => {
     switch (post.post_type) {
@@ -251,6 +256,34 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     return content.substring(0, maxLength).trim() + "...";
   };
 
+  const handleDelete = async () => {
+    if (!user || post.author_id !== user.id) {
+      toast.error('You can only delete your own posts');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('author_id', user.id);
+
+      if (error) throw error;
+      
+      toast.success('Post deleted successfully');
+      onPostDeleted?.(post.id);
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 bg-card border border-border/50 rounded-xl overflow-hidden w-full">
       {/* Author Header */}
@@ -277,15 +310,41 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           </div>
         </div>
 
-        {/* Post Type Badge */}
-        <Badge variant="outline" className="border-none bg-gradient-to-r from-primary/10 to-accent/10 text-primary hover:from-primary/20 hover:to-accent/20 transition-all">
-          <div className="flex items-center gap-1">
-            {getPostTypeIcon()}
-            <span className="text-xs font-medium">
-              {post.post_type === 'short_post' ? 'POST' : post.post_type.replace('_', ' ').toUpperCase()}
-            </span>
-          </div>
-        </Badge>
+        <div className="flex items-center gap-2">
+          {/* Post Type Badge */}
+          <Badge variant="outline" className="border-none bg-gradient-to-r from-primary/10 to-accent/10 text-primary hover:from-primary/20 hover:to-accent/20 transition-all">
+            <div className="flex items-center gap-1">
+              {getPostTypeIcon()}
+              <span className="text-xs font-medium">
+                {post.post_type === 'short_post' ? 'POST' : post.post_type.replace('_', ' ').toUpperCase()}
+              </span>
+            </div>
+          </Badge>
+
+          {/* Edit/Delete Menu */}
+          {user && post.author_id === user.id && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Post
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       <Link to={post.post_type === 'blog' && !post.media_url ? `/robobook/${post.id}` : `/community/${post.id}`} className="block">
@@ -308,18 +367,28 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           )}
         </div>
 
-        {/* Media Preview */}
+        {/* Media Preview with Enhanced Video Support */}
         {post.media_url && (
-          <ResponsiveMedia
-            src={post.media_url}
-            type={post.post_type === 'video' || post.media_type === 'video' ? 'video' : 'image'}
-            alt={post.title || 'Post media'}
-            title={post.title}
-            videoDuration={post.video_duration}
-            autoplay={post.post_type === 'video' || post.media_type === 'video'}
-            controls={false}
-            className="aspect-video"
-          />
+          <div className="relative overflow-hidden rounded-lg">
+            <ResponsiveMedia
+              src={post.media_url}
+              type={post.post_type === 'video' || post.media_type === 'video' ? 'video' : 'image'}
+              alt={post.title || 'Post media'}
+              title={post.title}
+              videoDuration={post.video_duration}
+              autoplay={post.post_type === 'video' || post.media_type === 'video'}
+              controls={post.post_type === 'video' || post.media_type === 'video'}
+              className="w-full h-auto max-h-[500px] object-cover"
+            />
+            {/* Video overlay for better UX */}
+            {(post.post_type === 'video' || post.media_type === 'video') && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-black/50 rounded-full p-3">
+                  <Play className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </Link>
 
@@ -407,6 +476,36 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           </div>
         </div>
       </div>
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        post={post}
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        onPostUpdated={() => window.location.reload()}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

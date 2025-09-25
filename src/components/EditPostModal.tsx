@@ -1,0 +1,497 @@
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Upload, 
+  X, 
+  BookOpen, 
+  Video, 
+  FileText, 
+  Image as ImageIcon,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import MediaPreview from "@/components/MediaPreview";
+import RichTextEditor from "@/components/RichTextEditor";
+
+interface CommunityPost {
+  id: string;
+  post_type: 'blog' | 'video' | 'short_post' | 'media';
+  title?: string;
+  content?: string;
+  excerpt?: string;
+  media_url?: string;
+  media_type?: string;
+  video_duration?: number;
+  tags: string[];
+  created_at: string;
+  author_id: string;
+  edited_at?: string;
+  edit_history?: any[];
+  video_thumbnail?: string;
+}
+
+interface EditPostModalProps {
+  post: CommunityPost;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPostUpdated?: () => void;
+}
+
+const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModalProps) => {
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [postType, setPostType] = useState<'blog' | 'video' | 'short_post' | 'media'>(post.post_type);
+  const [title, setTitle] = useState(post.title || '');
+  const [content, setContent] = useState(post.content || '');
+  const [tags, setTags] = useState<string[]>(post.tags || []);
+  const [tagInput, setTagInput] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaUrl, setMediaUrl] = useState(post.media_url || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const postTypes = [
+    { value: 'short_post', label: 'Short Post', icon: FileText, description: 'Quick thoughts and updates' },
+    { value: 'blog', label: 'Blog Article', icon: BookOpen, description: 'In-depth articles and tutorials' },
+    { value: 'video', label: 'Video', icon: Video, description: 'Video content and demonstrations' },
+    { value: 'media', label: 'Media', icon: ImageIcon, description: 'Images and visual content' },
+  ];
+
+  const allowedFileTypes = {
+    image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    video: ['video/mp4', 'video/webm', 'video/mov', 'video/avi'],
+    document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  };
+
+  const maxFileSize = 50 * 1024 * 1024; // 50MB
+
+  useEffect(() => {
+    if (open) {
+      // Reset form when modal opens
+      setPostType(post.post_type);
+      setTitle(post.title || '');
+      setContent(post.content || '');
+      setTags(post.tags || []);
+      setMediaUrl(post.media_url || '');
+      setMediaFile(null);
+      setValidationErrors([]);
+    }
+  }, [open, post]);
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+      setTags([...tags, tagInput.trim()]);
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const validateFile = (file: File): string[] => {
+    const errors: string[] = [];
+    
+    if (file.size > maxFileSize) {
+      errors.push(`File size must be less than 50MB. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+    }
+    
+    const allAllowedTypes = [
+      ...allowedFileTypes.image,
+      ...allowedFileTypes.video,
+      ...allowedFileTypes.document
+    ];
+    
+    if (!allAllowedTypes.includes(file.type)) {
+      errors.push(`File type "${file.type}" is not supported. Allowed: JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI, PDF, DOC, DOCX`);
+    }
+    
+    return errors;
+  };
+
+  const handleFileSelect = (file: File | null) => {
+    if (!file) {
+      setMediaFile(null);
+      setValidationErrors([]);
+      return;
+    }
+    
+    const errors = validateFile(file);
+    setValidationErrors(errors);
+    
+    if (errors.length === 0) {
+      setMediaFile(file);
+      setMediaUrl(''); // Clear URL if file is selected
+    } else {
+      setMediaFile(null);
+    }
+  };
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    handleFileSelect(file);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      const errors = validateFile(file);
+      if (errors.length > 0) {
+        throw new Error(errors.join(', '));
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `community-media/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('robot-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('robot-images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  };
+
+  const validateForm = (): string[] => {
+    const errors: string[] = [];
+    
+    if (!user || post.author_id !== user.id) {
+      errors.push('You can only edit your own posts');
+      return errors;
+    }
+
+    if ((postType === 'blog' || postType === 'video') && !title.trim()) {
+      errors.push('Title is required for blog articles and videos');
+    }
+
+    if (!content.trim() && !mediaFile && !mediaUrl) {
+      errors.push('Please add some content, upload a file, or provide a media URL');
+    }
+
+    if (mediaFile && validationErrors.length > 0) {
+      errors.push(...validationErrors);
+    }
+
+    if (content.length > 10000) {
+      errors.push('Content is too long (maximum 10,000 characters)');
+    }
+
+    if (title && title.length > 200) {
+      errors.push('Title is too long (maximum 200 characters)');
+    }
+
+    return errors;
+  };
+
+  const handleSubmit = async () => {
+    const errors = validateForm();
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      let uploadedMediaUrl = mediaUrl;
+      let mediaType = '';
+
+      // Upload new media file if provided
+      if (mediaFile) {
+        uploadedMediaUrl = await handleFileUpload(mediaFile);
+        mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
+      } else if (mediaUrl) {
+        // Determine media type from URL
+        const isVideo = /\.(mp4|webm|mov|avi)$/i.test(mediaUrl) || mediaUrl.includes('youtube') || mediaUrl.includes('vimeo');
+        mediaType = isVideo ? 'video' : 'image';
+      }
+
+      // Generate excerpt for longer content
+      const excerpt = content.length > 200 ? content.substring(0, 200) + '...' : content;
+
+      // Add to edit history
+      const editHistory = [
+        ...(post.edit_history || []),
+        {
+          edited_at: new Date().toISOString(),
+          changes: {
+            title: post.title !== title.trim() ? { old: post.title, new: title.trim() } : null,
+            content: post.content !== content.trim() ? { old: post.content, new: content.trim() } : null,
+            media_url: post.media_url !== uploadedMediaUrl ? { old: post.media_url, new: uploadedMediaUrl } : null,
+            tags: JSON.stringify(post.tags) !== JSON.stringify(tags) ? { old: post.tags, new: tags } : null
+          }
+        }
+      ];
+
+      const updateData = {
+        post_type: postType,
+        title: title.trim() || null,
+        content: content.trim(),
+        excerpt: excerpt,
+        media_url: uploadedMediaUrl || null,
+        media_type: mediaType || null,
+        tags: tags,
+        updated_at: new Date().toISOString(),
+        edited_at: new Date().toISOString(),
+        edit_history: editHistory
+      };
+
+      const { error } = await supabase
+        .from('community_posts')
+        .update(updateData)
+        .eq('id', post.id)
+        .eq('author_id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Post updated successfully!');
+      onOpenChange(false);
+      onPostUpdated?.();
+    } catch (error) {
+      console.error('Error updating post:', error);
+      toast.error(`Failed to update post: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!user || post.author_id !== user.id) {
+    return null;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Post</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Post Type Selection */}
+          <div className="space-y-3">
+            <Label>Post Type</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {postTypes.map((type) => {
+                const Icon = type.icon;
+                return (
+                  <Card
+                    key={type.value}
+                    className={`cursor-pointer transition-all ${
+                      postType === type.value
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onClick={() => setPostType(type.value as any)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Icon className={`h-5 w-5 ${postType === type.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <div>
+                          <h4 className="font-medium">{type.label}</h4>
+                          <p className="text-xs text-muted-foreground">{type.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Title (for blog and video posts) */}
+          {(postType === 'blog' || postType === 'video') && (
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter post title..."
+                className="w-full"
+              />
+            </div>
+          )}
+
+          {/* Rich Text Content Editor */}
+          <div className="space-y-2">
+            <Label htmlFor="content">Content</Label>
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Write your post content..."
+              className="min-h-[250px]"
+            />
+          </div>
+
+          {/* Media Upload/Update */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Media</Label>
+            
+            {/* Current Media Preview */}
+            {mediaUrl && !mediaFile && (
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Current Media</Label>
+                <div className="relative">
+                  <img 
+                    src={mediaUrl} 
+                    alt="Current media"
+                    className="max-h-40 rounded-lg object-cover"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => setMediaUrl('')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+              <div className="border border-destructive rounded-lg p-3 bg-destructive/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">Upload Issues</span>
+                </div>
+                <ul className="text-xs text-destructive space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {/* File Upload */}
+            {!mediaFile && !mediaUrl && (
+              <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-gradient-to-br from-primary/5 to-accent/5">
+                <div className="text-center">
+                  <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <Upload className="h-8 w-8 text-primary" />
+                  </div>
+                  <h4 className="font-semibold text-foreground mb-2">Upload New Media</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    JPG, PNG, GIF, WebP, MP4, WebM, MOV, AVI (max 50MB)
+                  </p>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="rounded-full px-6"
+                    onClick={handleFileButtonClick}
+                    type="button"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Choose File
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {mediaFile && (
+              <MediaPreview 
+                file={mediaFile} 
+                onRemove={() => handleFileSelect(null)} 
+              />
+            )}
+
+            {/* URL Input */}
+            {!mediaFile && (
+              <div className="space-y-2">
+                <Label htmlFor="media-url" className="text-sm font-medium text-muted-foreground">
+                  Or use media URL
+                </Label>
+                <Input
+                  id="media-url"
+                  value={mediaUrl}
+                  onChange={(e) => setMediaUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg or video URL"
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-3">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                  #{tag}
+                  <X 
+                    className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                    onClick={() => handleRemoveTag(tag)}
+                  />
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Add tags..."
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                className="flex-1"
+              />
+              <Button type="button" variant="outline" onClick={handleAddTag}>
+                Add Tag
+              </Button>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Update Post
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default EditPostModal;
