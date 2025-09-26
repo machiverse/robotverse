@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useSessionId } from '@/hooks/useSessionId';
 import { toast } from 'sonner';
 
 interface PostInteractionButtonsProps {
@@ -28,6 +29,7 @@ const PostInteractionButtons = ({
   disabled = false
 }: PostInteractionButtonsProps) => {
   const { user } = useAuth();
+  const sessionId = useSessionId();
   const [isLiking, setIsLiking] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
@@ -35,8 +37,9 @@ const PostInteractionButtons = ({
     e.preventDefault();
     e.stopPropagation();
     
-    if (!user) {
-      toast.error('Please sign in to like posts');
+    // Allow anonymous likes
+    if (!user && !sessionId) {
+      toast.error('Unable to process like. Please refresh and try again.');
       return;
     }
     
@@ -68,6 +71,7 @@ const PostInteractionButtons = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // Comments still require authentication
     if (!user) {
       toast.error('Please sign in to comment');
       return;

@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import PostComments from "@/components/PostComments";
+import EnhancedPostComments from "@/components/EnhancedPostComments";
 import { 
   Heart, 
   MessageCircle, 
@@ -516,7 +516,7 @@ const CommunityPostDetails = () => {
 
         {/* Comments Section */}
         <div id="comments">
-          <PostComments 
+          <EnhancedPostComments 
             postId={post.id} 
             onCommentCountChange={(count) => 
               setPost(prev => prev ? { ...prev, comment_count: count } : null)
