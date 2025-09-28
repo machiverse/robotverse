@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import WatchlistSection from '@/components/WatchlistSection';
 
 interface BuyerDashboardProps {
   userProfile: any;
@@ -718,6 +719,15 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Watchlist Section */}
+      <div className="mt-6">
+        <WatchlistSection 
+          title="Your Watchlist"
+          limit={6}
+          showHeader={true}
+        />
+      </div>
     </div>
   );
 };

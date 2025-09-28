@@ -56,6 +56,7 @@ import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
+import WatchlistSection from '@/components/WatchlistSection';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -1022,6 +1023,13 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Watchlist Section */}
+            <WatchlistSection 
+              title="My Watchlist"
+              limit={8}
+              showHeader={true}
+            />
           </div>
         </TabsContent>
 
