@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
+import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye, Share2, MessageCircle, Brain, MapPin, Building, CheckCircle, Phone } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
@@ -22,7 +22,7 @@ const Robots = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getRobotViewCount } = useGlobalViewTracking();
+  const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
 
   // States for filtering & UI
@@ -110,7 +110,7 @@ const Robots = () => {
         // Fetch view counts for each robot and add to data
         const robotsWithViewCounts = await Promise.all(
           (data || []).map(async (robot) => {
-            const viewCount = await getRobotViewCount(robot.id);
+            const viewCount = await getItemViewCount('robots', robot.id);
             return { ...robot, viewCount };
           })
         );
@@ -201,7 +201,7 @@ const Robots = () => {
     };
 
     fetchData();
-  }, [getRobotViewCount]);
+  }, [getItemViewCount]);
 
   // Filter and group robots according to selected filters
   const getFilteredGroups = () => {
@@ -651,9 +651,11 @@ const Robots = () => {
                             viewSource: "robot_listing_page",
                             groupName: key || "all"
                           }
-                        });
-                        navigate(`/robots/${robot.id}`);
-                      }}>
+                         });
+                         // Track robot view for analytics
+                         await trackItemView('robots', robot.id, robot);
+                         navigate(`/robots/${robot.id}`);
+                       }}>
                        {/* Robot Image */}
                        <div className="relative overflow-hidden rounded-lg">
                          {robot.images && robot.images.length > 0 ? (
@@ -786,28 +788,30 @@ const Robots = () => {
                              <Button
                                variant="outline"
                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Track view details button click
-                                  trackButtonClick({
-                                    buttonName: "View Details",
-                                    buttonType: "robot_details_button",
-                                    sellerId: robot.seller_id,
-                                    sellerName: robot.profiles?.full_name,
-                                    sellerCompany: robot.profiles?.company_name,
-                                    sellerEmail: robot.profiles?.email,
-                                    sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
-                                    sellerLocation: robot.location,
-                                    itemId: robot.id,
-                                    itemType: "robot",
-                                    additionalData: {
-                                      robotName: robot.name,
-                                      robotType: robot.robot_type,
-                                      viewSource: "details_button"
-                                    }
-                                  });
-                                  navigate(`/robots/${robot.id}`);
-                                }}
+                                 onClick={async (e) => {
+                                   e.stopPropagation();
+                                   // Track view details button click
+                                   trackButtonClick({
+                                     buttonName: "View Details",
+                                     buttonType: "robot_details_button",
+                                     sellerId: robot.seller_id,
+                                     sellerName: robot.profiles?.full_name,
+                                     sellerCompany: robot.profiles?.company_name,
+                                     sellerEmail: robot.profiles?.email,
+                                     sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                                     sellerLocation: robot.location,
+                                     itemId: robot.id,
+                                     itemType: "robot",
+                                     additionalData: {
+                                       robotName: robot.name,
+                                       robotType: robot.robot_type,
+                                       viewSource: "details_button"
+                                     }
+                                   });
+                                   // Track robot view when clicking details button
+                                   await trackItemView('robots', robot.id, robot);
+                                   navigate(`/robots/${robot.id}`);
+                                 }}
                              >
                                <Eye className="w-3 h-3 mr-1" />
                                Details
