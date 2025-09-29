@@ -54,6 +54,7 @@ const WatchlistSection = ({
       setLoading(true);
       
       // Get watchlist items
+      console.log('Fetching watchlist for user:', user.id);
       const { data: watchlistData, error: watchlistError } = await supabase
         .from('watchlists')
         .select('*')
@@ -61,9 +62,12 @@ const WatchlistSection = ({
         .order('created_at', { ascending: false })
         .limit(limit);
 
+      console.log('Watchlist query result:', { watchlistData, watchlistError });
+
       if (watchlistError) throw watchlistError;
 
       if (!watchlistData || watchlistData.length === 0) {
+        console.log('No watchlist items found for user');
         setWatchlistItems([]);
         return;
       }
@@ -71,12 +75,17 @@ const WatchlistSection = ({
       // Fetch related data for each item
       const transformedItems: WatchlistItem[] = [];
 
+      console.log('Processing', watchlistData.length, 'watchlist items');
+
       for (const item of watchlistData) {
         let itemData: any = null;
 
+        console.log('Processing item:', item);
+
         switch (item.item_type) {
           case 'robot':
-            const { data: robotData } = await supabase
+            console.log('Fetching robot data for:', item.item_id);
+            const { data: robotData, error: robotError } = await supabase
               .from('robots')
               .select(`
                 id, name, model, brand, price, currency, location, images, condition, availability,
@@ -84,6 +93,7 @@ const WatchlistSection = ({
               `)
               .eq('id', item.item_id)
               .single();
+            console.log('Robot query result:', { robotData, robotError });
             itemData = { robot: robotData };
             break;
 
@@ -120,6 +130,7 @@ const WatchlistSection = ({
         }
       }
 
+      console.log('Final transformed items:', transformedItems);
       setWatchlistItems(transformedItems);
     } catch (error) {
       console.error('Error fetching watchlist:', error);
