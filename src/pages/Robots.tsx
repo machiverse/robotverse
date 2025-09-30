@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye, Share2, MessageCircle, Brain, MapPin, Building, CheckCircle, Phone } from "lucide-react";
+import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye, Share2, MessageCircle, Brain, MapPin, Building, CheckCircle, Phone, Heart } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
@@ -36,6 +36,10 @@ const Robots = () => {
   const [sortBy, setSortBy] = useState("views"); // Default sort by view count
   const [groupBy, setGroupBy] = useState<"company" | "category" | "all">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Watchlist states
+  const [watchlistItems, setWatchlistItems] = useState<Set<string>>(new Set());
+  const [addingToWatchlist, setAddingToWatchlist] = useState<Set<string>>(new Set());
 
   // Data states
   const [robots, setRobots] = useState<any[]>([]);
@@ -127,6 +131,19 @@ const Robots = () => {
         setSellerGroups(grouped);
         setSellerProfiles(profiles);
 
+        // Fetch user's watchlist items if logged in
+        if (user) {
+          const { data: watchlistData } = await supabase
+            .from('watchlists')
+            .select('item_id')
+            .eq('user_id', user.id)
+            .eq('item_type', 'robot');
+          
+          if (watchlistData) {
+            setWatchlistItems(new Set(watchlistData.map(item => item.item_id)));
+          }
+        }
+
         // Extract unique filter options dynamically
         const uniqueCategories = new Set<string>();
         const uniqueLocations = new Set<string>();
@@ -201,7 +218,7 @@ const Robots = () => {
     };
 
     fetchData();
-  }, [getItemViewCount]);
+  }, [getItemViewCount, user]);
 
   // Filter and group robots according to selected filters
   const getFilteredGroups = () => {
@@ -321,6 +338,115 @@ const Robots = () => {
     if (!price) return "Price on request";
     const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
     return `${symbol}${price.toLocaleString()}`;
+  };
+
+  // Add/Remove to/from watchlist
+  const handleAddToWatchlist = async (robot: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to add items to your watchlist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isInWatchlist = watchlistItems.has(robot.id);
+    setAddingToWatchlist(prev => new Set(prev).add(robot.id));
+
+    try {
+      if (isInWatchlist) {
+        // Remove from watchlist
+        const { error } = await supabase
+          .from('watchlists')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_type', 'robot')
+          .eq('item_id', robot.id);
+
+        if (error) throw error;
+
+        setWatchlistItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(robot.id);
+          return newSet;
+        });
+
+        // Track watchlist removal
+        await trackButtonClick({
+          buttonName: "Remove from Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot.seller_id,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          itemId: robot.id,
+          itemType: "robot",
+          additionalData: {
+            action: "remove",
+            robotName: robot.name,
+            robotModel: robot.model,
+            robotPrice: robot.price,
+            source: "listing_page"
+          }
+        });
+
+        toast({
+          title: "Removed from Watchlist",
+          description: `${robot.name} has been removed from your watchlist.`,
+        });
+      } else {
+        // Add to watchlist
+        const { error } = await supabase
+          .from('watchlists')
+          .insert({
+            user_id: user.id,
+            item_type: 'robot',
+            item_id: robot.id,
+            notes: `${robot.name} - ${robot.model}`,
+            priority: 'medium'
+          });
+
+        if (error) throw error;
+
+        setWatchlistItems(prev => new Set(prev).add(robot.id));
+
+        // Track watchlist addition
+        await trackButtonClick({
+          buttonName: "Add to Watchlist",
+          buttonType: "wishlist",
+          sellerId: robot.seller_id,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          itemId: robot.id,
+          itemType: "robot",
+          additionalData: {
+            action: "add",
+            robotName: robot.name,
+            robotModel: robot.model,
+            robotPrice: robot.price,
+            source: "listing_page"
+          }
+        });
+
+        toast({
+          title: "Added to Watchlist",
+          description: `${robot.name} has been added to your watchlist.`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating watchlist:', error);
+      toast({
+        title: "Failed to Update",
+        description: "Could not update watchlist. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToWatchlist(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(robot.id);
+        return newSet;
+      });
+    }
   };
 
   // Compute filtered groups on every render
@@ -783,71 +909,87 @@ const Robots = () => {
                              </div>
                            </div>
 
-                           {/* Action Buttons */}
-                           <div className="grid grid-cols-2 gap-2 pt-2">
-                             <Button
-                               variant="outline"
-                               size="sm"
-                                 onClick={async (e) => {
-                                   e.stopPropagation();
-                                   // Track view details button click
-                                   trackButtonClick({
-                                     buttonName: "View Details",
-                                     buttonType: "robot_details_button",
-                                     sellerId: robot.seller_id,
-                                     sellerName: robot.profiles?.full_name,
-                                     sellerCompany: robot.profiles?.company_name,
-                                     sellerEmail: robot.profiles?.email,
-                                     sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
-                                     sellerLocation: robot.location,
-                                     itemId: robot.id,
-                                     itemType: "robot",
-                                     additionalData: {
-                                       robotName: robot.name,
-                                       robotType: robot.robot_type,
-                                       viewSource: "details_button"
-                                     }
-                                   });
-                                   // Track robot view when clicking details button
-                                   await trackItemView('robots', robot.id, robot);
-                                   navigate(`/robots/${robot.id}`);
-                                 }}
-                             >
-                               <Eye className="w-3 h-3 mr-1" />
-                               Details
-                             </Button>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               className="whitespace-nowrap px-2"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 if (!user) {
-                                   toast({
-                                     variant: "destructive",
-                                     title: "Sign In Required",
-                                     description: "Please sign in to contact sellers",
-                                   });
-                                   return;
-                                 }
-                                 const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
-                                 if (!phone) {
-                                   toast({
-                                     variant: "destructive",
-                                     title: "Contact Unavailable",
-                                     description: "Contact information not available for this seller",
-                                   });
-                                   return;
-                                 }
-                                 const phoneNumber = phone.replace(/\D/g, "");
-                                 window.open(`tel:${phoneNumber}`, '_self');
-                               }}
-                               disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
-                             >
-                               <MessageCircle className="w-3 h-3 mr-1" />
-                               {user ? "Contact" : "Sign In"}
-                             </Button>
-                           </div>
+                            {/* Action Buttons */}
+                            <div className="space-y-2 pt-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      // Track view details button click
+                                      trackButtonClick({
+                                        buttonName: "View Details",
+                                        buttonType: "robot_details_button",
+                                        sellerId: robot.seller_id,
+                                        sellerName: robot.profiles?.full_name,
+                                        sellerCompany: robot.profiles?.company_name,
+                                        sellerEmail: robot.profiles?.email,
+                                        sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                                        sellerLocation: robot.location,
+                                        itemId: robot.id,
+                                        itemType: "robot",
+                                        additionalData: {
+                                          robotName: robot.name,
+                                          robotType: robot.robot_type,
+                                          viewSource: "details_button"
+                                        }
+                                      });
+                                      // Track robot view when clicking details button
+                                      await trackItemView('robots', robot.id, robot);
+                                      navigate(`/robots/${robot.id}`);
+                                    }}
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Details
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="whitespace-nowrap px-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!user) {
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Sign In Required",
+                                        description: "Please sign in to contact sellers",
+                                      });
+                                      return;
+                                    }
+                                    const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
+                                    if (!phone) {
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Contact Unavailable",
+                                        description: "Contact information not available for this seller",
+                                      });
+                                      return;
+                                    }
+                                    const phoneNumber = phone.replace(/\D/g, "");
+                                    window.open(`tel:${phoneNumber}`, '_self');
+                                  }}
+                                  disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
+                                >
+                                  <MessageCircle className="w-3 h-3 mr-1" />
+                                  {user ? "Contact" : "Sign In"}
+                                </Button>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={(e) => handleAddToWatchlist(robot, e)}
+                                disabled={addingToWatchlist.has(robot.id)}
+                              >
+                                {addingToWatchlist.has(robot.id) ? (
+                                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                ) : (
+                                  <Heart className={`w-3 h-3 mr-2 ${watchlistItems.has(robot.id) ? 'fill-current text-red-500' : ''}`} />
+                                )}
+                                {watchlistItems.has(robot.id) ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                              </Button>
+                            </div>
 
                            {/* AI Analysis Button */}
                            <Button
