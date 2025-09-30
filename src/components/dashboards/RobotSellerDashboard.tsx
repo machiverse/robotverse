@@ -46,9 +46,11 @@ import {
   FileText,
   Camera,
   MapPin,
-  Zap
+  Zap,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
@@ -64,6 +66,7 @@ interface RobotSellerDashboardProps {
 
 const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { viewStats, fetchUserItemViews, loading: viewsLoading } = useViewTracking();
   const [robots, setRobots] = useState<any[]>([]);
@@ -1024,12 +1027,52 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </CardContent>
             </Card>
 
-            {/* Watchlist Section */}
-            <WatchlistSection 
-              title="My Watchlist"
-              limit={8}
-              showHeader={true}
-            />
+            {/* Enhanced Watchlist Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <WatchlistSection 
+                  title="My Watchlist"
+                  limit={8}
+                  showHeader={true}
+                />
+              </div>
+              
+              {/* Watchlist Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-red-500" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/robots')}
+                  >
+                    <Bot className="w-4 h-4 mr-2" />
+                    Explore Robots
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/parts')}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Find Parts
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/watchlist')}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View All Saved
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 

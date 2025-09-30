@@ -51,6 +51,7 @@ interface RealDashboardStats {
   profileCompletion: number;
   accountVerified: boolean;
   totalListings: number;
+  totalWatchlistItems: number;
 }
 
 interface RecentListing {
@@ -82,7 +83,8 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
     availableParts: 0,
     profileCompletion: 0,
     accountVerified: false,
-    totalListings: 0
+    totalListings: 0,
+    totalWatchlistItems: 0
   });
   
   const [recentRobots, setRecentRobots] = useState<any[]>([]);
@@ -147,6 +149,17 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
       // Calculate real profile completion
       const profileCompletion = calculateRealProfileCompletion(userProfile);
       
+      // Get user's watchlist count
+      let totalWatchlistItems = 0;
+      if (user) {
+        const { data: watchlistData } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('user_id', user.id);
+        
+        totalWatchlistItems = watchlistData?.length || 0;
+      }
+      
       // Set real stats
       const realStatsData: RealDashboardStats = {
         availableRobots: robots.length,
@@ -154,7 +167,8 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
         availableParts: spareParts.length,
         profileCompletion,
         accountVerified: !!userProfile?.email && !!userProfile?.full_name,
-        totalListings: robots.length + services.length + spareParts.length
+        totalListings: robots.length + services.length + spareParts.length,
+        totalWatchlistItems
       };
       
       setRealStats(realStatsData);
@@ -720,13 +734,57 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
         </TabsContent>
       </Tabs>
 
-      {/* Watchlist Section */}
-      <div className="mt-6">
-        <WatchlistSection 
-          title="Your Watchlist"
-          limit={6}
-          showHeader={true}
-        />
+      {/* Enhanced Watchlist Section */}
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <WatchlistSection 
+            title="Your Watchlist"
+            limit={8}
+            showHeader={true}
+          />
+        </div>
+        
+        {/* Watchlist Quick Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="w-5 h-5 text-red-500" />
+              Watchlist Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total Items</span>
+              <Badge variant="secondary">{realStats.totalWatchlistItems}</Badge>
+            </div>
+            <div className="space-y-2">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate('/robots')}
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                Browse Robots
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate('/parts')}
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Browse Parts
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate('/services')}
+              >
+                <Wrench className="w-4 h-4 mr-2" />
+                Browse Services
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

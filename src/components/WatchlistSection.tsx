@@ -26,13 +26,17 @@ interface WatchlistSectionProps {
   limit?: number;
   showHeader?: boolean;
   className?: string;
+  compact?: boolean;
+  showActions?: boolean;
 }
 
 const WatchlistSection = ({ 
   title = "My Watchlist", 
   limit = 6, 
   showHeader = true,
-  className = ""
+  className = "",
+  compact = false,
+  showActions = true
 }: WatchlistSectionProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -270,24 +274,27 @@ const WatchlistSection = ({
               return (
                 <div 
                   key={item.id} 
-                  className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors group"
+                  className={`flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors group cursor-pointer ${compact ? 'p-2' : ''}`}
+                  onClick={() => navigate(getItemUrl(item))}
                 >
                   {/* Item Icon & Priority */}
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+                    <div className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} bg-primary/20 rounded-full flex items-center justify-center`}>
                       {getItemIcon(item.item_type)}
                     </div>
-                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(item.priority)}`} />
+                    {!compact && (
+                      <div className={`w-2 h-2 rounded-full ${getPriorityColor(item.priority)}`} />
+                    )}
                   </div>
 
                   {/* Image */}
                   {(data?.images?.[0]) && (
-                    <div className="w-12 h-12 overflow-hidden rounded-lg flex-shrink-0">
+                    <div className={`${compact ? 'w-10 h-10' : 'w-12 h-12'} overflow-hidden rounded-lg flex-shrink-0`}>
                       <ResponsiveImage
                         src={data.images[0]}
                         alt={data.name || ''}
-                        width={48}
-                        height={48}
+                        width={compact ? 40 : 48}
+                        height={compact ? 40 : 48}
                         className="object-cover w-full h-full"
                       />
                     </div>
@@ -295,39 +302,50 @@ const WatchlistSection = ({
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{data?.name}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Badge variant="outline" className="text-xs py-0 px-1">
+                    <p className={`font-medium ${compact ? 'text-xs' : 'text-sm'} truncate`}>{data?.name}</p>
+                    <div className={`flex items-center gap-2 ${compact ? 'text-xs' : 'text-xs'} text-muted-foreground`}>
+                      <Badge variant="outline" className={`${compact ? 'text-xs py-0 px-1' : 'text-xs py-0 px-1'}`}>
                         {item.item_type.replace('_', ' ')}
                       </Badge>
                       {data?.price && (
                         <span>₹{data.price.toLocaleString()}</span>
                       )}
-                      {profiles?.company_name && (
+                      {profiles?.company_name && !compact && (
                         <span>• {profiles.company_name}</span>
                       )}
                     </div>
+                    {compact && item.notes && (
+                      <p className="text-xs text-muted-foreground truncate mt-1">{item.notes}</p>
+                    )}
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(getItemUrl(item))}
-                      className="h-8 px-2"
-                    >
-                      <ArrowRight className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFromWatchlist(item.id)}
-                      className="h-8 px-2 text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
+                  {showActions && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(getItemUrl(item));
+                        }}
+                        className={`${compact ? 'h-6 px-1' : 'h-8 px-2'}`}
+                      >
+                        <ArrowRight className={`${compact ? 'w-2 h-2' : 'w-3 h-3'}`} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFromWatchlist(item.id);
+                        }}
+                        className={`${compact ? 'h-6 px-1' : 'h-8 px-2'} text-red-500 hover:text-red-700`}
+                      >
+                        <Trash2 className={`${compact ? 'w-2 h-2' : 'w-3 h-3'}`} />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}
