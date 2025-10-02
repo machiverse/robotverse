@@ -31,6 +31,7 @@ import LoanCalculator from '@/components/forms/LoanCalculator';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
+import WatchlistSection from '@/components/WatchlistSection';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;
@@ -306,12 +307,13 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="applications" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="applications">Loan Applications</TabsTrigger>
           <TabsTrigger value="schemes">Loan Schemes</TabsTrigger>
           <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
           <TabsTrigger value="requests">User Requests</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
         </TabsList>
 
         <TabsContent value="applications" className="mt-6">
@@ -699,6 +701,15 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="watchlist" className="mt-6">
+          <WatchlistSection 
+            title="My Watchlist" 
+            showHeader={true}
+            compact={false}
+            showActions={true}
+          />
         </TabsContent>
       </Tabs>
 

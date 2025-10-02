@@ -10,6 +10,7 @@ import AdminDatabase from "./admin/AdminDatabase";
 import AdminTracking from "./admin/AdminTracking";
 import AdminAnalytics from "./admin/AdminAnalytics";
 import AdminRobotAnalytics from "./admin/AdminRobotAnalytics";
+import WatchlistSection from "./WatchlistSection";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
@@ -66,6 +67,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminAnalytics dashboardStats={dashboardStats} users={users} />;
       case "robot-analytics":
         return <AdminRobotAnalytics />;
+      case "watchlist":
+        return <WatchlistSection title="My Watchlist" showHeader={true} compact={false} showActions={true} />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
