@@ -620,7 +620,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-12">
+        <TabsList className="grid w-full grid-cols-5 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
@@ -632,6 +632,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Analytics
+          </TabsTrigger>
+          <TabsTrigger value="watchlist" className="flex items-center gap-2">
+            <Heart className="w-4 h-4" />
+            Watchlist
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
@@ -1078,6 +1082,15 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
         <TabsContent value="requests" className="mt-6">
           <UserRequestsManagement />
+        </TabsContent>
+
+        <TabsContent value="watchlist" className="mt-6">
+          <WatchlistSection 
+            title="My Watchlist" 
+            showHeader={true}
+            compact={false}
+            showActions={true}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
