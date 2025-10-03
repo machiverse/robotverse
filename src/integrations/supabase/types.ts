@@ -1686,6 +1686,7 @@ export type Database = {
       }
       services: {
         Row: {
+          completed_jobs: number | null
           coverage: string | null
           created_at: string
           description: string | null
@@ -1694,11 +1695,13 @@ export type Database = {
           name: string
           price_range: string | null
           provider_id: string
+          rating: number | null
           service_type: string
           specializations: string[] | null
           updated_at: string
         }
         Insert: {
+          completed_jobs?: number | null
           coverage?: string | null
           created_at?: string
           description?: string | null
@@ -1707,11 +1710,13 @@ export type Database = {
           name: string
           price_range?: string | null
           provider_id: string
+          rating?: number | null
           service_type: string
           specializations?: string[] | null
           updated_at?: string
         }
         Update: {
+          completed_jobs?: number | null
           coverage?: string | null
           created_at?: string
           description?: string | null
@@ -1720,6 +1725,7 @@ export type Database = {
           name?: string
           price_range?: string | null
           provider_id?: string
+          rating?: number | null
           service_type?: string
           specializations?: string[] | null
           updated_at?: string
