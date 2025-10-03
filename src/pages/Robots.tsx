@@ -10,6 +10,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
+import { ContactMethodDialog } from "@/components/ContactMethodDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,10 @@ const Robots = () => {
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
   const [aiDialogData, setAiDialogData] = useState<any>(null);
+  
+  // Contact Method Dialog states
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [selectedRobotForContact, setSelectedRobotForContact] = useState<any>(null);
 
   // Dropdown options dynamically extracted from robots data
   const [categories, setCategories] = useState([{ value: "all", label: "All Categories" }]);
@@ -957,8 +962,7 @@ const Robots = () => {
                                       });
                                       return;
                                     }
-                                    const phone = robot.profiles?.phone || robot.profiles?.mobile_number;
-                                    if (!phone) {
+                                    if (!robot.profiles?.phone && !robot.profiles?.email) {
                                       toast({
                                         variant: "destructive",
                                         title: "Contact Unavailable",
@@ -966,10 +970,27 @@ const Robots = () => {
                                       });
                                       return;
                                     }
-                                    const phoneNumber = phone.replace(/\D/g, "");
-                                    window.open(`tel:${phoneNumber}`, '_self');
+                                    // Track contact button click
+                                    trackButtonClick({
+                                      buttonName: "Contact Seller",
+                                      buttonType: "contact_seller_button",
+                                      sellerId: robot.seller_id,
+                                      sellerName: robot.profiles?.full_name,
+                                      sellerCompany: robot.profiles?.company_name,
+                                      sellerEmail: robot.profiles?.email,
+                                      sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
+                                      sellerLocation: robot.location,
+                                      itemId: robot.id,
+                                      itemType: "robot",
+                                      additionalData: {
+                                        robotName: robot.name,
+                                        robotType: robot.robot_type
+                                      }
+                                    });
+                                    setSelectedRobotForContact(robot);
+                                    setShowContactDialog(true);
                                   }}
-                                  disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
+                                  disabled={!user || (!robot.profiles?.phone && !robot.profiles?.email)}
                                 >
                                   <MessageCircle className="w-3 h-3 mr-1" />
                                   {user ? "Contact" : "Sign In"}
@@ -1087,6 +1108,35 @@ const Robots = () => {
             </DialogDescription>
           </DialogContent>
         </Dialog>
+
+        {/* Contact Method Dialog */}
+        <ContactMethodDialog
+          open={showContactDialog}
+          onOpenChange={setShowContactDialog}
+          robotName={selectedRobotForContact?.name || ""}
+          sellerName={selectedRobotForContact?.profiles?.full_name || selectedRobotForContact?.profiles?.company_name || "Seller"}
+          sellerPhone={selectedRobotForContact?.profiles?.phone || selectedRobotForContact?.profiles?.mobile_number}
+          sellerEmail={selectedRobotForContact?.profiles?.email}
+          onContactMethodSelected={(method) => {
+            trackButtonClick({
+              buttonName: `Contact via ${method}`,
+              buttonType: `contact_${method}_button`,
+              sellerId: selectedRobotForContact?.seller_id,
+              sellerName: selectedRobotForContact?.profiles?.full_name,
+              sellerCompany: selectedRobotForContact?.profiles?.company_name,
+              sellerEmail: selectedRobotForContact?.profiles?.email,
+              sellerMobile: selectedRobotForContact?.profiles?.phone || selectedRobotForContact?.profiles?.mobile_number,
+              sellerLocation: selectedRobotForContact?.location,
+              itemId: selectedRobotForContact?.id,
+              itemType: "robot",
+              additionalData: {
+                robotName: selectedRobotForContact?.name,
+                robotType: selectedRobotForContact?.robot_type,
+                contactMethod: method
+              }
+            });
+          }}
+        />
       </div>
     </div>
   );
