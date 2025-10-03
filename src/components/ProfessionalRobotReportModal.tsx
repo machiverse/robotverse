@@ -136,6 +136,12 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
           <p style="margin: 5px 0 0; color: #9ca3af; font-size: 14px;">Generated on ${new Date().toLocaleDateString()}</p>
         </div>
         
+        ${robotData.images?.[0] ? `
+          <div style="margin-bottom: 25px; text-align: center;">
+            <img src="${robotData.images[0]}" alt="${robotData.name}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+          </div>
+        ` : ''}
+        
         <div style="margin-bottom: 25px;">
           <h2 style="color: #1e40af; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 15px; font-size: 20px;">Robot Overview</h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -344,6 +350,19 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                 </div>
               ) : reportData ? (
                 <div className="space-y-6">
+                  {/* Robot Image */}
+                  {robotData.images?.[0] && (
+                    <Card className="border-2 shadow-sm overflow-hidden">
+                      <CardContent className="p-0">
+                        <img 
+                          src={robotData.images[0]} 
+                          alt={robotData.name}
+                          className="w-full h-auto object-cover max-h-96"
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {/* Robot Overview Card */}
                   <Card className="border-2 shadow-sm">
                     <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
