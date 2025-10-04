@@ -179,9 +179,12 @@ const MarketplaceCategories = () => {
   return (
     <section className="py-16 bg-gradient-to-br from-muted/20 to-background">
       <div className="container mx-auto px-4">
-        <h2 className="text-4xl font-extrabold mb-12 text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-          Marketplace Categories
+        <h2 className="text-4xl font-extrabold mb-4 text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          Everything You Need in One Marketplace
         </h2>
+        <p className="text-center text-xl text-muted-foreground mb-12 max-w-3xl mx-auto">
+          Buy robots and access all supporting services seamlessly
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
           {categoriesData.map((category) => {
             const Icon = category.icon;

@@ -122,51 +122,51 @@ const WhyChooseRobotVerse = () => {
 
   const keyFeatures = [
     {
+      icon: Package,
+      title: "One-Stop Platform",
+      description: "Purchase robots, spare parts, get services, arrange logistics, and secure financing - all from a single trusted marketplace.",
+      gradient: "from-purple-500 to-violet-600"
+    },
+    {
       icon: Shield,
-      title: "Verified Partners",
-      description: "All sellers undergo rigorous verification for authentic and trustworthy partnerships.",
+      title: "Verified Sellers & Partners",
+      description: "Every seller, service provider, logistics partner, and financier is thoroughly verified for your peace of mind.",
       gradient: "from-green-500 to-emerald-600"
     },
     {
       icon: Cpu,
-      title: "AI-Powered Platform",
-      description: "Advanced AI matching algorithms and automated quality inspection ensure perfect matches.",
+      title: "Smart AI Matching",
+      description: "Our AI connects you with the perfect robot, the right spare parts, and the best service providers for your needs.",
       gradient: "from-blue-500 to-cyan-600"
     },
     {
       icon: Zap,
-      title: "Lightning Fast",
-      description: "Quick quotes, instant matching, and rapid deployment for your production needs.",
+      title: "Fast & Seamless",
+      description: "From browsing to delivery and installation - experience a streamlined buying journey with real-time tracking.",
       gradient: "from-yellow-500 to-orange-600"
-    },
-    {
-      icon: Package,
-      title: "Complete Ecosystem",
-      description: "Robots, spare parts, services, logistics, and financing - everything in one platform.",
-      gradient: "from-purple-500 to-violet-600"
     }
   ];
 
   const services = [
     {
       icon: Wrench,
-      title: "Maintenance & Repair",
-      description: "24/7 certified technician support"
+      title: "Installation & Maintenance",
+      description: "Professional setup, 24/7 support & AMC"
     },
     {
       icon: Truck,
-      title: "Specialized Logistics",
-      description: "Safe handling of complex equipment"
+      title: "Safe Delivery & Handling",
+      description: "Specialized logistics for robots"
     },
     {
       icon: GraduationCap,
-      title: "Training & Certification",
-      description: "Comprehensive operator programs"
+      title: "Operator Training",
+      description: "Expert training & certification programs"
     },
     {
       icon: CreditCard,
-      title: "Flexible Financing",
-      description: "Customized payment solutions"
+      title: "Easy Financing Options",
+      description: "Flexible EMI & loan solutions"
     }
   ];
 
@@ -214,10 +214,10 @@ const WhyChooseRobotVerse = () => {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Why Choose RobotVerse?
+            Complete End-to-End Solution for Buyers
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-6">
-            India's most comprehensive robotics marketplace with cutting-edge technology and verified partners
+            From robot purchase to delivery, installation, training, maintenance, and financing – everything you need in one trusted platform
           </p>
           <div className="flex items-center justify-center gap-2">
             <Badge variant="outline" className="text-xs">
@@ -268,7 +268,7 @@ const WhyChooseRobotVerse = () => {
 
         {/* Additional Services */}
         <div className="mb-16">
-          <h3 className="text-3xl font-bold text-center mb-8 text-foreground">Complete Solutions</h3>
+          <h3 className="text-3xl font-bold text-center mb-8 text-foreground">Supporting Services Included</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {services.map((service, index) => {
               const Icon = service.icon;
@@ -287,9 +287,9 @@ const WhyChooseRobotVerse = () => {
 
         {/* Call to Action */}
         <div className="text-center bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-2xl p-8 border border-primary/20">
-          <h3 className="text-3xl font-bold mb-4 text-foreground">Ready to Transform Your Business?</h3>
+          <h3 className="text-3xl font-bold mb-4 text-foreground">Start Your Automation Journey Today</h3>
           <p className="text-xl text-muted-foreground mb-6">
-            Join {realStats.totalUsers.toLocaleString()}+ businesses already using RobotVerse
+            Join {realStats.totalUsers.toLocaleString()}+ businesses buying robots with complete end-to-end support
           </p>
           <div className="flex items-center justify-center gap-4 mb-8">
             <div className="text-sm text-muted-foreground">
@@ -305,14 +305,14 @@ const WhyChooseRobotVerse = () => {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth?type=buyer">
+            <Link to="/robots">
               <Button size="lg" className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90">
-                Start Buying Robots
+                Browse Robots Now
               </Button>
             </Link>
-            <Link to="/auth?type=seller">
+            <Link to="/auth?type=buyer">
               <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                Start Selling
+                Register as Buyer
               </Button>
             </Link>
           </div>

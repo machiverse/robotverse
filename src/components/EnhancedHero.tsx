@@ -20,9 +20,9 @@ interface HeroContent {
 }
 
 const heroContent: HeroContent = {
-  title: "Advanced Industrial Robots",
+  title: "Your Complete Robotics Solution",
   subtitle:
-    "Discover cutting-edge industrial robots for modern manufacturing and automation",
+    "Buy Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Platform",
   image: industrialRobotHero,
 };
 
