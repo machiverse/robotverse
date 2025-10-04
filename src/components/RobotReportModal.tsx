@@ -87,7 +87,7 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
           <p><span class="label">Price:</span> ${formatPrice(robotData.price, robotData.currency)}</p>
           <p><span class="label">Location:</span> ${robotData.location}</p>
           <p><span class="label">Availability:</span> ${robotData.availability}</p>
-          ${robotData.images && robotData.images.length ? `<img src="${robotData.images[0]}" alt="Robot Image" />` : ''}
+          ${robotData.images && robotData.images.length ? `<div style="text-align: center;"><img src="${robotData.images[0]}" alt="Robot Image" style="max-width: 600px; max-height: 400px; width: auto; height: auto; object-fit: contain;" /></div>` : ''}
         </div>
         <div class="section">
           <h2>Description</h2>

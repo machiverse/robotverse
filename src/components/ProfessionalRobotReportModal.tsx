@@ -137,8 +137,8 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
         </div>
         
         ${robotData.images?.[0] ? `
-          <div style="margin-bottom: 25px; text-align: center;">
-            <img src="${robotData.images[0]}" alt="${robotData.name}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+          <div style="margin-bottom: 25px; text-align: center; max-width: 100%; overflow: hidden;">
+            <img src="${robotData.images[0]}" alt="${robotData.name}" style="max-width: 100%; max-height: 400px; width: auto; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
           </div>
         ` : ''}
         
@@ -354,11 +354,13 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                   {robotData.images?.[0] && (
                     <Card className="border-2 shadow-sm overflow-hidden">
                       <CardContent className="p-0">
-                        <img 
-                          src={robotData.images[0]} 
-                          alt={robotData.name}
-                          className="w-full h-auto object-cover max-h-96"
-                        />
+                        <div className="relative w-full aspect-video bg-muted">
+                          <img 
+                            src={robotData.images[0]} 
+                            alt={robotData.name}
+                            className="absolute inset-0 w-full h-full object-contain"
+                          />
+                        </div>
                       </CardContent>
                     </Card>
                   )}
