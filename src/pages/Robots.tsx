@@ -491,9 +491,9 @@ const Robots = () => {
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-4">Industrial Robots</h1>
-        <p className="text-lg text-muted-foreground mb-8">
-          Discover the perfect robot for your needs with our advanced search and filtering capabilities.
+        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Industrial Robots Marketplace</h1>
+        <p className="text-xl text-muted-foreground mb-8">
+          Browse verified robots from trusted sellers - with financing, logistics, parts, and service support all available in one place
         </p>
 
         {/* Filters Section */}

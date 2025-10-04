@@ -253,11 +253,10 @@ const Services = () => {
         <div className="relative container mx-auto px-4 py-16">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-5xl font-bold mb-6 text-foreground bg-gradient-primary bg-clip-text text-transparent">
-              Robot Services Marketplace
+              Professional Robot Services
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Connect with certified professionals for robot maintenance, repair, programming, and training services. 
-              Find the perfect expert for your robotic needs.
+              From installation to maintenance - connect with certified professionals who keep your robots running at peak performance
             </p>
           </div>
         </div>

@@ -218,10 +218,9 @@ const Logistics = () => {
         {/* Search & Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Logistics Providers</h1>
-            <p className="text-muted-foreground mt-2">
-              Find reliable logistics partners for your robot transportation
-              needs
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Specialized Robot Logistics</h1>
+            <p className="text-muted-foreground mt-2 text-lg">
+              Safe handling and delivery of your robots with specialized logistics partners who understand precision equipment
             </p>
           </div>
 
