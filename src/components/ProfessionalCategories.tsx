@@ -56,39 +56,39 @@ const ProfessionalCategories = () => {
   ];
 
   return (
-    <section className="py-16 bg-gradient-to-br from-background to-muted/20">
+    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             Professional Categories
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
             Join thousands of professionals in the robotics ecosystem. Choose your role and start your journey.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
           {categories.map((category, index) => {
             const Icon = category.icon;
             return (
               <Link key={index} to={category.link}>
                 <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-primary/50 h-full">
-                  <CardContent className="p-6">
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className="w-8 h-8 text-white" />
+                  <CardContent className="p-4 md:p-6">
+                    <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
                     
-                    <h3 className="text-xl font-semibold mb-3 text-foreground group-hover:text-primary transition-colors">
+                    <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-foreground group-hover:text-primary transition-colors">
                       {category.title}
                     </h3>
                     
-                    <p className="text-muted-foreground mb-4 leading-relaxed">
+                    <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4 leading-relaxed">
                       {category.description}
                     </p>
                     
                     <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-foreground mb-2">Key Features:</h4>
-                      <div className="flex flex-wrap gap-2">
+                      <h4 className="text-xs md:text-sm font-semibold text-foreground mb-2">Key Features:</h4>
+                      <div className="flex flex-wrap gap-1.5 md:gap-2">
                         {category.features.map((feature, idx) => (
                           <Badge key={idx} variant="secondary" className="text-xs">
                             {feature}
@@ -97,8 +97,8 @@ const ProfessionalCategories = () => {
                       </div>
                     </div>
                     
-                    <div className="mt-6 pt-4 border-t border-border/50">
-                      <span className="text-sm text-primary font-medium group-hover:underline">
+                    <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-border/50">
+                      <span className="text-xs md:text-sm text-primary font-medium group-hover:underline">
                         Join as {category.title.toLowerCase()} →
                       </span>
                     </div>

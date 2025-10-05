@@ -209,14 +209,14 @@ const WhyChooseRobotVerse = () => {
   }
 
   return (
-    <section className="py-20 bg-gradient-to-br from-background to-muted/20">
+    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <div className="text-center mb-8 md:mb-12 lg:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             Complete End-to-End Solution for Buyers
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-6">
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-4 md:mb-6 px-4">
             From robot purchase to delivery, installation, training, maintenance, and financing – everything you need in one trusted platform
           </p>
           <div className="flex items-center justify-center gap-2">
@@ -231,17 +231,17 @@ const WhyChooseRobotVerse = () => {
         </div>
 
         {/* Key Features */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8 mb-8 md:mb-12 lg:mb-16">
           {keyFeatures.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-primary/50">
-                <CardContent className="p-6 text-center">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-8 h-8 text-white" />
+                <CardContent className="p-4 md:p-6 text-center">
+                  <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                  <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-foreground">{feature.title}</h3>
+                  <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
             );
@@ -249,17 +249,17 @@ const WhyChooseRobotVerse = () => {
         </div>
 
         {/* Live Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 lg:gap-6 mb-8 md:mb-12 lg:mb-16">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <Card key={index} className="bg-card/80 backdrop-blur-sm border-border hover:shadow-lg transition-all duration-200">
-                <CardContent className="p-6 text-center">
-                  <Icon className={`w-8 h-8 mx-auto mb-3 ${stat.color}`} />
-                  <div className={`text-3xl font-bold mb-2 font-mono ${stat.color}`}>
+                <CardContent className="p-3 md:p-4 lg:p-6 text-center">
+                  <Icon className={`w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 md:mb-3 ${stat.color}`} />
+                  <div className={`text-xl md:text-2xl lg:text-3xl font-bold mb-1 md:mb-2 font-mono ${stat.color}`}>
                     {stat.value}
                   </div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
                 </CardContent>
               </Card>
             );
@@ -267,18 +267,18 @@ const WhyChooseRobotVerse = () => {
         </div>
 
         {/* Additional Services */}
-        <div className="mb-16">
-          <h3 className="text-3xl font-bold text-center mb-8 text-foreground">Supporting Services Included</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="mb-8 md:mb-12 lg:mb-16">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-foreground">Supporting Services Included</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {services.map((service, index) => {
               const Icon = service.icon;
               return (
-                <div key={index} className="text-center p-6 bg-card/50 backdrop-blur-sm rounded-lg border border-border hover:bg-card/70 transition-all duration-200">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center mx-auto mb-4">
-                    <Icon className="w-6 h-6 text-white" />
+                <div key={index} className="text-center p-4 md:p-6 bg-card/50 backdrop-blur-sm rounded-lg border border-border hover:bg-card/70 transition-all duration-200">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center mx-auto mb-3 md:mb-4">
+                    <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
-                  <h4 className="font-semibold mb-2 text-foreground">{service.title}</h4>
-                  <p className="text-sm text-muted-foreground">{service.description}</p>
+                  <h4 className="text-sm md:text-base font-semibold mb-2 text-foreground">{service.title}</h4>
+                  <p className="text-xs md:text-sm text-muted-foreground">{service.description}</p>
                 </div>
               );
             })}
@@ -286,32 +286,32 @@ const WhyChooseRobotVerse = () => {
         </div>
 
         {/* Call to Action */}
-        <div className="text-center bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-2xl p-8 border border-primary/20">
-          <h3 className="text-3xl font-bold mb-4 text-foreground">Start Your Automation Journey Today</h3>
-          <p className="text-xl text-muted-foreground mb-6">
+        <div className="text-center bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-xl md:rounded-2xl p-6 md:p-8 border border-primary/20">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-foreground">Start Your Automation Journey Today</h3>
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-4 md:mb-6 px-4">
             Join {realStats.totalUsers.toLocaleString()}+ businesses buying robots with complete end-to-end support
           </p>
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mb-6 md:mb-8 text-xs sm:text-sm">
+            <div className="text-muted-foreground">
               <span className="font-semibold text-green-600">{realStats.activeListings}</span> active listings
             </div>
-            <div className="w-px h-4 bg-border"></div>
-            <div className="text-sm text-muted-foreground">
+            <div className="hidden sm:block w-px h-4 bg-border"></div>
+            <div className="text-muted-foreground">
               <span className="font-semibold text-blue-600">{realStats.verifiedUsers}</span> verified users
             </div>
-            <div className="w-px h-4 bg-border"></div>
-            <div className="text-sm text-muted-foreground">
+            <div className="hidden sm:block w-px h-4 bg-border"></div>
+            <div className="text-muted-foreground">
               <span className="font-semibold text-orange-600">{realStats.customerSatisfaction}%</span> satisfaction rate
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/robots">
-              <Button size="lg" className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+            <Link to="/robots" className="w-full sm:w-auto">
+              <Button size="lg" className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 w-full sm:w-auto h-10 md:h-11 text-sm md:text-base">
                 Browse Robots Now
               </Button>
             </Link>
-            <Link to="/auth?type=buyer">
-              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+            <Link to="/auth?type=buyer" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground w-full sm:w-auto h-10 md:h-11 text-sm md:text-base">
                 Register as Buyer
               </Button>
             </Link>
