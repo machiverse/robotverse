@@ -120,11 +120,11 @@ const EnhancedHero = () => {
       {/* Content */}
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 md:mb-6 leading-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">
             {heroContent.title}
           </h1>
 
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 md:mb-8 max-w-3xl">
+          <p className="text-lg md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-3xl">
             {heroContent.subtitle}
           </p>
 
@@ -145,7 +145,7 @@ const EnhancedHero = () => {
                   placeholder="Search robots, parts, services..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 md:pl-10 h-10 md:h-12 text-sm md:text-base lg:text-lg bg-input border-border"
+                  className="pl-9 md:pl-10 h-10 md:h-12 text-sm md:text-base bg-input border-border"
                 />
               </div>
 
@@ -195,7 +195,7 @@ const EnhancedHero = () => {
             {/* Search Button */}
             <Button
               type="submit"
-              className="w-full mt-3 md:mt-4 h-10 md:h-12 text-sm md:text-base lg:text-lg bg-primary hover:bg-primary-glow"
+              className="w-full mt-3 md:mt-4 h-10 md:h-12 text-sm md:text-base bg-primary hover:bg-primary-glow"
               aria-label="Perform search"
               disabled={loading}
             >
@@ -208,7 +208,7 @@ const EnhancedHero = () => {
             <Button
               variant="hero"
               size="lg"
-              className="text-sm md:text-base lg:text-lg px-6 md:px-8 py-4 md:py-6 h-auto"
+              className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
               asChild
               disabled={loading}
             >
@@ -217,7 +217,7 @@ const EnhancedHero = () => {
             <Button
               variant="outline"
               size="lg"
-              className="text-sm md:text-base lg:text-lg px-6 md:px-8 py-4 md:py-6 h-auto"
+              className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
               asChild
               disabled={loading}
             >

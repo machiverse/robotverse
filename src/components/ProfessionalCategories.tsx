@@ -59,10 +59,10 @@ const ProfessionalCategories = () => {
     <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             Professional Categories
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
+          <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto px-4">
             Join thousands of professionals in the robotics ecosystem. Choose your role and start your journey.
           </p>
         </div>
@@ -78,11 +78,11 @@ const ProfessionalCategories = () => {
                       <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
                     
-                    <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-foreground group-hover:text-primary transition-colors">
+                    <h3 className="text-base md:text-lg font-semibold mb-2 md:mb-3 text-foreground group-hover:text-primary transition-colors">
                       {category.title}
                     </h3>
                     
-                    <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4 leading-relaxed">
+                    <p className="text-sm text-muted-foreground mb-3 md:mb-4 leading-relaxed">
                       {category.description}
                     </p>
                     

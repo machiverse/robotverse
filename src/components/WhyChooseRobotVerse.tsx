@@ -213,10 +213,10 @@ const WhyChooseRobotVerse = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12 lg:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             Complete End-to-End Solution for Buyers
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-4 md:mb-6 px-4">
+          <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto mb-4 md:mb-6 px-4">
             From robot purchase to delivery, installation, training, maintenance, and financing – everything you need in one trusted platform
           </p>
           <div className="flex items-center justify-center gap-2">
@@ -240,8 +240,8 @@ const WhyChooseRobotVerse = () => {
                   <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                   </div>
-                  <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-foreground">{feature.title}</h3>
-                  <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{feature.description}</p>
+                  <h3 className="text-base md:text-lg font-semibold mb-2 md:mb-3 text-foreground">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
             );
@@ -268,7 +268,7 @@ const WhyChooseRobotVerse = () => {
 
         {/* Additional Services */}
         <div className="mb-8 md:mb-12 lg:mb-16">
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-foreground">Supporting Services Included</h3>
+          <h3 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-foreground">Supporting Services Included</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {services.map((service, index) => {
               const Icon = service.icon;
@@ -287,8 +287,8 @@ const WhyChooseRobotVerse = () => {
 
         {/* Call to Action */}
         <div className="text-center bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-xl md:rounded-2xl p-6 md:p-8 border border-primary/20">
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-foreground">Start Your Automation Journey Today</h3>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-4 md:mb-6 px-4">
+          <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-foreground">Start Your Automation Journey Today</h3>
+          <p className="text-base md:text-lg text-muted-foreground mb-4 md:mb-6 px-4">
             Join {realStats.totalUsers.toLocaleString()}+ businesses buying robots with complete end-to-end support
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mb-6 md:mb-8 text-xs sm:text-sm">
