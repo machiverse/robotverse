@@ -36,11 +36,13 @@ const EnhancedHeader = () => {
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur border-b border-border">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold">R</span>
-          </div>
-          <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <Link to="/" className="flex items-center space-x-3">
+          <img 
+            src="/robotverse-logo.jpg" 
+            alt="RobotVerse Logo" 
+            className="h-10 w-10 object-contain"
+          />
+          <span className="text-xl font-bold text-primary">
             RobotVerse
           </span>
         </Link>
