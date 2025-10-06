@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
-import robotverseLogo from "@/assets/robotverse-logo.png";
+import robotverseLogo from "@/assets/robotverse-logo.jpg";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
