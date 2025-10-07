@@ -17,7 +17,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import robotverseLogo from "@/assets/robotverse-logo.jpg";
+import robotverseLogo from "@/assets/robotverse-r-logo.png";
 
 const navItems = [
   { name: "Home", href: "/", icon: Home },

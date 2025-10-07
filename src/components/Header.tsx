@@ -3,7 +3,7 @@ import { Bot, Menu, Search, User, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
-import robotverseLogo from "@/assets/robotverse-logo.jpg";
+import robotverseLogo from "@/assets/robotverse-r-logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
