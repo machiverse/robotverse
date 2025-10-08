@@ -322,7 +322,7 @@ const WatchlistDashboard = () => {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value as any)}
-              className="px-3 py-2 border rounded-lg text-sm"
+              className="px-3 py-2 border rounded-lg text-sm bg-background text-foreground font-medium"
             >
               <option value="all">All Priorities</option>
               <option value="high">High Priority</option>
@@ -333,7 +333,7 @@ const WatchlistDashboard = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 border rounded-lg text-sm"
+              className="px-3 py-2 border rounded-lg text-sm bg-background text-foreground font-medium"
             >
               <option value="date">Sort by Date</option>
               <option value="priority">Sort by Priority</option>
@@ -456,13 +456,13 @@ const WatchlistItemCard = ({
               {item.item_type.replace('_', ' ').toUpperCase()}
             </Badge>
             <div className={`w-2 h-2 rounded-full ${getPriorityColor(item.priority)}`} />
-            <span className="text-xs text-muted-foreground capitalize">{item.priority}</span>
+            <span className="text-xs font-medium text-foreground capitalize">{item.priority}</span>
           </div>
           <div className="flex items-center gap-2">
             <select
               value={item.priority}
               onChange={(e) => onUpdatePriority(e.target.value)}
-              className="text-xs px-2 py-1 border rounded"
+              className="text-xs px-2 py-1 border rounded bg-background text-foreground font-medium"
             >
               <option value="high">High</option>
               <option value="medium">Medium</option>

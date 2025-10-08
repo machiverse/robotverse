@@ -177,12 +177,15 @@ const MarketplaceCategories = () => {
   }, []);
 
   return (
-    <section className="py-16 bg-gradient-to-br from-muted/20 to-background">
+    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-muted/20 to-background">
       <div className="container mx-auto px-4">
-        <h2 className="text-4xl font-extrabold mb-12 text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-          Marketplace Categories
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-4 text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          Everything You Need in One Marketplace
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+        <p className="text-center text-base md:text-lg text-muted-foreground mb-8 md:mb-12 max-w-3xl mx-auto px-4">
+          Buy robots and access all supporting services seamlessly
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
           {categoriesData.map((category) => {
             const Icon = category.icon;
             return (
@@ -200,8 +203,8 @@ const MarketplaceCategories = () => {
                     >
                       <Icon className="w-8 h-8 text-white" aria-hidden="true" />
                     </div>
-                    <h3 className="text-xl font-semibold mb-3 text-foreground">{category.title}</h3>
-                    <p className="text-muted-foreground mb-6">{category.description}</p>
+                    <h3 className="text-lg font-semibold mb-3 text-foreground">{category.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-6">{category.description}</p>
 
                     <div className="space-y-3">
                       {Object.entries(category.stats).map(([key, value]) => (

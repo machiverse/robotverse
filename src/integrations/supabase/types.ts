@@ -254,6 +254,30 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       community_posts: {
         Row: {
           author_id: string
@@ -966,18 +990,21 @@ export type Database = {
           created_at: string
           id: string
           post_id: string
+          session_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           post_id: string
+          session_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           post_id?: string
+          session_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1659,6 +1686,7 @@ export type Database = {
       }
       services: {
         Row: {
+          completed_jobs: number | null
           coverage: string | null
           created_at: string
           description: string | null
@@ -1667,11 +1695,13 @@ export type Database = {
           name: string
           price_range: string | null
           provider_id: string
+          rating: number | null
           service_type: string
           specializations: string[] | null
           updated_at: string
         }
         Insert: {
+          completed_jobs?: number | null
           coverage?: string | null
           created_at?: string
           description?: string | null
@@ -1680,11 +1710,13 @@ export type Database = {
           name: string
           price_range?: string | null
           provider_id: string
+          rating?: number | null
           service_type: string
           specializations?: string[] | null
           updated_at?: string
         }
         Update: {
+          completed_jobs?: number | null
           coverage?: string | null
           created_at?: string
           description?: string | null
@@ -1693,6 +1725,7 @@ export type Database = {
           name?: string
           price_range?: string | null
           provider_id?: string
+          rating?: number | null
           service_type?: string
           specializations?: string[] | null
           updated_at?: string

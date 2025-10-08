@@ -31,9 +31,9 @@ interface Service {
   location: string;
   provider: string;
   description: string;
-  rating: number;
+  rating: number | null;
   responseTime: string;
-  completedJobs: number;
+  completedJobs: number | null;
   availability: string;
   providerProfile: {
     full_name?: string;
@@ -94,9 +94,9 @@ const Services = () => {
           location: item.location || item.profiles?.location || "Location not specified",
           provider: item.profiles?.company_name || item.profiles?.full_name || "Service Provider",
           description: item.description || "Professional service provider offering quality solutions.",
-          rating: item.rating || 4.5,
+          rating: item.rating && item.rating > 0 ? Number(item.rating) : null,
           responseTime: item.response_time || "2-4 hours",
-          completedJobs: item.completed_jobs || Math.floor(Math.random() * 100) + 50,
+          completedJobs: item.completed_jobs && item.completed_jobs > 0 ? item.completed_jobs : null,
           availability: item.availability || "Available",
           providerProfile: item.profiles || {},
           providerId: item.provider_id || "",
@@ -253,11 +253,10 @@ const Services = () => {
         <div className="relative container mx-auto px-4 py-16">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-5xl font-bold mb-6 text-foreground bg-gradient-primary bg-clip-text text-transparent">
-              Robot Services Marketplace
+              Professional Robot Services
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Connect with certified professionals for robot maintenance, repair, programming, and training services. 
-              Find the perfect expert for your robotic needs.
+              From installation to maintenance - connect with certified professionals who keep your robots running at peak performance
             </p>
           </div>
         </div>
@@ -390,10 +389,12 @@ const Services = () => {
                         <CardTitle className="text-lg font-bold text-foreground">{service.name}</CardTitle>
                         <p className="text-sm text-muted-foreground">{service.provider}</p>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-accent text-accent" />
-                        <span className="text-sm font-semibold text-foreground">{service.rating}</span>
-                      </div>
+                      {service.rating !== null && (
+                        <div className="flex items-center space-x-1">
+                          <Star className="w-4 h-4 fill-accent text-accent" />
+                          <span className="text-sm font-semibold text-foreground">{service.rating.toFixed(1)}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Category and Availability */}
@@ -434,10 +435,12 @@ const Services = () => {
                         <Clock className="w-4 h-4 text-accent" />
                         <span className="text-muted-foreground">Response: {service.responseTime}</span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span className="text-muted-foreground">{service.completedJobs} projects</span>
-                      </div>
+                      {service.completedJobs !== null && (
+                        <div className="flex items-center space-x-2">
+                          <Users className="w-4 h-4 text-primary" />
+                          <span className="text-muted-foreground">{service.completedJobs} projects</span>
+                        </div>
+                      )}
                     </div>
 
                      {/* Action Buttons */}

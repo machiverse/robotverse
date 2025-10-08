@@ -19,7 +19,6 @@ import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarke
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
-import { useGlobalViewTracking } from "@/hooks/useGlobalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { type RobotSEOData } from "@/utils/seo";
@@ -110,7 +109,6 @@ const RobotDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { trackRobotView } = useGlobalViewTracking();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
   
@@ -209,6 +207,10 @@ const RobotDetails = () => {
         });
       }
       
+      // Track robot view using universal view tracking system (increments view count)
+      await trackItemView('robots', data.id, data);
+      
+      // Track detailed button interaction for analytics
       await trackButtonClick({
         buttonName: "Robot Page View",
         buttonType: "robot_page_view",
@@ -233,8 +235,7 @@ const RobotDetails = () => {
           pageType: "robot_details",
           viewSource: "direct_page_visit",
           sellerProfileExists: !!data.profiles,
-          // Remove duplicate tracking - this single call handles everything
-          trackingNote: "Single comprehensive robot page view tracking"
+          trackingNote: "Robot details page view with comprehensive tracking"
         }
       });
       

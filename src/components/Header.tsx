@@ -3,6 +3,7 @@ import { Bot, Menu, Search, User, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
+import robotverseLogo from "@/assets/robotverse-r-logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,14 +14,12 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <Bot className="w-5 h-5 text-primary-foreground" />
-            </div>
+          <Link to="/" className="flex items-center space-x-2">
+            <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
             <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               RobotVerse
             </span>
-          </div>
+          </Link>
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-6">

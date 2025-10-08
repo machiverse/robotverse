@@ -17,6 +17,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import robotverseLogo from "@/assets/robotverse-r-logo.png";
 
 const navItems = [
   { name: "Home", href: "/", icon: Home },
@@ -37,9 +38,7 @@ const EnhancedHeader = () => {
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold">R</span>
-          </div>
+          <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
           <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             RobotVerse
           </span>

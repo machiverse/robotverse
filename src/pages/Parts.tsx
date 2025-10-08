@@ -302,9 +302,9 @@ const Parts = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Robot Spare Parts</h1>
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Genuine Robot Spare Parts</h1>
           <p className="text-xl text-muted-foreground">
-            Find genuine spare parts and components for all major robot brands
+            Source authentic spare parts from verified suppliers - delivered to your facility
           </p>
         </div>
 

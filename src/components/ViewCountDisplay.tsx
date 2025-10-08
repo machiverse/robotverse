@@ -23,7 +23,7 @@ const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDis
         switch (targetType) {
           case 'robots':
             const { data: robotCount, error: robotError } = await supabase
-              .rpc('get_robot_view_count', { p_robot_id: targetId });
+              .rpc('get_item_view_count', { p_item_id: targetId, p_item_type: 'robots' });
             if (robotError) throw robotError;
             count = robotCount || 0;
             break;

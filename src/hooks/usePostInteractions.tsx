@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useSessionId } from '@/hooks/useSessionId';
 import { toast } from 'sonner';
 
 interface PostInteraction {
@@ -13,6 +14,7 @@ interface PostInteraction {
 
 export const usePostInteractions = () => {
   const { user } = useAuth();
+  const sessionId = useSessionId();
   const [interactions, setInteractions] = useState<Record<string, PostInteraction>>({});
 
   const updateInteraction = useCallback((postId: string, updates: Partial<PostInteraction>) => {
@@ -26,8 +28,8 @@ export const usePostInteractions = () => {
   }, []);
 
   const toggleLike = useCallback(async (postId: string, postType: 'blog' | 'community_posts') => {
-    if (!user) {
-      toast.error('Please sign in to like posts');
+    if (!user && !sessionId) {
+      toast.error('Unable to process like. Please refresh and try again.');
       return false;
     }
 
@@ -43,15 +45,21 @@ export const usePostInteractions = () => {
           const { error } = await supabase
             .from('blog_likes')
             .delete()
-            .eq('blog_id', postId)
-            .eq('user_id', user.id);
+            .or(
+              user 
+                ? `and(blog_id.eq.${postId},user_id.eq.${user.id})`
+                : `and(blog_id.eq.${postId},session_id.eq.${sessionId})`
+            );
           if (error) throw error;
         } else {
           const { error } = await supabase
             .from('post_likes')
             .delete()
-            .eq('post_id', postId)
-            .eq('user_id', user.id);
+            .or(
+              user 
+                ? `and(post_id.eq.${postId},user_id.eq.${user.id})`
+                : `and(post_id.eq.${postId},session_id.eq.${sessionId})`
+            );
           if (error) throw error;
         }
         
@@ -67,7 +75,8 @@ export const usePostInteractions = () => {
             .from('blog_likes')
             .insert({ 
               blog_id: postId, 
-              user_id: user.id 
+              user_id: user?.id || null,
+              session_id: !user ? sessionId : null
             });
           if (error) throw error;
         } else {
@@ -75,7 +84,8 @@ export const usePostInteractions = () => {
             .from('post_likes')
             .insert({ 
               post_id: postId, 
-              user_id: user.id 
+              user_id: user?.id || null,
+              session_id: !user ? sessionId : null
             });
           if (error) throw error;
         }
@@ -92,7 +102,7 @@ export const usePostInteractions = () => {
       toast.error('Failed to update like. Please try again.');
       return false;
     }
-  }, [user, interactions, updateInteraction]);
+  }, [user, sessionId, interactions, updateInteraction]);
 
   const incrementCommentCount = useCallback((postId: string) => {
     const current = interactions[postId];

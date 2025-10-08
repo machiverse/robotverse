@@ -224,9 +224,9 @@ const Financing = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Financing Options</h1>
-            <p className="text-muted-foreground mt-2">
-              Find the right financing solution for your robot investment
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Flexible Robot Financing</h1>
+            <p className="text-muted-foreground mt-2 text-lg">
+              Make your automation dreams affordable with customized financing solutions from trusted partners
             </p>
           </div>
           

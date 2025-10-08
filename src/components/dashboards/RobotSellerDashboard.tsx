@@ -46,9 +46,11 @@ import {
   FileText,
   Camera,
   MapPin,
-  Zap
+  Zap,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
@@ -56,6 +58,7 @@ import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
+import WatchlistSection from '@/components/WatchlistSection';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -63,6 +66,7 @@ interface RobotSellerDashboardProps {
 
 const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { viewStats, fetchUserItemViews, loading: viewsLoading } = useViewTracking();
   const [robots, setRobots] = useState<any[]>([]);
@@ -616,7 +620,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-12">
+        <TabsList className="grid w-full grid-cols-5 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
@@ -628,6 +632,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Analytics
+          </TabsTrigger>
+          <TabsTrigger value="watchlist" className="flex items-center gap-2">
+            <Heart className="w-4 h-4" />
+            Watchlist
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
@@ -1022,11 +1030,67 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Enhanced Watchlist Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <WatchlistSection 
+                  title="My Watchlist"
+                  limit={8}
+                  showHeader={true}
+                />
+              </div>
+              
+              {/* Watchlist Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-red-500" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/robots')}
+                  >
+                    <Bot className="w-4 h-4 mr-2" />
+                    Explore Robots
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/parts')}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Find Parts
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate('/watchlist')}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View All Saved
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="requests" className="mt-6">
           <UserRequestsManagement />
+        </TabsContent>
+
+        <TabsContent value="watchlist" className="mt-6">
+          <WatchlistSection 
+            title="My Watchlist" 
+            showHeader={true}
+            compact={false}
+            showActions={true}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

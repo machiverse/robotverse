@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
+import WatchlistSection from '@/components/WatchlistSection';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
@@ -263,12 +264,13 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-6">
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
               <TabsTrigger value="user-requests">User Requests</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
               <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
+              <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
             </TabsList>
             {/* Service Requests Tab */}
             <TabsContent value="requests">
@@ -422,6 +424,16 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
             {/* User Requests Tab */}
             <TabsContent value="user-requests">
               <UserRequestsManagement />
+            </TabsContent>
+
+            {/* Watchlist Tab */}
+            <TabsContent value="watchlist">
+              <WatchlistSection 
+                title="My Watchlist" 
+                showHeader={true}
+                compact={false}
+                showActions={true}
+              />
             </TabsContent>
           </Tabs>
 
