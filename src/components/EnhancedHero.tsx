@@ -106,7 +106,7 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative min-h-[600px] md:min-h-screen flex items-center bg-gradient-hero overflow-hidden py-12 md:py-0">
+    <section className="relative min-h-[600px] md:min-h-screen flex items-center bg-gradient-hero overflow-hidden pt-24 pb-12 md:pt-32 md:pb-16">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
