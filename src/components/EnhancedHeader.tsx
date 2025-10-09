@@ -37,7 +37,7 @@ const EnhancedHeader = () => {
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur border-b border-border">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-3">
           <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
           <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             RobotVerse
