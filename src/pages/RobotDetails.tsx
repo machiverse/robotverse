@@ -132,8 +132,6 @@ const RobotDetails = () => {
   // Enhanced states
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullscreen, setShowFullscreen] = useState(false);
-  const [showQuoteModal, setShowQuoteModal] = useState(false);
-  const [quoteMessage, setQuoteMessage] = useState('');
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [showImportQuote, setShowImportQuote] = useState(false);
@@ -526,6 +524,52 @@ const RobotDetails = () => {
   };
 
   // Contact seller by phone
+  // Open internal chat with seller
+  const handleOpenChat = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to chat with the seller.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!robot?.seller_id) {
+      toast({
+        title: "Unable to Connect",
+        description: "Seller information is not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Track button click
+    await trackButtonClick({
+      buttonName: "Chat with Seller",
+      buttonType: "chat",
+      sellerId: robot.seller_id,
+      sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+      itemId: robot.id,
+      itemType: "robot",
+      additionalData: {
+        robotName: robot.name,
+        robotModel: robot.model,
+        robotPrice: robot.price,
+        chatInitiated: true
+      }
+    });
+
+    // Navigate to chat page
+    navigate(`/chat/${robot.seller_id}?item=robot&itemId=${robot.id}`);
+
+    toast({
+      title: "Opening Chat",
+      description: `Starting conversation with ${robot.profiles?.company_name || robot.profiles?.full_name}`,
+    });
+  };
+
+
   const handleContactSeller = async () => {
     const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
     
@@ -564,93 +608,10 @@ const RobotDetails = () => {
   };
 
   // WhatsApp handler for latest price inquiry
-  const handleWhatsAppInquiry = async () => {
-    if (!robot) return;
-
-    const phone = robot?.profiles?.phone || robot?.profiles?.mobile_number;
-    
-    if (!phone) {
-      toast({
-        title: "WhatsApp Not Available",
-        description: "Seller's phone number is not provided for WhatsApp contact.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Track button click
-    await trackButtonClick({
-      buttonName: "WhatsApp Latest Price",
-      buttonType: "contact",
-      sellerId: robot?.seller_id,
-      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
-      itemId: robot?.id,
-      itemType: "robot",
-      additionalData: {
-        contactMethod: "whatsapp",
-        robotName: robot?.name,
-        robotModel: robot?.model,
-        robotPrice: robot?.price,
-        sellerPhone: phone
-      }
-    });
-
-    const message = `Hi! I'm interested in getting the latest price for:
-
-🤖 *${robot.name}*
-📦 Model: ${robot.model}
-🏷️ Type: ${robot.robot_type}
-📍 Location: ${robot.location}
-${robot.price ? `💰 Listed Price: ${robot.currency} ${robot.price}` : '💰 Price: On Request'}
-
-Could you please share the latest price and availability details?
-
-Thank you!`;
-
-    const phoneNumber = phone.replace(/\D/g, '');
-    const whatsappUrl = `https://wa.me/91${phoneNumber}?text=${encodeURIComponent(message)}`;
-    
-    window.open(whatsappUrl, '_blank');
-    
-    toast({
-      title: "Opening WhatsApp",
-      description: `Redirecting to WhatsApp chat with ${robot.profiles.company_name || robot.profiles.full_name}`,
-    });
-  };
 
   // Request quote modal open
-  const handleRequestQuote = async () => {
-    if (!robot?.profiles?.email) {
-      toast({
-        title: "Email Not Available",
-        description: "Seller's email address is not provided.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Track button click
-    await trackButtonClick({
-      buttonName: "Request Quote",
-      buttonType: "contact",
-      sellerId: robot?.seller_id,
-      sellerName: robot?.profiles?.company_name || robot?.profiles?.full_name,
-      itemId: robot?.id,
-      itemType: "robot",
-      additionalData: {
-        contactMethod: "email",
-        robotName: robot?.name,
-        robotModel: robot?.model,
-        robotPrice: robot?.price,
-        sellerEmail: robot?.profiles?.email
-      }
-    });
-
-    setShowQuoteModal(true);
-  };
 
   // Send quote email
-  const sendQuoteEmail = async () => {
     if (!robot?.profiles?.email) return;
 
     // Track quote email send
@@ -697,8 +658,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
     const mailtoLink = `mailto:${robot.profiles.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoLink, '_blank');
     
-    setShowQuoteModal(false);
-    setQuoteMessage('');
     
     toast({
       title: "Quote Request Sent",
@@ -1448,15 +1407,15 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <div className="mt-6 flex flex-col space-y-3">
               <Button
                 className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
-                onClick={handleWhatsAppInquiry}
-                disabled={!user}
-                size="lg"
-              >
-                <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.251"/>
-                    </svg>
-                    Ask Latest Price via WhatsApp
-              </Button>
+                <Button
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
+                  onClick={handleOpenChat}
+                  disabled={!user}
+                  size="lg"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Chat with Seller
+                </Button>
               {/* <Button
                 className="w-full mt-2 border border-green-600 text-green-700 hover:bg-green-100"
                 onClick={handleContactSeller}
@@ -2501,41 +2460,25 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             {user && robot.profiles && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Seller Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <span>{robot.profiles.full_name}</span>
-                    </div>
-                    {robot.profiles.company_name && (
-                      <div className="flex items-center">
-                        <Building className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.company_name}</span>
+                {user && robot.profiles && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Contact Seller</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center p-4 bg-muted/20 rounded-lg border">
+                        <MessageCircle className="w-8 h-8 mx-auto mb-3 text-primary" />
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Connect with the seller through our secure internal messaging system
+                        </p>
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleOpenChat}>
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Chat with Seller
+                        </Button>
                       </div>
-                    )}
-                    {robot.profiles.phone && (
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.phone}</span>
-                      </div>
-                    )}
-                    {robot.profiles.email && (
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{robot.profiles.email}</span>
-                      </div>
-                    )}
-                    {robot.profiles.location && (
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.location}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                )}
             )}
 
             {!user && (
@@ -2639,34 +2582,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         </DialogContent>
       </Dialog>
 
-      {/* Quote Request Modal */}
-      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Request Quote</DialogTitle>
-            <DialogDescription>
-              Send a quote request to {robot?.profiles?.company_name || robot?.profiles?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="Add any specific requirements or questions..."
-              value={quoteMessage}
-              onChange={(e) => setQuoteMessage(e.target.value)}
-              rows={4}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuoteModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={sendQuoteEmail}>
-              <Mail className="w-4 h-4 mr-2" />
-              Send Email
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
         {/* Import Quote Modal */}
       <Dialog open={showImportQuote} onOpenChange={setShowImportQuote}>
@@ -2704,7 +2619,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <Textarea
               placeholder="Additional requirements for import (customs clearance, shipping preferences, etc.)..."
               value={quoteMessage}
-              onChange={(e) => setQuoteMessage(e.target.value)}
               rows={4}
             />
           </div>
