@@ -254,6 +254,137 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_conversations: {
+        Row: {
+          buyer_id: string
+          chat_id: string
+          created_at: string | null
+          id: string
+          item_id: string | null
+          item_name: string | null
+          item_type: string
+          last_message_at: string | null
+          seller_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_id: string
+          chat_id?: string
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type: string
+          last_message_at?: string | null
+          seller_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          chat_id?: string
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type?: string
+          last_message_at?: string | null
+          seller_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          blocked_reason: string | null
+          conversation_id: string
+          created_at: string | null
+          id: string
+          is_blocked: boolean | null
+          is_read: boolean | null
+          message_content: string
+          sender_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          blocked_reason?: string | null
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_read?: boolean | null
+          message_content: string
+          sender_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          blocked_reason?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_read?: boolean | null
+          message_content?: string
+          sender_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_notifications: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message_id: string | null
+          notification_type: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_id?: string | null
+          notification_type?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_id?: string | null
+          notification_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_notifications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notifications_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comment_likes: {
         Row: {
           comment_id: string
@@ -2078,10 +2209,8 @@ export type Database = {
         }
         Returns: string
       }
-      generate_random_string: {
-        Args: { length: number }
-        Returns: string
-      }
+      filter_contact_info: { Args: { message: string }; Returns: boolean }
+      generate_random_string: { Args: { length: number }; Returns: string }
       get_item_view_count: {
         Args: { p_item_id: string; p_item_type: string }
         Returns: number
@@ -2132,18 +2261,9 @@ export type Database = {
           user_type: string
         }[]
       }
-      get_robot_view_count: {
-        Args: { p_robot_id: string }
-        Returns: number
-      }
-      get_total_profiles_count: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      get_user_watchlist_count: {
-        Args: { p_user_id: string }
-        Returns: number
-      }
+      get_robot_view_count: { Args: { p_robot_id: string }; Returns: number }
+      get_total_profiles_count: { Args: never; Returns: number }
+      get_user_watchlist_count: { Args: { p_user_id: string }; Returns: number }
       increment_blog_view_count: {
         Args: { p_blog_id: string }
         Returns: number
@@ -2160,10 +2280,8 @@ export type Database = {
         Args: { p_robot_id: string }
         Returns: number
       }
-      is_admin_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_admin_user: { Args: never; Returns: boolean }
       is_item_in_watchlist: {
         Args: { p_item_id: string; p_item_type: string; p_user_id: string }
         Returns: boolean

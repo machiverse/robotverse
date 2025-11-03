@@ -43,6 +43,7 @@ import BuyerGuide from "./pages/BuyerGuide";
 import Cookies from "./pages/Cookies";
 import Sitemap from "./pages/Sitemap";
 import Accessibility from "./pages/Accessibility";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
+            <Route path="/chat" element={<Chat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

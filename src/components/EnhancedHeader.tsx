@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 const navItems = [
   { name: "Home", href: "/", icon: Home },
@@ -73,6 +74,7 @@ const EnhancedHeader = () => {
           {/* Auth buttons */}
           {user ? (
             <div className="hidden md:flex items-center gap-2">
+              <NotificationCenter />
               <Link to="/dashboard">
                 <Button size="sm" variant="ghost" className="flex items-center gap-1">
                   <User className="h-4 w-4" />
