@@ -2487,87 +2487,23 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             </DialogContent>
           </Dialog>
 
-          {/* Sidebar with Seller info and Contact buttons */}
+          {/* Sidebar with Action buttons */}
           <div className="space-y-6">
-            {user && robot.profiles && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Seller Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <span>{robot.profiles.full_name}</span>
-                    </div>
-                    {robot.profiles.company_name && (
-                      <div className="flex items-center">
-                        <Building className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.company_name}</span>
-                      </div>
-                    )}
-                    {robot.profiles.phone && (
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.phone}</span>
-                      </div>
-                    )}
-                    {robot.profiles.email && (
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{robot.profiles.email}</span>
-                      </div>
-                    )}
-                    {robot.profiles.location && (
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{robot.profiles.location}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {!user && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Login Required</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Please log in to view seller information and access AI analysis features.
-                  </p>
-                  <Button onClick={() => navigate('/auth')} className="w-full">
-                    Login / Sign Up
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {user && (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    <Button 
-                      className="w-full bg-green-600 hover:bg-green-700" 
-                      size="lg"
-                      onClick={handleContactSeller}
-                    >
-                      <PhoneCall className="w-4 h-4 mr-2" />
-                      Contact Seller
-                    </Button>
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <ChatButton
+                    sellerId={robot.seller_id}
+                    itemId={robot.id}
+                    itemType="robot"
+                    itemName={robot.name}
+                    variant="default"
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg"
+                  />
+                  {user && (
                     <Button 
                       variant="outline" 
-                      className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
-                      onClick={handleRequestQuote}
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Request Quote
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                      className="w-full border-border hover:bg-accent"
                       onClick={handleAddToWatchlist}
                       disabled={addingToWatchlist}
                     >
@@ -2578,10 +2514,19 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                       )}
                       {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  )}
+                  {!user && (
+                    <p className="text-center text-sm text-muted-foreground mt-4">
+                      Please{' '}
+                      <Button variant="link" className="p-0 h-auto text-primary underline" onClick={() => navigate('/auth')}>
+                        log in
+                      </Button>{' '}
+                      to chat with sellers
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
