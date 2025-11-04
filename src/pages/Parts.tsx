@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import { ChatButton } from "@/components/chat/ChatButton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
@@ -435,22 +436,14 @@ const Parts = () => {
                         <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
                       </div>
                       <div className="flex space-x-2 pt-2">
-                        <Button 
-                          size="sm" 
+                        <ChatButton
+                          sellerId={part.sellerId || ''}
+                          itemId={part.id}
+                          itemType="spare_part"
+                          itemName={part.name}
+                          variant="default"
                           className="flex-1"
-                          onClick={() => handleRequestQuote(part)}
-                          disabled={!user}
-                        >
-          {user ? "Request Quote" : "Login to Quote"}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleContactSeller(part)}
-                          disabled={!user || (!part.seller?.phone && !part.seller?.mobile_number)}
-                        >
-                          {user ? "Contact Seller" : "Login to Contact"}
-                        </Button>
+                        />
                       </div>
                     </div>
                   </CardContent>

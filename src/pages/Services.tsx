@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ServiceRequestModal from "@/components/ServiceRequestModal";
+import { ChatButton } from "@/components/chat/ChatButton";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Search,
@@ -445,28 +446,14 @@ const Services = () => {
 
                      {/* Action Buttons */}
                     <div className="flex space-x-2 pt-2">
-                       <Button
-                        size="sm"
+                       <ChatButton
+                        sellerId={service.providerId}
+                        itemId={service.id}
+                        itemType="service"
+                        itemName={service.name}
+                        variant="default"
                         className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium shadow-glow"
-                        onClick={() => {
-                          trackItemView('services', service.id, service);
-                          handleRequestQuote(service);
-                        }}
-                        disabled={!user}
-                      >
-                        {user ? "Get Quote" : "Sign In to Quote"}
-                      </Button>
-                      {user && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleContactProvider(service)}
-                          disabled={!service.providerProfile?.phone && !service.providerProfile?.mobile_number}
-                          className="border-border text-foreground hover:bg-accent/10"
-                        >
-                          Contact
-                        </Button>
-                      )}
+                      />
                     </div>
                   </CardContent>
                 </Card>
