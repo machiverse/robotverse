@@ -1447,22 +1447,47 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
               </div>
             </div>
 
+            {/* Chat with Seller Section */}
             <div className="mt-6 flex flex-col space-y-3">
-              <ChatButton
-                sellerId={robot.seller_id}
-                itemId={robot.id}
-                itemType="robot"
-                itemName={robot.name}
-                variant="default"
-                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg"
-              />
+              {user && user.id === robot.seller_id ? (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="w-full"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  You are the Seller
+                </Button>
+              ) : (
+                <ChatButton
+                  sellerId={robot.seller_id}
+                  itemId={robot.id}
+                  itemType="robot"
+                  itemName={robot.name}
+                  variant="default"
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg"
+                />
+              )}
+              
+              {user && user.id !== robot.seller_id && (
+                <Button
+                  onClick={handleAddToWatchlist}
+                  variant="outline"
+                  disabled={addingToWatchlist}
+                  className="w-full"
+                >
+                  <Heart className={`h-4 w-4 mr-2 ${isInWatchlist ? 'fill-current text-red-500' : ''}`} />
+                  {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                </Button>
+              )}
+              
               {!user && (
                 <div className="mt-4 p-4 rounded-lg border border-border bg-card/70 text-center text-muted-foreground">
                   Please{' '}
                   <Button variant="link" className="p-0 text-primary underline" onClick={() => navigate('/auth')}>
                     log in
                   </Button>{' '}
-                  to chat with the seller or request quotes.
+                  to chat with the seller.
                 </div>
               )}
             </div>
@@ -2487,46 +2512,9 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             </DialogContent>
           </Dialog>
 
-          {/* Sidebar with Action buttons */}
+          {/* Sidebar - Removed as per requirements */}
           <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  <ChatButton
-                    sellerId={robot.seller_id}
-                    itemId={robot.id}
-                    itemType="robot"
-                    itemName={robot.name}
-                    variant="default"
-                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg"
-                  />
-                  {user && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-border hover:bg-accent"
-                      onClick={handleAddToWatchlist}
-                      disabled={addingToWatchlist}
-                    >
-                      {addingToWatchlist ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Heart className={`w-4 h-4 mr-2 ${isInWatchlist ? 'fill-current' : ''}`} />
-                      )}
-                      {isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
-                    </Button>
-                  )}
-                  {!user && (
-                    <p className="text-center text-sm text-muted-foreground mt-4">
-                      Please{' '}
-                      <Button variant="link" className="p-0 h-auto text-primary underline" onClick={() => navigate('/auth')}>
-                        log in
-                      </Button>{' '}
-                      to chat with sellers
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Sidebar removed to hide seller information */}
           </div>
         </div>
       </div>
@@ -2575,86 +2563,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
         </DialogContent>
       </Dialog>
 
-      {/* Quote Request Modal */}
-      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Request Quote</DialogTitle>
-            <DialogDescription>
-              Send a quote request to {robot?.profiles?.company_name || robot?.profiles?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              placeholder="Add any specific requirements or questions..."
-              value={quoteMessage}
-              onChange={(e) => setQuoteMessage(e.target.value)}
-              rows={4}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuoteModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={sendQuoteEmail}>
-              <Mail className="w-4 h-4 mr-2" />
-              Send Email
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-        {/* Import Quote Modal */}
-      <Dialog open={showImportQuote} onOpenChange={setShowImportQuote}>
-        <DialogContent className="sm:max-w-lg { max-width: 32rem !important; }">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <Plane className="w-5 h-5 mr-2" />
-              Import Quote Request
-            </DialogTitle>
-            <DialogDescription>
-              Request detailed import pricing including duties and logistics
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {importDuty && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <h4 className="font-semibold mb-2 text-orange-700">Estimated Import Costs</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-bold text-blue-700">Base Price:</span>
-                    <span className="font-bold text-blue-700">{formatPrice(robot?.price || 0, robot?.currency || 'USD')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-orange-600">Import Duty (18%):</span>
-                    <span className="text-orange-600">{formatPrice(importDuty, robot?.currency || 'USD')}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-semibold">
-                    <span className="font-bold text-blue-700">Estimated Total:</span>
-                    <span className="font-bold text-blue-700">{formatPrice((robot?.price || 0) + importDuty, robot?.currency || 'USD')}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            <Textarea
-              placeholder="Additional requirements for import (customs clearance, shipping preferences, etc.)..."
-              value={quoteMessage}
-              onChange={(e) => setQuoteMessage(e.target.value)}
-              rows={4}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowImportQuote(false)}>
-              Cancel
-            </Button>
-            <Button onClick={sendImportQuoteEmail}>
-              <Mail className="w-4 h-4 mr-2" />
-              Send Import Quote Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Quote Request and Import modals removed - use chat instead */}
 
       {/* Loan Application Modal */}
       <LoanApplicationModal
