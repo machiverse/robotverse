@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import { Bot, MapPin, Building, Phone, Mail, User, ArrowLeft, Loader2, Wrench, Settings, DollarSign, Brain, Heart, MessageCircle, PhoneCall, X, ChevronLeft, ChevronRight, Maximize2, FileText, Search, CreditCard, Calculator, Plane, Package, Tag, Clock, Shield, Star, Eye, Download, Truck, MessageSquare, Camera, ZoomIn, Share2, Calendar, Send, AlertCircle } from "lucide-react";
+import { ChatButton } from "@/components/chat/ChatButton";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
@@ -1049,11 +1050,11 @@ const RobotDetails = () => {
 
   if (loading) {
     return (
-      <div className=\"min-h-screen bg-muted/20\">
+      <div className="min-h-screen bg-muted/20">
         <EnhancedHeader />
-        <div className=\"container mx-auto px-4 py-8\">
-          <div className=\"flex items-center justify-center py-12\">
-            <Loader2 className=\"w-8 h-8 animate-spin mr-2\" />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mr-2" />
             <span>Loading robot details...</span>
           </div>
         </div>
