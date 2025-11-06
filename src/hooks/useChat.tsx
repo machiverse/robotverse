@@ -39,25 +39,40 @@ export const useChat = (conversationId?: string) => {
   const fetchMessages = async (convId: string) => {
     try {
       setLoading(true);
+      
+      // First, get the chat_session for this conversation
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .eq('id', convId)
+        .single();
+
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw sessionError;
+      }
+
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('conversation_id', convId)
+        .eq('chat_session_id', convId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
-
-      // Mark messages as read
-      if (user && data) {
-        const unreadMessages = data.filter(msg => msg.sender_id !== user.id && !msg.is_read);
-        if (unreadMessages.length > 0) {
-          await supabase
-            .from('chat_messages')
-            .update({ is_read: true })
-            .in('id', unreadMessages.map(msg => msg.id));
-        }
-      }
+      
+      // Transform the data to match our interface
+      const transformedMessages = (data || []).map(msg => ({
+        id: msg.id,
+        conversation_id: convId,
+        sender_id: msg.sender_id,
+        message_content: msg.message,
+        is_read: true, // Assuming read when fetched
+        is_blocked: msg.is_blocked || false,
+        blocked_reason: msg.blocked_reason,
+        created_at: msg.created_at,
+      }));
+      
+      setMessages(transformedMessages);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
       toast({
@@ -74,13 +89,28 @@ export const useChat = (conversationId?: string) => {
   const fetchConversation = async (convId: string) => {
     try {
       const { data, error } = await supabase
-        .from('chat_conversations')
+        .from('chat_sessions')
         .select('*')
         .eq('id', convId)
         .single();
 
       if (error) throw error;
-      setConversation(data);
+      
+      // Transform to match our interface
+      const transformedData = {
+        id: data.id,
+        chat_id: `CHAT-${data.id.substring(0, 8)}`,
+        buyer_id: data.buyer_id,
+        seller_id: data.seller_id,
+        item_id: data.robot_id,
+        item_type: data.item_type || 'robot',
+        item_name: data.item_name,
+        status: data.status || 'active',
+        last_message_at: data.last_message_at,
+        created_at: data.created_at,
+      };
+      
+      setConversation(transformedData);
     } catch (error: any) {
       console.error('Error fetching conversation:', error);
     }
@@ -103,26 +133,26 @@ export const useChat = (conversationId?: string) => {
     }
 
     try {
-      // Check if conversation already exists
+      // Check if session already exists
       const { data: existing, error: fetchError } = await supabase
-        .from('chat_conversations')
+        .from('chat_sessions')
         .select('id')
         .eq('buyer_id', user.id)
         .eq('seller_id', sellerId)
-        .eq('item_id', itemId)
-        .single();
+        .eq('robot_id', itemId)
+        .maybeSingle();
 
       if (existing) {
         return existing.id;
       }
 
-      // Create new conversation
+      // Create new session
       const { data, error } = await supabase
-        .from('chat_conversations')
+        .from('chat_sessions')
         .insert({
           buyer_id: user.id,
           seller_id: sellerId,
-          item_id: itemId,
+          robot_id: itemId,
           item_type: itemType,
           item_name: itemName,
         })
@@ -171,19 +201,30 @@ export const useChat = (conversationId?: string) => {
       const { data, error } = await supabase
         .from('chat_messages')
         .insert({
-          conversation_id: conversationId,
+          chat_session_id: conversationId,
           sender_id: user.id,
-          message_content: content,
+          message: content,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Add message to local state
-      setMessages(prev => [...prev, data]);
+      // Transform and add message to local state
+      const transformedMessage = {
+        id: data.id,
+        conversation_id: conversationId,
+        sender_id: data.sender_id,
+        message_content: data.message,
+        is_read: false,
+        is_blocked: data.is_blocked || false,
+        blocked_reason: data.blocked_reason,
+        created_at: data.created_at,
+      };
+      
+      setMessages(prev => [...prev, transformedMessage]);
 
-      return data;
+      return transformedMessage;
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
@@ -211,16 +252,27 @@ export const useChat = (conversationId?: string) => {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
-          filter: `conversation_id=eq.${conversationId}`,
+          filter: `chat_session_id=eq.${conversationId}`,
         },
         (payload) => {
-          const newMessage = payload.new as ChatMessage;
+          const newMsg = payload.new as any;
+          const transformedMessage: ChatMessage = {
+            id: newMsg.id,
+            conversation_id: conversationId,
+            sender_id: newMsg.sender_id,
+            message_content: newMsg.message,
+            is_read: false,
+            is_blocked: newMsg.is_blocked || false,
+            blocked_reason: newMsg.blocked_reason,
+            created_at: newMsg.created_at,
+          };
+          
           setMessages(prev => {
             // Avoid duplicates
-            if (prev.find(msg => msg.id === newMessage.id)) {
+            if (prev.find(msg => msg.id === transformedMessage.id)) {
               return prev;
             }
-            return [...prev, newMessage];
+            return [...prev, transformedMessage];
           });
         }
       )
