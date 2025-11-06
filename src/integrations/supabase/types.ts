@@ -299,43 +299,47 @@ export type Database = {
       chat_messages: {
         Row: {
           blocked_reason: string | null
-          conversation_id: string
+          chat_session_id: string
           created_at: string | null
           id: string
           is_blocked: boolean | null
-          is_read: boolean | null
-          message_content: string
+          is_system_message: boolean | null
+          message: string
           sender_id: string
-          updated_at: string | null
         }
         Insert: {
           blocked_reason?: string | null
-          conversation_id: string
+          chat_session_id: string
           created_at?: string | null
           id?: string
           is_blocked?: boolean | null
-          is_read?: boolean | null
-          message_content: string
+          is_system_message?: boolean | null
+          message: string
           sender_id: string
-          updated_at?: string | null
         }
         Update: {
           blocked_reason?: string | null
-          conversation_id?: string
+          chat_session_id?: string
           created_at?: string | null
           id?: string
           is_blocked?: boolean | null
-          is_read?: boolean | null
-          message_content?: string
+          is_system_message?: boolean | null
+          message?: string
           sender_id?: string
-          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "chat_messages_conversation_id_fkey"
-            columns: ["conversation_id"]
+            foreignKeyName: "chat_messages_chat_session_id_fkey"
+            columns: ["chat_session_id"]
             isOneToOne: false
-            referencedRelation: "chat_conversations"
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_chat_session_id_fkey"
+            columns: ["chat_session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions_with_participants"
             referencedColumns: ["id"]
           },
         ]
@@ -376,11 +380,48 @@ export type Database = {
             referencedRelation: "chat_conversations"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          buyer_id: string
+          created_at: string | null
+          id: string
+          item_name: string
+          item_type: string | null
+          last_message_at: string | null
+          robot_id: string
+          seller_id: string
+          status: string | null
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string | null
+          id?: string
+          item_name: string
+          item_type?: string | null
+          last_message_at?: string | null
+          robot_id: string
+          seller_id: string
+          status?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string | null
+          id?: string
+          item_name?: string
+          item_type?: string | null
+          last_message_at?: string | null
+          robot_id?: string
+          seller_id?: string
+          status?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "chat_notifications_message_id_fkey"
-            columns: ["message_id"]
+            foreignKeyName: "chat_sessions_robot_id_fkey"
+            columns: ["robot_id"]
             isOneToOne: false
-            referencedRelation: "chat_messages"
+            referencedRelation: "robots"
             referencedColumns: ["id"]
           },
         ]
@@ -2136,7 +2177,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      chat_sessions_with_participants: {
+        Row: {
+          blocked_message_count: number | null
+          buyer_company: string | null
+          buyer_id: string | null
+          buyer_name: string | null
+          created_at: string | null
+          id: string | null
+          item_name: string | null
+          item_type: string | null
+          last_message_at: string | null
+          message_count: number | null
+          robot_id: string | null
+          robot_model: string | null
+          robot_name: string | null
+          seller_company: string | null
+          seller_id: string | null
+          seller_name: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_robot_id_fkey"
+            columns: ["robot_id"]
+            isOneToOne: false
+            referencedRelation: "robots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       complete_user_profile: {
