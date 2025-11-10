@@ -39,18 +39,6 @@ export const useChat = (conversationId?: string) => {
   const fetchMessages = async (convId: string) => {
     try {
       setLoading(true);
-      
-      // First, get the chat_session for this conversation
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('chat_sessions')
-        .select('id')
-        .eq('id', convId)
-        .single();
-
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw sessionError;
-      }
 
       const { data, error } = await supabase
         .from('chat_messages')
@@ -89,28 +77,14 @@ export const useChat = (conversationId?: string) => {
   const fetchConversation = async (convId: string) => {
     try {
       const { data, error } = await supabase
-        .from('chat_sessions')
+        .from('chat_conversations')
         .select('*')
         .eq('id', convId)
         .single();
 
       if (error) throw error;
       
-      // Transform to match our interface
-      const transformedData = {
-        id: data.id,
-        chat_id: `CHAT-${data.id.substring(0, 8)}`,
-        buyer_id: data.buyer_id,
-        seller_id: data.seller_id,
-        item_id: data.robot_id,
-        item_type: data.item_type || 'robot',
-        item_name: data.item_name,
-        status: data.status || 'active',
-        last_message_at: data.last_message_at,
-        created_at: data.created_at,
-      };
-      
-      setConversation(transformedData);
+      setConversation(data);
     } catch (error: any) {
       console.error('Error fetching conversation:', error);
     }
@@ -133,26 +107,27 @@ export const useChat = (conversationId?: string) => {
     }
 
     try {
-      // Check if session already exists
+      // Check if conversation already exists
       const { data: existing, error: fetchError } = await supabase
-        .from('chat_sessions')
+        .from('chat_conversations')
         .select('id')
         .eq('buyer_id', user.id)
         .eq('seller_id', sellerId)
-        .eq('robot_id', itemId)
+        .eq('item_id', itemId)
+        .eq('item_type', itemType)
         .maybeSingle();
 
       if (existing) {
         return existing.id;
       }
 
-      // Create new session
+      // Create new conversation
       const { data, error } = await supabase
-        .from('chat_sessions')
+        .from('chat_conversations')
         .insert({
           buyer_id: user.id,
           seller_id: sellerId,
-          robot_id: itemId,
+          item_id: itemId,
           item_type: itemType,
           item_name: itemName,
         })
