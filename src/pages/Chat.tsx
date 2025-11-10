@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
+import EnhancedHeader from '@/components/EnhancedHeader';
 import Footer from '@/components/Footer';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,7 @@ const Chat = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      <EnhancedHeader />
       <main className="flex-1 container mx-auto px-4 py-8">
         <Button
           variant="ghost"
