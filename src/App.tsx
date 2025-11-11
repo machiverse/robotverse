@@ -24,6 +24,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import TestImageMigration from "./pages/TestImageMigration";
 import WatchlistDashboard from "./pages/WatchlistDashboard";
 import NotFound from "./pages/NotFound";
+import CommunityRedirect from "./pages/CommunityRedirect";
 
 // Dashboard Pages
 import Analytics from "./pages/dashboard/Analytics";
@@ -67,13 +68,13 @@ const App = () => (
             <Route path="/test-image-migration" element={<TestImageMigration />} />
             <Route path="/financing" element={<Financing />} />
             <Route path="/robobook" element={<Blogs />} />
-            <Route path="/community" element={<Blogs />} />
+            <Route path="/community" element={<Navigate to="/robobook" replace />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
-            <Route path="/community/:id" element={<CommunityPostDetails />} />
+            <Route path="/community/:id" element={<CommunityRedirect />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
-            <Route path="/robobook/:id" element={<BlogDetails />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
-            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/robobook/:id" element={<CommunityPostDetails />} />
+            <Route path="/blogs/:id" element={<CommunityRedirect />} />
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />

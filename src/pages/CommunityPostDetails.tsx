@@ -136,7 +136,7 @@ const CommunityPostDetails = () => {
       }
 
       if (!postData) {
-        navigate('/community');
+        navigate('/robobook');
         toast.error('Post not found');
         return;
       }
@@ -169,7 +169,7 @@ const CommunityPostDetails = () => {
     } catch (error) {
       console.error('Error fetching post:', error);
       toast.error('Failed to load post');
-      navigate('/community');
+      navigate('/robobook');
     } finally {
       setLoading(false);
     }
@@ -276,12 +276,10 @@ const CommunityPostDetails = () => {
     try {
       // Use custom domain for sharing
       const baseUrl = 'https://robotverse.in';
-      const shareUrl = post.post_type === 'blog' && !post.media_url 
-        ? `${baseUrl}/robobook/${post.id}`
-        : `${baseUrl}/community/${post.id}`;
+      const shareUrl = `${baseUrl}/robobook/${post.id}`;
       
       const shareData = {
-        title: post.title || 'Community Post - RobotVerse',
+        title: post.title || 'RoboBook Post - RobotVerse',
         text: post.excerpt || post.content?.substring(0, 100) + '...',
         url: shareUrl
       };
@@ -354,8 +352,8 @@ const CommunityPostDetails = () => {
           <div className="text-center py-16">
             <h1 className="text-2xl font-bold mb-4">Post Not Found</h1>
             <p className="text-muted-foreground mb-6">The post you're looking for doesn't exist or has been removed.</p>
-            <Link to="/community">
-              <Button>Back to Community</Button>
+            <Link to="/robobook">
+              <Button>Back to RoboBook</Button>
             </Link>
           </div>
         </main>
@@ -371,7 +369,7 @@ const CommunityPostDetails = () => {
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => navigate('/community')}
+          onClick={() => navigate('/robobook')}
           className="mb-6 hover:bg-muted/80"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -393,7 +391,7 @@ const CommunityPostDetails = () => {
                   </Avatar>
                   <div>
                     <h3 className="font-bold text-lg">
-                      {post.profiles?.full_name || post.profiles?.company_name || 'Community Member'}
+                      {post.profiles?.full_name || post.profiles?.company_name || 'RoboBook Member'}
                     </h3>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
