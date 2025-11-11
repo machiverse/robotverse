@@ -58,7 +58,7 @@ interface CommunityPost {
   user_liked?: boolean;
 }
 
-const RoboBook = () => {
+const Community = () => {
   const { user } = useAuth();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
@@ -301,7 +301,7 @@ const RoboBook = () => {
     <div className="min-h-screen bg-background">
       <SEOMetaTags 
         seoElements={{
-          urlSlug: "/robobook",
+          urlSlug: "/community",
           pageTitle: "RoboBook - Industrial Robotics Community | RobotVerse",
           metaDescription: "Join the RoboBook community to connect with robotics professionals, share insights, and discover the latest trends in industrial automation and robotics technology.",
           h1Heading: "RoboBook",
@@ -523,4 +523,4 @@ const RoboBook = () => {
   );
 };
 
-export default RoboBook;
+export default Community;

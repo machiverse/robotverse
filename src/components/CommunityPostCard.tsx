@@ -191,7 +191,9 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     try {
       // Use custom domain for sharing
       const baseUrl = 'https://robotverse.in';
-      const shareUrl = `${baseUrl}/robobook/${post.id}`;
+      const shareUrl = post.post_type === 'blog' && !post.media_url 
+        ? `${baseUrl}/robobook/${post.id}`
+        : `${baseUrl}/community/${post.id}`;
       
       const shareData = {
         title: post.title || 'RoboBook Post - RobotVerse',
@@ -345,7 +347,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
         </div>
       </div>
 
-      <Link to={`/robobook/${post.id}`} className="block">
+      <Link to={post.post_type === 'blog' && !post.media_url ? `/robobook/${post.id}` : `/community/${post.id}`} className="block">
         <div className="px-4 pb-3">
           {/* Title */}
           {post.title && (
@@ -439,7 +441,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
                   return;
                 }
                 // Navigate to post with comments focused
-                window.location.href = `/robobook/${post.id}#comments`;
+                window.location.href = post.post_type === 'blog' ? `/robobook/${post.id}#comments` : `/community/${post.id}#comments`;
               }}
             >
               <MessageCircle className="h-4 w-4 mr-1" />
@@ -465,7 +467,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
               className="text-xs"
             />
             <Link 
-              to={`/robobook/${post.id}`}
+              to={post.post_type === 'blog' ? `/robobook/${post.id}` : `/community/${post.id}`}
               className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
