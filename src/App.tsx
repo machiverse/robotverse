@@ -36,6 +36,7 @@ import LogisticsDashboard from "./pages/dashboard/Logistics";
 import Settings from "./pages/dashboard/Settings";
 import Help from "./pages/dashboard/Help";
 import Privacy from "./pages/dashboard/Privacy";
+import Messages from "./pages/dashboard/Messages";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/analytics" element={<Analytics />} />
             <Route path="/dashboard/reports" element={<Reports />} />
+            <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/dashboard/robots" element={<MyRobots />} />
             <Route path="/dashboard/parts" element={<PartsManagement />} />
             <Route path="/dashboard/services" element={<ServicesManagement />} />
