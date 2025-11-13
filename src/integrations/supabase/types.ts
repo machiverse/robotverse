@@ -390,7 +390,7 @@ export type Database = {
           item_name: string
           item_type: string | null
           last_message_at: string | null
-          robot_id: string
+          robot_id: string | null
           seller_id: string
           status: string | null
         }
@@ -401,7 +401,7 @@ export type Database = {
           item_name: string
           item_type?: string | null
           last_message_at?: string | null
-          robot_id: string
+          robot_id?: string | null
           seller_id: string
           status?: string | null
         }
@@ -412,19 +412,11 @@ export type Database = {
           item_name?: string
           item_type?: string | null
           last_message_at?: string | null
-          robot_id?: string
+          robot_id?: string | null
           seller_id?: string
           status?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "chat_sessions_robot_id_fkey"
-            columns: ["robot_id"]
-            isOneToOne: false
-            referencedRelation: "robots"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       comment_likes: {
         Row: {
@@ -2206,15 +2198,7 @@ export type Database = {
           seller_name: string | null
           status: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "chat_sessions_robot_id_fkey"
-            columns: ["robot_id"]
-            isOneToOne: false
-            referencedRelation: "robots"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
