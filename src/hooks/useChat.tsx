@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ChatMessage {
   id: string;
@@ -34,73 +34,108 @@ export const useChat = (conversationId?: string) => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
-  // Fetch messages for a conversation
+  /**
+   * Transform database message to ChatMessage interface
+   */
+  const transformMessage = (msg: any, convId: string): ChatMessage => ({
+    id: msg.id,
+    conversation_id: convId,
+    sender_id: msg.sender_id,
+    message_content: msg.message || msg.message_content || "",
+    is_read: msg.is_read || true,
+    is_blocked: msg.is_blocked || false,
+    blocked_reason: msg.blocked_reason,
+    created_at: msg.created_at,
+  });
+
+  /**
+   * Fetch all messages for a conversation
+   */
   const fetchMessages = async (convId: string) => {
+    if (!convId) return;
+
     try {
       setLoading(true);
 
       const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('chat_session_id', convId)
-        .order('created_at', { ascending: true });
+        .from("chat_messages")
+        .select("*")
+        .eq("chat_session_id", convId)
+        .order("created_at", { ascending: true });
 
-      if (error) throw error;
-      
-      // Transform the data to match our interface
-      const transformedMessages = (data || []).map(msg => ({
-        id: msg.id,
-        conversation_id: convId,
-        sender_id: msg.sender_id,
-        message_content: msg.message,
-        is_read: true, // Assuming read when fetched
-        is_blocked: msg.is_blocked || false,
-        blocked_reason: msg.blocked_reason,
-        created_at: msg.created_at,
-      }));
-      
+      if (error) {
+        console.error("Error fetching messages:", error);
+        throw error;
+      }
+
+      const transformedMessages = (data || []).map((msg) => transformMessage(msg, convId));
+
       setMessages(transformedMessages);
     } catch (error: any) {
-      console.error('Error fetching messages:', error);
+      console.error("Error fetching messages:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to load messages',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load messages",
+        variant: "destructive",
       });
+      setMessages([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch conversation details
+  /**
+   * Fetch conversation details
+   */
   const fetchConversation = async (convId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('chat_sessions')
-        .select('*')
-        .eq('id', convId)
-        .single();
+    if (!convId) return;
 
-      if (error) throw error;
-      
-      setConversation(data as any);
+    try {
+      const { data, error } = await supabase.from("chat_sessions").select("*").eq("id", convId).single();
+
+      if (error) {
+        console.error("Error fetching conversation:", error);
+        throw error;
+      }
+
+      if (data) {
+        setConversation(data as ChatConversation);
+      }
     } catch (error: any) {
-      console.error('Error fetching conversation:', error);
+      console.error("Error fetching conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversation details",
+        variant: "destructive",
+      });
     }
   };
 
-  // Create or get existing conversation
+  /**
+   * Create a new conversation or return existing one
+   */
   const createOrGetConversation = async (
     sellerId: string,
     itemId: string,
-    itemType: 'robot' | 'spare_part' | 'service',
-    itemName: string
+    itemType: "robot" | "spare_part" | "service",
+    itemName: string,
   ): Promise<string | null> => {
+    // Validate user is authenticated
     if (!user) {
       toast({
-        title: 'Authentication Required',
-        description: 'Please log in to start a chat',
-        variant: 'destructive',
+        title: "Authentication Required",
+        description: "Please log in to start a chat",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    // Validate all parameters
+    if (!sellerId || !itemId || !itemType) {
+      toast({
+        title: "Invalid Parameters",
+        description: "Missing required information to start chat",
+        variant: "destructive",
       });
       return null;
     }
@@ -108,137 +143,174 @@ export const useChat = (conversationId?: string) => {
     try {
       // Check if conversation already exists
       const { data: existing, error: fetchError } = await supabase
-        .from('chat_sessions')
-        .select('id')
-        .eq('buyer_id', user.id)
-        .eq('seller_id', sellerId)
-        .eq('robot_id', itemId)
-        .eq('item_type', itemType)
+        .from("chat_sessions")
+        .select("id")
+        .eq("buyer_id", user.id)
+        .eq("seller_id", sellerId)
+        .eq("robot_id", itemId)
+        .eq("item_type", itemType)
         .maybeSingle();
 
+      if (fetchError) {
+        console.error("Error fetching existing conversation:", fetchError);
+        throw fetchError;
+      }
+
+      // Return existing conversation ID
       if (existing) {
+        console.log("Existing conversation found:", existing.id);
         return existing.id;
       }
 
       // Create new conversation
-      const { data, error } = await supabase
-        .from('chat_sessions')
+      const { data, error: createError } = await supabase
+        .from("chat_sessions")
         .insert({
           buyer_id: user.id,
           seller_id: sellerId,
           robot_id: itemId,
           item_type: itemType,
           item_name: itemName,
+          status: "active",
+          last_message_at: new Date().toISOString(),
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (createError) {
+        console.error("Error creating conversation:", createError);
+        throw createError;
+      }
+
+      if (!data) {
+        throw new Error("No data returned from conversation creation");
+      }
 
       toast({
-        title: 'Chat Started',
+        title: "Chat Started",
         description: `You can now chat about ${itemName}`,
       });
 
       return data.id;
     } catch (error: any) {
-      console.error('Error creating conversation:', error);
+      console.error("Error in createOrGetConversation:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to start chat',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to start chat",
+        variant: "destructive",
       });
       return null;
     }
   };
 
-  // Send a message
-  const sendMessage = async (content: string) => {
-    if (!user || !conversationId || !content.trim()) return;
+  /**
+   * Send a new message in the conversation
+   */
+  const sendMessage = async (content: string): Promise<ChatMessage | null> => {
+    // Validate prerequisites
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to send messages",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    if (!conversationId) {
+      toast({
+        title: "Error",
+        description: "No conversation selected",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    if (!content.trim()) {
+      return null;
+    }
 
     try {
       setSending(true);
 
       const { data, error } = await supabase
-        .from('chat_messages')
+        .from("chat_messages")
         .insert({
           chat_session_id: conversationId,
           sender_id: user.id,
-          message: content,
+          message: content.trim(),
+          is_read: false,
+          is_blocked: false,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error sending message:", error);
+        throw error;
+      }
 
-      // Transform and add message to local state
-      const transformedMessage = {
-        id: data.id,
-        conversation_id: conversationId,
-        sender_id: data.sender_id,
-        message_content: data.message,
-        is_read: false,
-        is_blocked: data.is_blocked || false,
-        blocked_reason: data.blocked_reason,
-        created_at: data.created_at,
-      };
-      
-      setMessages(prev => [...prev, transformedMessage]);
+      if (!data) {
+        throw new Error("No data returned from message creation");
+      }
+
+      // Transform and add to local state
+      const transformedMessage = transformMessage(data, conversationId);
+      setMessages((prev) => [...prev, transformedMessage]);
 
       return transformedMessage;
     } catch (error: any) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to send message',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to send message",
+        variant: "destructive",
       });
+      return null;
     } finally {
       setSending(false);
     }
   };
 
-  // Subscribe to new messages in conversation
+  /**
+   * Subscribe to real-time message updates
+   */
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      return;
+    }
 
+    // Fetch initial data
     fetchMessages(conversationId);
     fetchConversation(conversationId);
 
+    // Subscribe to new messages
     const channel = supabase
       .channel(`chat:${conversationId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
           filter: `chat_session_id=eq.${conversationId}`,
         },
         (payload) => {
           const newMsg = payload.new as any;
-          const transformedMessage: ChatMessage = {
-            id: newMsg.id,
-            conversation_id: conversationId,
-            sender_id: newMsg.sender_id,
-            message_content: newMsg.message,
-            is_read: false,
-            is_blocked: newMsg.is_blocked || false,
-            blocked_reason: newMsg.blocked_reason,
-            created_at: newMsg.created_at,
-          };
-          
-          setMessages(prev => {
-            // Avoid duplicates
-            if (prev.find(msg => msg.id === transformedMessage.id)) {
+          const transformedMessage = transformMessage(newMsg, conversationId);
+
+          setMessages((prev) => {
+            // Prevent duplicate messages
+            if (prev.find((msg) => msg.id === transformedMessage.id)) {
               return prev;
             }
             return [...prev, transformedMessage];
           });
-        }
+        },
       )
       .subscribe();
 
+    // Cleanup: unsubscribe and remove channel
     return () => {
       supabase.removeChannel(channel);
     };
@@ -251,5 +323,7 @@ export const useChat = (conversationId?: string) => {
     sending,
     sendMessage,
     createOrGetConversation,
+    fetchMessages,
+    fetchConversation,
   };
 };
