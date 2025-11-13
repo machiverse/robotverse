@@ -377,7 +377,14 @@ export type Database = {
             foreignKeyName: "chat_notifications_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
-            referencedRelation: "chat_conversations"
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notifications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions_with_participants"
             referencedColumns: ["id"]
           },
         ]
