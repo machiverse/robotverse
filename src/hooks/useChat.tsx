@@ -159,19 +159,6 @@ export const useChat = (conversationId?: string) => {
     try {
       setSending(true);
 
-      // Check for contact info in message
-      const { data: hasContactInfo, error: filterError } = await supabase
-        .rpc('filter_contact_info', { message: content });
-
-      if (hasContactInfo) {
-        toast({
-          title: 'Message Blocked',
-          description: 'Your message contains contact information. Please communicate only within the platform.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
       const { data, error } = await supabase
         .from('chat_messages')
         .insert({
