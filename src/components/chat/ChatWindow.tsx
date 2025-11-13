@@ -74,7 +74,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               {conversation?.item_name}
             </p>
             <p className="text-xs text-muted-foreground">
-              Chat ID: {conversation?.chat_id}
+              Session ID: {conversation?.id}
             </p>
           </div>
           {onClose && (

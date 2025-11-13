@@ -16,10 +16,9 @@ export interface ChatMessage {
 
 export interface ChatConversation {
   id: string;
-  chat_id: string;
   buyer_id: string;
   seller_id: string;
-  item_id?: string;
+  robot_id?: string;
   item_type: string;
   item_name?: string;
   status: string;
@@ -77,14 +76,14 @@ export const useChat = (conversationId?: string) => {
   const fetchConversation = async (convId: string) => {
     try {
       const { data, error } = await supabase
-        .from('chat_conversations')
+        .from('chat_sessions')
         .select('*')
         .eq('id', convId)
         .single();
 
       if (error) throw error;
       
-      setConversation(data);
+      setConversation(data as any);
     } catch (error: any) {
       console.error('Error fetching conversation:', error);
     }
@@ -109,11 +108,11 @@ export const useChat = (conversationId?: string) => {
     try {
       // Check if conversation already exists
       const { data: existing, error: fetchError } = await supabase
-        .from('chat_conversations')
+        .from('chat_sessions')
         .select('id')
         .eq('buyer_id', user.id)
         .eq('seller_id', sellerId)
-        .eq('item_id', itemId)
+        .eq('robot_id', itemId)
         .eq('item_type', itemType)
         .maybeSingle();
 
@@ -123,11 +122,11 @@ export const useChat = (conversationId?: string) => {
 
       // Create new conversation
       const { data, error } = await supabase
-        .from('chat_conversations')
+        .from('chat_sessions')
         .insert({
           buyer_id: user.id,
           seller_id: sellerId,
-          item_id: itemId,
+          robot_id: itemId,
           item_type: itemType,
           item_name: itemName,
         })
