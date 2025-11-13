@@ -466,16 +466,18 @@ const Parts = () => {
                         <p><span className="font-medium">Compatible:</span> {part.compatibility}</p>
                         <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
                       </div>
-                      <div className="flex space-x-2 pt-2">
-                        <ChatButton
-                          sellerId={part.sellerId || ''}
-                          itemId={part.id}
-                          itemType="spare_part"
-                          itemName={part.name}
-                          variant="default"
-                          className="flex-1"
-                        />
-                      </div>
+                      {user && user.id !== part.sellerId && (
+                        <div className="flex space-x-2 pt-2">
+                          <ChatButton
+                            sellerId={part.sellerId || ''}
+                            itemId={part.id}
+                            itemType="spare_part"
+                            itemName={part.name}
+                            variant="default"
+                            className="flex-1"
+                          />
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

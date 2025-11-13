@@ -445,16 +445,18 @@ const Services = () => {
                     </div>
 
                      {/* Action Buttons */}
-                    <div className="flex space-x-2 pt-2">
-                       <ChatButton
-                        sellerId={service.providerId}
-                        itemId={service.id}
-                        itemType="service"
-                        itemName={service.name}
-                        variant="default"
-                        className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium shadow-glow"
-                      />
-                    </div>
+                    {user && user.id !== service.providerId && (
+                      <div className="flex space-x-2 pt-2">
+                         <ChatButton
+                          sellerId={service.providerId}
+                          itemId={service.id}
+                          itemType="service"
+                          itemName={service.name}
+                          variant="default"
+                          className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium shadow-glow"
+                        />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

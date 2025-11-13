@@ -945,16 +945,18 @@ const Robots = () => {
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
                                 </Button>
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  <ChatButton
-                                    sellerId={robot.seller_id}
-                                    itemId={robot.id}
-                                    itemType="robot"
-                                    itemName={robot.name}
-                                    variant="outline"
-                                    className="whitespace-nowrap px-2 text-xs h-8"
-                                  />
-                                </div>
+                                {user && user.id !== robot.seller_id && (
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <ChatButton
+                                      sellerId={robot.seller_id}
+                                      itemId={robot.id}
+                                      itemType="robot"
+                                      itemName={robot.name}
+                                      variant="outline"
+                                      className="whitespace-nowrap px-2 text-xs h-8"
+                                    />
+                                  </div>
+                                )}
                               </div>
                               <Button
                                 variant="outline"

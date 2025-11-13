@@ -986,16 +986,18 @@ const RobotListings = () => {
                         <Eye className="w-3 h-3 mr-1" />
                         Details
                       </Button>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <ChatButton
-                          sellerId={robot.seller_id}
-                          itemId={robot.id}
-                          itemType="robot"
-                          itemName={robot.name}
-                          variant="outline"
-                          className="w-full h-9 text-xs px-2"
-                        />
-                      </div>
+                      {user && user.id !== robot.seller_id && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <ChatButton
+                            sellerId={robot.seller_id}
+                            itemId={robot.id}
+                            itemType="robot"
+                            itemName={robot.name}
+                            variant="outline"
+                            className="w-full h-9 text-xs px-2"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* AI Analysis Button */}
