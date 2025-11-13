@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, X, Plus, Package } from "lucide-react";
 import { toast } from "sonner";
 import { formatPrice, type Currency } from "@/utils/currency";
+import { SPARE_PARTS_CATEGORIES, getMainCategories, getSubCategories } from "@/constants/sparePartsCategories";
 
 interface SparePartFormData {
   name: string;
@@ -23,6 +24,9 @@ interface SparePartFormData {
   location: string;
   specifications: Record<string, any>;
   category_tags: string[];
+  main_category: string;
+  sub_category: string;
+  custom_category: string;
 }
 
 const MAX_IMAGES = 10;
@@ -47,6 +51,9 @@ const SpareParts = () => {
     location: '',
     specifications: {},
     category_tags: [],
+    main_category: '',
+    sub_category: '',
+    custom_category: '',
   });
 
   // Update form fields
@@ -179,6 +186,9 @@ const SpareParts = () => {
           location: formData.location,
           specifications: formData.specifications,
           category_tags: formData.category_tags,
+          main_category: formData.main_category,
+          sub_category: formData.sub_category,
+          custom_category: formData.custom_category,
           images: imageUrls,
         });
 
@@ -198,6 +208,9 @@ const SpareParts = () => {
         location: "",
         specifications: {},
         category_tags: [],
+        main_category: "",
+        sub_category: "",
+        custom_category: "",
       });
       setImages([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -214,7 +227,7 @@ const SpareParts = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Package className="w-5 h-5" />
-          Upload Spare Part Listing
+          Upload Spare Parts & Accessories Listing
         </CardTitle>
       </CardHeader>
 
@@ -474,6 +487,69 @@ const SpareParts = () => {
             )}
           </div>
 
+          {/* Main Category */}
+          <div className="space-y-2">
+            <Label htmlFor="main_category">Main Category *</Label>
+            <Select
+              value={formData.main_category}
+              onValueChange={(value) => {
+                handleInputChange("main_category", value);
+                handleInputChange("sub_category", "");
+                handleInputChange("custom_category", "");
+              }}
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select main category" />
+              </SelectTrigger>
+              <SelectContent>
+                {getMainCategories().map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sub Category */}
+          {formData.main_category && formData.main_category !== "Other" && (
+            <div className="space-y-2">
+              <Label htmlFor="sub_category">Sub Category *</Label>
+              <Select
+                value={formData.sub_category}
+                onValueChange={(value) => handleInputChange("sub_category", value)}
+                disabled={loading || !formData.main_category}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select sub category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getSubCategories(formData.main_category).map((subCategory) => (
+                    <SelectItem key={subCategory} value={subCategory}>
+                      {subCategory}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Custom Category (shown when "Other" is selected) */}
+          {formData.main_category === "Other" && (
+            <div className="space-y-2">
+              <Label htmlFor="custom_category">Specify Category *</Label>
+              <Input
+                id="custom_category"
+                value={formData.custom_category}
+                onChange={(e) => handleInputChange("custom_category", e.target.value)}
+                placeholder="Enter your custom part or accessory name"
+                required
+                disabled={loading}
+              />
+            </div>
+          )}
+
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
@@ -495,7 +571,7 @@ const SpareParts = () => {
                 <span>Creating Listing...</span>
               </div>
             ) : (
-              "Create Spare Part Listing"
+              "Create Spare Parts & Accessories Listing"
             )}
           </Button>
         </form>

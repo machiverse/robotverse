@@ -1920,12 +1920,14 @@ export type Database = {
           condition: string | null
           created_at: string
           currency: string | null
+          custom_category: string | null
           description: string | null
           duty_amount: number | null
           id: string
           images: string[] | null
           is_international: boolean | null
           location: string | null
+          main_category: string | null
           model: string | null
           name: string
           part_number: string | null
@@ -1936,6 +1938,7 @@ export type Database = {
           shipping_amount: number | null
           specifications: Json | null
           state: string | null
+          sub_category: string | null
           updated_at: string
         }
         Insert: {
@@ -1945,12 +1948,14 @@ export type Database = {
           condition?: string | null
           created_at?: string
           currency?: string | null
+          custom_category?: string | null
           description?: string | null
           duty_amount?: number | null
           id?: string
           images?: string[] | null
           is_international?: boolean | null
           location?: string | null
+          main_category?: string | null
           model?: string | null
           name: string
           part_number?: string | null
@@ -1961,6 +1966,7 @@ export type Database = {
           shipping_amount?: number | null
           specifications?: Json | null
           state?: string | null
+          sub_category?: string | null
           updated_at?: string
         }
         Update: {
@@ -1970,12 +1976,14 @@ export type Database = {
           condition?: string | null
           created_at?: string
           currency?: string | null
+          custom_category?: string | null
           description?: string | null
           duty_amount?: number | null
           id?: string
           images?: string[] | null
           is_international?: boolean | null
           location?: string | null
+          main_category?: string | null
           model?: string | null
           name?: string
           part_number?: string | null
@@ -1986,6 +1994,7 @@ export type Database = {
           shipping_amount?: number | null
           specifications?: Json | null
           state?: string | null
+          sub_category?: string | null
           updated_at?: string
         }
         Relationships: [

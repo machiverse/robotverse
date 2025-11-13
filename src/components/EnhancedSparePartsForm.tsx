@@ -30,6 +30,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice, type Currency, CURRENCY_SYMBOLS, convertToINR } from "@/utils/currency";
 import Papa from 'papaparse';
+import { SPARE_PARTS_CATEGORIES, getMainCategories, getSubCategories } from "@/constants/sparePartsCategories";
 
 interface SparePartFormData {
   name: string;
@@ -50,6 +51,9 @@ interface SparePartFormData {
   is_international: boolean;
   duty_amount: number;
   shipping_amount: number;
+  main_category: string;
+  sub_category: string;
+  custom_category: string;
 }
 
 interface BulkUploadResult {
@@ -73,6 +77,9 @@ interface CSVRow {
   image_urls: string;
   compatible_robots: string;
   category_tags: string;
+  main_category: string;
+  sub_category: string;
+  custom_category: string;
 }
 
 const conditionOptions = [
@@ -135,6 +142,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
         is_international: editingPart.is_international || false,
         duty_amount: editingPart.duty_amount || 0,
         shipping_amount: editingPart.shipping_amount || 0,
+        main_category: editingPart.main_category || '',
+        sub_category: editingPart.sub_category || '',
+        custom_category: editingPart.custom_category || '',
       };
     }
     return {
@@ -156,6 +166,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
       is_international: false,
       duty_amount: 0,
       shipping_amount: 0,
+      main_category: '',
+      sub_category: '',
+      custom_category: '',
     };
   });
 
@@ -320,6 +333,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
         is_international: formData.is_international,
         duty_amount: formData.duty_amount,
         shipping_amount: formData.shipping_amount,
+        main_category: formData.main_category,
+        sub_category: formData.sub_category,
+        custom_category: formData.custom_category,
         images: finalImageUrls,
       };
 
@@ -378,7 +394,10 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
       'description',
       'image_urls',
       'compatible_robots',
-      'category_tags'
+      'category_tags',
+      'main_category',
+      'sub_category',
+      'custom_category'
     ];
     
     const sampleData = [
@@ -395,7 +414,10 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
       'High precision robot arm joint for industrial applications',
       'https://example.com/image1.jpg,https://example.com/image2.jpg',
       'IRB-6700,IRB-6650',
-      'robot-parts,arm-joint,industrial'
+      'robot-parts,arm-joint,industrial',
+      'Motors & Motion Components',
+      'Servo Motors',
+      ''
     ];
 
     const csvContent = [headers, sampleData].map(row => row.join(',')).join('\n');
@@ -525,6 +547,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
             is_international: false,
             duty_amount: 0,
             shipping_amount: 0,
+            main_category: row.main_category || null,
+            sub_category: row.sub_category || null,
+            custom_category: row.custom_category || null,
             images: imageUrls,
           };
 
@@ -986,6 +1011,71 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                         </Button>
                       </Badge>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Main Category */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="main_category">Main Category *</Label>
+                  <Select
+                    value={formData.main_category}
+                    onValueChange={(value) => {
+                      handleInputChange("main_category", value);
+                      handleInputChange("sub_category", "");
+                      handleInputChange("custom_category", "");
+                    }}
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select main category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      {getMainCategories().map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sub Category */}
+                {formData.main_category && formData.main_category !== "Other" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sub_category">Sub Category *</Label>
+                    <Select
+                      value={formData.sub_category}
+                      onValueChange={(value) => handleInputChange("sub_category", value)}
+                      disabled={loading || !formData.main_category}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select sub category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background">
+                        {getSubCategories(formData.main_category).map((subCategory) => (
+                          <SelectItem key={subCategory} value={subCategory}>
+                            {subCategory}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Custom Category (shown when "Other" is selected) */}
+                {formData.main_category === "Other" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="custom_category">Specify Category *</Label>
+                    <Input
+                      id="custom_category"
+                      value={formData.custom_category}
+                      onChange={(e) => handleInputChange("custom_category", e.target.value)}
+                      placeholder="Enter your custom part or accessory name"
+                      required
+                      disabled={loading}
+                    />
                   </div>
                 )}
               </div>
