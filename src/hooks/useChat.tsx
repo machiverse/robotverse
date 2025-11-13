@@ -239,7 +239,6 @@ export const useChat = (conversationId?: string) => {
           chat_session_id: conversationId,
           sender_id: user.id,
           message: content.trim(),
-          is_read: false,
           is_blocked: false,
         })
         .select()
