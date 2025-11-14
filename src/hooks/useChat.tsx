@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -114,7 +114,7 @@ export const useChat = (conversationId?: string) => {
   /**
    * Create a new conversation or return existing one
    */
-  const createOrGetConversation = async (
+  const createOrGetConversation = useCallback(async (
     sellerId: string,
     itemId: string,
     itemType: "robot" | "spare_part" | "service",
@@ -199,7 +199,7 @@ export const useChat = (conversationId?: string) => {
       });
       return null;
     }
-  };
+  }, [user, toast]);
 
   /**
    * Send a new message in the conversation
