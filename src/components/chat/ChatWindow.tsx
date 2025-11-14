@@ -34,15 +34,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom();
-    
-    // Play notification sound for new messages from other party
+  }, [messages]);
+
+  // Handle notification sound for new messages from other party
+  useEffect(() => {
     if (messages.length > previousMessageCountRef.current && messages.length > 0) {
       const latestMessage = messages[messages.length - 1];
       
       // Only play sound if the message is from the other person
       if (latestMessage.sender_id !== user?.id) {
+        console.log("Playing notification sound for received message");
         playNotificationSound();
       }
     }
@@ -137,6 +141,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
 
       if (result) {
         setNewMessage("");
+        // Force scroll to bottom after sending
+        setTimeout(scrollToBottom, 100);
       } else {
         setError("Failed to send message. Please try again.");
       }
