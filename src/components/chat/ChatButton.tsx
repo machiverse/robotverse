@@ -6,20 +6,22 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChatButtonProps {
-  sellerId: string;
+  otherUserId: string;
   itemId: string;
   itemType: 'robot' | 'spare_part' | 'service';
   itemName: string;
+  productDetails?: Record<string, any>;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost';
   className?: string;
   size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
 export const ChatButton: React.FC<ChatButtonProps> = ({
-  sellerId,
+  otherUserId,
   itemId,
   itemType,
   itemName,
+  productDetails,
   variant = 'default',
   className = '',
   size = 'default',
@@ -33,7 +35,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
     if (!user) {
       toast({
         title: 'Login Required',
-        description: 'Please log in to chat with sellers',
+        description: 'Please log in to start a chat',
         variant: 'destructive',
       });
       navigate('/auth');
@@ -41,7 +43,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
     }
 
     // Prevent self-chat
-    if (user.id === sellerId) {
+    if (user.id === otherUserId) {
       toast({
         title: 'Cannot Chat',
         description: 'You cannot chat with yourself',
@@ -52,11 +54,15 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
 
     // Navigate to chat page with parameters
     const params = new URLSearchParams({
-      seller: sellerId,
+      other_user: otherUserId,
       item: itemId,
       type: itemType,
       name: itemName,
     });
+
+    if (productDetails) {
+      params.set('details', JSON.stringify(productDetails));
+    }
 
     navigate(`/chat?${params.toString()}`);
   };
@@ -69,7 +75,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       onClick={handleChatClick}
     >
       <MessageCircle className="h-4 w-4 mr-2" />
-      {user ? 'Chat with Seller' : 'Login to Chat'}
+      {user ? 'Start Chat' : 'Login to Chat'}
     </Button>
   );
 };

@@ -70,8 +70,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
           return;
         }
 
-        // Determine other party ID
-        const otherPartyId = conversation.buyer_id === user.id ? conversation.seller_id : conversation.buyer_id;
+        // Determine other party ID (the one who is not current user)
+        const otherPartyId = conversation.user1_id === user.id ? conversation.user2_id : conversation.user1_id;
 
         if (!otherPartyId) {
           setOtherPartyName("User");
