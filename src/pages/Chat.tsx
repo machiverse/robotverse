@@ -19,10 +19,12 @@ const Chat = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Extract URL parameters
-  const sellerId = searchParams.get("seller");
+  const otherUserId = searchParams.get("other_user");
   const itemId = searchParams.get("item");
   const itemType = searchParams.get("type") as "robot" | "spare_part" | "service" | null;
   const itemName = searchParams.get("name") || "";
+  const productDetailsParam = searchParams.get("details");
+  const productDetails = productDetailsParam ? JSON.parse(productDetailsParam) : undefined;
 
   useEffect(() => {
     let isMounted = true;
@@ -39,7 +41,7 @@ const Chat = () => {
         }
 
         // Validate all required parameters
-        if (!sellerId || !itemId || !itemType) {
+        if (!otherUserId || !itemId || !itemType) {
           setError("Missing required parameters");
           navigate("/");
           return;
@@ -55,10 +57,11 @@ const Chat = () => {
 
         // Create or fetch existing conversation
         const convId = await createOrGetConversation(
-          sellerId,
+          otherUserId,
           itemId,
           itemType,
-          decodeURIComponent(itemName)
+          decodeURIComponent(itemName),
+          productDetails
         );
 
         if (!isMounted) return;
@@ -89,7 +92,7 @@ const Chat = () => {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, sellerId, itemId, itemType, itemName]);
+  }, [user, otherUserId, itemId, itemType, itemName, productDetails]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

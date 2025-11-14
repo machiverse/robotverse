@@ -112,94 +112,99 @@ export const useChat = (conversationId?: string) => {
   };
 
   /**
-   * Create a new conversation or return existing one
+   * Create or get a conversation between two users for a specific item
    */
-  const createOrGetConversation = useCallback(async (
-    sellerId: string,
-    itemId: string,
-    itemType: "robot" | "spare_part" | "service",
-    itemName: string,
-  ): Promise<string | null> => {
-    // Validate user is authenticated
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to start a chat",
-        variant: "destructive",
-      });
-      return null;
-    }
+  const createOrGetConversation = useCallback(
+    async (
+      otherUserId: string,
+      itemId: string,
+      itemType: "robot" | "spare_part" | "service",
+      itemName: string,
+      productDetails?: Record<string, any>
+    ): Promise<string | null> => {
+      try {
+        if (!user?.id) {
+          throw new Error("User must be logged in");
+        }
 
-    // Validate all parameters
-    if (!sellerId || !itemId || !itemType) {
-      toast({
-        title: "Invalid Parameters",
-        description: "Missing required information to start chat",
-        variant: "destructive",
-      });
-      return null;
-    }
+        if (!otherUserId) {
+          throw new Error("Other user ID is required");
+        }
 
-    try {
-      // Check if conversation already exists (either direction: buyer->seller or seller->buyer)
-      const { data: existingConversations, error: fetchError } = await supabase
-        .from("chat_sessions")
-        .select("id, buyer_id, seller_id")
-        .eq("robot_id", itemId)
-        .eq("item_type", itemType)
-        .or(`and(buyer_id.eq.${user.id},seller_id.eq.${sellerId}),and(buyer_id.eq.${sellerId},seller_id.eq.${user.id})`);
+        if (user.id === otherUserId) {
+          throw new Error("Cannot chat with yourself");
+        }
 
-      if (fetchError) {
-        console.error("Error fetching existing conversation:", fetchError);
-        throw fetchError;
+        if (!itemType || !["robot", "spare_part", "service"].includes(itemType)) {
+          throw new Error("Invalid item type");
+        }
+
+        // Normalize user IDs: always store smaller ID in user1_id
+        const user1_id = user.id < otherUserId ? user.id : otherUserId;
+        const user2_id = user.id < otherUserId ? otherUserId : user.id;
+
+        console.log("Creating/getting conversation:", {
+          user1_id,
+          user2_id,
+          itemId,
+          itemType,
+          itemName,
+        });
+
+        // Try to find existing conversation (bypass stale types)
+        const { data: existingConversation, error: fetchError } = await ((supabase as any)
+          .from("chat_sessions")
+          .select("*")
+          .eq("user1_id", user1_id)
+          .eq("user2_id", user2_id)
+          .eq("item_id", itemId)
+          .eq("item_type", itemType)
+          .maybeSingle());
+
+        if (fetchError) {
+          console.error("Error fetching conversation:", fetchError);
+          throw fetchError;
+        }
+
+        if (existingConversation) {
+          console.log("Found existing conversation:", existingConversation.id);
+          return existingConversation.id;
+        }
+
+        // Create new conversation
+        const { data: newConversation, error: insertError } = await supabase
+          .from("chat_sessions")
+          .insert({
+            user1_id,
+            user2_id,
+            item_id: itemId,
+            item_type: itemType,
+            item_name: itemName,
+            product_details: productDetails || {},
+            status: "active",
+          } as any)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("Error creating conversation:", insertError);
+          throw insertError;
+        }
+
+        console.log("Created new conversation:", newConversation.id);
+        return newConversation.id;
+      } catch (error) {
+        console.error("Error in createOrGetConversation:", error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to create conversation",
+          variant: "destructive",
+        });
+        return null;
       }
-
-      // Return existing conversation ID if found
-      if (existingConversations && existingConversations.length > 0) {
-        console.log("Existing conversation found:", existingConversations[0].id);
-        return existingConversations[0].id;
-      }
-
-      // Create new conversation
-      const { data, error: createError } = await supabase
-        .from("chat_sessions")
-        .insert({
-          buyer_id: user.id,
-          seller_id: sellerId,
-          robot_id: itemId,
-          item_type: itemType,
-          item_name: itemName,
-          status: "active",
-          last_message_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error("Error creating conversation:", createError);
-        throw createError;
-      }
-
-      if (!data) {
-        throw new Error("No data returned from conversation creation");
-      }
-
-      toast({
-        title: "Chat Started",
-        description: `You can now chat about ${itemName}`,
-      });
-
-      return data.id;
-    } catch (error: any) {
-      console.error("Error in createOrGetConversation:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start chat",
-        variant: "destructive",
-      });
-      return null;
-    }
-  }, [user, toast]);
+    },
+    [user, toast]
+  );
 
   /**
    * Send a new message in the conversation
