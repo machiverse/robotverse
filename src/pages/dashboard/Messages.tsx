@@ -85,8 +85,9 @@ const Messages = () => {
         // Fetch additional details for each conversation
         const enrichedConversations = await Promise.all(
           sessionsData.map(async (session) => {
-            // Determine other party
-            const otherPartyId = session.user1_id === user.id ? session.user2_id : session.user1_id;
+            // Type assertion for new schema until types regenerate
+            const sess = session as any;
+            const otherPartyId = sess.user1_id === user.id ? sess.user2_id : sess.user1_id;
 
             // Fetch other party's profile
             const { data: profileData } = await supabase
