@@ -1,114 +1,154 @@
 /**
  * Chat content filter to block sensitive information
+ * Prevents users from sharing contact details outside the platform
  */
 
-interface FilterResult {
+export interface FilterResult {
   isBlocked: boolean;
   reason?: string;
+  severity?: 'low' | 'medium' | 'high';
   originalMessage: string;
 }
 
-// Regex patterns for sensitive information
+// Refined regex patterns for sensitive information
 const PATTERNS = {
-  // Phone numbers (various formats)
-  phone: /(\+?\d{1,4}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g,
+  // Indian phone numbers - various formats
+  // Matches: 9876543210, +91-9876-543-210, 09876543210, +919876543210, etc.
+  indianPhone: /(\+?91[-.\s]?)?[6-9]\d{9}|\b0[6-9]\d{9}\b/g,
+  
+  // International phone numbers (more strict to avoid false positives)
+  intlPhone: /\+\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,5}/g,
   
   // Email addresses
-  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi,
+  email: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/gi,
   
-  // URLs and links
-  url: /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.(com|net|org|in|co|io|dev|app|xyz|online|site|tech|info|biz)[^\s]*)/gi,
+  // URLs and website links
+  url: /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(\b[a-zA-Z0-9-]+\.(com|net|org|in|co|io|dev|app|xyz|online|site|tech|info|biz|edu|gov)\b)/gi,
   
-  // WhatsApp mentions
-  whatsapp: /whatsapp|wa\.me|whats\s*app/gi,
+  // External messaging platforms
+  externalMessaging: /\b(whatsapp|wa\.me|whats\s*app|telegram|t\.me|signal|wechat|line|viber|messenger)\b/gi,
   
-  // Contact keywords
-  contact: /\b(call|phone|mobile|email|contact|reach|dm|direct\s*message|inbox|mail)\s*(me|us|at|on|number|id)?/gi,
+  // Contact sharing keywords (strict matching)
+  contactKeywords: /\b(call\s+me|email\s+me|contact\s+me|reach\s+me|dm\s+me|direct\s*message\s+me|inbox\s+me|mail\s+me|message\s+me\s+at|text\s+me|ping\s+me)\b/gi,
   
-  // Number sequences that look like phone numbers
-  phoneSequence: /\b\d{10,}\b/g,
+  // Common contact phrases
+  contactPhrases: /\b(my\s+(phone|mobile|number|email|contact|whatsapp|telegram))\b/gi,
 };
 
-// Additional suspicious phrases
-const SUSPICIOUS_PHRASES = [
-  'call me',
-  'email me',
-  'contact me',
-  'reach me',
-  'dm me',
-  'message me',
-  'mail me',
-  'phone number',
-  'mobile number',
-  'my number',
-  'my email',
-  'my contact',
-];
+/**
+ * Check if message contains legitimate business terms that might trigger false positives
+ */
+const isLegitimateBusinessMessage = (message: string): boolean => {
+  const lowerMessage = message.toLowerCase();
+  
+  // Allow messages about prices, specifications, delivery
+  const businessTerms = [
+    'price', 'cost', 'delivery', 'specification', 'warranty',
+    'shipping', 'payment', 'invoice', 'order', 'model',
+    'available', 'stock', 'condition', 'year', 'location'
+  ];
+  
+  return businessTerms.some(term => lowerMessage.includes(term));
+};
 
 /**
  * Filter chat message for sensitive information
  */
 export const filterChatMessage = (message: string): FilterResult => {
-  const lowerMessage = message.toLowerCase();
+  if (!message || message.trim().length === 0) {
+    return {
+      isBlocked: false,
+      originalMessage: message,
+    };
+  }
+
+  const trimmedMessage = message.trim();
+  const lowerMessage = trimmedMessage.toLowerCase();
   
-  // Check for phone numbers
-  if (PATTERNS.phone.test(message) || PATTERNS.phoneSequence.test(message)) {
+  // Check for Indian phone numbers
+  if (PATTERNS.indianPhone.test(trimmedMessage)) {
     return {
       isBlocked: true,
-      reason: 'Message contains phone number',
+      reason: 'Phone numbers are not allowed. Please keep all communication within the platform.',
+      severity: 'high',
+      originalMessage: message,
+    };
+  }
+  
+  // Check for international phone numbers
+  if (PATTERNS.intlPhone.test(trimmedMessage)) {
+    return {
+      isBlocked: true,
+      reason: 'Phone numbers are not allowed. Please keep all communication within the platform.',
+      severity: 'high',
       originalMessage: message,
     };
   }
   
   // Check for email addresses
-  if (PATTERNS.email.test(message)) {
+  if (PATTERNS.email.test(trimmedMessage)) {
     return {
       isBlocked: true,
-      reason: 'Message contains email address',
+      reason: 'Email addresses are not allowed. Please use the platform chat for communication.',
+      severity: 'high',
       originalMessage: message,
     };
   }
   
-  // Check for URLs
-  if (PATTERNS.url.test(message)) {
+  // Check for URLs (only if not a legitimate business discussion)
+  if (PATTERNS.url.test(trimmedMessage) && !isLegitimateBusinessMessage(trimmedMessage)) {
     return {
       isBlocked: true,
-      reason: 'Message contains external link',
+      reason: 'External links are not allowed. Please share information directly in chat.',
+      severity: 'medium',
       originalMessage: message,
     };
   }
   
-  // Check for WhatsApp mentions
-  if (PATTERNS.whatsapp.test(message)) {
+  // Check for external messaging platform mentions
+  if (PATTERNS.externalMessaging.test(trimmedMessage)) {
     return {
       isBlocked: true,
-      reason: 'Message contains external messaging platform reference',
+      reason: 'References to external messaging platforms are not allowed. Please use RobotVerse chat.',
+      severity: 'high',
       originalMessage: message,
     };
   }
   
-  // Check for contact-sharing phrases
-  if (PATTERNS.contact.test(message)) {
+  // Check for contact-sharing keywords
+  if (PATTERNS.contactKeywords.test(trimmedMessage)) {
     return {
       isBlocked: true,
-      reason: 'Message attempts to share contact information',
+      reason: 'Attempts to share contact information are not allowed. Please communicate within the platform.',
+      severity: 'medium',
       originalMessage: message,
     };
   }
   
-  // Check for suspicious phrases
-  for (const phrase of SUSPICIOUS_PHRASES) {
-    if (lowerMessage.includes(phrase)) {
-      return {
-        isBlocked: true,
-        reason: 'Message attempts to exchange contact details',
-        originalMessage: message,
-      };
-    }
+  // Check for common contact phrases
+  if (PATTERNS.contactPhrases.test(trimmedMessage)) {
+    return {
+      isBlocked: true,
+      reason: 'Sharing personal contact details is not allowed. Please use the platform chat.',
+      severity: 'medium',
+      originalMessage: message,
+    };
   }
   
+  // Message is clean
   return {
     isBlocked: false,
     originalMessage: message,
   };
+};
+
+/**
+ * Sanitize message content (for display purposes)
+ * Note: This should only be used for display, not for validation
+ */
+export const sanitizeMessage = (message: string): string => {
+  return message
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .trim();
 };
