@@ -17,6 +17,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useChatNotifications } from "@/hooks/useChatNotifications";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
@@ -33,6 +34,9 @@ const navItems = [
 const EnhancedHeader = () => {
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  
+  // Enable global chat notification sounds for logged-in users
+  useChatNotifications();
 
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur border-b border-border">
