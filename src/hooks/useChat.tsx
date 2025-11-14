@@ -256,9 +256,17 @@ export const useChat = (conversationId?: string) => {
         throw new Error("No data returned from message creation");
       }
 
-      // Transform and add to local state
+      // Transform and add to local state immediately
       const transformedMessage = transformMessage(data, conversationId);
-      setMessages((prev) => [...prev, transformedMessage]);
+      
+      // Use callback form to ensure we have latest state
+      setMessages((prev) => {
+        // Check if message already exists (in case real-time beat us)
+        if (prev.find(msg => msg.id === transformedMessage.id)) {
+          return prev;
+        }
+        return [...prev, transformedMessage];
+      });
 
       return transformedMessage;
     } catch (error: any) {
