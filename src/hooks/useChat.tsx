@@ -141,25 +141,23 @@ export const useChat = (conversationId?: string) => {
     }
 
     try {
-      // Check if conversation already exists
-      const { data: existing, error: fetchError } = await supabase
+      // Check if conversation already exists (either direction: buyer->seller or seller->buyer)
+      const { data: existingConversations, error: fetchError } = await supabase
         .from("chat_sessions")
-        .select("id")
-        .eq("buyer_id", user.id)
-        .eq("seller_id", sellerId)
+        .select("id, buyer_id, seller_id")
         .eq("robot_id", itemId)
         .eq("item_type", itemType)
-        .maybeSingle();
+        .or(`and(buyer_id.eq.${user.id},seller_id.eq.${sellerId}),and(buyer_id.eq.${sellerId},seller_id.eq.${user.id})`);
 
       if (fetchError) {
         console.error("Error fetching existing conversation:", fetchError);
         throw fetchError;
       }
 
-      // Return existing conversation ID
-      if (existing) {
-        console.log("Existing conversation found:", existing.id);
-        return existing.id;
+      // Return existing conversation ID if found
+      if (existingConversations && existingConversations.length > 0) {
+        console.log("Existing conversation found:", existingConversations[0].id);
+        return existingConversations[0].id;
       }
 
       // Create new conversation
