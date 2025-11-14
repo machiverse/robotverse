@@ -152,22 +152,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
   const hasBlockedMessages = messages.some((msg) => msg.is_blocked);
 
   return (
-    <Card className="h-[600px] flex flex-col shadow-lg overflow-hidden">
-      {/* Header - WhatsApp Style */}
-      <CardHeader className="border-b bg-[#008069] dark:bg-[#1f2c33] py-3">
+    <Card className="h-[600px] flex flex-col shadow-glow overflow-hidden border-primary/20">
+      {/* Header - RobotVerse Style */}
+      <CardHeader className="border-b border-primary/20 bg-gradient-to-r from-primary to-accent py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {/* Profile Picture */}
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-background/20 backdrop-blur-sm flex items-center justify-center text-primary-foreground font-semibold flex-shrink-0 border border-primary-foreground/20">
               {fetchingParty ? "..." : otherPartyName.charAt(0).toUpperCase()}
             </div>
             
             {/* Name and Status */}
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-base text-white truncate font-medium">
+              <CardTitle className="text-base text-primary-foreground truncate font-medium">
                 {fetchingParty ? "Loading..." : otherPartyName}
               </CardTitle>
-              <p className="text-xs text-white/80 truncate">{conversation?.item_name || "Chat"}</p>
+              <p className="text-xs text-primary-foreground/80 truncate">{conversation?.item_name || "Chat"}</p>
             </div>
           </div>
           
@@ -176,7 +176,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
               variant="ghost" 
               size="icon" 
               onClick={onClose} 
-              className="ml-2 text-white hover:bg-white/10" 
+              className="ml-2 text-primary-foreground hover:bg-primary-foreground/10" 
               aria-label="Close chat"
             >
               <X className="h-5 w-5" />
@@ -186,19 +186,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
       </CardHeader>
 
       {/* Messages Area */}
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden bg-[#efeae2] dark:bg-[#0b141a]">
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden bg-gradient-to-b from-background to-card">
         {/* Blocked Messages Warning */}
         {hasBlockedMessages && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 p-3 flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-yellow-800 dark:text-yellow-300">Some messages were blocked for containing restricted information.</p>
+          <div className="bg-destructive/10 border-b border-destructive/20 p-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-destructive">Some messages were blocked for containing restricted information.</p>
           </div>
         )}
 
-        {/* Messages List - WhatsApp pattern background */}
-        <ScrollArea className="flex-1 p-4" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }}>
+        {/* Messages List - RobotVerse themed */}
+        <ScrollArea className="flex-1 p-4">
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -229,18 +227,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
                       {/* Avatar placeholder */}
                       <div className={`w-6 h-6 ${showAvatar ? "opacity-100" : "opacity-0"}`}>
                         {!isOwnMessage && (
-                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                          <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
                             {otherPartyName.charAt(0).toUpperCase()}
                           </div>
                         )}
                       </div>
 
-                      {/* Message bubble */}
+                      {/* Message bubble - RobotVerse themed */}
                       <div
-                        className={`max-w-[70%] rounded-2xl px-3 py-2 shadow-sm ${
+                        className={`max-w-[70%] rounded-2xl px-3 py-2 shadow-sm transition-all ${
                           isOwnMessage 
-                            ? "bg-[#005c4b] text-white rounded-br-sm" 
-                            : "bg-white dark:bg-muted text-foreground rounded-bl-sm border border-border/50"
+                            ? "bg-gradient-to-br from-primary to-primary-glow text-primary-foreground rounded-br-sm" 
+                            : "bg-card text-card-foreground rounded-bl-sm border border-border"
                         }`}
                       >
                         {/* Blocked Message Warning */}
@@ -262,13 +260,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
                         <div className={`flex items-center justify-end gap-1 mt-1`}>
                           <p
                             className={`text-[11px] ${
-                              isOwnMessage ? "text-white/70" : "text-muted-foreground/70"
+                              isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground"
                             }`}
                           >
                             {format(new Date(message.created_at), "HH:mm")}
                           </p>
                           {isOwnMessage && (
-                            <span className="text-white/70 text-xs">✓✓</span>
+                            <span className="text-primary-foreground/70 text-xs">✓✓</span>
                           )}
                         </div>
                       </div>
@@ -289,22 +287,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
           </div>
         )}
 
-        {/* Message Input Form - WhatsApp Style */}
-        <form onSubmit={handleSendMessage} className="border-t bg-[#f0f2f5] dark:bg-[#1f2c33] p-3">
+        {/* Message Input Form - RobotVerse Style */}
+        <form onSubmit={handleSendMessage} className="border-t border-border bg-card p-3">
           <div className="flex items-center gap-2">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message"
               disabled={sending}
-              className="flex-1 rounded-full bg-white dark:bg-[#2a3942] border-0 focus-visible:ring-1 focus-visible:ring-[#00a884]"
+              className="flex-1 rounded-full bg-input border-border focus-visible:ring-primary"
               maxLength={1000}
               aria-label="Message input"
             />
             <Button 
               type="submit" 
               disabled={sending || !newMessage.trim()} 
-              className="rounded-full w-10 h-10 p-0 bg-[#00a884] hover:bg-[#008069] text-white" 
+              className="rounded-full w-10 h-10 p-0 bg-gradient-to-r from-primary to-accent hover:shadow-neon transition-all" 
               aria-label="Send message"
             >
               <Send className="h-5 w-5" />
