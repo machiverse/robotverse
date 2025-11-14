@@ -88,7 +88,8 @@ const Chat = () => {
     return () => {
       isMounted = false;
     };
-  }, [user, sellerId, itemId, itemType, itemName, navigate, createOrGetConversation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, sellerId, itemId, itemType, itemName]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
