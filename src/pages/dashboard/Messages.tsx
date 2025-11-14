@@ -15,9 +15,9 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 
 interface Conversation {
   id: string;
-  buyer_id: string;
-  seller_id: string;
-  robot_id: string;
+  user1_id: string;
+  user2_id: string;
+  item_id: string;
   item_type: string;
   item_name: string;
   status: string;
@@ -65,11 +65,11 @@ const Messages = () => {
       try {
         setLoading(true);
 
-        // Fetch conversations where user is either buyer or seller
+        // Fetch conversations where user is either user1 or user2
         const { data: sessionsData, error: sessionsError } = await supabase
           .from("chat_sessions")
           .select("*")
-          .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
           .order("last_message_at", { ascending: false });
 
         if (sessionsError) {
@@ -84,10 +84,9 @@ const Messages = () => {
 
         // Fetch additional details for each conversation
         const enrichedConversations = await Promise.all(
-          sessionsData.map(async (session) => {
-            // Type assertion for new schema until types regenerate
-            const sess = session as any;
-            const otherPartyId = sess.user1_id === user.id ? sess.user2_id : sess.user1_id;
+          sessionsData.map(async (session: any) => {
+            // Determine other party ID
+            const otherPartyId = session.user1_id === user.id ? session.user2_id : session.user1_id;
 
             // Fetch other party's profile
             const { data: profileData } = await supabase
@@ -164,8 +163,11 @@ const Messages = () => {
   });
 
   const handleConversationClick = (conversation: Conversation) => {
+    // Determine other user ID for navigation
+    const otherUserId = conversation.user1_id === user?.id ? conversation.user2_id : conversation.user1_id;
+    
     navigate(
-      `/chat?seller=${conversation.seller_id}&item=${conversation.robot_id}&type=${conversation.item_type}&name=${encodeURIComponent(conversation.item_name)}`
+      `/chat?other_user=${otherUserId}&item=${conversation.item_id}&type=${conversation.item_type}&name=${encodeURIComponent(conversation.item_name)}`
     );
   };
 
