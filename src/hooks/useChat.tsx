@@ -41,7 +41,7 @@ export const useChat = (conversationId?: string) => {
     id: msg.id,
     conversation_id: convId,
     sender_id: msg.sender_id,
-    message_content: msg.message || msg.message_content || "",
+    message_content: msg.message || "",
     is_read: msg.is_read || true,
     is_blocked: msg.is_blocked || false,
     blocked_reason: msg.blocked_reason,
@@ -240,7 +240,7 @@ export const useChat = (conversationId?: string) => {
         .insert({
           chat_session_id: conversationId,
           sender_id: user.id,
-          message_content: content.trim(),
+          message: content.trim(),
           is_blocked: filterResult.isBlocked,
           blocked_reason: filterResult.reason,
         })
