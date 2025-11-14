@@ -10,9 +10,9 @@ interface ChatButtonProps {
   itemId: string;
   itemType: 'robot' | 'spare_part' | 'service';
   itemName: string;
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost';
+  onChatStart?: (conversationId: string) => void;
+  variant?: 'default' | 'outline' | 'secondary';
   className?: string;
-  size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
 export const ChatButton: React.FC<ChatButtonProps> = ({
@@ -20,16 +20,15 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
   itemId,
   itemType,
   itemName,
+  onChatStart,
   variant = 'default',
   className = '',
-  size = 'default',
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleChatClick = async () => {
-    // Check if user is logged in
     if (!user) {
       toast({
         title: 'Login Required',
@@ -40,7 +39,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       return;
     }
 
-    // Prevent self-chat
+    // Don't allow chatting with yourself
     if (user.id === sellerId) {
       toast({
         title: 'Cannot Chat',
@@ -50,21 +49,13 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       return;
     }
 
-    // Navigate to chat page with parameters
-    const params = new URLSearchParams({
-      seller: sellerId,
-      item: itemId,
-      type: itemType,
-      name: itemName,
-    });
-
-    navigate(`/chat?${params.toString()}`);
+    // Navigate to chat page with params
+    navigate(`/chat?seller=${sellerId}&item=${itemId}&type=${itemType}&name=${encodeURIComponent(itemName)}`);
   };
 
   return (
     <Button
       variant={variant}
-      size={size}
       className={className}
       onClick={handleChatClick}
     >
