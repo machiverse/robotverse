@@ -123,6 +123,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
 
     try {
       setError(null);
+      
+      // Client-side validation
+      const { filterChatMessage } = await import("@/utils/chatContentFilter");
+      const filterResult = filterChatMessage(newMessage);
+      
+      if (filterResult.isBlocked) {
+        setError(`Message blocked: ${filterResult.reason}. Please keep all communication within the platform.`);
+        return;
+      }
+
       const result = await sendMessage(newMessage);
 
       if (result) {
