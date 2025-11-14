@@ -54,7 +54,12 @@ const Chat = () => {
         }
 
         // Create or fetch existing conversation
-        const convId = await createOrGetConversation(sellerId, itemId, itemType, decodeURIComponent(itemName));
+        const convId = await createOrGetConversation(
+          sellerId,
+          itemId,
+          itemType,
+          decodeURIComponent(itemName)
+        );
 
         if (!isMounted) return;
 
@@ -83,11 +88,10 @@ const Chat = () => {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, sellerId, itemId, itemType, itemName, navigate]);
+  }, [user, sellerId, itemId, itemType, itemName, navigate, createOrGetConversation]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <EnhancedHeader />
       <main className="flex-1 container mx-auto px-4 py-8">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">

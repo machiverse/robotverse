@@ -240,7 +240,7 @@ export const useChat = (conversationId?: string) => {
         .insert({
           chat_session_id: conversationId,
           sender_id: user.id,
-          message: content.trim(),
+          message_content: content.trim(),
           is_blocked: filterResult.isBlocked,
           blocked_reason: filterResult.reason,
         })
