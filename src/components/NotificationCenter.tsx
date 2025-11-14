@@ -104,7 +104,9 @@ export const NotificationCenter = () => {
       .single();
 
     if (data) {
-      navigate(`/chat?seller=${data.seller_id}&item=${data.robot_id}&type=${data.item_type}&name=${encodeURIComponent(data.item_name || '')}`);
+      // Determine other user (not current user)
+      const otherUserId = data.user1_id === user?.id ? data.user2_id : data.user1_id;
+      navigate(`/chat?other_user=${otherUserId}&item=${data.item_id}&type=${data.item_type}&name=${encodeURIComponent(data.item_name || '')}`);
     }
   };
 

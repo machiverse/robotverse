@@ -445,10 +445,10 @@ const Services = () => {
                     </div>
 
                      {/* Action Buttons */}
-                    {user && user.id !== service.providerId && (
+                     {user && user.id !== service.providerId && (
                       <div className="flex space-x-2 pt-2">
                          <ChatButton
-                          sellerId={service.providerId}
+                          otherUserId={service.providerId}
                           itemId={service.id}
                           itemType="service"
                           itemName={service.name}
