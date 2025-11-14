@@ -231,13 +231,18 @@ export const useChat = (conversationId?: string) => {
     try {
       setSending(true);
 
+      // Filter content for sensitive information
+      const { filterChatMessage } = await import("@/utils/chatContentFilter");
+      const filterResult = filterChatMessage(content.trim());
+
       const { data, error } = await supabase
         .from("chat_messages")
         .insert({
           chat_session_id: conversationId,
           sender_id: user.id,
           message: content.trim(),
-          is_blocked: false,
+          is_blocked: filterResult.isBlocked,
+          blocked_reason: filterResult.reason,
         })
         .select()
         .single();
