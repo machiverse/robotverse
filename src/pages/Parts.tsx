@@ -469,7 +469,7 @@ const Parts = () => {
                       {user && user.id !== part.sellerId && (
                         <div className="flex space-x-2 pt-2">
                           <ChatButton
-                            sellerId={part.sellerId || ''}
+                            otherUserId={part.sellerId || ''}
                             itemId={part.id}
                             itemType="spare_part"
                             itemName={part.name}

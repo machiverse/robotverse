@@ -1460,7 +1460,7 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                 </Button>
               ) : (
                 <ChatButton
-                  sellerId={robot.seller_id}
+                  otherUserId={robot.seller_id}
                   itemId={robot.id}
                   itemType="robot"
                   itemName={robot.name}

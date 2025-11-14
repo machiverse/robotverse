@@ -948,7 +948,7 @@ const Robots = () => {
                                 {user && user.id !== robot.seller_id && (
                                   <div onClick={(e) => e.stopPropagation()}>
                                     <ChatButton
-                                      sellerId={robot.seller_id}
+                                      otherUserId={robot.seller_id}
                                       itemId={robot.id}
                                       itemType="robot"
                                       itemName={robot.name}

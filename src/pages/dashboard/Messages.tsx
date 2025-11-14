@@ -86,7 +86,7 @@ const Messages = () => {
         const enrichedConversations = await Promise.all(
           sessionsData.map(async (session) => {
             // Determine other party
-            const otherPartyId = session.buyer_id === user.id ? session.seller_id : session.buyer_id;
+            const otherPartyId = session.user1_id === user.id ? session.user2_id : session.user1_id;
 
             // Fetch other party's profile
             const { data: profileData } = await supabase
