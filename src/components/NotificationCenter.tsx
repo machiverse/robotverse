@@ -104,9 +104,10 @@ export const NotificationCenter = () => {
       .single();
 
     if (data) {
-      // Determine other user (not current user)
-      const otherUserId = data.user1_id === user?.id ? data.user2_id : data.user1_id;
-      navigate(`/chat?other_user=${otherUserId}&item=${data.item_id}&type=${data.item_type}&name=${encodeURIComponent(data.item_name || '')}`);
+      // Type assertion for new schema until types regenerate
+      const session = data as any;
+      const otherUserId = session.user1_id === user?.id ? session.user2_id : session.user1_id;
+      navigate(`/chat?other_user=${otherUserId}&item=${session.item_id}&type=${session.item_type}&name=${encodeURIComponent(session.item_name || '')}`);
     }
   };
 
