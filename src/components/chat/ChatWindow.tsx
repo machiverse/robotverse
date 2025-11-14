@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
+import { playNotificationSound } from "@/utils/notificationSound";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -24,6 +25,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
   const [fetchingParty, setFetchingParty] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef(messages.length);
 
   /**
    * Auto-scroll to bottom when new messages arrive
@@ -34,7 +36,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+    
+    // Play notification sound for new messages from other party
+    if (messages.length > previousMessageCountRef.current && messages.length > 0) {
+      const latestMessage = messages[messages.length - 1];
+      
+      // Only play sound if the message is from the other person
+      if (latestMessage.sender_id !== user?.id) {
+        playNotificationSound();
+      }
+    }
+    
+    previousMessageCountRef.current = messages.length;
+  }, [messages, user?.id]);
 
   /**
    * Fetch other party's profile information

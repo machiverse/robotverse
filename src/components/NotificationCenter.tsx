@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { playNotificationSound } from '@/utils/notificationSound';
 
 interface ChatNotification {
   id: string;
@@ -19,8 +20,8 @@ interface ChatNotification {
   notification_type: string;
   is_read: boolean;
   created_at: string;
-  chat_conversations: {
-    chat_id: string;
+  chat_sessions: {
+    id: string;
     item_name: string;
   };
 }
@@ -39,8 +40,8 @@ export const NotificationCenter = () => {
       .from('chat_notifications')
       .select(`
         *,
-        chat_conversations (
-          chat_id,
+        chat_sessions (
+          id,
           item_name
         )
       `)
@@ -71,6 +72,7 @@ export const NotificationCenter = () => {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
+          playNotificationSound();
           fetchNotifications();
         }
       )
@@ -96,13 +98,13 @@ export const NotificationCenter = () => {
     
     // Navigate to chat
     const { data } = await supabase
-      .from('chat_conversations')
+      .from('chat_sessions')
       .select('*')
       .eq('id', notification.conversation_id)
       .single();
 
     if (data) {
-      navigate(`/chat?seller=${data.seller_id}&item=${data.item_id}&type=${data.item_type}&name=${encodeURIComponent(data.item_name || '')}`);
+      navigate(`/chat?seller=${data.seller_id}&item=${data.robot_id}&type=${data.item_type}&name=${encodeURIComponent(data.item_name || '')}`);
     }
   };
 
@@ -145,7 +147,7 @@ export const NotificationCenter = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="font-medium text-sm">
-                        New message about {notification.chat_conversations?.item_name}
+                        New message about {notification.chat_sessions?.item_name}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {format(new Date(notification.created_at), 'MMM dd, HH:mm')}
