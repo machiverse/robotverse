@@ -98,7 +98,7 @@ const Messages = () => {
             // Fetch last message
             const { data: lastMessageData } = await supabase
               .from("chat_messages")
-              .select("message, created_at")
+              .select("message_content, created_at")
               .eq("chat_session_id", session.id)
               .order("created_at", { ascending: false })
               .limit(1)
@@ -115,7 +115,7 @@ const Messages = () => {
               ...session,
               other_party_name: profileData?.full_name || "User",
               other_party_company: profileData?.company_name,
-              last_message: lastMessageData?.message || "No messages yet",
+              last_message: (lastMessageData as any)?.message_content || "No messages yet",
               unread_count: unreadCount || 0,
             };
           })
