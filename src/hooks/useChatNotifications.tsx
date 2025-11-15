@@ -31,11 +31,11 @@ export const useChatNotifications = () => {
             // Verify this message belongs to a conversation where current user is participant
             const { data: session } = await supabase
               .from('chat_sessions')
-              .select('buyer_id, seller_id')
+              .select('user1_id, user2_id')
               .eq('id', newMessage.chat_session_id)
               .single();
 
-            if (session && (session.buyer_id === user.id || session.seller_id === user.id)) {
+            if (session && (session.user1_id === user.id || session.user2_id === user.id)) {
               playNotificationSound();
             }
           }
