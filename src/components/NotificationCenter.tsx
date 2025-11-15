@@ -26,17 +26,36 @@ interface ChatNotification {
   };
 }
 
+interface GeneralNotification {
+  id: string;
+  user_id: string;
+  notification_type: string;
+  title: string;
+  message: string;
+  reference_id: string | null;
+  reference_type: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+type CombinedNotification = (ChatNotification | GeneralNotification) & {
+  displayTitle: string;
+  displayMessage: string;
+  displayType: 'chat' | 'general';
+}
+
 export const NotificationCenter = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<ChatNotification[]>([]);
+  const [notifications, setNotifications] = useState<CombinedNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
 
   const fetchNotifications = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
+    // Fetch chat notifications
+    const { data: chatData } = await supabase
       .from('chat_notifications')
       .select(`
         *,
@@ -47,12 +66,48 @@ export const NotificationCenter = () => {
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(10);
 
-    if (!error && data) {
-      setNotifications(data as any);
-      setUnreadCount(data.filter(n => !n.is_read).length);
+    // Fetch general notifications (robot views, etc.)
+    const { data: generalData } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    // Combine and format notifications
+    const combined: CombinedNotification[] = [];
+
+    if (chatData) {
+      chatData.forEach((notif: any) => {
+        combined.push({
+          ...notif,
+          displayTitle: 'New Message',
+          displayMessage: `New message about ${notif.chat_sessions?.item_name || 'item'}`,
+          displayType: 'chat' as const,
+        });
+      });
     }
+
+    if (generalData) {
+      generalData.forEach((notif: GeneralNotification) => {
+        combined.push({
+          ...notif,
+          displayTitle: notif.title,
+          displayMessage: notif.message,
+          displayType: 'general' as const,
+        });
+      });
+    }
+
+    // Sort by created_at
+    combined.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    setNotifications(combined.slice(0, 20));
+    setUnreadCount(combined.filter(n => !n.is_read).length);
   };
 
   useEffect(() => {
@@ -60,9 +115,9 @@ export const NotificationCenter = () => {
 
     fetchNotifications();
 
-    // Subscribe to new notifications
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
+    // Subscribe to chat notifications
+    const chatChannel = supabase
+      .channel(`chat_notifications:${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -78,36 +133,70 @@ export const NotificationCenter = () => {
       )
       .subscribe();
 
+    // Subscribe to general notifications (robot views, etc.)
+    const generalChannel = supabase
+      .channel(`general_notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          playNotificationSound();
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(chatChannel);
+      supabase.removeChannel(generalChannel);
     };
   }, [user]);
 
-  const markAsRead = async (notificationId: string) => {
-    await supabase
-      .from('chat_notifications')
-      .update({ is_read: true })
-      .eq('id', notificationId);
+  const markAsRead = async (notification: CombinedNotification) => {
+    if (notification.displayType === 'chat') {
+      await supabase
+        .from('chat_notifications')
+        .update({ is_read: true })
+        .eq('id', notification.id);
+    } else {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notification.id);
+    }
 
     fetchNotifications();
   };
 
-  const handleNotificationClick = async (notification: ChatNotification) => {
-    await markAsRead(notification.id);
+  const handleNotificationClick = async (notification: CombinedNotification) => {
+    await markAsRead(notification);
     setOpen(false);
     
-    // Navigate to chat
-    const { data } = await supabase
-      .from('chat_sessions')
-      .select('*')
-      .eq('id', notification.conversation_id)
-      .single();
+    if (notification.displayType === 'chat') {
+      // Navigate to chat
+      const chatNotif = notification as any;
+      const { data } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('id', chatNotif.conversation_id)
+        .single();
 
-    if (data) {
-      // Type assertion for new schema until types regenerate
-      const session = data as any;
-      const otherUserId = session.user1_id === user?.id ? session.user2_id : session.user1_id;
-      navigate(`/chat?other_user=${otherUserId}&item=${session.item_id}&type=${session.item_type}&name=${encodeURIComponent(session.item_name || '')}`);
+      if (data) {
+        const session = data as any;
+        const otherUserId = session.user1_id === user?.id ? session.user2_id : session.user1_id;
+        navigate(`/chat?other_user=${otherUserId}&item=${session.item_id}&type=${session.item_type}&name=${encodeURIComponent(session.item_name || '')}`);
+      }
+    } else {
+      // Navigate based on reference type
+      const generalNotif = notification as GeneralNotification;
+      if (generalNotif.reference_type === 'robot' && generalNotif.reference_id) {
+        navigate(`/robots/${generalNotif.reference_id}`);
+      }
     }
   };
 
@@ -150,7 +239,10 @@ export const NotificationCenter = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="font-medium text-sm">
-                        New message about {notification.chat_sessions?.item_name}
+                        {notification.displayTitle}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {notification.displayMessage}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {format(new Date(notification.created_at), 'MMM dd, HH:mm')}
