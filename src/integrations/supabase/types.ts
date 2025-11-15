@@ -303,9 +303,12 @@ export type Database = {
           created_at: string | null
           id: string
           is_blocked: boolean | null
-          is_system_message: boolean | null
-          message: string
+          is_read: boolean | null
+          message_content: string
+          product_metadata: Json | null
+          read_at: string | null
           sender_id: string
+          updated_at: string | null
         }
         Insert: {
           blocked_reason?: string | null
@@ -313,9 +316,12 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_blocked?: boolean | null
-          is_system_message?: boolean | null
-          message: string
+          is_read?: boolean | null
+          message_content: string
+          product_metadata?: Json | null
+          read_at?: string | null
           sender_id: string
+          updated_at?: string | null
         }
         Update: {
           blocked_reason?: string | null
@@ -323,23 +329,63 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_blocked?: boolean | null
-          is_system_message?: boolean | null
-          message?: string
+          is_read?: boolean | null
+          message_content?: string
+          product_metadata?: Json | null
+          read_at?: string | null
           sender_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_new_chat_session_id_fkey"
+            columns: ["chat_session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages_old: {
+        Row: {
+          blocked_reason: string | null
+          chat_session_id: string
+          created_at: string | null
+          id: string
+          is_blocked: boolean | null
+          is_read: boolean | null
+          message_content: string
+          sender_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          blocked_reason?: string | null
+          chat_session_id: string
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_read?: boolean | null
+          message_content: string
+          sender_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          blocked_reason?: string | null
+          chat_session_id?: string
+          created_at?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          is_read?: boolean | null
+          message_content?: string
+          sender_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "chat_messages_chat_session_id_fkey"
             columns: ["chat_session_id"]
             isOneToOne: false
-            referencedRelation: "chat_sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_messages_chat_session_id_fkey"
-            columns: ["chat_session_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions_with_participants"
+            referencedRelation: "chat_sessions_old"
             referencedColumns: ["id"]
           },
         ]
@@ -372,56 +418,86 @@ export type Database = {
           notification_type?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "chat_notifications_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_notifications_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions_with_participants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       chat_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string | null
+          item_name: string | null
+          item_type: string
+          last_message_at: string | null
+          product_details: Json | null
+          status: string | null
+          updated_at: string | null
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type: string
+          last_message_at?: string | null
+          product_details?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          item_type?: string
+          last_message_at?: string | null
+          product_details?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: []
+      }
+      chat_sessions_old: {
         Row: {
           buyer_id: string
           created_at: string | null
           id: string
-          item_name: string
-          item_type: string | null
+          item_name: string | null
+          item_type: string
           last_message_at: string | null
           robot_id: string | null
           seller_id: string
           status: string | null
+          updated_at: string | null
         }
         Insert: {
           buyer_id: string
           created_at?: string | null
           id?: string
-          item_name: string
-          item_type?: string | null
+          item_name?: string | null
+          item_type: string
           last_message_at?: string | null
           robot_id?: string | null
           seller_id: string
           status?: string | null
+          updated_at?: string | null
         }
         Update: {
           buyer_id?: string
           created_at?: string | null
           id?: string
-          item_name?: string
-          item_type?: string | null
+          item_name?: string | null
+          item_type?: string
           last_message_at?: string | null
           robot_id?: string | null
           seller_id?: string
           status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2185,28 +2261,7 @@ export type Database = {
       }
     }
     Views: {
-      chat_sessions_with_participants: {
-        Row: {
-          blocked_message_count: number | null
-          buyer_company: string | null
-          buyer_id: string | null
-          buyer_name: string | null
-          created_at: string | null
-          id: string | null
-          item_name: string | null
-          item_type: string | null
-          last_message_at: string | null
-          message_count: number | null
-          robot_id: string | null
-          robot_model: string | null
-          robot_name: string | null
-          seller_company: string | null
-          seller_id: string | null
-          seller_name: string | null
-          status: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       complete_user_profile: {

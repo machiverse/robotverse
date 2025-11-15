@@ -16,9 +16,9 @@ export interface ChatMessage {
 
 export interface ChatConversation {
   id: string;
-  buyer_id: string;
-  seller_id: string;
-  robot_id?: string;
+  user1_id: string;
+  user2_id: string;
+  item_id?: string;
   item_type: string;
   item_name?: string;
   status: string;

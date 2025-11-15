@@ -260,8 +260,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
                           </div>
                         )}
 
-                        {/* Message Content */}
-                        <p className="text-[14.2px] leading-[1.5] whitespace-pre-wrap break-words">
+                        {/* Message Content - Ensure full visibility on both sides */}
+                        <p className="text-[14.2px] leading-[1.5] whitespace-pre-wrap break-words overflow-visible">
                           {message.message_content}
                         </p>
 
