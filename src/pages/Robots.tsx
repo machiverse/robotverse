@@ -950,11 +950,12 @@ const Robots = () => {
                                     otherUserId={robot.seller_id}
                                     itemId={robot.id}
                                     itemType="robot"
-                                      itemName={robot.name}
-                                      variant="outline"
-                                      className="whitespace-nowrap px-2 text-xs h-8"
-                                    />
-                                  </div>
+                                    itemName={robot.name}
+                                    variant="outline"
+                                    size="sm"
+                                    className="whitespace-nowrap px-2 text-xs h-8"
+                                  />
+                                </div>
                                 </div>
                               <Button
                                 variant="outline"

@@ -22,7 +22,6 @@ import robotverseLogo from "@/assets/robotverse-r-logo.png";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
 const navItems = [
-  { name: "Home", href: "/", icon: Home },
   { name: "Robots", href: "/robots", icon: Bot },
   { name: "Spares", href: "/parts", icon: PartsIcon },
   { name: "Services", href: "/services", icon: Settings },
