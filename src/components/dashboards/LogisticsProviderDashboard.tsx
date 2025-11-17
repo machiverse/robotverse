@@ -52,7 +52,12 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
+import { DashboardHeader } from '@/components/DashboardHeader';
 import LogisticsServiceForm from '@/components/forms/LogisticsServiceForm';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
+import WatchlistSection from '@/components/WatchlistSection';
 import type { Database as SupabaseDatabase } from "@/integrations/supabase/types";
 
 type Profile = SupabaseDatabase['public']['Tables']['profiles']['Row'];
@@ -83,6 +88,7 @@ interface ServiceArea {
 const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { viewStats, fetchUserItemViews, loading: viewsLoading } = useViewTracking();
   
   // States
   const [loading, setLoading] = useState(true);
@@ -129,8 +135,9 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
   useEffect(() => {
     if (user) {
       fetchRealDashboardData();
+      fetchUserItemViews(user.id);
     }
-  }, [user]);
+  }, [user, fetchUserItemViews]);
 
   const fetchRealDashboardData = useCallback(async () => {
     if (!user) {
@@ -332,6 +339,14 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       bgColor: 'bg-blue-50'
     },
     {
+      title: 'Total Views',
+      value: viewStats.totalViews || 0,
+      icon: Eye,
+      trend: `${viewStats.viewsByCategory.logistics_services} service views`,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50'
+    },
+    {
       title: 'Active Services',
       value: logisticsServices.filter(s => s.is_active).length,
       icon: Truck,
@@ -346,14 +361,6 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       trend: 'Coverage locations',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
-    },
-    {
-      title: 'Business Status',
-      value: dashboardStats.businessVerified ? 'Verified' : 'Pending',
-      icon: Shield,
-      trend: 'Verification status',
-      color: dashboardStats.businessVerified ? 'text-green-600' : 'text-yellow-600',
-      bgColor: dashboardStats.businessVerified ? 'bg-green-50' : 'bg-yellow-50'
     }
   ];
 
@@ -510,7 +517,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-12">
+        <TabsList className="grid w-full grid-cols-6 h-12">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Overview
@@ -522,6 +529,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           <TabsTrigger value="coverage" className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             Coverage ({serviceAreas.length})
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            User Requests
           </TabsTrigger>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
@@ -935,6 +946,11 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
           </Card>
         </TabsContent>
 
+        {/* User Requests Tab */}
+        <TabsContent value="requests" className="mt-6">
+          <UserRequestsManagement />
+        </TabsContent>
+
         {/* Profile Setup Tab */}
         <TabsContent value="profile" className="mt-6">
           <Card>
@@ -1072,6 +1088,15 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="watchlist" className="mt-6">
+          <WatchlistSection 
+            title="My Watchlist" 
+            showHeader={true}
+            compact={false}
+            showActions={true}
+          />
         </TabsContent>
       </Tabs>
 

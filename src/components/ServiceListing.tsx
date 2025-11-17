@@ -857,7 +857,7 @@ const ServiceListing = () => {
                     <img 
                       src={url} 
                       alt="Portfolio preview" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-lg"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '';
                       }}

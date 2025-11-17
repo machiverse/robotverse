@@ -20,9 +20,9 @@ interface HeroContent {
 }
 
 const heroContent: HeroContent = {
-  title: "Advanced Industrial Robots",
+  title: "Your Complete Robotics Solution",
   subtitle:
-    "Discover cutting-edge industrial robots for modern manufacturing and automation",
+    "Buy Industrial Robots with Spare Parts, Services, Logistics & Finance – All in One Platform",
   image: industrialRobotHero,
 };
 
@@ -106,13 +106,13 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center bg-gradient-hero overflow-hidden">
+    <section className="relative min-h-[600px] md:min-h-screen flex items-center bg-gradient-hero overflow-hidden pt-24 pb-12 md:pt-32 md:pb-16">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
           src={heroContent.image}
           alt={heroContent.title}
-          className="w-full h-full object-cover opacity-30"
+          className="w-full h-full object-cover rounded-lg opacity-30"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
       </div>
@@ -120,11 +120,11 @@ const EnhancedHero = () => {
       {/* Content */}
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">
             {heroContent.title}
           </h1>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl">
+          <p className="text-lg md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-3xl">
             {heroContent.subtitle}
           </p>
 
@@ -134,18 +134,18 @@ const EnhancedHero = () => {
               e.preventDefault();
               handleSearch();
             }}
-            className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-6 mb-8 max-w-4xl"
+            className="bg-card/80 backdrop-blur-sm border border-border rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 mb-6 md:mb-8 max-w-4xl"
           >
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
               {/* Search Input */}
               <div className="md:col-span-2 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
                 <Input
                   aria-label="Search robots, parts, and services"
                   placeholder="Search robots, parts, services..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 text-lg bg-input border-border"
+                  className="pl-9 md:pl-10 h-10 md:h-12 text-sm md:text-base bg-input border-border"
                 />
               </div>
 
@@ -157,7 +157,7 @@ const EnhancedHero = () => {
               >
                 <SelectTrigger
                   aria-label="Select category"
-                  className="h-12 bg-input border-border"
+                  className="h-10 md:h-12 bg-input border-border text-sm md:text-base"
                 >
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
@@ -178,7 +178,7 @@ const EnhancedHero = () => {
               >
                 <SelectTrigger
                   aria-label="Select location"
-                  className="h-12 bg-input border-border"
+                  className="h-10 md:h-12 bg-input border-border text-sm md:text-base"
                 >
                   <SelectValue placeholder="All Locations" />
                 </SelectTrigger>
@@ -195,20 +195,20 @@ const EnhancedHero = () => {
             {/* Search Button */}
             <Button
               type="submit"
-              className="w-full mt-4 h-12 text-lg bg-primary hover:bg-primary-glow"
+              className="w-full mt-3 md:mt-4 h-10 md:h-12 text-sm md:text-base bg-primary hover:bg-primary-glow"
               aria-label="Perform search"
               disabled={loading}
             >
-              <Search className="w-5 h-5 mr-2" /> Search
+              <Search className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Search
             </Button>
           </form>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-8 md:mb-12">
             <Button
               variant="hero"
               size="lg"
-              className="text-lg px-8 py-6"
+              className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
               asChild
               disabled={loading}
             >
@@ -217,7 +217,7 @@ const EnhancedHero = () => {
             <Button
               variant="outline"
               size="lg"
-              className="text-lg px-8 py-6"
+              className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
               asChild
               disabled={loading}
             >

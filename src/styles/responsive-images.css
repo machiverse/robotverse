@@ -1,0 +1,170 @@
+/* Responsive Image Utilities */
+
+/* Container helpers for different aspect ratios */
+.image-container-square {
+  @apply aspect-square overflow-hidden;
+}
+
+.image-container-video {
+  @apply aspect-video overflow-hidden;
+}
+
+.image-container-portrait {
+  @apply aspect-[3/4] overflow-hidden;
+}
+
+.image-container-auto {
+  @apply overflow-hidden;
+  aspect-ratio: auto;
+}
+
+/* Object-fit utilities with fallbacks */
+.img-contain {
+  @apply object-contain w-full h-full;
+}
+
+.img-cover {
+  @apply object-cover w-full h-full;
+}
+
+.img-fill {
+  @apply object-fill w-full h-full;
+}
+
+.img-scale-down {
+  @apply object-scale-down w-full h-full;
+}
+
+/* Responsive image with loading state */
+.responsive-img {
+  @apply transition-opacity duration-300 ease-in-out;
+}
+
+.responsive-img.loading {
+  @apply opacity-0;
+}
+
+.responsive-img.loaded {
+  @apply opacity-100;
+}
+
+/* Image hover effects */
+.img-hover-scale {
+  @apply transition-transform duration-300 ease-in-out hover:scale-105;
+}
+
+.img-hover-zoom {
+  @apply transition-transform duration-500 ease-in-out hover:scale-110;
+}
+
+/* Loading placeholder animations */
+.img-placeholder {
+  @apply bg-gradient-to-br from-muted/30 to-muted/60 animate-pulse;
+}
+
+.img-placeholder-shimmer {
+  @apply relative overflow-hidden bg-muted;
+}
+
+.img-placeholder-shimmer::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-transparent;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Grid layouts for mixed orientations */
+.image-grid-uniform {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.image-grid-masonry {
+  column-count: 1;
+  column-gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .image-grid-masonry {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .image-grid-masonry {
+    column-count: 3;
+  }
+}
+
+.image-grid-masonry > * {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
+
+/* Responsive image sizes for different screen sizes */
+.img-responsive-mobile {
+  @apply w-full max-w-sm mx-auto;
+}
+
+.img-responsive-tablet {
+  @apply w-full max-w-md mx-auto;
+}
+
+.img-responsive-desktop {
+  @apply w-full max-w-2xl mx-auto;
+}
+
+/* Error state styling */
+.img-error {
+  @apply bg-muted flex items-center justify-center text-muted-foreground text-sm;
+  min-height: 200px;
+}
+
+/* Image with aspect ratio maintenance */
+.img-aspect-wrapper {
+  @apply relative overflow-hidden rounded-lg;
+}
+
+.img-aspect-wrapper img {
+  @apply absolute inset-0 w-full h-full object-contain;
+}
+
+/* Flexible image container that adapts to content */
+.img-flexible {
+  @apply relative inline-block max-w-full;
+}
+
+.img-flexible img {
+  @apply block max-w-full h-auto;
+}
+
+/* Image overlay effects */
+.img-overlay {
+  @apply relative overflow-hidden;
+}
+
+.img-overlay::after {
+  content: '';
+  @apply absolute inset-0 bg-black/0 transition-all duration-300 group-hover:bg-black/20;
+}
+
+/* Accessibility improvements */
+.img-accessible {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded;
+}
+
+/* Print-friendly image styles */
+@media print {
+  .img-print {
+    @apply max-w-full h-auto;
+    page-break-inside: avoid;
+  }
+}

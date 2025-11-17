@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 
-// ✅ Use exact types from your schema
+// Use exact types from schema
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 type UserTypeEnum = Database['public']['Enums']['user_type_enum'];
 
@@ -21,14 +21,9 @@ const Auth = () => {
   // Form state
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [isResetPassword, setIsResetPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -75,112 +70,70 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?reset=true`,
+      console.log('🔐 Sending password reset email to:', email);
+      
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Reset password error:', error);
+        throw error;
+      }
+
+      console.log('✅ Password reset email sent successfully');
 
       toast({
         title: "Reset Link Sent",
-        description: "Check your email for the password reset link.",
+        description: "Check your email for the password reset link. The link will take you to a secure page to set your new password.",
       });
       setIsForgotPassword(false);
+      setEmail(''); // Clear email field
     } catch (error: any) {
       console.error('❌ Forgot password error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to send reset email.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle password reset
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newPassword || !confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Required Fields",
-        description: "Please fill in both password fields.",
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Password Mismatch",
-        description: "The passwords do not match.",
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Weak Password",
-        description: "Password must be at least 6 characters long.",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully. You can now sign in.",
-      });
       
-      // Reset the form and go back to sign in
-      setIsResetPassword(false);
-      setNewPassword('');
-      setConfirmPassword('');
-      navigate('/auth');
-    } catch (error: any) {
-      console.error('❌ Password reset error:', error);
+      let errorMessage = "Failed to send reset email.";
+      
+      // Handle specific error cases
+      if (error.message?.includes('rate limit')) {
+        errorMessage = "Too many reset attempts. Please wait a few minutes before trying again.";
+      } else if (error.message?.includes('not found')) {
+        errorMessage = "Email address not found. Please check your email and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update password.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Redirect if already logged in
+  // Remove the old password reset handler since it's now in a separate page
+
+  // Redirect if already logged in (but not during password recovery)
   useEffect(() => {
-    if (user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRecoveryFlow = urlParams.get('type') === 'recovery';
+    
+    if (user && !isRecoveryFlow) {
       console.log('✅ User already authenticated, redirecting to home');
       navigate('/');
     }
   }, [user, navigate]);
 
-  // Check for password reset token and signup parameter in URL
+  // Check for signup parameter in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const isReset = urlParams.get('reset');
     const isSignupMode = urlParams.get('signup');
     
-    if (isReset === 'true') {
-      setIsResetPassword(true);
-      setIsForgotPassword(false);
-      setIsSignUp(false);
-    } else if (isSignupMode === 'true') {
+    if (isSignupMode === 'true') {
       setIsSignUp(true);
       setIsForgotPassword(false);
-      setIsResetPassword(false);
     }
   }, []);
 
@@ -189,7 +142,91 @@ const Auth = () => {
     setShowPassword(!showPassword);
   };
 
-  // Handler functions for multi-select checkboxes
+  // Create complete user profile immediately (for when email confirmation is disabled)
+  const createCompleteUserProfile = async (user: SupabaseUser) => {
+    try {
+      console.log('👤 Creating complete profile immediately for user:', user.id);
+      
+      // Validate required data
+      if (!fullName.trim()) {
+        throw new Error('Full name is required');
+      }
+      if (!companyName.trim()) {
+        throw new Error('Company name is required');
+      }
+      if (!mobileNumber.trim()) {
+        throw new Error('Mobile number is required');
+      }
+      if (!location.trim()) {
+        throw new Error('Location is required');
+      }
+      
+      // Prepare data - ensure empty strings become null for proper database storage
+      const profileParams = {
+        p_user_id: user.id,
+        p_email: email?.trim() || user.email || '',
+        p_full_name: fullName?.trim() || null,
+        p_company_name: companyName?.trim() || null,
+        p_mobile_number: mobileNumber?.trim() || null,
+        p_location: location?.trim() || null,
+        p_user_type: accountType || 'buyer',
+        p_account_type: accountType || 'buyer',
+        p_seller_roles: sellerRoles?.length > 0 ? sellerRoles : [],
+        p_logistics_type: logisticsType?.trim() || null,
+        p_logistics_region: logisticsRegion?.trim() || null,
+        p_transport_modes: transportModes?.length > 0 ? transportModes : [],
+        p_warehouse_storage: warehouseStorage || false,
+        p_finance_type: financeType?.length > 0 ? financeType : [],
+        p_financing_for: financingFor?.length > 0 ? financingFor : [],
+        p_target_audience: targetAudience?.length > 0 ? targetAudience : [],
+        p_government_scheme_support: governmentSchemeSupport || false
+      };
+
+      console.log('📝 Profile data being sent:', {
+        email: profileParams.p_email,
+        fullName: profileParams.p_full_name,
+        companyName: profileParams.p_company_name,
+        mobileNumber: profileParams.p_mobile_number,
+        location: profileParams.p_location,
+        accountType: profileParams.p_account_type,
+        sellerRoles: profileParams.p_seller_roles,
+        logisticsType: profileParams.p_logistics_type,
+        financeType: profileParams.p_finance_type
+      });
+      
+      // Use the database function to create the complete profile - returns table
+      const { data: profileResult, error: dbError } = await supabase.rpc('complete_user_profile', profileParams);
+
+      if (dbError) {
+        console.error('❌ Database function error:', dbError);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      if (!profileResult || profileResult.length === 0) {
+        console.error('❌ No profile data returned from function');
+        throw new Error('Profile creation failed - no data returned');
+      }
+
+      const createdProfile = profileResult[0];
+      console.log('✅ Complete profile created successfully:', {
+        profileId: createdProfile.profile_id,
+        userId: createdProfile.user_id,
+        fullName: createdProfile.full_name,
+        companyName: createdProfile.company_name,
+        mobileNumber: createdProfile.mobile_number,
+        location: createdProfile.location,
+        accountType: createdProfile.account_type,
+        registrationComplete: createdProfile.registration_complete
+      });
+      
+      return createdProfile;
+      
+    } catch (error: any) {
+      console.error('❌ Error creating complete profile:', error);
+      throw error;
+    }
+  };
+
   const handleSellerRoleChange = (role: string, checked: boolean) => {
     console.log(`🔄 Seller role change: ${role} = ${checked}`);
     if (checked) {
@@ -235,7 +272,7 @@ const Auth = () => {
     }
   };
 
-  // ✅ Save user data to localStorage for email confirmation flow
+  // Save user data to localStorage and sessionStorage for email confirmation flow
   const saveUserDataToStorage = (userData: SupabaseUser) => {
     const dataToSave = {
       email,
@@ -257,38 +294,84 @@ const Auth = () => {
       timestamp: Date.now()
     };
     
-    console.log('💾 Saving user data to localStorage:', dataToSave);
-    localStorage.setItem('robotverse_pending_profile', JSON.stringify(dataToSave));
-    console.log('✅ User data saved to localStorage for email confirmation');
+    console.log('💾 Saving user data to storage for user:', userData.id);
+    console.log('📋 Data to save:', {
+      email: dataToSave.email,
+      fullName: dataToSave.fullName,
+      companyName: dataToSave.companyName,
+      mobileNumber: dataToSave.mobileNumber,
+      location: dataToSave.location,
+      accountType: dataToSave.accountType,
+      hasSellerRoles: dataToSave.sellerRoles?.length > 0,
+      hasLogisticsType: !!dataToSave.logisticsType,
+      hasFinanceType: dataToSave.financeType?.length > 0
+    });
     
-    // Also validate that the data was saved correctly
-    const savedCheck = localStorage.getItem('robotverse_pending_profile');
-    if (savedCheck) {
-      const parsedCheck = JSON.parse(savedCheck);
-      console.log('✅ Verified saved data:', parsedCheck);
-    } else {
-      console.error('❌ Failed to save data to localStorage');
+    // Validate required fields before saving
+    if (!dataToSave.fullName || !dataToSave.companyName || !dataToSave.mobileNumber || !dataToSave.location) {
+      console.error('❌ Missing required fields in user data:', {
+        fullName: !!dataToSave.fullName,
+        companyName: !!dataToSave.companyName,
+        mobileNumber: !!dataToSave.mobileNumber,
+        location: !!dataToSave.location
+      });
     }
+    
+    // Save to both localStorage and sessionStorage for reliability
+    const dataString = JSON.stringify(dataToSave);
+    localStorage.setItem('robotverse_pending_profile', dataString);
+    sessionStorage.setItem('robotverse_pending_profile', dataString);
+    
+    // Also save to a backup key with user ID
+    localStorage.setItem(`robotverse_profile_${userData.id}`, dataString);
+    sessionStorage.setItem(`robotverse_profile_${userData.id}`, dataString);
+    
+    console.log('✅ User data saved to storage for email confirmation');
   };
 
-  // ✅ Load user data from localStorage after email confirmation
-  const loadUserDataFromStorage = () => {
-    const saved = localStorage.getItem('robotverse_pending_profile');
-    if (saved) {
-      const data = JSON.parse(saved);
-      console.log('📥 Loading saved user data from localStorage');
-      return data;
+  // Load user data from storage after email confirmation (with fallbacks)
+  const loadUserDataFromStorage = (userId?: string) => {
+    console.log('📥 Loading saved user data from storage...');
+    
+    // Try multiple storage locations
+    let saved = localStorage.getItem('robotverse_pending_profile') || 
+                sessionStorage.getItem('robotverse_pending_profile');
+    
+    // If no general data found, try user-specific key
+    if (!saved && userId) {
+      saved = localStorage.getItem(`robotverse_profile_${userId}`) ||
+              sessionStorage.getItem(`robotverse_profile_${userId}`);
     }
+    
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        console.log('✅ Found saved data:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ Error parsing saved data:', error);
+        return null;
+      }
+    }
+    
+    console.log('⚠️ No saved user data found in storage');
     return null;
   };
 
-  // ✅ Clear saved user data after successful profile creation
-  const clearSavedUserData = () => {
+  // Clear saved user data after successful profile creation
+  const clearSavedUserData = (userId?: string) => {
     localStorage.removeItem('robotverse_pending_profile');
-    console.log('🗑️ Cleared saved user data from localStorage');
+    sessionStorage.removeItem('robotverse_pending_profile');
+    
+    if (userId) {
+      localStorage.removeItem(`robotverse_profile_${userId}`);
+      sessionStorage.removeItem(`robotverse_profile_${userId}`);
+    }
+    
+    console.log('🗑️ Cleared saved user data from storage');
   };
 
-  // ✅ Check for email confirmation on component mount and auth state changes
+  // Check for email confirmation on component mount and auth state changes
   useEffect(() => {
     const checkEmailConfirmation = async () => {
       console.log('🔍 Checking email confirmation...');
@@ -302,42 +385,43 @@ const Auth = () => {
           .from('profiles')
           .select('*')
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single to avoid errors
 
-        if (profileError && profileError.code !== 'PGRST116') {
+        if (profileError) {
           console.error('❌ Error checking existing profile:', profileError);
           return;
         }
 
-        const savedData = loadUserDataFromStorage();
-        console.log('💾 Saved data from localStorage:', savedData);
+        const savedData = loadUserDataFromStorage(currentUser.id);
+        console.log('💾 Saved data from storage:', savedData);
+        console.log('📋 Existing profile:', existingProfile);
+
+        // Always check if profile is incomplete
+        const isIncomplete = !existingProfile || 
+                           !existingProfile.registration_complete || 
+                           !existingProfile.company_name || 
+                           !existingProfile.mobile_number ||
+                           !existingProfile.location;
 
         // If we have saved data for this user
         if (savedData && savedData.userId === currentUser.id) {
           try {
-            if (existingProfile) {
-              // Update existing profile if it's incomplete
-              const isIncomplete = !existingProfile.registration_complete || 
-                                   !existingProfile.company_name || 
-                                   !existingProfile.mobile_number;
+            if (existingProfile && isIncomplete) {
+              console.log('🔄 Updating incomplete profile with saved data...');
+              await updateUserProfileFromSavedData(currentUser, savedData);
+              clearSavedUserData(currentUser.id);
               
-              if (isIncomplete) {
-                console.log('🔄 Updating incomplete profile...');
-                await updateUserProfileFromSavedData(currentUser, savedData);
-                clearSavedUserData();
-                
-                toast({
-                  title: "Welcome to RobotVerse!",
-                  description: "Your account has been verified and profile updated successfully.",
-                });
-                
-                setTimeout(() => navigate('/dashboard'), 1000);
-              }
-            } else {
+              toast({
+                title: "Welcome to RobotVerse!",
+                description: "Your account has been verified and profile updated successfully.",
+              });
+              
+              setTimeout(() => navigate('/dashboard'), 1000);
+            } else if (!existingProfile) {
               // Create new profile
-              console.log('🆕 Creating new profile...');
+              console.log('🆕 Creating new profile from saved data...');
               await createUserProfileFromSavedData(currentUser, savedData);
-              clearSavedUserData();
+              clearSavedUserData(currentUser.id);
               
               toast({
                 title: "Welcome to RobotVerse!",
@@ -345,22 +429,34 @@ const Auth = () => {
               });
               
               setTimeout(() => navigate('/dashboard'), 1000);
+            } else {
+              console.log('✅ Profile already complete, clearing saved data');
+              clearSavedUserData(currentUser.id);
             }
           } catch (error: any) {
             console.error('❌ Error handling profile after email confirmation:', error);
             
-            // Clear the saved data if it's corrupted or incompatible
-            clearSavedUserData();
-            
             toast({
               variant: "destructive",
               title: "Profile Setup Error", 
-              description: `Failed to complete your profile setup: ${error.message}. Please sign in and try completing your profile again.`,
+              description: `Failed to complete your profile setup: ${error.message}. Please try completing your profile manually.`,
             });
+            
+            // Don't clear saved data in case of error - user might need to retry
+            setTimeout(() => navigate('/dashboard'), 2000);
           }
-        } else if (!existingProfile || !existingProfile.registration_complete) {
+        } else if (isIncomplete) {
           // No saved data but user needs to complete profile
-          console.log('⚠️ No saved data found for confirmed user, may need to complete registration');
+          console.log('⚠️ No saved data found for confirmed user, redirecting to complete registration');
+          
+          toast({
+            title: "Complete Your Profile",
+            description: "Please complete your profile information to continue.",
+          });
+          
+          // Show signup form to complete profile
+          setIsSignUp(true);
+          setEmail(currentUser.email || '');
         }
       }
     };
@@ -378,118 +474,66 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ✅ Update existing profile with complete data
+  // Update existing profile with complete data
   const updateUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
       console.log('👤 Updating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
+      console.log('📋 Saved data being processed:', {
+        email: savedData.email,
+        fullName: savedData.fullName,
+        companyName: savedData.companyName,
+        mobileNumber: savedData.mobileNumber,
+        location: savedData.location,
+        accountType: savedData.accountType
+      });
       
-      // Validate that we have the required data for update
-      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
-        console.error('❌ Missing required data for profile update:', {
-          companyName: savedData.companyName,
-          mobileNumber: savedData.mobileNumber,
-          accountType: savedData.accountType
-        });
-        
-        toast({
-          variant: "destructive",
-          title: "Incomplete Profile Data",
-          description: "Some required information is missing. Please complete your profile information.",
-        });
-        
-        // Clear corrupted data
-        clearSavedUserData();
-        throw new Error('Missing required profile data');
-      }
-      
-      // ✅ Build profile update data using exact schema types
-      const profileData: Partial<ProfileInsert> = {
-        // Basic information - using exact field names from schema
-        email: savedData.email || user.email,
-        full_name: savedData.fullName || null,
-        company_name: savedData.companyName || null,
-        mobile_number: savedData.mobileNumber || null,
-        phone: savedData.mobileNumber || null, // Populate both phone fields
-        location: savedData.location || null,
-        user_type: savedData.accountType || null,
-        account_type: savedData.accountType || null,
-        updated_at: new Date().toISOString(),
-        
-        // Set registration as complete and MOU agreed
-        registration_complete: true,
-        mou_agreed: true,
-        mou_agreed_at: new Date().toISOString(),
+      // Prepare data - ensure empty strings become null
+      const updateParams = {
+        p_user_id: user.id,
+        p_email: savedData.email?.trim() || user.email || '',
+        p_full_name: savedData.fullName?.trim() || null,
+        p_company_name: savedData.companyName?.trim() || null,
+        p_mobile_number: savedData.mobileNumber?.trim() || null,
+        p_location: savedData.location?.trim() || null,
+        p_user_type: savedData.accountType || 'buyer',
+        p_account_type: savedData.accountType || 'buyer',
+        p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
+        p_logistics_type: savedData.logisticsType?.trim() || null,
+        p_logistics_region: savedData.logisticsRegion?.trim() || null,
+        p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
+        p_warehouse_storage: savedData.warehouseStorage || false,
+        p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
+        p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
+        p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
+        p_government_scheme_support: savedData.governmentSchemeSupport || false
       };
+      
+      // Use the database function to update the complete profile - returns table
+      const { data: updateResult, error: dbError } = await supabase.rpc('complete_user_profile', updateParams);
 
-      // ✅ Add role-specific data based on account type
-      if (savedData.accountType === 'seller') {
-        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
-        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
-        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
-        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
-        
-        // Set service categories for service providers
-        if (savedData.sellerRoles?.includes('service_provider')) {
-          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
-        }
-        
-      } else if (savedData.accountType === 'logistics') {
-        profileData.logistics_type = savedData.logisticsType || null;
-        profileData.logistics_region = savedData.logisticsRegion || null;
-        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : ['road'];
-        profileData.warehouse_storage = savedData.warehouseStorage || false;
-        profileData.primary_user_type = 'logistics_provider';
-        profileData.primary_role = 'logistics_provider';
-        profileData.user_roles = ['logistics_provider'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
-        
-      } else if (savedData.accountType === 'finance') {
-        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : ['loan'];
-        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : ['robots'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : ['b2b'];
-        profileData.government_scheme_support = savedData.governmentSchemeSupport || false;
-        profileData.primary_user_type = 'finance_provider';
-        profileData.primary_role = 'finance_provider';
-        profileData.user_roles = ['finance_provider'];
-        
-      } else if (savedData.accountType === 'buyer') {
-        profileData.primary_user_type = 'buyer';
-        profileData.primary_role = 'buyer';
-        profileData.user_roles = ['buyer'];
+      if (dbError) {
+        console.error('❌ Database function error:', dbError);
+        throw new Error(dbError.message);
       }
 
-      console.log('📋 Profile update data:', JSON.stringify(profileData, null, 2));
-
-      // ✅ Update the existing profile
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(profileData)
-        .eq('user_id', user.id)
-        .select();
-
-      if (error) {
-        console.error('❌ Profile update error:', error);
-        toast({
-          variant: "destructive",
-          title: "Profile Update Failed",
-          description: `Failed to update your profile: ${error.message}. Please try again.`,
-        });
-        throw new Error(`Profile update failed: ${error.message}`);
+      if (!updateResult || updateResult.length === 0) {
+        console.error('❌ No profile data returned from update function');
+        throw new Error('Profile update failed - no data returned');
       }
 
-      if (!data || data.length === 0) {
-        console.error('❌ No profile was updated - possible RLS policy issue');
-        toast({
-          variant: "destructive",
-          title: "Profile Update Failed",
-          description: "No profile data was updated. This might be a permissions issue. Please contact support.",
-        });
-        throw new Error('No profile was updated - check RLS policies');
-      }
-
-      console.log('✅ Profile updated successfully:', data[0]);
-      return data;
+      const updatedProfile = updateResult[0];
+      console.log('✅ Profile updated successfully:', {
+        profileId: updatedProfile.profile_id,
+        userId: updatedProfile.user_id,
+        fullName: updatedProfile.full_name,
+        companyName: updatedProfile.company_name,
+        mobileNumber: updatedProfile.mobile_number,
+        location: updatedProfile.location,
+        accountType: updatedProfile.account_type,
+        registrationComplete: updatedProfile.registration_complete
+      });
+      
+      return updatedProfile;
 
     } catch (error: any) {
       console.error('❌ Profile update exception:', error);
@@ -497,205 +541,114 @@ const Auth = () => {
     }
   };
 
-  // ✅ Create profile using exact TypeScript types from your schema
+  // Create new profile using the database function  
   const createUserProfileFromSavedData = async (user: SupabaseUser, savedData: any) => {
     try {
-      console.log('👤 Creating profile from saved data for user:', user.id);
-      console.log('📋 Saved data:', JSON.stringify(savedData, null, 2));
+      console.log('👤 Creating complete profile from saved data for user:', user.id);
+      console.log('📋 Profile data to save:', {
+        email: savedData.email,
+        fullName: savedData.fullName,
+        companyName: savedData.companyName,
+        mobileNumber: savedData.mobileNumber,
+        location: savedData.location,
+        accountType: savedData.accountType
+      });
       
-      // Validate that we have the required data
-      if (!savedData.companyName || !savedData.mobileNumber || !savedData.accountType) {
-        console.error('❌ Missing required data for profile creation:', {
-          companyName: savedData.companyName,
-          mobileNumber: savedData.mobileNumber,
-          accountType: savedData.accountType
-        });
-        
-        toast({
-          variant: "destructive",
-          title: "Incomplete Profile Data",
-          description: "Some required information is missing. Please complete your registration again.",
-        });
-        
-        // Clear corrupted data and redirect to registration
-        clearSavedUserData();
-        throw new Error('Missing required profile data');
+      // Validate required data
+      if (!savedData.fullName?.trim()) {
+        throw new Error('Full name is required but missing from saved data');
+      }
+      if (!savedData.companyName?.trim()) {
+        throw new Error('Company name is required but missing from saved data');
+      }
+      if (!savedData.mobileNumber?.trim()) {
+        throw new Error('Mobile number is required but missing from saved data');
+      }
+      if (!savedData.location?.trim()) {
+        throw new Error('Location is required but missing from saved data');
       }
       
-      // ✅ Build profile data using exact schema types
-      const profileData: ProfileInsert = {
-        // Required field
-        user_id: user.id,
-        
-        // Basic information - using exact field names from schema
-        email: user.email || savedData.email,
-        full_name: savedData.fullName || null,
-        company_name: savedData.companyName || null,
-        mobile_number: savedData.mobileNumber || null,
-        phone: savedData.mobileNumber || null, // Populate both phone fields
-        location: savedData.location || null,
-        user_type: savedData.accountType || null,
-        account_type: savedData.accountType || null,
-        updated_at: new Date().toISOString(),
-        
-        // Set registration as complete and MOU agreed
-        registration_complete: true,
-        mou_agreed: true,
-        mou_agreed_at: new Date().toISOString(),
-        
-        // Initialize other nullable fields
-        avatar_url: null,
+      // Prepare data - ensure empty strings become null
+      const createParams = {
+        p_user_id: user.id,
+        p_email: savedData.email?.trim() || user.email || '',
+        p_full_name: savedData.fullName?.trim() || null,
+        p_company_name: savedData.companyName?.trim() || null,
+        p_mobile_number: savedData.mobileNumber?.trim() || null,
+        p_location: savedData.location?.trim() || null,
+        p_user_type: savedData.accountType || 'buyer',
+        p_account_type: savedData.accountType || 'buyer',
+        p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
+        p_logistics_type: savedData.logisticsType?.trim() || null,
+        p_logistics_region: savedData.logisticsRegion?.trim() || null,
+        p_transport_modes: savedData.transportModes?.length > 0 ? savedData.transportModes : [],
+        p_warehouse_storage: savedData.warehouseStorage || false,
+        p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
+        p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
+        p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
+        p_government_scheme_support: savedData.governmentSchemeSupport || false
       };
-
-      // ✅ Add role-specific data based on account type
-      if (savedData.accountType === 'seller') {
-        profileData.seller_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : null;
-        profileData.user_roles = savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : ['robot_seller'];
-        profileData.primary_user_type = (savedData.sellerRoles?.[0] as UserTypeEnum) || 'robot_seller';
-        profileData.primary_role = savedData.sellerRoles?.[0] || 'robot_seller';
-        
-        // Set service categories for service providers
-        if (savedData.sellerRoles?.includes('service_provider')) {
-          profileData.service_categories = ['maintenance', 'repair', 'installation']; // Default categories
-        }
-        
-        console.log('🏪 Seller data:', {
-          seller_roles: profileData.seller_roles,
-          user_roles: profileData.user_roles,
-          primary_user_type: profileData.primary_user_type,
-          primary_role: profileData.primary_role,
-          service_categories: profileData.service_categories
-        });
-        
-      } else if (savedData.accountType === 'logistics') {
-        profileData.logistics_type = savedData.logisticsType || null;
-        profileData.logistics_region = savedData.logisticsRegion || null;
-        profileData.transport_modes = savedData.transportModes?.length > 0 ? savedData.transportModes : null;
-        profileData.warehouse_storage = savedData.warehouseStorage || null;
-        profileData.primary_user_type = 'logistics_provider';
-        profileData.primary_role = 'logistics_provider';
-        profileData.user_roles = ['logistics_provider'];
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
-        
-        console.log('🚚 Logistics data:', {
-          logistics_type: profileData.logistics_type,
-          logistics_region: profileData.logistics_region,
-          transport_modes: profileData.transport_modes,
-          warehouse_storage: profileData.warehouse_storage,
-          user_roles: profileData.user_roles,
-          target_audience: profileData.target_audience
-        });
-        
-      } else if (savedData.accountType === 'finance') {
-        profileData.finance_type = savedData.financeType?.length > 0 ? savedData.financeType : null;
-        profileData.financing_for = savedData.financingFor?.length > 0 ? savedData.financingFor : null;
-        profileData.target_audience = savedData.targetAudience?.length > 0 ? savedData.targetAudience : null;
-        profileData.government_scheme_support = savedData.governmentSchemeSupport || null;
-        profileData.primary_user_type = 'finance_provider';
-        profileData.primary_role = 'finance_provider';
-        profileData.user_roles = ['finance_provider'];
-        
-        console.log('💰 Finance data:', {
-          finance_type: profileData.finance_type,
-          financing_for: profileData.financing_for,
-          target_audience: profileData.target_audience,
-          government_scheme_support: profileData.government_scheme_support,
-          user_roles: profileData.user_roles
-        });
-        
-      } else if (savedData.accountType === 'buyer') {
-        profileData.primary_user_type = 'buyer';
-        profileData.primary_role = 'buyer';
-        profileData.user_roles = ['buyer'];
-        console.log('🛒 Buyer data:', {
-          primary_user_type: profileData.primary_user_type,
-          user_roles: profileData.user_roles
-        });
-      }
-
-      console.log('📋 Final profile data (type-safe):', JSON.stringify(profileData, null, 2));
-
-      // ✅ Insert with type safety
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert(profileData)
-        .select();
-
-      if (error) {
-        console.error('❌ Profile creation error:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        
-        // Show user-friendly error message
-        toast({
-          variant: "destructive",
-          title: "Profile Creation Failed",
-          description: `Failed to save your profile: ${error.message}. Please try again.`,
-        });
-        
-        throw new Error(`Profile creation failed: ${error.message}`);
-      }
-
-      if (!data || data.length === 0) {
-        console.error('❌ No profile was created - possible RLS policy issue');
-        toast({
-          variant: "destructive",
-          title: "Profile Creation Failed",
-          description: "No profile data was returned. This might be a permissions issue. Please contact support.",
-        });
-        throw new Error('No data returned from profile creation - check RLS policies');
-      }
-
-      console.log('✅ Profile created successfully:', data[0]);
       
-      // ✅ Verify all fields were saved
-      const savedProfile = data[0];
-      console.log('🔍 Verification - What was actually saved:');
-      console.log('  ✓ user_id:', savedProfile.user_id);
-      console.log('  ✓ email:', savedProfile.email);
-      console.log('  ✓ full_name:', savedProfile.full_name);
-      console.log('  ✓ company_name:', savedProfile.company_name);
-      console.log('  ✓ mobile_number:', savedProfile.mobile_number);
-      console.log('  ✓ phone:', savedProfile.phone);
-      console.log('  ✓ location:', savedProfile.location);
-      console.log('  ✓ user_type:', savedProfile.user_type);
-      console.log('  ✓ account_type:', savedProfile.account_type);
-      console.log('  ✓ user_roles:', savedProfile.user_roles);
-      console.log('  ✓ seller_roles:', savedProfile.seller_roles);
-      console.log('  ✓ primary_user_type:', savedProfile.primary_user_type);
-      console.log('  ✓ primary_role:', savedProfile.primary_role);
-      console.log('  ✓ logistics_type:', savedProfile.logistics_type);
-      console.log('  ✓ logistics_region:', savedProfile.logistics_region);
-      console.log('  ✓ transport_modes:', savedProfile.transport_modes);
-      console.log('  ✓ warehouse_storage:', savedProfile.warehouse_storage);
-      console.log('  ✓ finance_type:', savedProfile.finance_type);
-      console.log('  ✓ financing_for:', savedProfile.financing_for);
-      console.log('  ✓ target_audience:', savedProfile.target_audience);
-      console.log('  ✓ government_scheme_support:', savedProfile.government_scheme_support);
-      console.log('  ✓ service_categories:', savedProfile.service_categories);
-      console.log('  ✓ mou_agreed:', savedProfile.mou_agreed);
-      console.log('  ✓ registration_complete:', savedProfile.registration_complete);
+      // Use the database function to create the complete profile - returns table
+      const { data: createResult, error: dbError } = await supabase.rpc('complete_user_profile', createParams);
 
-      return data;
+      if (dbError) {
+        console.error('❌ Database function error:', dbError);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
 
+      if (!createResult || createResult.length === 0) {
+        console.error('❌ No profile data returned from create function');
+        throw new Error('Profile creation failed - no data returned');
+      }
+
+      const createdProfile = createResult[0];
+      console.log('✅ Profile created successfully:', {
+        profileId: createdProfile.profile_id,
+        userId: createdProfile.user_id,
+        fullName: createdProfile.full_name,
+        companyName: createdProfile.company_name,
+        mobileNumber: createdProfile.mobile_number,
+        location: createdProfile.location,
+        accountType: createdProfile.account_type,
+        registrationComplete: createdProfile.registration_complete
+      });
+      
+      // Additional verification by querying the profile directly
+      const { data: verifyProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (verifyError) {
+        console.error('❌ Error verifying created profile:', verifyError);
+      } else {
+        console.log('✅ Profile verification successful - stored in DB:', {
+          hasCompanyName: !!verifyProfile.company_name,
+          hasMobileNumber: !!verifyProfile.mobile_number,
+          hasLocation: !!verifyProfile.location,
+          hasUserRoles: verifyProfile.user_roles?.length > 0,
+          registrationComplete: verifyProfile.registration_complete
+        });
+      }
+      
+      return createdProfile;
+      
     } catch (error: any) {
-      console.error('❌ Profile creation exception:', error);
+      console.error('❌ Error creating profile from saved data:', error);
       throw error;
     }
   };
 
-  // ✅ Handle agreement acceptance
+  // Handle agreement acceptance
   const handleAgreementAccept = () => {
     setAgreementAccepted(true);
     setShowAgreementModal(false);
-    console.log('✅ Agreement accepted, proceeding with signup');
+    console.log('✅ Agreement accepted, proceeding with signup');  
   };
 
-  // ✅ Handle agreement decline
+  // Handle agreement decline
   const handleAgreementDecline = () => {
     setShowAgreementModal(false);
     setAgreementAccepted(false);
@@ -707,7 +660,7 @@ const Auth = () => {
     });
   };
 
-  // ✅ Form submission with validation
+  // Form submission with validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -715,7 +668,7 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
-        // ✅ Show agreement modal first if not accepted
+        // Show agreement modal first if not accepted
         if (!agreementAccepted) {
           setLoading(false);
           setShowAgreementModal(true);
@@ -870,7 +823,7 @@ const Auth = () => {
 
         console.log('✅ All validation passed, creating user account...');
 
-        // ✅ Create user account with email confirmation
+        // Create user account with email confirmation
         const { user: newUser, error: signUpError } = await signUp(email, password, fullName);
         
         if (signUpError) {
@@ -885,10 +838,35 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // ✅ Save user data for after email confirmation
+        // Always save user data for email confirmation flow
         saveUserDataToStorage(newUser);
 
-        // ✅ Show email confirmation modal
+        // If email is already confirmed (email confirmation disabled), create profile immediately
+        if (newUser.email_confirmed_at) {
+          console.log('📧 Email already confirmed, creating profile immediately...');
+          try {
+            await createCompleteUserProfile(newUser);
+            clearSavedUserData(newUser.id);
+            
+            toast({
+              title: "Account Created Successfully!",
+              description: "Welcome to RobotVerse! Your account is ready to use.",
+            });
+            
+            setTimeout(() => navigate('/dashboard'), 1000);
+            return; // Exit early, no need for email confirmation modal
+          } catch (profileError: any) {
+            console.error('❌ Failed to create immediate profile:', profileError);
+            toast({
+              variant: "destructive",
+              title: "Profile Creation Error",
+              description: "Account created but profile setup failed. Please complete your profile after email confirmation.",
+            });
+          }
+        }
+
+        // Show email confirmation modal for users who need to confirm email
+        console.log('📧 Email confirmation required, showing modal...');
         setShowEmailConfirmationModal(true);
 
       } else {
@@ -930,7 +908,7 @@ const Auth = () => {
     }
   };
 
-  // ✅ Agreement Modal Component
+  // Agreement Modal Component
   if (showAgreementModal) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
@@ -997,7 +975,7 @@ const Auth = () => {
     );
   }
 
-  // ✅ Email Confirmation Modal Component
+  // Email Confirmation Modal Component
   if (showEmailConfirmationModal) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
@@ -1078,34 +1056,28 @@ const Auth = () => {
               <Bot className="w-10 h-10 text-white" />
             </div>
             <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {isResetPassword
-                ? 'Set New Password'
-                : isForgotPassword 
-                  ? 'Reset Password' 
-                  : isSignUp 
-                    ? 'Join RobotVerse' 
-                    : 'Welcome Back'
+              {isForgotPassword 
+                ? 'Reset Password' 
+                : isSignUp 
+                  ? 'Join RobotVerse' 
+                  : 'Welcome Back'
               }
             </CardTitle>
             <CardDescription className="text-lg mt-2">
-              {isResetPassword
-                ? 'Enter your new password below'
-                : isForgotPassword 
-                  ? 'Enter your email to receive a password reset link'
-                  : isSignUp 
-                    ? 'Create your account to start your robotics journey' 
-                    : 'Sign in to access your robot marketplace'
+              {isForgotPassword 
+                ? 'Enter your email to receive a password reset link'
+                : isSignUp 
+                  ? 'Create your account to start your robotics journey' 
+                  : 'Sign in to access your robot marketplace'
               }
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={
-              isResetPassword 
-                ? handlePasswordReset 
-                : isForgotPassword 
-                  ? handleForgotPassword 
-                  : handleSubmit
+              isForgotPassword 
+                ? handleForgotPassword 
+                : handleSubmit
             } className="space-y-6">
               {/* Basic Information Section - Only for Sign Up */}
               {isSignUp && !isForgotPassword && (
@@ -1187,8 +1159,8 @@ const Auth = () => {
               
               {/* Email and Password Fields */}
               <div className="space-y-4">
-                {/* Email Field - Show for all modes except reset password */}
-                {!isResetPassword && (
+                {/* Email Field */}
+                {(
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address *</Label>
                     <div className="relative">
@@ -1206,81 +1178,8 @@ const Auth = () => {
                   </div>
                 )}
                 
-                {/* Reset Password Fields */}
-                {isResetPassword && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="newPassword"
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Enter your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showNewPassword ? "Hide password" : "Show password"}
-                        >
-                          {showNewPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {newPassword && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Password strength: {newPassword.length >= 8 ? '🟢 Strong' : newPassword.length >= 6 ? '🟡 Medium' : '🔴 Weak'}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-10 pr-12"
-                          placeholder="Confirm your new password"
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      {confirmPassword && newPassword !== confirmPassword && (
-                        <div className="text-xs text-red-500 mt-1">
-                          ❌ Passwords do not match
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-                
-                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password and Reset Password */}
-                {!isForgotPassword && !isResetPassword && (
+                {/* Password Field with Show/Hide Toggle - Hidden for Forgot Password */}
+                {!isForgotPassword && (
                   <div className="space-y-2">
                     <Label htmlFor="password">Password *</Label>
                     <div className="relative">
@@ -1429,7 +1328,7 @@ const Auth = () => {
                           <Settings className="w-5 h-5 text-purple-600" />
                           <div>
                             <Label htmlFor="service_provider" className="font-medium cursor-pointer">Service Provider</Label>
-                            <p className="text-xs text-muted-foreground">Offer maintenance, installation, and repair services</p>
+                            <p className="text-xs text-muted-foreground">Provide installation, maintenance, and repair services</p>
                           </div>
                         </div>
                       </div>
@@ -1438,59 +1337,29 @@ const Auth = () => {
                 </div>
               )}
 
-              {/* Logistics Provider Fields */}
+              {/* Logistics Provider Configuration */}
               {isSignUp && accountType === 'logistics' && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Truck className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Logistics Details</h3>
+                    <h3 className="text-lg font-semibold">Logistics Services</h3>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Type of Logistics Service *</Label>
-                      <div className="border rounded-lg p-4 space-y-2 max-h-48 overflow-y-auto">
-                        <div className="grid grid-cols-1 gap-2">
-                          {[
-                            'Local Delivery',
-                            'Inter-city Transport', 
-                            'International Shipping',
-                            'Heavy Equipment Transport',
-                            'Fragile Item Handling',
-                            'Bulk Transport',
-                            'Express Delivery',
-                            'Warehousing & Storage',
-                            'Supply Chain Management',
-                            'Last Mile Delivery',
-                            'Industrial Machinery Transport',
-                            'Temperature Controlled Transport',
-                            'Hazardous Material Transport',
-                            'White Glove Service',
-                            'Installation & Setup Service',
-                            'Port Handling',
-                            'Duties Clearance'
-                          ].map((type) => (
-                            <div key={type} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={type}
-                                checked={logisticsType.includes(type)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setLogisticsType(prev => prev ? `${prev}, ${type}` : type);
-                                  } else {
-                                    setLogisticsType(prev => 
-                                      prev.split(', ').filter(t => t !== type).join(', ')
-                                    );
-                                  }
-                                }}
-                              />
-                              <Label htmlFor={type} className="text-sm cursor-pointer flex-1">
-                                {type}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <Label>Logistics Type *</Label>
+                      <Select value={logisticsType} onValueChange={setLogisticsType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select logistics type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="3pl">Third-Party Logistics (3PL)</SelectItem>
+                          <SelectItem value="freight_forwarder">Freight Forwarder</SelectItem>
+                          <SelectItem value="courier">Courier & Express</SelectItem>
+                          <SelectItem value="warehouse">Warehousing & Storage</SelectItem>
+                          <SelectItem value="integrated">Integrated Logistics</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -1499,96 +1368,56 @@ const Auth = () => {
                         id="logisticsRegion"
                         value={logisticsRegion}
                         onChange={(e) => setLogisticsRegion(e.target.value)}
-                        placeholder="e.g., North India, Maharashtra, etc."
-                        required={accountType === 'logistics'}
+                        placeholder="e.g., North India, Maharashtra, Pan India"
+                        required={isSignUp && accountType === 'logistics'}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label>Available Transport Modes</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="road"
-                          checked={transportModes.includes('road')}
-                          onCheckedChange={(checked) => handleTransportModeChange('road', !!checked)}
-                        />
-                        <Label htmlFor="road" className="font-medium cursor-pointer">🚛 Road Transport</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="sea"
-                          checked={transportModes.includes('sea')}
-                          onCheckedChange={(checked) => handleTransportModeChange('sea', !!checked)}
-                        />
-                        <Label htmlFor="sea" className="font-medium cursor-pointer">🚢 Sea Freight</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="air"
-                          checked={transportModes.includes('air')}
-                          onCheckedChange={(checked) => handleTransportModeChange('air', !!checked)}
-                        />
-                        <Label htmlFor="air" className="font-medium cursor-pointer">✈️ Air Cargo</Label>
-                      </div>
+                  <div className="space-y-2">
+                    <Label>Transport Modes (Select all that apply) *</Label>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Selected modes ({transportModes.length}): {transportModes.join(', ') || 'None'}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/20">
+                      {[
+                        { id: 'road', label: '🚛 Road Transport', desc: 'Trucks, trailers, local delivery' },
+                        { id: 'rail', label: '🚂 Rail Transport', desc: 'Heavy cargo, long distance' },
+                        { id: 'air', label: '✈️ Air Freight', desc: 'Express, time-critical shipments' },
+                        { id: 'sea', label: '🚢 Sea Freight', desc: 'International, bulk cargo' },
+                        { id: 'multimodal', label: '🔄 Multimodal', desc: 'Combined transport solutions' },
+                        { id: 'last_mile', label: '📦 Last Mile', desc: 'Final delivery to customer' }
+                      ].map((mode) => (
+                        <div key={mode.id} className="flex items-start space-x-3 p-2 border rounded bg-background hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            id={mode.id}
+                            checked={transportModes.includes(mode.id)}
+                            onCheckedChange={(checked) => handleTransportModeChange(mode.id, !!checked)}
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor={mode.id} className="font-medium cursor-pointer text-sm">{mode.label}</Label>
+                            <p className="text-xs text-muted-foreground">{mode.desc}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                     <Checkbox
-                      id="warehouse"
+                      id="warehouse_storage"
                       checked={warehouseStorage}
                       onCheckedChange={(checked) => setWarehouseStorage(!!checked)}
                     />
                     <div className="flex-1">
-                      <Label htmlFor="warehouse" className="font-medium cursor-pointer">🏭 Warehouse & Storage Facilities</Label>
-                      <p className="text-xs text-muted-foreground">We provide temporary storage and warehousing services</p>
-                    </div>
-                  </div>
-
-                  {/* Target Audience for Logistics */}
-                  <div className="space-y-3">
-                    <Label>Target Customer Segments</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_small_business"
-                          checked={targetAudience.includes('small_business')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('small_business', !!checked)}
-                        />
-                        <Label htmlFor="logistics_small_business" className="font-medium cursor-pointer">🏪 Small Manufacturing Units</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_medium_business"
-                          checked={targetAudience.includes('medium_business')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('medium_business', !!checked)}
-                        />
-                        <Label htmlFor="logistics_medium_business" className="font-medium cursor-pointer">🏭 Medium Scale Industries</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_large_enterprise"
-                          checked={targetAudience.includes('large_enterprise')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('large_enterprise', !!checked)}
-                        />
-                        <Label htmlFor="logistics_large_enterprise" className="font-medium cursor-pointer">🏢 Large Enterprises</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="logistics_research"
-                          checked={targetAudience.includes('research_institutions')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('research_institutions', !!checked)}
-                        />
-                        <Label htmlFor="logistics_research" className="font-medium cursor-pointer">🔬 Research Institutions</Label>
-                      </div>
+                      <Label htmlFor="warehouse_storage" className="font-medium cursor-pointer">🏭 Warehouse & Storage Services</Label>
+                      <p className="text-xs text-muted-foreground">We provide warehousing and storage facilities</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Finance Provider Fields */}
+              {/* Finance Provider Configuration */}
               {isSignUp && accountType === 'finance' && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
@@ -1596,113 +1425,104 @@ const Auth = () => {
                     <h3 className="text-lg font-semibold">Financial Services</h3>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label>Types of Financial Services Offered *</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="loan"
-                          checked={financeType.includes('loan')}
-                          onCheckedChange={(checked) => handleFinanceTypeChange('loan', !!checked)}
-                        />
-                        <Label htmlFor="loan" className="font-medium cursor-pointer">💰 Business Loans</Label>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Finance Types (Select all that apply) *</Label>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        Selected types ({financeType.length}): {financeType.join(', ') || 'None'}
                       </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="lease"
-                          checked={financeType.includes('lease')}
-                          onCheckedChange={(checked) => handleFinanceTypeChange('lease', !!checked)}
-                        />
-                        <Label htmlFor="lease" className="font-medium cursor-pointer">📋 Equipment Leasing</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="emi"
-                          checked={financeType.includes('emi')}
-                          onCheckedChange={(checked) => handleFinanceTypeChange('emi', !!checked)}
-                        />
-                        <Label htmlFor="emi" className="font-medium cursor-pointer">💳 EMI Financing</Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Financing Available For</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="robots"
-                          checked={financingFor.includes('robots')}
-                          onCheckedChange={(checked) => handleFinancingForChange('robots', !!checked)}
-                        />
-                        <Label htmlFor="robots" className="text-sm cursor-pointer">🤖 Robots</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="parts"
-                          checked={financingFor.includes('parts')}
-                          onCheckedChange={(checked) => handleFinancingForChange('parts', !!checked)}
-                        />
-                        <Label htmlFor="parts" className="text-sm cursor-pointer">🔧 Parts</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="setup"
-                          checked={financingFor.includes('setup')}
-                          onCheckedChange={(checked) => handleFinancingForChange('setup', !!checked)}
-                        />
-                        <Label htmlFor="setup" className="text-sm cursor-pointer">⚙️ Setup</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 border rounded bg-background">
-                        <Checkbox
-                          id="services"
-                          checked={financingFor.includes('services')}
-                          onCheckedChange={(checked) => handleFinancingForChange('services', !!checked)}
-                        />
-                        <Label htmlFor="services" className="text-sm cursor-pointer">🛠️ Services</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/20">
+                        {[
+                          { id: 'equipment_loans', label: '🏭 Equipment Loans', desc: 'Financing for robot purchases' },
+                          { id: 'lease_financing', label: '📄 Lease Financing', desc: 'Equipment leasing solutions' },
+                          { id: 'working_capital', label: '💰 Working Capital', desc: 'Business operations funding' },
+                          { id: 'trade_finance', label: '🔄 Trade Finance', desc: 'Import/export financing' },
+                          { id: 'project_finance', label: '🏗️ Project Finance', desc: 'Large automation projects' },
+                          { id: 'sme_loans', label: '🏢 SME Loans', desc: 'Small business financing' }
+                        ].map((type) => (
+                          <div key={type.id} className="flex items-start space-x-3 p-2 border rounded bg-background hover:bg-muted/50 transition-colors">
+                            <Checkbox
+                              id={type.id}
+                              checked={financeType.includes(type.id)}
+                              onCheckedChange={(checked) => handleFinanceTypeChange(type.id, !!checked)}
+                            />
+                            <div className="flex-1">
+                              <Label htmlFor={type.id} className="font-medium cursor-pointer text-sm">{type.label}</Label>
+                              <p className="text-xs text-muted-foreground">{type.desc}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <Label>Target Business Segments</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="b2b"
-                          checked={targetAudience.includes('b2b')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('b2b', !!checked)}
-                        />
-                        <Label htmlFor="b2b" className="font-medium cursor-pointer">🏢 Large Enterprises (B2B)</Label>
+                    <div className="space-y-2">
+                      <Label>Financing For (Select all that apply) *</Label>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        Selected options ({financingFor.length}): {financingFor.join(', ') || 'None'}
                       </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="msme"
-                          checked={targetAudience.includes('msme')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('msme', !!checked)}
-                        />
-                        <Label htmlFor="msme" className="font-medium cursor-pointer">🏭 MSME Businesses</Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          id="startup"
-                          checked={targetAudience.includes('startup')}
-                          onCheckedChange={(checked) => handleTargetAudienceChange('startup', !!checked)}
-                        />
-                        <Label htmlFor="startup" className="font-medium cursor-pointer">🚀 Startups & Scale-ups</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/20">
+                        {[
+                          { id: 'new_robots', label: '🤖 New Robots', desc: 'Brand new automation equipment' },
+                          { id: 'used_robots', label: '♻️ Used Robots', desc: 'Pre-owned robotic systems' },
+                          { id: 'spare_parts', label: '🔧 Spare Parts', desc: 'Components and accessories' },
+                          { id: 'maintenance', label: '🛠️ Maintenance', desc: 'Service and repair costs' },
+                          { id: 'training', label: '📚 Training', desc: 'Employee skill development' },
+                          { id: 'installation', label: '⚙️ Installation', desc: 'Setup and commissioning' }
+                        ].map((option) => (
+                          <div key={option.id} className="flex items-start space-x-3 p-2 border rounded bg-background hover:bg-muted/50 transition-colors">
+                            <Checkbox
+                              id={option.id}
+                              checked={financingFor.includes(option.id)}
+                              onCheckedChange={(checked) => handleFinancingForChange(option.id, !!checked)}
+                            />
+                            <div className="flex-1">
+                              <Label htmlFor={option.id} className="font-medium cursor-pointer text-sm">{option.label}</Label>
+                              <p className="text-xs text-muted-foreground">{option.desc}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
-                    <Checkbox
-                      id="government_scheme"
-                      checked={governmentSchemeSupport}
-                      onCheckedChange={(checked) => setGovernmentSchemeSupport(!!checked)}
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor="government_scheme" className="font-medium cursor-pointer">🏛️ Government Scheme Support</Label>
-                      <p className="text-xs text-muted-foreground">We assist with government subsidies and scheme applications</p>
+                    <div className="space-y-2">
+                      <Label>Target Business Segments (Select all that apply) *</Label>
+                      <div className="text-xs text-muted-foreground mb-2">
+                        Selected segments ({targetAudience.length}): {targetAudience.join(', ') || 'None'}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/20">
+                        {[
+                          { id: 'sme', label: '🏭 SME Manufacturing', desc: 'Small & medium enterprises' },
+                          { id: 'large_enterprise', label: '🏢 Large Enterprises', desc: 'Established corporations' },
+                          { id: 'automotive', label: '🚗 Automotive Sector', desc: 'Auto manufacturers & suppliers' },
+                          { id: 'electronics', label: '📱 Electronics', desc: 'Consumer & industrial electronics' },
+                          { id: 'pharma', label: '💊 Pharmaceutical', desc: 'Healthcare & pharma companies' },
+                          { id: 'startup', label: '🚀 Startups', desc: 'Early-stage companies' }
+                        ].map((segment) => (
+                          <div key={segment.id} className="flex items-start space-x-3 p-2 border rounded bg-background hover:bg-muted/50 transition-colors">
+                            <Checkbox
+                              id={segment.id}
+                              checked={targetAudience.includes(segment.id)}
+                              onCheckedChange={(checked) => handleTargetAudienceChange(segment.id, !!checked)}
+                            />
+                            <div className="flex-1">
+                              <Label htmlFor={segment.id} className="font-medium cursor-pointer text-sm">{segment.label}</Label>
+                              <p className="text-xs text-muted-foreground">{segment.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
+                      <Checkbox
+                        id="government_scheme"
+                        checked={governmentSchemeSupport}
+                        onCheckedChange={(checked) => setGovernmentSchemeSupport(!!checked)}
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor="government_scheme" className="font-medium cursor-pointer">🏛️ Government Scheme Support</Label>
+                        <p className="text-xs text-muted-foreground">We assist with government subsidies and scheme applications</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1717,25 +1537,18 @@ const Auth = () => {
                 {loading ? (
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>
-                      {isResetPassword
-                        ? 'Updating Password...'
-                        : isForgotPassword 
-                          ? 'Sending Reset Link...' 
-                          : isSignUp 
-                            ? 'Creating Your Account...' 
-                            : 'Signing You In...'
+                     <span>
+                      {isForgotPassword 
+                        ? 'Sending Reset Link...' 
+                        : isSignUp 
+                          ? 'Creating Your Account...' 
+                          : 'Signing You In...'
                       }
                     </span>
                   </div>
                 ) : (
                   <>
-                    {isResetPassword ? (
-                      <>
-                        <Lock className="w-5 h-5 mr-2" />
-                        Update Password
-                      </>
-                    ) : isForgotPassword ? (
+                    {isForgotPassword ? (
                       <>
                         <Mail className="w-5 h-5 mr-2" />
                         Send Reset Link
@@ -1758,15 +1571,15 @@ const Auth = () => {
             
             {/* Toggle between Sign Up, Sign In, Forgot Password, and Reset Password */}
             <div className="mt-8 text-center space-y-3">
-              {isResetPassword ? (
+              {false ? (
                 <button
                   type="button"
                   onClick={() => {
-                    setIsResetPassword(false);
+                    // removed reset password functionality
                     setIsForgotPassword(false);
                     setIsSignUp(false);
-                    setNewPassword('');
-                    setConfirmPassword('');
+                    // removed reset password functionality
+                    // removed reset password functionality
                   }}
                   className="text-primary hover:text-primary/80 transition-colors font-medium"
                 >

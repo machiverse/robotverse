@@ -10,7 +10,7 @@ const Hero = () => {
         <img 
           src={industrialRobotHero} 
           alt="Industrial robot automation factory" 
-          className="w-full h-full object-cover opacity-30"
+          className="w-full h-full object-cover rounded-lg opacity-30"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent"></div>
       </div>

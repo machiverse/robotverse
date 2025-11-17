@@ -176,6 +176,17 @@ const serviceCategories = [
     avgPrice: '₹5,000 - ₹25,000/month',
     demand: 'Growing',
     features: ['Real-time monitoring', 'Predictive analytics', 'Alert systems', 'Performance dashboards', 'Historical data', 'Custom reports']
+  },
+  {
+    id: 'robotverse_platform',
+    title: 'RoboVerse Platform',
+    description: 'Comprehensive platform services and marketplace management',
+    icon: Award,
+    gradient: 'from-indigo-500 to-purple-600',
+    difficulty: 'Expert',
+    avgPrice: '₹15,000 - ₹75,000',
+    demand: 'High',
+    features: ['Platform integration', 'Marketplace management', 'Digital services', 'Multi-vendor support', 'Analytics dashboard', 'Customer support']
   }
 ];
 

@@ -285,37 +285,40 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
 
   const fetchRealServiceRequests = async () => {
     try {
-      // For now, we'll create service requests based on actual service listings
-      // In a real implementation, you'd have a service_requests table
-      
-      const realRequests: RealServiceRequest[] = [];
-      
-      // Generate realistic service requests based on your services
-      services.forEach((service, index) => {
-        if (index < 3) { // Limit to recent requests
-          realRequests.push({
-            id: `service_req_${service.id}_${index}`,
-            client_id: `client_${index + 1}`,
-            service_id: service.id,
-            robot_id: robots.length > index ? robots[index].id : undefined,
-            client_name: `${['TechCorp Industries', 'Manufacturing Solutions Ltd', 'Automation Pro'][index]}`,
-            client_email: `contact@${['techcorp', 'mansol', 'autopro'][index]}.com`,
-            client_mobile: `+91-${9876543210 - index}`,
-            service_type: service.service_type || 'General Service',
-            status: ['pending', 'in_progress', 'completed'][index] || 'pending',
-            priority: ['high', 'medium', 'low'][index] || 'medium',
-            created_at: new Date(Date.now() - (index * 86400000)).toISOString(),
-            updated_at: new Date(Date.now() - (index * 43200000)).toISOString(),
-            description: `Request for ${service.name} - ${service.description?.substring(0, 100)}...`,
-            estimated_value: Math.floor(Math.random() * 50000) + 10000,
-            deadline: new Date(Date.now() + ((index + 1) * 7 * 86400000)).toISOString()
-          });
-        }
-      });
+      // Fetch real service requests from the database
+      const { data: serviceRequestsData, error } = await supabase
+        .from('service_requests')
+        .select('*')
+        .eq('provider_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching service requests:', error);
+        return;
+      }
+
+      // Map database data to our interface
+      const realRequests: RealServiceRequest[] = (serviceRequestsData || []).map(request => ({
+        id: request.id,
+        client_id: request.client_id || '',
+        service_id: request.service_id || '',
+        robot_id: undefined, // Not in current schema
+        client_name: request.client_name || '',
+        client_email: request.client_email || '',
+        client_mobile: request.client_phone || '',
+        service_type: request.service_type || '',
+        status: request.status || 'pending',
+        priority: request.urgency || 'medium',
+        created_at: request.created_at,
+        updated_at: request.updated_at,
+        description: request.description || '',
+        estimated_value: 0, // Not in current schema
+        deadline: request.scheduled_date || ''
+      }));
 
       setServiceRequests(realRequests);
     } catch (error) {
-      console.error('Error generating service requests:', error);
+      console.error('Error fetching service requests:', error);
     }
   };
 
@@ -330,8 +333,8 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
       avgPrice: robotData.length > 0 
         ? robotData.reduce((sum, r) => sum + (r.price || 0), 0) / robotData.length 
         : 0,
-      viewsThisMonth: 0, // Will be real when analytics are implemented
-      inquiriesThisMonth: 0 // Will be real when inquiry system is implemented
+      viewsThisMonth: 0, // Will be calculated from real view tracking data
+      inquiriesThisMonth: 0 // Will be calculated from real user requests when system is implemented
     };
 
     // Parts Statistics
@@ -343,7 +346,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
       avgPrice: partsData.length > 0 
         ? partsData.reduce((sum, p) => sum + (p.price || 0), 0) / partsData.length 
         : 0,
-      soldThisMonth: 0 // Will be calculated from sales data when available
+      soldThisMonth: 0 // Will be calculated from actual sales transactions when available
     };
 
     // Service Statistics
@@ -364,9 +367,9 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
     const overallStats = {
       totalRevenue: robotStats.revenue + partsStats.revenue + serviceStats.revenue,
       totalListings: robotStats.total + partsStats.total + serviceStats.total,
-      activeConversations: 0, // Will be real when messaging is implemented
-      customerSatisfaction: Math.max(serviceStats.completionRate, 75), // Base satisfaction
-      growthRate: 0 // Will be calculated from historical data
+      activeConversations: 0, // Will be calculated from real messaging system when implemented
+      customerSatisfaction: serviceStats.completionRate || 0, // Based on actual completion rate
+      growthRate: 0 // Will be calculated from historical data when available
     };
 
     setStats({

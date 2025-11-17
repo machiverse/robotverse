@@ -9,6 +9,7 @@ import SparePartsDashboard from "@/pages/SparePartsSellerDashboard";
 import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
 import FinanceProviderDashboard from "@/components/dashboards/FinanceProviderDashboard";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface MultiRoleDashboardProps {
   userProfile: any;
@@ -71,7 +72,10 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
 
   // If user has multiple roles, show tabbed interface
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* Dashboard Header with Company Logo */}
+     <DashboardHeader userProfile={userProfile} onProfileUpdate={() => {}} />
+      
       <div className="mb-8">
         <div className="flex items-center space-x-4 mb-4">
           <h1 className="text-3xl font-bold">Multi-Role Dashboard</h1>

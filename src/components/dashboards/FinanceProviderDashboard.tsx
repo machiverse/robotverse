@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   CreditCard,
   TrendingUp,
-  Users,
   DollarSign,
   Calculator,
   FileText,
@@ -23,10 +22,16 @@ import {
   Trash2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { useViewTracking } from '@/hooks/useViewTracking';
 import { supabase } from '@/integrations/supabase/client';
 import LoanProductForm from '@/components/forms/LoanProductForm';
 import LoanApplicationForm from '@/components/forms/LoanApplicationForm';
 import LoanCalculator from '@/components/forms/LoanCalculator';
+import { DashboardHeader } from '@/components/DashboardHeader';
+import UserRequestsManagement from '@/components/UserRequestsManagement';
+import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
+import WatchlistSection from '@/components/WatchlistSection';
 
 interface FinanceProviderDashboardProps {
   userProfile: any;
@@ -34,6 +39,8 @@ interface FinanceProviderDashboardProps {
 
 const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { viewStats, fetchUserItemViews } = useViewTracking();
   const [loanApplications, setLoanApplications] = useState<any[]>([]);
   const [loanSchemes, setLoanSchemes] = useState<any[]>([]);
   const [loanProducts, setLoanProducts] = useState<any[]>([]);
@@ -59,7 +66,10 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user]);
+    if (user) {
+      fetchUserItemViews(user.id);
+    }
+  }, [user, fetchUserItemViews]);
 
   const fetchDashboardData = async () => {
     if (!user) return;
@@ -226,6 +236,13 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       icon: AlertTriangle,
       trend: 'Portfolio quality',
       color: 'text-red-600'
+    },
+    {
+      title: 'Total Views',
+      value: viewStats?.totalViews || 0,
+      icon: Eye,
+      trend: 'Product engagement',
+      color: 'text-blue-600'
     }
   ];
 
@@ -264,7 +281,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -290,11 +307,13 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="applications" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="applications">Loan Applications</TabsTrigger>
           <TabsTrigger value="schemes">Loan Schemes</TabsTrigger>
           <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+          <TabsTrigger value="requests">User Requests</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
         </TabsList>
 
         <TabsContent value="applications" className="mt-6">
@@ -618,6 +637,10 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
           </div>
         </TabsContent>
 
+        <TabsContent value="requests" className="mt-6">
+          <UserRequestsManagement />
+        </TabsContent>
+
         <TabsContent value="analytics" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -678,6 +701,15 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="watchlist" className="mt-6">
+          <WatchlistSection 
+            title="My Watchlist" 
+            showHeader={true}
+            compact={false}
+            showActions={true}
+          />
         </TabsContent>
       </Tabs>
 
