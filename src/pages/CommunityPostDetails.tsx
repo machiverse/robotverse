@@ -9,11 +9,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import EnhancedPostComments from "@/components/EnhancedPostComments";
+import { UniversalComments } from "@/components/universal/UniversalComments";
+import { UniversalInteractionButtons } from "@/components/universal/UniversalInteractionButtons";
+import { useUniversalInteractions } from "@/hooks/useUniversalInteractions";
 import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
   Eye, 
   Play, 
   ArrowLeft,
@@ -64,7 +63,18 @@ const CommunityPostDetails = () => {
   const { user } = useAuth();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isLiking, setIsLiking] = useState(false);
+  
+  // Determine content type based on post data
+  const contentType = post?.post_type === 'blog' ? 'blog' : 'community_post';
+  
+  // Use universal interactions hook
+  const {
+    interaction,
+    loading: interactionsLoading,
+    toggleLike,
+    incrementCommentCount,
+    incrementShareCount,
+  } = useUniversalInteractions(id || '', contentType);
 
   useEffect(() => {
     if (id) {

@@ -70,11 +70,11 @@ const App = () => (
             <Route path="/robobook" element={<Blogs />} />
             <Route path="/community" element={<Blogs />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
+            <Route path="/robobook/:id" element={<CommunityPostDetails />} />
             <Route path="/community/:id" element={<CommunityPostDetails />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
-            <Route path="/robobook/:id" element={<BlogDetails />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
-            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/blogs/:id" element={<CommunityPostDetails />} />
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
