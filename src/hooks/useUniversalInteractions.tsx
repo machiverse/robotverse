@@ -68,16 +68,26 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
 
       let contentData: any = null;
       let contentError: any = null;
+      let commentCount = 0;
 
       // Use specific queries based on content type
       if (contentType === 'blog') {
         const result = await supabase
           .from('blogs')
-          .select('like_count, comment_count, share_count')
+          .select('like_count, share_count')
           .eq('id', contentId)
           .single();
         contentData = result.data;
         contentError = result.error;
+
+        // Count comments separately for blogs (blogs table doesn't have comment_count)
+        if (!contentError) {
+          const { count } = await supabase
+            .from('blog_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('blog_id', contentId);
+          commentCount = count || 0;
+        }
       } else {
         const result = await supabase
           .from('community_posts')
@@ -86,24 +96,22 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
           .single();
         contentData = result.data;
         contentError = result.error;
+        commentCount = contentData?.comment_count || 0;
       }
 
       if (contentError) throw contentError;
 
       // Check if user has liked
       let userLiked = false;
-      if (user || sessionId) {
-        const filterCondition = user 
-          ? `user_id.eq.${user.id}`
-          : `session_id.eq.${sessionId}`;
-        
+      if (user) {
+        // Authenticated users can like all content
         let likeData: any = null;
         if (contentType === 'blog') {
           const result = await supabase
             .from('blog_likes')
             .select('id')
             .eq('blog_id', contentId)
-            .or(filterCondition)
+            .eq('user_id', user.id)
             .maybeSingle();
           likeData = result.data;
         } else {
@@ -111,18 +119,27 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
             .from('post_likes')
             .select('id')
             .eq('post_id', contentId)
-            .or(filterCondition)
+            .eq('user_id', user.id)
             .maybeSingle();
           likeData = result.data;
         }
 
         userLiked = !!likeData;
+      } else if (sessionId && contentType !== 'blog') {
+        // Anonymous likes only for community posts (blog_likes doesn't have session_id)
+        const result = await supabase
+          .from('post_likes')
+          .select('id')
+          .eq('post_id', contentId)
+          .eq('session_id', sessionId)
+          .maybeSingle();
+        userLiked = !!result.data;
       }
 
       setInteraction({
         id: contentId,
         like_count: contentData?.like_count || 0,
-        comment_count: contentData?.comment_count || 0,
+        comment_count: commentCount,
         share_count: contentData?.share_count || 0,
         user_liked: userLiked,
       });
@@ -131,7 +148,7 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
     } finally {
       setLoading(false);
     }
-  }, [contentId, contentType, user, sessionId, likeTable, contentTable]);
+  }, [contentId, contentType, user, sessionId]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -200,7 +217,14 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
 
   // Toggle like
   const toggleLike = useCallback(async () => {
-    if (!user && !sessionId) {
+    // Blogs require authentication (blog_likes table doesn't support session_id)
+    if (contentType === 'blog' && !user) {
+      toast.error('Please sign in to like blogs');
+      return false;
+    }
+
+    // Community posts allow anonymous likes
+    if (contentType !== 'blog' && !user && !sessionId) {
       toast.error('Unable to process like. Please refresh and try again.');
       return false;
     }
@@ -212,29 +236,21 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
         // Unlike
         let error: any = null;
         if (contentType === 'blog') {
-          if (user) {
-            error = (await (supabase
-              .from('blog_likes') as any)
-              .delete()
-              .eq('blog_id', contentId)
-              .eq('user_id', user.id)).error;
-          } else {
-            error = (await (supabase
-              .from('blog_likes') as any)
-              .delete()
-              .eq('blog_id', contentId)
-              .eq('session_id', sessionId)).error;
-          }
+          error = (await supabase
+            .from('blog_likes')
+            .delete()
+            .eq('blog_id', contentId)
+            .eq('user_id', user!.id)).error;
         } else {
           if (user) {
-            error = (await (supabase
-              .from('post_likes') as any)
+            error = (await supabase
+              .from('post_likes')
               .delete()
               .eq('post_id', contentId)
               .eq('user_id', user.id)).error;
           } else {
-            error = (await (supabase
-              .from('post_likes') as any)
+            error = (await supabase
+              .from('post_likes')
               .delete()
               .eq('post_id', contentId)
               .eq('session_id', sessionId)).error;
@@ -254,7 +270,8 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
         const insertData: any = { [idField]: contentId };
         if (user) {
           insertData.user_id = user.id;
-        } else {
+        } else if (contentType !== 'blog') {
+          // Only add session_id for non-blog content
           insertData.session_id = sessionId;
         }
 
@@ -279,21 +296,19 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
           like_count: prev.like_count + 1,
           user_liked: true,
         }));
-
-        toast.success('Liked!');
       }
 
       return true;
     } catch (error) {
       console.error('Error toggling like:', error);
       toast.error('Failed to update like. Please try again.');
-      // Revert on error
+      // Revert optimistic update on error
       fetchInteractionData();
       return false;
     }
-  }, [user, sessionId, interaction.user_liked, contentId, contentType, likeTable, fetchInteractionData]);
+  }, [contentId, contentType, interaction.user_liked, user, sessionId, fetchInteractionData]);
 
-  // Increment comment count (called after adding comment)
+  // Increment comment count (for optimistic updates)
   const incrementCommentCount = useCallback(() => {
     setInteraction(prev => ({
       ...prev,
@@ -305,35 +320,40 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
   const incrementShareCount = useCallback(async () => {
     try {
       let error: any = null;
+      
       if (contentType === 'blog') {
-        const result = await supabase
+        error = (await supabase
           .from('blogs')
           .update({ share_count: interaction.share_count + 1 })
-          .eq('id', contentId);
-        error = result.error;
+          .eq('id', contentId)).error;
       } else {
-        const result = await supabase
+        error = (await supabase
           .from('community_posts')
           .update({ share_count: interaction.share_count + 1 })
-          .eq('id', contentId);
-        error = result.error;
+          .eq('id', contentId)).error;
       }
 
       if (error) throw error;
 
+      // Optimistic update
       setInteraction(prev => ({
         ...prev,
         share_count: prev.share_count + 1,
       }));
 
-      toast.success('Shared!');
+      toast.success('Shared successfully!');
       return true;
     } catch (error) {
       console.error('Error incrementing share count:', error);
-      toast.error('Failed to update share count.');
+      toast.error('Failed to share. Please try again.');
       return false;
     }
-  }, [contentId, contentTable, interaction.share_count]);
+  }, [contentId, contentType, interaction.share_count]);
+
+  // Refetch data
+  const refetch = useCallback(() => {
+    fetchInteractionData();
+  }, [fetchInteractionData]);
 
   return {
     interaction,
@@ -341,6 +361,6 @@ export const useUniversalInteractions = (contentId: string, contentType: Content
     toggleLike,
     incrementCommentCount,
     incrementShareCount,
-    refetch: fetchInteractionData,
+    refetch,
   };
 };
