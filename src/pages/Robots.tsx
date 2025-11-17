@@ -953,7 +953,6 @@ const Robots = () => {
                                     itemName={robot.name}
                                     variant="outline"
                                     size="sm"
-                                    className="whitespace-nowrap px-2 text-xs h-8"
                                   />
                                 </div>
                                 </div>
