@@ -496,17 +496,18 @@ const Community = () => {
               <CreatePostModal onPostCreated={fetchPosts} />
             </div>
           ) : (
-            <div className="space-y-6">
-              {filteredPosts.map((post) => (
-                <div key={post.id} onClick={() => trackItemView('community_posts', post.id, post)}>
+            <>
+              <div className="space-y-6">
+                {filteredPosts.map((post) => (
                   <CommunityPostCard
+                    key={post.id}
                     post={post}
                     onLikeUpdate={handleLikeUpdate}
                     onCommentUpdate={handleCommentUpdate}
                     onPostDeleted={handlePostDeleted}
                   />
-                </div>
-              ))}
+                ))}
+              </div>
               
               {/* Load More Section */}
               <div className="text-center py-8">
@@ -515,7 +516,7 @@ const Community = () => {
                 </p>
                 <CreatePostModal onPostCreated={fetchPosts} />
               </div>
-            </div>
+            </>
           )}
         </div>
       </main>

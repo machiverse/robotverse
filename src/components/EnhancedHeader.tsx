@@ -17,10 +17,11 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useChatNotifications } from "@/hooks/useChatNotifications";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 const navItems = [
-  { name: "Home", href: "/", icon: Home },
   { name: "Robots", href: "/robots", icon: Bot },
   { name: "Spares", href: "/parts", icon: PartsIcon },
   { name: "Services", href: "/services", icon: Settings },
@@ -32,12 +33,15 @@ const navItems = [
 const EnhancedHeader = () => {
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  
+  // Enable global chat notification sounds for logged-in users
+  useChatNotifications();
 
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur border-b border-border">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-3">
           <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
           <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             RobotVerse
@@ -73,6 +77,7 @@ const EnhancedHeader = () => {
           {/* Auth buttons */}
           {user ? (
             <div className="hidden md:flex items-center gap-2">
+              <NotificationCenter />
               <Link to="/dashboard">
                 <Button size="sm" variant="ghost" className="flex items-center gap-1">
                   <User className="h-4 w-4" />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +81,7 @@ interface CommunityPostCardProps {
 
 const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted }: CommunityPostCardProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLiking, setIsLiking] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -284,8 +285,24 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons or interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') || 
+      target.closest('a') || 
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+    navigate(`/robobook/${post.id}`);
+  };
+
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 bg-card border border-border/50 rounded-xl overflow-hidden w-full">
+    <Card 
+      className="group hover:shadow-lg transition-all duration-300 bg-card border border-border/50 rounded-xl overflow-hidden w-full cursor-pointer"
+      onClick={handleCardClick}
+    >
       {/* Author Header */}
       <div className="flex items-center justify-between p-4 pb-0">
         <div className="flex items-center gap-3">
@@ -440,8 +457,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
                   toast.error('Please sign in to comment');
                   return;
                 }
-                // Navigate to post with comments focused
-                window.location.href = post.post_type === 'blog' ? `/robobook/${post.id}#comments` : `/community/${post.id}#comments`;
+                navigate(`/robobook/${post.id}#comments`);
               }}
             >
               <MessageCircle className="h-4 w-4 mr-1" />

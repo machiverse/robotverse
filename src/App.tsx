@@ -36,6 +36,7 @@ import LogisticsDashboard from "./pages/dashboard/Logistics";
 import Settings from "./pages/dashboard/Settings";
 import Help from "./pages/dashboard/Help";
 import Privacy from "./pages/dashboard/Privacy";
+import Messages from "./pages/dashboard/Messages";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -43,6 +44,7 @@ import BuyerGuide from "./pages/BuyerGuide";
 import Cookies from "./pages/Cookies";
 import Sitemap from "./pages/Sitemap";
 import Accessibility from "./pages/Accessibility";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -68,17 +70,18 @@ const App = () => (
             <Route path="/robobook" element={<Blogs />} />
             <Route path="/community" element={<Blogs />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
+            <Route path="/robobook/:id" element={<CommunityPostDetails />} />
             <Route path="/community/:id" element={<CommunityPostDetails />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
-            <Route path="/robobook/:id" element={<BlogDetails />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
-            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/blogs/:id" element={<CommunityPostDetails />} />
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/analytics" element={<Analytics />} />
             <Route path="/dashboard/reports" element={<Reports />} />
+            <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/dashboard/robots" element={<MyRobots />} />
             <Route path="/dashboard/parts" element={<PartsManagement />} />
             <Route path="/dashboard/services" element={<ServicesManagement />} />
@@ -98,6 +101,7 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
+            <Route path="/chat" element={<Chat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

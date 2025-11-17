@@ -7,16 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
+import { ChatButton } from "@/components/chat/ChatButton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
+import { getMainCategories, getSubCategories } from "@/constants/sparePartsCategories";
 
 interface Part {
   id: string;
   name: string;
   category: string;
+  subCategory?: string;
+  customCategory?: string;
   price: number;
   location: string;
   image: string;
@@ -37,7 +41,8 @@ interface Part {
 
 const Parts = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedMainCategory, setSelectedMainCategory] = useState("all");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [parts, setParts] = useState<Part[]>([]);
@@ -50,13 +55,16 @@ const Parts = () => {
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
 
-  const categories = [
-    { value: "all", label: "All Parts" },
-    { value: "motors", label: "Motors & Drives" },
-    { value: "sensors", label: "Sensors" },
-    { value: "controllers", label: "Controllers" },
-    { value: "actuators", label: "Actuators" },
-    { value: "cables", label: "Cables & Connectors" },
+  const mainCategories = [
+    { value: "all", label: "All Categories" },
+    ...getMainCategories().map(cat => ({ value: cat, label: cat }))
+  ];
+
+  const subCategories = [
+    { value: "all", label: "All Sub-Categories" },
+    ...(selectedMainCategory && selectedMainCategory !== "all" 
+      ? getSubCategories(selectedMainCategory).map(sub => ({ value: sub, label: sub }))
+      : [])
   ];
 
   const locations = [
@@ -94,7 +102,9 @@ const Parts = () => {
         const transformedData = data.map(item => ({
           id: item.id,
           name: item.name,
-          category: item.category_tags?.[0] || 'Other',
+          category: item.main_category || item.category_tags?.[0] || 'Other',
+          subCategory: item.sub_category || '',
+          customCategory: item.custom_category || '',
           price: item.price || 0,
           location: item.location || item.profiles?.location || 'Location not specified',
           image: item.images?.[0] || "/placeholder.svg",
@@ -256,13 +266,16 @@ const Parts = () => {
                          part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          part.compatibility.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesCategory = selectedCategory === "all" || 
-                           part.category.toLowerCase().includes(selectedCategory.toLowerCase());
+    const matchesMainCategory = selectedMainCategory === "all" || 
+                           part.category === selectedMainCategory;
+    
+    const matchesSubCategory = selectedSubCategory === "all" ||
+                          (part.subCategory === selectedSubCategory);
     
     const matchesLocation = selectedLocation === "all" || 
                            part.location.toLowerCase() === selectedLocation.toLowerCase();
 
-    return matchesSearch && matchesCategory && matchesLocation;
+    return matchesSearch && matchesMainCategory && matchesSubCategory && matchesLocation;
   });
 
   const LoadingState = () => (
@@ -288,7 +301,7 @@ const Parts = () => {
       <Package className="w-16 h-16 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold mb-2">No parts available</h3>
       <p className="text-muted-foreground">
-        {searchQuery || selectedCategory !== "all" || selectedLocation !== "all"
+        {searchQuery || selectedMainCategory !== "all" || selectedLocation !== "all"
           ? "No parts match your current filters."
           : "Parts inventory is currently empty."}
       </p>
@@ -302,15 +315,17 @@ const Parts = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Genuine Robot Spare Parts</h1>
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Genuine Robot Spare Parts & Accessories
+          </h1>
           <p className="text-xl text-muted-foreground">
-            Source authentic spare parts from verified suppliers - delivered to your facility
+            Source authentic spare parts and accessories from verified suppliers - delivered to your facility
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="bg-card border border-border rounded-lg p-6 mb-8 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -321,23 +336,40 @@ const Parts = () => {
                 disabled={loading}
               />
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
+            <Select value={selectedMainCategory} onValueChange={(value) => {
+              setSelectedMainCategory(value);
+              setSelectedSubCategory("all");
+            }} disabled={loading}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Main Category" />
               </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
+              <SelectContent className="bg-background z-50">
+                {mainCategories.map((category) => (
                   <SelectItem key={category.value} value={category.value}>
                     {category.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedMainCategory !== "all" && (
+              <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory} disabled={loading}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Sub Category" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {subCategories.map((subCat) => (
+                    <SelectItem key={subCat.value} value={subCat.value}>
+                      {subCat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={selectedLocation} onValueChange={setSelectedLocation} disabled={loading}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background z-50">
                 {locations.map((location) => (
                   <SelectItem key={location.value} value={location.value}>
                     {location.label}
@@ -435,24 +467,16 @@ const Parts = () => {
                         <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
                       </div>
                       <div className="flex space-x-2 pt-2">
-                        <Button 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => handleRequestQuote(part)}
-                          disabled={!user}
-                        >
-          {user ? "Request Quote" : "Login to Quote"}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleContactSeller(part)}
-                          disabled={!user || (!part.seller?.phone && !part.seller?.mobile_number)}
-                        >
-                          {user ? "Contact Seller" : "Login to Contact"}
-                        </Button>
+                        <ChatButton
+                          otherUserId={part.sellerId || ''}
+                          itemId={part.id}
+                          itemType="spare_part"
+                            itemName={part.name}
+                            variant="default"
+                            className="flex-1"
+                          />
+                        </div>
                       </div>
-                    </div>
                   </CardContent>
                 </Card>
               ))}

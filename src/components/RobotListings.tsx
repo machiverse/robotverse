@@ -19,7 +19,6 @@ import {
   Package,
   Bot,
   Share2,
-  MessageCircle,
   Brain,
   Eye,
   Grid,
@@ -44,6 +43,7 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
+import { ChatButton } from "@/components/chat/ChatButton";
 
 interface Robot {
   id: string;
@@ -986,45 +986,17 @@ const RobotListings = () => {
                         <Eye className="w-3 h-3 mr-1" />
                         Details
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="whitespace-nowrap px-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!user) {
-                            toast({
-                              variant: "destructive",
-                              title: "Sign In Required",
-                              description: "Please sign in to contact sellers",
-                            });
-                            return;
-                          }
-                          trackButtonClick({
-                            buttonName: "Contact Seller",
-                            buttonType: "robot_contact",
-                            sellerId: robot.seller_id,
-                            sellerName: robot.profiles?.full_name,
-                            sellerCompany: robot.profiles?.company_name,
-                            sellerEmail: robot.profiles?.email,
-                            sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
-                            sellerLocation: robot.location,
-                            itemId: robot.id,
-                            itemType: "robot",
-                            additionalData: {
-                              robotName: robot.name,
-                              robotType: robot.robot_type,
-                              contactMethod: "whatsapp_or_phone"
-                            }
-                          });
-                          handleContactSeller(robot, e);
-                        }}
-                        disabled={!user || (!robot.profiles?.phone && !robot.profiles?.mobile_number)}
-                      >
-                        <MessageCircle className="w-3 h-3 mr-1" />
-                        {user ? "Contact" : "Sign In to Contact"}
-                      </Button>
-                    </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <ChatButton
+                          otherUserId={robot.seller_id}
+                          itemId={robot.id}
+                          itemType="robot"
+                            itemName={robot.name}
+                            variant="outline"
+                            className="w-full h-9 text-xs px-2"
+                          />
+                        </div>
+                      </div>
 
                     {/* AI Analysis Button */}
                     <Button
