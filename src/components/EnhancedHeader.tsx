@@ -76,22 +76,29 @@ const EnhancedHeader = () => {
 
           {/* Auth buttons */}
           {user ? (
-            <div className="hidden md:flex items-center gap-2">
-              <NotificationCenter />
-              <Link to="/dashboard">
-                <Button size="sm" variant="ghost" className="flex items-center gap-1">
-                  <User className="h-4 w-4" />
-                  Dashboard
+            <>
+              {/* Desktop Actions */}
+              <div className="hidden md:flex items-center gap-2">
+                <NotificationCenter />
+                <Link to="/dashboard">
+                  <Button size="sm" variant="ghost" className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <span className="text-sm text-muted-foreground">
+                  {user.email?.split("@")[0]}
+                </span>
+                <Button size="sm" variant="outline" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
                 </Button>
-              </Link>
-              <span className="text-sm text-muted-foreground">
-                {user.email?.split("@")[0]}
-              </span>
-              <Button size="sm" variant="outline" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
-            </div>
+              </div>
+              {/* Mobile Notification Icon */}
+              <div className="md:hidden">
+                <NotificationCenter />
+              </div>
+            </>
           ) : (
             <div className="hidden md:flex gap-2">
               <Link to="/auth">
@@ -151,7 +158,7 @@ const EnhancedHeader = () => {
                     Dashboard
                   </Button>
                 </Link>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground px-3">
                   {user.email?.split("@")[0]}
                 </p>
                 <Button size="sm" variant="outline" className="w-full" onClick={signOut}>
