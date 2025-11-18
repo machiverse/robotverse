@@ -2375,6 +2375,39 @@ export type Database = {
       }
       filter_contact_info: { Args: { message: string }; Returns: boolean }
       generate_random_string: { Args: { length: number }; Returns: string }
+      get_chat_conversations_with_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          item_id: string
+          item_name: string
+          item_type: string
+          last_message_at: string
+          message_count: number
+          session_id: string
+          status: string
+          user1_email: string
+          user1_id: string
+          user1_name: string
+          user2_email: string
+          user2_id: string
+          user2_name: string
+        }[]
+      }
+      get_chat_messages_for_session: {
+        Args: { p_session_id: string }
+        Returns: {
+          blocked_reason: string
+          created_at: string
+          is_blocked: boolean
+          is_read: boolean
+          message_content: string
+          message_id: string
+          sender_email: string
+          sender_id: string
+          sender_name: string
+        }[]
+      }
       get_item_view_count: {
         Args: { p_item_id: string; p_item_type: string }
         Returns: number
