@@ -2474,6 +2474,7 @@ export type Database = {
           conversation_partner_email: string
           conversation_partner_id: string
           conversation_partner_name: string
+          item_id: string
           item_name: string
           item_type: string
           last_message_at: string

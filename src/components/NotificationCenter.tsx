@@ -19,6 +19,7 @@ interface UnreadConversation {
   conversation_partner_id: string;
   conversation_partner_name: string;
   conversation_partner_email: string;
+  item_id: string;
   item_name: string;
   item_type: string;
   last_message_content: string;
@@ -119,21 +120,12 @@ export const NotificationCenter = () => {
   const handleNotificationClick = async (conversation: UnreadConversation) => {
     setOpen(false);
     
-    // Get the full session details to properly construct the chat URL
-    const { data: session } = await supabase
-      .from('chat_sessions')
-      .select('*')
-      .eq('id', conversation.session_id)
-      .single();
-    
-    if (!session) return;
-    
     // Navigate to chat with proper parameters
     const queryParams = new URLSearchParams({
       other_user: conversation.conversation_partner_id,
-      item: session.item_id || '', // Use actual item_id from session
-      type: session.item_type,
-      name: session.item_name || 'Chat',
+      item: conversation.item_id || '', // Use actual item_id from conversation
+      type: conversation.item_type,
+      name: conversation.item_name || 'Chat',
     });
     
     navigate(`/chat?${queryParams.toString()}`);
