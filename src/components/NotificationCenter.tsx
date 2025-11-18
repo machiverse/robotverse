@@ -30,7 +30,6 @@ export const NotificationCenter = () => {
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(new Set());
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
   const fetchUnreadConversations = useCallback(async () => {
     if (!user) return;
@@ -55,7 +54,6 @@ export const NotificationCenter = () => {
       // Calculate total unread count
       const total = uniqueConversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
       setTotalUnreadCount(total);
-      setLastFetchTime(Date.now());
     } catch (error) {
       console.error("Error fetching unread conversations:", error);
     }
@@ -155,39 +153,44 @@ export const NotificationCenter = () => {
   }, [user, processedMessageIds, fetchUnreadConversations]);
 
   const handleNotificationClick = async (conversation: UnreadConversation) => {
-    setOpen(false);
-
-    // Navigate to chat with proper parameters
-    const queryParams = new URLSearchParams({
-      other_user: conversation.conversation_partner_id,
-      item: conversation.item_id || "",
-      type: conversation.item_type,
-      name: conversation.item_name || "Chat",
-    });
-
-    navigate(`/chat?${queryParams.toString()}`);
-  };
-
-  const handleMarkAsRead = async (e: React.MouseEvent, conversation: UnreadConversation) => {
-    e.stopPropagation();
-
     try {
-      // Update all unread messages in this conversation to read
-      const { error } = await supabase
+      // Mark all unread messages in this conversation as read immediately in database
+      const { error: updateError } = await supabase
         .from("chat_messages")
         .update({ is_read: true })
         .eq("chat_session_id", conversation.session_id)
-        .eq("recipient_id", user?.id);
+        .eq("recipient_id", user?.id)
+        .eq("is_read", false);
 
-      if (error) {
-        console.error("Error marking messages as read:", error);
-        return;
+      if (updateError) {
+        console.error("Error marking messages as read:", updateError);
       }
 
-      // Fetch updated conversations
-      await fetchUnreadConversations();
+      // Update local state immediately - remove this conversation from unread list
+      setUnreadConversations((prev) => prev.filter((conv) => conv.session_id !== conversation.session_id));
+
+      // Update total unread count immediately
+      setTotalUnreadCount((prev) => Math.max(0, prev - conversation.unread_count));
+
+      // Close the notification popover
+      setOpen(false);
+
+      // Navigate to chat with proper parameters
+      const queryParams = new URLSearchParams({
+        other_user: conversation.conversation_partner_id,
+        item: conversation.item_id || "",
+        type: conversation.item_type,
+        name: conversation.item_name || "Chat",
+      });
+
+      navigate(`/chat?${queryParams.toString()}`);
+
+      // Fetch fresh data after navigation to sync (optional)
+      setTimeout(() => {
+        fetchUnreadConversations();
+      }, 500);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error handling notification click:", error);
     }
   };
 
@@ -226,30 +229,30 @@ export const NotificationCenter = () => {
           ) : (
             <div className="divide-y">
               {unreadConversations.map((conversation) => (
-                <div key={conversation.session_id} className="p-4 hover:bg-accent transition-colors group">
-                  <div onClick={() => handleNotificationClick(conversation)} className="cursor-pointer">
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {conversation.conversation_partner_name || conversation.conversation_partner_email}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{conversation.item_name}</p>
-                      </div>
-                      {conversation.unread_count > 0 && (
-                        <Badge variant="destructive" className="ml-2 flex-shrink-0">
-                          {conversation.unread_count}
-                        </Badge>
-                      )}
+                <div
+                  key={conversation.session_id}
+                  onClick={() => handleNotificationClick(conversation)}
+                  className="p-4 cursor-pointer hover:bg-accent transition-colors group"
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {conversation.conversation_partner_name || conversation.conversation_partner_email}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{conversation.item_name}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-1">
-                      {conversation.last_message_content}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {conversation.last_message_at
-                        ? format(new Date(conversation.last_message_at), "MMM dd, HH:mm")
-                        : "Just now"}
-                    </p>
+                    {conversation.unread_count > 0 && (
+                      <Badge variant="destructive" className="ml-2 flex-shrink-0">
+                        {conversation.unread_count}
+                      </Badge>
+                    )}
                   </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-1">{conversation.last_message_content}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {conversation.last_message_at
+                      ? format(new Date(conversation.last_message_at), "MMM dd, HH:mm")
+                      : "Just now"}
+                  </p>
                 </div>
               ))}
             </div>
