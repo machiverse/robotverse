@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -14,190 +14,129 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { playNotificationSound } from '@/utils/notificationSound';
 
-interface ChatNotification {
-  id: string;
-  conversation_id: string;
-  notification_type: string;
-  is_read: boolean;
-  created_at: string;
-  chat_sessions: {
-    id: string;
-    item_name: string;
-  };
-}
-
-interface GeneralNotification {
-  id: string;
-  user_id: string;
-  notification_type: string;
-  title: string;
-  message: string;
-  reference_id: string | null;
-  reference_type: string | null;
-  is_read: boolean;
-  created_at: string;
-}
-
-type CombinedNotification = (ChatNotification | GeneralNotification) & {
-  displayTitle: string;
-  displayMessage: string;
-  displayType: 'chat' | 'general';
+interface UnreadConversation {
+  session_id: string;
+  conversation_partner_id: string;
+  conversation_partner_name: string;
+  conversation_partner_email: string;
+  item_name: string;
+  item_type: string;
+  last_message_content: string;
+  last_message_at: string;
+  unread_count: number;
 }
 
 export const NotificationCenter = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<CombinedNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadConversations, setUnreadConversations] = useState<UnreadConversation[]>([]);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchUnreadConversations = async () => {
     if (!user) return;
 
-    // Fetch chat notifications
-    const { data: chatData } = await supabase
-      .from('chat_notifications')
-      .select(`
-        *,
-        chat_sessions (
-          id,
-          item_name
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    // Fetch general notifications (robot views, etc.)
-    const { data: generalData } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    // Combine and format notifications
-    const combined: CombinedNotification[] = [];
-
-    if (chatData) {
-      chatData.forEach((notif: any) => {
-        combined.push({
-          ...notif,
-          displayTitle: 'New Message',
-          displayMessage: `New message about ${notif.chat_sessions?.item_name || 'item'}`,
-          displayType: 'chat' as const,
-        });
+    try {
+      // Fetch unread conversations using the new function
+      const { data, error } = await supabase.rpc('get_unread_conversations', {
+        p_user_id: user.id,
       });
+
+      if (error) {
+        console.error('Error fetching unread conversations:', error);
+        return;
+      }
+
+      setUnreadConversations(data || []);
+      
+      // Calculate total unread count
+      const total = (data || []).reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+      setTotalUnreadCount(total);
+    } catch (error) {
+      console.error('Error:', error);
     }
-
-    if (generalData) {
-      generalData.forEach((notif: GeneralNotification) => {
-        combined.push({
-          ...notif,
-          displayTitle: notif.title,
-          displayMessage: notif.message,
-          displayType: 'general' as const,
-        });
-      });
-    }
-
-    // Sort by created_at
-    combined.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-
-    setNotifications(combined.slice(0, 20));
-    setUnreadCount(combined.filter(n => !n.is_read).length);
   };
 
   useEffect(() => {
     if (!user) return;
 
-    fetchNotifications();
+    fetchUnreadConversations();
 
-    // Subscribe to chat notifications
-    const chatChannel = supabase
-      .channel(`chat_notifications:${user.id}`)
+    // Subscribe to new messages
+    const messagesChannel = supabase
+      .channel(`user-messages:${user.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'chat_notifications',
-          filter: `user_id=eq.${user.id}`,
+          table: 'chat_messages',
         },
-        () => {
-          playNotificationSound();
-          fetchNotifications();
+        async (payload) => {
+          const newMessage = payload.new as any;
+          
+          // Only process if message is NOT from current user
+          if (newMessage.sender_id !== user.id) {
+            // Verify this message belongs to a conversation where current user is participant
+            const { data: session } = await supabase
+              .from('chat_sessions')
+              .select('user1_id, user2_id')
+              .eq('id', newMessage.chat_session_id)
+              .single();
+
+            if (session && (session.user1_id === user.id || session.user2_id === user.id)) {
+              playNotificationSound();
+              fetchUnreadConversations();
+            }
+          }
         }
       )
       .subscribe();
 
-    // Subscribe to general notifications (robot views, etc.)
-    const generalChannel = supabase
-      .channel(`general_notifications:${user.id}`)
+    // Subscribe to messages being marked as read
+    const readChannel = supabase
+      .channel(`user-read-messages:${user.id}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: 'UPDATE',
           schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          table: 'chat_messages',
+          filter: `is_read=eq.true`,
         },
         () => {
-          playNotificationSound();
-          fetchNotifications();
+          fetchUnreadConversations();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(chatChannel);
-      supabase.removeChannel(generalChannel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(readChannel);
     };
   }, [user]);
 
-  const markAsRead = async (notification: CombinedNotification) => {
-    if (notification.displayType === 'chat') {
-      await supabase
-        .from('chat_notifications')
-        .update({ is_read: true })
-        .eq('id', notification.id);
-    } else {
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notification.id);
-    }
-
-    fetchNotifications();
-  };
-
-  const handleNotificationClick = async (notification: CombinedNotification) => {
-    await markAsRead(notification);
+  const handleNotificationClick = async (conversation: UnreadConversation) => {
     setOpen(false);
     
-    if (notification.displayType === 'chat') {
-      // Navigate to chat
-      const chatNotif = notification as any;
-      const { data } = await supabase
-        .from('chat_sessions')
-        .select('*')
-        .eq('id', chatNotif.conversation_id)
-        .single();
-
-      if (data) {
-        const session = data as any;
-        const otherUserId = session.user1_id === user?.id ? session.user2_id : session.user1_id;
-        navigate(`/chat?other_user=${otherUserId}&item=${session.item_id}&type=${session.item_type}&name=${encodeURIComponent(session.item_name || '')}`);
-      }
-    } else {
-      // Navigate based on reference type
-      const generalNotif = notification as GeneralNotification;
-      if (generalNotif.reference_type === 'robot' && generalNotif.reference_id) {
-        navigate(`/robots/${generalNotif.reference_id}`);
-      }
-    }
+    // Get the full session details to properly construct the chat URL
+    const { data: session } = await supabase
+      .from('chat_sessions')
+      .select('*')
+      .eq('id', conversation.session_id)
+      .single();
+    
+    if (!session) return;
+    
+    // Navigate to chat with proper parameters
+    const queryParams = new URLSearchParams({
+      other_user: conversation.conversation_partner_id,
+      item: session.item_id || '', // Use actual item_id from session
+      type: session.item_type,
+      name: session.item_name || 'Chat',
+    });
+    
+    navigate(`/chat?${queryParams.toString()}`);
   };
 
   if (!user) return null;
@@ -207,53 +146,59 @@ export const NotificationCenter = () => {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
+          {totalUnreadCount > 0 && (
             <Badge
               variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="p-4 border-b">
-          <h3 className="font-semibold">Notifications</h3>
+          <h3 className="font-semibold flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Unread Messages
+          </h3>
         </div>
         <ScrollArea className="h-[400px]">
-          {notifications.length === 0 ? (
+          {unreadConversations.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
-              No notifications
+              No unread messages
             </div>
           ) : (
             <div className="divide-y">
-              {notifications.map((notification) => (
+              {unreadConversations.map((conversation) => (
                 <div
-                  key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                    !notification.is_read ? 'bg-accent/50' : ''
-                  }`}
+                  key={conversation.session_id}
+                  onClick={() => handleNotificationClick(conversation)}
+                  className="p-4 cursor-pointer hover:bg-accent transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">
-                        {notification.displayTitle}
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {conversation.conversation_partner_name || conversation.conversation_partner_email}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {notification.displayMessage}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(notification.created_at), 'MMM dd, HH:mm')}
+                      <p className="text-xs text-muted-foreground truncate">
+                        {conversation.item_name}
                       </p>
                     </div>
-                    {!notification.is_read && (
-                      <Badge variant="secondary" className="ml-2">
-                        New
+                    {conversation.unread_count > 0 && (
+                      <Badge variant="destructive" className="ml-2">
+                        {conversation.unread_count}
                       </Badge>
                     )}
                   </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-1">
+                    {conversation.last_message_content}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {conversation.last_message_at 
+                      ? format(new Date(conversation.last_message_at), 'MMM dd, HH:mm')
+                      : 'Just now'}
+                  </p>
                 </div>
               ))}
             </div>

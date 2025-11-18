@@ -418,7 +418,15 @@ export type Database = {
           notification_type?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_notifications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_sessions: {
         Row: {
@@ -2460,6 +2468,21 @@ export type Database = {
       }
       get_robot_view_count: { Args: { p_robot_id: string }; Returns: number }
       get_total_profiles_count: { Args: never; Returns: number }
+      get_unread_conversations: {
+        Args: { p_user_id: string }
+        Returns: {
+          conversation_partner_email: string
+          conversation_partner_id: string
+          conversation_partner_name: string
+          item_name: string
+          item_type: string
+          last_message_at: string
+          last_message_content: string
+          session_id: string
+          unread_count: number
+        }[]
+      }
+      get_unread_message_count: { Args: { p_user_id: string }; Returns: number }
       get_user_watchlist_count: { Args: { p_user_id: string }; Returns: number }
       increment_blog_view_count: {
         Args: { p_blog_id: string }
