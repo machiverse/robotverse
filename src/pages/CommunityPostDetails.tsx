@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,7 @@ const CommunityPostDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -75,6 +77,24 @@ const CommunityPostDetails = () => {
     incrementCommentCount,
     incrementShareCount,
   } = useUniversalInteractions(id || '', contentType);
+
+  // Track interaction buttons
+  const handleInteractionTracking = async (action: string) => {
+    if (!post || !user) return;
+    
+    await trackButtonClick({
+      buttonName: `${action} Community Post`,
+      buttonType: 'community_interaction',
+      itemId: post.id,
+      itemType: 'community_post',
+      additionalData: {
+        post_title: post.title,
+        post_type: post.post_type,
+        author_id: post.author_id,
+        action
+      }
+    });
+  };
 
   useEffect(() => {
     if (id) {
@@ -192,6 +212,7 @@ const CommunityPostDetails = () => {
   };
 
   const handleCommentClick = () => {
+    handleInteractionTracking('comment_click');
     const commentsSection = document.getElementById('comments');
     commentsSection?.scrollIntoView({ behavior: 'smooth' });
   };
