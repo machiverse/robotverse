@@ -1562,9 +1562,11 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
             <Card>
               <CardContent className="p-0">
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 rounded-none border-b">
+                  <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="specifications">Specifications</TabsTrigger>
+                    <TabsTrigger value="spareparts">Spare Parts</TabsTrigger>
+                    <TabsTrigger value="services">Services</TabsTrigger>
                     <TabsTrigger value="logistics">Logistics</TabsTrigger>
                     <TabsTrigger value="financing">Financing</TabsTrigger>
                   </TabsList>
@@ -1853,6 +1855,187 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         </div>
                       ) : (
                         <p className="text-muted-foreground">No technical specifications available.</p>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Spare Parts */}
+                  <TabsContent value="spareparts" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold text-card-foreground tracking-tight">Compatible Spare Parts</h3>
+                          <p className="text-muted-foreground font-medium mt-1">High-quality parts for your robot</p>
+                        </div>
+                        <Button variant="outline" onClick={() => navigate('/parts')} className="font-semibold shadow-sm">
+                          <Search className="w-4 h-4 mr-2" />
+                          Browse All Parts
+                        </Button>
+                      </div>
+                      
+                      {loadingSpareParts ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-48 bg-muted/40 rounded-xl shadow-sm"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : spareParts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {spareParts.map((part) => (
+                            <Card key={part.id} className="hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm">
+                              <CardContent className="p-5">
+                                <div className="space-y-4">
+                                  {part.images && part.images.length > 0 && (
+                                    <div className="aspect-square bg-muted/30 rounded-xl overflow-hidden shadow-inner">
+                                       <img 
+                                         src={part.images[0]} 
+                                         alt={part.name}
+                                         className="w-full h-full object-cover rounded-xl transition-transform duration-300 hover:scale-105"
+                                       />
+                                    </div>
+                                  )}
+                                  
+                                  <div className="space-y-3">
+                                    <h4 className="font-bold line-clamp-1 text-xl text-card-foreground leading-tight">{part.name}</h4>
+                                    {part.part_number && (
+                                      <p className="text-sm text-muted-foreground font-semibold">Part #: {part.part_number}</p>
+                                    )}
+                                    
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm">
+                                        {part.price ? (
+                                          <span className="font-bold text-green-600 text-xl">
+                                            {part.currency === 'USD' ? '$' : part.currency === 'EUR' ? '€' : '₹'}
+                                            {part.price.toLocaleString()}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground font-medium">Price on Request</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center text-sm text-muted-foreground font-medium">
+                                        <Package className="w-4 h-4 mr-1" />
+                                        Qty: {part.quantity}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {user && (
+                                    <ChatButton
+                                      otherUserId={part.seller_id}
+                                      itemId={part.id}
+                                      itemType="spare_part"
+                                      itemName={part.name}
+                                      variant="default"
+                                      size="sm"
+                                      className="w-full"
+                                    />
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Wrench className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Parts Found</h3>
+                          <p className="text-muted-foreground mb-4">No compatible spare parts found for this robot model.</p>
+                          <Button onClick={() => navigate('/parts')}>
+                            <Wrench className="w-4 h-4 mr-2" />
+                            Browse All Parts
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Services */}
+                  <TabsContent value="services" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold text-card-foreground tracking-tight">Available Services</h3>
+                          <p className="text-muted-foreground font-medium mt-1">Professional services for your robot</p>
+                        </div>
+                        <Button variant="outline" onClick={() => navigate('/services')} className="font-semibold shadow-sm">
+                          <Search className="w-4 h-4 mr-2" />
+                          Browse All Services
+                        </Button>
+                      </div>
+                      
+                      {loadingServices ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-32 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : services.length > 0 ? (
+                        <div className="grid gap-6">
+                          {services.map((service) => (
+                            <Card key={service.id} className="border-l-4 border-l-blue-500 hover:shadow-xl transition-all duration-300 bg-card/90 backdrop-blur-sm">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-bold text-xl text-card-foreground leading-tight">
+                                        {service.profiles?.company_name || service.profiles?.full_name}
+                                      </h4>
+                                      <p className="text-base text-muted-foreground font-semibold mt-1">{service.service_name}</p>
+                                    </div>
+                                    <Badge variant="secondary" className="text-sm font-semibold">
+                                      {service.service_type}
+                                    </Badge>
+                                  </div>
+                                  
+                                  {service.description && (
+                                    <p className="text-sm text-muted-foreground">{service.description}</p>
+                                  )}
+                                  
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {service.service_location && (
+                                      <div className="flex items-center text-sm text-muted-foreground">
+                                        <MapPin className="w-4 h-4 mr-2" />
+                                        {service.service_location}
+                                      </div>
+                                    )}
+                                    {service.pricing_model && (
+                                      <div className="flex items-center text-sm text-muted-foreground">
+                                        <DollarSign className="w-4 h-4 mr-2" />
+                                        {service.pricing_model}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {user && (
+                                    <ChatButton
+                                      otherUserId={service.provider_id}
+                                      itemId={service.id}
+                                      itemType="service"
+                                      itemName={service.service_name}
+                                      variant="default"
+                                      size="sm"
+                                      className="w-full"
+                                    />
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Settings className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
+                          <p className="text-muted-foreground mb-4">No services available at this time.</p>
+                          <Button onClick={() => navigate('/services')}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Browse All Services
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
