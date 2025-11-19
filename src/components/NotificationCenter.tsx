@@ -155,11 +155,12 @@ export const NotificationCenter = () => {
   const handleNotificationClick = async (conversation: UnreadConversation) => {
     try {
       // Mark all unread messages in this conversation as read immediately in database
+      // Only mark messages where current user is NOT the sender
       const { error: updateError } = await supabase
         .from("chat_messages")
         .update({ is_read: true })
         .eq("chat_session_id", conversation.session_id)
-        .eq("recipient_id", user?.id)
+        .neq("sender_id", user?.id)
         .eq("is_read", false);
 
       if (updateError) {

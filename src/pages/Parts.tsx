@@ -14,6 +14,8 @@ import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
 import { getMainCategories, getSubCategories } from "@/constants/sparePartsCategories";
+import { SEOHead } from "@/components/SEOHead";
+import { generateItemListSchema } from "@/utils/seoSchemas";
 
 interface Part {
   id: string;
@@ -310,6 +312,12 @@ const Parts = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={`Genuine Robot Spare Parts & Accessories | RobotVerse`}
+        description="Source authentic spare parts and accessories for industrial robots from verified suppliers. Get genuine FANUC, ABB, KUKA, Yaskawa robot parts delivered to your facility."
+        keywords="robot spare parts, industrial robot accessories, genuine robot parts, FANUC parts, ABB parts, KUKA parts, robot components, automation parts"
+        jsonLd={generateItemListSchema(parts.slice(0, 20), "Robot Spare Parts & Accessories")}
+      />
       <EnhancedHeader />
       
       <div className="container mx-auto px-4 py-8">

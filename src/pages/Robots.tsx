@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { SEOHead } from "@/components/SEOHead";
+import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seoSchemas";
 
 const Robots = () => {
   const navigate = useNavigate();
@@ -457,6 +459,40 @@ const Robots = () => {
   // Count all filtered robots
   const totalFilteredRobots = Object.values(filteredGroups).reduce((acc, arr) => acc + arr.length, 0);
 
+  // Generate SEO based on filters
+  const generatePageSEO = () => {
+    let title = "Industrial Robots for Sale";
+    let description = "Browse verified industrial robots from trusted sellers. Find ABB, KUKA, Fanuc, Yaskawa robots with warranty, financing, and logistics support.";
+    
+    if (selectedCategory && selectedCategory !== "all") {
+      const categoryLabel = categories.find(c => c.value === selectedCategory)?.label;
+      title = `${categoryLabel} Robots for Sale`;
+      description = `Buy ${categoryLabel?.toLowerCase()} robots from verified sellers. Professional automation equipment with warranty and support.`;
+    }
+    
+    if (selectedLocation && selectedLocation !== "all") {
+      const locationLabel = locations.find(l => l.value === selectedLocation)?.label;
+      title += ` in ${locationLabel}`;
+      description = description.replace("from verified sellers", `from verified sellers in ${locationLabel}`);
+    }
+    
+    if (totalFilteredRobots > 0) {
+      title = `${totalFilteredRobots}+ ${title}`;
+    }
+    
+    title += " | RobotVerse";
+    
+    const jsonLd = generateItemListSchema(
+      robotsWithViews.slice(0, 20),
+      title,
+      selectedCategory !== "all" ? selectedCategory : undefined
+    );
+    
+    return { title, description, jsonLd };
+  };
+
+  const pageSEO = generatePageSEO();
+
   // Loading and error UI
   if (loading) {
     return (
@@ -486,6 +522,12 @@ const Robots = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords="industrial robots, automation equipment, robot marketplace, buy robots online, robot sellers India, FANUC, ABB, KUKA, Yaskawa"
+        jsonLd={pageSEO.jsonLd}
+      />
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Industrial Robots Marketplace</h1>
