@@ -25,6 +25,8 @@ import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { type RobotSEOData } from "@/utils/seo";
 import { useRobotSEO } from "@/hooks/useRobotSEO";
+import { SEOHead } from "@/components/SEOHead";
+import { generateProductSchema } from "@/utils/seoSchemas";
 
 interface Robot {
   id: string;
@@ -1273,6 +1275,16 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
     return (
       <div className="min-h-screen bg-muted/20">
+      <SEOHead
+        title={`${robot.brand || ''} ${robot.model || robot.name} - Industrial Robot for Sale | RobotVerse`}
+        description={robot.description || `Buy ${robot.brand} ${robot.model} industrial robot. ${robot.payload_capacity ? `Payload: ${robot.payload_capacity}kg.` : ''} ${robot.reach ? `Reach: ${robot.reach}mm.` : ''} Available in ${robot.location || 'India'}.`}
+        keywords={`${robot.brand} robot, ${robot.model}, ${robot.robot_type}, industrial robot, automation, ${robot.controller_type || ''}, ${robot.applications?.join(', ') || ''}`}
+        ogImage={robot.images?.[0] || '/og-image.jpg'}
+        jsonLd={generateProductSchema({
+          ...robot,
+          seller: robot.profiles
+        })}
+      />
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header Navigation */}
