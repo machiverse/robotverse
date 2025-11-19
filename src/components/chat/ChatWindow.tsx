@@ -55,6 +55,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
   }, [messages, user?.id]);
 
   /**
+   * Mark all messages in this conversation as read when window is opened
+   */
+  useEffect(() => {
+    const markMessagesAsRead = async () => {
+      if (!conversationId || !user?.id) return;
+
+      try {
+        // Mark all unread messages in this conversation as read
+        await supabase
+          .from('chat_messages')
+          .update({ is_read: true, read_at: new Date().toISOString() })
+          .eq('chat_session_id', conversationId)
+          .neq('sender_id', user.id)
+          .eq('is_read', false);
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    };
+
+    markMessagesAsRead();
+  }, [conversationId, user?.id]);
+
+  /**
    * Fetch other party's profile information
    */
   useEffect(() => {

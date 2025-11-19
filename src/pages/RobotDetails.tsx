@@ -25,6 +25,8 @@ import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { type RobotSEOData } from "@/utils/seo";
 import { useRobotSEO } from "@/hooks/useRobotSEO";
+import { SEOHead } from "@/components/SEOHead";
+import { generateProductSchema } from "@/utils/seoSchemas";
 
 interface Robot {
   id: string;
@@ -1273,6 +1275,16 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
 
     return (
       <div className="min-h-screen bg-muted/20">
+      <SEOHead
+        title={`${robot.brand || ''} ${robot.model || robot.name} - Industrial Robot for Sale | RobotVerse`}
+        description={robot.description || `Buy ${robot.brand} ${robot.model} industrial robot. ${robot.payload_capacity ? `Payload: ${robot.payload_capacity}kg.` : ''} ${robot.reach ? `Reach: ${robot.reach}mm.` : ''} Available in ${robot.location || 'India'}.`}
+        keywords={`${robot.brand} robot, ${robot.model}, ${robot.robot_type}, industrial robot, automation, ${robot.controller_type || ''}, ${robot.applications?.join(', ') || ''}`}
+        ogImage={robot.images?.[0] || '/og-image.jpg'}
+        jsonLd={generateProductSchema({
+          ...robot,
+          seller: robot.profiles
+        })}
+      />
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header Navigation */}
@@ -1847,105 +1859,6 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                     </div>
                   </TabsContent>
 
-                  {/* Services */}
-                  <TabsContent value="services" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-2xl font-bold text-card-foreground tracking-tight">Available Services</h3>
-                          <p className="text-muted-foreground font-medium mt-1">Professional services for your robot</p>
-                        </div>
-                        <Button variant="outline" onClick={() => navigate('/services')} className="font-semibold shadow-sm">
-                          <Search className="w-4 h-4 mr-2" />
-                          Browse All Services
-                        </Button>
-                      </div>
-                      
-                      {loadingServices ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {[...Array(4)].map((_, i) => (
-                            <div key={i} className="animate-pulse">
-                              <div className="h-40 bg-muted/40 rounded-xl shadow-sm"></div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : services.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {services.map((service) => (
-                            <Card key={service.id} className="hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm">
-                              <CardContent className="p-5">
-                                <div className="space-y-4">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <h4 className="font-bold text-lg text-card-foreground leading-tight">{service.name}</h4>
-                                      <p className="text-sm text-muted-foreground font-semibold mt-1">{service.service_type}</p>
-                                    </div>
-                                    <Badge variant="secondary" className="text-sm font-semibold whitespace-nowrap ml-3">{service.price_range || 'Contact for Quote'}</Badge>
-                                  </div>
-                                  
-                                  <p className="text-sm line-clamp-2 text-muted-foreground font-medium leading-relaxed">{service.description}</p>
-                                  
-                                  {service.specializations && service.specializations.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
-                                      {service.specializations.slice(0, 3).map((spec: string, idx: number) => (
-                                        <Badge key={idx} variant="outline" className="text-sm font-medium">
-                                          {spec}
-                                        </Badge>
-                                      ))}
-                                      {service.specializations.length > 3 && (
-                                        <Badge variant="outline" className="text-sm font-medium">
-                                          +{service.specializations.length - 3} more
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-                                  
-                                   <div className="flex items-center justify-between text-sm">
-                                     <div className="flex items-center text-muted-foreground font-medium">
-                                       <MapPin className="w-4 h-4 mr-2" />
-                                       {service.location || service.profiles?.location || 'Location not specified'}
-                                     </div>
-                                     <div className="flex gap-2">
-                                       <Button 
-                                         size="sm" 
-                                         className="bg-blue-600 hover:bg-blue-700 font-semibold"
-                                         onClick={() => handleGetQuote(service, service, 'service')}
-                                         disabled={!user}
-                                       >
-                                         <Mail className="w-4 h-4 mr-2" />
-                                         Get Quote
-                                       </Button>
-                                       <Button 
-                                         size="sm" 
-                                         variant="outline"
-                                         className="font-semibold"
-                                         onClick={() => handleContactSupplier(service.profiles?.phone || service.profiles?.mobile_number, service.profiles?.company_name || service.profiles?.full_name, 'Service')}
-                                         disabled={!user || !service.profiles?.phone}
-                                       >
-                                         <PhoneCall className="w-4 h-4 mr-2" />
-                                         Call
-                                       </Button>
-                                     </div>
-                                   </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Settings className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
-                          <p className="text-muted-foreground mb-4">No specialized services found for this robot type.</p>
-                          <Button onClick={() => navigate('/services')}>
-                            <Settings className="w-4 h-4 mr-2" />
-                            Browse All Services
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
                   {/* Spare Parts */}
                   <TabsContent value="spareparts" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
                     <div className="space-y-6">
@@ -2008,47 +1921,17 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                                     </div>
                                   </div>
                                   
-                                  {part.category_tags && part.category_tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
-                                      {part.category_tags.slice(0, 2).map((tag: string, idx: number) => (
-                                        <Badge key={idx} variant="outline" className="text-sm font-medium">
-                                          <Tag className="w-3 h-3 mr-1" />
-                                          {tag}
-                                        </Badge>
-                                      ))}
-                                    </div>
+                                  {user && (
+                                    <ChatButton
+                                      otherUserId={part.seller_id}
+                                      itemId={part.id}
+                                      itemType="spare_part"
+                                      itemName={part.name}
+                                      variant="default"
+                                      size="sm"
+                                      className="w-full"
+                                    />
                                   )}
-                                  
-                                  <div className="flex items-center text-sm text-muted-foreground border-t pt-3">
-                                    <MapPin className="w-4 h-4 mr-2" />
-                                    <span className="flex-1">{part.profiles?.location || part.location || 'Location not specified'}</span>
-                                  </div>
-                                  
-                                  {/* Professional Action Buttons */}
-                                  <div className="space-y-2 pt-2">
-                                    <Button 
-                                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium py-2.5"
-                                      onClick={() => handleGetQuote(part, part, 'spare_part')}
-                                      disabled={!user}
-                                    >
-                                      <Mail className="w-4 h-4 mr-2" />
-                                      Request Quote & Pricing
-                                    </Button>
-                                    <Button 
-                                      variant="outline"
-                                      className="w-full border-green-600 text-green-700 hover:bg-green-50 font-medium py-2.5"
-                                      onClick={() => handleContactSupplier(part.profiles?.phone || part.profiles?.mobile_number, part.profiles?.company_name || part.profiles?.full_name, 'Spare Part')}
-                                      disabled={!user || !part.profiles?.phone}
-                                    >
-                                      <PhoneCall className="w-4 h-4 mr-2" />
-                                      Contact Supplier
-                                    </Button>
-                                    {!user && (
-                                      <p className="text-xs text-center text-muted-foreground mt-1">
-                                        Please login to contact suppliers
-                                      </p>
-                                    )}
-                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -2062,6 +1945,95 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                           <Button onClick={() => navigate('/parts')}>
                             <Wrench className="w-4 h-4 mr-2" />
                             Browse All Parts
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Services */}
+                  <TabsContent value="services" className="p-8 bg-gradient-to-br from-card/30 to-card/60">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold text-card-foreground tracking-tight">Available Services</h3>
+                          <p className="text-muted-foreground font-medium mt-1">Professional services for your robot</p>
+                        </div>
+                        <Button variant="outline" onClick={() => navigate('/services')} className="font-semibold shadow-sm">
+                          <Search className="w-4 h-4 mr-2" />
+                          Browse All Services
+                        </Button>
+                      </div>
+                      
+                      {loadingServices ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                              <div className="h-32 bg-muted rounded-lg"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : services.length > 0 ? (
+                        <div className="grid gap-6">
+                          {services.map((service) => (
+                            <Card key={service.id} className="border-l-4 border-l-blue-500 hover:shadow-xl transition-all duration-300 bg-card/90 backdrop-blur-sm">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-bold text-xl text-card-foreground leading-tight">
+                                        {service.profiles?.company_name || service.profiles?.full_name}
+                                      </h4>
+                                      <p className="text-base text-muted-foreground font-semibold mt-1">{service.service_name}</p>
+                                    </div>
+                                    <Badge variant="secondary" className="text-sm font-semibold">
+                                      {service.service_type}
+                                    </Badge>
+                                  </div>
+                                  
+                                  {service.description && (
+                                    <p className="text-sm text-muted-foreground">{service.description}</p>
+                                  )}
+                                  
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {service.service_location && (
+                                      <div className="flex items-center text-sm text-muted-foreground">
+                                        <MapPin className="w-4 h-4 mr-2" />
+                                        {service.service_location}
+                                      </div>
+                                    )}
+                                    {service.pricing_model && (
+                                      <div className="flex items-center text-sm text-muted-foreground">
+                                        <DollarSign className="w-4 h-4 mr-2" />
+                                        {service.pricing_model}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {user && (
+                                    <ChatButton
+                                      otherUserId={service.provider_id}
+                                      itemId={service.id}
+                                      itemType="service"
+                                      itemName={service.service_name}
+                                      variant="default"
+                                      size="sm"
+                                      className="w-full"
+                                    />
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Settings className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
+                          <p className="text-muted-foreground mb-4">No services available at this time.</p>
+                          <Button onClick={() => navigate('/services')}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Browse All Services
                           </Button>
                         </div>
                       )}

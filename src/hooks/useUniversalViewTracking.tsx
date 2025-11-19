@@ -63,7 +63,13 @@ export const useUniversalViewTracking = () => {
       // Check if we should count this view (prevent spamming)
       if (!shouldCountView(itemType, itemId)) {
         console.log(`📊 View not counted for ${itemType} ${itemId} - too soon since last view`);
-        return;
+        // Still return the current count even if not incrementing
+        const { data: currentCount } = await supabase
+          .rpc('get_item_view_count', { 
+            p_item_id: itemId, 
+            p_item_type: itemType 
+          });
+        return currentCount || 0;
       }
 
       setLoading(true);

@@ -418,7 +418,15 @@ export type Database = {
           notification_type?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_notifications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_sessions: {
         Row: {
@@ -2375,6 +2383,39 @@ export type Database = {
       }
       filter_contact_info: { Args: { message: string }; Returns: boolean }
       generate_random_string: { Args: { length: number }; Returns: string }
+      get_chat_conversations_with_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          item_id: string
+          item_name: string
+          item_type: string
+          last_message_at: string
+          message_count: number
+          session_id: string
+          status: string
+          user1_email: string
+          user1_id: string
+          user1_name: string
+          user2_email: string
+          user2_id: string
+          user2_name: string
+        }[]
+      }
+      get_chat_messages_for_session: {
+        Args: { p_session_id: string }
+        Returns: {
+          blocked_reason: string
+          created_at: string
+          is_blocked: boolean
+          is_read: boolean
+          message_content: string
+          message_id: string
+          sender_email: string
+          sender_id: string
+          sender_name: string
+        }[]
+      }
       get_item_view_count: {
         Args: { p_item_id: string; p_item_type: string }
         Returns: number
@@ -2427,6 +2468,22 @@ export type Database = {
       }
       get_robot_view_count: { Args: { p_robot_id: string }; Returns: number }
       get_total_profiles_count: { Args: never; Returns: number }
+      get_unread_conversations: {
+        Args: { p_user_id: string }
+        Returns: {
+          conversation_partner_email: string
+          conversation_partner_id: string
+          conversation_partner_name: string
+          item_id: string
+          item_name: string
+          item_type: string
+          last_message_at: string
+          last_message_content: string
+          session_id: string
+          unread_count: number
+        }[]
+      }
+      get_unread_message_count: { Args: { p_user_id: string }; Returns: number }
       get_user_watchlist_count: { Args: { p_user_id: string }; Returns: number }
       increment_blog_view_count: {
         Args: { p_blog_id: string }

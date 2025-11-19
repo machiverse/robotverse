@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, Search, Filter, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import EditUserModal from "./EditUserModal";
 
 interface AdminUsersProps {
   users: any[];
@@ -16,6 +17,8 @@ interface AdminUsersProps {
 const AdminUsers = ({ users, onRefresh }: AdminUsersProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
@@ -193,7 +196,14 @@ const AdminUsers = ({ users, onRefresh }: AdminUsersProps) => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>View Profile</DropdownMenuItem>
-                          <DropdownMenuItem>Edit User</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setEditingUser(user);
+                              setEditModalOpen(true);
+                            }}
+                          >
+                            Edit User
+                          </DropdownMenuItem>
                           <DropdownMenuItem>Send Message</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">
                             Suspend User
@@ -208,6 +218,15 @@ const AdminUsers = ({ users, onRefresh }: AdminUsersProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          onUserUpdated={onRefresh}
+        />
+      )}
     </div>
   );
 };

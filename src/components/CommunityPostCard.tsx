@@ -39,6 +39,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { toast } from "sonner";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import FormattedContent from "@/components/FormattedContent";
@@ -82,6 +83,7 @@ interface CommunityPostCardProps {
 const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted }: CommunityPostCardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { trackButtonClick } = useButtonTracking();
   const [isLiking, setIsLiking] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -130,6 +132,22 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
 
     try {
       setIsLiking(true);
+      
+      const newLikedState = !post.user_liked;
+      
+      // Track button click
+      await trackButtonClick({
+        buttonName: newLikedState ? 'Like Post' : 'Unlike Post',
+        buttonType: 'community_interaction',
+        itemId: post.id,
+        itemType: 'community_post',
+        additionalData: {
+          post_title: post.title,
+          post_type: post.post_type,
+          author_id: post.author_id,
+          action: newLikedState ? 'like' : 'unlike'
+        }
+      });
       
       // Determine if this is a blog post or community post
       const isBlogPost = post.post_type === 'blog';
@@ -188,6 +206,22 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Track share button click
+    if (user) {
+      await trackButtonClick({
+        buttonName: 'Share Post',
+        buttonType: 'community_interaction',
+        itemId: post.id,
+        itemType: 'community_post',
+        additionalData: {
+          post_title: post.title,
+          post_type: post.post_type,
+          author_id: post.author_id,
+          action: 'share'
+        }
+      });
+    }
     
     try {
       // Use custom domain for sharing
