@@ -4,7 +4,15 @@ Disallow: /dashboard
 Disallow: /auth
 Disallow: /reset-password
 
-Sitemap: https://robotverse.com/sitemap.xml
+# Main Sitemap
+Sitemap: https://www.robotverse.in/sitemap.xml
 
 # Crawl-delay for bots
 Crawl-delay: 1
+
+# Allow specific search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
