@@ -75,8 +75,13 @@ const EditUserModal = ({ user, open, onOpenChange, onUserUpdated }: EditUserModa
         description: "User details updated successfully",
       });
 
-      onUserUpdated();
+      // Close modal first for better UX
       onOpenChange(false);
+      
+      // Trigger refresh after a small delay to ensure DB is updated
+      setTimeout(() => {
+        onUserUpdated();
+      }, 100);
     } catch (error: any) {
       console.error('Error updating user:', error);
       toast({
