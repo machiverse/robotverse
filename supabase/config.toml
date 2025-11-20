@@ -19,6 +19,9 @@ verify_jwt = false
 [functions.enhanced-image-upload]
 verify_jwt = false
 
+[functions.generate-sitemap-auto]
+verify_jwt = false
+
 [db]
 enabled = true
 port = 54322
