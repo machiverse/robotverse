@@ -605,6 +605,39 @@ export type Database = {
         }
         Relationships: []
       }
+      content_interactions: {
+        Row: {
+          comment_text: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          id: string
+          interaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment_text?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          id?: string
+          interaction_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment_text?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          interaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       coverage_areas: {
         Row: {
           area_name: string

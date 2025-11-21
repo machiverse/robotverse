@@ -10,9 +10,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import { UniversalComments } from "@/components/universal/UniversalComments";
-import { UniversalInteractionButtons } from "@/components/universal/UniversalInteractionButtons";
-import { useUniversalInteractions } from "@/hooks/useUniversalInteractions";
+import { ContentComments } from "@/components/content/ContentComments";
+import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
+import { useContentInteractions } from "@/hooks/useContentInteractions";
 import { 
   Eye, 
   Play, 
@@ -67,16 +67,21 @@ const CommunityPostDetails = () => {
   const [loading, setLoading] = useState(true);
   
   // Determine content type based on post data
-  const contentType = post?.post_type === 'blog' ? 'blog' : 'community_post';
+  const contentType = post?.post_type === 'blog' ? 'blog' : (post?.post_type === 'video' ? 'video' : 'community_post');
   
-  // Use universal interactions hook
+  // Use new unified interactions hook
   const {
-    interaction,
+    likeCount,
+    commentCount,
+    userHasLiked,
+    comments,
     loading: interactionsLoading,
+    submitting,
     toggleLike,
-    incrementCommentCount,
-    incrementShareCount,
-  } = useUniversalInteractions(id || '', contentType);
+    addComment,
+    updateComment,
+    deleteComment
+  } = useContentInteractions(id || '', contentType);
 
   // Track interaction buttons
   const handleInteractionTracking = async (action: string) => {
@@ -373,15 +378,19 @@ const CommunityPostDetails = () => {
 
             {/* Engagement Actions */}
             <div className="p-6 bg-muted/30">
-              <UniversalInteractionButtons
-                likeCount={interaction.like_count}
-                commentCount={interaction.comment_count}
-                shareCount={interaction.share_count}
-                userLiked={interaction.user_liked}
-                onLike={toggleLike}
-                onShare={incrementShareCount}
+              <ContentInteractionButtons
+                likeCount={likeCount}
+                commentCount={commentCount}
+                userHasLiked={userHasLiked}
+                onLike={async () => {
+                  handleInteractionTracking('like');
+                  return await toggleLike();
+                }}
                 onCommentClick={handleCommentClick}
-                disabled={interactionsLoading}
+                onShare={() => {
+                  handleInteractionTracking('share');
+                  toast.success('Share functionality coming soon!');
+                }}
               />
             </div>
           </CardContent>
@@ -389,9 +398,14 @@ const CommunityPostDetails = () => {
 
         {/* Comments Section */}
         <div id="comments" className="mt-8">
-          <UniversalComments
-            contentId={post.id}
-            contentType={contentType}
+          <ContentComments
+            comments={comments}
+            commentCount={commentCount}
+            loading={interactionsLoading}
+            submitting={submitting}
+            onAddComment={addComment}
+            onUpdateComment={updateComment}
+            onDeleteComment={deleteComment}
           />
         </div>
       </main>
