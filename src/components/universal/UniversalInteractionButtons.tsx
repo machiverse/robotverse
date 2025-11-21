@@ -43,8 +43,16 @@ export const UniversalInteractionButtons = ({
     e.preventDefault();
     e.stopPropagation();
     
+    if (!user) {
+      toast.error('Please sign in to share');
+      return;
+    }
+    
     if (onShare) {
-      await onShare();
+      const success = await onShare();
+      if (!success) {
+        toast.error('Failed to share');
+      }
     }
   };
 

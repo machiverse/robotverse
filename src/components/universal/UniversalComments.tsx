@@ -139,12 +139,12 @@ export const UniversalComments = ({ contentId, contentType, onCommentCountChange
 
   const handleSubmitComment = async () => {
     if (!user) {
-      toast.error('Please sign in to comment');
+      toast.error('Please sign in to post comments');
       return;
     }
 
     if (!newComment.trim()) {
-      toast.error('Please enter a comment');
+      toast.error('Comment cannot be empty');
       return;
     }
 

@@ -28,11 +28,19 @@ export const UniversalLikeButton = ({
     e.preventDefault();
     e.stopPropagation();
     
+    if (!user) {
+      toast.error('Please sign in to like');
+      return;
+    }
+    
     if (isLiking || disabled) return;
 
     try {
       setIsLiking(true);
-      await onToggleLike();
+      const success = await onToggleLike();
+      if (!success) {
+        toast.error('Failed to update like');
+      }
     } finally {
       setIsLiking(false);
     }
