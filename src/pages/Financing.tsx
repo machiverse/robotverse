@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
+import { useAutoSEO } from "@/hooks/useAutoSEO";
+import { AutoSEOHead } from "@/components/SEO/AutoSEOHead";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +44,7 @@ const Financing = () => {
   const { user } = useAuth();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
+  const { seoData } = useAutoSEO({ type: 'financing' });
   const [providers, setProviders] = useState<FinanceProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -219,6 +222,18 @@ const Financing = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {seoData && (
+        <AutoSEOHead
+          title={seoData.title}
+          description={seoData.description}
+          keywords={seoData.keywords}
+          ogTitle={seoData.ogTitle}
+          ogDescription={seoData.ogDescription}
+          twitterCard={seoData.twitterCard}
+          canonicalUrl={seoData.canonicalUrl}
+          schemaMarkup={seoData.schemaMarkup}
+        />
+      )}
       <EnhancedHeader />
       
       <main className="container mx-auto px-4 py-8">

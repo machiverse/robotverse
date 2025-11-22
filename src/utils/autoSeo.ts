@@ -378,6 +378,340 @@ export const generateKeywordBlock = (type: string, data: any): string => {
 };
 
 /**
+ * Auto-generate SEO for Logistics Page
+ */
+export const generateLogisticsSEO = (service?: any): SEOMetadata => {
+  if (service) {
+    // Individual logistics service
+    const title = `${service.service_name} – Robot Logistics & Transportation | RobotVerse`;
+    const description = `${service.service_name} for industrial robots. ${service.description?.substring(0, 100) || 'Professional robot transportation and logistics'}. Coverage: ${service.coverage_areas?.join(', ') || 'India'}.`;
+    
+    const keywords = [
+      'robot logistics',
+      'industrial robot transportation',
+      'robot shipping India',
+      'heavy machinery transport',
+      service.service_type,
+      ...(service.transport_modes || []),
+      ...(service.coverage_areas || []),
+      'RobotVerse logistics'
+    ];
+    
+    const slug = generateSlug(service.service_name);
+    
+    const schemaMarkup = {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": service.service_name,
+      "description": description,
+      "provider": {
+        "@type": "Organization",
+        "name": service.provider_name || "RobotVerse"
+      },
+      "areaServed": service.coverage_areas || ["India"],
+      "serviceType": "Logistics"
+    };
+    
+    return {
+      title,
+      description: description.substring(0, 160),
+      keywords,
+      ogTitle: title,
+      ogDescription: description,
+      twitterCard: 'summary',
+      canonicalUrl: `https://www.robotverse.in/logistics/${slug}`,
+      slug,
+      schemaMarkup
+    };
+  }
+  
+  // Logistics listing page
+  const title = 'Robot Logistics & Transportation Services | RobotVerse';
+  const description = 'Specialized logistics and transportation for industrial robots. Safe handling, insured shipping, tracking available. Nationwide coverage across India.';
+  
+  const keywords = [
+    'robot logistics India',
+    'industrial robot transportation',
+    'robot shipping',
+    'heavy equipment logistics',
+    'robot freight',
+    'machinery transport',
+    'specialized logistics',
+    'robot delivery services'
+  ];
+  
+  const schemaMarkup = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": title,
+    "description": description,
+    "url": "https://www.robotverse.in/logistics"
+  };
+  
+  return {
+    title,
+    description,
+    keywords,
+    ogTitle: title,
+    ogDescription: description,
+    twitterCard: 'summary',
+    canonicalUrl: 'https://www.robotverse.in/logistics',
+    slug: 'logistics',
+    schemaMarkup
+  };
+};
+
+/**
+ * Auto-generate SEO for Financing Page
+ */
+export const generateFinancingSEO = (product?: any): SEOMetadata => {
+  if (product) {
+    // Individual financing product
+    const title = `${product.product_name} – Robot Financing Solutions | RobotVerse`;
+    const description = `${product.product_name}. ${product.description?.substring(0, 100) || 'Flexible financing for industrial robots'}. Interest rates from ${product.min_interest_rate}%. Loan amount: ${product.min_amount?.toLocaleString('en-IN')} - ${product.max_amount?.toLocaleString('en-IN')} INR.`;
+    
+    const keywords = [
+      'robot financing India',
+      'industrial robot loans',
+      'automation equipment finance',
+      'robot leasing',
+      product.product_name,
+      ...(product.loan_type || []),
+      'business equipment financing',
+      'RobotVerse financing'
+    ];
+    
+    const slug = generateSlug(product.product_name);
+    
+    const schemaMarkup = {
+      "@context": "https://schema.org",
+      "@type": "FinancialProduct",
+      "name": product.product_name,
+      "description": description,
+      "interestRate": `${product.min_interest_rate}%-${product.max_interest_rate}%`,
+      "amount": {
+        "@type": "MonetaryAmount",
+        "currency": "INR",
+        "minValue": product.min_amount,
+        "maxValue": product.max_amount
+      }
+    };
+    
+    return {
+      title,
+      description: description.substring(0, 160),
+      keywords,
+      ogTitle: title,
+      ogDescription: description,
+      twitterCard: 'summary',
+      canonicalUrl: `https://www.robotverse.in/financing/${slug}`,
+      slug,
+      schemaMarkup
+    };
+  }
+  
+  // Financing listing page
+  const title = 'Robot Financing & Loan Solutions | RobotVerse';
+  const description = 'Flexible financing options for industrial robots. Easy EMI, quick approval, competitive interest rates. Make automation affordable for your business.';
+  
+  const keywords = [
+    'robot financing India',
+    'industrial robot loans',
+    'automation equipment finance',
+    'robot EMI',
+    'business equipment loans',
+    'robot leasing India',
+    'manufacturing equipment finance',
+    'robot purchase financing'
+  ];
+  
+  const schemaMarkup = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": title,
+    "description": description,
+    "url": "https://www.robotverse.in/financing"
+  };
+  
+  return {
+    title,
+    description,
+    keywords,
+    ogTitle: title,
+    ogDescription: description,
+    twitterCard: 'summary',
+    canonicalUrl: 'https://www.robotverse.in/financing',
+    slug: 'financing',
+    schemaMarkup
+  };
+};
+
+/**
+ * Auto-generate SEO for Home Page
+ */
+export const generateHomeSEO = (): SEOMetadata => {
+  const title = 'RobotVerse – Buy & Sell Industrial Robots | India\'s Leading Automation Marketplace';
+  const description = 'India\'s #1 marketplace for industrial robots. Buy FANUC, ABB, KUKA, Yaskawa robots with warranty. Spare parts, automation services, financing & logistics support available.';
+  
+  const keywords = [
+    'industrial robots India',
+    'buy robots online',
+    'FANUC robots',
+    'ABB robots',
+    'KUKA robots',
+    'Yaskawa robots',
+    'robot marketplace',
+    'automation equipment',
+    'robot spare parts',
+    'robot services',
+    'used industrial robots',
+    'robot automation India'
+  ];
+  
+  const schemaMarkup = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "RobotVerse",
+    "description": description,
+    "url": "https://www.robotverse.in",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.robotverse.in/robots?search={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+  
+  return {
+    title,
+    description,
+    keywords,
+    ogTitle: title,
+    ogDescription: description,
+    ogImage: '/og-image.jpg',
+    twitterCard: 'summary_large_image',
+    canonicalUrl: 'https://www.robotverse.in',
+    slug: '',
+    schemaMarkup
+  };
+};
+
+/**
+ * Auto-generate SEO for Brand Page
+ */
+export const generateBrandSEO = (brand: string, robotCount?: number): SEOMetadata => {
+  const title = `${brand} Industrial Robots for Sale in India | RobotVerse`;
+  const description = `Buy used ${brand} industrial robots in India. ${robotCount ? `${robotCount}+ ${brand} robots` : 'Wide selection'} available. Welding, material handling, palletizing robots with warranty & support.`;
+  
+  const keywords = [
+    `${brand} robot`,
+    `${brand} industrial robot`,
+    `buy ${brand} robots`,
+    `used ${brand} robots India`,
+    `${brand} robot for sale`,
+    'industrial automation',
+    'robot marketplace',
+    brand.toLowerCase()
+  ];
+  
+  const slug = generateSlug(brand);
+  
+  const schemaMarkup = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": `${brand} Industrial Robots`,
+    "description": description,
+    "url": `https://www.robotverse.in/robots/brand/${slug}`,
+    "about": {
+      "@type": "Brand",
+      "name": brand
+    }
+  };
+  
+  return {
+    title,
+    description,
+    keywords,
+    ogTitle: title,
+    ogDescription: description,
+    twitterCard: 'summary',
+    canonicalUrl: `https://www.robotverse.in/robots/brand/${slug}`,
+    slug,
+    schemaMarkup
+  };
+};
+
+/**
+ * Generate internal linking suggestions
+ */
+export const generateInternalLinks = (type: string, data: any): Array<{url: string, text: string}> => {
+  const links: Array<{url: string, text: string}> = [];
+  
+  switch (type) {
+    case 'robot':
+      // Link to brand page
+      if (data.brand) {
+        links.push({
+          url: `/robots/brand/${generateSlug(data.brand)}`,
+          text: `More ${data.brand} Robots`
+        });
+      }
+      // Link to services
+      links.push({
+        url: '/services',
+        text: 'Robot Maintenance & Repair Services'
+      });
+      // Link to spare parts
+      links.push({
+        url: '/parts',
+        text: 'Robot Spare Parts'
+      });
+      // Link to financing
+      links.push({
+        url: '/financing',
+        text: 'Robot Financing Options'
+      });
+      break;
+      
+    case 'spare-part':
+      // Link to robots
+      links.push({
+        url: '/robots',
+        text: 'Browse Industrial Robots'
+      });
+      // Link to services
+      links.push({
+        url: '/services',
+        text: 'Professional Installation Services'
+      });
+      break;
+      
+    case 'service':
+      // Link to robots
+      links.push({
+        url: '/robots',
+        text: 'Browse Robots for Service'
+      });
+      // Link to spare parts
+      links.push({
+        url: '/parts',
+        text: 'Order Spare Parts'
+      });
+      break;
+      
+    case 'robobook':
+      // Link to main sections
+      links.push(
+        { url: '/robots', text: 'Explore Industrial Robots' },
+        { url: '/services', text: 'Robot Services' },
+        { url: '/parts', text: 'Spare Parts' }
+      );
+      break;
+  }
+  
+  return links;
+};
+
+/**
  * Generate alt text for images
  */
 export const generateImageAlt = (type: string, data: any, index: number = 0): string => {
@@ -390,6 +724,10 @@ export const generateImageAlt = (type: string, data: any, index: number = 0): st
       return `${data.service_type} for industrial robots`;
     case 'robobook':
       return data.title || 'RoboBook article image';
+    case 'logistics':
+      return `${data.service_name} robot logistics service`;
+    case 'financing':
+      return `${data.product_name} robot financing option`;
     default:
       return 'RobotVerse - Industrial Robot Marketplace';
   }
