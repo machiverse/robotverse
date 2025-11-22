@@ -6,11 +6,16 @@ import {
   generateSparePartSEO,
   generateServiceSEO,
   generateRoboBookSEO,
+  generateLogisticsSEO,
+  generateFinancingSEO,
+  generateHomeSEO,
+  generateBrandSEO,
   generateKeywordBlock,
-  generateImageAlt
+  generateImageAlt,
+  generateInternalLinks
 } from '@/utils/autoSeo';
 
-type ContentType = 'robot' | 'robot-listing' | 'spare-part' | 'service' | 'robobook';
+type ContentType = 'robot' | 'robot-listing' | 'spare-part' | 'service' | 'robobook' | 'logistics' | 'financing' | 'home' | 'brand';
 
 interface UseAutoSEOProps {
   type: ContentType;
@@ -38,6 +43,14 @@ export const useAutoSEO = ({ type, data, brand, category }: UseAutoSEOProps) => 
         return data ? generateServiceSEO(data) : null;
       case 'robobook':
         return data ? generateRoboBookSEO(data) : null;
+      case 'logistics':
+        return generateLogisticsSEO(data);
+      case 'financing':
+        return generateFinancingSEO(data);
+      case 'home':
+        return generateHomeSEO();
+      case 'brand':
+        return brand ? generateBrandSEO(brand, data?.count) : null;
       default:
         return null;
     }
@@ -74,10 +87,17 @@ export const useAutoSEO = ({ type, data, brand, category }: UseAutoSEOProps) => 
     }
   }, [seoData, type]);
   
+  // Generate internal linking suggestions
+  const internalLinks = useMemo(() => {
+    if (!data) return [];
+    return generateInternalLinks(type, data);
+  }, [type, data]);
+  
   return {
     seoData,
     keywordBlock,
     getImageAlt,
+    internalLinks,
     // Helper to check if SEO data is ready
     isReady: !!seoData
   };
