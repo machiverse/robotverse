@@ -170,7 +170,7 @@ const Auth = () => {
         p_mobile_number: mobileNumber?.trim() || null,
         p_location: location?.trim() || null,
         p_user_type: accountType === 'seller'
-          ? (Array.isArray(sellerRoles) && sellerRoles.length > 0 ? sellerRoles[0] : 'robot_seller')
+          ? 'seller'
           : accountType || 'buyer',
         p_account_type: accountType || 'buyer',
         p_seller_roles: Array.isArray(sellerRoles) && sellerRoles.length > 0 ? sellerRoles : [],
@@ -533,7 +533,7 @@ const Auth = () => {
         p_mobile_number: savedData.mobileNumber?.trim() || null,
         p_location: savedData.location?.trim() || null,
         p_user_type: savedData.accountType === 'seller'
-          ? (savedData.sellerRoles?.length > 0 ? savedData.sellerRoles[0] : 'robot_seller')
+          ? 'seller'
           : savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
@@ -645,7 +645,7 @@ const Auth = () => {
         p_mobile_number: savedData.mobileNumber?.trim() || null,
         p_location: savedData.location?.trim() || null,
         p_user_type: savedData.accountType === 'seller'
-          ? (savedData.sellerRoles?.length > 0 ? savedData.sellerRoles[0] : 'robot_seller')
+          ? 'seller'
           : savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
