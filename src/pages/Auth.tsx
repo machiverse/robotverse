@@ -942,36 +942,36 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // Always save user data for email confirmation flow
-        saveUserDataToStorage(newUser);
-
-        // If email is already confirmed (email confirmation disabled), create profile immediately
-        if (newUser.email_confirmed_at) {
-          console.log('📧 Email already confirmed, creating profile immediately...');
-          try {
-            await createCompleteUserProfile(newUser);
-            clearSavedUserData(newUser.id);
-            
+        // Immediately create complete profile - don't wait for email confirmation
+        console.log('📝 Creating profile immediately at signup...');
+        try {
+          await createCompleteUserProfile(newUser);
+          
+          console.log('✅ Profile created successfully');
+          
+          // Check if email is already confirmed (email confirmation disabled)
+          if (newUser.email_confirmed_at) {
             toast({
               title: "Account Created Successfully!",
               description: "Welcome to RobotVerse! Your account is ready to use.",
             });
             
             setTimeout(() => navigate('/dashboard'), 1000);
-            return; // Exit early, no need for email confirmation modal
-          } catch (profileError: any) {
-            console.error('❌ Failed to create immediate profile:', profileError);
-            toast({
-              variant: "destructive",
-              title: "Profile Creation Error",
-              description: "Account created but profile setup failed. Please complete your profile after email confirmation.",
-            });
+            return; // Exit early, user can log in immediately
           }
+          
+          // Email confirmation required - show modal
+          console.log('📧 Email confirmation required for login');
+          setShowEmailConfirmationModal(true);
+          
+        } catch (profileError: any) {
+          console.error('❌ Failed to create profile:', profileError);
+          toast({
+            variant: "destructive",
+            title: "Registration Error",
+            description: profileError.message || "Failed to create your profile. Please try again.",
+          });
         }
-
-        // Show email confirmation modal for users who need to confirm email
-        console.log('📧 Email confirmation required, showing modal...');
-        setShowEmailConfirmationModal(true);
 
       } else {
         // Sign in process
