@@ -1,30 +1,28 @@
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Share2 } from 'lucide-react';
-import { UniversalLikeButton } from './UniversalLikeButton';
-import { toast } from 'sonner';
+import { ContentLikeButton } from './ContentLikeButton';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
-interface UniversalInteractionButtonsProps {
+interface ContentInteractionButtonsProps {
   likeCount: number;
   commentCount: number;
-  shareCount: number;
-  userLiked: boolean;
+  userHasLiked: boolean;
   onLike: () => Promise<boolean>;
-  onShare?: () => Promise<boolean>;
   onCommentClick: () => void;
+  onShare?: () => void;
   disabled?: boolean;
 }
 
-export const UniversalInteractionButtons = ({
+export const ContentInteractionButtons = ({
   likeCount,
   commentCount,
-  shareCount,
-  userLiked,
+  userHasLiked,
   onLike,
-  onShare,
   onCommentClick,
+  onShare,
   disabled = false
-}: UniversalInteractionButtonsProps) => {
+}: ContentInteractionButtonsProps) => {
   const { user } = useAuth();
 
   const handleComment = (e: React.MouseEvent) => {
@@ -43,24 +41,16 @@ export const UniversalInteractionButtons = ({
     e.preventDefault();
     e.stopPropagation();
     
-    if (!user) {
-      toast.error('Please sign in to share');
-      return;
-    }
-    
     if (onShare) {
-      const success = await onShare();
-      if (!success) {
-        toast.error('Failed to share');
-      }
+      onShare();
     }
   };
 
   return (
     <div className="flex items-center gap-1">
-      <UniversalLikeButton
+      <ContentLikeButton
         likeCount={likeCount}
-        userLiked={userLiked}
+        userHasLiked={userHasLiked}
         onToggleLike={onLike}
         disabled={disabled}
       />
@@ -85,7 +75,7 @@ export const UniversalInteractionButtons = ({
           className="h-9 px-3 rounded-full hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-950 transition-all hover:scale-105"
         >
           <Share2 className="h-4 w-4 mr-1" />
-          <span className="font-medium">{shareCount}</span>
+          <span className="font-medium">Share</span>
         </Button>
       )}
     </div>

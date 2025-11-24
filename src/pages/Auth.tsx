@@ -169,16 +169,18 @@ const Auth = () => {
         p_company_name: companyName?.trim() || null,
         p_mobile_number: mobileNumber?.trim() || null,
         p_location: location?.trim() || null,
-        p_user_type: accountType || 'buyer',
+        p_user_type: accountType === 'seller'
+          ? 'seller'
+          : accountType || 'buyer',
         p_account_type: accountType || 'buyer',
-        p_seller_roles: sellerRoles?.length > 0 ? sellerRoles : [],
+        p_seller_roles: Array.isArray(sellerRoles) && sellerRoles.length > 0 ? sellerRoles : [],
         p_logistics_type: logisticsType?.trim() || null,
         p_logistics_region: logisticsRegion?.trim() || null,
-        p_transport_modes: transportModes?.length > 0 ? transportModes : [],
+        p_transport_modes: Array.isArray(transportModes) && transportModes.length > 0 ? transportModes : [],
         p_warehouse_storage: warehouseStorage || false,
-        p_finance_type: financeType?.length > 0 ? financeType : [],
-        p_financing_for: financingFor?.length > 0 ? financingFor : [],
-        p_target_audience: targetAudience?.length > 0 ? targetAudience : [],
+        p_finance_type: Array.isArray(financeType) && financeType.length > 0 ? financeType : [],
+        p_financing_for: Array.isArray(financingFor) && financingFor.length > 0 ? financingFor : [],
+        p_target_audience: Array.isArray(targetAudience) && targetAudience.length > 0 ? targetAudience : [],
         p_government_scheme_support: governmentSchemeSupport || false
       };
 
@@ -189,7 +191,10 @@ const Auth = () => {
         mobileNumber: profileParams.p_mobile_number,
         location: profileParams.p_location,
         accountType: profileParams.p_account_type,
+        userType: profileParams.p_user_type,
         sellerRoles: profileParams.p_seller_roles,
+        sellerRolesLength: profileParams.p_seller_roles?.length,
+        sellerRolesJSON: JSON.stringify(profileParams.p_seller_roles),
         logisticsType: profileParams.p_logistics_type,
         financeType: profileParams.p_finance_type
       });
@@ -216,8 +221,39 @@ const Auth = () => {
         mobileNumber: createdProfile.mobile_number,
         location: createdProfile.location,
         accountType: createdProfile.account_type,
+        userRoles: createdProfile.user_roles,
         registrationComplete: createdProfile.registration_complete
       });
+      
+      // Verify what was actually stored in the database
+      const { data: verifyProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('user_id, account_type, user_type, primary_user_type, user_roles, seller_roles, primary_role, registration_complete')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (verifyError) {
+        console.error('❌ Error verifying profile in database:', verifyError);
+      } else {
+        console.log('🔍 VERIFICATION - Actual data stored in database:', {
+          userId: verifyProfile.user_id,
+          accountType: verifyProfile.account_type,
+          userType: verifyProfile.user_type,
+          primaryUserType: verifyProfile.primary_user_type,
+          userRoles: verifyProfile.user_roles,
+          sellerRoles: verifyProfile.seller_roles,
+          primaryRole: verifyProfile.primary_role,
+          registrationComplete: verifyProfile.registration_complete
+        });
+        
+        // Check for mismatches
+        if (profileParams.p_account_type === 'seller' && (!verifyProfile.seller_roles || verifyProfile.seller_roles.length === 0)) {
+          console.error('❌ CRITICAL: Seller roles were not saved! Expected:', profileParams.p_seller_roles, 'Got:', verifyProfile.seller_roles);
+        }
+        if (profileParams.p_account_type === 'seller' && (!verifyProfile.user_roles || verifyProfile.user_roles.length === 0)) {
+          console.error('❌ CRITICAL: User roles were not saved! Expected:', profileParams.p_seller_roles, 'Got:', verifyProfile.user_roles);
+        }
+      }
       
       return createdProfile;
       
@@ -229,14 +265,15 @@ const Auth = () => {
 
   const handleSellerRoleChange = (role: string, checked: boolean) => {
     console.log(`🔄 Seller role change: ${role} = ${checked}`);
+    console.log('📋 Current seller roles before change:', sellerRoles);
     if (checked) {
       const newRoles = [...sellerRoles, role];
       setSellerRoles(newRoles);
-      console.log('✅ Updated seller roles:', newRoles);
+      console.log('✅ Updated seller roles (added):', newRoles);
     } else {
       const newRoles = sellerRoles.filter(r => r !== role);
       setSellerRoles(newRoles);
-      console.log('✅ Updated seller roles:', newRoles);
+      console.log('✅ Updated seller roles (removed):', newRoles);
     }
   };
 
@@ -495,7 +532,9 @@ const Auth = () => {
         p_company_name: savedData.companyName?.trim() || null,
         p_mobile_number: savedData.mobileNumber?.trim() || null,
         p_location: savedData.location?.trim() || null,
-        p_user_type: savedData.accountType || 'buyer',
+        p_user_type: savedData.accountType === 'seller'
+          ? 'seller'
+          : savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
         p_logistics_type: savedData.logisticsType?.trim() || null,
@@ -530,8 +569,37 @@ const Auth = () => {
         mobileNumber: updatedProfile.mobile_number,
         location: updatedProfile.location,
         accountType: updatedProfile.account_type,
+        userRoles: updatedProfile.user_roles,
         registrationComplete: updatedProfile.registration_complete
       });
+      
+      // Verify update in database
+      const { data: verifyProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('user_id, account_type, user_type, primary_user_type, user_roles, seller_roles, primary_role')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (verifyError) {
+        console.error('❌ Error verifying updated profile:', verifyError);
+      } else {
+        console.log('🔍 UPDATE VERIFICATION - Database contains:', {
+          userId: verifyProfile.user_id,
+          accountType: verifyProfile.account_type,
+          userType: verifyProfile.user_type,
+          primaryUserType: verifyProfile.primary_user_type,
+          userRoles: verifyProfile.user_roles,
+          sellerRoles: verifyProfile.seller_roles,
+          primaryRole: verifyProfile.primary_role
+        });
+        
+        if (savedData.accountType === 'seller') {
+          console.log('🏪 SELLER UPDATE VERIFICATION:');
+          console.log('   - Expected:', savedData.sellerRoles);
+          console.log('   - Got seller_roles:', verifyProfile.seller_roles);
+          console.log('   - Got user_roles:', verifyProfile.user_roles);
+        }
+      }
       
       return updatedProfile;
 
@@ -576,7 +644,9 @@ const Auth = () => {
         p_company_name: savedData.companyName?.trim() || null,
         p_mobile_number: savedData.mobileNumber?.trim() || null,
         p_location: savedData.location?.trim() || null,
-        p_user_type: savedData.accountType || 'buyer',
+        p_user_type: savedData.accountType === 'seller'
+          ? 'seller'
+          : savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
         p_logistics_type: savedData.logisticsType?.trim() || null,
@@ -611,6 +681,7 @@ const Auth = () => {
         mobileNumber: createdProfile.mobile_number,
         location: createdProfile.location,
         accountType: createdProfile.account_type,
+        userRoles: createdProfile.user_roles,
         registrationComplete: createdProfile.registration_complete
       });
       
@@ -625,12 +696,36 @@ const Auth = () => {
         console.error('❌ Error verifying created profile:', verifyError);
       } else {
         console.log('✅ Profile verification successful - stored in DB:', {
+          userId: verifyProfile.user_id,
+          accountType: verifyProfile.account_type,
+          userType: verifyProfile.user_type,
+          primaryUserType: verifyProfile.primary_user_type,
           hasCompanyName: !!verifyProfile.company_name,
           hasMobileNumber: !!verifyProfile.mobile_number,
           hasLocation: !!verifyProfile.location,
+          userRoles: verifyProfile.user_roles,
+          sellerRoles: verifyProfile.seller_roles,
+          primaryRole: verifyProfile.primary_role,
           hasUserRoles: verifyProfile.user_roles?.length > 0,
           registrationComplete: verifyProfile.registration_complete
         });
+        
+        // Validate seller account specifically
+        if (savedData.accountType === 'seller') {
+          console.log('🏪 SELLER VERIFICATION:');
+          console.log('   - Expected seller roles:', savedData.sellerRoles);
+          console.log('   - Stored seller_roles:', verifyProfile.seller_roles);
+          console.log('   - Stored user_roles:', verifyProfile.user_roles);
+          console.log('   - Primary role:', verifyProfile.primary_role);
+          console.log('   - Primary user type:', verifyProfile.primary_user_type);
+          
+          if (!verifyProfile.seller_roles || verifyProfile.seller_roles.length === 0) {
+            console.error('❌ CRITICAL: Seller roles not saved to seller_roles field!');
+          }
+          if (!verifyProfile.user_roles || verifyProfile.user_roles.length === 0) {
+            console.error('❌ CRITICAL: Seller roles not saved to user_roles field!');
+          }
+        }
       }
       
       return createdProfile;
@@ -683,7 +778,7 @@ const Auth = () => {
         console.log('  - Mobile Number:', mobileNumber);
         console.log('  - Location:', location);
         console.log('  - Account Type:', accountType);
-        console.log('  - Seller Roles:', sellerRoles);
+        console.log('  - Seller Roles:', sellerRoles, '(length:', sellerRoles?.length, ')');
         console.log('  - Logistics Type:', logisticsType);
         console.log('  - Logistics Region:', logisticsRegion);
         console.log('  - Transport Modes:', transportModes);
@@ -692,6 +787,15 @@ const Auth = () => {
         console.log('  - Financing For:', financingFor);
         console.log('  - Target Audience:', targetAudience);
         console.log('  - Government Scheme Support:', governmentSchemeSupport);
+        
+        // Critical validation for seller account
+        if (accountType === 'seller') {
+          console.log('🏪 SELLER ACCOUNT VALIDATION:');
+          console.log('   - Seller Roles Array:', JSON.stringify(sellerRoles));
+          console.log('   - Seller Roles Type:', typeof sellerRoles);
+          console.log('   - Is Array:', Array.isArray(sellerRoles));
+          console.log('   - Array Length:', sellerRoles?.length);
+        }
         
         // Comprehensive validation
         if (!email.trim()) {
@@ -838,36 +942,36 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // Always save user data for email confirmation flow
-        saveUserDataToStorage(newUser);
-
-        // If email is already confirmed (email confirmation disabled), create profile immediately
-        if (newUser.email_confirmed_at) {
-          console.log('📧 Email already confirmed, creating profile immediately...');
-          try {
-            await createCompleteUserProfile(newUser);
-            clearSavedUserData(newUser.id);
-            
+        // Immediately create complete profile - don't wait for email confirmation
+        console.log('📝 Creating profile immediately at signup...');
+        try {
+          await createCompleteUserProfile(newUser);
+          
+          console.log('✅ Profile created successfully');
+          
+          // Check if email is already confirmed (email confirmation disabled)
+          if (newUser.email_confirmed_at) {
             toast({
               title: "Account Created Successfully!",
               description: "Welcome to RobotVerse! Your account is ready to use.",
             });
             
             setTimeout(() => navigate('/dashboard'), 1000);
-            return; // Exit early, no need for email confirmation modal
-          } catch (profileError: any) {
-            console.error('❌ Failed to create immediate profile:', profileError);
-            toast({
-              variant: "destructive",
-              title: "Profile Creation Error",
-              description: "Account created but profile setup failed. Please complete your profile after email confirmation.",
-            });
+            return; // Exit early, user can log in immediately
           }
+          
+          // Email confirmation required - show modal
+          console.log('📧 Email confirmation required for login');
+          setShowEmailConfirmationModal(true);
+          
+        } catch (profileError: any) {
+          console.error('❌ Failed to create profile:', profileError);
+          toast({
+            variant: "destructive",
+            title: "Registration Error",
+            description: profileError.message || "Failed to create your profile. Please try again.",
+          });
         }
-
-        // Show email confirmation modal for users who need to confirm email
-        console.log('📧 Email confirmation required, showing modal...');
-        setShowEmailConfirmationModal(true);
 
       } else {
         // Sign in process
