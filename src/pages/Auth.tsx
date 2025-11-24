@@ -169,7 +169,9 @@ const Auth = () => {
         p_company_name: companyName?.trim() || null,
         p_mobile_number: mobileNumber?.trim() || null,
         p_location: location?.trim() || null,
-        p_user_type: accountType || 'buyer',
+        p_user_type: accountType === 'seller'
+          ? (Array.isArray(sellerRoles) && sellerRoles.length > 0 ? sellerRoles[0] : 'robot_seller')
+          : accountType || 'buyer',
         p_account_type: accountType || 'buyer',
         p_seller_roles: Array.isArray(sellerRoles) && sellerRoles.length > 0 ? sellerRoles : [],
         p_logistics_type: logisticsType?.trim() || null,
@@ -530,7 +532,9 @@ const Auth = () => {
         p_company_name: savedData.companyName?.trim() || null,
         p_mobile_number: savedData.mobileNumber?.trim() || null,
         p_location: savedData.location?.trim() || null,
-        p_user_type: savedData.accountType || 'buyer',
+        p_user_type: savedData.accountType === 'seller'
+          ? (savedData.sellerRoles?.length > 0 ? savedData.sellerRoles[0] : 'robot_seller')
+          : savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
         p_logistics_type: savedData.logisticsType?.trim() || null,
@@ -640,7 +644,9 @@ const Auth = () => {
         p_company_name: savedData.companyName?.trim() || null,
         p_mobile_number: savedData.mobileNumber?.trim() || null,
         p_location: savedData.location?.trim() || null,
-        p_user_type: savedData.accountType || 'buyer',
+        p_user_type: savedData.accountType === 'seller'
+          ? (savedData.sellerRoles?.length > 0 ? savedData.sellerRoles[0] : 'robot_seller')
+          : savedData.accountType || 'buyer',
         p_account_type: savedData.accountType || 'buyer',
         p_seller_roles: savedData.sellerRoles?.length > 0 ? savedData.sellerRoles : [],
         p_logistics_type: savedData.logisticsType?.trim() || null,
