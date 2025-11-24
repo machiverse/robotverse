@@ -181,7 +181,7 @@ const RobotDetails = () => {
           .from('robots')
           .select(`
             *,
-            profiles!seller_id (
+            profiles!robots_seller_id_fkey (
               full_name,
               company_name,
               phone,
@@ -1829,8 +1829,22 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                 <Separator />
                 
                 <div className="space-y-3">
-                  {user && user.id !== robot.seller_id && (
+                  {user && user.id === robot.seller_id ? (
+                    <div className="p-4 rounded-lg border border-border bg-muted/30 text-center text-sm text-muted-foreground">
+                      You are the seller of this robot
+                    </div>
+                  ) : user ? (
                     <>
+                      <ChatButton
+                        otherUserId={robot.seller_id}
+                        itemId={robot.id}
+                        itemType="robot"
+                        itemName={robot.name}
+                        variant="default"
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all"
+                        size="lg"
+                      />
+                      
                       <Button 
                         onClick={handleContactSeller} 
                         className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
@@ -1850,6 +1864,14 @@ ${user?.user_metadata?.full_name || 'Interested Buyer'}`;
                         Request Quote
                       </Button>
                     </>
+                  ) : (
+                    <div className="p-4 rounded-lg border border-border bg-muted/30 text-center text-sm text-muted-foreground">
+                      Please{' '}
+                      <Button variant="link" className="p-0 h-auto text-primary underline font-semibold" onClick={() => navigate('/auth')}>
+                        log in
+                      </Button>{' '}
+                      to contact the seller
+                    </div>
                   )}
                 </div>
               </CardContent>
