@@ -13,6 +13,9 @@ verify_jwt = false
 [functions.roboverse-ai-analyze]
 verify_jwt = false
 
+[functions.roboverse-spare-part-ai-analyze]
+verify_jwt = false
+
 [functions.roboverse-robot-report]
 verify_jwt = false
 
