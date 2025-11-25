@@ -827,22 +827,13 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
     setAnalysisLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/roboverse-ai-analyze`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          robotData: robot,
-          userId: user.id,
-          userLocation: currentUserLocation,
-        }),
+      const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
+        body: { robotId: robot.id }
       });
 
-      if (!response.ok) throw new Error("Failed to analyze robot");
+      if (error) throw new Error(error.message || "Failed to analyze robot");
+      setAiAnalysis(data);
 
-      const data = await response.json();
       setAiAnalysis(data);
 
       await trackButtonClick({
