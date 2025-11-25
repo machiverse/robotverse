@@ -470,10 +470,11 @@ const SparePartDetails = () => {
                     {sparePart.profiles && (
                       <Button
                         variant="outline"
-                        onClick={() => setIsAIAnalysisOpen(true)}
+                        disabled
+                        title="AI Analysis for spare parts coming soon"
                       >
                         <Brain className="w-4 h-4 mr-2" />
-                        AI Analysis
+                        AI Analysis (Coming Soon)
                       </Button>
                     )}
                   </div>
@@ -823,14 +824,7 @@ const SparePartDetails = () => {
         </div>
       </div>
 
-      {/* AI Analysis Modal */}
-      {isAIAnalysisOpen && (
-        <ComprehensiveAIMarketAnalysis
-          isOpen={isAIAnalysisOpen}
-          onClose={() => setIsAIAnalysisOpen(false)}
-          robotData={sparePart}
-        />
-      )}
+      {/* AI Analysis disabled for spare parts - needs dedicated implementation */}
     </>
   );
 };
