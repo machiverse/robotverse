@@ -439,11 +439,12 @@ const RobotDetails = () => {
     }
   };
 
-  // Fetch spare parts filtered by robot compatibility
+  // Fetch spare parts filtered by robot compatibility - Universal + Brand-specific
   const fetchCompatibleSpareParts = async () => {
     setLoadingSpareParts(true);
     try {
-      let query = supabase.from("spare_parts").select(`
+      // First, get all spare parts
+      const { data: allParts, error } = await supabase.from("spare_parts").select(`
           *,
           profiles!spare_parts_seller_id_fkey (
             full_name,
@@ -455,19 +456,45 @@ const RobotDetails = () => {
           )
         `);
 
-      // Filter by robot compatibility if robot is loaded
-      if (robot) {
-        query = query.or(
-          `compatible_robots.cs.{${robot.model}},compatible_robots.cs.{${robot.brand}},compatible_robots.cs.{${robot.name}}`,
-        );
-      }
-
-      const { data, error } = await query.limit(12);
-
       if (error) throw error;
 
+      // Filter compatible parts based on:
+      // 1. Universal parts (compatible_robots is null or contains "Universal")
+      // 2. Parts matching robot brand
+      // 3. Parts matching robot model
+      // 4. Parts matching robot name
+      const compatibleParts = allParts?.filter((part) => {
+        const compatibleRobots = part.compatible_robots || [];
+        
+        // Universal parts
+        if (compatibleRobots.length === 0 || 
+            compatibleRobots.some((r: string) => r.toLowerCase().includes('universal'))) {
+          return true;
+        }
+        
+        // Brand match
+        if (robot?.brand && compatibleRobots.some((r: string) => 
+          r.toLowerCase().includes(robot.brand.toLowerCase()))) {
+          return true;
+        }
+        
+        // Model match
+        if (robot?.model && compatibleRobots.some((r: string) => 
+          r.toLowerCase().includes(robot.model.toLowerCase()))) {
+          return true;
+        }
+        
+        // Name match
+        if (robot?.name && compatibleRobots.some((r: string) => 
+          r.toLowerCase().includes(robot.name.toLowerCase()))) {
+          return true;
+        }
+        
+        return false;
+      }) || [];
+
       // Sort by location proximity if user location is available
-      const sortedData = data?.sort((a, b) => {
+      const sortedData = compatibleParts.sort((a, b) => {
         if (!currentUserLocation) return 0;
 
         const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
@@ -476,7 +503,7 @@ const RobotDetails = () => {
         return aDistance - bDistance;
       });
 
-      setSpareParts(sortedData || []);
+      setSpareParts(sortedData.slice(0, 12));
     } catch (err) {
       console.error("Error fetching spare parts:", err);
     } finally {
@@ -1782,30 +1809,42 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                           Loading spare parts...
                         </div>
                       ) : spareParts.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {spareParts.map((part) => (
-                            <Card key={part.id} className="shadow-md">
-                              <CardContent>
-                                <h4 className="font-semibold text-lg">{part.name || part.part_name}</h4>
-                                <p className="text-sm text-muted-foreground">
+                            <Card key={part.id} className="shadow-md hover:shadow-lg transition-shadow">
+                              <CardContent className="p-4">
+                                {/* Small thumbnail image */}
+                                {part.images && part.images[0] && (
+                                  <div className="mb-3 rounded-lg overflow-hidden bg-muted">
+                                    <img 
+                                      src={part.images[0]} 
+                                      alt={part.name || part.part_name}
+                                      className="w-full h-32 object-cover"
+                                    />
+                                  </div>
+                                )}
+                                
+                                <h4 className="font-semibold text-lg mb-2">{part.name || part.part_name}</h4>
+                                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                                   {part.description || "No description available."}
                                 </p>
-                                <div className="mt-2 flex justify-between items-center">
-                                  <Button size="sm" onClick={() => handleContactSpareParts(part)}>
-                                    Call Supplier
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedSupplier(part.profiles);
-                                      setSelectedItem(part);
-                                      setShowQuoteForm(true);
-                                    }}
-                                  >
-                                    Request Quote
-                                  </Button>
-                                </div>
+                                
+                                {part.price && (
+                                  <p className="text-lg font-bold text-primary mb-3">
+                                    {part.currency === 'USD' ? '$' : '₹'}{part.price.toLocaleString()}
+                                  </p>
+                                )}
+                                
+                                {/* Only Chat Button */}
+                                <ChatButton
+                                  otherUserId={part.seller_id}
+                                  itemId={part.id}
+                                  itemType="spare_part"
+                                  itemName={part.name || part.part_name}
+                                  variant="outline"
+                                  className="w-full"
+                                  size="sm"
+                                />
                               </CardContent>
                             </Card>
                           ))}
@@ -1828,28 +1867,29 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                       ) : services.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {services.map((service) => (
-                            <Card key={service.id} className="shadow-md">
-                              <CardContent>
-                                <h4 className="font-semibold text-lg">{service.service_name}</h4>
-                                <p className="text-sm text-muted-foreground">
+                            <Card key={service.id} className="shadow-md hover:shadow-lg transition-shadow">
+                              <CardContent className="p-4">
+                                <h4 className="font-semibold text-lg mb-2">{service.service_name}</h4>
+                                <p className="text-sm text-muted-foreground mb-3">
                                   {service.description || "No description available."}
                                 </p>
-                                <div className="mt-2 flex justify-between items-center">
-                                  <Button size="sm" onClick={() => handleContactService(service)}>
-                                    Call Provider
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedSupplier(service.profiles);
-                                      setSelectedItem(service);
-                                      setShowQuoteForm(true);
-                                    }}
-                                  >
-                                    Request Quote
-                                  </Button>
-                                </div>
+                                
+                                {service.pricing_info && (
+                                  <p className="text-lg font-bold text-primary mb-3">
+                                    {service.pricing_info}
+                                  </p>
+                                )}
+                                
+                                {/* Only Chat Button */}
+                                <ChatButton
+                                  otherUserId={service.provider_id}
+                                  itemId={service.id}
+                                  itemType="service"
+                                  itemName={service.service_name}
+                                  variant="outline"
+                                  className="w-full"
+                                  size="sm"
+                                />
                               </CardContent>
                             </Card>
                           ))}
