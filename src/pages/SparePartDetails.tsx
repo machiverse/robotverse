@@ -66,6 +66,19 @@ interface SparePart {
   profiles: Profile;
 }
 
+interface Robot {
+  id: string;
+  name: string;
+  brand: string;
+  model: string;
+  robot_type: string;
+  price: number;
+  currency: string;
+  images: string[];
+  condition: string;
+  location: string;
+}
+
 const SparePartDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -77,7 +90,7 @@ const SparePartDetails = () => {
   const [sparePart, setSparePart] = useState<SparePart | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [compatibleRobots, setCompatibleRobots] = useState<SparePart[]>([]);
+  const [compatibleRobots, setCompatibleRobots] = useState<Robot[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [logistics, setLogistics] = useState<any[]>([]);
   const [financing, setFinancing] = useState<any[]>([]);
@@ -116,7 +129,7 @@ const SparePartDetails = () => {
 
       if (error) throw error;
 
-      setSparePart(data);
+      setSparePart(data as SparePart);
 
       if (data.compatible_robots?.length) {
         fetchCompatibleRobots(data.compatible_robots, data.brand);
@@ -398,8 +411,7 @@ const SparePartDetails = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Eye className="w-4 h-4 text-foreground" />
-                      <ViewCountDisplay itemId={sparePart.id} itemType="spare_part" />
+                      <ViewCountDisplay targetType="robots" targetId={sparePart.id} />
                     </div>
                   </div>
 
