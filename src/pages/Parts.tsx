@@ -431,12 +431,13 @@ const Parts = () => {
                   onClick={() => trackItemView('spare_parts', part.id, part)}
                 >
                   <CardHeader>
+                    {/* Small thumbnail preview image */}
                     <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
                       {part.image && part.image !== "/placeholder.svg" ? (
                         <img 
                           src={part.image} 
                           alt={part.name}
-                          className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-contain p-2 rounded-lg group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="flex items-center justify-center w-full h-full">
