@@ -463,35 +463,41 @@ const RobotDetails = () => {
       // 2. Parts matching robot brand
       // 3. Parts matching robot model
       // 4. Parts matching robot name
-      const compatibleParts = allParts?.filter((part) => {
-        const compatibleRobots = part.compatible_robots || [];
-        
-        // Universal parts
-        if (compatibleRobots.length === 0 || 
-            compatibleRobots.some((r: string) => r.toLowerCase().includes('universal'))) {
-          return true;
-        }
-        
-        // Brand match
-        if (robot?.brand && compatibleRobots.some((r: string) => 
-          r.toLowerCase().includes(robot.brand.toLowerCase()))) {
-          return true;
-        }
-        
-        // Model match
-        if (robot?.model && compatibleRobots.some((r: string) => 
-          r.toLowerCase().includes(robot.model.toLowerCase()))) {
-          return true;
-        }
-        
-        // Name match
-        if (robot?.name && compatibleRobots.some((r: string) => 
-          r.toLowerCase().includes(robot.name.toLowerCase()))) {
-          return true;
-        }
-        
-        return false;
-      }) || [];
+      const compatibleParts =
+        allParts?.filter((part) => {
+          const compatibleRobots = part.compatible_robots || [];
+
+          // Universal parts
+          if (
+            compatibleRobots.length === 0 ||
+            compatibleRobots.some((r: string) => r.toLowerCase().includes("universal"))
+          ) {
+            return true;
+          }
+
+          // Brand match
+          if (
+            robot?.brand &&
+            compatibleRobots.some((r: string) => r.toLowerCase().includes(robot.brand.toLowerCase()))
+          ) {
+            return true;
+          }
+
+          // Model match
+          if (
+            robot?.model &&
+            compatibleRobots.some((r: string) => r.toLowerCase().includes(robot.model.toLowerCase()))
+          ) {
+            return true;
+          }
+
+          // Name match
+          if (robot?.name && compatibleRobots.some((r: string) => r.toLowerCase().includes(robot.name.toLowerCase()))) {
+            return true;
+          }
+
+          return false;
+        }) || [];
 
       // Sort by location proximity if user location is available
       const sortedData = compatibleParts.sort((a, b) => {
@@ -827,8 +833,8 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
     setAnalysisLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('roboverse-ai-analyze', {
-        body: { robotId: robot.id }
+      const { data, error } = await supabase.functions.invoke("roboverse-ai-analyze", {
+        body: { robotId: robot.id },
       });
 
       if (error) throw new Error(error.message || "Failed to analyze robot");
@@ -1778,7 +1784,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         <Settings className="w-6 h-6 text-primary" />
                         Technical Specifications
                       </h3>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Core Specifications */}
                         {robot.brand && (
@@ -1802,7 +1808,9 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         {robot.condition && (
                           <div className="flex justify-between border-b border-border/50 py-3">
                             <span className="font-semibold">Condition</span>
-                            <span className="text-muted-foreground capitalize">{robot.condition.replace("_", " ")}</span>
+                            <span className="text-muted-foreground capitalize">
+                              {robot.condition.replace("_", " ")}
+                            </span>
                           </div>
                         )}
                         {robot.year_manufactured && (
@@ -1862,19 +1870,21 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         {robot.availability && (
                           <div className="flex justify-between border-b border-border/50 py-3">
                             <span className="font-semibold">Availability</span>
-                            <span className="text-muted-foreground capitalize">{robot.availability.replace("_", " ")}</span>
+                            <span className="text-muted-foreground capitalize">
+                              {robot.availability.replace("_", " ")}
+                            </span>
                           </div>
                         )}
 
                         {/* Additional Technical Specifications */}
-                        {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 && 
+                        {robot.technical_specifications &&
+                          Object.keys(robot.technical_specifications).length > 0 &&
                           Object.entries(robot.technical_specifications).map(([key, value]) => (
                             <div key={key} className="flex justify-between border-b border-border/50 py-3">
                               <span className="font-semibold capitalize">{key.replace(/_/g, " ")}</span>
                               <span className="text-muted-foreground">{String(value)}</span>
                             </div>
-                          ))
-                        }
+                          ))}
                       </div>
                     </div>
                   </TabsContent>
@@ -1887,16 +1897,16 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                           <Wrench className="w-6 h-6 text-primary" />
                           Compatible Spare Parts
                         </h3>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => navigate('/parts')}
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate("/parts")}
                           className="flex items-center gap-2"
                         >
                           <Search className="w-4 h-4" />
                           Browse All Parts
                         </Button>
                       </div>
-                      
+
                       {loadingSpareParts ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
@@ -1910,25 +1920,26 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                 {/* Small thumbnail image */}
                                 {part.images && part.images[0] && (
                                   <div className="mb-3 rounded-lg overflow-hidden bg-muted">
-                                    <img 
-                                      src={part.images[0]} 
+                                    <img
+                                      src={part.images[0]}
                                       alt={part.name || part.part_name}
                                       className="w-full h-32 object-cover"
                                     />
                                   </div>
                                 )}
-                                
+
                                 <h4 className="font-semibold text-lg mb-2">{part.name || part.part_name}</h4>
                                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                                   {part.description || "No description available."}
                                 </p>
-                                
+
                                 {part.price && (
                                   <p className="text-lg font-bold text-primary mb-3">
-                                    {part.currency === 'USD' ? '$' : '₹'}{part.price.toLocaleString()}
+                                    {part.currency === "USD" ? "$" : "₹"}
+                                    {part.price.toLocaleString()}
                                   </p>
                                 )}
-                                
+
                                 {/* Only Chat Button */}
                                 <ChatButton
                                   otherUserId={part.seller_id}
@@ -1947,11 +1958,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         <div className="text-center py-12">
                           <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                           <p className="text-muted-foreground">No compatible spare parts found for this robot.</p>
-                          <Button 
-                            variant="link" 
-                            onClick={() => navigate('/parts')}
-                            className="mt-4"
-                          >
+                          <Button variant="link" onClick={() => navigate("/parts")} className="mt-4">
                             Browse all spare parts
                           </Button>
                         </div>
@@ -1966,7 +1973,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         <Wrench className="w-6 h-6 text-primary" />
                         Related Services
                       </h3>
-                      
+
                       {loadingServices ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
@@ -1996,7 +2003,9 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                         {service.profiles.company_name && (
                                           <p className="flex items-center gap-2">
                                             <span className="font-medium">Company:</span>
-                                            <span className="text-muted-foreground">{service.profiles.company_name}</span>
+                                            <span className="text-muted-foreground">
+                                              {service.profiles.company_name}
+                                            </span>
                                           </p>
                                         )}
                                         {service.profiles.full_name && (
@@ -2023,9 +2032,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                       </div>
                                     )}
                                     {service.price_range && (
-                                      <p className="text-lg font-bold text-primary">
-                                        {service.price_range}
-                                      </p>
+                                      <p className="text-lg font-bold text-primary">{service.price_range}</p>
                                     )}
                                     {service.coverage && (
                                       <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -2036,12 +2043,14 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                     {service.specializations && service.specializations.length > 0 && (
                                       <div className="flex flex-wrap gap-1">
                                         {service.specializations.slice(0, 3).map((spec: string, idx: number) => (
-                                          <Badge key={idx} variant="outline" className="text-xs">{spec}</Badge>
+                                          <Badge key={idx} variant="outline" className="text-xs">
+                                            {spec}
+                                          </Badge>
                                         ))}
                                       </div>
                                     )}
                                   </div>
-                                  
+
                                   {/* Only Chat Button */}
                                   <ChatButton
                                     otherUserId={service.provider_id}
@@ -2073,7 +2082,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         <Truck className="w-6 h-6 text-primary" />
                         Logistics Providers
                       </h3>
-                      
+
                       {loadingLogistics ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
@@ -2103,13 +2112,17 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                         {logistics.profiles.company_name && (
                                           <p className="flex items-center gap-2">
                                             <span className="font-medium">Company:</span>
-                                            <span className="text-muted-foreground">{logistics.profiles.company_name}</span>
+                                            <span className="text-muted-foreground">
+                                              {logistics.profiles.company_name}
+                                            </span>
                                           </p>
                                         )}
                                         {logistics.profiles.full_name && (
                                           <p className="flex items-center gap-2">
                                             <span className="font-medium">Contact:</span>
-                                            <span className="text-muted-foreground">{logistics.profiles.full_name}</span>
+                                            <span className="text-muted-foreground">
+                                              {logistics.profiles.full_name}
+                                            </span>
                                           </p>
                                         )}
                                         {logistics.profiles.location && (
@@ -2149,20 +2162,26 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                     )}
                                     <div className="flex flex-wrap gap-2 mt-2">
                                       {logistics.tracking_available && (
-                                        <Badge variant="outline" className="text-xs">Real-time Tracking</Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                          Real-time Tracking
+                                        </Badge>
                                       )}
                                       {logistics.insurance_included && (
-                                        <Badge variant="outline" className="text-xs">Insurance Included</Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                          Insurance Included
+                                        </Badge>
                                       )}
                                       {logistics.is_international && (
-                                        <Badge variant="outline" className="text-xs">International</Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                          International
+                                        </Badge>
                                       )}
                                     </div>
                                   </div>
-                                  
+
                                   <div className="flex gap-2">
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       variant="outline"
                                       onClick={() => handleContactLogistics(logistics)}
                                       className="flex-1"
@@ -2200,7 +2219,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                         <CreditCard className="w-6 h-6 text-primary" />
                         Financing Options
                       </h3>
-                      
+
                       {loadingFinancing ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
@@ -2230,15 +2249,17 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                         {option.profiles.company_name && (
                                           <p className="flex items-center gap-2">
                                             <span className="font-medium">Company:</span>
-                                            <span className="text-muted-foreground">{option.profiles.company_name}</span>
+                                            <span className="text-muted-foreground">
+                                              {option.profiles.company_name}
+                                            </span>
                                           </p>
                                         )}
-                                        {option.profiles.full_name && (
+                                        {/* {option.profiles.full_name && (
                                           <p className="flex items-center gap-2">
                                             <span className="font-medium">Contact:</span>
                                             <span className="text-muted-foreground">{option.profiles.full_name}</span>
                                           </p>
-                                        )}
+                                        )}*/}
                                         {option.profiles.location && (
                                           <p className="flex items-center gap-2">
                                             <MapPin className="w-3 h-3 text-primary" />
@@ -2254,7 +2275,9 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                     {option.loan_type && option.loan_type.length > 0 && (
                                       <div className="flex flex-wrap gap-2">
                                         {option.loan_type.map((type: string, idx: number) => (
-                                          <Badge key={idx} variant="secondary">{type}</Badge>
+                                          <Badge key={idx} variant="secondary">
+                                            {type}
+                                          </Badge>
                                         ))}
                                       </div>
                                     )}
@@ -2277,20 +2300,26 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                     )}
                                     <div className="flex flex-wrap gap-2 mt-2">
                                       {option.quick_approval && (
-                                        <Badge variant="outline" className="text-xs">Quick Approval</Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                          Quick Approval
+                                        </Badge>
                                       )}
                                       {option.digital_process && (
-                                        <Badge variant="outline" className="text-xs">Digital Process</Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                          Digital Process
+                                        </Badge>
                                       )}
                                       {!option.collateral_required && (
-                                        <Badge variant="outline" className="text-xs">No Collateral</Badge>
+                                        <Badge variant="outline" className="text-xs">
+                                          No Collateral
+                                        </Badge>
                                       )}
                                     </div>
                                   </div>
-                                  
+
                                   <div className="flex gap-2">
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      size="sm"
                                       variant="outline"
                                       onClick={() => handleContactFinance(option)}
                                       className="flex-1"
@@ -2298,11 +2327,7 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                       <Phone className="w-4 h-4 mr-2" />
                                       Call Provider
                                     </Button>
-                                    <Button 
-                                      size="sm" 
-                                      onClick={() => handleApplyLoan(option)}
-                                      className="flex-1"
-                                    >
+                                    <Button size="sm" onClick={() => handleApplyLoan(option)} className="flex-1">
                                       <FileText className="w-4 h-4 mr-2" />
                                       Apply for Loan
                                     </Button>
