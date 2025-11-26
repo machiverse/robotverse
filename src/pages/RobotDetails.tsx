@@ -2008,12 +2008,12 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                             </span>
                                           </p>
                                         )}
-                                        {service.profiles.full_name && (
+                                        {/*{service.profiles.full_name && (
                                           <p className="flex items-center gap-2">
                                             <span className="font-medium">Contact:</span>
                                             <span className="text-muted-foreground">{service.profiles.full_name}</span>
                                           </p>
-                                        )}
+                                        )}*/}
                                         {service.profiles.location && (
                                           <p className="flex items-center gap-2">
                                             <MapPin className="w-3 h-3 text-primary" />
@@ -2117,14 +2117,14 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                                             </span>
                                           </p>
                                         )}
-                                        {logistics.profiles.full_name && (
+                                        {/*} {logistics.profiles.full_name && (
                                           <p className="flex items-center gap-2">
                                             <span className="font-medium">Contact:</span>
                                             <span className="text-muted-foreground">
                                               {logistics.profiles.full_name}
                                             </span>
                                           </p>
-                                        )}
+                                        )}*/}
                                         {logistics.profiles.location && (
                                           <p className="flex items-center gap-2">
                                             <MapPin className="w-3 h-3 text-primary" />
