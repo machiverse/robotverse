@@ -234,14 +234,6 @@ const SparePartDetails = () => {
       return;
     }
 
-    await trackButtonClick({
-      buttonName: "Add to Watchlist",
-      buttonType: "watchlist",
-      sellerId: sparePart?.seller_id,
-      itemId: sparePart?.id,
-      itemType: "spare_part",
-    });
-
     toast({
       title: "Added to Watchlist",
       description: "This spare part has been added to your watchlist",
@@ -411,12 +403,7 @@ const SparePartDetails = () => {
                         {sparePart.main_category && <Badge variant="outline">{sparePart.main_category}</Badge>}
                         {sparePart.is_international && <Badge variant="default">International</Badge>}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-4 h-4 text-foreground" />
-                      <Badge variant="secondary" className="text-xs">
-                        Views tracking
-                      </Badge>
+                      <ViewCountDisplay targetType="spare_parts" targetId={sparePart.id} className="mt-2" />
                     </div>
                   </div>
 
@@ -449,7 +436,19 @@ const SparePartDetails = () => {
                         itemName={sparePart.name}
                       />
                     )}
-                    <Button variant="outline" onClick={handleAddToWatchlist}>
+                    <Button 
+                      variant="outline" 
+                      onClick={async () => {
+                        await trackButtonClick({
+                          buttonName: "Add to Wishlist - Spare Part",
+                          buttonType: "watchlist",
+                          sellerId: sparePart.seller_id,
+                          itemId: sparePart.id,
+                          itemType: "spare_part",
+                        });
+                        handleAddToWatchlist();
+                      }}
+                    >
                       <Heart className="w-4 h-4 mr-2" />
                       Add to Wishlist
                     </Button>
