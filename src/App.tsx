@@ -11,6 +11,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
+import SparePartDetails from "./pages/SparePartDetails";
 import Services from "./pages/Services";
 import Logistics from "./pages/Logistics";
 import Financing from "./pages/Financing";
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/robots/:id" element={<RobotDetails />} />
             <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
+            <Route path="/parts/:id" element={<SparePartDetails />} />
             <Route path="/services" element={<Services />} />
             <Route path="/logistics" element={<Logistics />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />

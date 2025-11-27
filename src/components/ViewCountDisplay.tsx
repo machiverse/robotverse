@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ViewCountDisplayProps {
-  targetType: 'robots' | 'blogs' | 'community_posts';
+  targetType: 'robots' | 'blogs' | 'community_posts' | 'spare_parts' | 'services' | 'logistics_services' | 'loan_products';
   targetId: string;
   className?: string;
 }
@@ -46,6 +46,16 @@ const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDis
               .maybeSingle();
             if (postError) throw postError;
             count = post?.view_count || 0;
+            break;
+          
+          case 'spare_parts':
+          case 'services':
+          case 'logistics_services':
+          case 'loan_products':
+            const { data: itemCount, error: itemError } = await supabase
+              .rpc('get_item_view_count', { p_item_id: targetId, p_item_type: targetType });
+            if (itemError) throw itemError;
+            count = itemCount || 0;
             break;
         }
         

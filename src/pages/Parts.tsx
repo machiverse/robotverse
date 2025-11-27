@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
+import { Package, MapPin, Search, Grid, List, Star, Loader2, Building } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useToast } from "@/hooks/use-toast";
@@ -59,14 +59,14 @@ const Parts = () => {
 
   const mainCategories = [
     { value: "all", label: "All Categories" },
-    ...getMainCategories().map(cat => ({ value: cat, label: cat }))
+    ...getMainCategories().map((cat) => ({ value: cat, label: cat })),
   ];
 
   const subCategories = [
     { value: "all", label: "All Sub-Categories" },
-    ...(selectedMainCategory && selectedMainCategory !== "all" 
-      ? getSubCategories(selectedMainCategory).map(sub => ({ value: sub, label: sub }))
-      : [])
+    ...(selectedMainCategory && selectedMainCategory !== "all"
+      ? getSubCategories(selectedMainCategory).map((sub) => ({ value: sub, label: sub }))
+      : []),
   ];
 
   const locations = [
@@ -84,8 +84,9 @@ const Parts = () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
-          .from('spare_parts')
-          .select(`
+          .from("spare_parts")
+          .select(
+            `
             *,
             profiles!spare_parts_seller_id_fkey (
               full_name,
@@ -95,35 +96,36 @@ const Parts = () => {
               mobile_number,
               email
             )
-          `)
-          .order('created_at', { ascending: false });
+          `,
+          )
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
-        
+
         // Transform data to match interface
-        const transformedData = data.map(item => ({
+        const transformedData = data.map((item) => ({
           id: item.id,
           name: item.name,
-          category: item.main_category || item.category_tags?.[0] || 'Other',
-          subCategory: item.sub_category || '',
-          customCategory: item.custom_category || '',
+          category: item.main_category || item.category_tags?.[0] || "Other",
+          subCategory: item.sub_category || "",
+          customCategory: item.custom_category || "",
           price: item.price || 0,
-          location: item.location || item.profiles?.location || 'Location not specified',
+          location: item.location || item.profiles?.location || "Location not specified",
           image: item.images?.[0] || "/placeholder.svg",
-          partNumber: item.part_number || 'N/A',
-          compatibility: item.compatible_robots?.join(', ') || 'Universal',
+          partNumber: item.part_number || "N/A",
+          compatibility: item.compatible_robots?.join(", ") || "Universal",
           rating: 4.5, // Default rating
-          availability: 'In Stock',
+          availability: "In Stock",
           quantity: item.quantity,
           seller: item.profiles || {},
-          sellerId: item.seller_id
+          sellerId: item.seller_id,
         }));
-        
+
         setParts(transformedData);
         setError(null);
       } catch (err) {
-        console.error('Error fetching parts:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load spare parts');
+        console.error("Error fetching parts:", err);
+        setError(err instanceof Error ? err.message : "Failed to load spare parts");
         setParts([]);
       } finally {
         setLoading(false);
@@ -145,7 +147,7 @@ const Parts = () => {
     }
 
     const phone = part.seller?.phone || part.seller?.mobile_number;
-    
+
     if (!phone) {
       toast({
         variant: "destructive",
@@ -172,57 +174,53 @@ const Parts = () => {
         partNumber: part.partNumber,
         category: part.category,
         price: part.price,
-        contactMethod: "phone"
-      }
+        contactMethod: "phone",
+      },
     });
 
     try {
       // Log the contact request
-      const { error: requestError } = await supabase
-        .from('user_requests')
-        .insert({
-          user_id: user.id,
-          user_name: user.user_metadata?.full_name || 'Unknown User',
-          company_name: user.user_metadata?.company_name || '',
-          mobile_number: user.user_metadata?.phone || '',
-          email_address: user.email || '',
-          location: user.user_metadata?.location || '',
-          request_type: 'Contact Seller',
-          item_type: 'spare_parts',
-          item_id: part.id,
-          item_name: part.name,
-          seller_id: part.sellerId || '',
-          status: 'pending',
-          requirements: `User contacted seller for spare part: ${part.name}`
-        });
+      const { error: requestError } = await supabase.from("user_requests").insert({
+        user_id: user.id,
+        user_name: user.user_metadata?.full_name || "Unknown User",
+        company_name: user.user_metadata?.company_name || "",
+        mobile_number: user.user_metadata?.phone || "",
+        email_address: user.email || "",
+        location: user.user_metadata?.location || "",
+        request_type: "Contact Seller",
+        item_type: "spare_parts",
+        item_id: part.id,
+        item_name: part.name,
+        seller_id: part.sellerId || "",
+        status: "pending",
+        requirements: `User contacted seller for spare part: ${part.name}`,
+      });
 
       if (requestError) {
-        console.error('Error logging request:', requestError);
+        console.error("Error logging request:", requestError);
       }
 
       // Create notification for seller
       if (part.sellerId) {
-        const { error: notificationError } = await supabase
-          .from('seller_notifications')
-          .insert({
-            seller_id: part.sellerId,
-            user_id: user.id,
-            type: 'contact_request',
-            title: 'New Contact Request',
-            message: `${user.user_metadata?.full_name || 'A user'} wants to contact you about ${part.name}`,
-            item_type: 'spare_parts',
-            item_id: part.id
-          });
+        const { error: notificationError } = await supabase.from("seller_notifications").insert({
+          seller_id: part.sellerId,
+          user_id: user.id,
+          type: "contact_request",
+          title: "New Contact Request",
+          message: `${user.user_metadata?.full_name || "A user"} wants to contact you about ${part.name}`,
+          item_type: "spare_parts",
+          item_id: part.id,
+        });
 
         if (notificationError) {
-          console.error('Error creating notification:', notificationError);
+          console.error("Error creating notification:", notificationError);
         }
       }
     } catch (error) {
-      console.error('Error processing contact request:', error);
+      console.error("Error processing contact request:", error);
     }
-    
-    window.open(`tel:${phone}`, '_self');
+
+    window.open(`tel:${phone}`, "_self");
     toast({
       title: "Calling Seller",
       description: `Calling ${part.seller?.company_name || part.seller?.full_name}...`,
@@ -256,26 +254,25 @@ const Parts = () => {
         partName: part.name,
         partNumber: part.partNumber,
         category: part.category,
-        price: part.price
-      }
+        price: part.price,
+      },
     });
-    
+
     setSelectedPart(part);
     setIsQuoteModalOpen(true);
   };
   const filteredParts = parts.filter((part) => {
-    const matchesSearch = part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         part.compatibility.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesMainCategory = selectedMainCategory === "all" || 
-                           part.category === selectedMainCategory;
-    
-    const matchesSubCategory = selectedSubCategory === "all" ||
-                          (part.subCategory === selectedSubCategory);
-    
-    const matchesLocation = selectedLocation === "all" || 
-                           part.location.toLowerCase() === selectedLocation.toLowerCase();
+    const matchesSearch =
+      part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      part.compatibility.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesMainCategory = selectedMainCategory === "all" || part.category === selectedMainCategory;
+
+    const matchesSubCategory = selectedSubCategory === "all" || part.subCategory === selectedSubCategory;
+
+    const matchesLocation =
+      selectedLocation === "all" || part.location.toLowerCase() === selectedLocation.toLowerCase();
 
     return matchesSearch && matchesMainCategory && matchesSubCategory && matchesLocation;
   });
@@ -319,7 +316,7 @@ const Parts = () => {
         jsonLd={generateItemListSchema(parts.slice(0, 20), "Robot Spare Parts & Accessories")}
       />
       <EnhancedHeader />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -344,10 +341,14 @@ const Parts = () => {
                 disabled={loading}
               />
             </div>
-            <Select value={selectedMainCategory} onValueChange={(value) => {
-              setSelectedMainCategory(value);
-              setSelectedSubCategory("all");
-            }} disabled={loading}>
+            <Select
+              value={selectedMainCategory}
+              onValueChange={(value) => {
+                setSelectedMainCategory(value);
+                setSelectedSubCategory("all");
+              }}
+              disabled={loading}
+            >
               <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Main Category" />
               </SelectTrigger>
@@ -404,11 +405,11 @@ const Parts = () => {
               </Button>
             </div>
           </div>
-          
+
           {/* Results count */}
           {!loading && !error && (
             <div className="text-sm text-muted-foreground">
-              {filteredParts.length} {filteredParts.length === 1 ? 'part' : 'parts'} found
+              {filteredParts.length} {filteredParts.length === 1 ? "part" : "parts"} found
             </div>
           )}
         </div>
@@ -425,18 +426,22 @@ const Parts = () => {
             {/* Results */}
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredParts.map((part) => (
-                <Card 
-                  key={part.id} 
+                <Card
+                  key={part.id}
                   className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-                  onClick={() => trackItemView('spare_parts', part.id, part)}
+                  onClick={() => {
+                    trackItemView("spare_parts", part.id, part);
+                    window.location.href = `/parts/${part.id}`;
+                  }}
                 >
                   <CardHeader>
+                    {/* Small thumbnail preview image */}
                     <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
                       {part.image && part.image !== "/placeholder.svg" ? (
-                        <img 
-                          src={part.image} 
+                        <img
+                          src={part.image}
                           alt={part.name}
-                          className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-contain p-2 rounded-lg group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="flex items-center justify-center w-full h-full">
@@ -458,33 +463,43 @@ const Parts = () => {
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-primary">
-                          ₹{part.price.toLocaleString()}
-                        </span>
+                        <span className="text-2xl font-bold text-primary">₹{part.price.toLocaleString()}</span>
                         <Badge variant={part.availability === "In Stock" ? "default" : "secondary"}>
                           {part.availability}
                         </Badge>
                       </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span className="text-sm">{part.location}</span>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <Building className="w-4 h-4 mr-1" />
+                          <span className="text-sm font-medium">{part.seller?.company_name || "Company Name"}</span>
+                        </div>
+                        <div className="flex items-center text-muted-foreground">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          <span className="text-sm">{part.location}</span>
+                        </div>
                       </div>
                       <div className="text-sm space-y-1">
-                        <p><span className="font-medium">Part #:</span> {part.partNumber}</p>
-                        <p><span className="font-medium">Compatible:</span> {part.compatibility}</p>
-                        <p><span className="font-medium">Quantity:</span> {part.quantity} available</p>
+                        <p>
+                          <span className="font-medium">Part #:</span> {part.partNumber}
+                        </p>
+                        <p>
+                          <span className="font-medium">Compatible:</span> {part.compatibility}
+                        </p>
+                        <p>
+                          <span className="font-medium">Quantity:</span> {part.quantity} available
+                        </p>
                       </div>
                       <div className="flex space-x-2 pt-2">
                         <ChatButton
-                          otherUserId={part.sellerId || ''}
+                          otherUserId={part.sellerId || ""}
                           itemId={part.id}
                           itemType="spare_part"
-                            itemName={part.name}
-                            variant="default"
-                            className="flex-1"
-                          />
-                        </div>
+                          itemName={part.name}
+                          variant="default"
+                          className="flex-1"
+                        />
                       </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -507,8 +522,8 @@ const Parts = () => {
         isOpen={isQuoteModalOpen}
         onClose={() => setIsQuoteModalOpen(false)}
         part={selectedPart}
-        userEmail={user?.email || ''}
-        userName={user?.user_metadata?.full_name || 'User'}
+        userEmail={user?.email || ""}
+        userName={user?.user_metadata?.full_name || "User"}
       />
     </div>
   );

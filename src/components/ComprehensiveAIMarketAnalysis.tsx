@@ -66,8 +66,7 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
     try {
       const res = await supabase.functions.invoke('roboverse-ai-analyze', { 
         body: { 
-          robotId: robotData.id,
-          analysisType: 'comprehensive_market'
+          robotId: robotData.id
         }
       });
       
@@ -76,12 +75,36 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
         throw new Error(res.error.message || 'Failed to fetch market analysis');
       }
       
-      setAnalysisData(res.data);
+      // Transform the analysis data to match the expected format
+      const analysisResult = res.data;
       
-      if (res.data?.cached) {
+      if (analysisResult?.analysis) {
+        const analysis = analysisResult.analysis;
+        setAnalysisData({
+          marketOverview: analysis.summary || '',
+          competitiveAnalysis: analysis.technicalInsights || '',
+          targetMarkets: analysis.suggestedIndustries || '',
+          priceAnalysis: analysisResult.robot?.marketInsights?.priceRange || '',
+          technologyTrends: analysis.suitability || '',
+          riskAssessment: '',
+          investmentOutlook: '',
+          regulatoryLandscape: analysis.governmentSchemes || '',
+          businessOpportunities: '',
+          recommendations: JSON.stringify(analysisResult.marketEcosystem || {}),
+          timestamp: analysis.timestamp || new Date().toISOString(),
+          cached: analysisResult.cached
+        });
+      }
+      
+      if (analysisResult?.cached) {
         toast({
           title: "Analysis Loaded",
-          description: "Market analysis loaded successfully.",
+          description: "Market analysis loaded from cache.",
+        });
+      } else {
+        toast({
+          title: "Analysis Complete",
+          description: "Fresh market analysis generated successfully.",
         });
       }
     } catch (e: any) {

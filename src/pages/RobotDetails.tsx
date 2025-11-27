@@ -439,11 +439,12 @@ const RobotDetails = () => {
     }
   };
 
-  // Fetch spare parts filtered by robot compatibility
+  // Fetch spare parts filtered by robot compatibility - Universal + Brand-specific
   const fetchCompatibleSpareParts = async () => {
     setLoadingSpareParts(true);
     try {
-      let query = supabase.from("spare_parts").select(`
+      // First, get all spare parts
+      const { data: allParts, error } = await supabase.from("spare_parts").select(`
           *,
           profiles!spare_parts_seller_id_fkey (
             full_name,
@@ -455,19 +456,51 @@ const RobotDetails = () => {
           )
         `);
 
-      // Filter by robot compatibility if robot is loaded
-      if (robot) {
-        query = query.or(
-          `compatible_robots.cs.{${robot.model}},compatible_robots.cs.{${robot.brand}},compatible_robots.cs.{${robot.name}}`,
-        );
-      }
-
-      const { data, error } = await query.limit(12);
-
       if (error) throw error;
 
+      // Filter compatible parts based on:
+      // 1. Universal parts (compatible_robots is null or contains "Universal")
+      // 2. Parts matching robot brand
+      // 3. Parts matching robot model
+      // 4. Parts matching robot name
+      const compatibleParts =
+        allParts?.filter((part) => {
+          const compatibleRobots = part.compatible_robots || [];
+
+          // Universal parts
+          if (
+            compatibleRobots.length === 0 ||
+            compatibleRobots.some((r: string) => r.toLowerCase().includes("universal"))
+          ) {
+            return true;
+          }
+
+          // Brand match
+          if (
+            robot?.brand &&
+            compatibleRobots.some((r: string) => r.toLowerCase().includes(robot.brand.toLowerCase()))
+          ) {
+            return true;
+          }
+
+          // Model match
+          if (
+            robot?.model &&
+            compatibleRobots.some((r: string) => r.toLowerCase().includes(robot.model.toLowerCase()))
+          ) {
+            return true;
+          }
+
+          // Name match
+          if (robot?.name && compatibleRobots.some((r: string) => r.toLowerCase().includes(robot.name.toLowerCase()))) {
+            return true;
+          }
+
+          return false;
+        }) || [];
+
       // Sort by location proximity if user location is available
-      const sortedData = data?.sort((a, b) => {
+      const sortedData = compatibleParts.sort((a, b) => {
         if (!currentUserLocation) return 0;
 
         const aDistance = a.profiles?.location?.toLowerCase().includes(currentUserLocation.toLowerCase()) ? 0 : 1;
@@ -476,7 +509,7 @@ const RobotDetails = () => {
         return aDistance - bDistance;
       });
 
-      setSpareParts(sortedData || []);
+      setSpareParts(sortedData.slice(0, 12));
     } catch (err) {
       console.error("Error fetching spare parts:", err);
     } finally {
@@ -800,22 +833,13 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
     setAnalysisLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/roboverse-ai-analyze`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          robotData: robot,
-          userId: user.id,
-          userLocation: currentUserLocation,
-        }),
+      const { data, error } = await supabase.functions.invoke("roboverse-ai-analyze", {
+        body: { robotId: robot.id },
       });
 
-      if (!response.ok) throw new Error("Failed to analyze robot");
+      if (error) throw new Error(error.message || "Failed to analyze robot");
+      setAiAnalysis(data);
 
-      const data = await response.json();
       setAiAnalysis(data);
 
       await trackButtonClick({
@@ -1756,62 +1780,188 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   {/* Specifications Tab */}
                   <TabsContent value="specifications" className="p-8">
                     <div className="space-y-6">
-                      <h3 className="text-2xl font-bold mb-4">Technical Specifications</h3>
-                      {robot.technical_specifications && Object.keys(robot.technical_specifications).length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {Object.entries(robot.technical_specifications).map(([key, value]) => (
-                            <div key={key} className="flex justify-between border-b border-border/50 py-2">
+                      <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <Settings className="w-6 h-6 text-primary" />
+                        Technical Specifications
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Core Specifications */}
+                        {robot.brand && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Brand</span>
+                            <span className="text-muted-foreground">{robot.brand}</span>
+                          </div>
+                        )}
+                        {robot.model && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Model</span>
+                            <span className="text-muted-foreground">{robot.model}</span>
+                          </div>
+                        )}
+                        {robot.robot_type && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Robot Type</span>
+                            <span className="text-muted-foreground">{robot.robot_type}</span>
+                          </div>
+                        )}
+                        {robot.condition && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Condition</span>
+                            <span className="text-muted-foreground capitalize">
+                              {robot.condition.replace("_", " ")}
+                            </span>
+                          </div>
+                        )}
+                        {robot.year_manufactured && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Year Manufactured</span>
+                            <span className="text-muted-foreground">{robot.year_manufactured}</span>
+                          </div>
+                        )}
+                        {robot.payload_capacity && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Payload Capacity</span>
+                            <span className="text-muted-foreground">{robot.payload_capacity} kg</span>
+                          </div>
+                        )}
+                        {robot.reach && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Reach</span>
+                            <span className="text-muted-foreground">{robot.reach} mm</span>
+                          </div>
+                        )}
+                        {robot.repeatability && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Repeatability</span>
+                            <span className="text-muted-foreground">±{robot.repeatability} mm</span>
+                          </div>
+                        )}
+                        {robot.controller_type && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Controller Type</span>
+                            <span className="text-muted-foreground">{robot.controller_type}</span>
+                          </div>
+                        )}
+                        {robot.power_consumption && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Power Consumption</span>
+                            <span className="text-muted-foreground">{robot.power_consumption} kW</span>
+                          </div>
+                        )}
+                        {robot.operating_environment && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Operating Environment</span>
+                            <span className="text-muted-foreground">{robot.operating_environment}</span>
+                          </div>
+                        )}
+                        {robot.warranty_info && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Warranty</span>
+                            <span className="text-muted-foreground">{robot.warranty_info}</span>
+                          </div>
+                        )}
+                        {robot.quantity && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Quantity Available</span>
+                            <span className="text-muted-foreground">{robot.quantity}</span>
+                          </div>
+                        )}
+                        {robot.availability && (
+                          <div className="flex justify-between border-b border-border/50 py-3">
+                            <span className="font-semibold">Availability</span>
+                            <span className="text-muted-foreground capitalize">
+                              {robot.availability.replace("_", " ")}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Additional Technical Specifications */}
+                        {robot.technical_specifications &&
+                          Object.keys(robot.technical_specifications).length > 0 &&
+                          Object.entries(robot.technical_specifications).map(([key, value]) => (
+                            <div key={key} className="flex justify-between border-b border-border/50 py-3">
                               <span className="font-semibold capitalize">{key.replace(/_/g, " ")}</span>
-                              <span className="text-muted-foreground">{value}</span>
+                              <span className="text-muted-foreground">{String(value)}</span>
                             </div>
                           ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">No technical specifications available.</p>
-                      )}
+                      </div>
                     </div>
                   </TabsContent>
 
                   {/* Spare Parts Tab */}
                   <TabsContent value="spareparts" className="p-8">
                     <div className="space-y-6">
-                      <h3 className="text-2xl font-bold mb-4">Compatible Spare Parts</h3>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-2xl font-bold flex items-center gap-2">
+                          <Wrench className="w-6 h-6 text-primary" />
+                          Compatible Spare Parts
+                        </h3>
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate("/parts")}
+                          className="flex items-center gap-2"
+                        >
+                          <Search className="w-4 h-4" />
+                          Browse All Parts
+                        </Button>
+                      </div>
+
                       {loadingSpareParts ? (
-                        <div className="flex items-center justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                          Loading spare parts...
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
+                          <span className="text-muted-foreground">Loading spare parts...</span>
                         </div>
                       ) : spareParts.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {spareParts.map((part) => (
-                            <Card key={part.id} className="shadow-md">
-                              <CardContent>
-                                <h4 className="font-semibold text-lg">{part.name || part.part_name}</h4>
-                                <p className="text-sm text-muted-foreground">
+                            <Card key={part.id} className="shadow-md hover:shadow-lg transition-shadow">
+                              <CardContent className="p-4">
+                                {/* Small thumbnail image */}
+                                {part.images && part.images[0] && (
+                                  <div className="mb-3 rounded-lg overflow-hidden bg-muted">
+                                    <img
+                                      src={part.images[0]}
+                                      alt={part.name || part.part_name}
+                                      className="w-full h-32 object-cover"
+                                    />
+                                  </div>
+                                )}
+
+                                <h4 className="font-semibold text-lg mb-2">{part.name || part.part_name}</h4>
+                                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                                   {part.description || "No description available."}
                                 </p>
-                                <div className="mt-2 flex justify-between items-center">
-                                  <Button size="sm" onClick={() => handleContactSpareParts(part)}>
-                                    Call Supplier
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedSupplier(part.profiles);
-                                      setSelectedItem(part);
-                                      setShowQuoteForm(true);
-                                    }}
-                                  >
-                                    Request Quote
-                                  </Button>
-                                </div>
+
+                                {part.price && (
+                                  <p className="text-lg font-bold text-primary mb-3">
+                                    {part.currency === "USD" ? "$" : "₹"}
+                                    {part.price.toLocaleString()}
+                                  </p>
+                                )}
+
+                                {/* Only Chat Button */}
+                                <ChatButton
+                                  otherUserId={part.seller_id}
+                                  itemId={part.id}
+                                  itemType="spare_part"
+                                  itemName={part.name || part.part_name}
+                                  variant="outline"
+                                  className="w-full"
+                                  size="sm"
+                                />
                               </CardContent>
                             </Card>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-muted-foreground">No compatible spare parts found.</p>
+                        <div className="text-center py-12">
+                          <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">No compatible spare parts found for this robot.</p>
+                          <Button variant="link" onClick={() => navigate("/parts")} className="mt-4">
+                            Browse all spare parts
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
@@ -1819,43 +1969,108 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   {/* Services Tab */}
                   <TabsContent value="services" className="p-8">
                     <div className="space-y-6">
-                      <h3 className="text-2xl font-bold mb-4">Related Services</h3>
+                      <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <Wrench className="w-6 h-6 text-primary" />
+                        Related Services
+                      </h3>
+
                       {loadingServices ? (
-                        <div className="flex items-center justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                          Loading services...
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
+                          <span className="text-muted-foreground">Loading services...</span>
                         </div>
                       ) : services.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {services.map((service) => (
-                            <Card key={service.id} className="shadow-md">
-                              <CardContent>
-                                <h4 className="font-semibold text-lg">{service.service_name}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {service.description || "No description available."}
-                                </p>
-                                <div className="mt-2 flex justify-between items-center">
-                                  <Button size="sm" onClick={() => handleContactService(service)}>
-                                    Call Provider
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedSupplier(service.profiles);
-                                      setSelectedItem(service);
-                                      setShowQuoteForm(true);
-                                    }}
-                                  >
-                                    Request Quote
-                                  </Button>
+                            <Card key={service.id} className="shadow-md hover:shadow-lg transition-shadow">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="font-semibold text-xl mb-2">{service.name}</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                      {service.description || "No description available."}
+                                    </p>
+                                  </div>
+
+                                  {/* Provider Information */}
+                                  {service.profiles && (
+                                    <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                                      <h5 className="font-semibold text-sm flex items-center gap-2">
+                                        <Building className="w-4 h-4 text-primary" />
+                                        Service Provider
+                                      </h5>
+                                      <div className="space-y-1 text-sm">
+                                        {service.profiles.company_name && (
+                                          <p className="flex items-center gap-2">
+                                            <span className="font-medium">Company:</span>
+                                            <span className="text-muted-foreground">
+                                              {service.profiles.company_name}
+                                            </span>
+                                          </p>
+                                        )}
+                                        {/*{service.profiles.full_name && (
+                                          <p className="flex items-center gap-2">
+                                            <span className="font-medium">Contact:</span>
+                                            <span className="text-muted-foreground">{service.profiles.full_name}</span>
+                                          </p>
+                                        )}*/}
+                                        {service.profiles.location && (
+                                          <p className="flex items-center gap-2">
+                                            <MapPin className="w-3 h-3 text-primary" />
+                                            <span className="text-muted-foreground">{service.profiles.location}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Service Details */}
+                                  <div className="space-y-2">
+                                    {service.service_type && (
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="secondary">{service.service_type}</Badge>
+                                      </div>
+                                    )}
+                                    {service.price_range && (
+                                      <p className="text-lg font-bold text-primary">{service.price_range}</p>
+                                    )}
+                                    {service.coverage && (
+                                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <MapPin className="w-3 h-3" />
+                                        Coverage: {service.coverage}
+                                      </p>
+                                    )}
+                                    {service.specializations && service.specializations.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {service.specializations.slice(0, 3).map((spec: string, idx: number) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">
+                                            {spec}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Only Chat Button */}
+                                  <ChatButton
+                                    otherUserId={service.provider_id}
+                                    itemId={service.id}
+                                    itemType="service"
+                                    itemName={service.name}
+                                    variant="default"
+                                    className="w-full"
+                                    size="default"
+                                  />
                                 </div>
                               </CardContent>
                             </Card>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-muted-foreground">No related services found.</p>
+                        <div className="text-center py-12">
+                          <Wrench className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">No related services found.</p>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
@@ -1863,39 +2078,136 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   {/* Logistics Tab */}
                   <TabsContent value="logistics" className="p-8">
                     <div className="space-y-6">
-                      <h3 className="text-2xl font-bold mb-4">Logistics Providers</h3>
+                      <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <Truck className="w-6 h-6 text-primary" />
+                        Logistics Providers
+                      </h3>
+
                       {loadingLogistics ? (
-                        <div className="flex items-center justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                          Loading logistics services...
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
+                          <span className="text-muted-foreground">Loading logistics services...</span>
                         </div>
                       ) : logisticsServices.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {logisticsServices.map((logistics) => (
-                            <Card key={logistics.id} className="shadow-md">
-                              <CardContent>
-                                <h4 className="font-semibold text-lg">{logistics.service_name}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {logistics.description || "No description available."}
-                                </p>
-                                <div className="mt-2 flex justify-between items-center">
-                                  <Button size="sm" onClick={() => handleContactLogistics(logistics)}>
-                                    Call Provider
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleGetLogisticsQuote(logistics)}
-                                  >
-                                    Request Quote
-                                  </Button>
+                            <Card key={logistics.id} className="shadow-md hover:shadow-lg transition-shadow">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="font-semibold text-xl mb-2">{logistics.service_name}</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                      {logistics.description || "No description available."}
+                                    </p>
+                                  </div>
+
+                                  {/* Provider Information */}
+                                  {logistics.profiles && (
+                                    <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                                      <h5 className="font-semibold text-sm flex items-center gap-2">
+                                        <Building className="w-4 h-4 text-primary" />
+                                        Logistics Provider
+                                      </h5>
+                                      <div className="space-y-1 text-sm">
+                                        {logistics.profiles.company_name && (
+                                          <p className="flex items-center gap-2">
+                                            <span className="font-medium">Company:</span>
+                                            <span className="text-muted-foreground">
+                                              {logistics.profiles.company_name}
+                                            </span>
+                                          </p>
+                                        )}
+                                        {/*} {logistics.profiles.full_name && (
+                                          <p className="flex items-center gap-2">
+                                            <span className="font-medium">Contact:</span>
+                                            <span className="text-muted-foreground">
+                                              {logistics.profiles.full_name}
+                                            </span>
+                                          </p>
+                                        )}*/}
+                                        {logistics.profiles.location && (
+                                          <p className="flex items-center gap-2">
+                                            <MapPin className="w-3 h-3 text-primary" />
+                                            <span className="text-muted-foreground">{logistics.profiles.location}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Logistics Details */}
+                                  <div className="space-y-2">
+                                    {logistics.service_type && (
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="secondary">{logistics.service_type}</Badge>
+                                      </div>
+                                    )}
+                                    {logistics.delivery_time_hours && (
+                                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <Clock className="w-3 h-3" />
+                                        Delivery: {logistics.delivery_time_hours} hours
+                                      </p>
+                                    )}
+                                    {logistics.coverage_areas && logistics.coverage_areas.length > 0 && (
+                                      <p className="text-sm text-muted-foreground flex items-start gap-2">
+                                        <MapPin className="w-3 h-3 mt-1" />
+                                        <span>Coverage: {logistics.coverage_areas.slice(0, 3).join(", ")}</span>
+                                      </p>
+                                    )}
+                                    {logistics.max_weight_kg && (
+                                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <Package className="w-3 h-3" />
+                                        Max Weight: {logistics.max_weight_kg} kg
+                                      </p>
+                                    )}
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                      {logistics.tracking_available && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Real-time Tracking
+                                        </Badge>
+                                      )}
+                                      {logistics.insurance_included && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Insurance Included
+                                        </Badge>
+                                      )}
+                                      {logistics.is_international && (
+                                        <Badge variant="outline" className="text-xs">
+                                          International
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleContactLogistics(logistics)}
+                                      className="flex-1"
+                                    >
+                                      <Phone className="w-4 h-4 mr-2" />
+                                      Call Provider
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleGetLogisticsQuote(logistics)}
+                                      className="flex-1"
+                                    >
+                                      <FileText className="w-4 h-4 mr-2" />
+                                      Request Quote
+                                    </Button>
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-muted-foreground">No logistics providers found.</p>
+                        <div className="text-center py-12">
+                          <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">No logistics providers found.</p>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
@@ -1903,35 +2215,133 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
                   {/* Financing Tab */}
                   <TabsContent value="financing" className="p-8">
                     <div className="space-y-6">
-                      <h3 className="text-2xl font-bold mb-4">Financing Options</h3>
+                      <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <CreditCard className="w-6 h-6 text-primary" />
+                        Financing Options
+                      </h3>
+
                       {loadingFinancing ? (
-                        <div className="flex items-center justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                          Loading financing options...
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin mr-2 text-primary" />
+                          <span className="text-muted-foreground">Loading financing options...</span>
                         </div>
                       ) : financingOptions.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {financingOptions.map((option) => (
-                            <Card key={option.id} className="shadow-md">
-                              <CardContent>
-                                <h4 className="font-semibold text-lg">{option.product_name}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {option.description || "No description available."}
-                                </p>
-                                <div className="mt-2 flex justify-between items-center">
-                                  <Button size="sm" onClick={() => handleContactFinance(option)}>
-                                    Call Provider
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleApplyLoan(option)}>
-                                    Apply for Loan
-                                  </Button>
+                            <Card key={option.id} className="shadow-md hover:shadow-lg transition-shadow">
+                              <CardContent className="p-6">
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="font-semibold text-xl mb-2">{option.product_name}</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                      {option.description || "No description available."}
+                                    </p>
+                                  </div>
+
+                                  {/* Provider Information */}
+                                  {option.profiles && (
+                                    <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                                      <h5 className="font-semibold text-sm flex items-center gap-2">
+                                        <Building className="w-4 h-4 text-primary" />
+                                        Finance Provider
+                                      </h5>
+                                      <div className="space-y-1 text-sm">
+                                        {option.profiles.company_name && (
+                                          <p className="flex items-center gap-2">
+                                            <span className="font-medium">Company:</span>
+                                            <span className="text-muted-foreground">
+                                              {option.profiles.company_name}
+                                            </span>
+                                          </p>
+                                        )}
+                                        {/* {option.profiles.full_name && (
+                                          <p className="flex items-center gap-2">
+                                            <span className="font-medium">Contact:</span>
+                                            <span className="text-muted-foreground">{option.profiles.full_name}</span>
+                                          </p>
+                                        )}*/}
+                                        {option.profiles.location && (
+                                          <p className="flex items-center gap-2">
+                                            <MapPin className="w-3 h-3 text-primary" />
+                                            <span className="text-muted-foreground">{option.profiles.location}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Financing Details */}
+                                  <div className="space-y-2">
+                                    {option.loan_type && option.loan_type.length > 0 && (
+                                      <div className="flex flex-wrap gap-2">
+                                        {option.loan_type.map((type: string, idx: number) => (
+                                          <Badge key={idx} variant="secondary">
+                                            {type}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {(option.min_interest_rate || option.max_interest_rate) && (
+                                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <DollarSign className="w-3 h-3" />
+                                        Interest Rate: {option.min_interest_rate}% - {option.max_interest_rate}%
+                                      </p>
+                                    )}
+                                    {option.max_amount && (
+                                      <p className="text-lg font-bold text-primary">
+                                        Up to ₹{option.max_amount.toLocaleString()}
+                                      </p>
+                                    )}
+                                    {(option.min_tenure_months || option.max_tenure_months) && (
+                                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <Clock className="w-3 h-3" />
+                                        Tenure: {option.min_tenure_months || 1} - {option.max_tenure_months} months
+                                      </p>
+                                    )}
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                      {option.quick_approval && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Quick Approval
+                                        </Badge>
+                                      )}
+                                      {option.digital_process && (
+                                        <Badge variant="outline" className="text-xs">
+                                          Digital Process
+                                        </Badge>
+                                      )}
+                                      {!option.collateral_required && (
+                                        <Badge variant="outline" className="text-xs">
+                                          No Collateral
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleContactFinance(option)}
+                                      className="flex-1"
+                                    >
+                                      <Phone className="w-4 h-4 mr-2" />
+                                      Call Provider
+                                    </Button>
+                                    <Button size="sm" onClick={() => handleApplyLoan(option)} className="flex-1">
+                                      <FileText className="w-4 h-4 mr-2" />
+                                      Apply for Loan
+                                    </Button>
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-muted-foreground">No financing options available.</p>
+                        <div className="text-center py-12">
+                          <CreditCard className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">No financing options available.</p>
+                        </div>
                       )}
                     </div>
                   </TabsContent>
