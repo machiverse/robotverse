@@ -16,22 +16,16 @@ import {
   Tag,
   Package,
   Heart,
-  Download,
   Settings,
-  Truck,
-  DollarSign,
-  Brain,
-  MessageSquare,
-  Eye,
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
   Bot,
   Wrench,
+  Globe,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -89,20 +83,42 @@ const SparePartDetails = () => {
   const [error, setError] = useState<string | null>(null);
   const [compatibleRobots, setCompatibleRobots] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
-  const [logistics, setLogistics] = useState<any[]>([]);
-  const [financing, setFinancing] = useState<any[]>([]);
-  const [isAIAnalysisOpen, setIsAIAnalysisOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showImageModal, setShowImageModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
-  // Track page view
+  // Generate SEO keywords for metadata
+  const generateSEOKeywords = (part: SparePart) => {
+    const keywords = [
+      part.name,
+      part.brand,
+      part.model,
+      part.part_number,
+      `${part.brand} ${part.model}`,
+      `${part.name} for sale`,
+      `${part.brand} spare parts`,
+      `${part.main_category} parts`,
+      `${part.condition} ${part.name}`,
+      "industrial robot parts",
+      "robot spare parts India",
+      `${part.brand} ${part.model} replacement`,
+      "buy robot parts online",
+      `${part.location} robot parts`,
+      part.compatible_robots?.join(", ") || "",
+    ].filter(Boolean);
+
+    if (part.location) {
+      keywords.push(`${part.name} ${part.location}`, `${part.brand} parts ${part.location}`);
+    }
+
+    return keywords.slice(0, 20).join(", ");
+  };
+
   useEffect(() => {
     if (id && sparePart) {
       trackItemView("spare_parts", id, sparePart);
     }
   }, [id, sparePart, trackItemView]);
 
-  // Fetch spare part details
   useEffect(() => {
     const fetchSparePartDetails = async () => {
       if (!id) return;
@@ -128,21 +144,14 @@ const SparePartDetails = () => {
           .single();
 
         if (error) throw error;
-        setSparePart(data as unknown as SparePart);
+        const partData = data as unknown as SparePart;
+        setSparePart(partData);
 
-        // Fetch compatible robots
-        if (data.compatible_robots && data.compatible_robots.length > 0) {
-          fetchCompatibleRobots(data.compatible_robots as string[], data.brand);
+        if (partData.compatible_robots && partData.compatible_robots.length > 0) {
+          fetchCompatibleRobots(partData.compatible_robots as string[], partData.brand);
         }
 
-        // Fetch related services
-        fetchServices(data.main_category);
-
-        // Fetch logistics providers
-        fetchLogistics();
-
-        // Fetch financing options
-        fetchFinancing();
+        fetchServices(partData.main_category);
       } catch (err: any) {
         console.error("Error fetching spare part:", err);
         setError(err.message);
@@ -165,11 +174,8 @@ const SparePartDetails = () => {
         .from("robots")
         .select("*")
         .or(`robot_type.in.(${compatibleList.map((r) => `"${r}"`).join(",")}),brand.ilike.%${brand}%`)
-        .limit(6);
-
-      if (!error && data) {
-        setCompatibleRobots(data);
-      }
+        .limit(8);
+      if (!error && data) setCompatibleRobots(data);
     } catch (err) {
       console.error("Error fetching compatible robots:", err);
     }
@@ -180,47 +186,11 @@ const SparePartDetails = () => {
       const { data, error } = await supabase
         .from("services")
         .select("*, profiles!services_provider_id_fkey(*)")
-        .or(`service_type.eq.maintenance,service_type.eq.repair`)
-        .limit(4);
-
-      if (!error && data) {
-        setServices(data);
-      }
+        .or(`service_type.eq.maintenance,service_type.eq.repair,service_type.eq.installation`)
+        .limit(8);
+      if (!error && data) setServices(data);
     } catch (err) {
       console.error("Error fetching services:", err);
-    }
-  };
-
-  const fetchLogistics = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("account_type", "logistics")
-        .not("logistics_type", "is", null)
-        .limit(4);
-
-      if (!error && data) {
-        setLogistics(data);
-      }
-    } catch (err) {
-      console.error("Error fetching logistics:", err);
-    }
-  };
-
-  const fetchFinancing = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("loan_products")
-        .select("*, profiles!loan_products_provider_id_fkey(*)")
-        .contains("loan_type", ["equipment"])
-        .limit(4);
-
-      if (!error && data) {
-        setFinancing(data);
-      }
-    } catch (err) {
-      console.error("Error fetching financing:", err);
     }
   };
 
@@ -233,7 +203,6 @@ const SparePartDetails = () => {
       });
       return;
     }
-
     toast({
       title: "Added to Watchlist",
       description: "This spare part has been added to your watchlist",
@@ -241,13 +210,13 @@ const SparePartDetails = () => {
   };
 
   const nextImage = () => {
-    if (sparePart && sparePart.images) {
+    if (sparePart?.images) {
       setCurrentImageIndex((prev) => (prev + 1) % sparePart.images.length);
     }
   };
 
   const prevImage = () => {
-    if (sparePart && sparePart.images) {
+    if (sparePart?.images) {
       setCurrentImageIndex((prev) => (prev === 0 ? sparePart.images.length - 1 : prev - 1));
     }
   };
@@ -255,7 +224,7 @@ const SparePartDetails = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -263,12 +232,12 @@ const SparePartDetails = () => {
   if (error || !sparePart) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">{error || "Spare part not found"}</p>
-            <Button onClick={() => navigate("/parts")} className="w-full mt-4" variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Parts
+        <Card className="max-w-2xl w-full">
+          <CardContent className="pt-12 pb-12">
+            <p className="text-2xl text-center text-muted-foreground mb-8">{error || "Spare part not found"}</p>
+            <Button onClick={() => navigate("/parts")} className="w-full h-12 text-lg" variant="outline">
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Parts Catalog
             </Button>
           </CardContent>
         </Card>
@@ -282,98 +251,85 @@ const SparePartDetails = () => {
   return (
     <>
       <SEOHead
-        title={`${sparePart.name} - ${sparePart.brand} ${sparePart.model} | Spare Parts`}
-        description={`${sparePart.description?.slice(0, 155) || `Quality ${sparePart.name} spare part from ${sparePart.profiles?.company_name || "verified seller"}`}`}
-        keywords={[
-          sparePart.name,
-          sparePart.brand,
-          sparePart.model,
-          sparePart.part_number,
-          sparePart.main_category,
-          "spare parts",
-          "robot parts",
-          "industrial parts",
-        ]
-          .filter(Boolean)
-          .join(", ")}
+        title={`${sparePart.name} | ${sparePart.brand} ${sparePart.model} Spare Part for Sale - ${sparePart.currency}${sparePart.price?.toLocaleString()} | RobotVerse`}
+        description={`Buy ${sparePart.name} (${sparePart.part_number}) from ${sparePart.brand} ${sparePart.model}. ${sparePart.condition} condition. ${sparePart.quantity} units available. Located in ${
+          sparePart.location || "India"
+        }. Compatible with ${sparePart.compatible_robots?.slice(0, 3).join(", ") || "multiple robots"}. Fast shipping across India.`}
+        keywords={generateSEOKeywords(sparePart)}
         canonical={`https://robotverse.in/parts/${id}`}
         ogImage={currentImage || "/robotverse-logo.png"}
+        ogTitle={`${sparePart.name} - ${sparePart.brand} ${sparePart.model}`}
+        ogDescription={`Premium ${sparePart.name} spare part. ${sparePart.brand} ${sparePart.model}. Only ${
+          sparePart.currency
+        }${sparePart.price?.toLocaleString()}. ${sparePart.location}`}
+        twitterCard="summary_large_image"
       />
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
         <EnhancedHeader />
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
           {/* Back Button */}
-          <Button variant="ghost" onClick={() => navigate("/parts")} className="mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Parts
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/parts")}
+            className="mb-12 text-lg font-medium h-12 px-6 hover:bg-primary/5"
+          >
+            <ArrowLeft className="w-5 h-5 mr-3" />
+            Back to Parts Catalog
           </Button>
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Section - Images */}
-            <div className="lg:col-span-5">
-              <Card>
-                <CardContent className="p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-12 lg:gap-16 mb-20">
+            {/* Image gallery */}
+            <div className="xl:col-span-1">
+              <Card className="sticky top-28 shadow-2xl border-0 bg-white/80 backdrop-blur-xl">
+                <CardContent className="p-8 lg:p-10">
                   {hasImages ? (
-                    <div className="space-y-4">
-                      {/* Main Image */}
-                      <div className="relative aspect-square bg-muted rounded-lg overflow-hidden group">
+                    <div className="space-y-6">
+                      <div className="relative w-full h-[450px] lg:h-[500px] bg-gradient-to-br from-muted/10 to-transparent rounded-3xl overflow-hidden shadow-2xl group border border-border/20">
                         <ResponsiveImage
                           src={currentImage}
-                          alt={sparePart.name}
-                          className="w-full h-full object-contain"
+                          alt={`${sparePart.name} - ${sparePart.brand} ${sparePart.model}`}
+                          className="w-full h-full object-contain p-8 lg:p-12"
+                          loading="eager"
                         />
-
-                        {/* Image Controls */}
                         {sparePart.images.length > 1 && (
                           <>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
+                              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white shadow-xl opacity-0 lg:group-hover:opacity-100 transition-all duration-300 border-2 border-white/50"
                               onClick={prevImage}
                             >
-                              <ChevronLeft className="w-4 h-4" />
+                              <ChevronLeft className="w-6 h-6" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white shadow-xl opacity-0 lg:group-hover:opacity-100 transition-all duration-300 border-2 border-white/50"
                               onClick={nextImage}
                             >
-                              <ChevronRight className="w-4 h-4" />
+                              <ChevronRight className="w-6 h-6" />
                             </Button>
                           </>
                         )}
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute bottom-2 right-2 bg-background/80 hover:bg-background"
-                          onClick={() => setShowImageModal(true)}
-                        >
-                          <Maximize2 className="w-4 h-4" />
-                        </Button>
+                        {sparePart.images.length > 1 && (
+                          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white px-6 py-2 rounded-2xl shadow-2xl text-lg font-bold border border-border/20 z-10">
+                            {currentImageIndex + 1} / {sparePart.images.length}
+                          </div>
+                        )}
                       </div>
-
-                      {/* Thumbnail Gallery */}
                       {sparePart.images.length > 1 && (
-                        <div className="grid grid-cols-5 gap-2">
+                        <div className="grid grid-cols-5 gap-3 pt-8">
                           {sparePart.images.map((img, idx) => (
                             <button
                               key={idx}
                               onClick={() => setCurrentImageIndex(idx)}
-                              className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                idx === currentImageIndex
-                                  ? "border-primary"
-                                  : "border-transparent hover:border-primary/50"
-                              }`}
+                              className={`aspect-square rounded-2xl overflow-hidden shadow-lg border-3 transition-all duration-300 hover:shadow-xl hover:scale-[1.05] ${idx === currentImageIndex ? "border-primary shadow-primary/30 ring-2 ring-primary/50" : "border-transparent hover:border-primary/30"}`}
                             >
                               <ResponsiveImage
                                 src={img}
-                                alt={`${sparePart.name} view ${idx + 1}`}
+                                alt={`View ${idx + 1}`}
                                 className="w-full h-full object-cover"
                               />
                             </button>
@@ -382,108 +338,104 @@ const SparePartDetails = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                      <Package className="w-24 h-24 text-muted-foreground/30" />
+                    <div className="w-full h-[450px] lg:h-[500px] bg-gradient-to-br from-muted to-muted/30 rounded-3xl flex items-center justify-center shadow-2xl border-2 border-dashed border-border/50">
+                      <Package className="w-32 h-32 text-muted-foreground/40" />
                     </div>
                   )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Right Section - Details */}
-            <div className="lg:col-span-7">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl lg:text-3xl mb-2">{sparePart.name}</CardTitle>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <Badge variant="secondary">{sparePart.brand}</Badge>
-                        <Badge variant="outline">{sparePart.condition}</Badge>
-                        {sparePart.main_category && <Badge variant="outline">{sparePart.main_category}</Badge>}
-                        {sparePart.is_international && <Badge variant="default">International</Badge>}
+            {/* Product info and seller */}
+            <div className="xl:col-span-2 space-y-12">
+              {/* Product header */}
+              <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-xl">
+                <CardContent className="pt-12 pb-10 px-10 lg:px-14">
+                  <div className="space-y-8">
+                    <div>
+                      <CardTitle className="text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-6 tracking-tight">
+                        {sparePart.name}
+                      </CardTitle>
+                      <div className="flex flex-wrap gap-3 mb-8">
+                        <Badge className="text-xl px-8 py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold shadow-lg h-14">
+                          {sparePart.brand}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xl px-8 py-4 h-14 font-bold shadow-lg">
+                          {sparePart.condition.toUpperCase()}
+                        </Badge>
+                        <Badge variant="outline" className="text-xl px-8 py-4 h-14 font-bold shadow-lg border-2">
+                          {sparePart.main_category}
+                        </Badge>
                       </div>
-                      <ViewCountDisplay targetType="spare_parts" targetId={sparePart.id} className="mt-2" />
+                    </div>
+
+                    <Separator className="h-px bg-gradient-to-r from-primary/30 to-transparent my-8" />
+                    <div className="space-y-4">
+                      <div className="flex items-baseline gap-6">
+                        <span className="text-7xl lg:text-8xl xl:text-9xl font-black bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent tracking-[-0.05em]">
+                          {sparePart.currency}
+                          <span className="text-6xl lg:text-7xl xl:text-8xl ml-2">
+                            {sparePart.price?.toLocaleString()}
+                          </span>
+                        </span>
+                        {sparePart.quantity > 1 && (
+                          <div className="text-2xl font-bold text-muted-foreground bg-muted/50 px-6 py-3 rounded-2xl shadow-lg">
+                            {sparePart.quantity} Units Available
+                          </div>
+                        )}
+                      </div>
+                      {sparePart.part_number && (
+                        <div className="flex items-center gap-4 text-2xl font-mono font-bold bg-muted/50 px-8 py-4 rounded-2xl shadow-lg">
+                          <Tag className="w-8 h-8 text-primary" />
+                          Part Number: {sparePart.part_number}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-8">
+                      {user && sparePart.seller_id !== user.id && (
+                        <ChatButton
+                          otherUserId={sparePart.seller_id}
+                          itemId={sparePart.id}
+                          itemType="spare_part"
+                          itemName={sparePart.name}
+                          className="h-20 text-xl font-bold shadow-2xl hover:shadow-3xl bg-gradient-to-r from-primary to-primary/90"
+                        />
+                      )}
+                      <Button
+                        variant="outline"
+                        className="h-20 text-xl font-bold shadow-2xl hover:shadow-3xl border-4 border-border hover:border-primary/50 bg-white/50 backdrop-blur-sm"
+                        onClick={handleAddToWatchlist}
+                      >
+                        <Heart className="w-7 h-7 mr-4" />
+                        Add to Wishlist
+                      </Button>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  {/* Price */}
-                  <div className="flex items-baseline gap-2 mt-4">
-                    <span className="text-3xl font-bold text-primary">
-                      {sparePart.currency} {sparePart.price?.toLocaleString()}
-                    </span>
-                    {sparePart.quantity > 1 && (
-                      <span className="text-sm text-muted-foreground">({sparePart.quantity} available)</span>
-                    )}
+              <Card className="shadow-2xl border-0 bg-gradient-to-br from-primary/5 to-primary/2 backdrop-blur-xl border-primary/20">
+                <CardContent className="p-8 lg:p-10 flex items-center gap-6">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-2xl border-2 border-primary/30 shrink-0">
+                    <Building className="w-9 h-9 text-primary" />
                   </div>
-
-                  {/* Part Number */}
-                  {sparePart.part_number && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Part #: <span className="font-mono">{sparePart.part_number}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold uppercase tracking-widest text-primary bg-primary/10 px-4 py-1 rounded-full inline-block mb-3">
+                      Verified Seller
                     </p>
-                  )}
-                </CardHeader>
-
-                <CardContent className="space-y-6">
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3">
-                    {user && sparePart.seller_id !== user.id && (
-                      <ChatButton
-                        otherUserId={sparePart.seller_id}
-                        itemId={sparePart.id}
-                        itemType="spare_part"
-                        itemName={sparePart.name}
-                      />
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        await trackButtonClick({
-                          buttonName: "Add to Wishlist - Spare Part",
-                          buttonType: "watchlist",
-                          sellerId: sparePart.seller_id,
-                          itemId: sparePart.id,
-                          itemType: "spare_part",
-                        });
-                        handleAddToWatchlist();
-                      }}
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      Add to Wishlist
-                    </Button>
-                    {sparePart.profiles && (
-                      <Button variant="outline" disabled title="AI Analysis for spare parts coming soon">
-                        <Brain className="w-4 h-4 mr-2" />
-                        AI Analysis (Coming Soon)
-                      </Button>
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  {/* Seller Info */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <Building className="w-4 h-4" />
-                      Seller Information
+                    <h3 className="text-3xl lg:text-4xl font-black truncate">
+                      {sparePart.profiles?.company_name || "Premium Seller"}
                     </h3>
-                    <div className="grid gap-2 text-sm">
-                      {sparePart.profiles?.company_name && (
-                        <p className="flex items-center gap-2">
-                          <Building className="w-4 h-4 text-muted-foreground" />
-                          {sparePart.profiles.company_name}
-                        </p>
-                      )}
-                      {sparePart.location && (
-                        <p className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                    {sparePart.location && (
+                      <div className="flex items-center gap-3 mt-4 text-xl font-semibold text-muted-foreground">
+                        <MapPin className="w-6 h-6" />
+                        <span className="truncate">
                           {sparePart.location}
                           {sparePart.state && `, ${sparePart.state}`}
-                          {sparePart.pincode && ` - ${sparePart.pincode}`}
-                        </p>
-                      )}
-                    </div>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -491,577 +443,376 @@ const SparePartDetails = () => {
           </div>
 
           {/* Tabs Section */}
-          <div className="mt-8">
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-6 h-auto p-1 bg-muted/50">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-background">
+          <Card className="shadow-2xl border-0 overflow-hidden bg-white/80 backdrop-blur-xl">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 bg-gradient-to-r from-muted/40 to-muted p-2 lg:p-3 gap-2 lg:gap-0 backdrop-blur-sm border-b border-border/20">
+                <TabsTrigger
+                  value="overview"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:border-b-0 h-16 lg:h-20 font-bold text-lg lg:text-xl rounded-2xl p-6 transition-all duration-300 hover:bg-white/50 hover:shadow-lg hover:scale-[1.02] border border-border/30"
+                >
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="specifications" className="data-[state=active]:bg-background">
+                <TabsTrigger
+                  value="specifications"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:border-b-0 h-16 lg:h-20 font-bold text-lg lg:text-xl rounded-2xl p-6 transition-all duration-300 hover:bg-white/50 hover:shadow-lg hover:scale-[1.02] border border-border/30"
+                >
                   Specifications
                 </TabsTrigger>
-                <TabsTrigger value="compatible" className="data-[state=active]:bg-background">
+                <TabsTrigger
+                  value="compatible"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:border-b-0 h-16 lg:h-20 font-bold text-lg lg:text-xl rounded-2xl p-6 transition-all duration-300 hover:bg-white/50 hover:shadow-lg hover:scale-[1.02] border border-border/30"
+                >
                   Compatible Robots
                 </TabsTrigger>
-                <TabsTrigger value="services" className="data-[state=active]:bg-background">
+                <TabsTrigger
+                  value="services"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-xl data-[state=active]:border-b-0 h-16 lg:h-20 font-bold text-lg lg:text-xl rounded-2xl p-6 transition-all duration-300 hover:bg-white/50 hover:shadow-lg hover:scale-[1.02] border border-border/30"
+                >
                   Services
                 </TabsTrigger>
-                {/* <TabsTrigger value="logistics" className="data-[state=active]:bg-background">
-                  Logistics
-                </TabsTrigger>
-                <TabsTrigger value="financing" className="data-[state=active]:bg-background">
-                  Financing
-                </TabsTrigger>*/}
               </TabsList>
 
-              {/* Overview Tab */}
-              <TabsContent value="overview" className="p-8">
-                <div className="space-y-8">
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Wrench className="w-6 h-6 text-primary" />
-                      <h3 className="text-2xl font-bold">About This Part</h3>
-                    </div>
-
-                    {/* Part Description */}
+              {/* Overview Tab Content */}
+              <TabsContent value="overview" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wrench className="w-5 h-5" />
+                      About This Spare Part
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
                     {sparePart.description && (
-                      <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl p-6 border border-border/50">
-                        <p className="text-base leading-relaxed text-foreground whitespace-pre-wrap">
-                          {sparePart.description}
-                        </p>
+                      <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
+                        <p className="text-base leading-relaxed whitespace-pre-wrap">{sparePart.description}</p>
                       </div>
                     )}
 
-                    {/* Key Details Grid */}
-                    <div className="grid md:grid-cols-2 gap-8">
-                      {/* Part Information */}
-                      <div className="space-y-4">
-                        <h4 className="flex items-center gap-2 font-bold text-lg">
-                          <Settings className="w-5 h-5 text-primary" />
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Part Info */}
+                      <div className="space-y-3">
+                        <h4 className="font-bold text-base flex items-center gap-2">
+                          <Settings className="w-4 h-4 text-primary" />
                           Part Information
                         </h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 text-base">
-                            <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>
-                            <span className="font-semibold min-w-[140px]">Brand:</span>
+                        <div className="space-y-2">
+                          <div className="flex justify-between py-2 border-b border-border/30">
+                            <span className="font-semibold text-sm">Brand:</span>
                             <span className="text-muted-foreground">{sparePart.brand}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-base">
-                            <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>
-                            <span className="font-semibold min-w-[140px]">Model:</span>
+                          <div className="flex justify-between py-2 border-b border-border/30">
+                            <span className="font-semibold text-sm">Model:</span>
                             <span className="text-muted-foreground">{sparePart.model}</span>
                           </div>
                           {sparePart.part_number && (
-                            <div className="flex items-center gap-3 text-base">
-                              <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>
-                              <span className="font-semibold min-w-[140px]">Part Number:</span>
-                              <span className="text-muted-foreground font-mono">{sparePart.part_number}</span>
+                            <div className="flex justify-between py-2 border-b border-border/30">
+                              <span className="font-semibold text-sm">Part #:</span>
+                              <span className="text-muted-foreground font-mono text-sm">{sparePart.part_number}</span>
                             </div>
                           )}
-                          <div className="flex items-center gap-3 text-base">
-                            <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>
-                            <span className="font-semibold min-w-[140px]">Condition:</span>
-                            <span className="text-muted-foreground capitalize">{sparePart.condition}</span>
+                          <div className="flex justify-between py-2">
+                            <span className="font-semibold text-sm">Condition:</span>
+                            <Badge variant="secondary" className="capitalize">
+                              {sparePart.condition}
+                            </Badge>
                           </div>
                         </div>
                       </div>
 
                       {/* Availability & Pricing */}
-                      <div className="space-y-4">
-                        <h4 className="flex items-center gap-2 font-bold text-lg">
-                          <Package className="w-5 h-5 text-primary" />
+                      <div className="space-y-3">
+                        <h4 className="font-bold text-base flex items-center gap-2">
+                          <Package className="w-4 h-4 text-primary" />
                           Availability & Pricing
                         </h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 text-base">
-                            <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>
-                            <span className="font-semibold min-w-[140px]">Quantity:</span>
+                        <div className="space-y-2">
+                          <div className="flex justify-between py-2 border-b border-border/30">
+                            <span className="font-semibold text-sm">Quantity:</span>
                             <span className="text-muted-foreground">{sparePart.quantity} units</span>
                           </div>
-                          <div className="flex items-center gap-3 text-base">
-                            <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>
-                            <span className="font-semibold min-w-[140px]">Category:</span>
+                          <div className="flex justify-between py-2 border-b border-border/30">
+                            <span className="font-semibold text-sm">Category:</span>
                             <span className="text-muted-foreground">{sparePart.main_category}</span>
                           </div>
                           {sparePart.sub_category && (
-                            <div className="flex items-center gap-3 text-base">
-                              <span className="w-2.5 h-2.5 bg-primary rounded-full"></span>
-                              <span className="font-semibold min-w-[140px]">Sub-Category:</span>
+                            <div className="flex justify-between py-2 border-b border-border/30">
+                              <span className="font-semibold text-sm">Sub-Category:</span>
                               <span className="text-muted-foreground">{sparePart.sub_category}</span>
                             </div>
                           )}
+                          <div className="flex justify-between py-2">
+                            <span className="font-semibold text-sm">Price:</span>
+                            <span className="font-bold text-primary">
+                              {sparePart.currency} {sparePart.price?.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* International Shipping 
-                    {sparePart.is_international && (
-                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-6 rounded-xl border border-blue-200 dark:border-blue-800">
-                        <h4 className="flex items-center gap-2 font-bold text-lg mb-4">
-                          <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          International Shipping Available
-                        </h4>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          {sparePart.shipping_amount > 0 && (
-                            <div className="flex items-center gap-3">
-                              <span className="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
-                              <span className="font-semibold">Shipping Cost:</span>
-                              <span className="text-muted-foreground">{sparePart.currency} {sparePart.shipping_amount.toLocaleString()}</span>
-                            </div>
-                          )}
-                          {sparePart.duty_amount > 0 && (
-                            <div className="flex items-center gap-3">
-                              <span className="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
-                              <span className="font-semibold">Import Duty:</span>
-                              <span className="text-muted-foreground">{sparePart.currency} {sparePart.duty_amount.toLocaleString()}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}*/}
-
-                    {/* Compatible Robots Tags */}
+                    {/* Compatible Robots */}
                     {sparePart.compatible_robots && sparePart.compatible_robots.length > 0 && (
-                      <div className="space-y-4">
-                        <h4 className="flex items-center gap-2 font-bold text-lg">
-                          <Bot className="w-5 h-5 text-primary" />
+                      <div className="space-y-3 pt-4 border-t">
+                        <h4 className="font-bold text-base flex items-center gap-2">
+                          <Bot className="w-4 h-4 text-primary" />
                           Compatible With
                         </h4>
                         <div className="flex flex-wrap gap-2">
                           {sparePart.compatible_robots.map((robot, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-sm px-3 py-1">
+                            <Badge key={idx} variant="secondary">
                               {robot}
                             </Badge>
                           ))}
                         </div>
                       </div>
                     )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              {/* Specifications Tab */}
-              <TabsContent value="specifications" className="p-8">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                    <Settings className="w-6 h-6 text-primary" />
-                    Technical Specifications
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex justify-between border-b border-border/50 py-3">
-                      <span className="font-semibold">Brand</span>
-                      <span className="text-muted-foreground">{sparePart.brand}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-border/50 py-3">
-                      <span className="font-semibold">Model</span>
-                      <span className="text-muted-foreground">{sparePart.model}</span>
-                    </div>
-                    {sparePart.part_number && (
-                      <div className="flex justify-between border-b border-border/50 py-3">
-                        <span className="font-semibold">Part Number</span>
-                        <span className="text-muted-foreground font-mono">{sparePart.part_number}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between border-b border-border/50 py-3">
-                      <span className="font-semibold">Condition</span>
-                      <Badge variant="secondary" className="capitalize">
-                        {sparePart.condition}
-                      </Badge>
-                    </div>
-                    {sparePart.main_category && (
-                      <div className="flex justify-between border-b border-border/50 py-3">
-                        <span className="font-semibold">Main Category</span>
-                        <span className="text-muted-foreground">{sparePart.main_category}</span>
-                      </div>
-                    )}
-                    {sparePart.sub_category && (
-                      <div className="flex justify-between border-b border-border/50 py-3">
-                        <span className="font-semibold">Sub-Category</span>
-                        <span className="text-muted-foreground">{sparePart.sub_category}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between border-b border-border/50 py-3">
-                      <span className="font-semibold">Quantity Available</span>
-                      <span className="text-muted-foreground">{sparePart.quantity}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-border/50 py-3">
-                      <span className="font-semibold">Price</span>
-                      <span className="text-muted-foreground">
-                        {sparePart.currency} {sparePart.price?.toLocaleString()}
-                      </span>
-                    </div>
-
-                    {/* Additional Specifications from JSON */}
-                    {sparePart.specifications &&
-                      typeof sparePart.specifications === "object" &&
-                      !Array.isArray(sparePart.specifications) &&
-                      Object.keys(sparePart.specifications).length > 0 &&
-                      Object.entries(sparePart.specifications as Record<string, any>).map(([key, value]) => (
-                        <div key={key} className="flex justify-between border-b border-border/50 py-3">
-                          <span className="font-semibold capitalize">{key.replace(/_/g, " ")}</span>
-                          <span className="text-muted-foreground">{String(value)}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Compatible Robots Tab */}
-              <TabsContent value="compatible" className="p-8">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                    <Bot className="w-6 h-6 text-primary" />
-                    Compatible Robots
-                  </h3>
-
-                  {sparePart.compatible_robots && sparePart.compatible_robots.length > 0 ? (
-                    <div className="space-y-6">
-                      <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl p-6 border border-border/50">
-                        <h4 className="font-semibold mb-4">Compatible Robot Types</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {sparePart.compatible_robots.map((robot, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-sm px-4 py-2">
-                              {robot}
-                            </Badge>
+              {/* Specifications Tab Content */}
+              <TabsContent value="specifications" className="mt-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5" />
+                      Technical Specifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                          { label: "Brand", value: sparePart.brand },
+                          { label: "Model", value: sparePart.model },
+                          { label: "Part Number", value: sparePart.part_number },
+                          { label: "Condition", value: sparePart.condition },
+                          { label: "Main Category", value: sparePart.main_category },
+                          { label: "Sub-Category", value: sparePart.sub_category },
+                          { label: "Quantity", value: `${sparePart.quantity} units` },
+                          {
+                            label: "Price",
+                            value: `${sparePart.currency} ${sparePart.price?.toLocaleString()}`,
+                          },
+                        ]
+                          .filter(({ value }) => value)
+                          .map(({ label, value }, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between py-3 px-3 bg-muted/50 rounded-md border border-border/30"
+                            >
+                              <span className="font-semibold text-sm">{label}</span>
+                              <span className="text-muted-foreground text-sm">{value}</span>
+                            </div>
                           ))}
-                        </div>
                       </div>
 
-                      {compatibleRobots.length > 0 && (
-                        <div className="space-y-4">
-                          <h4 className="font-semibold text-lg">Available Compatible Robots</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {compatibleRobots.map((robot) => (
-                              <Card
-                                key={robot.id}
-                                className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 border-border/50"
-                                onClick={() => navigate(`/robots/${robot.id}`)}
-                              >
-                                <CardContent className="p-5">
-                                  <div className="aspect-video bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg mb-4 overflow-hidden">
-                                    {robot.images?.[0] ? (
-                                      <ResponsiveImage
-                                        src={robot.images[0]}
-                                        alt={robot.name}
-                                        className="w-full h-full object-contain hover:scale-110 transition-transform duration-300"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center">
-                                        <Bot className="w-16 h-16 text-muted-foreground/20" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <h4 className="font-bold text-base mb-1 line-clamp-1">{robot.name}</h4>
-                                  <p className="text-sm text-muted-foreground mb-3">{robot.brand}</p>
-                                  <div className="flex items-center justify-between">
-                                    <p className="text-base font-bold text-primary">
-                                      {robot.currency} {robot.price?.toLocaleString()}
-                                    </p>
-                                    <Badge variant="outline" className="text-xs">
-                                      {robot.robot_type}
-                                    </Badge>
-                                  </div>
-                                </CardContent>
-                              </Card>
+                      {sparePart.specifications &&
+                        typeof sparePart.specifications === "object" &&
+                        !Array.isArray(sparePart.specifications) &&
+                        Object.keys(sparePart.specifications).length > 0 && (
+                          <div className="mt-8 pt-6 border-t">
+                            <h4 className="font-bold text-base mb-4">Additional Specifications</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {Object.entries(sparePart.specifications as Record<string, any>).map(([key, value]) => (
+                                <div
+                                  key={key}
+                                  className="flex justify-between py-3 px-3 bg-muted/50 rounded-md border border-border/30"
+                                >
+                                  <span className="font-semibold text-sm capitalize">{key.replace(/_/g, " ")}</span>
+                                  <span className="text-muted-foreground text-sm">{String(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Compatible Robots Tab Content */}
+              <TabsContent value="compatible" className="mt-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bot className="w-5 h-5" />
+                      Compatible Robots
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {sparePart.compatible_robots && sparePart.compatible_robots.length > 0 ? (
+                      <div className="space-y-6">
+                        <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
+                          <h4 className="font-semibold mb-3">Compatible Types:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {sparePart.compatible_robots.map((robot, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-sm px-3 py-1.5">
+                                {robot}
+                              </Badge>
                             ))}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl p-8 border border-border/50">
-                        <Badge variant="secondary" className="text-lg px-6 py-3 mb-4">
-                          Universal Part
-                        </Badge>
-                        <p className="text-base text-muted-foreground mt-4 max-w-lg mx-auto">
+
+                        {compatibleRobots.length > 0 && (
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-base">Available Compatible Robots:</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {compatibleRobots.map((robot) => (
+                                <Card
+                                  key={robot.id}
+                                  className="cursor-pointer hover:shadow-lg transition-all border-border/50 hover:border-primary/50"
+                                  onClick={() => navigate(`/robots/${robot.id}`)}
+                                >
+                                  <CardContent className="p-4">
+                                    <div className="aspect-video bg-muted/30 rounded-lg mb-3 overflow-hidden">
+                                      {robot.images?.[0] ? (
+                                        <ResponsiveImage
+                                          src={robot.images[0]}
+                                          alt={robot.name}
+                                          className="w-full h-full object-contain"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <Bot className="w-12 h-12 text-muted-foreground/20" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <h4 className="font-bold text-sm mb-1 line-clamp-1">{robot.name}</h4>
+                                    <p className="text-xs text-muted-foreground mb-3">{robot.brand}</p>
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm font-bold text-primary">
+                                        {robot.currency} {robot.price?.toLocaleString()}
+                                      </p>
+                                      <Badge variant="outline" className="text-xs">
+                                        {robot.robot_type}
+                                      </Badge>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Badge className="text-base px-6 py-2 mb-4">Universal Part</Badge>
+                        <p className="text-muted-foreground mt-4 max-w-lg mx-auto">
                           This is a universal spare part compatible with multiple robot models. Contact the seller for
                           specific compatibility confirmation.
                         </p>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              {/* Services Tab */}
-              <TabsContent value="services" className="p-8">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                    <Wrench className="w-6 h-6 text-primary" />
-                    Available Services
-                  </h3>
-
-                  {services.length > 0 ? (
-                    <div className="grid gap-6">
-                      {services.map((service) => (
-                        <Card key={service.id} className="border-border/50 hover:shadow-lg transition-all">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 space-y-4">
+              {/* Services Tab Content */}
+              <TabsContent value="services" className="mt-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wrench className="w-5 h-5" />
+                      Available Services
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {services.length > 0 ? (
+                      <div className="space-y-4">
+                        {services.map((service) => (
+                          <Card
+                            key={service.id}
+                            className="border-border/50 hover:border-primary/30 hover:shadow-md transition-all"
+                          >
+                            <CardContent className="p-5">
+                              <div className="space-y-4">
                                 <div>
-                                  <h4 className="font-bold text-lg mb-2">{service.name}</h4>
-                                  <p className="text-muted-foreground leading-relaxed">{service.description}</p>
+                                  <h4 className="font-bold text-base mb-2">{service.name}</h4>
+                                  <p className="text-sm text-muted-foreground">{service.description}</p>
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/50">
-                                  <div className="flex items-center gap-2">
-                                    <Building className="w-4 h-4 text-primary" />
-                                    <div>
-                                      <p className="text-xs text-muted-foreground">Service Provider</p>
-                                      <p className="font-semibold">{service.profiles?.company_name || "N/A"}</p>
+                                <Separator className="my-4" />
+
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  {service.profiles?.company_name && (
+                                    <div className="flex items-center gap-3">
+                                      <Building className="w-4 h-4 text-primary" />
+                                      <div>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                          Provider
+                                        </p>
+                                        <p className="font-semibold text-sm">{service.profiles.company_name}</p>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                   {service.profiles?.location && (
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3">
                                       <MapPin className="w-4 h-4 text-primary" />
                                       <div>
-                                        <p className="text-xs text-muted-foreground">Location</p>
-                                        <p className="font-semibold">{service.profiles.location}</p>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                          Location
+                                        </p>
+                                        <p className="font-semibold text-sm">{service.profiles.location}</p>
                                       </div>
                                     </div>
                                   )}
                                   {service.profiles?.phone && (
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3">
                                       <Phone className="w-4 h-4 text-primary" />
                                       <div>
-                                        <p className="text-xs text-muted-foreground">Contact</p>
-                                        <p className="font-semibold">{service.profiles.phone}</p>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase">Phone</p>
+                                        <a
+                                          href={`tel:${service.profiles.phone}`}
+                                          className="font-semibold text-sm text-primary hover:underline"
+                                        >
+                                          {service.profiles.phone}
+                                        </a>
                                       </div>
                                     </div>
                                   )}
                                   {service.service_type && (
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3">
                                       <Tag className="w-4 h-4 text-primary" />
                                       <div>
-                                        <p className="text-xs text-muted-foreground">Service Type</p>
-                                        <Badge variant="secondary" className="mt-1 capitalize">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase">Type</p>
+                                        <Badge variant="secondary" className="capitalize text-xs mt-1">
                                           {service.service_type}
                                         </Badge>
                                       </div>
                                     </div>
                                   )}
                                 </div>
-                              </div>
 
-                              <div className="flex flex-col gap-2">
-                                <ChatButton
-                                  otherUserId={service.provider_id}
-                                  itemId={service.id}
-                                  itemType="service"
-                                  itemName={service.name}
-                                />
+                                <Separator className="my-4" />
+
+                                {user && service.provider_id !== user.id && (
+                                  <ChatButton
+                                    otherUserId={service.provider_id}
+                                    itemId={service.id}
+                                    itemType="service"
+                                    itemName={service.name}
+                                    className="w-full"
+                                  />
+                                )}
                               </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-16">
-                      <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl p-8 border border-border/50">
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-16">
                         <Wrench className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
                         <p className="text-muted-foreground">No services available at the moment</p>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
-
-              {/* Logistics Tab 
-              <TabsContent value="logistics" className="p-8">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                    <Truck className="w-6 h-6 text-primary" />
-                    Logistics Providers
-                  </h3>
-
-                  {logistics.length > 0 ? (
-                    <div className="grid gap-6">
-                      {logistics.map((provider) => (
-                        <Card key={provider.id} className="border-border/50 hover:shadow-lg transition-all">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 space-y-4">
-                                <div>
-                                  <h4 className="font-bold text-lg mb-2">{provider.company_name}</h4>
-                                  {provider.logistics_type && (
-                                    <Badge variant="secondary" className="capitalize">
-                                      {provider.logistics_type}
-                                    </Badge>
-                                  )}
-                                </div>
-
-                                <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/50">
-                                  <div className="flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-primary" />
-                                    <div>
-                                      <p className="text-xs text-muted-foreground">Location</p>
-                                      <p className="font-semibold">{provider.location || "N/A"}</p>
-                                    </div>
-                                  </div>
-                                  {provider.phone && (
-                                    <div className="flex items-center gap-2">
-                                      <Phone className="w-4 h-4 text-primary" />
-                                      <div>
-                                        <p className="text-xs text-muted-foreground">Contact</p>
-                                        <p className="font-semibold">{provider.phone}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {provider.email && (
-                                    <div className="flex items-center gap-2">
-                                      <Mail className="w-4 h-4 text-primary" />
-                                      <div>
-                                        <p className="text-xs text-muted-foreground">Email</p>
-                                        <p className="font-semibold text-sm">{provider.email}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {provider.logistics_region && (
-                                    <div className="flex items-center gap-2">
-                                      <Tag className="w-4 h-4 text-primary" />
-                                      <div>
-                                        <p className="text-xs text-muted-foreground">Region</p>
-                                        <p className="font-semibold">{provider.logistics_region}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2">
-                                <ChatButton
-                                  otherUserId={provider.user_id}
-                                  itemId={sparePart.id}
-                                  itemType="spare_part"
-                                  itemName={sparePart.name}
-                                />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-16">
-                      <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl p-8 border border-border/50">
-                        <Truck className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                        <p className="text-muted-foreground">No logistics providers available</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>*/}
-
-              {/* Financing Tab 
-              <TabsContent value="financing" className="p-8">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                    <DollarSign className="w-6 h-6 text-primary" />
-                    Financing Options
-                  </h3>
-
-                  {financing.length > 0 ? (
-                    <div className="grid gap-6">
-                      {financing.map((option) => (
-                        <Card key={option.id} className="border-border/50 hover:shadow-lg transition-all">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 space-y-4">
-                                <div>
-                                  <h4 className="font-bold text-lg mb-2">{option.product_name}</h4>
-                                  <p className="text-muted-foreground leading-relaxed">{option.description}</p>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
-                                  <Badge variant="secondary" className="px-3 py-1">
-                                    {option.min_interest_rate}% - {option.max_interest_rate}% Interest
-                                  </Badge>
-                                  <Badge variant="outline" className="px-3 py-1">
-                                    Up to ₹{option.max_amount.toLocaleString()}
-                                  </Badge>
-                                  {option.max_tenure_months && (
-                                    <Badge variant="outline" className="px-3 py-1">
-                                      {option.max_tenure_months} months tenure
-                                    </Badge>
-                                  )}
-                                </div>
-
-                                <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/50">
-                                  <div className="flex items-center gap-2">
-                                    <Building className="w-4 h-4 text-primary" />
-                                    <div>
-                                      <p className="text-xs text-muted-foreground">Finance Provider</p>
-                                      <p className="font-semibold">{option.profiles?.company_name || "N/A"}</p>
-                                    </div>
-                                  </div>
-                                  {option.profiles?.location && (
-                                    <div className="flex items-center gap-2">
-                                      <MapPin className="w-4 h-4 text-primary" />
-                                      <div>
-                                        <p className="text-xs text-muted-foreground">Location</p>
-                                        <p className="font-semibold">{option.profiles.location}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {option.profiles?.phone && (
-                                    <div className="flex items-center gap-2">
-                                      <Phone className="w-4 h-4 text-primary" />
-                                      <div>
-                                        <p className="text-xs text-muted-foreground">Contact</p>
-                                        <p className="font-semibold">{option.profiles.phone}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {option.loan_type && option.loan_type.length > 0 && (
-                                    <div className="flex items-center gap-2">
-                                      <Tag className="w-4 h-4 text-primary" />
-                                      <div>
-                                        <p className="text-xs text-muted-foreground">Loan Types</p>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                          {option.loan_type.map((type: string, idx: number) => (
-                                            <Badge key={idx} variant="outline" className="text-xs capitalize">
-                                              {type}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2">
-                                <ChatButton
-                                  otherUserId={option.provider_id}
-                                  itemId={option.id}
-                                  itemType="service"
-                                  itemName={option.product_name}
-                                />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-16">
-                      <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl p-8 border border-border/50">
-                        <DollarSign className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                        <p className="text-muted-foreground">No financing options available</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>*/}
             </Tabs>
-          </div>
+          </Card>
         </div>
       </div>
-
-      {/* AI Analysis disabled for spare parts - needs dedicated implementation */}
     </>
   );
 };
