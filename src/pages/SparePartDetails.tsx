@@ -545,7 +545,7 @@ const SparePartDetails = () => {
                     </div>
                   </div>
 
-                  {/* International Shipping */}
+                  {/* International Shipping 
                   {sparePart.is_international && (
                     <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-8 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-lg">
                       <h4 className="flex items-center gap-2 font-bold text-xl mb-6">
@@ -575,7 +575,7 @@ const SparePartDetails = () => {
                     </div>
                   )}
                 </div>
-              </TabsContent>
+              </TabsContent>*/}
 
               {/* Specifications Tab */}
               <TabsContent value="specifications" className="p-8 pt-0">
