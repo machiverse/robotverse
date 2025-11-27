@@ -502,11 +502,11 @@ const SparePartDetails = () => {
                           <span className="font-semibold min-w-[140px]">Model</span>
                           <span className="text-muted-foreground">{sparePart.model}</span>
                         </div>
-                        {sparePart.partnumber && (
+                        {sparePart.part_number && (
                           <div className="flex items-center gap-3 text-base">
                             <span className="w-2.5 h-2.5 bg-primary rounded-full" />
                             <span className="font-semibold min-w-[140px]">Part Number</span>
-                            <span className="text-muted-foreground font-mono">{sparePart.partnumber}</span>
+                            <span className="text-muted-foreground font-mono">{sparePart.part_number}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-3 text-base">
@@ -532,13 +532,13 @@ const SparePartDetails = () => {
                         <div className="flex items-center gap-3 text-base">
                           <span className="w-2.5 h-2.5 bg-primary rounded-full" />
                           <span className="font-semibold min-w-[140px]">Category</span>
-                          <span className="text-muted-foreground">{sparePart.maincategory}</span>
+                          <span className="text-muted-foreground">{sparePart.main_category}</span>
                         </div>
-                        {sparePart.subcategory && (
+                        {sparePart.sub_category && (
                           <div className="flex items-center gap-3 text-base">
                             <span className="w-2.5 h-2.5 bg-primary rounded-full" />
                             <span className="font-semibold min-w-[140px]">Sub-Category</span>
-                            <span className="text-muted-foreground">{sparePart.subcategory}</span>
+                            <span className="text-muted-foreground">{sparePart.sub_category}</span>
                           </div>
                         )}
                       </div>
@@ -546,28 +546,28 @@ const SparePartDetails = () => {
                   </div>
 
                   {/* International Shipping */}
-                  {sparePart.isinternational && (
+                  {sparePart.is_international && (
                     <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-8 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-lg">
                       <h4 className="flex items-center gap-2 font-bold text-xl mb-6">
                         <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         International Shipping Available
                       </h4>
                       <div className="grid md:grid-cols-2 gap-6">
-                        {sparePart.shippingamount > 0 && (
+                        {sparePart.shipping_amount > 0 && (
                           <div className="flex items-center gap-3">
                             <span className="w-2.5 h-2.5 bg-blue-600 rounded-full" />
                             <span className="font-semibold">Shipping Cost</span>
                             <span className="text-muted-foreground">
-                              {sparePart.currency} {sparePart.shippingamount.toLocaleString()}
+                              {sparePart.currency} {sparePart.shipping_amount.toLocaleString()}
                             </span>
                           </div>
                         )}
-                        {sparePart.dutyamount > 0 && (
+                        {sparePart.duty_amount > 0 && (
                           <div className="flex items-center gap-3">
                             <span className="w-2.5 h-2.5 bg-blue-600 rounded-full" />
                             <span className="font-semibold">Import Duty</span>
                             <span className="text-muted-foreground">
-                              {sparePart.currency} {sparePart.dutyamount.toLocaleString()}
+                              {sparePart.currency} {sparePart.duty_amount.toLocaleString()}
                             </span>
                           </div>
                         )}
@@ -593,10 +593,10 @@ const SparePartDetails = () => {
                       <span className="font-semibold">Model</span>
                       <span className="text-muted-foreground">{sparePart.model}</span>
                     </div>
-                    {sparePart.partnumber && (
+                    {sparePart.part_number && (
                       <div className="flex justify-between border-b border-border/50 py-4 px-6">
                         <span className="font-semibold">Part Number</span>
-                        <span className="text-muted-foreground font-mono">{sparePart.partnumber}</span>
+                        <span className="text-muted-foreground font-mono">{sparePart.part_number}</span>
                       </div>
                     )}
                     <div className="flex justify-between border-b border-border/50 py-4 px-6">
@@ -607,12 +607,12 @@ const SparePartDetails = () => {
                     </div>
                     <div className="flex justify-between border-b border-border/50 py-4 px-6">
                       <span className="font-semibold">Main Category</span>
-                      <span className="text-muted-foreground">{sparePart.maincategory}</span>
+                      <span className="text-muted-foreground">{sparePart.main_category}</span>
                     </div>
-                    {sparePart.subcategory && (
+                    {sparePart.sub_category && (
                       <div className="flex justify-between border-b border-border/50 py-4 px-6">
                         <span className="font-semibold">Sub-Category</span>
-                        <span className="text-muted-foreground">{sparePart.subcategory}</span>
+                        <span className="text-muted-foreground">{sparePart.sub_category}</span>
                       </div>
                     )}
                     <div className="flex justify-between border-b border-border/50 py-4 px-6">
@@ -636,12 +636,12 @@ const SparePartDetails = () => {
                     <Bot className="w-6 h-6 text-primary" />
                     Compatible Robots
                   </h3>
-                  {!sparePart.compatiblerobots || sparePart.compatiblerobots.length === 0 ? (
+                  {!sparePart.compatible_robots || sparePart.compatible_robots.length === 0 ? (
                     <div className="space-y-6">
                       <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-2xl p-8 border border-border/50 text-center">
                         <h4 className="font-semibold mb-4">Compatible Robot Types</h4>
                         <div className="flex flex-wrap gap-2 justify-center">
-                          {sparePart.compatiblerobots?.split(",").map((robot: string, idx: number) => (
+                          {sparePart.compatible_robots?.map((robot: string, idx: number) => (
                             <Badge key={idx} variant="secondary" className="text-lg px-4 py-2">
                               {robot.trim()}
                             </Badge>
