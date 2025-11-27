@@ -25,6 +25,7 @@ import {
   Search,
   Zap,
   Globe,
+  DollarSign,
 } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -295,7 +296,6 @@ const SparePartDetails = () => {
                           src={currentImage}
                           alt={`${sparePart.name} - ${sparePart.brand} ${sparePart.model}`}
                           className="w-full h-full object-contain p-8 lg:p-12"
-                          loading="eager"
                         />
 
                         {/* Navigation */}
