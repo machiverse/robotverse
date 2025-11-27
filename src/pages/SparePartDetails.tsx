@@ -31,14 +31,14 @@ import {
 } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import ComprehensiveAIMarketAnalysis from "@/components/ComprehensiveAIMarketAnalysis";
-import ChatButton from "@/components/chat/ChatButton";
-import { supabase } from "@/integrations/supabaseclient";
+import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
+import { ChatButton } from "@/components/chat/ChatButton";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
-import SEOHead from "@/components/SEOHead";
+import { SEOHead } from "@/components/SEOHead";
 import type { Json } from "@/integrations/supabase/types";
 
 interface SparePart {
@@ -46,7 +46,7 @@ interface SparePart {
   name: string;
   brand: string;
   model: string;
-  partnumber: string;
+  part_number: string;
   price: number;
   currency: string;
   description: string;
@@ -55,22 +55,22 @@ interface SparePart {
   pincode: string;
   images: string[];
   specifications: Json;
-  categorytags: string;
+  category_tags: string[];
   quantity: number;
-  sellerid: string;
+  seller_id: string;
   condition: string;
-  maincategory: string;
-  subcategory: string;
-  customcategory: string;
-  compatiblerobots: string;
-  isinternational: boolean;
-  shippingamount: number;
-  dutyamount: number;
+  main_category: string;
+  sub_category: string;
+  custom_category: string;
+  compatible_robots: string[];
+  is_international: boolean;
+  shipping_amount: number;
+  duty_amount: number;
   profiles: {
-    fullname: string;
-    companyname: string;
+    full_name: string;
+    company_name: string;
     phone: string;
-    mobilenumber: string;
+    mobile_number: string;
     email: string;
     location: string;
   };
@@ -79,10 +79,10 @@ interface SparePart {
 const SparePartDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const user = useAuth();
-  const toast = useToast();
-  const trackButtonClick = useButtonTracking();
-  const trackItemView = useUniversalViewTracking();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView } = useUniversalViewTracking();
 
   const [sparePart, setSparePart] = useState<SparePart | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,7 +96,7 @@ const SparePartDetails = () => {
   // Track page view
   useEffect(() => {
     if (id && sparePart) {
-      trackItemView("spareparts", id, sparePart);
+      trackItemView("spare_parts", id, sparePart);
     }
   }, [id, sparePart, trackItemView]);
 
@@ -107,11 +107,11 @@ const SparePartDetails = () => {
       setLoading(true);
       try {
         const { data, error } = await supabase
-          .from("spareparts")
+          .from("spare_parts")
           .select(
             `
             *,
-            profiles!spareparts_sellerId_fkey(fullname, companyname, phone, mobilenumber, email, location)
+            profiles!spare_parts_seller_id_fkey(full_name, company_name, phone, mobile_number, email, location)
           `,
           )
           .eq("id", id)
@@ -121,12 +121,12 @@ const SparePartDetails = () => {
         setSparePart(data as unknown as SparePart);
 
         // Fetch compatible robots
-        if (data.compatiblerobots && (data.compatiblerobots as string).length > 0) {
-          fetchCompatibleRobots(data.compatiblerobots as string, data.brand);
+        if (data.compatible_robots && data.compatible_robots.length > 0) {
+          fetchCompatibleRobots(data.compatible_robots, data.brand);
         }
 
         // Fetch related services only
-        fetchServices(data.maincategory);
+        fetchServices(data.main_category);
       } catch (err: any) {
         console.error("Error fetching spare part:", err);
         setError(err.message);
@@ -143,14 +143,13 @@ const SparePartDetails = () => {
     fetchSparePartDetails();
   }, [id]);
 
-  const fetchCompatibleRobots = async (compatibleList: string, brand: string) => {
+  const fetchCompatibleRobots = async (compatibleList: string[], brand: string) => {
     try {
       const data = await supabase
         .from("robots")
         .select("*")
         .or(
-          `robottype.in.(${compatibleList
-            .split(",")
+          `robot_type.in.(${compatibleList
             .map((r: string) => `"${r}"`)
             .join(",")}),brand.ilike.${brand}`,
         )
@@ -165,8 +164,8 @@ const SparePartDetails = () => {
     try {
       const { data, error } = await supabase
         .from("services")
-        .select("*, profiles!services_providerId_fkey(*)")
-        .or("servicetype.eq.maintenance,servicetype.eq.repair")
+        .select("*, profiles!services_provider_id_fkey(*)")
+        .or("service_type.eq.maintenance,service_type.eq.repair")
         .limit(4);
       if (!error && data) setServices(data);
     } catch (err) {
@@ -233,7 +232,7 @@ const SparePartDetails = () => {
       <SEOHead
         title={`${sparePart.name} - ${sparePart.brand} ${sparePart.model} | Spare Parts`}
         description={sparePart.description?.slice(0, 155)}
-        keywords={`${sparePart.name}, ${sparePart.brand}, ${sparePart.model}, ${sparePart.partnumber}, ${sparePart.maincategory}, spare parts, robot parts, industrial parts`}
+        keywords={`${sparePart.name}, ${sparePart.brand}, ${sparePart.model}, ${sparePart.part_number}, ${sparePart.main_category}, spare parts, robot parts, industrial parts`}
         canonical={`https://robotverse.in/parts/${id}`}
         ogImage={currentImage || "robotverse-logo.png"}
       />
@@ -344,15 +343,15 @@ const SparePartDetails = () => {
                           {sparePart.condition}
                         </Badge>
                         <Badge variant="outline" className="text-lg px-4 py-2">
-                          {sparePart.maincategory}
+                          {sparePart.main_category}
                         </Badge>
-                        {sparePart.isinternational && (
+                        {sparePart.is_international && (
                           <Badge variant="default" className="text-lg px-4 py-2 bg-blue-500 hover:bg-blue-600">
                             International
                           </Badge>
                         )}
                       </div>
-                      <ViewCountDisplay targetType="spareparts" targetId={sparePart.id} className="mt-2" />
+                      <ViewCountDisplay targetType="spare_parts" targetId={sparePart.id} className="mt-2" />
                     </div>
                   </div>
 
@@ -367,9 +366,9 @@ const SparePartDetails = () => {
                   </div>
 
                   {/* Part Number */}
-                  {sparePart.partnumber && (
+                  {sparePart.part_number && (
                     <p className="text-sm text-muted-foreground mt-2">
-                      <span className="font-mono font-semibold text-primary/80">Part #:</span> {sparePart.partnumber}
+                      <span className="font-mono font-semibold text-primary/80">Part #:</span> {sparePart.part_number}
                     </p>
                   )}
                 </CardHeader>
@@ -377,11 +376,11 @@ const SparePartDetails = () => {
                 <CardContent className="space-y-6">
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-3">
-                    {user && sparePart.sellerid !== user.id && (
+                    {user && sparePart.seller_id !== user?.id && (
                       <ChatButton
-                        otherUserId={sparePart.sellerid}
+                        otherUserId={sparePart.seller_id}
                         itemId={sparePart.id}
-                        itemType="sparepart"
+                        itemType="spare_part"
                         itemName={sparePart.name}
                       />
                     )}
@@ -391,9 +390,9 @@ const SparePartDetails = () => {
                         await trackButtonClick({
                           buttonName: "Add to Wishlist - Spare Part",
                           buttonType: "watchlist",
-                          sellerId: sparePart.sellerid,
+                          sellerId: sparePart.seller_id,
                           itemId: sparePart.id,
-                          itemType: "sparepart",
+                          itemType: "spare_part",
                         });
                         handleAddToWatchlist();
                       }}
@@ -420,7 +419,7 @@ const SparePartDetails = () => {
                       <p className="flex items-center gap-2">
                         <Building className="w-4 h-4 text-muted-foreground" />
                         <span className="font-semibold">
-                          {sparePart.profiles?.companyname || sparePart.profiles?.fullname}
+                          {sparePart.profiles?.company_name || sparePart.profiles?.full_name}
                         </span>
                       </p>
                       <p className="flex items-center gap-2">
