@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, MapPin, Search, Grid, List, Star, Loader2 } from "lucide-react";
+import { Package, MapPin, Search, Grid, List, Star, Loader2, Building } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useToast } from "@/hooks/use-toast";
@@ -469,9 +469,15 @@ const Parts = () => {
                           {part.availability}
                         </Badge>
                       </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span className="text-sm">{part.location}</span>
+                      <div className="space-y-2">
+                        <div className="flex items-center text-muted-foreground">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          <span className="text-sm">{part.location}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Building className="w-4 h-4 mr-1" />
+                          <span className="text-sm font-medium">{part.seller?.company_name || "Company Name"}</span>
+                        </div>
                       </div>
                       <div className="text-sm space-y-1">
                         <p><span className="font-medium">Part #:</span> {part.partNumber}</p>
