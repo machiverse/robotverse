@@ -436,8 +436,8 @@ const SparePartDetails = () => {
                         itemName={sparePart.name}
                       />
                     )}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={async () => {
                         await trackButtonClick({
                           buttonName: "Add to Wishlist - Spare Part",
@@ -494,12 +494,24 @@ const SparePartDetails = () => {
           <div className="mt-8">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-6 h-auto p-1 bg-muted/50">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-background">Overview</TabsTrigger>
-                <TabsTrigger value="specifications" className="data-[state=active]:bg-background">Specifications</TabsTrigger>
-                <TabsTrigger value="compatible" className="data-[state=active]:bg-background">Compatible Robots</TabsTrigger>
-                <TabsTrigger value="services" className="data-[state=active]:bg-background">Services</TabsTrigger>
-                <TabsTrigger value="logistics" className="data-[state=active]:bg-background">Logistics</TabsTrigger>
-                <TabsTrigger value="financing" className="data-[state=active]:bg-background">Financing</TabsTrigger>
+                <TabsTrigger value="overview" className="data-[state=active]:bg-background">
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="specifications" className="data-[state=active]:bg-background">
+                  Specifications
+                </TabsTrigger>
+                <TabsTrigger value="compatible" className="data-[state=active]:bg-background">
+                  Compatible Robots
+                </TabsTrigger>
+                <TabsTrigger value="services" className="data-[state=active]:bg-background">
+                  Services
+                </TabsTrigger>
+                <TabsTrigger value="logistics" className="data-[state=active]:bg-background">
+                  Logistics
+                </TabsTrigger>
+                <TabsTrigger value="financing" className="data-[state=active]:bg-background">
+                  Financing
+                </TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
@@ -514,7 +526,9 @@ const SparePartDetails = () => {
                     {/* Part Description */}
                     {sparePart.description && (
                       <div className="bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl p-6 border border-border/50">
-                        <p className="text-base leading-relaxed text-foreground whitespace-pre-wrap">{sparePart.description}</p>
+                        <p className="text-base leading-relaxed text-foreground whitespace-pre-wrap">
+                          {sparePart.description}
+                        </p>
                       </div>
                     )}
 
@@ -580,7 +594,7 @@ const SparePartDetails = () => {
                       </div>
                     </div>
 
-                    {/* International Shipping */}
+                    {/* International Shipping 
                     {sparePart.is_international && (
                       <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-6 rounded-xl border border-blue-200 dark:border-blue-800">
                         <h4 className="flex items-center gap-2 font-bold text-lg mb-4">
@@ -604,7 +618,7 @@ const SparePartDetails = () => {
                           )}
                         </div>
                       </div>
-                    )}
+                    )}*/}
 
                     {/* Compatible Robots Tags */}
                     {sparePart.compatible_robots && sparePart.compatible_robots.length > 0 && (
@@ -651,7 +665,9 @@ const SparePartDetails = () => {
                     )}
                     <div className="flex justify-between border-b border-border/50 py-3">
                       <span className="font-semibold">Condition</span>
-                      <Badge variant="secondary" className="capitalize">{sparePart.condition}</Badge>
+                      <Badge variant="secondary" className="capitalize">
+                        {sparePart.condition}
+                      </Badge>
                     </div>
                     {sparePart.main_category && (
                       <div className="flex justify-between border-b border-border/50 py-3">
@@ -671,7 +687,9 @@ const SparePartDetails = () => {
                     </div>
                     <div className="flex justify-between border-b border-border/50 py-3">
                       <span className="font-semibold">Price</span>
-                      <span className="text-muted-foreground">{sparePart.currency} {sparePart.price?.toLocaleString()}</span>
+                      <span className="text-muted-foreground">
+                        {sparePart.currency} {sparePart.price?.toLocaleString()}
+                      </span>
                     </div>
 
                     {/* Additional Specifications from JSON */}
@@ -758,7 +776,8 @@ const SparePartDetails = () => {
                           Universal Part
                         </Badge>
                         <p className="text-base text-muted-foreground mt-4 max-w-lg mx-auto">
-                          This is a universal spare part compatible with multiple robot models. Contact the seller for specific compatibility confirmation.
+                          This is a universal spare part compatible with multiple robot models. Contact the seller for
+                          specific compatibility confirmation.
                         </p>
                       </div>
                     </div>
@@ -785,7 +804,7 @@ const SparePartDetails = () => {
                                   <h4 className="font-bold text-lg mb-2">{service.name}</h4>
                                   <p className="text-muted-foreground leading-relaxed">{service.description}</p>
                                 </div>
-                                
+
                                 <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/50">
                                   <div className="flex items-center gap-2">
                                     <Building className="w-4 h-4 text-primary" />
@@ -817,13 +836,15 @@ const SparePartDetails = () => {
                                       <Tag className="w-4 h-4 text-primary" />
                                       <div>
                                         <p className="text-xs text-muted-foreground">Service Type</p>
-                                        <Badge variant="secondary" className="mt-1 capitalize">{service.service_type}</Badge>
+                                        <Badge variant="secondary" className="mt-1 capitalize">
+                                          {service.service_type}
+                                        </Badge>
                                       </div>
                                     </div>
                                   )}
                                 </div>
                               </div>
-                              
+
                               <div className="flex flex-col gap-2">
                                 <ChatButton
                                   otherUserId={service.provider_id}
@@ -866,10 +887,12 @@ const SparePartDetails = () => {
                                 <div>
                                   <h4 className="font-bold text-lg mb-2">{provider.company_name}</h4>
                                   {provider.logistics_type && (
-                                    <Badge variant="secondary" className="capitalize">{provider.logistics_type}</Badge>
+                                    <Badge variant="secondary" className="capitalize">
+                                      {provider.logistics_type}
+                                    </Badge>
                                   )}
                                 </div>
-                                
+
                                 <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/50">
                                   <div className="flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-primary" />
@@ -907,7 +930,7 @@ const SparePartDetails = () => {
                                   )}
                                 </div>
                               </div>
-                              
+
                               <div className="flex flex-col gap-2">
                                 <ChatButton
                                   otherUserId={provider.user_id}
@@ -965,7 +988,7 @@ const SparePartDetails = () => {
                                     </Badge>
                                   )}
                                 </div>
-                                
+
                                 <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/50">
                                   <div className="flex items-center gap-2">
                                     <Building className="w-4 h-4 text-primary" />
@@ -1009,7 +1032,7 @@ const SparePartDetails = () => {
                                   )}
                                 </div>
                               </div>
-                              
+
                               <div className="flex flex-col gap-2">
                                 <ChatButton
                                   otherUserId={option.provider_id}
