@@ -506,12 +506,12 @@ const SparePartDetails = () => {
                 <TabsTrigger value="services" className="data-[state=active]:bg-background">
                   Services
                 </TabsTrigger>
-                <TabsTrigger value="logistics" className="data-[state=active]:bg-background">
+                {/* <TabsTrigger value="logistics" className="data-[state=active]:bg-background">
                   Logistics
                 </TabsTrigger>
                 <TabsTrigger value="financing" className="data-[state=active]:bg-background">
                   Financing
-                </TabsTrigger>
+                </TabsTrigger>*/}
               </TabsList>
 
               {/* Overview Tab */}
