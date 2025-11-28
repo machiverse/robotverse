@@ -1,4 +1,4 @@
-// SEO utilities for robot listings
+// SEO utilities for robot and spare parts listings
 export interface SEOElements {
   urlSlug: string;
   pageTitle: string;
@@ -27,6 +27,27 @@ export interface RobotSEOData {
   company_name?: string;
   applications?: string[];
   images?: string[];
+}
+
+export interface SparePartSEOData {
+  id: string;
+  name: string;
+  brand?: string;
+  model?: string;
+  part_number?: string;
+  main_category?: string;
+  sub_category?: string;
+  condition?: string;
+  location?: string;
+  state?: string;
+  price?: number;
+  currency?: string;
+  seller_name?: string;
+  company_name?: string;
+  compatible_robots?: string[];
+  images?: string[];
+  description?: string;
+  quantity?: number;
 }
 
 // Generate URL slug
@@ -236,6 +257,207 @@ export const generateAllSEOElements = (robot: RobotSEOData): SEOElements => {
     imageAltText: generateImageAltText(robot),
     structuredData: generateStructuredData(robot),
     breadcrumbSchema: generateBreadcrumbSchema(robot)
+  };
+};
+
+// ==================== SPARE PARTS SEO FUNCTIONS ====================
+
+// Generate spare part URL slug
+export const generateSparePartSlug = (part: SparePartSEOData): string => {
+  const brand = (part.brand || 'part').toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const name = (part.name || 'spare-part').toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const partNumber = (part.part_number || '').toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const id = part.id.slice(0, 8);
+  
+  return `/parts/${brand}/${name}-${partNumber}-${id}`;
+};
+
+// Generate spare part page title
+export const generateSparePartPageTitle = (part: SparePartSEOData): string => {
+  const brand = part.brand || 'Robot';
+  const name = part.name || 'Spare Part';
+  const partNumber = part.part_number || '';
+  const location = part.location || part.state || 'India';
+  
+  const partNumberText = partNumber ? ` (${partNumber})` : '';
+  return `${brand} ${name}${partNumberText} | Genuine Robot Spare Parts for Sale in ${location}`;
+};
+
+// Generate spare part meta description
+export const generateSparePartMetaDescription = (part: SparePartSEOData): string => {
+  const brand = part.brand || 'Robot';
+  const name = part.name || 'spare part';
+  const category = part.main_category || 'robot component';
+  const condition = part.condition || 'used';
+  const seller = part.seller_name || part.company_name || 'Verified Seller';
+  const location = part.location || part.state || 'India';
+  const compatibility = part.compatible_robots?.slice(0, 2).join(', ') || 'industrial robots';
+  
+  const description = `Buy genuine ${brand} ${name} (${category}) in ${condition} condition from ${seller} in ${location}. Compatible with ${compatibility}. Available on RobotVerse.`;
+  
+  // Ensure it's under 160 characters
+  return description.length > 160 ? description.substring(0, 157) + '...' : description;
+};
+
+// Generate spare part H1 heading
+export const generateSparePartH1Heading = (part: SparePartSEOData): string => {
+  const brand = part.brand || 'Robot';
+  const name = part.name || 'Spare Part';
+  const model = part.model ? ` ${part.model}` : '';
+  
+  return `${brand}${model} ${name}`;
+};
+
+// Generate spare part SEO content block
+export const generateSparePartSEOContentBlock = (part: SparePartSEOData): string => {
+  const brand = part.brand || 'Robot';
+  const name = part.name || 'spare part';
+  const category = part.main_category || 'robot component';
+  const subCategory = part.sub_category || '';
+  const condition = part.condition || 'used';
+  const seller = part.seller_name || part.company_name || 'verified seller';
+  const location = part.location || part.state || 'India';
+  const partNumber = part.part_number || 'contact seller for details';
+  const compatibility = part.compatible_robots?.slice(0, 3).join(', ') || 'various industrial robots';
+  const price = part.price ? `${part.currency || 'INR'} ${part.price.toLocaleString()}` : 'competitive prices';
+  
+  // Generate comparable parts based on brand
+  const getComparableParts = (partBrand: string, partCategory: string) => {
+    const mainBrands = ['FANUC', 'ABB', 'KUKA', 'Yaskawa', 'Kawasaki', 'Mitsubishi'];
+    const otherBrands = mainBrands.filter(b => b.toLowerCase() !== partBrand.toLowerCase()).slice(0, 3);
+    return `${otherBrands.join(', ')} ${partCategory}`;
+  };
+  
+  const comparableParts = getComparableParts(brand, category);
+  const categoryText = subCategory ? `${category} - ${subCategory}` : category;
+  
+  return `This genuine ${brand} ${name} (Part #: ${partNumber}) is a high-quality ${categoryText} in ${condition} condition, perfect for maintaining and repairing ${compatibility}.
+
+Available from ${seller} in ${location} at ${price}, this ${brand} spare part ensures optimal performance and reliability for your industrial automation equipment. The ${category} component is essential for maintaining production uptime and robot efficiency.
+
+Compatible with ${compatibility}, this spare part meets OEM specifications and quality standards. Professional installation and technical support available upon request.
+
+Compare with similar components from leading manufacturers including ${comparableParts}. All spare parts listed on RobotVerse are verified by our team to ensure authenticity and quality.
+
+Contact ${seller} today to check availability, warranty options, and bulk pricing. Fast shipping available across India with proper packaging to ensure safe delivery of your critical robot components.`;
+};
+
+// Generate spare part image ALT text
+export const generateSparePartImageAltText = (part: SparePartSEOData, imageIndex: number = 0): string => {
+  const brand = part.brand || 'Robot';
+  const name = part.name || 'Spare Part';
+  const partNumber = part.part_number || '';
+  
+  const suffix = imageIndex > 0 ? ` - View ${imageIndex + 1}` : '';
+  const partNumberText = partNumber ? ` (${partNumber})` : '';
+  return `${brand} ${name}${partNumberText} spare part for sale${suffix}`;
+};
+
+// Generate spare part structured data (JSON-LD Product Schema)
+export const generateSparePartStructuredData = (part: SparePartSEOData): object => {
+  const brand = part.brand || 'Robot Part';
+  const name = part.name || 'Spare Part';
+  const category = part.main_category || 'Robot Component';
+  const condition = part.condition || 'used';
+  const seller = part.seller_name || part.company_name || 'RobotVerse Seller';
+  const price = part.price || 0;
+  const currency = part.currency || 'INR';
+  const images = part.images || [];
+  const partNumber = part.part_number || 'N/A';
+  
+  return {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": `${brand} ${name}`,
+    "brand": {
+      "@type": "Brand",
+      "name": brand
+    },
+    "mpn": partNumber,
+    "description": generateSparePartSEOContentBlock(part),
+    "category": category,
+    "condition": condition,
+    "offers": {
+      "@type": "Offer",
+      "price": price,
+      "priceCurrency": currency,
+      "availability": part.quantity && part.quantity > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "Organization",
+        "name": seller
+      },
+      "itemCondition": `https://schema.org/${condition === 'new' ? 'NewCondition' : 'UsedCondition'}`
+    },
+    "image": images.map(img => img),
+    "additionalProperty": [
+      {
+        "@type": "PropertyValue",
+        "name": "Part Number",
+        "value": partNumber
+      },
+      {
+        "@type": "PropertyValue", 
+        "name": "Category",
+        "value": category
+      },
+      {
+        "@type": "PropertyValue",
+        "name": "Compatible Robots",
+        "value": part.compatible_robots?.join(', ') || 'Universal'
+      }
+    ]
+  };
+};
+
+// Generate spare part breadcrumb schema
+export const generateSparePartBreadcrumbSchema = (part: SparePartSEOData): object => {
+  const brand = part.brand || 'Robot Parts';
+  const category = part.main_category || 'Components';
+  const name = part.name || 'Spare Part';
+  
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Spare Parts",
+        "item": "https://robotverse.in/parts"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": brand,
+        "item": `https://robotverse.in/parts?brand=${brand.toLowerCase()}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": category,
+        "item": `https://robotverse.in/parts?category=${category.toLowerCase()}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": name,
+        "item": `https://robotverse.in/parts/${part.id}`
+      }
+    ]
+  };
+};
+
+// Generate all spare part SEO elements at once
+export const generateAllSparePartSEOElements = (part: SparePartSEOData): SEOElements => {
+  return {
+    urlSlug: generateSparePartSlug(part),
+    pageTitle: generateSparePartPageTitle(part),
+    metaDescription: generateSparePartMetaDescription(part),
+    h1Heading: generateSparePartH1Heading(part),
+    seoContentBlock: generateSparePartSEOContentBlock(part),
+    imageAltText: generateSparePartImageAltText(part),
+    structuredData: generateSparePartStructuredData(part),
+    breadcrumbSchema: generateSparePartBreadcrumbSchema(part)
   };
 };
 
