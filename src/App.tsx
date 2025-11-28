@@ -62,10 +62,10 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <GlobalChatNotifications />
-        <AutoSignInPopup />
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AutoSignInPopup />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
