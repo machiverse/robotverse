@@ -108,8 +108,8 @@ export const AutoSignInPopup = () => {
           <DialogTitle className="text-2xl font-bold text-center">
             Welcome to RobotVerse! 🤖
           </DialogTitle>
-          <DialogDescription className="text-center pt-2">
-            Join thousands of robotics professionals and unlock exclusive features
+          <DialogDescription className="text-center pt-2 text-base">
+            Log in to access full features of Robotverse and connect with thousands of robotics professionals
           </DialogDescription>
         </DialogHeader>
 
