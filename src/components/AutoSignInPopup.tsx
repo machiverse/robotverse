@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,9 +15,23 @@ export const AutoSignInPopup = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [hasClosedOnce, setHasClosedOnce] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Clear any existing timers
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
     // Don't show popup if user is logged in
     if (user) {
       setIsOpen(false);
@@ -25,20 +39,34 @@ export const AutoSignInPopup = () => {
     }
 
     // Show popup after 30 seconds
-    const timer = setTimeout(() => {
-      setIsOpen(true);
+    timerRef.current = setTimeout(() => {
+      if (isMountedRef.current && !user) {
+        setIsOpen(true);
+      }
     }, 30000); // 30 seconds
 
-    return () => clearTimeout(timer);
-  }, [user, hasClosedOnce]);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [user]);
 
   const handleClose = () => {
+    if (!isMountedRef.current) return;
+    
     setIsOpen(false);
-    setHasClosedOnce(true);
+    
+    // Clear existing timer
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     
     // Re-trigger after another 30 seconds if user closes without signing in
-    setTimeout(() => {
-      if (!user) {
+    timerRef.current = setTimeout(() => {
+      if (isMountedRef.current && !user) {
         setIsOpen(true);
       }
     }, 30000);
@@ -46,11 +74,19 @@ export const AutoSignInPopup = () => {
 
   const handleSignIn = () => {
     setIsOpen(false);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     navigate("/auth");
   };
 
   const handleSignUp = () => {
     setIsOpen(false);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     navigate("/auth?signup=true");
   };
 
