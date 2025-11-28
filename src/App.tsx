@@ -47,6 +47,7 @@ import Cookies from "./pages/Cookies";
 import Sitemap from "./pages/Sitemap";
 import Accessibility from "./pages/Accessibility";
 import Chat from "./pages/Chat";
+import { AutoSignInPopup } from "./components/AutoSignInPopup";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <GlobalChatNotifications />
+        <AutoSignInPopup />
         <Toaster />
         <Sonner />
         <BrowserRouter>
