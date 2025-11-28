@@ -39,7 +39,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { SEOHead } from "@/components/SEOHead";
+import { useSparePartSEO } from "@/hooks/useSparePartSEO";
 import type { Json } from "@/integrations/supabase/types";
+import type { SparePartSEOData } from "@/utils/seo";
 
 interface SparePart {
   id: string;
@@ -83,6 +85,7 @@ const SparePartDetails = () => {
   const { toast } = useToast();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
+  const { seoElements, generateSEO } = useSparePartSEO();
 
   const [sparePart, setSparePart] = useState<SparePart | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,6 +102,33 @@ const SparePartDetails = () => {
       trackItemView("spare_parts", id, sparePart);
     }
   }, [id, sparePart, trackItemView]);
+
+  // Generate SEO when spare part data is loaded
+  useEffect(() => {
+    if (sparePart) {
+      const seoData: SparePartSEOData = {
+        id: sparePart.id,
+        name: sparePart.name,
+        brand: sparePart.brand,
+        model: sparePart.model,
+        part_number: sparePart.part_number,
+        main_category: sparePart.main_category,
+        sub_category: sparePart.sub_category,
+        condition: sparePart.condition,
+        location: sparePart.location,
+        state: sparePart.state,
+        price: sparePart.price,
+        currency: sparePart.currency,
+        seller_name: sparePart.profiles?.full_name,
+        company_name: sparePart.profiles?.company_name,
+        compatible_robots: sparePart.compatible_robots,
+        images: sparePart.images,
+        description: sparePart.description,
+        quantity: sparePart.quantity,
+      };
+      generateSEO(seoData);
+    }
+  }, [sparePart, generateSEO]);
 
   // Fetch spare part details
   useEffect(() => {
@@ -229,13 +259,16 @@ const SparePartDetails = () => {
 
   return (
     <>
-      <SEOHead
-        title={`${sparePart.name} - ${sparePart.brand} ${sparePart.model} | Spare Parts`}
-        description={sparePart.description?.slice(0, 155)}
-        keywords={`${sparePart.name}, ${sparePart.brand}, ${sparePart.model}, ${sparePart.part_number}, ${sparePart.main_category}, spare parts, robot parts, industrial parts`}
-        canonical={`https://robotverse.in/parts/${id}`}
-        ogImage={currentImage || "robotverse-logo.png"}
-      />
+      {seoElements && (
+        <SEOHead
+          title={seoElements.pageTitle}
+          description={seoElements.metaDescription}
+          keywords={`${sparePart.name}, ${sparePart.brand}, ${sparePart.model}, ${sparePart.part_number}, ${sparePart.main_category}, spare parts, robot parts, industrial parts, genuine parts`}
+          canonical={`https://robotverse.in/parts/${id}`}
+          ogImage={currentImage || "/robotverse-logo.png"}
+          jsonLd={seoElements.structuredData}
+        />
+      )}
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
         <div className="container mx-auto px-4 py-8">
