@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Package, MapPin, Search, Grid, List, Star, Loader2, Building } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
+import ViewCountDisplay from "@/components/ViewCountDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
@@ -450,7 +451,7 @@ const Parts = () => {
                       )}
                     </div>
                     <CardTitle className="text-lg">{part.name}</CardTitle>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <Badge variant="secondary" className="w-fit">
                         {part.category}
                       </Badge>
@@ -459,6 +460,7 @@ const Parts = () => {
                         <span className="text-sm text-muted-foreground">{part.rating}</span>
                       </div>
                     </div>
+                    <ViewCountDisplay targetType="spare_parts" targetId={part.id} className="mt-2" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
