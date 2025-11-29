@@ -96,13 +96,6 @@ const SparePartDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
 
-  // Track page view
-  useEffect(() => {
-    if (id && sparePart) {
-      trackItemView("spare_parts", id, sparePart);
-    }
-  }, [id, sparePart, trackItemView]);
-
   // Generate SEO when spare part data is loaded
   useEffect(() => {
     if (sparePart) {
@@ -149,6 +142,40 @@ const SparePartDetails = () => {
 
         if (error) throw error;
         setSparePart(data as unknown as SparePart);
+
+        // Track spare part view using universal view tracking system (increments view count)
+        await trackItemView("spare_parts", data.id, data);
+
+        // Track detailed button interaction for analytics
+        await trackButtonClick({
+          buttonName: "Spare Part Page View",
+          buttonType: "spare_part_page_view",
+          sellerId: data.seller_id,
+          sellerName: data.profiles?.full_name || "No Name Available",
+          sellerCompany: data.profiles?.company_name || "No Company Available",
+          sellerEmail: data.profiles?.email || "No Email Available",
+          sellerMobile: data.profiles?.mobile_number || data.profiles?.phone || "No Phone Available",
+          sellerLocation: data.profiles?.location || data.location || "No Location Available",
+          itemId: data.id,
+          itemType: "spare_part",
+          additionalData: {
+            partName: data.name,
+            partModel: data.model,
+            partNumber: data.part_number,
+            brand: data.brand,
+            mainCategory: data.main_category,
+            subCategory: data.sub_category,
+            price: data.price,
+            currency: data.currency,
+            condition: data.condition,
+            location: data.location,
+            state: data.state,
+            pageType: "spare_part_details",
+            viewSource: "direct_page_visit",
+            sellerProfileExists: !!data.profiles,
+            trackingNote: "Spare part details page view with comprehensive tracking",
+          },
+        });
 
         // Fetch compatible robots
         if (data.compatible_robots && data.compatible_robots.length > 0) {
