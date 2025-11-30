@@ -121,7 +121,8 @@ const SparePartDetails = () => {
       };
       generateSEO(seoData);
     }
-  }, [sparePart, generateSEO]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sparePart]);
 
   // Fetch spare part details
   useEffect(() => {
