@@ -39,13 +39,14 @@ const shouldCountView = (itemType: ItemType, itemId: string): boolean => {
   const key = `viewed_${itemType}_${itemId}`;
   const lastView = localStorage.getItem(key);
   const now = Date.now();
-  const threshold = 5 * 60 * 1000; // 5 minutes
+  const threshold = 30 * 1000; // 30 seconds - allows for reasonable testing while preventing rapid spam
   
   if (!lastView || (now - parseInt(lastView)) > threshold) {
     localStorage.setItem(key, now.toString());
     return true;
   }
   
+  console.log(`📊 View not counted for ${itemType} ${itemId} - last viewed ${Math.round((now - parseInt(lastView)) / 1000)}s ago`);
   return false;
 };
 
