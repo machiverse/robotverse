@@ -481,7 +481,6 @@ const Parts = () => {
                   key={part.id}
                   className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
                   onClick={() => {
-                    trackItemView("spare_parts", part.id, part);
                     window.location.href = `/parts/${part.id}`;
                   }}
                 >
