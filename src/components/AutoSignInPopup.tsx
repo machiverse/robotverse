@@ -11,6 +11,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { LogIn, UserPlus, X } from "lucide-react";
 
+// Bot detection utility
+const isCrawlerBot = () => {
+  if (typeof navigator === 'undefined') return true;
+  const userAgent = navigator.userAgent.toLowerCase();
+  const botPatterns = [
+    'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider',
+    'yandexbot', 'sogou', 'exabot', 'facebookexternalhit', 'ia_archiver',
+    'crawler', 'spider', 'bot', 'headless'
+  ];
+  return botPatterns.some(pattern => userAgent.includes(pattern));
+};
+
 export const AutoSignInPopup = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -32,15 +44,15 @@ export const AutoSignInPopup = () => {
       timerRef.current = null;
     }
 
-    // Don't show popup if user is logged in
-    if (user) {
+    // Don't show popup if user is logged in or if visitor is a bot/crawler
+    if (user || isCrawlerBot()) {
       setIsOpen(false);
       return;
     }
 
     // Show popup after 30 seconds
     timerRef.current = setTimeout(() => {
-      if (isMountedRef.current && !user) {
+      if (isMountedRef.current && !user && !isCrawlerBot()) {
         setIsOpen(true);
       }
     }, 30000); // 30 seconds
@@ -54,7 +66,7 @@ export const AutoSignInPopup = () => {
   }, [user]);
 
   const handleClose = () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || isCrawlerBot()) return;
     
     setIsOpen(false);
     
@@ -66,7 +78,7 @@ export const AutoSignInPopup = () => {
     
     // Re-trigger after another 30 seconds if user closes without signing in
     timerRef.current = setTimeout(() => {
-      if (isMountedRef.current && !user) {
+      if (isMountedRef.current && !user && !isCrawlerBot()) {
         setIsOpen(true);
       }
     }, 30000);
@@ -90,8 +102,8 @@ export const AutoSignInPopup = () => {
     navigate("/auth?signup=true");
   };
 
-  // Don't render anything if user is logged in
-  if (user) return null;
+  // Don't render anything if user is logged in or if visitor is a bot
+  if (user || isCrawlerBot()) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

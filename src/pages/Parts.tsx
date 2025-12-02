@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Package, MapPin, Search, Grid, List, Star, Loader2, Building } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
+import ViewCountDisplay from "@/components/ViewCountDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
@@ -57,26 +58,10 @@ const Parts = () => {
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
 
-  const mainCategories = [
-    { value: "all", label: "All Categories" },
-    ...getMainCategories().map((cat) => ({ value: cat, label: cat })),
-  ];
-
-  const subCategories = [
-    { value: "all", label: "All Sub-Categories" },
-    ...(selectedMainCategory && selectedMainCategory !== "all"
-      ? getSubCategories(selectedMainCategory).map((sub) => ({ value: sub, label: sub }))
-      : []),
-  ];
-
-  const locations = [
-    { value: "all", label: "All Locations" },
-    { value: "mumbai", label: "Mumbai" },
-    { value: "delhi", label: "Delhi" },
-    { value: "bangalore", label: "Bangalore" },
-    { value: "chennai", label: "Chennai" },
-    { value: "pune", label: "Pune" },
-  ];
+  // Dynamic filter states
+  const [mainCategories, setMainCategories] = useState([{ value: "all", label: "All Categories" }]);
+  const [subCategories, setSubCategories] = useState([{ value: "all", label: "All Sub-Categories" }]);
+  const [locations, setLocations] = useState([{ value: "all", label: "All Locations" }]);
 
   // Fetch real parts data from Supabase
   useEffect(() => {
@@ -123,6 +108,39 @@ const Parts = () => {
 
         setParts(transformedData);
         setError(null);
+
+        // Extract unique filter options dynamically and sort them
+        const uniqueMainCategories = new Set<string>();
+        const uniqueSubCategories = new Set<string>();
+        const uniqueLocations = new Set<string>();
+
+        transformedData.forEach((part) => {
+          if (part.category) uniqueMainCategories.add(part.category.trim());
+          if (part.subCategory) uniqueSubCategories.add(part.subCategory.trim());
+          if (part.location) uniqueLocations.add(part.location.trim());
+        });
+
+        // Set main categories sorted alphabetically
+        setMainCategories([
+          { value: "all", label: "All Categories" },
+          ...Array.from(uniqueMainCategories)
+            .sort()
+            .map((cat) => ({
+              value: cat.toLowerCase().replace(/\s+/g, "-"),
+              label: cat,
+            })),
+        ]);
+
+        // Set locations sorted alphabetically
+        setLocations([
+          { value: "all", label: "All Locations" },
+          ...Array.from(uniqueLocations)
+            .sort()
+            .map((loc) => ({
+              value: loc.toLowerCase().replace(/\s+/g, "-"),
+              label: loc,
+            })),
+        ]);
       } catch (err) {
         console.error("Error fetching parts:", err);
         setError(err instanceof Error ? err.message : "Failed to load spare parts");
@@ -134,6 +152,30 @@ const Parts = () => {
 
     fetchParts();
   }, []);
+
+  // Update sub-categories when main category changes
+  useEffect(() => {
+    if (selectedMainCategory && selectedMainCategory !== "all") {
+      const filteredSubCats = parts
+        .filter((part) => part.category.toLowerCase().replace(/\s+/g, "-") === selectedMainCategory)
+        .map((part) => part.subCategory)
+        .filter((sub) => sub && sub.trim() !== "");
+
+      const uniqueSubCats = Array.from(new Set(filteredSubCats));
+      
+      setSubCategories([
+        { value: "all", label: "All Sub-Categories" },
+        ...uniqueSubCats
+          .sort()
+          .map((sub) => ({
+            value: sub.toLowerCase().replace(/\s+/g, "-"),
+            label: sub,
+          })),
+      ]);
+    } else {
+      setSubCategories([{ value: "all", label: "All Sub-Categories" }]);
+    }
+  }, [selectedMainCategory, parts]);
 
   // Handle contact seller
   const handleContactSeller = async (part: Part) => {
@@ -267,12 +309,21 @@ const Parts = () => {
       part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       part.compatibility.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesMainCategory = selectedMainCategory === "all" || part.category === selectedMainCategory;
+    // Helper to get label from value
+    const getLabelFromValue = (arr: { value: string; label: string }[], val: string) => 
+      arr.find((i) => i.value === val)?.label || "";
 
-    const matchesSubCategory = selectedSubCategory === "all" || part.subCategory === selectedSubCategory;
+    const matchesMainCategory = 
+      selectedMainCategory === "all" || 
+      part.category.toLowerCase() === getLabelFromValue(mainCategories, selectedMainCategory).toLowerCase();
+
+    const matchesSubCategory = 
+      selectedSubCategory === "all" || 
+      part.subCategory?.toLowerCase() === getLabelFromValue(subCategories, selectedSubCategory).toLowerCase();
 
     const matchesLocation =
-      selectedLocation === "all" || part.location.toLowerCase() === selectedLocation.toLowerCase();
+      selectedLocation === "all" || 
+      part.location.toLowerCase() === getLabelFromValue(locations, selectedLocation).toLowerCase();
 
     return matchesSearch && matchesMainCategory && matchesSubCategory && matchesLocation;
   });
@@ -430,7 +481,6 @@ const Parts = () => {
                   key={part.id}
                   className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
                   onClick={() => {
-                    trackItemView("spare_parts", part.id, part);
                     window.location.href = `/parts/${part.id}`;
                   }}
                 >
@@ -450,7 +500,7 @@ const Parts = () => {
                       )}
                     </div>
                     <CardTitle className="text-lg">{part.name}</CardTitle>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <Badge variant="secondary" className="w-fit">
                         {part.category}
                       </Badge>
@@ -459,6 +509,7 @@ const Parts = () => {
                         <span className="text-sm text-muted-foreground">{part.rating}</span>
                       </div>
                     </div>
+                    <ViewCountDisplay targetType="spare_parts" targetId={part.id} className="mt-2" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">

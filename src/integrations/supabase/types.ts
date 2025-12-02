@@ -2526,10 +2526,9 @@ export type Database = {
         Args: { p_post_id: string }
         Returns: number
       }
-      increment_item_view_count: {
-        Args: { p_item_id: string; p_item_type: string }
-        Returns: number
-      }
+      increment_item_view_count:
+        | { Args: { p_item_id: string; p_item_type: string }; Returns: number }
+        | { Args: { p_item_id: string; p_item_type: string }; Returns: number }
       increment_robot_view_count: {
         Args: { p_robot_id: string }
         Returns: number
