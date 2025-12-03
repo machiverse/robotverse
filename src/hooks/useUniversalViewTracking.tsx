@@ -34,25 +34,10 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
-// Check if view should be counted (prevent duplicate counts in same session)
+// Always count views - no throttling for any item type
 const shouldCountView = (itemType: ItemType, itemId: string): boolean => {
-  // For spare parts, always count every detail page open to ensure views increment reliably
-  if (itemType === 'spare_parts') {
-    return true;
-  }
-
-  const key = `viewed_${itemType}_${itemId}`;
-  const lastView = localStorage.getItem(key);
-  const now = Date.now();
-  const threshold = 30 * 1000; // 30 seconds for other item types
-  
-  if (!lastView || (now - parseInt(lastView)) > threshold) {
-    localStorage.setItem(key, now.toString());
-    return true;
-  }
-  
-  console.log(`📊 View not counted for ${itemType} ${itemId} - last viewed ${Math.round((now - parseInt(lastView)) / 1000)}s ago`);
-  return false;
+  // Always return true to ensure every page visit increments the view count
+  return true;
 };
 
 export const useUniversalViewTracking = () => {
