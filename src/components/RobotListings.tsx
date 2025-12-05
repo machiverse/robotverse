@@ -961,7 +961,6 @@ const RobotListings = () => {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          trackItemView('robots', robot.id, robot);
                           trackButtonClick({
                             buttonName: "View Details",
                             buttonType: "robot_view",

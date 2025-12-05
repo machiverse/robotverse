@@ -822,8 +822,6 @@ const Robots = () => {
                             groupName: key || "all"
                           }
                          });
-                         // Track robot view for analytics
-                         await trackItemView('robots', robot.id, robot);
                          navigate(`/robots/${robot.id}`);
                        }}>
                        {/* Robot Image */}
@@ -979,8 +977,6 @@ const Robots = () => {
                                           viewSource: "details_button"
                                         }
                                       });
-                                      // Track robot view when clicking details button
-                                      await trackItemView('robots', robot.id, robot);
                                       navigate(`/robots/${robot.id}`);
                                     }}
                                 >
