@@ -332,7 +332,6 @@ const RobotDetails = () => {
           });
         }
 
-
         // Generate SEO elements for this robot
         const robotSEOData: RobotSEOData = {
           id: data.id,
@@ -354,19 +353,6 @@ const RobotDetails = () => {
         };
 
         generateSEO(robotSEOData);
-
-        // Check if robot is in user's watchlist
-        if (user) {
-          const { data: watchlistData } = await supabase
-            .from("watchlists")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("item_type", "robot")
-            .eq("item_id", data.id)
-            .single();
-
-          setIsInWatchlist(!!watchlistData);
-        }
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Failed to load robot details");
@@ -375,7 +361,25 @@ const RobotDetails = () => {
       }
     };
     fetchRobot();
-  }, [id, user]);
+  }, [id]);
+
+  // Separate effect for watchlist check - depends on user and robot
+  useEffect(() => {
+    const checkWatchlist = async () => {
+      if (!user || !robot) return;
+      
+      const { data: watchlistData } = await supabase
+        .from("watchlists")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("item_type", "robot")
+        .eq("item_id", robot.id)
+        .single();
+
+      setIsInWatchlist(!!watchlistData);
+    };
+    checkWatchlist();
+  }, [user, robot]);
 
   // Fetch current user's location
   useEffect(() => {
