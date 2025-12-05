@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -231,6 +231,9 @@ const RobotDetails = () => {
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
+  // Ref to prevent duplicate view counting
+  const viewCountedRef = useRef<string | null>(null);
+
   // SEO hook
   const { seoElements, generateSEO } = useRobotSEO();
 
@@ -294,36 +297,41 @@ const RobotDetails = () => {
         }
 
         // Track robot view using universal view tracking system (increments view count)
-        await trackItemView("robots", data.id, data);
+        // Only count view once per page load to prevent duplicate counting
+        if (viewCountedRef.current !== data.id) {
+          viewCountedRef.current = data.id;
+          await trackItemView("robots", data.id, data);
 
-        // Track detailed button interaction for analytics
-        await trackButtonClick({
-          buttonName: "Robot Page View",
-          buttonType: "robot_page_view",
-          sellerId: data.seller_id,
-          sellerName: data.profiles?.full_name || "No Name Available",
-          sellerCompany: data.profiles?.company_name || "No Company Available",
-          sellerEmail: data.profiles?.email || "No Email Available",
-          sellerMobile: data.profiles?.mobile_number || data.profiles?.phone || "No Phone Available",
-          sellerLocation: data.profiles?.location || data.location || "No Location Available",
-          itemId: data.id,
-          itemType: "robot",
-          additionalData: {
-            robotName: data.name,
-            robotModel: data.model,
-            robotType: data.robot_type,
-            price: data.price,
-            currency: data.currency,
-            brand: data.brand,
-            condition: data.condition,
-            location: data.location,
-            state: data.state,
-            pageType: "robot_details",
-            viewSource: "direct_page_visit",
-            sellerProfileExists: !!data.profiles,
-            trackingNote: "Robot details page view with comprehensive tracking",
-          },
-        });
+          // Track detailed button interaction for analytics
+          await trackButtonClick({
+            buttonName: "Robot Page View",
+            buttonType: "robot_page_view",
+            sellerId: data.seller_id,
+            sellerName: data.profiles?.full_name || "No Name Available",
+            sellerCompany: data.profiles?.company_name || "No Company Available",
+            sellerEmail: data.profiles?.email || "No Email Available",
+            sellerMobile: data.profiles?.mobile_number || data.profiles?.phone || "No Phone Available",
+            sellerLocation: data.profiles?.location || data.location || "No Location Available",
+            itemId: data.id,
+            itemType: "robot",
+            additionalData: {
+              robotName: data.name,
+              robotModel: data.model,
+              robotType: data.robot_type,
+              price: data.price,
+              currency: data.currency,
+              brand: data.brand,
+              condition: data.condition,
+              location: data.location,
+              state: data.state,
+              pageType: "robot_details",
+              viewSource: "direct_page_visit",
+              sellerProfileExists: !!data.profiles,
+              trackingNote: "Robot details page view with comprehensive tracking",
+            },
+          });
+        }
+
 
         // Generate SEO elements for this robot
         const robotSEOData: RobotSEOData = {
