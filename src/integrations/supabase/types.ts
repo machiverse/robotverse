@@ -254,6 +254,54 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_access_requests: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          buyer_id: string
+          created_at: string
+          id: string
+          inquiry_id: string
+          inquiry_type: string
+          item_id: string | null
+          item_name: string | null
+          seller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_id: string
+          created_at?: string
+          id?: string
+          inquiry_id: string
+          inquiry_type: string
+          item_id?: string | null
+          item_name?: string | null
+          seller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          inquiry_id?: string
+          inquiry_type?: string
+          item_id?: string | null
+          item_name?: string | null
+          seller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           buyer_id: string
@@ -2416,6 +2464,23 @@ export type Database = {
       }
       filter_contact_info: { Args: { message: string }; Returns: boolean }
       generate_random_string: { Args: { length: number }; Returns: string }
+      get_buyer_info: {
+        Args: {
+          p_buyer_name: string
+          p_company_name: string
+          p_email: string
+          p_inquiry_id: string
+          p_mobile_number: string
+          p_seller_id: string
+        }
+        Returns: {
+          buyer_name: string
+          company_name: string
+          email: string
+          has_access: boolean
+          mobile_number: string
+        }[]
+      }
       get_chat_conversations_with_users: {
         Args: never
         Returns: {
@@ -2518,6 +2583,10 @@ export type Database = {
       }
       get_unread_message_count: { Args: { p_user_id: string }; Returns: number }
       get_user_watchlist_count: { Args: { p_user_id: string }; Returns: number }
+      has_buyer_access: {
+        Args: { p_inquiry_id: string; p_seller_id: string }
+        Returns: boolean
+      }
       increment_blog_view_count: {
         Args: { p_blog_id: string }
         Returns: number

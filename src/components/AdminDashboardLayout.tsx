@@ -6,6 +6,7 @@ import AdminSidebar from "./AdminSidebar";
 import AdminOverview from "./admin/AdminOverview";
 import AdminUsers from "./admin/AdminUsers";
 import AdminEquipment from "./admin/AdminEquipment";
+import AdminBuyerAccessRequests from "./admin/AdminBuyerAccessRequests";
 import AdminChatMonitoring from "./admin/AdminChatMonitoring";
 import AdminDatabase from "./admin/AdminDatabase";
 import AdminTracking from "./admin/AdminTracking";
@@ -60,6 +61,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminUsers key={`users-${users.length}`} users={users} onRefresh={onRefresh} />;
       case "equipment":
         return <AdminEquipment robots={robots} services={services} spareParts={spareParts} onRefresh={onRefresh} />;
+      case "buyer-access":
+        return <AdminBuyerAccessRequests />;
       case "chat-monitoring":
         return <AdminChatMonitoring />;
       case "database":
