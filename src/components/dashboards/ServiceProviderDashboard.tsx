@@ -21,7 +21,7 @@ import { useViewTracking } from '@/hooks/useViewTracking';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
-import BuyerInquiriesSection from '@/components/dashboards/BuyerInquiriesSection';
+import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
@@ -267,16 +267,16 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           <Tabs defaultValue="services" className="mt-6">
             <TabsList className="grid grid-cols-7">
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
-              <TabsTrigger value="inquiries">Buyer Inquiries</TabsTrigger>
+              <TabsTrigger value="inquiries">Product Views</TabsTrigger>
               <TabsTrigger value="user-requests">User Requests</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
               <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
             </TabsList>
-            {/* Buyer Inquiries Tab */}
+            {/* Product Views Tab */}
             <TabsContent value="inquiries">
-              <BuyerInquiriesSection sellerId={user?.id || ''} itemType="services" />
+              <ProductViewsSection sellerId={user?.id || ''} itemType="services" />
             </TabsContent>
             {/* Service Requests Tab */}
             <TabsContent value="requests">

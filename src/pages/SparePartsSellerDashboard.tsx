@@ -43,7 +43,7 @@ import { useViewTracking } from '@/hooks/useViewTracking';
 import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
-import BuyerInquiriesSection from '@/components/dashboards/BuyerInquiriesSection';
+import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 
 interface SparePart {
@@ -429,13 +429,13 @@ const SparePartsSellerDashboard = () => {
       <Tabs defaultValue="inventory" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
-          <TabsTrigger value="inquiries">Buyer Inquiries</TabsTrigger>
+          <TabsTrigger value="inquiries">Product Views</TabsTrigger>
           <TabsTrigger value="views">View Statistics</TabsTrigger>
           <TabsTrigger value="requests">User Requests</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inquiries" className="mt-6">
-          <BuyerInquiriesSection sellerId={user?.id || ''} itemType="spare_parts" />
+          <ProductViewsSection sellerId={user?.id || ''} itemType="spare_parts" />
         </TabsContent>
 
         <TabsContent value="inventory" className="mt-6">
