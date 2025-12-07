@@ -59,7 +59,7 @@ import { DashboardHeader } from '@/components/DashboardHeader';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
-import BuyerInquiriesSection from '@/components/dashboards/BuyerInquiriesSection';
+import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -627,8 +627,8 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             Inventory ({filteredRobots.length})
           </TabsTrigger>
           <TabsTrigger value="inquiries" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Buyer Inquiries
+            <Eye className="w-4 h-4" />
+            Product Views
           </TabsTrigger>
           <TabsTrigger value="requests" className="flex items-center gap-2">
             <MessageCircle className="w-4 h-4" />
@@ -648,9 +648,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Buyer Inquiries Tab */}
+        {/* Product Views Tab */}
         <TabsContent value="inquiries" className="mt-6">
-          <BuyerInquiriesSection sellerId={user?.id || ''} itemType="robots" />
+          <ProductViewsSection sellerId={user?.id || ''} itemType="robots" />
         </TabsContent>
 
         <TabsContent value="inventory" className="mt-6">
