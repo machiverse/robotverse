@@ -802,6 +802,56 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_activities: {
+        Row: {
+          activity_type: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean | null
+          lead_id: string
+          reminder_at: string | null
+          scheduled_at: string | null
+          seller_id: string
+          title: string
+        }
+        Insert: {
+          activity_type: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          lead_id: string
+          reminder_at?: string | null
+          scheduled_at?: string | null
+          seller_id: string
+          title: string
+        }
+        Update: {
+          activity_type?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          lead_id?: string
+          reminder_at?: string | null
+          scheduled_at?: string | null
+          seller_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_applications: {
         Row: {
           amount_requested: number
@@ -1431,6 +1481,7 @@ export type Database = {
           company_logo_url: string | null
           company_name: string | null
           created_at: string
+          credits_balance: number | null
           email: string | null
           finance_type: string[] | null
           financing_for: string[] | null
@@ -1465,6 +1516,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
+          credits_balance?: number | null
           email?: string | null
           finance_type?: string[] | null
           financing_for?: string[] | null
@@ -1499,6 +1551,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
+          credits_balance?: number | null
           email?: string | null
           finance_type?: string[] | null
           financing_for?: string[] | null
@@ -1783,6 +1836,211 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      seller_credit_transactions: {
+        Row: {
+          balance_after: number
+          created_at: string
+          credits_amount: number
+          description: string | null
+          id: string
+          lead_id: string | null
+          seller_id: string
+          transaction_type: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          credits_amount: number
+          description?: string | null
+          id?: string
+          lead_id?: string | null
+          seller_id: string
+          transaction_type: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          credits_amount?: number
+          description?: string | null
+          id?: string
+          lead_id?: string | null
+          seller_id?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_credit_transactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_invoices: {
+        Row: {
+          buyer_address: string | null
+          buyer_company: string | null
+          buyer_email: string | null
+          buyer_id: string | null
+          buyer_name: string
+          buyer_phone: string | null
+          created_at: string
+          currency: string | null
+          discount_amount: number | null
+          due_date: string | null
+          id: string
+          invoice_number: string
+          items: Json
+          lead_id: string | null
+          notes: string | null
+          paid_at: string | null
+          seller_id: string
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          terms: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_address?: string | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name: string
+          buyer_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          discount_amount?: number | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          items?: Json
+          lead_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          seller_id: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          terms?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_address?: string | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string
+          buyer_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          discount_amount?: number | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          items?: Json
+          lead_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          seller_id?: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          terms?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_invoices_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_leads: {
+        Row: {
+          buyer_company: string | null
+          buyer_email: string | null
+          buyer_id: string | null
+          buyer_name: string | null
+          buyer_phone: string | null
+          created_at: string
+          currency: string | null
+          expected_value: number | null
+          id: string
+          is_unlocked: boolean | null
+          item_id: string | null
+          item_name: string | null
+          item_type: string
+          last_contacted_at: string | null
+          next_follow_up: string | null
+          notes: string | null
+          priority: string | null
+          seller_id: string
+          source: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          expected_value?: number | null
+          id?: string
+          is_unlocked?: boolean | null
+          item_id?: string | null
+          item_name?: string | null
+          item_type?: string
+          last_contacted_at?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          priority?: string | null
+          seller_id: string
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          expected_value?: number | null
+          id?: string
+          is_unlocked?: boolean | null
+          item_id?: string | null
+          item_name?: string | null
+          item_type?: string
+          last_contacted_at?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          priority?: string | null
+          seller_id?: string
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       seller_notifications: {
         Row: {
@@ -2427,6 +2685,10 @@ export type Database = {
           user_roles: string[]
         }[]
       }
+      convert_view_to_lead: {
+        Args: { p_seller_id: string; p_view_id: string }
+        Returns: string
+      }
       create_complete_user_profile: {
         Args: {
           p_account_type?: string
@@ -2607,6 +2869,10 @@ export type Database = {
       is_admin_user: { Args: never; Returns: boolean }
       is_item_in_watchlist: {
         Args: { p_item_id: string; p_item_type: string; p_user_id: string }
+        Returns: boolean
+      }
+      unlock_buyer_with_credits: {
+        Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
         Returns: boolean
       }
     }
