@@ -397,13 +397,13 @@ export const useSellerCRM = (itemType?: string) => {
     try {
       const { data, error } = await supabase
         .from('seller_invoices')
-        .insert({
+        .insert([{
           buyer_name: invoiceData.buyer_name || '',
           buyer_email: invoiceData.buyer_email,
           buyer_phone: invoiceData.buyer_phone,
           buyer_company: invoiceData.buyer_company,
           buyer_address: invoiceData.buyer_address,
-          items: invoiceData.items as unknown as object,
+          items: JSON.parse(JSON.stringify(invoiceData.items)),
           subtotal: invoiceData.subtotal || 0,
           tax_rate: invoiceData.tax_rate || 18,
           tax_amount: invoiceData.tax_amount || 0,
@@ -415,7 +415,7 @@ export const useSellerCRM = (itemType?: string) => {
           status: invoiceData.status || 'draft',
           lead_id: invoiceData.lead_id,
           seller_id: user.id
-        })
+        }])
         .select()
         .single();
 
