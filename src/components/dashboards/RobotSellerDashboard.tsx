@@ -60,6 +60,7 @@ import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
 import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
+import { LeadsManager, CreditsDisplay } from '@/components/crm';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -621,10 +622,14 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 h-12">
+        <TabsList className="grid w-full grid-cols-7 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
+          </TabsTrigger>
+          <TabsTrigger value="crm" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            CRM / Leads
           </TabsTrigger>
           <TabsTrigger value="inquiries" className="flex items-center gap-2">
             <Eye className="w-4 h-4" />
@@ -647,6 +652,28 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             Settings
           </TabsTrigger>
         </TabsList>
+
+        {/* CRM / Leads Tab */}
+        <TabsContent value="crm" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    CRM - Lead Management
+                  </CardTitle>
+                  <CardDescription>
+                    Manage buyer leads, unlock contact details, send quotations, and track follow-ups
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <LeadsManager sellerId={user?.id || ''} itemType="robots" />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Product Views Tab */}
         <TabsContent value="inquiries" className="mt-6">
