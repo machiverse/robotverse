@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { 
   Search, 
   Lock, 
@@ -17,13 +19,26 @@ import {
   FileText,
   MoreHorizontal,
   Loader2,
-  Plus,
   Filter,
-  Eye
+  Eye,
+  Send,
+  ExternalLink,
+  User,
+  Package,
+  MapPin,
+  Clock,
+  CheckCircle,
+  MessageCircle,
+  FileSpreadsheet,
+  History
 } from 'lucide-react';
-import { useSellerCRM, type Lead } from '@/hooks/useSellerCRM';
+import { useSellerCRM, type Lead, type LeadActivity } from '@/hooks/useSellerCRM';
 import { format, formatDistanceToNow } from 'date-fns';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface LeadsManagerProps {
   sellerId: string;
@@ -47,6 +62,9 @@ const PRIORITY_CONFIG: Record<Lead['priority'], { label: string; color: string }
 };
 
 const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const { 
     leads, 
     unlockBuyerInfo, 
@@ -54,7 +72,9 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     updateLeadNotes,
     scheduleFollowUp,
     addActivity,
-    creditsBalance 
+    creditsBalance,
+    activities,
+    createInvoice
   } = useSellerCRM(itemType);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,9 +82,17 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpNote, setFollowUpNote] = useState('');
   const [notes, setNotes] = useState('');
   const [unlocking, setUnlocking] = useState<string | null>(null);
+  const [leadActivities, setLeadActivities] = useState<LeadActivity[]>([]);
+
+  // Quotation form state
+  const [quotationItems, setQuotationItems] = useState([{ name: '', quantity: 1, unit_price: 0 }]);
+  const [quotationNotes, setQuotationNotes] = useState('');
+  const [sendingQuotation, setSendingQuotation] = useState(false);
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = !searchQuery || 
@@ -90,14 +118,157 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const handleScheduleFollowUp = async () => {
     if (!selectedLead || !followUpDate) return;
     await scheduleFollowUp(selectedLead.id, followUpDate);
+    if (followUpNote) {
+      await addActivity(selectedLead.id, 'follow_up', 'Follow-up Scheduled', followUpNote, followUpDate);
+    }
     setShowFollowUpModal(false);
     setFollowUpDate('');
+    setFollowUpNote('');
+    toast({
+      title: "Follow-up Scheduled",
+      description: `Follow-up set for ${format(new Date(followUpDate), 'PPP')}`
+    });
   };
 
   const handleSaveNotes = async () => {
     if (!selectedLead) return;
     await updateLeadNotes(selectedLead.id, notes);
+    await addActivity(selectedLead.id, 'note', 'Note Added', notes);
     setShowLeadModal(false);
+  };
+
+  const handleStartChat = async (lead: Lead) => {
+    if (!lead.is_unlocked || !lead.buyer_id) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Start Chat",
+        description: "Buyer information must be unlocked first"
+      });
+      return;
+    }
+
+    try {
+      // Check for existing chat session
+      const { data: existingSession } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .or(`and(user1_id.eq.${user?.id},user2_id.eq.${lead.buyer_id}),and(user1_id.eq.${lead.buyer_id},user2_id.eq.${user?.id})`)
+        .eq('item_id', lead.item_id)
+        .single();
+
+      if (existingSession) {
+        navigate(`/chat?session=${existingSession.id}`);
+      } else {
+        // Create new chat session
+        const { data: newSession, error } = await supabase
+          .from('chat_sessions')
+          .insert({
+            user1_id: user?.id,
+            user2_id: lead.buyer_id,
+            item_id: lead.item_id,
+            item_type: lead.item_type,
+            item_name: lead.item_name
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        
+        await addActivity(lead.id, 'chat', 'Chat Started', `Started chat with ${lead.buyer_name}`);
+        navigate(`/chat?session=${newSession.id}`);
+      }
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to start chat"
+      });
+    }
+  };
+
+  const handleWhatsApp = (lead: Lead) => {
+    if (!lead.is_unlocked || !lead.buyer_phone) return;
+    const phone = lead.buyer_phone.replace(/\D/g, '');
+    const message = encodeURIComponent(`Hi ${lead.buyer_name}, I'm reaching out regarding your inquiry about ${lead.item_name}. How can I help you?`);
+    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    addActivity(lead.id, 'call', 'WhatsApp Sent', `Contacted via WhatsApp`);
+  };
+
+  const handleEmail = (lead: Lead) => {
+    if (!lead.is_unlocked || !lead.buyer_email) return;
+    const subject = encodeURIComponent(`Regarding your inquiry: ${lead.item_name}`);
+    const body = encodeURIComponent(`Dear ${lead.buyer_name},\n\nThank you for your interest in ${lead.item_name}.\n\nPlease let me know how I can assist you further.\n\nBest regards`);
+    window.open(`mailto:${lead.buyer_email}?subject=${subject}&body=${body}`, '_blank');
+    addActivity(lead.id, 'email', 'Email Sent', `Sent email to ${lead.buyer_email}`);
+  };
+
+  const handleCall = (lead: Lead) => {
+    if (!lead.is_unlocked || !lead.buyer_phone) return;
+    window.open(`tel:${lead.buyer_phone}`, '_blank');
+    addActivity(lead.id, 'call', 'Phone Call Made', `Called ${lead.buyer_phone}`);
+  };
+
+  const handleSendQuotation = async () => {
+    if (!selectedLead || quotationItems.length === 0) return;
+    
+    setSendingQuotation(true);
+    try {
+      const items = quotationItems.map(item => ({
+        name: item.name || selectedLead.item_name || 'Product',
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total: item.quantity * item.unit_price
+      }));
+
+      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+      const taxAmount = subtotal * 0.18;
+      const totalAmount = subtotal + taxAmount;
+
+      await createInvoice({
+        buyer_name: selectedLead.buyer_name || '',
+        buyer_email: selectedLead.buyer_email,
+        buyer_phone: selectedLead.buyer_phone,
+        buyer_company: selectedLead.buyer_company,
+        lead_id: selectedLead.id,
+        items,
+        subtotal,
+        tax_rate: 18,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        notes: quotationNotes,
+        status: 'sent'
+      });
+
+      await updateLeadStatus(selectedLead.id, 'quoted');
+      await addActivity(selectedLead.id, 'invoice_sent', 'Quotation Sent', `Quotation of ₹${totalAmount.toLocaleString()} sent`);
+
+      setShowQuotationModal(false);
+      setQuotationItems([{ name: '', quantity: 1, unit_price: 0 }]);
+      setQuotationNotes('');
+      
+      toast({
+        title: "Quotation Sent",
+        description: "Quotation has been created and sent successfully"
+      });
+    } catch (error) {
+      console.error('Error sending quotation:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send quotation"
+      });
+    } finally {
+      setSendingQuotation(false);
+    }
+  };
+
+  const openLeadDetails = (lead: Lead) => {
+    setSelectedLead(lead);
+    setNotes(lead.notes || '');
+    // Filter activities for this lead
+    setLeadActivities(activities.filter(a => a.lead_id === lead.id));
+    setShowLeadModal(true);
   };
 
   const getMaskedValue = (value: string | null, isUnlocked: boolean): string => {
@@ -162,7 +333,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                   {/* Left: Lead Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className={`p-1.5 rounded-full ${lead.is_unlocked ? 'bg-green-100' : 'bg-muted'}`}>
+                      <div className={`p-1.5 rounded-full ${lead.is_unlocked ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'}`}>
                         {lead.is_unlocked ? (
                           <Unlock className="w-4 h-4 text-green-600" />
                         ) : (
@@ -180,23 +351,101 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                       </div>
                     </div>
 
-                    {/* Contact Info */}
+                    {/* Contact Info - Show actual details when unlocked */}
                     <div className="flex flex-wrap gap-3 text-sm mb-3">
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Phone className="w-3 h-3" />
-                        {getMaskedValue(lead.buyer_phone, lead.is_unlocked)}
-                      </span>
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Mail className="w-3 h-3" />
-                        {getMaskedValue(lead.buyer_email, lead.is_unlocked)}
-                      </span>
+                      {lead.is_unlocked ? (
+                        <>
+                          <a 
+                            href={`tel:${lead.buyer_phone}`} 
+                            className="flex items-center gap-1 text-primary hover:underline cursor-pointer"
+                            onClick={() => handleCall(lead)}
+                          >
+                            <Phone className="w-3 h-3" />
+                            {lead.buyer_phone}
+                          </a>
+                          <a 
+                            href={`mailto:${lead.buyer_email}`}
+                            className="flex items-center gap-1 text-primary hover:underline cursor-pointer"
+                          >
+                            <Mail className="w-3 h-3" />
+                            {lead.buyer_email}
+                          </a>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Phone className="w-3 h-3" />
+                            XXXXX
+                          </span>
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Mail className="w-3 h-3" />
+                            XXXXX
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     {/* Product Info */}
                     <div className="flex items-center gap-2 text-sm">
+                      <Package className="w-3 h-3 text-muted-foreground" />
                       <span className="font-medium text-foreground">{lead.item_name || 'Unknown Product'}</span>
                       <Badge variant="outline" className="text-xs capitalize">{lead.item_type}</Badge>
                     </div>
+
+                    {/* Quick Action Buttons for Unlocked Leads */}
+                    {lead.is_unlocked && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleStartChat(lead)}
+                          className="h-8 text-xs"
+                        >
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          Start Chat
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleWhatsApp(lead)}
+                          className="h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                        >
+                          <MessageCircle className="w-3 h-3 mr-1" />
+                          WhatsApp
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEmail(lead)}
+                          className="h-8 text-xs"
+                        >
+                          <Mail className="w-3 h-3 mr-1" />
+                          Email
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCall(lead)}
+                          className="h-8 text-xs"
+                        >
+                          <Phone className="w-3 h-3 mr-1" />
+                          Call
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedLead(lead);
+                            setQuotationItems([{ name: lead.item_name || '', quantity: 1, unit_price: lead.expected_value || 0 }]);
+                            setShowQuotationModal(true);
+                          }}
+                          className="h-8 text-xs"
+                        >
+                          <FileSpreadsheet className="w-3 h-3 mr-1" />
+                          Send Quotation
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right: Status & Actions */}
@@ -239,13 +488,9 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedLead(lead);
-                            setNotes(lead.notes || '');
-                            setShowLeadModal(true);
-                          }}>
+                          <DropdownMenuItem onClick={() => openLeadDetails(lead)}>
                             <FileText className="w-4 h-4 mr-2" />
-                            View Details
+                            View Full Details
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setSelectedLead(lead);
@@ -255,10 +500,20 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                             Schedule Follow-up
                           </DropdownMenuItem>
                           {lead.is_unlocked && (
-                            <DropdownMenuItem>
-                              <MessageSquare className="w-4 h-4 mr-2" />
-                              Start Chat
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem onClick={() => handleStartChat(lead)}>
+                                <MessageSquare className="w-4 h-4 mr-2" />
+                                Start Chat
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedLead(lead);
+                                setQuotationItems([{ name: lead.item_name || '', quantity: 1, unit_price: lead.expected_value || 0 }]);
+                                setShowQuotationModal(true);
+                              }}>
+                                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                Send Quotation
+                              </DropdownMenuItem>
+                            </>
                           )}
                           <DropdownMenuSeparator />
                           <div className="px-2 py-1.5 text-xs text-muted-foreground">Change Status</div>
@@ -290,57 +545,206 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         </div>
       )}
 
-      {/* Lead Details Modal */}
+      {/* Lead Details Modal - Full CRM View */}
       <Dialog open={showLeadModal} onOpenChange={setShowLeadModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Lead Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Lead Details
+              {selectedLead?.is_unlocked && (
+                <Badge className="bg-green-100 text-green-700 ml-2">
+                  <Unlock className="w-3 h-3 mr-1" />
+                  Unlocked
+                </Badge>
+              )}
+            </DialogTitle>
           </DialogHeader>
           {selectedLead && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <label className="text-muted-foreground">Name</label>
-                  <p className="font-medium">{getMaskedValue(selectedLead.buyer_name, selectedLead.is_unlocked)}</p>
-                </div>
-                <div>
-                  <label className="text-muted-foreground">Company</label>
-                  <p className="font-medium">{getMaskedValue(selectedLead.buyer_company, selectedLead.is_unlocked)}</p>
-                </div>
-                <div>
-                  <label className="text-muted-foreground">Phone</label>
-                  <p className="font-medium">{getMaskedValue(selectedLead.buyer_phone, selectedLead.is_unlocked)}</p>
-                </div>
-                <div>
-                  <label className="text-muted-foreground">Email</label>
-                  <p className="font-medium">{getMaskedValue(selectedLead.buyer_email, selectedLead.is_unlocked)}</p>
-                </div>
-                <div>
-                  <label className="text-muted-foreground">Product</label>
-                  <p className="font-medium">{selectedLead.item_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <label className="text-muted-foreground">Status</label>
-                  <Badge className={`${STATUS_CONFIG[selectedLead.status].bg} ${STATUS_CONFIG[selectedLead.status].color} border-0`}>
-                    {STATUS_CONFIG[selectedLead.status].label}
-                  </Badge>
-                </div>
-              </div>
+            <div className="space-y-6">
+              {/* Buyer Information Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Buyer Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedLead.is_unlocked ? (
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <label className="text-muted-foreground text-xs">Full Name</label>
+                        <p className="font-medium">{selectedLead.buyer_name}</p>
+                      </div>
+                      <div>
+                        <label className="text-muted-foreground text-xs">Company</label>
+                        <p className="font-medium">{selectedLead.buyer_company || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label className="text-muted-foreground text-xs">Phone Number</label>
+                        <a href={`tel:${selectedLead.buyer_phone}`} className="font-medium text-primary hover:underline flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {selectedLead.buyer_phone}
+                        </a>
+                      </div>
+                      <div>
+                        <label className="text-muted-foreground text-xs">Email Address</label>
+                        <a href={`mailto:${selectedLead.buyer_email}`} className="font-medium text-primary hover:underline flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          {selectedLead.buyer_email}
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <Lock className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Unlock to view buyer details</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
+              {/* Product Information Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Product Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <label className="text-muted-foreground text-xs">Product Name</label>
+                      <p className="font-medium">{selectedLead.item_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-muted-foreground text-xs">Type</label>
+                      <Badge variant="outline" className="capitalize">{selectedLead.item_type}</Badge>
+                    </div>
+                    <div>
+                      <label className="text-muted-foreground text-xs">Status</label>
+                      <Badge className={`${STATUS_CONFIG[selectedLead.status].bg} ${STATUS_CONFIG[selectedLead.status].color} border-0`}>
+                        {STATUS_CONFIG[selectedLead.status].label}
+                      </Badge>
+                    </div>
+                    <div>
+                      <label className="text-muted-foreground text-xs">Expected Value</label>
+                      <p className="font-medium">
+                        {selectedLead.expected_value 
+                          ? `₹${selectedLead.expected_value.toLocaleString()}`
+                          : 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions for Unlocked Leads */}
+              {selectedLead.is_unlocked && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => handleStartChat(selectedLead)} className="flex-1 min-w-[120px]">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Start Chat
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => handleWhatsApp(selectedLead)}
+                        className="flex-1 min-w-[120px] bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        WhatsApp
+                      </Button>
+                      <Button variant="outline" onClick={() => handleEmail(selectedLead)} className="flex-1 min-w-[120px]">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Email
+                      </Button>
+                      <Button variant="outline" onClick={() => handleCall(selectedLead)} className="flex-1 min-w-[120px]">
+                        <Phone className="w-4 h-4 mr-2" />
+                        Call Now
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowLeadModal(false);
+                          setQuotationItems([{ name: selectedLead.item_name || '', quantity: 1, unit_price: selectedLead.expected_value || 0 }]);
+                          setShowQuotationModal(true);
+                        }}
+                        className="flex-1 min-w-[120px]"
+                      >
+                        <FileSpreadsheet className="w-4 h-4 mr-2" />
+                        Send Quotation
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowLeadModal(false);
+                          setShowFollowUpModal(true);
+                        }}
+                        className="flex-1 min-w-[120px]"
+                      >
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Schedule Follow-up
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Activity History */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <History className="w-4 h-4" />
+                    Activity History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {leadActivities.length > 0 ? (
+                    <div className="space-y-3">
+                      {leadActivities.map((activity) => (
+                        <div key={activity.id} className="flex items-start gap-3 text-sm border-l-2 border-primary/20 pl-3">
+                          <div className="flex-1">
+                            <p className="font-medium">{activity.title}</p>
+                            {activity.description && (
+                              <p className="text-muted-foreground text-xs mt-1">{activity.description}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(activity.created_at), 'PPp')}
+                            </p>
+                          </div>
+                          {activity.is_completed && (
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm text-center py-4">No activity recorded yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Notes */}
               <div>
-                <label className="text-sm text-muted-foreground">Notes</label>
+                <label className="text-sm font-medium mb-2 block">Notes</label>
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes about this lead..."
-                  className="mt-1"
                   rows={4}
                 />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLeadModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowLeadModal(false)}>Close</Button>
             <Button onClick={handleSaveNotes}>Save Notes</Button>
           </DialogFooter>
         </DialogContent>
@@ -350,11 +754,14 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
       <Dialog open={showFollowUpModal} onOpenChange={setShowFollowUpModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Schedule Follow-up</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Schedule Follow-up
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-muted-foreground">Follow-up Date</label>
+              <label className="text-sm font-medium">Follow-up Date</label>
               <Input
                 type="date"
                 value={followUpDate}
@@ -363,10 +770,130 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                 className="mt-1"
               />
             </div>
+            <div>
+              <label className="text-sm font-medium">Notes</label>
+              <Textarea
+                value={followUpNote}
+                onChange={(e) => setFollowUpNote(e.target.value)}
+                placeholder="Add notes for this follow-up..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowFollowUpModal(false)}>Cancel</Button>
-            <Button onClick={handleScheduleFollowUp} disabled={!followUpDate}>Schedule</Button>
+            <Button onClick={handleScheduleFollowUp} disabled={!followUpDate}>
+              <Calendar className="w-4 h-4 mr-2" />
+              Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quotation Modal */}
+      <Dialog open={showQuotationModal} onOpenChange={setShowQuotationModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5" />
+              Send Quotation
+            </DialogTitle>
+          </DialogHeader>
+          {selectedLead && (
+            <div className="space-y-4">
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <p><strong>To:</strong> {selectedLead.buyer_name}</p>
+                <p><strong>Email:</strong> {selectedLead.buyer_email}</p>
+                <p><strong>Product:</strong> {selectedLead.item_name}</p>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Items</label>
+                {quotationItems.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2">
+                    <Input
+                      placeholder="Item name"
+                      value={item.name}
+                      onChange={(e) => {
+                        const newItems = [...quotationItems];
+                        newItems[index].name = e.target.value;
+                        setQuotationItems(newItems);
+                      }}
+                      className="col-span-6"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Qty"
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const newItems = [...quotationItems];
+                        newItems[index].quantity = parseInt(e.target.value) || 1;
+                        setQuotationItems(newItems);
+                      }}
+                      className="col-span-2"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Price"
+                      value={item.unit_price}
+                      onChange={(e) => {
+                        const newItems = [...quotationItems];
+                        newItems[index].unit_price = parseFloat(e.target.value) || 0;
+                        setQuotationItems(newItems);
+                      }}
+                      className="col-span-4"
+                    />
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuotationItems([...quotationItems, { name: '', quantity: 1, unit_price: 0 }])}
+                >
+                  + Add Item
+                </Button>
+              </div>
+
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>₹{quotationItems.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>GST (18%):</span>
+                  <span>₹{(quotationItems.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0) * 0.18).toLocaleString()}</span>
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-between font-medium">
+                  <span>Total:</span>
+                  <span>₹{(quotationItems.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0) * 1.18).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Notes</label>
+                <Textarea
+                  value={quotationNotes}
+                  onChange={(e) => setQuotationNotes(e.target.value)}
+                  placeholder="Additional notes for the quotation..."
+                  className="mt-1"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuotationModal(false)}>Cancel</Button>
+            <Button onClick={handleSendQuotation} disabled={sendingQuotation}>
+              {sendingQuotation ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              Send Quotation
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
