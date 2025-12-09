@@ -44,6 +44,7 @@ import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
 import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
+import { LeadsManager } from '@/components/crm';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 
 interface SparePart {
@@ -427,12 +428,30 @@ const SparePartsSellerDashboard = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
+          <TabsTrigger value="crm">CRM / Leads</TabsTrigger>
           <TabsTrigger value="inquiries">Product Views</TabsTrigger>
           <TabsTrigger value="views">View Statistics</TabsTrigger>
           <TabsTrigger value="requests">User Requests</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="crm" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                CRM - Lead Management
+              </CardTitle>
+              <CardDescription>
+                Manage buyer leads, unlock contact details, and track follow-ups
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <LeadsManager sellerId={user?.id || ''} itemType="spare_parts" />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="inquiries" className="mt-6">
           <ProductViewsSection sellerId={user?.id || ''} itemType="spare_parts" />
