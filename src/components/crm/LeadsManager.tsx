@@ -32,13 +32,14 @@ import {
   FileSpreadsheet,
   History
 } from 'lucide-react';
-import { useSellerCRM, type Lead, type LeadActivity } from '@/hooks/useSellerCRM';
+import { useSellerCRM, type Lead, type LeadActivity, type ProductView } from '@/hooks/useSellerCRM';
 import { format, formatDistanceToNow } from 'date-fns';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface LeadsManagerProps {
   sellerId: string;
@@ -67,6 +68,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const navigate = useNavigate();
   const { 
     leads, 
+    productViews,
     unlockBuyerInfo, 
     updateLeadStatus, 
     updateLeadNotes,
@@ -74,11 +76,13 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     addActivity,
     creditsBalance,
     activities,
-    createInvoice
+    createInvoice,
+    stats
   } = useSellerCRM(itemType);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewTab, setViewTab] = useState<string>('all');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
@@ -103,6 +107,15 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
     
     return matchesSearch && matchesStatus;
+  });
+
+  const filteredViews = productViews.filter(view => {
+    const matchesSearch = !searchQuery || 
+      view.user_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      view.user_company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      view.item_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesSearch;
   });
 
   const handleUnlock = async (lead: Lead) => {
@@ -282,32 +295,185 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   return (
     <div className="p-6">
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search leads..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            {Object.entries(STATUS_CONFIG).map(([value, config]) => (
-              <SelectItem key={value} value={value}>{config.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Stats Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <Eye className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{productViews.length}</p>
+              <p className="text-xs text-muted-foreground">Total Views</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+              <User className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{leads.length}</p>
+              <p className="text-xs text-muted-foreground">Total Leads</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
+              <Unlock className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{leads.filter(l => l.is_unlocked).length}</p>
+              <p className="text-xs text-muted-foreground">Unlocked</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/30">
+              <CheckCircle className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{creditsBalance}</p>
+              <p className="text-xs text-muted-foreground">Credits Balance</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {/* Leads List */}
+      {/* Tabs for Views and Leads */}
+      <Tabs value={viewTab} onValueChange={setViewTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <Eye className="w-4 h-4" />
+            All Product Views ({productViews.length})
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Leads ({leads.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {viewTab === 'leads' && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-40">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                  <SelectItem key={value} value={value}>{config.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        {/* All Product Views Tab */}
+        <TabsContent value="all">
+          {filteredViews.length === 0 ? (
+            <div className="text-center py-12">
+              <Eye className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No views yet</h3>
+              <p className="text-muted-foreground">
+                Views will appear here when users interact with your products
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredViews.map((view) => (
+                <div
+                  key={view.id}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-card"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                          <Eye className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
+                            {view.user_name || 'Anonymous User'}
+                          </p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Building2 className="w-3 h-3" />
+                            {view.user_company || 'Unknown Company'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Contact Info */}
+                      <div className="flex flex-wrap gap-3 text-sm mb-3">
+                        {view.user_mobile ? (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Phone className="w-3 h-3" />
+                            {view.user_mobile}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Phone className="w-3 h-3" />
+                            Not provided
+                          </span>
+                        )}
+                        {view.user_email ? (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Mail className="w-3 h-3" />
+                            {view.user_email}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Mail className="w-3 h-3" />
+                            Not provided
+                          </span>
+                        )}
+                        {view.user_location && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <MapPin className="w-3 h-3" />
+                            {view.user_location}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Product Info */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <Package className="w-3 h-3 text-muted-foreground" />
+                        <span className="font-medium text-foreground">{view.item_name || 'Unknown Product'}</span>
+                        <Badge variant="outline" className="text-xs capitalize">{view.item_type}</Badge>
+                        <Badge variant="secondary" className="text-xs">{view.button_name}</Badge>
+                      </div>
+                    </div>
+
+                    {/* Right: Time */}
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Leads Tab */}
+        <TabsContent value="leads">
       {filteredLeads.length === 0 ? (
         <div className="text-center py-12">
           <Eye className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -544,6 +710,8 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
           })}
         </div>
       )}
+      </TabsContent>
+      </Tabs>
 
       {/* Lead Details Modal - Full CRM View */}
       <Dialog open={showLeadModal} onOpenChange={setShowLeadModal}>
