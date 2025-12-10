@@ -56,11 +56,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
-import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
-import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
-import { LeadsManager, CreditsDisplay } from '@/components/crm';
+import { LeadsManager } from '@/components/crm';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -622,22 +620,14 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 h-12">
+        <TabsList className="grid w-full grid-cols-5 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
           </TabsTrigger>
-          <TabsTrigger value="crm" className="flex items-center gap-2">
+          <TabsTrigger value="leads" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            CRM / Leads
-          </TabsTrigger>
-          <TabsTrigger value="inquiries" className="flex items-center gap-2">
-            <Eye className="w-4 h-4" />
-            Product Views
-          </TabsTrigger>
-          <TabsTrigger value="requests" className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4" />
-            User Requests
+            Lead Manager
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
@@ -653,18 +643,18 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           </TabsTrigger>
         </TabsList>
 
-        {/* CRM / Leads Tab */}
-        <TabsContent value="crm" className="mt-6">
+        {/* Lead Manager Tab */}
+        <TabsContent value="leads" className="mt-6">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    CRM - Lead Management
+                    Lead Manager
                   </CardTitle>
                   <CardDescription>
-                    Manage buyer leads, unlock contact details, send quotations, and track follow-ups
+                    View product viewers, unlock buyer details, start chat, WhatsApp, email, call, send quotations, and track follow-ups
                   </CardDescription>
                 </div>
               </div>
@@ -673,11 +663,6 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               <LeadsManager sellerId={user?.id || ''} itemType="robots" />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Product Views Tab */}
-        <TabsContent value="inquiries" className="mt-6">
-          <ProductViewsSection sellerId={user?.id || ''} itemType="robots" />
         </TabsContent>
 
         <TabsContent value="inventory" className="mt-6">
@@ -1115,10 +1100,6 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </Card>
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="requests" className="mt-6">
-          <UserRequestsManagement />
         </TabsContent>
 
         <TabsContent value="watchlist" className="mt-6">
