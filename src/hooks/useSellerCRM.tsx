@@ -28,6 +28,24 @@ export interface Lead {
   updated_at: string;
 }
 
+export interface ProductView {
+  id: string;
+  user_id: string | null;
+  user_name: string | null;
+  user_email: string | null;
+  user_mobile: string | null;
+  user_company: string | null;
+  user_location: string | null;
+  seller_id: string | null;
+  item_id: string | null;
+  item_type: string | null;
+  item_name?: string | null;
+  button_type: string;
+  button_name: string;
+  created_at: string;
+  additional_data: Record<string, unknown> | null;
+}
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -87,12 +105,14 @@ export interface CRMStats {
   totalRevenue: number;
   pendingFollowUps: number;
   creditsBalance: number;
+  totalViews: number;
 }
 
 export const useSellerCRM = (itemType?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [productViews, setProductViews] = useState<ProductView[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [stats, setStats] = useState<CRMStats>({
@@ -104,7 +124,8 @@ export const useSellerCRM = (itemType?: string) => {
     closedLost: 0,
     totalRevenue: 0,
     pendingFollowUps: 0,
-    creditsBalance: 0
+    creditsBalance: 0,
+    totalViews: 0
   });
   const [loading, setLoading] = useState(true);
   const [creditsBalance, setCreditsBalance] = useState(0);
@@ -128,6 +149,63 @@ export const useSellerCRM = (itemType?: string) => {
       setLeads((data || []) as Lead[]);
     } catch (error) {
       console.error('Error fetching leads:', error);
+    }
+  }, [user, itemType]);
+
+  const fetchProductViews = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      let query = supabase
+        .from('button_interactions')
+        .select('*')
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (itemType) {
+        query = query.eq('item_type', itemType);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      // Fetch item names for views
+      const viewsWithNames = await Promise.all((data || []).map(async (view) => {
+        let itemName: string | null = null;
+        if (view.item_id && view.item_type) {
+          try {
+            if (view.item_type === 'robots') {
+              const { data: robotData } = await supabase
+                .from('robots')
+                .select('name')
+                .eq('id', view.item_id)
+                .single();
+              itemName = robotData?.name || null;
+            } else if (view.item_type === 'spare_parts') {
+              const { data: partData } = await supabase
+                .from('spare_parts')
+                .select('name')
+                .eq('id', view.item_id)
+                .single();
+              itemName = partData?.name || null;
+            } else if (view.item_type === 'services') {
+              const { data: serviceData } = await supabase
+                .from('services')
+                .select('name')
+                .eq('id', view.item_id)
+                .single();
+              itemName = serviceData?.name || null;
+            }
+          } catch (e) {
+            console.error('Error fetching item name:', e);
+          }
+        }
+        return { ...view, item_name: itemName } as ProductView;
+      }));
+      
+      setProductViews(viewsWithNames);
+    } catch (error) {
+      console.error('Error fetching product views:', error);
     }
   }, [user, itemType]);
 
@@ -214,20 +292,22 @@ export const useSellerCRM = (itemType?: string) => {
       closedLost,
       totalRevenue,
       pendingFollowUps,
-      creditsBalance
+      creditsBalance,
+      totalViews: productViews.length
     });
-  }, [leads, invoices, creditsBalance]);
+  }, [leads, invoices, creditsBalance, productViews]);
 
   useEffect(() => {
     if (user) {
       Promise.all([
         fetchLeads(),
+        fetchProductViews(),
         fetchInvoices(),
         fetchActivities(),
         fetchCreditsBalance()
       ]).then(() => setLoading(false));
     }
-  }, [user, fetchLeads, fetchInvoices, fetchActivities, fetchCreditsBalance]);
+  }, [user, fetchLeads, fetchProductViews, fetchInvoices, fetchActivities, fetchCreditsBalance]);
 
   useEffect(() => {
     calculateStats();
@@ -527,6 +607,7 @@ export const useSellerCRM = (itemType?: string) => {
 
   return {
     leads,
+    productViews,
     invoices,
     activities,
     stats,
@@ -541,6 +622,7 @@ export const useSellerCRM = (itemType?: string) => {
     updateLeadNotes,
     scheduleFollowUp,
     fetchLeads,
+    fetchProductViews,
     fetchInvoices,
     fetchActivities,
     fetchCreditsBalance
