@@ -41,9 +41,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
-import UserRequestsManagement from '@/components/UserRequestsManagement';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
-import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
 import { LeadsManager } from '@/components/crm';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 
@@ -428,33 +426,27 @@ const SparePartsSellerDashboard = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
-          <TabsTrigger value="crm">CRM / Leads</TabsTrigger>
-          <TabsTrigger value="inquiries">Product Views</TabsTrigger>
+          <TabsTrigger value="leads">Lead Manager</TabsTrigger>
           <TabsTrigger value="views">View Statistics</TabsTrigger>
-          <TabsTrigger value="requests">User Requests</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="crm" className="mt-6">
+        <TabsContent value="leads" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="w-5 h-5" />
-                CRM - Lead Management
+                Lead Manager
               </CardTitle>
               <CardDescription>
-                Manage buyer leads, unlock contact details, and track follow-ups
+                View product viewers, unlock buyer details, start chat, WhatsApp, email, call, send quotations, and track follow-ups
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <LeadsManager sellerId={user?.id || ''} itemType="spare_parts" />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="inquiries" className="mt-6">
-          <ProductViewsSection sellerId={user?.id || ''} itemType="spare_parts" />
         </TabsContent>
 
         <TabsContent value="inventory" className="mt-6">
@@ -605,10 +597,6 @@ const SparePartsSellerDashboard = () => {
 
         <TabsContent value="views" className="mt-6">
           <ViewAnalyticsDashboard sellerId={user?.id} />
-        </TabsContent>
-
-        <TabsContent value="requests" className="mt-6">
-          <UserRequestsManagement />
         </TabsContent>
       </Tabs>
       </div>

@@ -18,10 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
-import UserRequestsManagement from '@/components/UserRequestsManagement';
-import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
-import ProductViewsSection from '@/components/dashboards/ProductViewsSection';
 import { LeadsManager } from '@/components/crm';
 
 const INDIAN_STATES = [
@@ -266,38 +263,30 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-8">
+            <TabsList className="grid grid-cols-5">
               <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="crm">CRM / Leads</TabsTrigger>
+              <TabsTrigger value="leads">Lead Manager</TabsTrigger>
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
-              <TabsTrigger value="inquiries">Product Views</TabsTrigger>
-              <TabsTrigger value="user-requests">User Requests</TabsTrigger>
-              <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
-              <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
+              <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
             </TabsList>
 
-            {/* CRM / Leads Tab */}
-            <TabsContent value="crm">
+            {/* Lead Manager Tab */}
+            <TabsContent value="leads">
               <Card className="mt-6">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="w-5 h-5" />
-                    CRM - Lead Management
+                    Lead Manager
                   </CardTitle>
                   <CardDescription>
-                    Manage buyer leads, unlock contact details, and track follow-ups
+                    View product viewers, unlock buyer details, start chat, WhatsApp, email, call, send quotations, and track follow-ups
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <LeadsManager sellerId={user?.id || ''} itemType="services" />
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* Product Views Tab */}
-            <TabsContent value="inquiries">
-              <ProductViewsSection sellerId={user?.id || ''} itemType="services" />
             </TabsContent>
             {/* Service Requests Tab */}
             <TabsContent value="requests">
@@ -446,11 +435,6 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* User Requests Tab */}
-            <TabsContent value="user-requests">
-              <UserRequestsManagement />
             </TabsContent>
 
             {/* Watchlist Tab */}
