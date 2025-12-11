@@ -40,6 +40,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LeadDetailView from './LeadDetailView';
 
 interface LeadsManagerProps {
   sellerId: string;
@@ -84,7 +85,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewTab, setViewTab] = useState<string>('all');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [showDetailView, setShowDetailView] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
@@ -147,7 +148,6 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     if (!selectedLead) return;
     await updateLeadNotes(selectedLead.id, notes);
     await addActivity(selectedLead.id, 'note', 'Note Added', notes);
-    setShowLeadModal(false);
   };
 
   const handleStartChat = async (lead: Lead) => {
@@ -281,7 +281,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     setNotes(lead.notes || '');
     // Filter activities for this lead
     setLeadActivities(activities.filter(a => a.lead_id === lead.id));
-    setShowLeadModal(true);
+    setShowDetailView(true);
   };
 
   const getMaskedValue = (value: string | null, isUnlocked: boolean): string => {
@@ -713,210 +713,51 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
       </TabsContent>
       </Tabs>
 
-      {/* Lead Details Modal - Full CRM View */}
-      <Dialog open={showLeadModal} onOpenChange={setShowLeadModal}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Lead Details
-              {selectedLead?.is_unlocked && (
-                <Badge className="bg-green-100 text-green-700 ml-2">
-                  <Unlock className="w-3 h-3 mr-1" />
-                  Unlocked
-                </Badge>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          {selectedLead && (
-            <div className="space-y-6">
-              {/* Buyer Information Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Buyer Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedLead.is_unlocked ? (
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <label className="text-muted-foreground text-xs">Full Name</label>
-                        <p className="font-medium">{selectedLead.buyer_name}</p>
-                      </div>
-                      <div>
-                        <label className="text-muted-foreground text-xs">Company</label>
-                        <p className="font-medium">{selectedLead.buyer_company || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <label className="text-muted-foreground text-xs">Phone Number</label>
-                        <a href={`tel:${selectedLead.buyer_phone}`} className="font-medium text-primary hover:underline flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {selectedLead.buyer_phone}
-                        </a>
-                      </div>
-                      <div>
-                        <label className="text-muted-foreground text-xs">Email Address</label>
-                        <a href={`mailto:${selectedLead.buyer_email}`} className="font-medium text-primary hover:underline flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          {selectedLead.buyer_email}
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <Lock className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">Unlock to view buyer details</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+      {/* Full CRM Detail View */}
+      {showDetailView && selectedLead && (
+        <LeadDetailView
+          lead={selectedLead}
+          activities={leadActivities}
+          onClose={() => {
+            setShowDetailView(false);
+            setSelectedLead(null);
+          }}
+          onStatusChange={updateLeadStatus}
+          onAddActivity={addActivity}
+          onUpdateNotes={updateLeadNotes}
+          onScheduleFollowUp={scheduleFollowUp}
+          onSendQuotation={async (data) => {
+            const items = data.items.map(item => ({
+              name: item.name || selectedLead.item_name || 'Product',
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              total: item.quantity * item.unit_price
+            }));
 
-              {/* Product Information Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    Product Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <label className="text-muted-foreground text-xs">Product Name</label>
-                      <p className="font-medium">{selectedLead.item_name || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-muted-foreground text-xs">Type</label>
-                      <Badge variant="outline" className="capitalize">{selectedLead.item_type}</Badge>
-                    </div>
-                    <div>
-                      <label className="text-muted-foreground text-xs">Status</label>
-                      <Badge className={`${STATUS_CONFIG[selectedLead.status].bg} ${STATUS_CONFIG[selectedLead.status].color} border-0`}>
-                        {STATUS_CONFIG[selectedLead.status].label}
-                      </Badge>
-                    </div>
-                    <div>
-                      <label className="text-muted-foreground text-xs">Expected Value</label>
-                      <p className="font-medium">
-                        {selectedLead.expected_value 
-                          ? `₹${selectedLead.expected_value.toLocaleString()}`
-                          : 'Not specified'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+            const taxAmount = subtotal * 0.18;
+            const totalAmount = subtotal + taxAmount;
 
-              {/* Quick Actions for Unlocked Leads */}
-              {selectedLead.is_unlocked && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      <Button onClick={() => handleStartChat(selectedLead)} className="flex-1 min-w-[120px]">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Start Chat
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => handleWhatsApp(selectedLead)}
-                        className="flex-1 min-w-[120px] bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        WhatsApp
-                      </Button>
-                      <Button variant="outline" onClick={() => handleEmail(selectedLead)} className="flex-1 min-w-[120px]">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Send Email
-                      </Button>
-                      <Button variant="outline" onClick={() => handleCall(selectedLead)} className="flex-1 min-w-[120px]">
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call Now
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setShowLeadModal(false);
-                          setQuotationItems([{ name: selectedLead.item_name || '', quantity: 1, unit_price: selectedLead.expected_value || 0 }]);
-                          setShowQuotationModal(true);
-                        }}
-                        className="flex-1 min-w-[120px]"
-                      >
-                        <FileSpreadsheet className="w-4 h-4 mr-2" />
-                        Send Quotation
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setShowLeadModal(false);
-                          setShowFollowUpModal(true);
-                        }}
-                        className="flex-1 min-w-[120px]"
-                      >
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Schedule Follow-up
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+            await createInvoice({
+              buyer_name: selectedLead.buyer_name || '',
+              buyer_email: selectedLead.buyer_email,
+              buyer_phone: selectedLead.buyer_phone,
+              buyer_company: selectedLead.buyer_company,
+              lead_id: selectedLead.id,
+              items,
+              subtotal,
+              tax_rate: 18,
+              tax_amount: taxAmount,
+              total_amount: totalAmount,
+              notes: data.notes,
+              status: 'sent'
+            });
 
-              {/* Activity History */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <History className="w-4 h-4" />
-                    Activity History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {leadActivities.length > 0 ? (
-                    <div className="space-y-3">
-                      {leadActivities.map((activity) => (
-                        <div key={activity.id} className="flex items-start gap-3 text-sm border-l-2 border-primary/20 pl-3">
-                          <div className="flex-1">
-                            <p className="font-medium">{activity.title}</p>
-                            {activity.description && (
-                              <p className="text-muted-foreground text-xs mt-1">{activity.description}</p>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {format(new Date(activity.created_at), 'PPp')}
-                            </p>
-                          </div>
-                          {activity.is_completed && (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm text-center py-4">No activity recorded yet</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Notes */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Notes</label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add notes about this lead..."
-                  rows={4}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLeadModal(false)}>Close</Button>
-            <Button onClick={handleSaveNotes}>Save Notes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            await updateLeadStatus(selectedLead.id, 'quoted');
+            await addActivity(selectedLead.id, 'invoice_sent', 'Quotation Sent', `Quotation of ₹${totalAmount.toLocaleString()} sent`);
+          }}
+        />
+      )}
 
       {/* Follow-up Modal */}
       <Dialog open={showFollowUpModal} onOpenChange={setShowFollowUpModal}>
