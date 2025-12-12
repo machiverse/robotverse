@@ -326,17 +326,23 @@ export const useSellerCRM = (itemType?: string) => {
 
       toast({
         title: "Lead Created",
-        description: "View converted to lead successfully"
+        description: "View converted to lead. 10 credits deducted."
       });
 
+      // Refresh leads, product views, and credits balance
       fetchLeads();
+      fetchProductViews();
+      fetchCreditsBalance();
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error converting view to lead:', error);
+      const errorMessage = error?.message?.includes('Insufficient credits') 
+        ? 'Insufficient credits. You need 10 credits to convert a view to lead.'
+        : 'Failed to convert view to lead';
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to convert view to lead"
+        description: errorMessage
       });
       return null;
     }
