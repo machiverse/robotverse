@@ -222,7 +222,16 @@ const LeadsToolbar = ({
 
 /* ---------- ROW COMPONENTS ---------- */
 
-const ProductViewRow = ({ view }: { view: ProductView }) => {
+interface ProductViewRowProps {
+  view: ProductView;
+  onConvertToLead: (viewId: string) => Promise<void>;
+  isConverting: boolean;
+  convertingId: string | null;
+}
+
+const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId }: ProductViewRowProps) => {
+  const isCurrentlyConverting = convertingId === view.id;
+  
   return (
     <div className="border-muted/60 bg-card hover:bg-accent/40 flex items-center justify-between rounded-md border p-4 transition-colors">
       <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -276,11 +285,25 @@ const ProductViewRow = ({ view }: { view: ProductView }) => {
         </div>
       </div>
 
-      <div className="ml-4 flex flex-col items-end gap-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
+      <div className="ml-4 flex flex-col items-end gap-2">
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
         </span>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => onConvertToLead(view.id)}
+          disabled={isConverting || isCurrentlyConverting}
+          className="h-8 text-xs"
+        >
+          {isCurrentlyConverting ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <User className="mr-1 h-3 w-3" />
+          )}
+          Convert to Lead
+        </Button>
       </div>
     </div>
   );
@@ -523,6 +546,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     creditsBalance,
     activities,
     createInvoice,
+    convertViewToLead,
   } = useSellerCRM(itemType);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -541,6 +565,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   const [unlocking, setUnlocking] = useState<string | null>(null);
   const [leadActivities, setLeadActivities] = useState<LeadActivity[]>([]);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
 
   const [quotationItems, setQuotationItems] = useState([{ name: "", quantity: 1, unit_price: 0 }]);
   const [quotationNotes, setQuotationNotes] = useState("");
@@ -571,6 +596,18 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     setUnlocking(lead.id);
     await unlockBuyerInfo(lead.id, lead.item_type);
     setUnlocking(null);
+  };
+
+  const handleConvertToLead = async (viewId: string) => {
+    setConvertingId(viewId);
+    try {
+      const leadId = await convertViewToLead(viewId);
+      if (leadId) {
+        setViewTab("leads");
+      }
+    } finally {
+      setConvertingId(null);
+    }
   };
 
   const handleScheduleFollowUp = async () => {
@@ -790,7 +827,13 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
             ) : (
               <div className="space-y-2">
                 {filteredViews.map((view) => (
-                  <ProductViewRow key={view.id} view={view} />
+                  <ProductViewRow
+                    key={view.id}
+                    view={view}
+                    onConvertToLead={handleConvertToLead}
+                    isConverting={convertingId !== null}
+                    convertingId={convertingId}
+                  />
                 ))}
               </div>
             )
