@@ -295,7 +295,7 @@ interface LeadRowProps {
   onWhatsApp: (lead: Lead) => void;
   onEmail: (lead: Lead) => void;
   onCall: (lead: Lead) => void;
-  onStatusChange: (leadId: string, status: Lead["status"]) => Promise<void>;
+  onStatusChange: (leadId: string, status: Lead["status"]) => Promise<boolean | void>;
   onOpenDetails: (lead: Lead) => void;
   onOpenFollowUp: (lead: Lead) => void;
   onOpenQuotation: (lead: Lead) => void;
