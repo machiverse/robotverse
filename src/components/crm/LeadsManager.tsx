@@ -376,7 +376,7 @@ const LeadRow = ({
                   className="inline-flex items-center gap-1 text-primary hover:underline"
                 >
                   <Phone className="h-3 w-3" />
-                  {lead.buyer_phone}
+                  {lead.buyer_phone || "Not provided"}
                 </button>
                 <a
                   href={`mailto:${lead.buyer_email}`}
@@ -384,8 +384,14 @@ const LeadRow = ({
                   onClick={() => onEmail(lead)}
                 >
                   <Mail className="h-3 w-3" />
-                  {lead.buyer_email}
+                  {lead.buyer_email || "Not provided"}
                 </a>
+                {(lead as any).buyer_location && (
+                  <span className="inline-flex items-center gap-1 text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    {(lead as any).buyer_location}
+                  </span>
+                )}
               </Fragment>
             ) : (
               <Fragment>
@@ -395,6 +401,10 @@ const LeadRow = ({
                 </span>
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
                   <Mail className="h-3 w-3" />
+                  XXXXX
+                </span>
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
                   XXXXX
                 </span>
               </Fragment>
