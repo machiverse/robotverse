@@ -171,22 +171,21 @@ export const useSellerCRM = (itemType?: string) => {
       
       const views = data || [];
       
-      // Batch fetch item names - collect unique IDs by type
+      // Immediately show views without names for instant loading
+      setProductViews(views.map(view => ({ ...view, item_name: null } as ProductView)));
+      
+      // Then fetch item names in background
       const robotIds = [...new Set(views.filter(v => v.item_type === 'robots' && v.item_id).map(v => v.item_id))];
       const partIds = [...new Set(views.filter(v => v.item_type === 'spare_parts' && v.item_id).map(v => v.item_id))];
       const serviceIds = [...new Set(views.filter(v => v.item_type === 'services' && v.item_id).map(v => v.item_id))];
       
+      if (robotIds.length === 0 && partIds.length === 0 && serviceIds.length === 0) return;
+      
       // Fetch all names in parallel
       const [robotsData, partsData, servicesData] = await Promise.all([
-        robotIds.length > 0 
-          ? supabase.from('robots').select('id, name').in('id', robotIds)
-          : { data: [] },
-        partIds.length > 0 
-          ? supabase.from('spare_parts').select('id, name').in('id', partIds)
-          : { data: [] },
-        serviceIds.length > 0 
-          ? supabase.from('services').select('id, name').in('id', serviceIds)
-          : { data: [] }
+        robotIds.length > 0 ? supabase.from('robots').select('id, name').in('id', robotIds) : { data: [] },
+        partIds.length > 0 ? supabase.from('spare_parts').select('id, name').in('id', partIds) : { data: [] },
+        serviceIds.length > 0 ? supabase.from('services').select('id, name').in('id', serviceIds) : { data: [] }
       ]);
       
       // Create lookup maps
@@ -194,8 +193,8 @@ export const useSellerCRM = (itemType?: string) => {
       const partNames = new Map((partsData.data || []).map(p => [p.id, p.name]));
       const serviceNames = new Map((servicesData.data || []).map(s => [s.id, s.name]));
       
-      // Map views with names
-      const viewsWithNames = views.map(view => {
+      // Update views with names
+      setProductViews(views.map(view => {
         let itemName: string | null = null;
         if (view.item_id) {
           if (view.item_type === 'robots') itemName = robotNames.get(view.item_id) || null;
@@ -203,9 +202,7 @@ export const useSellerCRM = (itemType?: string) => {
           else if (view.item_type === 'services') itemName = serviceNames.get(view.item_id) || null;
         }
         return { ...view, item_name: itemName } as ProductView;
-      });
-      
-      setProductViews(viewsWithNames);
+      }));
     } catch (error) {
       console.error('Error fetching product views:', error);
     }
