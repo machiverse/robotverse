@@ -1972,6 +1972,7 @@ export type Database = {
           buyer_company: string | null
           buyer_email: string | null
           buyer_id: string | null
+          buyer_location: string | null
           buyer_name: string | null
           buyer_phone: string | null
           created_at: string
@@ -1996,6 +1997,7 @@ export type Database = {
           buyer_company?: string | null
           buyer_email?: string | null
           buyer_id?: string | null
+          buyer_location?: string | null
           buyer_name?: string | null
           buyer_phone?: string | null
           created_at?: string
@@ -2020,6 +2022,7 @@ export type Database = {
           buyer_company?: string | null
           buyer_email?: string | null
           buyer_id?: string | null
+          buyer_location?: string | null
           buyer_name?: string | null
           buyer_phone?: string | null
           created_at?: string
