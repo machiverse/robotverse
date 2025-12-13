@@ -11,6 +11,7 @@ export interface Lead {
   buyer_email: string | null;
   buyer_phone: string | null;
   buyer_company: string | null;
+  buyer_location: string | null;
   item_id: string | null;
   item_type: string;
   item_name: string | null;

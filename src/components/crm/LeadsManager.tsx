@@ -386,10 +386,10 @@ const LeadRow = ({
                   <Mail className="h-3 w-3" />
                   {lead.buyer_email || "Not provided"}
                 </a>
-                {(lead as any).buyer_location && (
+                {lead.buyer_location && (
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <MapPin className="h-3 w-3" />
-                    {(lead as any).buyer_location}
+                    {lead.buyer_location}
                   </span>
                 )}
               </Fragment>
