@@ -182,7 +182,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       totalRobots,
       activeListings,
       totalRevenue,
-      totalViews: viewStats.totalViews || 0,
+      totalViews: viewStats.viewsByCategory.robots || 0,
       avgPrice,
       soldThisMonth: robotData.filter(r => {
         const soldDate = new Date(r.updated_at);
@@ -522,10 +522,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       change: '+12%'
     },
     {
-      title: 'Total Views',
-  value: typeof viewStats?.totalViews === 'number' ? viewStats.totalViews : 0,
+      title: 'Robot Views',
+  value: viewStats?.viewsByCategory?.robots ?? 0,
   icon: Eye,
-  trend: `${viewStats?.viewsByCategory?.robots ?? 0} robot views`,
+  trend: 'Views on your robot listings',
   color: 'text-purple-600',
   bgColor: 'bg-purple-50',
   change: viewsLoading ? '...' : '+8%'
@@ -1007,9 +1007,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-purple-100 text-sm font-medium">Total Views</p>
-                      <p className="text-3xl font-bold mt-1">{viewStats.totalViews || 0}</p>
-                      <p className="text-purple-200 text-xs mt-2">All time views</p>
+                      <p className="text-purple-100 text-sm font-medium">Robot Views</p>
+                      <p className="text-3xl font-bold mt-1">{viewStats.viewsByCategory.robots || 0}</p>
+                      <p className="text-purple-200 text-xs mt-2">Views on robot listings</p>
                     </div>
                     <div className="bg-white/20 p-3 rounded-xl">
                       <Eye className="w-8 h-8" />
@@ -1059,11 +1059,11 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center">
                         <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">This Week</p>
-                        <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{Math.floor((viewStats.totalViews || 0) * 0.3)}</p>
+                        <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{Math.floor((viewStats.viewsByCategory.robots || 0) * 0.3)}</p>
                       </div>
                       <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-center">
                         <p className="text-xs text-green-600 dark:text-green-400 font-medium">This Month</p>
-                        <p className="text-xl font-bold text-green-700 dark:text-green-300">{viewStats.totalViews || 0}</p>
+                        <p className="text-xl font-bold text-green-700 dark:text-green-300">{viewStats.viewsByCategory.robots || 0}</p>
                       </div>
                     </div>
 
@@ -1125,11 +1125,11 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">View to Inquiry Rate</span>
                         <span className="text-sm font-bold text-blue-600">
-                          {viewStats.totalViews > 0 ? Math.round((dashboardStats.inquiries / viewStats.totalViews) * 100) : 0}%
+                          {viewStats.viewsByCategory.robots > 0 ? Math.round((dashboardStats.inquiries / viewStats.viewsByCategory.robots) * 100) : 0}%
                         </span>
                       </div>
                       <Progress 
-                        value={viewStats.totalViews > 0 ? (dashboardStats.inquiries / viewStats.totalViews) * 100 : 0} 
+                        value={viewStats.viewsByCategory.robots > 0 ? (dashboardStats.inquiries / viewStats.viewsByCategory.robots) * 100 : 0}
                         className="h-2 bg-blue-100"
                       />
                     </div>
