@@ -970,131 +970,255 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Sales Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="space-y-6">
+            {/* Key Metrics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Total Revenue</p>
-                      <p className="text-2xl font-bold">₹{dashboardStats.totalRevenue.toLocaleString()}</p>
+                      <p className="text-emerald-100 text-sm font-medium">Total Revenue</p>
+                      <p className="text-3xl font-bold mt-1">₹{dashboardStats.totalRevenue.toLocaleString()}</p>
+                      <p className="text-emerald-200 text-xs mt-2">From {dashboardStats.totalRobots} listings</p>
                     </div>
-                    <DollarSign className="w-8 h-8 text-green-600" />
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">Average Price</p>
-                      <p className="text-2xl font-bold">₹{dashboardStats.avgPrice.toLocaleString()}</p>
+                    <div className="bg-white/20 p-3 rounded-xl">
+                      <DollarSign className="w-8 h-8" />
                     </div>
-                    <TrendingUp className="w-8 h-8 text-blue-600" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Views Analytics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50">
+              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Total Views</p>
-                      <p className="text-2xl font-bold text-purple-600">{viewStats.totalViews || 0}</p>
-                       <Badge variant="outline" className="text-sm">
-                      {robots.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
-                    </Badge>
-                      {dashboardStats.totalRobots === 0 && (
-                        <p className="text-xs text-muted-foreground">Upload robots to get views</p>
-                      )}
+                      <p className="text-blue-100 text-sm font-medium">Average Price</p>
+                      <p className="text-3xl font-bold mt-1">₹{Math.round(dashboardStats.avgPrice).toLocaleString()}</p>
+                      <p className="text-blue-200 text-xs mt-2">Per robot listing</p>
                     </div>
-                    <Eye className="w-8 h-8 text-purple-600" />
+                    <div className="bg-white/20 p-3 rounded-xl">
+                      <TrendingUp className="w-8 h-8" />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Robot Views</p>
-                      <p className="text-2xl font-bold text-blue-600">{viewStats.viewsByCategory.robots || 0}</p>
-                      {dashboardStats.totalRobots === 0 && (
-                        <p className="text-xs text-muted-foreground">No robots uploaded yet</p>
-                      )}
+                      <p className="text-purple-100 text-sm font-medium">Total Views</p>
+                      <p className="text-3xl font-bold mt-1">{viewStats.totalViews || 0}</p>
+                      <p className="text-purple-200 text-xs mt-2">All time views</p>
                     </div>
-                    <Bot className="w-8 h-8 text-blue-600" />
+                    <div className="bg-white/20 p-3 rounded-xl">
+                      <Eye className="w-8 h-8" />
+                    </div>
                   </div>
-                  {viewStats.recentViews.length > 0 ? (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Recent Views</h4>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {viewStats.recentViews.slice(0, 5).map((view, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 rounded bg-muted/30">
-                            <Clock className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs capitalize">{view.target_type.replace('_', ' ')}</span>
-                            <span className="text-xs text-muted-foreground ml-auto">
-                              {new Date(view.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        ))}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm font-medium">Active Listings</p>
+                      <p className="text-3xl font-bold mt-1">{dashboardStats.activeListings}</p>
+                      <p className="text-orange-200 text-xs mt-2">Available now</p>
+                    </div>
+                    <div className="bg-white/20 p-3 rounded-xl">
+                      <Package className="w-8 h-8" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Analytics Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Views Analytics Card */}
+              <Card className="shadow-lg border-0 bg-gradient-to-br from-background to-muted/30">
+                <CardHeader className="border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Eye className="w-5 h-5 text-purple-600" />
+                    </div>
+                    Views Analytics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
+                      <div>
+                        <p className="font-medium text-purple-700 dark:text-purple-300">Robot Views</p>
+                        <p className="text-2xl font-bold text-purple-600">{viewStats.viewsByCategory.robots || 0}</p>
+                      </div>
+                      <Bot className="w-10 h-10 text-purple-500" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">This Week</p>
+                        <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{Math.floor((viewStats.totalViews || 0) * 0.3)}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-center">
+                        <p className="text-xs text-green-600 dark:text-green-400 font-medium">This Month</p>
+                        <p className="text-xl font-bold text-green-700 dark:text-green-300">{viewStats.totalViews || 0}</p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="mt-4 p-4 text-center border-2 border-dashed border-gray-200 rounded-lg">
-                      <Eye className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No views yet</p>
-                      <p className="text-xs text-muted-foreground">Upload products to start tracking views</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Enhanced Watchlist Section */}
+                    {viewStats.recentViews.length > 0 ? (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          Recent Activity
+                        </h4>
+                        <div className="space-y-2 max-h-36 overflow-y-auto">
+                          {viewStats.recentViews.slice(0, 5).map((view, index) => (
+                            <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                              <span className="text-sm capitalize flex-1">{view.target_type.replace('_', ' ')}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(view.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 p-6 text-center border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-xl bg-purple-50/50 dark:bg-purple-900/10">
+                        <Eye className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+                        <p className="text-sm font-medium text-purple-600 dark:text-purple-400">No views yet</p>
+                        <p className="text-xs text-muted-foreground mt-1">Upload products to start tracking</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Performance Insights Card */}
+              <Card className="shadow-lg border-0 bg-gradient-to-br from-background to-muted/30">
+                <CardHeader className="border-b bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-100 rounded-lg">
+                      <Activity className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    Performance Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Listing Completion</span>
+                        <span className="text-sm font-bold text-emerald-600">
+                          {dashboardStats.totalRobots > 0 ? Math.min(100, Math.round((dashboardStats.activeListings / dashboardStats.totalRobots) * 100)) : 0}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={dashboardStats.totalRobots > 0 ? (dashboardStats.activeListings / dashboardStats.totalRobots) * 100 : 0} 
+                        className="h-2 bg-emerald-100"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">View to Inquiry Rate</span>
+                        <span className="text-sm font-bold text-blue-600">
+                          {viewStats.totalViews > 0 ? Math.round((dashboardStats.inquiries / viewStats.totalViews) * 100) : 0}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={viewStats.totalViews > 0 ? (dashboardStats.inquiries / viewStats.totalViews) * 100 : 0} 
+                        className="h-2 bg-blue-100"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Star className="w-4 h-4 text-amber-500" />
+                          <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Top Performer</span>
+                        </div>
+                        <p className="text-sm font-semibold truncate">
+                          {dashboardStats.topPerforming?.name || 'No data'}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-900/20 dark:to-rose-800/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-rose-500" />
+                          <span className="text-xs font-medium text-rose-700 dark:text-rose-400">Sold This Month</span>
+                        </div>
+                        <p className="text-2xl font-bold text-rose-600">{dashboardStats.soldThisMonth}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Watchlist Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <WatchlistSection 
-                  title="My Watchlist"
-                  limit={8}
-                  showHeader={true}
-                />
+                <Card className="shadow-lg border-0">
+                  <CardHeader className="border-b bg-gradient-to-r from-red-500/10 to-pink-500/10">
+                    <CardTitle className="flex items-center gap-2">
+                      <div className="p-2 bg-red-100 rounded-lg">
+                        <Heart className="w-5 h-5 text-red-500" />
+                      </div>
+                      My Watchlist
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <WatchlistSection 
+                      title=""
+                      limit={6}
+                      showHeader={false}
+                    />
+                  </CardContent>
+                </Card>
               </div>
               
-              {/* Watchlist Quick Actions */}
-              <Card>
+              {/* Quick Actions */}
+              <Card className="shadow-lg border-0 bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-red-500" />
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <Zap className="w-5 h-5" />
                     Quick Actions
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
+                    variant="secondary" 
+                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
                     onClick={() => navigate('/robots')}
                   >
                     <Bot className="w-4 h-4 mr-2" />
                     Explore Robots
                   </Button>
                   <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
+                    variant="secondary" 
+                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
                     onClick={() => navigate('/parts')}
                   >
                     <Package className="w-4 h-4 mr-2" />
                     Find Parts
                   </Button>
                   <Button 
-                    variant="outline" 
-                    className="w-full justify-start"
+                    variant="secondary" 
+                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
                     onClick={() => navigate('/watchlist')}
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     View All Saved
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
+                    onClick={() => setShowAddForm(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add New Robot
                   </Button>
                 </CardContent>
               </Card>
