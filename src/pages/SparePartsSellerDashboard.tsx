@@ -416,9 +416,9 @@ const SparePartsSellerDashboard = () => {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{viewStats?.totalViews || 0}</div>
+            <div className="text-2xl font-bold">{viewStats?.viewsByCategory?.spare_parts || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Product engagement
+              Parts views only
             </p>
           </CardContent>
         </Card>

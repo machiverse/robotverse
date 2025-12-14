@@ -238,7 +238,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {[ 
-              { title: "Total Views", val: viewStats.totalViews || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
+              { title: "Service Views", val: viewStats.viewsByCategory.services || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
               { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600" },
               { title: "Active Requests", val: dashboardStats.activeRequests, icon: Clock, variant: "secondary", color: "text-orange-600" },
               { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600" },
