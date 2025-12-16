@@ -147,7 +147,47 @@ export const useSellerCRM = (itemType?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      setLeads((data || []) as Lead[]);
+      
+      const leadsData = (data || []) as Lead[];
+      
+      // Fetch profile details for leads with buyer_id
+      const buyerIds = leadsData
+        .filter(l => l.buyer_id && l.is_unlocked)
+        .map(l => l.buyer_id as string);
+      
+      if (buyerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, company_name, mobile_number, email, location')
+          .in('user_id', buyerIds);
+        
+        if (profiles) {
+          const profileMap = new Map(profiles.map(p => [p.user_id, p]));
+          
+          // Merge profile data into leads
+          const enrichedLeads = leadsData.map(lead => {
+            if (lead.buyer_id && lead.is_unlocked) {
+              const profile = profileMap.get(lead.buyer_id);
+              if (profile) {
+                return {
+                  ...lead,
+                  buyer_name: lead.buyer_name || profile.full_name,
+                  buyer_email: lead.buyer_email || profile.email,
+                  buyer_phone: lead.buyer_phone || profile.mobile_number,
+                  buyer_company: lead.buyer_company || profile.company_name,
+                  buyer_location: lead.buyer_location || profile.location,
+                };
+              }
+            }
+            return lead;
+          });
+          
+          setLeads(enrichedLeads);
+          return;
+        }
+      }
+      
+      setLeads(leadsData);
     } catch (error) {
       console.error('Error fetching leads:', error);
     }
