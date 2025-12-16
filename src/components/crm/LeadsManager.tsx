@@ -40,7 +40,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useSellerCRM, type Lead, type LeadActivity, type ProductView } from "@/hooks/useSellerCRM";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,7 +51,6 @@ import LeadDetailView from "./LeadDetailView";
 interface LeadsManagerProps {
   sellerId: string;
   itemType?: string;
-  readOnly?: boolean; // controls lock from parent
 }
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
@@ -167,7 +166,6 @@ const LeadsToolbar = ({
   setStatusFilter,
   leadsCount,
   viewsCount,
-  isLocked,
 }: {
   viewTab: string;
   setViewTab: (v: string) => void;
@@ -177,10 +175,9 @@ const LeadsToolbar = ({
   setStatusFilter: (v: string) => void;
   leadsCount: number;
   viewsCount: number;
-  isLocked: boolean;
 }) => (
   <div className="mb-4 space-y-3">
-    <Tabs value={viewTab} onValueChange={isLocked ? () => {} : setViewTab} className="w-full">
+    <Tabs value={viewTab} onValueChange={setViewTab} className="w-full">
       <TabsList className="mb-2">
         <TabsTrigger value="all" className="flex items-center gap-2">
           <Eye className="h-4 w-4" />
@@ -199,17 +196,12 @@ const LeadsToolbar = ({
         <Input
           placeholder="Search by name, company, or product…"
           value={searchQuery}
-          onChange={(e) => !isLocked && setSearchQuery(e.target.value)}
+          onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
-          disabled={isLocked}
         />
       </div>
       {viewTab === "leads" && (
-        <Select
-          value={statusFilter}
-          onValueChange={isLocked ? () => {} : setStatusFilter}
-          disabled={isLocked}
-        >
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-44">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue placeholder="Status" />
@@ -235,18 +227,13 @@ interface ProductViewRowProps {
   onConvertToLead: (viewId: string) => Promise<void>;
   isConverting: boolean;
   convertingId: string | null;
-  isLocked: boolean;
 }
 
-const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId, isLocked }: ProductViewRowProps) => {
+const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId }: ProductViewRowProps) => {
   const isCurrentlyConverting = convertingId === view.id;
 
   return (
-    <div
-      className={`border-muted/60 bg-card hover:bg-accent/40 flex items-center justify-between rounded-md border p-4 transition-colors ${
-        isLocked ? "opacity-60" : ""
-      }`}
-    >
+    <div className="border-muted/60 bg-card hover:bg-accent/40 flex items-center justify-between rounded-md border p-4 transition-colors">
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <div className="mt-1 rounded-full bg-blue-100 p-1.5 dark:bg-blue-900/30">
           <Eye className="h-4 w-4 text-blue-600" />
@@ -306,8 +293,8 @@ const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId, isL
         <Button
           size="sm"
           variant="default"
-          onClick={isLocked ? undefined : () => onConvertToLead(view.id)}
-          disabled={isLocked || isConverting || isCurrentlyConverting}
+          onClick={() => onConvertToLead(view.id)}
+          disabled={isConverting || isCurrentlyConverting}
           className="h-8 text-xs"
         >
           {isCurrentlyConverting ? (
@@ -322,17 +309,8 @@ const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId, isL
   );
 };
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-interface LeadsTableProps {
-  leads: Lead[];
+interface LeadRowProps {
+  lead: Lead;
   creditsBalance: number;
   onUnlock: (lead: Lead) => Promise<void>;
   unlockingId: string | null;
@@ -344,11 +322,11 @@ interface LeadsTableProps {
   onOpenDetails: (lead: Lead) => void;
   onOpenFollowUp: (lead: Lead) => void;
   onOpenQuotation: (lead: Lead) => void;
-  isLocked: boolean;
+  onRowClick: (lead: Lead) => void; // NEW
 }
 
-const LeadsTable = ({
-  leads,
+const LeadRow = ({
+  lead,
   creditsBalance,
   onUnlock,
   unlockingId,
@@ -360,207 +338,283 @@ const LeadsTable = ({
   onOpenDetails,
   onOpenFollowUp,
   onOpenQuotation,
-  isLocked,
-}: LeadsTableProps) => {
-  return (
-    <div className="overflow-x-auto rounded-md border border-muted/60">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/30">
-            <TableHead className="font-semibold">Company Name</TableHead>
-            <TableHead className="font-semibold">Contact Person</TableHead>
-            <TableHead className="font-semibold">Mobile Number</TableHead>
-            <TableHead className="font-semibold">Email ID</TableHead>
-            <TableHead className="font-semibold">Location</TableHead>
-            <TableHead className="font-semibold">Product</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold text-center">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {leads.map((lead) => {
-            const statusConfig = STATUS_CONFIG[lead.status];
-            const creditsNeeded = getCreditsNeeded(lead.item_type);
-            const canUnlock = creditsBalance >= creditsNeeded;
+  onRowClick,
+}: LeadRowProps) => {
+  const statusConfig = STATUS_CONFIG[lead.status];
+  const priorityConfig = PRIORITY_CONFIG[lead.priority];
+  const creditsNeeded = getCreditsNeeded(lead.item_type);
+  const canUnlock = creditsBalance >= creditsNeeded;
 
-            return (
-              <TableRow
-                key={lead.id}
-                className={`hover:bg-accent/40 ${isLocked ? "opacity-60" : ""}`}
+  return (
+    <div
+      className="border-muted/60 bg-card hover:bg-accent/40 rounded-md border p-4 transition-colors cursor-pointer"
+      onClick={() => onRowClick(lead)}
+    >
+      <div className="flex items-start justify-between gap-4">
+        {/* Left */}
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <div
+              className={`rounded-full p-1.5 ${lead.is_unlocked ? "bg-green-100 dark:bg-green-900/30" : "bg-muted"}`}
+            >
+              {lead.is_unlocked ? (
+                <Unlock className="h-4 w-4 text-green-600" />
+              ) : (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{getMaskedValue(lead.buyer_name, lead.is_unlocked)}</p>
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Building2 className="h-3 w-3" />
+                {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 text-xs">
+            {lead.is_unlocked ? (
+              <Fragment>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCall(lead);
+                  }}
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Phone className="h-3 w-3" />
+                  {lead.buyer_phone || "Not provided"}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEmail(lead);
+                  }}
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Mail className="h-3 w-3" />
+                  {lead.buyer_email || "Not provided"}
+                </button>
+                {lead.buyer_location && (
+                  <span className="inline-flex items-center gap-1 text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    {lead.buyer_location}
+                  </span>
+                )}
+              </Fragment>
+            ) : (
+              <Fragment>
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Phone className="h-3 w-3" />
+                  XXXXX
+                </span>
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <Mail className="h-3 w-3" />
+                  XXXXX
+                </span>
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  XXXXX
+                </span>
+              </Fragment>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <Package className="h-3 w-3" />
+              <span className="font-medium text-foreground">{lead.item_name || "Unknown product"}</span>
+            </span>
+            <Badge variant="outline" className="capitalize">
+              {lead.item_type}
+            </Badge>
+          </div>
+
+          {lead.is_unlocked && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="default"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartChat(lead);
+                }}
+                className="h-8 text-xs"
               >
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    {lead.is_unlocked ? (lead.buyer_company || "Not provided") : "XXXXX"}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    {lead.is_unlocked ? (lead.buyer_name || "Not provided") : "XXXXX"}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {lead.is_unlocked && lead.buyer_phone ? (
-                    <button
-                      onClick={() => !isLocked && onCall(lead)}
-                      className="flex items-center gap-2 text-primary hover:underline"
-                      disabled={isLocked}
+                <MessageSquare className="mr-1 h-3 w-3" />
+                Start chat
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onWhatsApp(lead);
+                }}
+                className="h-8 text-xs border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+              >
+                <MessageCircle className="mr-1 h-3 w-3" />
+                WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEmail(lead);
+                }}
+                className="h-8 text-xs"
+              >
+                <Mail className="mr-1 h-3 w-3" />
+                Email
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCall(lead);
+                }}
+                className="h-8 text-xs"
+              >
+                <Phone className="mr-1 h-3 w-3" />
+                Call
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenQuotation(lead);
+                }}
+                className="h-8 text-xs"
+              >
+                <FileSpreadsheet className="mr-1 h-3 w-3" />
+                Send quotation
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Right */}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>{statusConfig.label}</Badge>
+            <Badge variant="outline" className={priorityConfig.color}>
+              {priorityConfig.label}
+            </Badge>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
+          </p>
+
+          <div className="flex items-center gap-2">
+            {!lead.is_unlocked && (
+              <Button
+                size="sm"
+                variant={canUnlock ? "default" : "outline"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUnlock(lead);
+                }}
+                disabled={!canUnlock || unlockingId === lead.id}
+                className="h-8 text-xs"
+              >
+                {unlockingId === lead.id ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Unlock className="mr-1 h-3 w-3" />
+                )}
+                Unlock ({creditsNeeded} credits)
+              </Button>
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-52"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <DropdownMenuItem
+                  onClick={() => {
+                    onOpenDetails(lead);
+                  }}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  View full details
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onOpenFollowUp(lead);
+                  }}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Schedule follow-up
+                </DropdownMenuItem>
+                {lead.is_unlocked && (
+                  <Fragment>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onStartChat(lead);
+                      }}
                     >
-                      <Phone className="h-4 w-4" />
-                      {lead.buyer_phone}
-                    </button>
-                  ) : (
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      {lead.is_unlocked ? "Not provided" : "XXXXX"}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {lead.is_unlocked && lead.buyer_email ? (
-                    <button
-                      onClick={() => !isLocked && onEmail(lead)}
-                      className="flex items-center gap-2 text-primary hover:underline"
-                      disabled={isLocked}
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Start chat
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onOpenQuotation(lead);
+                      }}
                     >
-                      <Mail className="h-4 w-4" />
-                      {lead.buyer_email}
-                    </button>
-                  ) : (
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      {lead.is_unlocked ? "Not provided" : "XXXXX"}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    {lead.is_unlocked ? (lead.buyer_location || "Not provided") : "XXXXX"}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium text-sm">{lead.item_name || "Unknown"}</span>
-                    <Badge variant="outline" className="w-fit capitalize text-xs">
-                      {lead.item_type}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>
-                    {statusConfig.label}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-center gap-1">
-                    {lead.is_unlocked ? (
-                      <>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => !isLocked && onStartChat(lead)}
-                          disabled={isLocked}
-                          className="h-8 w-8"
-                          title="Start Chat"
-                        >
-                          <MessageSquare className="h-4 w-4 text-blue-600" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => !isLocked && onWhatsApp(lead)}
-                          disabled={isLocked || !lead.buyer_phone}
-                          className="h-8 w-8"
-                          title="WhatsApp"
-                        >
-                          <MessageCircle className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => !isLocked && onEmail(lead)}
-                          disabled={isLocked || !lead.buyer_email}
-                          className="h-8 w-8"
-                          title="Send Email"
-                        >
-                          <Mail className="h-4 w-4 text-purple-600" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => !isLocked && onCall(lead)}
-                          disabled={isLocked || !lead.buyer_phone}
-                          className="h-8 w-8"
-                          title="Call"
-                        >
-                          <Phone className="h-4 w-4 text-orange-600" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isLocked}>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52">
-                            <DropdownMenuItem onClick={() => !isLocked && onOpenDetails(lead)}>
-                              <FileText className="mr-2 h-4 w-4" />
-                              View full details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => !isLocked && onOpenFollowUp(lead)}>
-                              <Calendar className="mr-2 h-4 w-4" />
-                              Schedule follow-up
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => !isLocked && onOpenQuotation(lead)}>
-                              <FileSpreadsheet className="mr-2 h-4 w-4" />
-                              Send quotation
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <div className="px-2 py-1.5 text-xs text-muted-foreground">Change status</div>
-                            {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-                              <DropdownMenuItem
-                                key={status}
-                                disabled={isLocked || lead.status === status}
-                                onClick={() => !isLocked && onStatusChange(lead.id, status as Lead["status"])}
-                              >
-                                <span className={`mr-2 h-2 w-2 rounded-full ${config.bg}`} />
-                                {config.label}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant={canUnlock ? "default" : "outline"}
-                        onClick={() => !isLocked && onUnlock(lead)}
-                        disabled={isLocked || !canUnlock || unlockingId === lead.id}
-                        className="h-8 text-xs"
-                      >
-                        {unlockingId === lead.id ? (
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        ) : (
-                          <Unlock className="mr-1 h-3 w-3" />
-                        )}
-                        Unlock ({creditsNeeded} credits)
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                      Send quotation
+                    </DropdownMenuItem>
+                  </Fragment>
+                )}
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">Change status</div>
+                {Object.entries(STATUS_CONFIG).map(([status, config]) => (
+                  <DropdownMenuItem
+                    key={status}
+                    disabled={lead.status === status}
+                    onClick={() => onStatusChange(lead.id, status as Lead["status"])}
+                  >
+                    <span className={`mr-2 h-2 w-2 rounded-full ${config.bg}`} />
+                    {config.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {lead.next_follow_up && (
+            <div className="mt-1 flex items-center gap-1 text-xs text-orange-600">
+              <Calendar className="h-3 w-3" />
+              Follow-up: {format(new Date(lead.next_follow_up), "MMM d")}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
 /* ---------- MAIN COMPONENT ---------- */
 
-const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
+const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -601,9 +655,6 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   const [quotationNotes, setQuotationNotes] = useState("");
   const [sendingQuotation, setSendingQuotation] = useState(false);
 
-  // single flag to lock all interactions
-  const [isLocked] = useState<boolean>(!!readOnly);
-
   const filteredLeads = leads.filter((lead) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
@@ -626,14 +677,12 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   });
 
   const handleUnlock = async (lead: Lead) => {
-    if (isLocked) return;
     setUnlocking(lead.id);
     await unlockBuyerInfo(lead.id, lead.item_type);
     setUnlocking(null);
   };
 
   const handleConvertToLead = async (viewId: string) => {
-    if (isLocked) return;
     setConvertingId(viewId);
     try {
       const leadId = await convertViewToLead(viewId);
@@ -646,7 +695,6 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   };
 
   const handleScheduleFollowUp = async () => {
-    if (isLocked) return;
     if (!selectedLead || !followUpDate) return;
     await scheduleFollowUp(selectedLead.id, followUpDate);
     if (followUpNote) {
@@ -662,15 +710,12 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   };
 
   const handleSaveNotes = async () => {
-    if (isLocked) return;
     if (!selectedLead) return;
     await updateLeadNotes(selectedLead.id, notes);
     await addActivity(selectedLead.id, "note", "Note Added", notes);
   };
 
   const handleStartChat = async (lead: Lead) => {
-    if (isLocked) return;
-
     if (!lead.is_unlocked || !lead.buyer_id) {
       toast({
         variant: "destructive",
@@ -721,7 +766,6 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   };
 
   const handleWhatsApp = (lead: Lead) => {
-    if (isLocked) return;
     if (!lead.is_unlocked || !lead.buyer_phone) return;
     const phone = lead.buyer_phone.replace(/\D/g, "");
     const message = encodeURIComponent(
@@ -732,7 +776,6 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   };
 
   const handleEmail = (lead: Lead) => {
-    if (isLocked) return;
     if (!lead.is_unlocked || !lead.buyer_email) return;
     const subject = encodeURIComponent(`Regarding your inquiry: ${lead.item_name}`);
     const body = encodeURIComponent(
@@ -743,14 +786,12 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   };
 
   const handleCall = (lead: Lead) => {
-    if (isLocked) return;
     if (!lead.is_unlocked || !lead.buyer_phone) return;
     window.open(`tel:${lead.buyer_phone}`, "_blank");
     addActivity(lead.id, "call", "Phone Call Made", `Called ${lead.buyer_phone}`);
   };
 
   const handleSendQuotation = async () => {
-    if (isLocked) return;
     if (!selectedLead || quotationItems.length === 0) return;
 
     setSendingQuotation(true);
@@ -810,7 +851,6 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   };
 
   const openLeadDetails = (lead: Lead) => {
-    if (isLocked) return;
     setSelectedLead(lead);
     setNotes(lead.notes || "");
     setLeadActivities(activities.filter((a) => a.lead_id === lead.id));
@@ -818,13 +858,11 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
   };
 
   const openFollowUp = (lead: Lead) => {
-    if (isLocked) return;
     setSelectedLead(lead);
     setShowFollowUpModal(true);
   };
 
   const openQuotation = (lead: Lead) => {
-    if (isLocked) return;
     setSelectedLead(lead);
     setQuotationItems([
       {
@@ -856,7 +894,6 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
             setStatusFilter={setStatusFilter}
             leadsCount={leads.length}
             viewsCount={productViews.length}
-            isLocked={isLocked}
           />
         </div>
         <Separator />
@@ -880,7 +917,6 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
                     onConvertToLead={handleConvertToLead}
                     isConverting={convertingId !== null}
                     convertingId={convertingId}
-                    isLocked={isLocked}
                   />
                 ))}
               </div>
@@ -894,26 +930,31 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
               </p>
             </div>
           ) : (
-            <LeadsTable
-              leads={filteredLeads}
-              creditsBalance={creditsBalance}
-              onUnlock={handleUnlock}
-              unlockingId={unlocking}
-              onStartChat={handleStartChat}
-              onWhatsApp={handleWhatsApp}
-              onEmail={handleEmail}
-              onCall={handleCall}
-              onStatusChange={updateLeadStatus}
-              onOpenDetails={openLeadDetails}
-              onOpenFollowUp={openFollowUp}
-              onOpenQuotation={openQuotation}
-              isLocked={isLocked}
-            />
+            <div className="space-y-2">
+              {filteredLeads.map((lead) => (
+                <LeadRow
+                  key={lead.id}
+                  lead={lead}
+                  creditsBalance={creditsBalance}
+                  onUnlock={handleUnlock}
+                  unlockingId={unlocking}
+                  onStartChat={handleStartChat}
+                  onWhatsApp={handleWhatsApp}
+                  onEmail={handleEmail}
+                  onCall={handleCall}
+                  onStatusChange={updateLeadStatus}
+                  onOpenDetails={openLeadDetails}
+                  onOpenFollowUp={openFollowUp}
+                  onOpenQuotation={openQuotation}
+                  onRowClick={openLeadDetails} // CLICK ROW => open details
+                />
+              ))}
+            </div>
           )}
         </div>
       </Card>
 
-      {showDetailView && selectedLead && !isLocked && (
+      {showDetailView && selectedLead && (
         <LeadDetailView
           lead={selectedLead}
           activities={leadActivities}
@@ -964,10 +1005,7 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
       )}
 
       {/* Follow-up modal */}
-      <Dialog
-        open={showFollowUpModal && !isLocked}
-        onOpenChange={(open) => !isLocked && setShowFollowUpModal(open)}
-      >
+      <Dialog open={showFollowUpModal} onOpenChange={setShowFollowUpModal}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
@@ -981,36 +1019,25 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
               <Input
                 type="date"
                 value={followUpDate}
-                onChange={(e) => !isLocked && setFollowUpDate(e.target.value)}
+                onChange={(e) => setFollowUpDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                disabled={isLocked}
               />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Notes (optional)</label>
               <Textarea
                 value={followUpNote}
-                onChange={(e) => !isLocked && setFollowUpNote(e.target.value)}
+                onChange={(e) => setFollowUpNote(e.target.value)}
                 placeholder="Add internal notes for this follow-up…"
                 rows={3}
-                disabled={isLocked}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFollowUpModal(false)}
-              disabled={isLocked}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowFollowUpModal(false)}>
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={handleScheduleFollowUp}
-              disabled={isLocked || !followUpDate}
-            >
+            <Button size="sm" onClick={handleScheduleFollowUp} disabled={!followUpDate}>
               <Calendar className="mr-2 h-4 w-4" />
               Schedule
             </Button>
@@ -1019,10 +1046,7 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
       </Dialog>
 
       {/* Quotation modal */}
-      <Dialog
-        open={showQuotationModal && !isLocked}
-        onOpenChange={(open) => !isLocked && setShowQuotationModal(open)}
-      >
+      <Dialog open={showQuotationModal} onOpenChange={setShowQuotationModal}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
@@ -1052,39 +1076,33 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
                       placeholder="Item name"
                       value={item.name}
                       onChange={(e) => {
-                        if (isLocked) return;
                         const next = [...quotationItems];
                         next[index].name = e.target.value;
                         setQuotationItems(next);
                       }}
                       className="col-span-6"
-                      disabled={isLocked}
                     />
                     <Input
                       type="number"
                       placeholder="Qty"
                       value={item.quantity}
                       onChange={(e) => {
-                        if (isLocked) return;
                         const next = [...quotationItems];
                         next[index].quantity = parseInt(e.target.value) || 1;
                         setQuotationItems(next);
                       }}
                       className="col-span-2"
-                      disabled={isLocked}
                     />
                     <Input
                       type="number"
                       placeholder="Price"
                       value={item.unit_price}
                       onChange={(e) => {
-                        if (isLocked) return;
                         const next = [...quotationItems];
                         next[index].unit_price = parseFloat(e.target.value) || 0;
                         setQuotationItems(next);
                       }}
                       className="col-span-4"
-                      disabled={isLocked}
                     />
                   </div>
                 ))}
@@ -1092,11 +1110,7 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    !isLocked &&
-                    setQuotationItems([...quotationItems, { name: "", quantity: 1, unit_price: 0 }])
-                  }
-                  disabled={isLocked}
+                  onClick={() => setQuotationItems([...quotationItems, { name: "", quantity: 1, unit_price: 0 }])}
                 >
                   + Add item
                 </Button>
@@ -1131,33 +1145,19 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
                 <label className="text-xs font-medium text-muted-foreground">Notes to buyer</label>
                 <Textarea
                   value={quotationNotes}
-                  onChange={(e) => !isLocked && setQuotationNotes(e.target.value)}
+                  onChange={(e) => setQuotationNotes(e.target.value)}
                   placeholder="Additional terms or clarifications for this quotation…"
                   rows={3}
-                  disabled={isLocked}
                 />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowQuotationModal(false)}
-              disabled={isLocked}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowQuotationModal(false)}>
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={handleSendQuotation}
-              disabled={isLocked || sendingQuotation}
-            >
-              {sendingQuotation ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
+            <Button size="sm" onClick={handleSendQuotation} disabled={sendingQuotation}>
+              {sendingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               Send quotation
             </Button>
           </DialogFooter>
