@@ -322,8 +322,17 @@ const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId, isL
   );
 };
 
-interface LeadRowProps {
-  lead: Lead;
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+interface LeadsTableProps {
+  leads: Lead[];
   creditsBalance: number;
   onUnlock: (lead: Lead) => Promise<void>;
   unlockingId: string | null;
@@ -338,8 +347,8 @@ interface LeadRowProps {
   isLocked: boolean;
 }
 
-const LeadRow = ({
-  lead,
+const LeadsTable = ({
+  leads,
   creditsBalance,
   onUnlock,
   unlockingId,
@@ -352,265 +361,199 @@ const LeadRow = ({
   onOpenFollowUp,
   onOpenQuotation,
   isLocked,
-}: LeadRowProps) => {
-  const statusConfig = STATUS_CONFIG[lead.status];
-  const priorityConfig = PRIORITY_CONFIG[lead.priority];
-  const creditsNeeded = getCreditsNeeded(lead.item_type);
-  const canUnlock = creditsBalance >= creditsNeeded;
-
-  const handleSafeStatusChange = (status: Lead["status"]) => {
-    if (isLocked) return;
-    onStatusChange(lead.id, status);
-  };
-
+}: LeadsTableProps) => {
   return (
-    <div
-      className={`border-muted/60 bg-card hover:bg-accent/40 rounded-md border p-4 transition-colors ${
-        isLocked ? "opacity-60" : ""
-      }`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        {/* Left */}
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <div
-              className={`rounded-full p-1.5 ${
-                lead.is_unlocked ? "bg-green-100 dark:bg-green-900/30" : "bg-muted"
-              }`}
-            >
-              {lead.is_unlocked ? (
-                <Unlock className="h-4 w-4 text-green-600" />
-              ) : (
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{getMaskedValue(lead.buyer_name, lead.is_unlocked)}</p>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Building2 className="h-3 w-3" />
-                {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
-              </p>
-            </div>
-          </div>
+    <div className="overflow-x-auto rounded-md border border-muted/60">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/30">
+            <TableHead className="font-semibold">Company Name</TableHead>
+            <TableHead className="font-semibold">Contact Person</TableHead>
+            <TableHead className="font-semibold">Mobile Number</TableHead>
+            <TableHead className="font-semibold">Email ID</TableHead>
+            <TableHead className="font-semibold">Location</TableHead>
+            <TableHead className="font-semibold">Product</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold text-center">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {leads.map((lead) => {
+            const statusConfig = STATUS_CONFIG[lead.status];
+            const creditsNeeded = getCreditsNeeded(lead.item_type);
+            const canUnlock = creditsBalance >= creditsNeeded;
 
-          <div className="flex flex-wrap gap-3 text-xs">
-            {lead.is_unlocked ? (
-              <Fragment>
-                <button
-                  type="button"
-                  onClick={isLocked ? undefined : () => onCall(lead)}
-                  disabled={isLocked}
-                  className={`inline-flex items-center gap-1 ${
-                    isLocked ? "text-muted-foreground" : "text-primary hover:underline"
-                  }`}
-                >
-                  <Phone className="h-3 w-3" />
-                  {lead.buyer_phone || "Not provided"}
-                </button>
-                <button
-                  type="button"
-                  onClick={isLocked ? undefined : () => onEmail(lead)}
-                  disabled={isLocked}
-                  className={`inline-flex items-center gap-1 ${
-                    isLocked ? "text-muted-foreground" : "text-primary hover:underline"
-                  }`}
-                >
-                  <Mail className="h-3 w-3" />
-                  {lead.buyer_email || "Not provided"}
-                </button>
-                {lead.buyer_location && (
-                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    {lead.buyer_location}
-                  </span>
-                )}
-              </Fragment>
-            ) : (
-              <Fragment>
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Phone className="h-3 w-3" />
-                  XXXXX
-                </span>
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Mail className="h-3 w-3" />
-                  XXXXX
-                </span>
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  XXXXX
-                </span>
-              </Fragment>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
-              <Package className="h-3 w-3" />
-              <span className="font-medium text-foreground">{lead.item_name || "Unknown product"}</span>
-            </span>
-            <Badge variant="outline" className="capitalize">
-              {lead.item_type}
-            </Badge>
-          </div>
-
-          {lead.is_unlocked && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="default"
-                onClick={isLocked ? undefined : () => onStartChat(lead)}
-                disabled={isLocked}
-                className="h-8 text-xs"
+            return (
+              <TableRow
+                key={lead.id}
+                className={`hover:bg-accent/40 ${isLocked ? "opacity-60" : ""}`}
               >
-                <MessageSquare className="mr-1 h-3 w-3" />
-                Start chat
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={isLocked ? undefined : () => onWhatsApp(lead)}
-                disabled={isLocked}
-                className="h-8 text-xs border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
-              >
-                <MessageCircle className="mr-1 h-3 w-3" />
-                WhatsApp
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={isLocked ? undefined : () => onEmail(lead)}
-                disabled={isLocked}
-                className="h-8 text-xs"
-              >
-                <Mail className="mr-1 h-3 w-3" />
-                Email
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={isLocked ? undefined : () => onCall(lead)}
-                disabled={isLocked}
-                className="h-8 text-xs"
-              >
-                <Phone className="mr-1 h-3 w-3" />
-                Call
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={isLocked ? undefined : () => onOpenQuotation(lead)}
-                disabled={isLocked}
-                className="h-8 text-xs"
-              >
-                <FileSpreadsheet className="mr-1 h-3 w-3" />
-                Send quotation
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Right */}
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>{statusConfig.label}</Badge>
-            <Badge variant="outline" className={priorityConfig.color}>
-              {priorityConfig.label}
-            </Badge>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
-          </p>
-
-          <div className="flex items-center gap-2">
-            {!lead.is_unlocked && (
-              <Button
-                size="sm"
-                variant={canUnlock ? "default" : "outline"}
-                onClick={isLocked ? undefined : () => onUnlock(lead)}
-                disabled={isLocked || !canUnlock || unlockingId === lead.id}
-                className="h-8 text-xs"
-              >
-                {unlockingId === lead.id ? (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                ) : (
-                  <Unlock className="mr-1 h-3 w-3" />
-                )}
-                Unlock ({creditsNeeded} credits)
-              </Button>
-            )}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isLocked}>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (isLocked) return;
-                    onOpenDetails(lead);
-                  }}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  View full details
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (isLocked) return;
-                    onOpenFollowUp(lead);
-                  }}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Schedule follow-up
-                </DropdownMenuItem>
-                {lead.is_unlocked && (
-                  <Fragment>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (isLocked) return;
-                        onStartChat(lead);
-                      }}
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    {lead.is_unlocked ? (lead.buyer_company || "Not provided") : "XXXXX"}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    {lead.is_unlocked ? (lead.buyer_name || "Not provided") : "XXXXX"}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {lead.is_unlocked && lead.buyer_phone ? (
+                    <button
+                      onClick={() => !isLocked && onCall(lead)}
+                      className="flex items-center gap-2 text-primary hover:underline"
+                      disabled={isLocked}
                     >
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      Start chat
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (isLocked) return;
-                        onOpenQuotation(lead);
-                      }}
+                      <Phone className="h-4 w-4" />
+                      {lead.buyer_phone}
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      {lead.is_unlocked ? "Not provided" : "XXXXX"}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {lead.is_unlocked && lead.buyer_email ? (
+                    <button
+                      onClick={() => !isLocked && onEmail(lead)}
+                      className="flex items-center gap-2 text-primary hover:underline"
+                      disabled={isLocked}
                     >
-                      <FileSpreadsheet className="mr-2 h-4 w-4" />
-                      Send quotation
-                    </DropdownMenuItem>
-                  </Fragment>
-                )}
-                <DropdownMenuSeparator />
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">Change status</div>
-                {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-                  <DropdownMenuItem
-                    key={status}
-                    disabled={isLocked || lead.status === status}
-                    onClick={() => handleSafeStatusChange(status as Lead["status"])}
-                  >
-                    <span className={`mr-2 h-2 w-2 rounded-full ${config.bg}`} />
-                    {config.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {lead.next_follow_up && (
-            <div className="mt-1 flex items-center gap-1 text-xs text-orange-600">
-              <Calendar className="h-3 w-3" />
-              Follow-up: {format(new Date(lead.next_follow_up), "MMM d")}
-            </div>
-          )}
-        </div>
-      </div>
+                      <Mail className="h-4 w-4" />
+                      {lead.buyer_email}
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      {lead.is_unlocked ? "Not provided" : "XXXXX"}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    {lead.is_unlocked ? (lead.buyer_location || "Not provided") : "XXXXX"}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-sm">{lead.item_name || "Unknown"}</span>
+                    <Badge variant="outline" className="w-fit capitalize text-xs">
+                      {lead.item_type}
+                    </Badge>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>
+                    {statusConfig.label}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-center gap-1">
+                    {lead.is_unlocked ? (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => !isLocked && onStartChat(lead)}
+                          disabled={isLocked}
+                          className="h-8 w-8"
+                          title="Start Chat"
+                        >
+                          <MessageSquare className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => !isLocked && onWhatsApp(lead)}
+                          disabled={isLocked || !lead.buyer_phone}
+                          className="h-8 w-8"
+                          title="WhatsApp"
+                        >
+                          <MessageCircle className="h-4 w-4 text-green-600" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => !isLocked && onEmail(lead)}
+                          disabled={isLocked || !lead.buyer_email}
+                          className="h-8 w-8"
+                          title="Send Email"
+                        >
+                          <Mail className="h-4 w-4 text-purple-600" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => !isLocked && onCall(lead)}
+                          disabled={isLocked || !lead.buyer_phone}
+                          className="h-8 w-8"
+                          title="Call"
+                        >
+                          <Phone className="h-4 w-4 text-orange-600" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isLocked}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem onClick={() => !isLocked && onOpenDetails(lead)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              View full details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => !isLocked && onOpenFollowUp(lead)}>
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Schedule follow-up
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => !isLocked && onOpenQuotation(lead)}>
+                              <FileSpreadsheet className="mr-2 h-4 w-4" />
+                              Send quotation
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <div className="px-2 py-1.5 text-xs text-muted-foreground">Change status</div>
+                            {Object.entries(STATUS_CONFIG).map(([status, config]) => (
+                              <DropdownMenuItem
+                                key={status}
+                                disabled={isLocked || lead.status === status}
+                                onClick={() => !isLocked && onStatusChange(lead.id, status as Lead["status"])}
+                              >
+                                <span className={`mr-2 h-2 w-2 rounded-full ${config.bg}`} />
+                                {config.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant={canUnlock ? "default" : "outline"}
+                        onClick={() => !isLocked && onUnlock(lead)}
+                        disabled={isLocked || !canUnlock || unlockingId === lead.id}
+                        className="h-8 text-xs"
+                      >
+                        {unlockingId === lead.id ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Unlock className="mr-1 h-3 w-3" />
+                        )}
+                        Unlock ({creditsNeeded} credits)
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 };
@@ -951,26 +894,21 @@ const LeadsManager = ({ sellerId, itemType, readOnly }: LeadsManagerProps) => {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {filteredLeads.map((lead) => (
-                <LeadRow
-                  key={lead.id}
-                  lead={lead}
-                  creditsBalance={creditsBalance}
-                  onUnlock={handleUnlock}
-                  unlockingId={unlocking}
-                  onStartChat={handleStartChat}
-                  onWhatsApp={handleWhatsApp}
-                  onEmail={handleEmail}
-                  onCall={handleCall}
-                  onStatusChange={updateLeadStatus}
-                  onOpenDetails={openLeadDetails}
-                  onOpenFollowUp={openFollowUp}
-                  onOpenQuotation={openQuotation}
-                  isLocked={isLocked}
-                />
-              ))}
-            </div>
+            <LeadsTable
+              leads={filteredLeads}
+              creditsBalance={creditsBalance}
+              onUnlock={handleUnlock}
+              unlockingId={unlocking}
+              onStartChat={handleStartChat}
+              onWhatsApp={handleWhatsApp}
+              onEmail={handleEmail}
+              onCall={handleCall}
+              onStatusChange={updateLeadStatus}
+              onOpenDetails={openLeadDetails}
+              onOpenFollowUp={openFollowUp}
+              onOpenQuotation={openQuotation}
+              isLocked={isLocked}
+            />
           )}
         </div>
       </Card>
