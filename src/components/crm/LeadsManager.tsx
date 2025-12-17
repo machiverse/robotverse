@@ -427,10 +427,32 @@ const LeadRow = ({
               <Package className="h-3 w-3" />
               <span className="font-medium text-foreground">{lead.item_name || "Unknown product"}</span>
             </span>
+            {lead.product_brand && (
+              <Badge variant="outline" className="text-[10px]">
+                {lead.product_brand}
+              </Badge>
+            )}
+            {lead.product_model && (
+              <Badge variant="secondary" className="text-[10px]">
+                {lead.product_model}
+              </Badge>
+            )}
             <Badge variant="outline" className="capitalize">
               {lead.item_type}
             </Badge>
+            {lead.product_price && (
+              <span className="font-medium text-green-600">
+                ₹{lead.product_price.toLocaleString()}
+              </span>
+            )}
           </div>
+          
+          {lead.viewed_at && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Eye className="h-3 w-3" />
+              Viewed: {format(new Date(lead.viewed_at), "MMM d, yyyy 'at' h:mm a")}
+            </div>
+          )}
 
           {lead.is_unlocked && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -653,6 +675,9 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   const [quotationItems, setQuotationItems] = useState([{ name: "", quantity: 1, unit_price: 0 }]);
   const [quotationNotes, setQuotationNotes] = useState("");
+  const [quotationDiscount, setQuotationDiscount] = useState(0);
+  const [quotationTaxRate, setQuotationTaxRate] = useState(18);
+  const [quotationValidity, setQuotationValidity] = useState(7);
   const [sendingQuotation, setSendingQuotation] = useState(false);
 
   const filteredLeads = leads.filter((lead) => {
@@ -804,8 +829,13 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
       }));
 
       const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-      const taxAmount = subtotal * 0.18;
-      const totalAmount = subtotal + taxAmount;
+      const discountAmount = quotationDiscount;
+      const afterDiscount = subtotal - discountAmount;
+      const taxAmount = afterDiscount * (quotationTaxRate / 100);
+      const totalAmount = afterDiscount + taxAmount;
+      
+      const validityDate = new Date();
+      validityDate.setDate(validityDate.getDate() + quotationValidity);
 
       await createInvoice({
         buyer_name: selectedLead.buyer_name || "",
@@ -815,11 +845,13 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         lead_id: selectedLead.id,
         items,
         subtotal,
-        tax_rate: 18,
+        tax_rate: quotationTaxRate,
         tax_amount: taxAmount,
+        discount_amount: discountAmount,
         total_amount: totalAmount,
-        notes: quotationNotes,
+        notes: quotationNotes ? `${quotationNotes}\n\nValid until: ${format(validityDate, "PPP")}` : `Valid until: ${format(validityDate, "PPP")}`,
         status: "sent",
+        due_date: validityDate.toISOString(),
       });
 
       await updateLeadStatus(selectedLead.id, "quoted");
@@ -827,12 +859,15 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         selectedLead.id,
         "invoice_sent",
         "Quotation Sent",
-        `Quotation of ₹${totalAmount.toLocaleString()} sent`,
+        `Quotation of ₹${totalAmount.toLocaleString()} sent (Valid for ${quotationValidity} days)`,
       );
 
       setShowQuotationModal(false);
       setQuotationItems([{ name: "", quantity: 1, unit_price: 0 }]);
       setQuotationNotes("");
+      setQuotationDiscount(0);
+      setQuotationTaxRate(18);
+      setQuotationValidity(7);
 
       toast({
         title: "Quotation sent",
@@ -864,13 +899,23 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   const openQuotation = (lead: Lead) => {
     setSelectedLead(lead);
+    // Auto-fill with product details
+    const productName = lead.item_name || "";
+    const productBrand = lead.product_brand ? `${lead.product_brand} ` : "";
+    const productModel = lead.product_model ? `(${lead.product_model})` : "";
+    const fullProductName = `${productBrand}${productName} ${productModel}`.trim();
+    
     setQuotationItems([
       {
-        name: lead.item_name || "",
+        name: fullProductName || "Product",
         quantity: 1,
-        unit_price: lead.expected_value || 0,
+        unit_price: lead.product_price || lead.expected_value || 0,
       },
     ]);
+    setQuotationDiscount(0);
+    setQuotationTaxRate(18);
+    setQuotationValidity(7);
+    setQuotationNotes("");
     setShowQuotationModal(true);
   };
 
@@ -1047,7 +1092,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
       {/* Quotation modal */}
       <Dialog open={showQuotationModal} onOpenChange={setShowQuotationModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <FileSpreadsheet className="h-5 w-5" />
@@ -1056,22 +1101,48 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
           </DialogHeader>
           {selectedLead && (
             <div className="space-y-4 py-2">
-              <div className="rounded-md bg-muted p-3 text-xs">
+              {/* Buyer & Product Info */}
+              <div className="rounded-md bg-muted p-3 text-xs space-y-1">
                 <p>
                   <span className="font-medium">To:</span> {selectedLead.buyer_name}
                 </p>
                 <p>
+                  <span className="font-medium">Company:</span> {selectedLead.buyer_company || "Not provided"}
+                </p>
+                <p>
                   <span className="font-medium">Email:</span> {selectedLead.buyer_email || "Not available"}
                 </p>
+                <Separator className="my-2" />
                 <p>
                   <span className="font-medium">Product:</span> {selectedLead.item_name}
                 </p>
+                {selectedLead.product_brand && (
+                  <p>
+                    <span className="font-medium">Brand:</span> {selectedLead.product_brand}
+                  </p>
+                )}
+                {selectedLead.product_model && (
+                  <p>
+                    <span className="font-medium">Model:</span> {selectedLead.product_model}
+                  </p>
+                )}
+                {selectedLead.product_price && (
+                  <p>
+                    <span className="font-medium">Listed Price:</span> ₹{selectedLead.product_price.toLocaleString()}
+                  </p>
+                )}
+                {selectedLead.viewed_at && (
+                  <p>
+                    <span className="font-medium">Viewed on:</span> {format(new Date(selectedLead.viewed_at), "PPP 'at' p")}
+                  </p>
+                )}
               </div>
 
+              {/* Line items */}
               <div className="space-y-3">
                 <label className="text-xs font-medium text-muted-foreground">Line items</label>
                 {quotationItems.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2">
+                  <div key={index} className="grid grid-cols-12 gap-2 items-center">
                     <Input
                       placeholder="Item name"
                       value={item.name}
@@ -1080,7 +1151,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                         next[index].name = e.target.value;
                         setQuotationItems(next);
                       }}
-                      className="col-span-6"
+                      className="col-span-5"
                     />
                     <Input
                       type="number"
@@ -1095,15 +1166,18 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                     />
                     <Input
                       type="number"
-                      placeholder="Price"
+                      placeholder="Unit Price (₹)"
                       value={item.unit_price}
                       onChange={(e) => {
                         const next = [...quotationItems];
                         next[index].unit_price = parseFloat(e.target.value) || 0;
                         setQuotationItems(next);
                       }}
-                      className="col-span-4"
+                      className="col-span-3"
                     />
+                    <div className="col-span-2 text-right text-xs font-medium">
+                      ₹{(item.quantity * item.unit_price).toLocaleString()}
+                    </div>
                   </div>
                 ))}
                 <Button
@@ -1116,25 +1190,72 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                 </Button>
               </div>
 
+              {/* Discount, Tax, Validity */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Discount (₹)</label>
+                  <Input
+                    type="number"
+                    value={quotationDiscount}
+                    onChange={(e) => setQuotationDiscount(parseFloat(e.target.value) || 0)}
+                    min={0}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Tax Rate (%)</label>
+                  <Input
+                    type="number"
+                    value={quotationTaxRate}
+                    onChange={(e) => setQuotationTaxRate(parseFloat(e.target.value) || 0)}
+                    min={0}
+                    max={100}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Validity (days)</label>
+                  <Input
+                    type="number"
+                    value={quotationValidity}
+                    onChange={(e) => setQuotationValidity(parseInt(e.target.value) || 7)}
+                    min={1}
+                  />
+                </div>
+              </div>
+
+              {/* Summary */}
               <div className="rounded-md bg-muted p-3 text-xs">
                 {(() => {
                   const subtotal = quotationItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
-                  const gst = subtotal * 0.18;
-                  const total = subtotal + gst;
+                  const afterDiscount = subtotal - quotationDiscount;
+                  const taxAmount = afterDiscount * (quotationTaxRate / 100);
+                  const total = afterDiscount + taxAmount;
+                  const validityDate = new Date();
+                  validityDate.setDate(validityDate.getDate() + quotationValidity);
+                  
                   return (
                     <>
                       <div className="flex items-center justify-between">
                         <span>Subtotal</span>
                         <span>₹{subtotal.toLocaleString()}</span>
                       </div>
+                      {quotationDiscount > 0 && (
+                        <div className="flex items-center justify-between text-green-600">
+                          <span>Discount</span>
+                          <span>- ₹{quotationDiscount.toLocaleString()}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
-                        <span>GST (18%)</span>
-                        <span>₹{gst.toLocaleString()}</span>
+                        <span>Tax ({quotationTaxRate}%)</span>
+                        <span>₹{taxAmount.toLocaleString()}</span>
                       </div>
                       <Separator className="my-2" />
-                      <div className="flex items-center justify-between font-medium">
+                      <div className="flex items-center justify-between font-medium text-sm">
                         <span>Total</span>
                         <span>₹{total.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground mt-2">
+                        <span>Valid until</span>
+                        <span>{format(validityDate, "PPP")}</span>
                       </div>
                     </>
                   );
