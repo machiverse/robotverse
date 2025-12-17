@@ -27,6 +27,11 @@ export interface Lead {
   is_unlocked: boolean;
   created_at: string;
   updated_at: string;
+  // Product details
+  product_price: number | null;
+  product_brand: string | null;
+  product_model: string | null;
+  viewed_at: string | null;
 }
 
 export interface ProductView {
@@ -148,7 +153,7 @@ export const useSellerCRM = (itemType?: string) => {
       const { data, error } = await query;
       if (error) throw error;
       
-      const leadsData = (data || []) as Lead[];
+      let leadsData = (data || []) as Lead[];
       
       // Fetch profile details for leads with buyer_id
       const buyerIds = leadsData
@@ -165,7 +170,7 @@ export const useSellerCRM = (itemType?: string) => {
           const profileMap = new Map(profiles.map(p => [p.user_id, p]));
           
           // Merge profile data into leads
-          const enrichedLeads = leadsData.map(lead => {
+          leadsData = leadsData.map(lead => {
             if (lead.buyer_id && lead.is_unlocked) {
               const profile = profileMap.get(lead.buyer_id);
               if (profile) {
@@ -181,13 +186,63 @@ export const useSellerCRM = (itemType?: string) => {
             }
             return lead;
           });
-          
-          setLeads(enrichedLeads);
-          return;
         }
       }
       
-      setLeads(leadsData);
+      // Fetch product details (price, brand, model) for each lead
+      const robotItemIds = leadsData.filter(l => l.item_id && l.item_type === 'robots').map(l => l.item_id as string);
+      const sparePartItemIds = leadsData.filter(l => l.item_id && l.item_type === 'spare_parts').map(l => l.item_id as string);
+      
+      const productPriceMap = new Map<string, { price: number | null; brand: string | null; model: string | null; name: string | null }>();
+      
+      // Fetch robot prices
+      if (robotItemIds.length > 0) {
+        const { data: robots } = await supabase
+          .from('robots')
+          .select('id, price, brand, model, name')
+          .in('id', robotItemIds);
+        
+        if (robots) {
+          robots.forEach(r => productPriceMap.set(r.id, { 
+            price: r.price, 
+            brand: r.brand, 
+            model: r.model,
+            name: r.name 
+          }));
+        }
+      }
+      
+      // Fetch spare parts prices
+      if (sparePartItemIds.length > 0) {
+        const { data: spareParts } = await supabase
+          .from('spare_parts')
+          .select('id, price, brand, model, name')
+          .in('id', sparePartItemIds);
+        
+        if (spareParts) {
+          spareParts.forEach(p => productPriceMap.set(p.id, { 
+            price: p.price, 
+            brand: p.brand, 
+            model: p.model,
+            name: p.name 
+          }));
+        }
+      }
+      
+      // Enrich leads with product details
+      const enrichedLeads = leadsData.map(lead => {
+        const productDetails = lead.item_id ? productPriceMap.get(lead.item_id) : null;
+        return {
+          ...lead,
+          product_price: productDetails?.price || lead.expected_value,
+          product_brand: productDetails?.brand || null,
+          product_model: productDetails?.model || null,
+          item_name: lead.item_name || productDetails?.name || null,
+          viewed_at: lead.created_at, // Use created_at as viewed_at
+        };
+      });
+      
+      setLeads(enrichedLeads);
     } catch (error) {
       console.error('Error fetching leads:', error);
     }
