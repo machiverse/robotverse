@@ -20,7 +20,15 @@ import {
   Send,
   Edit2,
   Save,
+  Globe,
+  Target,
+  Tag,
+  DollarSign,
+  Activity,
+  CheckCircle,
+  Star,
 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -106,7 +114,11 @@ const LeadDetailView = ({
 
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [quotationItems, setQuotationItems] = useState([
-    { name: lead.item_name || "", quantity: 1, unit_price: 0 },
+    { 
+      name: lead.item_name || "", 
+      quantity: 1, 
+      unit_price: lead.product_price || 0 
+    },
   ]);
   const [quotationNotes, setQuotationNotes] = useState("");
   const [sendingQuotation, setSendingQuotation] = useState(false);
@@ -155,7 +167,7 @@ const LeadDetailView = ({
     try {
       await onSendQuotation({ items: quotationItems, notes: quotationNotes });
       setShowQuotationModal(false);
-      setQuotationItems([{ name: lead.item_name || "", quantity: 1, unit_price: 0 }]);
+      setQuotationItems([{ name: lead.item_name || "", quantity: 1, unit_price: lead.product_price || 0 }]);
       setQuotationNotes("");
     } finally {
       setSendingQuotation(false);
@@ -165,13 +177,20 @@ const LeadDetailView = ({
   const handleWhatsApp = () => {
     if (lead.buyer_phone) {
       const phone = lead.buyer_phone.replace(/\D/g, "");
-      window.open(`https://wa.me/${phone}`, "_blank");
+      const message = encodeURIComponent(
+        `Hello ${lead.buyer_name || "there"},\n\nI'm reaching out regarding your interest in ${lead.item_name || "our product"}.\n\nHow can I help you today?`
+      );
+      window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
     }
   };
 
   const handleEmail = () => {
     if (lead.buyer_email) {
-      window.open(`mailto:${lead.buyer_email}`, "_blank");
+      const subject = encodeURIComponent(`Regarding your inquiry – ${lead.item_name || "Product"}`);
+      const body = encodeURIComponent(
+        `Dear ${lead.buyer_name || "Customer"},\n\nThank you for your interest in ${lead.item_name || "our product"}.\n\nPlease let me know how I can assist you further.\n\nBest regards,\n`
+      );
+      window.open(`mailto:${lead.buyer_email}?subject=${subject}&body=${body}`, "_blank");
     }
   };
 
@@ -181,285 +200,500 @@ const LeadDetailView = ({
     }
   };
 
+  const formatSource = (source?: string) => {
+    if (!source) return "Direct";
+    switch (source) {
+      case "product_view": return "Product View";
+      case "inquiry": return "Inquiry";
+      case "campaign": return "Campaign";
+      case "chat": return "Chat";
+      case "button_click": return "Product Inquiry";
+      default: return source.charAt(0).toUpperCase() + source.slice(1).replace(/_/g, " ");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-background">
       <div className="flex h-full flex-col">
-        {/* Header */}
-        <div className="border-b bg-card px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold">
-                  {lead.is_unlocked ? lead.buyer_name : "XXXXX"}
-                </h1>
-                <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {lead.is_unlocked ? lead.buyer_company : "XXXXX"}
-                </p>
+        {/* Sticky Header with Actions */}
+        <div className="sticky top-0 z-10 border-b bg-card shadow-sm">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left: Close + Lead Info */}
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
+                  <X className="h-5 w-5" />
+                </Button>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-semibold truncate">
+                        {lead.is_unlocked ? lead.buyer_name || "Unknown" : "XXXXX"}
+                      </h1>
+                      <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {lead.is_unlocked ? lead.buyer_company || "Not provided" : "XXXXX"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>
-                {statusConfig.label}
-              </Badge>
-              <Badge variant="outline" className={priorityConfig.color}>
-                {priorityConfig.label}
-              </Badge>
+
+              {/* Center: Status Badges */}
+              <div className="hidden md:flex items-center gap-2">
+                <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>
+                  {statusConfig.label}
+                </Badge>
+                <Badge variant="outline" className={priorityConfig.color}>
+                  <Star className="mr-1 h-3 w-3" />
+                  {priorityConfig.label}
+                </Badge>
+              </div>
+
+              {/* Right: Sticky Action Buttons */}
+              {lead.is_unlocked && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCall}
+                    disabled={!lead.buyer_phone}
+                    className="hidden sm:flex"
+                  >
+                    <Phone className="mr-1.5 h-4 w-4" />
+                    Call
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="hidden sm:flex border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
+                    onClick={handleWhatsApp}
+                    disabled={!lead.buyer_phone}
+                  >
+                    <FaWhatsapp className="mr-1.5 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleEmail}
+                    disabled={!lead.buyer_email}
+                    className="hidden sm:flex"
+                  >
+                    <Mail className="mr-1.5 h-4 w-4" />
+                    Email
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => setShowQuotationModal(true)}
+                  >
+                    <FileSpreadsheet className="mr-1.5 h-4 w-4" />
+                    Create Quotation
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-5xl p-6">
-            <div className="grid gap-6 md:grid-cols-3">
-              {/* Left column - Lead info & actions */}
-              <div className="space-y-6 md:col-span-2">
-                {/* Contact info */}
-                <Card className="p-4">
-                  <h2 className="mb-3 text-sm font-medium">Contact Information</h2>
-                  {lead.is_unlocked ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <button className="text-primary hover:underline" onClick={handleCall}>
-                          {lead.buyer_phone}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <button className="text-primary hover:underline" onClick={handleEmail}>
-                          {lead.buyer_email}
-                        </button>
+        <ScrollArea className="flex-1">
+          <div className="mx-auto max-w-6xl p-6">
+            <div className="grid gap-6 lg:grid-cols-5">
+              {/* Left Column - Lead Info (2/5 width) */}
+              <div className="space-y-4 lg:col-span-2">
+                {/* Contact Information */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <User className="h-4 w-4 text-primary" />
+                      Contact Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Lead Name</p>
+                        <p className="font-medium truncate">
+                          {lead.is_unlocked ? lead.buyer_name || "Not provided" : "XXXXX"}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Contact information is locked. Unlock this lead to view details.
-                    </p>
-                  )}
+                    
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Company Name</p>
+                        <p className="font-medium truncate">
+                          {lead.is_unlocked ? lead.buyer_company || "Not provided" : "XXXXX"}
+                        </p>
+                      </div>
+                    </div>
 
-                  {lead.is_unlocked && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button size="sm" variant="default" onClick={() => {}}>
-                        <MessageSquare className="mr-1.5 h-4 w-4" />
-                        Start Chat
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Mobile Number</p>
+                        {lead.is_unlocked && lead.buyer_phone ? (
+                          <button 
+                            onClick={handleCall}
+                            className="font-medium text-primary hover:underline truncate block"
+                          >
+                            {lead.buyer_phone}
+                          </button>
+                        ) : (
+                          <p className="font-medium">{lead.is_unlocked ? "Not provided" : "XXXXX"}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Email ID</p>
+                        {lead.is_unlocked && lead.buyer_email ? (
+                          <button 
+                            onClick={handleEmail}
+                            className="font-medium text-primary hover:underline truncate block"
+                          >
+                            {lead.buyer_email}
+                          </button>
+                        ) : (
+                          <p className="font-medium">{lead.is_unlocked ? "Not provided" : "XXXXX"}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Location</p>
+                        <p className="font-medium">
+                          {lead.is_unlocked ? lead.buyer_location || "Not provided" : "XXXXX"}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Lead Details */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <Activity className="h-4 w-4 text-primary" />
+                      Lead Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <Target className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Source</p>
+                        <p className="font-medium">{formatSource(lead.source)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <CheckCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Lead Status</p>
+                        <Badge className={`mt-1 ${statusConfig.bg} ${statusConfig.color} border-0`}>
+                          {statusConfig.label}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Created On</p>
+                        <p className="font-medium">
+                          {format(new Date(lead.created_at), "MMM d, yyyy 'at' h:mm a")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {lead.next_follow_up && (
+                      <div className="flex items-center gap-3 rounded-md bg-orange-50 dark:bg-orange-900/20 p-3 border border-orange-200 dark:border-orange-800">
+                        <Clock className="h-4 w-4 text-orange-600 shrink-0" />
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-orange-600">Next Follow-up</p>
+                          <p className="font-medium text-orange-700 dark:text-orange-400">
+                            {format(new Date(lead.next_follow_up), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Quick Actions - Mobile */}
+                {lead.is_unlocked && (
+                  <Card className="sm:hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                        <MessageSquare className="h-4 w-4 text-primary" />
+                        Quick Actions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={handleCall} disabled={!lead.buyer_phone}>
+                        <Phone className="mr-1.5 h-4 w-4" />
+                        Call
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                        className="border-green-200 bg-green-50 text-green-700"
                         onClick={handleWhatsApp}
+                        disabled={!lead.buyer_phone}
                       >
-                        <MessageCircle className="mr-1.5 h-4 w-4" />
+                        <FaWhatsapp className="mr-1.5 h-4 w-4" />
                         WhatsApp
                       </Button>
-                      <Button size="sm" variant="outline" onClick={handleEmail}>
+                      <Button size="sm" variant="outline" onClick={handleEmail} disabled={!lead.buyer_email}>
                         <Mail className="mr-1.5 h-4 w-4" />
                         Email
                       </Button>
-                      <Button size="sm" variant="outline" onClick={handleCall}>
-                        <Phone className="mr-1.5 h-4 w-4" />
-                        Call
-                      </Button>
-                    </div>
-                  )}
-                </Card>
-
-                {/* Product interest */}
-                <Card className="p-4">
-                  <h2 className="mb-3 text-sm font-medium">Product Interest</h2>
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{lead.item_name || "Unknown product"}</span>
-                    <Badge variant="outline" className="capitalize">
-                      {lead.item_type}
-                    </Badge>
-                  </div>
-                  {lead.expected_value && (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Expected value: ₹{lead.expected_value.toLocaleString()}
-                    </p>
-                  )}
-                </Card>
-
-                {/* Notes */}
-                <Card className="p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-medium">Notes</h2>
-                    {isEditingNotes ? (
-                      <Button size="sm" variant="ghost" onClick={handleSaveNotes} disabled={savingNotes}>
-                        {savingNotes ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="ghost" onClick={() => setIsEditingNotes(true)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  {isEditingNotes ? (
-                    <Textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Add notes about this lead..."
-                      rows={4}
-                    />
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {lead.notes || "No notes yet. Click edit to add notes."}
-                    </p>
-                  )}
-                </Card>
-
-                {/* Activities */}
-                <Card className="p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-medium">Activity Timeline</h2>
-                    <Button size="sm" variant="outline" onClick={() => setShowAddActivity(true)}>
-                      <Plus className="mr-1.5 h-4 w-4" />
-                      Add Activity
-                    </Button>
-                  </div>
-                  
-                  {showAddActivity && (
-                    <div className="mb-4 rounded-md border bg-muted/30 p-3">
-                      <div className="mb-3 flex gap-2">
-                        <Select value={activityType} onValueChange={(v) => setActivityType(v as any)}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="call">Call</SelectItem>
-                            <SelectItem value="email">Email</SelectItem>
-                            <SelectItem value="meeting">Meeting</SelectItem>
-                            <SelectItem value="note">Note</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          placeholder="Activity title"
-                          value={activityTitle}
-                          onChange={(e) => setActivityTitle(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                      <Textarea
-                        placeholder="Description (optional)"
-                        value={activityDescription}
-                        onChange={(e) => setActivityDescription(e.target.value)}
-                        rows={2}
-                        className="mb-3"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => setShowAddActivity(false)}>
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleAddActivity} disabled={addingActivity || !activityTitle.trim()}>
-                          {addingActivity && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                          Add
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    {activities.length === 0 ? (
-                      <p className="py-4 text-center text-sm text-muted-foreground">
-                        No activities yet. Add your first activity above.
-                      </p>
-                    ) : (
-                      activities.map((activity) => (
-                        <div key={activity.id} className="flex gap-3">
-                          <div className="mt-0.5 rounded-full bg-muted p-1.5">
-                            {ACTIVITY_ICONS[activity.activity_type] || <FileText className="h-4 w-4" />}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{activity.title}</p>
-                            {activity.description && (
-                              <p className="text-xs text-muted-foreground">{activity.description}</p>
-                            )}
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
-              {/* Right column - Quick actions */}
-              <div className="space-y-4">
-                {/* Status change */}
-                <Card className="p-4">
-                  <h2 className="mb-3 text-sm font-medium">Update Status</h2>
-                  <Select
-                    value={lead.status}
-                    onValueChange={(v) => onStatusChange(lead.id, v as Lead["status"])}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(STATUS_CONFIG).map(([value, config]) => (
-                        <SelectItem key={value} value={value}>
-                          {config.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Right Column - Product & Activity (3/5 width) */}
+              <div className="space-y-4 lg:col-span-3">
+                {/* Interested Product */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <Package className="h-4 w-4 text-primary" />
+                      Interested Product
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="flex flex-wrap items-start gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                          <Package className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base truncate">
+                            {lead.item_name || "Unknown Product"}
+                          </h3>
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="capitalize">
+                              {lead.item_type}
+                            </Badge>
+                            {lead.product_brand && (
+                              <Badge variant="secondary">{lead.product_brand}</Badge>
+                            )}
+                            {lead.product_model && (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                {lead.product_model}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {lead.product_price && (
+                          <div className="text-right">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Price</p>
+                            <p className="text-lg font-bold text-green-600">
+                              ₹{lead.product_price.toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {lead.expected_value && lead.expected_value !== lead.product_price && (
+                        <div className="mt-3 flex items-center gap-2 text-sm">
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Expected Deal Value:</span>
+                          <span className="font-semibold">₹{lead.expected_value.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {lead.viewed_at && (
+                        <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          Viewed: {format(new Date(lead.viewed_at), "MMM d, yyyy 'at' h:mm a")}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
                 </Card>
 
-                {/* Quick actions */}
-                <Card className="p-4">
-                  <h2 className="mb-3 text-sm font-medium">Quick Actions</h2>
-                  <div className="space-y-2">
+                {/* Status Update */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      Update Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(STATUS_CONFIG).map(([status, config]) => (
+                        <Button
+                          key={status}
+                          size="sm"
+                          variant={lead.status === status ? "default" : "outline"}
+                          className={lead.status !== status ? `${config.bg} ${config.color} border-0 hover:opacity-80` : ""}
+                          onClick={() => onStatusChange(lead.id, status as Lead["status"])}
+                        >
+                          {config.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Actions Card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <Activity className="h-4 w-4 text-primary" />
+                      Quick Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
-                      className="w-full justify-start"
+                      size="sm"
                       onClick={() => setShowFollowUpModal(true)}
                     >
-                      <Calendar className="mr-2 h-4 w-4" />
+                      <Calendar className="mr-1.5 h-4 w-4" />
                       Schedule Follow-up
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => setShowQuotationModal(true)}
+                      size="sm"
+                      onClick={() => setShowAddActivity(true)}
                     >
-                      <FileSpreadsheet className="mr-2 h-4 w-4" />
-                      Send Quotation
+                      <Plus className="mr-1.5 h-4 w-4" />
+                      Log Activity
                     </Button>
-                  </div>
+                  </CardContent>
                 </Card>
 
-                {/* Lead info */}
-                <Card className="p-4">
-                  <h2 className="mb-3 text-sm font-medium">Lead Details</h2>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Created</span>
-                      <span>{format(new Date(lead.created_at), "MMM d, yyyy")}</span>
+                {/* Notes */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                        <FileText className="h-4 w-4 text-primary" />
+                        Internal Notes
+                      </CardTitle>
+                      {isEditingNotes ? (
+                        <Button size="sm" variant="ghost" onClick={handleSaveNotes} disabled={savingNotes}>
+                          {savingNotes ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setIsEditingNotes(true)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Source</span>
-                      <span className="capitalize">{lead.source || "Direct"}</span>
+                  </CardHeader>
+                  <CardContent>
+                    {isEditingNotes ? (
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Add notes about this lead - objections, requirements, decision makers..."
+                        rows={4}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {lead.notes || "No notes yet. Click edit to add notes."}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Activity Timeline */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                        <Clock className="h-4 w-4 text-primary" />
+                        Activity Timeline
+                      </CardTitle>
                     </div>
-                    {lead.next_follow_up && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Next follow-up</span>
-                        <span>{format(new Date(lead.next_follow_up), "MMM d, yyyy")}</span>
+                  </CardHeader>
+                  <CardContent>
+                    {showAddActivity && (
+                      <div className="mb-4 rounded-md border bg-muted/30 p-3">
+                        <div className="mb-3 flex gap-2">
+                          <Select value={activityType} onValueChange={(v) => setActivityType(v as any)}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="call">Call</SelectItem>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="meeting">Meeting</SelectItem>
+                              <SelectItem value="note">Note</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Activity title"
+                            value={activityTitle}
+                            onChange={(e) => setActivityTitle(e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                        <Textarea
+                          placeholder="Description (optional)"
+                          value={activityDescription}
+                          onChange={(e) => setActivityDescription(e.target.value)}
+                          rows={2}
+                          className="mb-3"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => setShowAddActivity(false)}>
+                            Cancel
+                          </Button>
+                          <Button size="sm" onClick={handleAddActivity} disabled={addingActivity || !activityTitle.trim()}>
+                            {addingActivity && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                            Add
+                          </Button>
+                        </div>
                       </div>
                     )}
-                  </div>
+
+                    <div className="space-y-3">
+                      {activities.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-muted-foreground">
+                          No activities yet. Use "Log Activity" to record interactions.
+                        </p>
+                      ) : (
+                        activities.map((activity) => (
+                          <div key={activity.id} className="flex gap-3 rounded-md border p-3">
+                            <div className="mt-0.5 rounded-full bg-primary/10 p-2">
+                              {ACTIVITY_ICONS[activity.activity_type] || <FileText className="h-4 w-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{activity.title}</p>
+                              {activity.description && (
+                                <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
+                              )}
+                              <p className="mt-1.5 text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
                 </Card>
               </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Follow-up Modal */}
@@ -504,7 +738,7 @@ const LeadDetailView = ({
       <Dialog open={showQuotationModal} onOpenChange={setShowQuotationModal}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Send Quotation</DialogTitle>
+            <DialogTitle>Create Quotation</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-3">
