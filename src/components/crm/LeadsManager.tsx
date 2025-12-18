@@ -23,6 +23,9 @@ import {
   MessageCircle,
   FileSpreadsheet,
   CheckCircle,
+  LayoutGrid,
+  List,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,12 +44,14 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-import { useSellerCRM, type Lead, type LeadActivity, type ProductView } from "@/hooks/useSellerCRM";
+import { useSellerCRM, type Lead, type LeadActivity, type ProductView, type AggregatedProductView } from "@/hooks/useSellerCRM";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import LeadDetailView from "./LeadDetailView";
+import LeadsPipeline from "./LeadsPipeline";
 
 interface LeadsManagerProps {
   sellerId: string;
@@ -166,6 +171,8 @@ const LeadsToolbar = ({
   setStatusFilter,
   leadsCount,
   viewsCount,
+  viewMode,
+  setViewMode,
 }: {
   viewTab: string;
   setViewTab: (v: string) => void;
@@ -175,20 +182,35 @@ const LeadsToolbar = ({
   setStatusFilter: (v: string) => void;
   leadsCount: number;
   viewsCount: number;
+  viewMode: "list" | "pipeline";
+  setViewMode: (v: "list" | "pipeline") => void;
 }) => (
   <div className="mb-4 space-y-3">
-    <Tabs value={viewTab} onValueChange={setViewTab} className="w-full">
-      <TabsList className="mb-2">
-        <TabsTrigger value="all" className="flex items-center gap-2">
-          <Eye className="h-4 w-4" />
-          Product views ({viewsCount})
-        </TabsTrigger>
-        <TabsTrigger value="leads" className="flex items-center gap-2">
-          <User className="h-4 w-4" />
-          Leads ({leadsCount})
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
+    <div className="flex items-center justify-between">
+      <Tabs value={viewTab} onValueChange={setViewTab} className="flex-1">
+        <TabsList className="mb-2">
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Product views ({viewsCount})
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Leads ({leadsCount})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+      
+      {viewTab === "leads" && (
+        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "list" | "pipeline")}>
+          <ToggleGroupItem value="list" aria-label="List view" className="h-8 px-3">
+            <List className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="pipeline" aria-label="Pipeline view" className="h-8 px-3">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      )}
+    </div>
 
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="relative flex-1">
@@ -200,7 +222,7 @@ const LeadsToolbar = ({
           className="pl-9"
         />
       </div>
-      {viewTab === "leads" && (
+      {viewTab === "leads" && viewMode === "list" && (
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-44">
             <Filter className="mr-2 h-4 w-4" />
@@ -222,26 +244,37 @@ const LeadsToolbar = ({
 
 /* ---------- ROW COMPONENTS ---------- */
 
-interface ProductViewRowProps {
-  view: ProductView;
+interface AggregatedViewRowProps {
+  view: AggregatedProductView;
   onConvertToLead: (viewId: string) => Promise<void>;
   isConverting: boolean;
   convertingId: string | null;
 }
 
-const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId }: ProductViewRowProps) => {
+const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }: AggregatedViewRowProps) => {
   const isCurrentlyConverting = convertingId === view.id;
 
   return (
     <div className="border-muted/60 bg-card hover:bg-accent/40 flex items-center justify-between rounded-md border p-4 transition-colors">
       <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className="mt-1 rounded-full bg-blue-100 p-1.5 dark:bg-blue-900/30">
-          <Eye className="h-4 w-4 text-blue-600" />
+        <div className={`mt-1 rounded-full p-1.5 ${view.is_anonymous ? "bg-muted" : "bg-blue-100 dark:bg-blue-900/30"}`}>
+          {view.is_anonymous ? (
+            <Users className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <Eye className="h-4 w-4 text-blue-600" />
+          )}
         </div>
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-medium">{view.user_name || "Anonymous user"}</p>
-            {view.user_company && (
+            <p className="truncate text-sm font-medium">
+              {view.is_anonymous ? "Anonymous Users" : view.user_name || "Unknown user"}
+            </p>
+            {view.view_count > 1 && (
+              <Badge variant="secondary" className="text-[10px]">
+                Viewed {view.view_count} times
+              </Badge>
+            )}
+            {view.user_company && !view.is_anonymous && (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Building2 className="h-3 w-3" />
                 {view.user_company}
@@ -249,22 +282,24 @@ const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId }: P
             )}
           </div>
 
-          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Phone className="h-3 w-3" />
-              {view.user_mobile || "Not provided"}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Mail className="h-3 w-3" />
-              {view.user_email || "Not provided"}
-            </span>
-            {view.user_location && (
+          {!view.is_anonymous && (
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {view.user_location}
+                <Phone className="h-3 w-3" />
+                {view.user_mobile || "Not provided"}
               </span>
-            )}
-          </div>
+              <span className="inline-flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                {view.user_email || "Not provided"}
+              </span>
+              {view.user_location && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {view.user_location}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -290,20 +325,22 @@ const ProductViewRow = ({ view, onConvertToLead, isConverting, convertingId }: P
           <Clock className="h-3 w-3" />
           {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
         </span>
-        <Button
-          size="sm"
-          variant="default"
-          onClick={() => onConvertToLead(view.id)}
-          disabled={isConverting || isCurrentlyConverting}
-          className="h-8 text-xs"
-        >
-          {isCurrentlyConverting ? (
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          ) : (
-            <User className="mr-1 h-3 w-3" />
-          )}
-          Convert to Lead
-        </Button>
+        {!view.is_anonymous && (
+          <Button
+            size="sm"
+            variant="default"
+            onClick={() => onConvertToLead(view.id)}
+            disabled={isConverting || isCurrentlyConverting}
+            className="h-8 text-xs"
+          >
+            {isCurrentlyConverting ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <User className="mr-1 h-3 w-3" />
+            )}
+            Convert to Lead
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -644,6 +681,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const {
     leads,
     productViews,
+    aggregatedViews,
     unlockBuyerInfo,
     updateLeadStatus,
     updateLeadNotes,
@@ -658,6 +696,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewTab, setViewTab] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"list" | "pipeline">("list");
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
@@ -691,7 +730,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     return matchesSearch && matchesStatus;
   });
 
-  const filteredViews = productViews.filter((view) => {
+  const filteredViews = aggregatedViews.filter((view) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       !q ||
@@ -938,7 +977,9 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
             leadsCount={leads.length}
-            viewsCount={productViews.length}
+            viewsCount={aggregatedViews.length}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
           />
         </div>
         <Separator />
@@ -956,8 +997,8 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
             ) : (
               <div className="space-y-2">
                 {filteredViews.map((view) => (
-                  <ProductViewRow
-                    key={view.id}
+                  <AggregatedViewRow
+                    key={view.key}
                     view={view}
                     onConvertToLead={handleConvertToLead}
                     isConverting={convertingId !== null}
@@ -966,6 +1007,12 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                 ))}
               </div>
             )
+          ) : viewMode === "pipeline" ? (
+            <LeadsPipeline
+              leads={filteredLeads}
+              onStatusChange={updateLeadStatus}
+              onLeadClick={openLeadDetails}
+            />
           ) : filteredLeads.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center text-sm">
               <User className="mb-3 h-10 w-10 text-muted-foreground" />

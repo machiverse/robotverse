@@ -52,6 +52,26 @@ export interface ProductView {
   additional_data: Record<string, unknown> | null;
 }
 
+export interface AggregatedProductView {
+  key: string; // unique key for user+product combination
+  id: string; // ID of the first/latest view
+  user_id: string | null;
+  user_name: string | null;
+  user_email: string | null;
+  user_mobile: string | null;
+  user_company: string | null;
+  user_location: string | null;
+  seller_id: string | null;
+  item_id: string | null;
+  item_type: string | null;
+  item_name?: string | null;
+  button_type: string;
+  button_name: string;
+  created_at: string;
+  view_count: number;
+  is_anonymous: boolean;
+}
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -119,6 +139,7 @@ export const useSellerCRM = (itemType?: string) => {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [productViews, setProductViews] = useState<ProductView[]>([]);
+  const [aggregatedViews, setAggregatedViews] = useState<AggregatedProductView[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [stats, setStats] = useState<CRMStats>({
@@ -267,15 +288,10 @@ export const useSellerCRM = (itemType?: string) => {
       
       const views = data || [];
       
-      // Immediately show views without names for instant loading
-      setProductViews(views.map(view => ({ ...view, item_name: null } as ProductView)));
-      
       // Then fetch item names in background
       const robotIds = [...new Set(views.filter(v => v.item_type === 'robots' && v.item_id).map(v => v.item_id))];
       const partIds = [...new Set(views.filter(v => v.item_type === 'spare_parts' && v.item_id).map(v => v.item_id))];
       const serviceIds = [...new Set(views.filter(v => v.item_type === 'services' && v.item_id).map(v => v.item_id))];
-      
-      if (robotIds.length === 0 && partIds.length === 0 && serviceIds.length === 0) return;
       
       // Fetch all names in parallel
       const [robotsData, partsData, servicesData] = await Promise.all([
@@ -290,7 +306,7 @@ export const useSellerCRM = (itemType?: string) => {
       const serviceNames = new Map((servicesData.data || []).map(s => [s.id, s.name]));
       
       // Update views with names
-      setProductViews(views.map(view => {
+      const enrichedViews = views.map(view => {
         let itemName: string | null = null;
         if (view.item_id) {
           if (view.item_type === 'robots') itemName = robotNames.get(view.item_id) || null;
@@ -298,7 +314,89 @@ export const useSellerCRM = (itemType?: string) => {
           else if (view.item_type === 'services') itemName = serviceNames.get(view.item_id) || null;
         }
         return { ...view, item_name: itemName } as ProductView;
-      }));
+      });
+      
+      setProductViews(enrichedViews);
+      
+      // Aggregate views by user+product combination
+      const aggregationMap = new Map<string, AggregatedProductView>();
+      let anonymousViewCount = 0;
+      let anonymousView: ProductView | null = null;
+      
+      enrichedViews.forEach(view => {
+        const isAnonymous = !view.user_id && !view.user_name && !view.user_email;
+        
+        if (isAnonymous) {
+          // Count anonymous views separately per product
+          const anonKey = `anonymous_${view.item_id || 'unknown'}`;
+          const existing = aggregationMap.get(anonKey);
+          if (existing) {
+            existing.view_count++;
+          } else {
+            aggregationMap.set(anonKey, {
+              key: anonKey,
+              id: view.id,
+              user_id: null,
+              user_name: 'Anonymous Users',
+              user_email: null,
+              user_mobile: null,
+              user_company: null,
+              user_location: null,
+              seller_id: view.seller_id,
+              item_id: view.item_id,
+              item_type: view.item_type,
+              item_name: view.item_name,
+              button_type: view.button_type,
+              button_name: view.button_name,
+              created_at: view.created_at,
+              view_count: 1,
+              is_anonymous: true,
+            });
+          }
+        } else {
+          // Aggregate by user + product combination
+          const userKey = view.user_id || view.user_email || view.user_name || 'unknown';
+          const productKey = view.item_id || 'unknown';
+          const key = `${userKey}_${productKey}`;
+          
+          const existing = aggregationMap.get(key);
+          if (existing) {
+            existing.view_count++;
+            // Keep the most recent view data
+            if (new Date(view.created_at) > new Date(existing.created_at)) {
+              existing.created_at = view.created_at;
+              existing.id = view.id;
+            }
+          } else {
+            aggregationMap.set(key, {
+              key,
+              id: view.id,
+              user_id: view.user_id,
+              user_name: view.user_name,
+              user_email: view.user_email,
+              user_mobile: view.user_mobile,
+              user_company: view.user_company,
+              user_location: view.user_location,
+              seller_id: view.seller_id,
+              item_id: view.item_id,
+              item_type: view.item_type,
+              item_name: view.item_name,
+              button_type: view.button_type,
+              button_name: view.button_name,
+              created_at: view.created_at,
+              view_count: 1,
+              is_anonymous: false,
+            });
+          }
+        }
+      });
+      
+      // Sort by created_at descending and set aggregated views
+      const aggregated = Array.from(aggregationMap.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setAggregatedViews(aggregated);
+      
     } catch (error) {
       console.error('Error fetching product views:', error);
     }
@@ -709,6 +807,7 @@ export const useSellerCRM = (itemType?: string) => {
   return {
     leads,
     productViews,
+    aggregatedViews,
     invoices,
     activities,
     stats,
