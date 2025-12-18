@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   User,
   Building2,
@@ -34,8 +34,8 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-} from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
+} from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 interface Lead {
   id: string;
@@ -49,14 +49,14 @@ interface Lead {
   item_type: string;
   item_name?: string;
   status:
-    | 'new'
-    | 'contacted'
-    | 'qualified'
-    | 'quoted'
-    | 'negotiating'
-    | 'closed_won'
-    | 'closed_lost';
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
+    | "new"
+    | "contacted"
+    | "qualified"
+    | "quoted"
+    | "negotiating"
+    | "closed_won"
+    | "closed_lost";
+  priority?: "low" | "medium" | "high" | "urgent";
   source?: string;
   notes?: string;
   expected_value?: number;
@@ -77,56 +77,56 @@ interface LeadDetailModalProps {
   onSendQuotation?: (
     leadId: string,
     amount: number,
-    message: string,
+    message: string
   ) => Promise<void>;
-  onUpdateStatus?: (leadId: string, status: Lead['status']) => Promise<boolean>;
+  onUpdateStatus?: (leadId: string, status: Lead["status"]) => Promise<boolean>;
 }
 
 const STATUS_CONFIG: Record<
-  Lead['status'],
+  Lead["status"],
   { label: string; color: string; bgColor: string }
 > = {
-  new: { label: 'New', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  new: { label: "New", color: "text-blue-700", bgColor: "bg-blue-100" },
   contacted: {
-    label: 'Contacted',
-    color: 'text-yellow-700',
-    bgColor: 'bg-yellow-100',
+    label: "Contacted",
+    color: "text-yellow-700",
+    bgColor: "bg-yellow-100",
   },
   qualified: {
-    label: 'Qualified',
-    color: 'text-green-700',
-    bgColor: 'bg-green-100',
+    label: "Qualified",
+    color: "text-green-700",
+    bgColor: "bg-green-100",
   },
   quoted: {
-    label: 'Quoted',
-    color: 'text-purple-700',
-    bgColor: 'bg-purple-100',
+    label: "Quoted",
+    color: "text-purple-700",
+    bgColor: "bg-purple-100",
   },
   negotiating: {
-    label: 'Negotiating',
-    color: 'text-orange-700',
-    bgColor: 'bg-orange-100',
+    label: "Negotiating",
+    color: "text-orange-700",
+    bgColor: "bg-orange-100",
   },
   closed_won: {
-    label: 'Won',
-    color: 'text-emerald-700',
-    bgColor: 'bg-emerald-100',
+    label: "Won",
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-100",
   },
   closed_lost: {
-    label: 'Lost',
-    color: 'text-red-700',
-    bgColor: 'bg-red-100',
+    label: "Lost",
+    color: "text-red-700",
+    bgColor: "bg-red-100",
   },
 };
 
 const PRIORITY_CONFIG: Record<
-  NonNullable<Lead['priority']>,
+  NonNullable<Lead["priority"]>,
   { label: string; color: string }
 > = {
-  low: { label: 'Low', color: 'text-gray-600' },
-  medium: { label: 'Medium', color: 'text-blue-600' },
-  high: { label: 'High', color: 'text-orange-600' },
-  urgent: { label: 'Urgent', color: 'text-red-600' },
+  low: { label: "Low", color: "text-gray-600" },
+  medium: { label: "Medium", color: "text-blue-600" },
+  high: { label: "High", color: "text-orange-600" },
+  urgent: { label: "Urgent", color: "text-red-600" },
 };
 
 const LeadDetailModal = ({
@@ -139,22 +139,21 @@ const LeadDetailModal = ({
   onUpdateStatus,
 }: LeadDetailModalProps) => {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notes, setNotes] = useState(lead?.notes || '');
+  const [notes, setNotes] = useState(lead?.notes || "");
   const [isSaving, setIsSaving] = useState(false);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
-  const [quoteAmount, setQuoteAmount] = useState('');
-  const [quoteMessage, setQuoteMessage] = useState('');
-  const [followUpDate, setFollowUpDate] = useState('');
+  const [quoteAmount, setQuoteAmount] = useState("");
+  const [quoteMessage, setQuoteMessage] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
 
-  // keep notes in sync when lead changes
   useEffect(() => {
-    setNotes(lead?.notes || '');
+    setNotes(lead?.notes || "");
     setShowQuoteForm(false);
     setShowFollowUpForm(false);
-    setQuoteAmount('');
-    setQuoteMessage('');
-    setFollowUpDate('');
+    setQuoteAmount("");
+    setQuoteMessage("");
+    setFollowUpDate("");
     setIsEditingNotes(false);
     setIsSaving(false);
   }, [lead]);
@@ -163,40 +162,39 @@ const LeadDetailModal = ({
 
   const statusConfig = STATUS_CONFIG[lead.status];
   const priorityConfig =
-    PRIORITY_CONFIG[lead.priority || 'medium'] || PRIORITY_CONFIG.medium;
+    PRIORITY_CONFIG[lead.priority || "medium"] || PRIORITY_CONFIG.medium;
 
   const handleWhatsApp = () => {
-    if (lead.buyer_phone) {
-      const phone = lead.buyer_phone.replace(/[^0-9]/g, '');
-      const message = encodeURIComponent(
-        `Hello ${
-          lead.buyer_name || 'there'
-        },\n\nI'm reaching out regarding your interest in ${
-          lead.item_name || 'our product'
-        }.\n\nHow can I help you today?`,
-      );
-      window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-    }
+    if (!lead.buyer_phone) return;
+    const phone = lead.buyer_phone.replace(/[^0-9]/g, "");
+    const message = encodeURIComponent(
+      `Hello ${
+        lead.buyer_name || "there"
+      },\n\nI'm reaching out regarding your interest in ${
+        lead.item_name || "our product"
+      }.\n\nHow can I help you today?`
+    );
+    window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
   };
 
   const handleEmail = () => {
-    if (lead.buyer_email) {
-      const subject = encodeURIComponent(
-        `Regarding your inquiry – ${lead.item_name || 'Product'}`,
-      );
-      const body = encodeURIComponent(
-        `Dear ${lead.buyer_name || 'Customer'},\n\nThank you for your interest in ${
-          lead.item_name || 'our product'
-        }.\n\nPlease let me know how I can assist you further.\n\nBest regards,\n`,
-      );
-      window.open(`mailto:${lead.buyer_email}?subject=${subject}&body=${body}`);
-    }
+    if (!lead.buyer_email) return;
+    const subject = encodeURIComponent(
+      `Regarding your inquiry – ${lead.item_name || "Product"}`
+    );
+    const body = encodeURIComponent(
+      `Dear ${
+        lead.buyer_name || "Customer"
+      },\n\nThank you for your interest in ${
+        lead.item_name || "our product"
+      }.\n\nPlease let me know how I can assist you further.\n\nBest regards,\n`
+    );
+    window.open(`mailto:${lead.buyer_email}?subject=${subject}&body=${body}`);
   };
 
   const handleCall = () => {
-    if (lead.buyer_phone) {
-      window.open(`tel:${lead.buyer_phone}`);
-    }
+    if (!lead.buyer_phone) return;
+    window.open(`tel:${lead.buyer_phone}`);
   };
 
   const handleSaveNotes = async () => {
@@ -214,7 +212,7 @@ const LeadDetailModal = ({
     setIsSaving(false);
     if (success) {
       setShowFollowUpForm(false);
-      setFollowUpDate('');
+      setFollowUpDate("");
     }
   };
 
@@ -224,35 +222,34 @@ const LeadDetailModal = ({
     await onSendQuotation(lead.id, parseFloat(quoteAmount), quoteMessage);
     setIsSaving(false);
     setShowQuoteForm(false);
-    setQuoteAmount('');
-    setQuoteMessage('');
+    setQuoteAmount("");
+    setQuoteMessage("");
   };
 
   const formatDateTime = (dateString?: string) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    if (!dateString) return "Not set";
+    return new Date(dateString).toLocaleString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border bg-card">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
                 <User className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-semibold">
-                    {lead.buyer_name || 'Anonymous lead'}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-lg font-semibold">
+                    {lead.buyer_name || "Anonymous lead"}
                   </span>
                   {lead.buyer_company && (
                     <span className="text-xs text-muted-foreground">
@@ -260,21 +257,21 @@ const LeadDetailModal = ({
                     </span>
                   )}
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <Badge
-                    className={`${statusConfig.bgColor} ${statusConfig.color} border-0 text-xs`}
+                    className={`${statusConfig.bgColor} ${statusConfig.color} border-0 text-[11px]`}
                   >
                     {statusConfig.label}
                   </Badge>
                   <Badge
                     variant="outline"
-                    className={`text-xs ${priorityConfig.color}`}
+                    className={`border-0 text-[11px] ${priorityConfig.color}`}
                   >
                     <Star className="mr-1 h-3 w-3" />
                     {priorityConfig.label} priority
                   </Badge>
                   {lead.item_name && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground">
                       • {lead.item_name}
                     </span>
                   )}
@@ -286,11 +283,9 @@ const LeadDetailModal = ({
 
         <Separator className="my-3" />
 
-        {/* 2-column layout */}
-        <div className="grid gap-4 md:grid-cols-[minmax(0,2.1fr)_minmax(0,1.4fr)]">
-          {/* LEFT COLUMN: profile, product, timeline */}
+        <div className="grid gap-4 md:grid-cols-[minmax(0,2.1fr)_minmax(0,1.5fr)]">
+          {/* LEFT */}
           <div className="space-y-4">
-            {/* Contact information */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -306,7 +301,7 @@ const LeadDetailModal = ({
                       Full name
                     </p>
                     <p className="font-medium">
-                      {lead.buyer_name || 'Not provided'}
+                      {lead.buyer_name || "Not provided"}
                     </p>
                   </div>
                 </div>
@@ -317,7 +312,7 @@ const LeadDetailModal = ({
                       Company
                     </p>
                     <p className="font-medium">
-                      {lead.buyer_company || 'Not provided'}
+                      {lead.buyer_company || "Not provided"}
                     </p>
                   </div>
                 </div>
@@ -326,7 +321,7 @@ const LeadDetailModal = ({
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] text-muted-foreground">Email</p>
                     <p className="truncate font-medium">
-                      {lead.buyer_email || 'Not provided'}
+                      {lead.buyer_email || "Not provided"}
                     </p>
                   </div>
                 </div>
@@ -337,7 +332,7 @@ const LeadDetailModal = ({
                       Mobile number
                     </p>
                     <p className="font-medium">
-                      {lead.buyer_phone || 'Not provided'}
+                      {lead.buyer_phone || "Not provided"}
                     </p>
                   </div>
                 </div>
@@ -348,14 +343,13 @@ const LeadDetailModal = ({
                       Location
                     </p>
                     <p className="font-medium">
-                      {lead.buyer_location || 'Not provided'}
+                      {lead.buyer_location || "Not provided"}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Product & deal info */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -371,7 +365,7 @@ const LeadDetailModal = ({
                       Item type
                     </p>
                     <p className="font-medium capitalize">
-                      {lead.item_type?.replace('_', ' ') || 'Not specified'}
+                      {lead.item_type?.replace("_", " ") || "Not specified"}
                     </p>
                   </div>
                 </div>
@@ -382,7 +376,7 @@ const LeadDetailModal = ({
                       Item name
                     </p>
                     <p className="font-medium">
-                      {lead.item_name || 'Not specified'}
+                      {lead.item_name || "Not specified"}
                     </p>
                   </div>
                 </div>
@@ -406,14 +400,13 @@ const LeadDetailModal = ({
                       Source
                     </p>
                     <p className="font-medium capitalize">
-                      {lead.source || 'Direct'}
+                      {lead.source || "Direct"}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Timeline */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -459,9 +452,8 @@ const LeadDetailModal = ({
             </Card>
           </div>
 
-          {/* RIGHT COLUMN: actions, notes, status */}
+          {/* RIGHT */}
           <div className="space-y-4">
-            {/* Quick actions */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -603,7 +595,6 @@ const LeadDetailModal = ({
               </CardContent>
             </Card>
 
-            {/* Notes */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
@@ -643,7 +634,7 @@ const LeadDetailModal = ({
                         className="h-7 px-2 text-xs"
                         onClick={() => {
                           setIsEditingNotes(false);
-                          setNotes(lead.notes || '');
+                          setNotes(lead.notes || "");
                         }}
                       >
                         <X className="h-3 w-3" />
@@ -663,13 +654,12 @@ const LeadDetailModal = ({
                 ) : (
                   <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                     {lead.notes ||
-                      'No notes added yet. Use notes to capture qualification details, objections, and key decision makers.'}
+                      "No notes added yet. Use notes to capture qualification details, objections, and key decision makers."}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Status update */}
             {onUpdateStatus && (
               <Card>
                 <CardHeader className="pb-2">
@@ -680,19 +670,19 @@ const LeadDetailModal = ({
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {(
-                      Object.keys(STATUS_CONFIG) as Array<Lead['status']>
-                    ).map((statusKey) => {
+                    {(Object.keys(
+                      STATUS_CONFIG
+                    ) as Array<Lead["status"]>).map((statusKey) => {
                       const cfg = STATUS_CONFIG[statusKey];
                       const active = lead.status === statusKey;
                       return (
                         <Button
                           key={statusKey}
                           size="sm"
-                          variant={active ? 'default' : 'outline'}
+                          variant={active ? "default" : "outline"}
                           className={
                             active
-                              ? 'h-7 text-xs'
+                              ? "h-7 text-xs"
                               : `h-7 border-0 text-xs ${cfg.color} ${cfg.bgColor}`
                           }
                           onClick={() => onUpdateStatus(lead.id, statusKey)}
