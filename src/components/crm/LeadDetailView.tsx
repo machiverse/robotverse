@@ -20,7 +20,6 @@ import {
   Send,
   Edit2,
   Save,
-  Target,
   DollarSign,
   Activity,
   CheckCircle,
@@ -61,20 +60,35 @@ interface LeadDetailViewProps {
 }
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string; icon: string }> = {
-  new: { label: "New", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/50", icon: "●" },
-  contacted: { label: "Contacted", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/50", icon: "●" },
-  quoted: { label: "Quoted", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/50", icon: "●" },
+  new: { label: "New",          color: "text-blue-600 dark:text-blue-400",    bg: "bg-blue-50 dark:bg-blue-950/50",       icon: "●" },
+  contacted: { label: "Contacted",  color: "text-amber-600 dark:text-amber-400",  bg: "bg-amber-50 dark:bg-amber-950/50",     icon: "●" },
+  quoted: { label: "Quoted",       color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/50",   icon: "●" },
   negotiating: { label: "Negotiating", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-950/50", icon: "●" },
-  closed_won: { label: "Won", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/50", icon: "✓" },
-  closed_lost: { label: "Lost", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/50", icon: "✕" },
+  closed_won: { label: "Won",          color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/50", icon: "✓" },
+  closed_lost: { label: "Lost",        color: "text-red-600 dark:text-red-400",   bg: "bg-red-50 dark:bg-red-950/50",        icon: "✕" },
 };
 
 const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string; bg: string }> = {
-  low: { label: "Low", color: "text-slate-600 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
-  medium: { label: "Medium", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/40" },
-  high: { label: "High", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/40" },
-  urgent: { label: "Urgent", color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/40" },
+  low: { label: "Low",     color: "text-slate-600 dark:text-slate-400",   bg: "bg-slate-100 dark:bg-slate-800" },
+  medium: { label: "Medium",  color: "text-blue-600 dark:text-blue-400",    bg: "bg-blue-100 dark:bg-blue-900/40" },
+  high: { label: "High",    color: "text-orange-600 dark:text-orange-400",  bg: "bg-orange-100 dark:bg-orange-900/40" },
+  urgent: { label: "Urgent",  color: "text-red-600 dark:text-red-400",      bg: "bg-red-100 dark:bg-red-900/40" },
 };
+
+const STATUS_OPTIONS = Object.entries(STATUS_CONFIG).map(([value, cfg]) => ({
+  value: value as Lead["status"],
+  label: cfg.label,
+  color: cfg.color,
+  bg: cfg.bg,
+  icon: cfg.icon,
+}));
+
+const PRIORITY_OPTIONS = Object.entries(PRIORITY_CONFIG).map(([value, cfg]) => ({
+  value: value as Lead["priority"],
+  label: cfg.label,
+  color: cfg.color,
+  bg: cfg.bg,
+}));
 
 const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   call: <Phone className="h-3.5 w-3.5" />,
@@ -221,7 +235,7 @@ const LeadDetailView = ({
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md">
       <div className="flex h-full flex-col">
-        {/* Top bar - Sticky header */}
+        {/* Sticky header */}
         <div className="sticky top-0 z-10 border-b bg-card shadow-sm">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
             <div className="flex items-center gap-3">
@@ -250,7 +264,6 @@ const LeadDetailView = ({
               </div>
             </div>
 
-            {/* Action buttons - always visible */}
             <div className="hidden items-center gap-2 md:flex">
               <Badge variant="outline" className={`${priorityConfig.bg} ${priorityConfig.color} border-0`}>
                 <Star className="mr-1 h-3 w-3" />
@@ -292,12 +305,11 @@ const LeadDetailView = ({
           </div>
         </div>
 
-        {/* Main 3‑column layout */}
+        {/* 3-column layout */}
         <ScrollArea className="flex-1">
           <div className="mx-auto grid h-full max-w-6xl gap-4 p-4 md:grid-cols-[260px_minmax(0,1.4fr)_300px]">
-            {/* LEFT: key info */}
+            {/* LEFT: contact + meta */}
             <div className="space-y-3">
-              {/* Contact */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -361,7 +373,6 @@ const LeadDetailView = ({
                 </CardContent>
               </Card>
 
-              {/* Lead meta */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -369,36 +380,99 @@ const LeadDetailView = ({
                     Lead info
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
+                <CardContent className="space-y-3 text-sm">
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                       Source
                     </p>
                     <p>{formatSource(lead.source)}</p>
                   </div>
+
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Status
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                      Deal stage
                     </p>
-                    <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>
-                      {statusConfig.label}
-                    </Badge>
+                    <Select
+                      value={lead.status}
+                      onValueChange={(value) => onStatusChange(lead.id, value as Lead["status"])}
+                    >
+                      <SelectTrigger className="w-full justify-between rounded-md border bg-background px-3 py-2 text-sm">
+                        <SelectValue>
+                          {(() => {
+                            const current = STATUS_OPTIONS.find((s) => s.value === lead.status);
+                            if (!current) return null;
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs">{current.icon}</span>
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${current.bg} ${current.color}`}
+                                >
+                                  {current.label}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 overflow-y-auto">
+                        {STATUS_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span>{option.icon}</span>
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
                       Priority
                     </p>
-                    <Badge variant="outline" className={priorityConfig.color}>
-                      <Star className="mr-1 h-3 w-3" />
-                      {priorityConfig.label}
-                    </Badge>
+                    <Select
+                      value={lead.priority}
+                      // wire to API when ready:
+                      // onValueChange={(value) => onUpdatePriority(lead.id, value as Lead["priority"])}
+                      disabled
+                    >
+                      <SelectTrigger className="h-7 w-[160px] justify-between rounded-full border bg-background px-2 py-0 text-[11px]">
+                        <SelectValue>
+                          {(() => {
+                            const current = PRIORITY_OPTIONS.find((p) => p.value === lead.priority);
+                            if (!current) return null;
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${current.bg} ${current.color}`}
+                              >
+                                <Star className="h-3 w-3" />
+                                {current.label}
+                              </span>
+                            );
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITY_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-1 text-xs">
+                              <Star className="h-3 w-3" />
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                       Created
                     </p>
                     <p>{format(new Date(lead.created_at), "MMM d, yyyy 'at' h:mm a")}</p>
                   </div>
+
                   {lead.next_follow_up && (
                     <div className="rounded-md bg-orange-50 p-2 text-xs text-orange-700 dark:bg-orange-900/20 dark:text-orange-300">
                       <div className="flex items-center gap-2">
@@ -412,7 +486,6 @@ const LeadDetailView = ({
                 </CardContent>
               </Card>
 
-              {/* Mobile quick actions */}
               {lead.is_unlocked && (
                 <Card className="md:hidden">
                   <CardHeader className="pb-3">
@@ -445,40 +518,8 @@ const LeadDetailView = ({
               )}
             </div>
 
-            {/* CENTER: activity + notes */}
+            {/* CENTER: notes + activity */}
             <div className="space-y-3">
-              {/* Status + quick actions */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between gap-2 text-sm font-semibold">
-                    <span className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                      Pipeline status
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-                      <Button
-                        key={status}
-                        size="sm"
-                        variant={lead.status === status ? "default" : "outline"}
-                        className={
-                          lead.status === status
-                            ? ""
-                            : `${config.bg} ${config.color} border-0 hover:opacity-80`
-                        }
-                        onClick={() => onStatusChange(lead.id, status as Lead["status"])}
-                      >
-                        {config.label}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes */}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2">
@@ -513,7 +554,6 @@ const LeadDetailView = ({
                 </CardContent>
               </Card>
 
-              {/* Activity timeline */}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2">
@@ -622,9 +662,8 @@ const LeadDetailView = ({
               </Card>
             </div>
 
-            {/* RIGHT: product + deal & follow‑up */}
+            {/* RIGHT: product + actions + quotation summary */}
             <div className="space-y-3">
-              {/* Product */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -686,7 +725,6 @@ const LeadDetailView = ({
                 </CardContent>
               </Card>
 
-              {/* Quick actions */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -722,7 +760,6 @@ const LeadDetailView = ({
                 </CardContent>
               </Card>
 
-              {/* Quotation summary (same data as modal for quick view) */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
