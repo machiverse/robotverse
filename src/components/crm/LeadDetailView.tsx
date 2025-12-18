@@ -25,6 +25,7 @@ import {
   Activity,
   CheckCircle,
   Star,
+  Lock,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -59,30 +60,30 @@ interface LeadDetailViewProps {
   }) => Promise<void>;
 }
 
-const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
-  new: { label: "New", color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-900/30" },
-  contacted: { label: "Contacted", color: "text-yellow-700", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
-  quoted: { label: "Quoted", color: "text-purple-700", bg: "bg-purple-100 dark:bg-purple-900/30" },
-  negotiating: { label: "Negotiating", color: "text-orange-700", bg: "bg-orange-100 dark:bg-orange-900/30" },
-  closed_won: { label: "Won", color: "text-green-700", bg: "bg-green-100 dark:bg-green-900/30" },
-  closed_lost: { label: "Lost", color: "text-red-700", bg: "bg-red-100 dark:bg-red-900/30" },
+const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string; icon: string }> = {
+  new: { label: "New", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/50", icon: "●" },
+  contacted: { label: "Contacted", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/50", icon: "●" },
+  quoted: { label: "Quoted", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/50", icon: "●" },
+  negotiating: { label: "Negotiating", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-950/50", icon: "●" },
+  closed_won: { label: "Won", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/50", icon: "✓" },
+  closed_lost: { label: "Lost", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/50", icon: "✕" },
 };
 
-const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string }> = {
-  low: { label: "Low", color: "text-gray-600" },
-  medium: { label: "Medium", color: "text-blue-600" },
-  high: { label: "High", color: "text-orange-600" },
-  urgent: { label: "Urgent", color: "text-red-600" },
+const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string; bg: string }> = {
+  low: { label: "Low", color: "text-slate-600 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
+  medium: { label: "Medium", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/40" },
+  high: { label: "High", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/40" },
+  urgent: { label: "Urgent", color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/40" },
 };
 
 const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
-  call: <Phone className="h-4 w-4" />,
-  email: <Mail className="h-4 w-4" />,
-  meeting: <Calendar className="h-4 w-4" />,
-  note: <FileText className="h-4 w-4" />,
-  follow_up: <Clock className="h-4 w-4" />,
-  invoice_sent: <FileSpreadsheet className="h-4 w-4" />,
-  status_change: <ChevronDown className="h-4 w-4" />,
+  call: <Phone className="h-3.5 w-3.5" />,
+  email: <Mail className="h-3.5 w-3.5" />,
+  meeting: <Calendar className="h-3.5 w-3.5" />,
+  note: <FileText className="h-3.5 w-3.5" />,
+  follow_up: <Clock className="h-3.5 w-3.5" />,
+  invoice_sent: <FileSpreadsheet className="h-3.5 w-3.5" />,
+  status_change: <ChevronDown className="h-3.5 w-3.5" />,
 };
 
 const LeadDetailView = ({
@@ -218,45 +219,48 @@ const LeadDetailView = ({
   const total = subtotal + gst;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md">
       <div className="flex h-full flex-col">
-        {/* Top bar */}
-        <div className="border-b bg-card/95 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+        {/* Top bar - Sticky header */}
+        <div className="sticky top-0 z-10 border-b bg-card shadow-sm">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
+              <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 hover:bg-muted">
                 <X className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 ring-2 ring-primary/20">
                   <User className="h-5 w-5 text-primary" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h1 className="truncate text-base font-semibold">
+                    <h1 className="truncate text-lg font-semibold tracking-tight">
                       {lead.is_unlocked ? lead.buyer_name || "Unknown" : "XXXXX"}
                     </h1>
-                    <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>
+                    <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0 font-medium`}>
+                      <span className="mr-1">{statusConfig.icon}</span>
                       {statusConfig.label}
                     </Badge>
                   </div>
-                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Building2 className="h-3 w-3" />
-                    {lead.is_unlocked ? lead.buyer_company || "Not provided" : "XXXXX"}
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Building2 className="h-3.5 w-3.5" />
+                    {lead.is_unlocked ? lead.buyer_company || "No company" : "XXXXX"}
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Action buttons - always visible */}
             <div className="hidden items-center gap-2 md:flex">
-              <Badge variant="outline" className={priorityConfig.color}>
+              <Badge variant="outline" className={`${priorityConfig.bg} ${priorityConfig.color} border-0`}>
                 <Star className="mr-1 h-3 w-3" />
                 {priorityConfig.label}
               </Badge>
-              {lead.is_unlocked && (
+              <div className="mx-2 h-6 w-px bg-border" />
+              {lead.is_unlocked ? (
                 <>
-                  <Button size="sm" variant="outline" onClick={handleCall} disabled={!lead.buyer_phone}>
-                    <Phone className="mr-1.5 h-4 w-4" />
+                  <Button size="sm" variant="outline" onClick={handleCall} disabled={!lead.buyer_phone} className="gap-1.5">
+                    <Phone className="h-4 w-4" />
                     Call
                   </Button>
                   <Button
@@ -264,20 +268,25 @@ const LeadDetailView = ({
                     variant="outline"
                     onClick={handleWhatsApp}
                     disabled={!lead.buyer_phone}
-                    className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900 dark:bg-green-900/30"
+                    className="gap-1.5 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/50 dark:text-green-400"
                   >
-                    <FaWhatsapp className="mr-1.5 h-4 w-4" />
+                    <FaWhatsapp className="h-4 w-4" />
                     WhatsApp
                   </Button>
-                  <Button size="sm" variant="outline" onClick={handleEmail} disabled={!lead.buyer_email}>
-                    <Mail className="mr-1.5 h-4 w-4" />
+                  <Button size="sm" variant="outline" onClick={handleEmail} disabled={!lead.buyer_email} className="gap-1.5">
+                    <Mail className="h-4 w-4" />
                     Email
                   </Button>
-                  <Button size="sm" variant="default" onClick={() => setShowQuotationModal(true)}>
-                    <FileSpreadsheet className="mr-1.5 h-4 w-4" />
-                    Create quotation
+                  <Button size="sm" variant="default" onClick={() => setShowQuotationModal(true)} className="gap-1.5 shadow-sm">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Create Quotation
                   </Button>
                 </>
+              ) : (
+                <Badge variant="secondary" className="gap-1.5 py-1.5">
+                  <Lock className="h-3.5 w-3.5" />
+                  Unlock to contact
+                </Badge>
               )}
             </div>
           </div>
