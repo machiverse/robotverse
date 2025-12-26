@@ -1,22 +1,45 @@
-import { useState, useEffect } from "react";
+// src/pages/Robots.tsx
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye, Share2, MessageCircle, Brain, MapPin, Building, CheckCircle, Heart } from "lucide-react";
-import { ResponsiveImage } from "@/components/ui/responsive-image";
+import {
+  Loader2,
+  Bot,
+  Grid,
+  List,
+  Search,
+  TrendingUp,
+  Eye,
+  Share2,
+  MessageCircle,
+  Brain,
+  MapPin,
+  Building,
+  CheckCircle,
+  Heart,
+} from "lucide-react";
+import ResponsiveImage from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import { ChatButton } from "@/components/chat/ChatButton";
+import ChatButton from "@/components/chat/ChatButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SEOHead } from "@/components/SEOHead";
 import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seoSchemas";
@@ -28,7 +51,7 @@ const Robots = () => {
   const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
 
-  // States for filtering & UI
+  // Filter UI state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
@@ -36,58 +59,68 @@ const Robots = () => {
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedRobotType, setSelectedRobotType] = useState("all");
   const [selectedCompany, setSelectedCompany] = useState("all");
-  const [sortBy, setSortBy] = useState("views"); // Default sort by view count
-  const [groupBy, setGroupBy] = useState<"company" | "category" | "all">("all");
+  const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
+  const [groupBy, setGroupBy] = useState<"all" | "category" | "company">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Watchlist states
+  // Watchlist
   const [watchlistItems, setWatchlistItems] = useState<Set<string>>(new Set());
   const [addingToWatchlist, setAddingToWatchlist] = useState<Set<string>>(new Set());
 
   // Data states
   const [robots, setRobots] = useState<any[]>([]);
   const [robotsWithViews, setRobotsWithViews] = useState<any[]>([]);
-  const [sellerGroups, setSellerGroups] = useState<{ [key: string]: any[] }>({});
-  const [sellerProfiles, setSellerProfiles] = useState<{ [key: string]: any }>({});
+  const [sellerGroups, setSellerGroups] = useState<Record<string, any[]>>({});
+  const [sellerProfiles, setSellerProfiles] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // AI Analysis states
+
+  // AI Analysis dialog
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
-  const [aiDialogData, setAiDialogData] = useState<any>(null);
-  
+  const [aiDialogData, setAiDialogData] = useState<any | null>(null);
 
-  // Dropdown options dynamically extracted from robots data
-  const [categories, setCategories] = useState([{ value: "all", label: "All Categories" }]);
-  const [locations, setLocations] = useState([{ value: "all", label: "All Locations" }]);
-  const [conditions, setConditions] = useState([{ value: "all", label: "All Conditions" }]);
-  const [companies, setCompanies] = useState([{ value: "all", label: "All Companies" }]);
-  const [priceRanges] = useState([
-    { value: "all", label: "All Prices" },
-    { value: "under-50k", label: "Under ₹50,000" },
-    { value: "50k-200k", label: "₹50,000 - ₹2,00,000" },
-    { value: "200k-500k", label: "₹2,00,000 - ₹5,00,000" },
-    { value: "500k-1m", label: "₹5,00,000 - ₹10,00,000" },
-    { value: "over-1m", label: "Over ₹10,00,000" }
+  // Dropdown options
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([
+    { value: "all", label: "All Categories" },
   ]);
-  const [robotTypes, setRobotTypes] = useState([{ value: "all", label: "All Types" }]);
+  const [locations, setLocations] = useState<{ value: string; label: string }[]>([
+    { value: "all", label: "All Locations" },
+  ]);
+  const [conditions, setConditions] = useState<{ value: string; label: string }[]>([
+    { value: "all", label: "All Conditions" },
+  ]);
+  const [companies, setCompanies] = useState<{ value: string; label: string }[]>([
+    { value: "all", label: "All Companies" },
+  ]);
+  const [robotTypes, setRobotTypes] = useState<{ value: string; label: string }[]>([
+    { value: "all", label: "All Types" },
+  ]);
 
-  // Check URL params and set filters accordingly
+  const priceRanges = [
+    { value: "all", label: "All Prices" },
+    { value: "under-50k", label: "Under 50,000" },
+    { value: "50k-200k", label: "50,000 - 2,00,000" },
+    { value: "200k-500k", label: "2,00,000 - 5,00,000" },
+    { value: "500k-1m", label: "5,00,000 - 10,00,000" },
+    { value: "over-1m", label: "Over 10,00,000" },
+  ];
+
+  // Read filters from URL (category, groupBy)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const categoryParam = urlParams.get('category');
-    const groupByParam = urlParams.get('groupBy');
-    
+    const categoryParam = urlParams.get("category");
+    const groupByParam = urlParams.get("groupBy");
+
     if (categoryParam) {
-      setSelectedCategory(categoryParam.toLowerCase().replace(/\s+/g, "-"));
+      setSelectedCategory(categoryParam.toLowerCase().replace(/ /g, "-"));
     }
     if (groupByParam) {
       setGroupBy(groupByParam as "company" | "category" | "all");
     }
   }, []);
 
-  // Fetch robots + filters on mount
+  // Fetch robots and filters
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -95,73 +128,67 @@ const Robots = () => {
 
         const { data, error } = await supabase
           .from("robots")
-          .select(
-            `
-            *,
-            profiles!robots_seller_id_fkey (
-              user_id,
-              full_name,
-              company_name,
-              phone,
-              mobile_number,
-              email
-            )
-          `
-          )
+          .select("*, profiles!robots_seller_id_fkey(user_id, fullname, companyname, phone, mobilenumber, email)")
           .eq("availability", "available")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-
         setRobots(data || []);
 
-        // Fetch view counts for each robot and add to data
+        // View counts
         const robotsWithViewCounts = await Promise.all(
-          (data || []).map(async (robot) => {
-            const viewCount = await getItemViewCount('robots', robot.id);
+          (data || []).map(async (robot: any) => {
+            const viewCount = await getItemViewCount("robots", robot.id);
             return { ...robot, viewCount };
-          })
+          }),
         );
         setRobotsWithViews(robotsWithViewCounts);
 
-        // Group robots by seller
-        const grouped: { [id: string]: any[] } = {};
-        const profiles: { [id: string]: any } = {};
+        // Group by seller
+        const grouped: Record<string, any[]> = {};
+        const profiles: Record<string, any> = {};
+
         robotsWithViewCounts.forEach((robot) => {
           if (!grouped[robot.seller_id]) grouped[robot.seller_id] = [];
           grouped[robot.seller_id].push(robot);
-          if (robot.profiles && !profiles[robot.seller_id]) profiles[robot.seller_id] = robot.profiles;
+
+          if (robot.profiles && !profiles[robot.seller_id]) {
+            profiles[robot.seller_id] = robot.profiles;
+          }
         });
+
         setSellerGroups(grouped);
         setSellerProfiles(profiles);
 
-        // Fetch user's watchlist items if logged in
+        // Watchlist for user
         if (user) {
           const { data: watchlistData } = await supabase
-            .from('watchlists')
-            .select('item_id')
-            .eq('user_id', user.id)
-            .eq('item_type', 'robot');
-          
+            .from("watchlists")
+            .select("itemid")
+            .eq("userid", user.id)
+            .eq("itemtype", "robot");
+
           if (watchlistData) {
-            setWatchlistItems(new Set(watchlistData.map(item => item.item_id)));
+            setWatchlistItems(new Set(watchlistData.map((item: any) => item.itemid)));
           }
         }
 
-        // Extract unique filter options dynamically
+        // Extract filter options
         const uniqueCategories = new Set<string>();
         const uniqueLocations = new Set<string>();
         const uniqueConditions = new Set<string>();
         const uniqueRobotTypes = new Set<string>();
         const uniqueCompanies = new Set<string>();
 
-        data?.forEach((robot) => {
-          if (robot.robot_type) uniqueRobotTypes.add(robot.robot_type);
-          if (robot.robot_type) uniqueCategories.add(robot.robot_type);
-          if (robot.category_tags) robot.category_tags.forEach((tag: string) => tag && uniqueCategories.add(tag.trim()));
+        (data || []).forEach((robot: any) => {
+          if (robot.robottype) uniqueRobotTypes.add(robot.robottype);
+          if (robot.robottype) uniqueCategories.add(robot.robottype);
+          if (robot.categorytags) {
+            robot.categorytags.forEach((tag: string) => uniqueCategories.add(tag.trim()));
+          }
           if (robot.location) uniqueLocations.add(robot.location.trim());
           if (robot.condition) uniqueConditions.add(robot.condition.trim());
-          if (robot.profiles?.company_name) uniqueCompanies.add(robot.profiles.company_name.trim());
+          if (robot.profiles?.companyname) uniqueCompanies.add(robot.profiles.companyname.trim());
         });
 
         setCategories([
@@ -169,7 +196,7 @@ const Robots = () => {
           ...Array.from(uniqueCategories)
             .sort()
             .map((cat) => ({
-              value: cat.toLowerCase().replace(/\s+/g, "-"),
+              value: cat.toLowerCase().replace(/ /g, "-"),
               label: cat,
             })),
         ]);
@@ -179,7 +206,7 @@ const Robots = () => {
           ...Array.from(uniqueLocations)
             .sort()
             .map((loc) => ({
-              value: loc.toLowerCase().replace(/\s+/g, "-"),
+              value: loc.toLowerCase().replace(/ /g, "-"),
               label: loc,
             })),
         ]);
@@ -189,7 +216,7 @@ const Robots = () => {
           ...Array.from(uniqueConditions)
             .sort()
             .map((cond) => ({
-              value: cond.toLowerCase().replace(/\s+/g, "-"),
+              value: cond.toLowerCase().replace(/ /g, "-"),
               label: cond,
             })),
         ]);
@@ -199,7 +226,7 @@ const Robots = () => {
           ...Array.from(uniqueRobotTypes)
             .sort()
             .map((type) => ({
-              value: type.toLowerCase().replace(/\s+/g, "-"),
+              value: type.toLowerCase().replace(/ /g, "-"),
               label: type,
             })),
         ]);
@@ -209,13 +236,12 @@ const Robots = () => {
           ...Array.from(uniqueCompanies)
             .sort()
             .map((company) => ({
-              value: company.toLowerCase().replace(/\s+/g, "-"),
+              value: company.toLowerCase().replace(/ /g, "-"),
               label: company,
             })),
         ]);
-      } catch (err) {
+      } catch (err: any) {
         setError(err instanceof Error ? err.message : "Failed to load robots");
-        setRobots([]);
       } finally {
         setLoading(false);
       }
@@ -224,60 +250,55 @@ const Robots = () => {
     fetchData();
   }, [getItemViewCount, user]);
 
-  // Filter and group robots according to selected filters
+  const getLabelFromValue = (arr: { value: string; label: string }[], value: string): string => {
+    return arr.find((i) => i.value === value)?.label?.toLowerCase() || value;
+  };
+
   const getFilteredGroups = () => {
     let filteredRobots = [...robotsWithViews];
 
-    // Helper to get label from value
-    const getLabelFromValue = (arr: { value: string; label: string }[], val: string) => arr.find((i) => i.value === val)?.label || "";
-
-    // Apply Text Search (name, model, robot_type, category_tags)
+    // Search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      filteredRobots = filteredRobots.filter(
-        (r) =>
+      filteredRobots = filteredRobots.filter((r) => {
+        return (
           r.name?.toLowerCase().includes(q) ||
           r.model?.toLowerCase().includes(q) ||
-          r.robot_type?.toLowerCase().includes(q) ||
-          r.category_tags?.some((tag: string) => tag.toLowerCase().includes(q))
-      );
+          r.robottype?.toLowerCase().includes(q) ||
+          r.categorytags?.some((tag: string) => tag.toLowerCase().includes(q))
+        );
+      });
     }
 
-    // Filter by category (robot_type or category_tags)
+    // Category
     if (selectedCategory !== "all") {
-      const catLabel = getLabelFromValue(categories, selectedCategory).toLowerCase();
-      filteredRobots = filteredRobots.filter(
-        (r) =>
-          r.robot_type?.toLowerCase() === catLabel ||
-          r.category_tags?.some((tag: string) => tag.toLowerCase() === catLabel)
-      );
+      const catLabel = getLabelFromValue(categories, selectedCategory);
+      filteredRobots = filteredRobots.filter((r) => {
+        const typeMatch = r.robottype?.toLowerCase() === catLabel;
+        const tagMatch = r.categorytags?.some((tag: string) => tag.toLowerCase() === catLabel);
+        return typeMatch || tagMatch;
+      });
     }
 
-    // Filter by location
+    // Location
     if (selectedLocation !== "all") {
-      const locLabel = getLabelFromValue(locations, selectedLocation).toLowerCase();
-      filteredRobots = filteredRobots.filter(
-        (r) => r.location?.toLowerCase() === locLabel
-      );
+      const locLabel = getLabelFromValue(locations, selectedLocation);
+      filteredRobots = filteredRobots.filter((r) => r.location?.toLowerCase() === locLabel);
     }
 
-    // Filter by condition
+    // Condition
     if (selectedCondition !== "all") {
-      const condLabel = getLabelFromValue(conditions, selectedCondition).toLowerCase();
-      filteredRobots = filteredRobots.filter(
-        (r) => r.condition?.toLowerCase() === condLabel
-      );
+      const condLabel = getLabelFromValue(conditions, selectedCondition);
+      filteredRobots = filteredRobots.filter((r) => r.condition?.toLowerCase() === condLabel);
     }
 
-    // Filter by robot type (separate from category if needed)
+    // Robot type
     if (selectedRobotType !== "all") {
-      const typeLabel = getLabelFromValue(robotTypes, selectedRobotType).toLowerCase();
-      filteredRobots = filteredRobots.filter(
-        (r) => r.robot_type?.toLowerCase() === typeLabel
-      );
+      const typeLabel = getLabelFromValue(robotTypes, selectedRobotType);
+      filteredRobots = filteredRobots.filter((r) => r.robottype?.toLowerCase() === typeLabel);
     }
 
-    // Filter by price range
+    // Price range
     if (selectedPriceRange !== "all") {
       const ranges: Record<string, [number, number]> = {
         "under-50k": [0, 50000],
@@ -287,22 +308,20 @@ const Robots = () => {
         "over-1m": [1000000, Infinity],
       };
       const [min, max] = ranges[selectedPriceRange] || [0, Infinity];
-      filteredRobots = filteredRobots.filter((r) => r.price >= min && r.price < max);
+      filteredRobots = filteredRobots.filter((r) => r.price >= min && r.price <= max);
     }
 
-    // Filter by company
+    // Company
     if (selectedCompany !== "all") {
-      const companyLabel = getLabelFromValue(companies, selectedCompany).toLowerCase();
-      filteredRobots = filteredRobots.filter(
-        (r) => r.profiles?.company_name?.toLowerCase() === companyLabel
-      );
+      const companyLabel = getLabelFromValue(companies, selectedCompany);
+      filteredRobots = filteredRobots.filter((r) => r.profiles?.companyname?.toLowerCase() === companyLabel);
     }
 
-    // Sort robots based on selected criteria
+    // Sort
     filteredRobots.sort((a, b) => {
       switch (sortBy) {
         case "views":
-          return (b.viewCount || 0) - (a.viewCount || 0); // Highest views first
+          return (b.viewCount || 0) - (a.viewCount || 0);
         case "price-low":
           return (a.price || 0) - (b.price || 0);
         case "price-high":
@@ -316,8 +335,8 @@ const Robots = () => {
       }
     });
 
-    // Group by company, category, or show all
-    const groups: { [key: string]: any[] } = {};
+    const groups: Record<string, any[]> = {};
+
     if (groupBy === "company") {
       filteredRobots.forEach((r) => {
         if (!groups[r.seller_id]) groups[r.seller_id] = [];
@@ -325,29 +344,43 @@ const Robots = () => {
       });
     } else if (groupBy === "category") {
       filteredRobots.forEach((r) => {
-        const cat = r.robot_type || "Others";
+        const cat = r.robottype || "Others";
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(r);
       });
     } else {
-      // groupBy all - show all robots as one group
       groups["All Robots"] = filteredRobots;
     }
 
     return groups;
   };
 
-  // Format price with symbol helper
-  const formatPrice = (price: number, currency: string) => {
+  const filteredGroups = useMemo(
+    () => getFilteredGroups(),
+    [
+      robotsWithViews,
+      searchQuery,
+      selectedCategory,
+      selectedLocation,
+      selectedCondition,
+      selectedPriceRange,
+      selectedRobotType,
+      selectedCompany,
+      sortBy,
+      groupBy,
+    ],
+  );
+
+  const totalFilteredRobots = Object.values(filteredGroups).reduce((acc, arr) => acc + arr.length, 0);
+
+  const formatPrice = (price?: number, currency = "USD") => {
     if (!price) return "Price on request";
     const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : "₹";
     return `${symbol}${price.toLocaleString()}`;
   };
 
-  // Add/Remove to/from watchlist
   const handleAddToWatchlist = async (robot: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    
     if (!user) {
       toast({
         title: "Login Required",
@@ -356,34 +389,35 @@ const Robots = () => {
       });
       return;
     }
-
     const isInWatchlist = watchlistItems.has(robot.id);
-    setAddingToWatchlist(prev => new Set(prev).add(robot.id));
+    setAddingToWatchlist((prev) => {
+      const set = new Set(prev);
+      set.add(robot.id);
+      return set;
+    });
 
     try {
       if (isInWatchlist) {
-        // Remove from watchlist
         const { error } = await supabase
-          .from('watchlists')
+          .from("watchlists")
           .delete()
-          .eq('user_id', user.id)
-          .eq('item_type', 'robot')
-          .eq('item_id', robot.id);
+          .eq("userid", user.id)
+          .eq("itemtype", "robot")
+          .eq("itemid", robot.id);
 
         if (error) throw error;
 
-        setWatchlistItems(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(robot.id);
-          return newSet;
+        setWatchlistItems((prev) => {
+          const set = new Set(prev);
+          set.delete(robot.id);
+          return set;
         });
 
-        // Track watchlist removal
         await trackButtonClick({
           buttonName: "Remove from Watchlist",
           buttonType: "wishlist",
           sellerId: robot.seller_id,
-          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          sellerName: robot.profiles?.companyname || robot.profiles?.fullname,
           itemId: robot.id,
           itemType: "robot",
           additionalData: {
@@ -391,8 +425,8 @@ const Robots = () => {
             robotName: robot.name,
             robotModel: robot.model,
             robotPrice: robot.price,
-            source: "listing_page"
-          }
+            source: "listingpage",
+          },
         });
 
         toast({
@@ -400,27 +434,27 @@ const Robots = () => {
           description: `${robot.name} has been removed from your watchlist.`,
         });
       } else {
-        // Add to watchlist
-        const { error } = await supabase
-          .from('watchlists')
-          .insert({
-            user_id: user.id,
-            item_type: 'robot',
-            item_id: robot.id,
-            notes: `${robot.name} - ${robot.model}`,
-            priority: 'medium'
-          });
+        const { error } = await supabase.from("watchlists").insert({
+          userid: user.id,
+          itemtype: "robot",
+          itemid: robot.id,
+          notes: `${robot.name} - ${robot.model}`,
+          priority: "medium",
+        });
 
         if (error) throw error;
 
-        setWatchlistItems(prev => new Set(prev).add(robot.id));
+        setWatchlistItems((prev) => {
+          const set = new Set(prev);
+          set.add(robot.id);
+          return set;
+        });
 
-        // Track watchlist addition
         await trackButtonClick({
           buttonName: "Add to Watchlist",
           buttonType: "wishlist",
           sellerId: robot.seller_id,
-          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
+          sellerName: robot.profiles?.companyname || robot.profiles?.fullname,
           itemId: robot.id,
           itemType: "robot",
           additionalData: {
@@ -428,8 +462,8 @@ const Robots = () => {
             robotName: robot.name,
             robotModel: robot.model,
             robotPrice: robot.price,
-            source: "listing_page"
-          }
+            source: "listingpage",
+          },
         });
 
         toast({
@@ -437,63 +471,29 @@ const Robots = () => {
           description: `${robot.name} has been added to your watchlist.`,
         });
       }
-    } catch (error: any) {
-      console.error('Error updating watchlist:', error);
+    } catch (err) {
+      console.error("Error updating watchlist", err);
       toast({
         title: "Failed to Update",
         description: "Could not update watchlist. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setAddingToWatchlist(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(robot.id);
-        return newSet;
+      setAddingToWatchlist((prev) => {
+        const set = new Set(prev);
+        set.delete(robot.id);
+        return set;
       });
     }
   };
 
-  // Compute filtered groups on every render
-  const filteredGroups = getFilteredGroups();
-
-  // Count all filtered robots
-  const totalFilteredRobots = Object.values(filteredGroups).reduce((acc, arr) => acc + arr.length, 0);
-
-  // Generate SEO based on filters
-  const generatePageSEO = () => {
-    let title = "Industrial Robots for Sale";
-    let description = "Browse verified industrial robots from trusted sellers. Find ABB, KUKA, Fanuc, Yaskawa robots with warranty, financing, and logistics support.";
-    
-    if (selectedCategory && selectedCategory !== "all") {
-      const categoryLabel = categories.find(c => c.value === selectedCategory)?.label;
-      title = `${categoryLabel} Robots for Sale`;
-      description = `Buy ${categoryLabel?.toLowerCase()} robots from verified sellers. Professional automation equipment with warranty and support.`;
-    }
-    
-    if (selectedLocation && selectedLocation !== "all") {
-      const locationLabel = locations.find(l => l.value === selectedLocation)?.label;
-      title += ` in ${locationLabel}`;
-      description = description.replace("from verified sellers", `from verified sellers in ${locationLabel}`);
-    }
-    
-    if (totalFilteredRobots > 0) {
-      title = `${totalFilteredRobots}+ ${title}`;
-    }
-    
-    title += " | RobotVerse";
-    
-    const jsonLd = generateItemListSchema(
-      robotsWithViews.slice(0, 20),
-      title,
-      selectedCategory !== "all" ? selectedCategory : undefined
-    );
-    
-    return { title, description, jsonLd };
+  const pageSEO = {
+    title: "Industrial Robots Marketplace | RobotVerse",
+    description:
+      "Browse verified robots from trusted sellers. Find ABB, KUKA, Fanuc, Yaskawa and more with financing, logistics, parts and service support.",
+    jsonLd: generateItemListSchema(robotsWithViews.slice(0, 20), "Robots"),
   };
 
-  const pageSEO = generatePageSEO();
-
-  // Loading and error UI
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -522,478 +522,429 @@ const Robots = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead
-        title={pageSEO.title}
-        description={pageSEO.description}
-        keywords="industrial robots, automation equipment, robot marketplace, buy robots online, robot sellers India, FANUC, ABB, KUKA, Yaskawa"
-        jsonLd={pageSEO.jsonLd}
-      />
+      <SEOHead title={pageSEO.title} description={pageSEO.description} jsonLd={pageSEO.jsonLd} />
       <EnhancedHeader />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Industrial Robots Marketplace</h1>
-        <p className="text-xl text-muted-foreground mb-8">
-          Browse verified robots from trusted sellers - with financing, logistics, parts, and service support all available in one place
+
+      {/* Top title */}
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          Industrial Robots Marketplace
+        </h1>
+        <p className="text-muted-foreground">
+          Browse verified robots from trusted sellers - with financing, logistics, parts and service support.
         </p>
+      </div>
 
-        {/* Filters Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Find Your Perfect Robot
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Search and Quick Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search robots..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((loc) => (
-                    <SelectItem key={loc.value} value={loc.value}>
-                      {loc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Price Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Prices</SelectItem>
-                  <SelectItem value="under-50k">Under ₹50,000</SelectItem>
-                  <SelectItem value="50k-200k">₹50,000 - ₹2,00,000</SelectItem>
-                  <SelectItem value="200k-500k">₹2,00,000 - ₹5,00,000</SelectItem>
-                  <SelectItem value="500k-1m">₹5,00,000 - ₹10,00,000</SelectItem>
-                  <SelectItem value="over-1m">Over ₹10,00,000</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Secondary Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select value={selectedCondition} onValueChange={setSelectedCondition}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Condition" />
-                </SelectTrigger>
-                <SelectContent>
-                  {conditions.map((cond) => (
-                    <SelectItem key={cond.value} value={cond.value}>
-                      {cond.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Robot Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {robotTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Company" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map((company) => (
-                    <SelectItem key={company.value} value={company.value}>
-                      {company.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sort and View Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Sort by:</span>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="views">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" />
-                        Most Popular
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="newest">Latest</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    <SelectItem value="name">Name A-Z</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Group by:</span>
-                <div className="flex gap-1">
-                  <Button
-                    variant={groupBy === "all" ? "default" : "outline"}
-                    onClick={() => setGroupBy("all")}
-                    size="sm"
-                  >
-                    All
-                  </Button>
-                  <Button
-                    variant={groupBy === "category" ? "default" : "outline"}
-                    onClick={() => setGroupBy("category")}
-                    size="sm"
-                  >
-                    Category
-                  </Button>
-                  <Button
-                    variant={groupBy === "company" ? "default" : "outline"}
-                    onClick={() => setGroupBy("company")}
-                    size="sm"
-                  >
-                    Company
-                  </Button>
+      {/* Layout similar to robotmp: left filter, right listing */}
+      <div className="container mx-auto px-4 pb-10 flex gap-6">
+        {/* LEFT FILTER COLUMN (sticky) */}
+        <aside className="w-72 flex-shrink-0 hidden lg:block">
+          <div className="sticky top-20 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="w-4 h-4" />
+                  Filter Robots
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search robots..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
 
-                <div className="flex gap-1 ml-4">
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "outline"}
-                    onClick={() => setViewMode("grid")}
-                    size="sm"
-                  >
-                    <Grid className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "outline"}
-                    onClick={() => setViewMode("list")}
-                    size="sm"
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
+                {/* Category */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Category</p>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Location</p>
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc) => (
+                        <SelectItem key={loc.value} value={loc.value}>
+                          {loc.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Condition */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Condition</p>
+                  <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {conditions.map((cond) => (
+                        <SelectItem key={cond.value} value={cond.value}>
+                          {cond.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Robot Type */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Robot Type</p>
+                  <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Robot Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {robotTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Company */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Company</p>
+                  <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.value} value={company.value}>
+                          {company.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Price Range */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Price Range</p>
+                  <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Price Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {priceRanges.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </aside>
+
+        {/* RIGHT CONTENT COLUMN */}
+        <main className="flex-1 space-y-6">
+          {/* Top bar: sort, group, view */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="w-5 h-5" />
+                Robots
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* For mobile: filter + search in a row */}
+              <div className="flex flex-col gap-3 lg:hidden">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search robots..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Total Summary */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Showing {totalFilteredRobots} robot{totalFilteredRobots !== 1 && "s"} 
-            {sortBy === "views" && (
-              <Badge variant="secondary" className="ml-2">
-                <Eye className="w-3 h-3 mr-1" />
-                Sorted by popularity
-              </Badge>
-            )}
-          </div>
-          {totalFilteredRobots > 0 && (
-            <div className="text-sm text-muted-foreground">
-              {groupBy === "all" ? "All robots" : `Grouped by ${groupBy}`}
-            </div>
-          )}
-        </div>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing <span className="font-semibold">{totalFilteredRobots}</span> robots
+                </div>
 
-        {/* Loading, error, empty states */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
-            <p>Loading robots...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Bot className="w-16 h-16 text-muted-foreground mb-4" />
-            <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>Retry</Button>
-          </div>
-        ) : totalFilteredRobots === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Bot className="w-16 h-16 text-muted-foreground mb-4" />
-            <p>No robots match the current filters.</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(filteredGroups).map(([key, robotsGroup]) => (
-              <div key={key} className="space-y-4">
-                {/* Group Header - only show if not "All Robots" */}
-                {key !== "All Robots" && (
-                  <div className="flex items-center justify-between border-b pb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold">
-                        {groupBy === "company" 
-                          ? (sellerProfiles[key]?.company_name || sellerProfiles[key]?.full_name || "Company")
-                          : key
-                        }
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {robotsGroup.length} robot{robotsGroup.length !== 1 ? 's' : ''} available
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-sm">
-                      {robotsGroup.reduce((total, robot) => total + (robot.viewCount || 0), 0)} total views
-                    </Badge>
+                <div className="flex items-center gap-4">
+                  {/* Sort */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium">Sort by</span>
+                    <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="views">
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" />
+                            Most Popular
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="price-low">Price Low to High</SelectItem>
+                        <SelectItem value="price-high">Price High to Low</SelectItem>
+                        <SelectItem value="name">Name A-Z</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
 
-                {/* Robot Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {robotsGroup.map((robot) => (
-                     <Card key={robot.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group" onClick={async () => {
-                       await trackButtonClick({
-                         buttonName: "View Robot from List",
-                         buttonType: "navigation",
-                         sellerId: robot.seller_id,
-                         sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
-                         itemId: robot.id,
-                         itemType: "robot",
-                         additionalData: {
-                           robotName: robot.name,
-                           robotModel: robot.model,
-                           robotType: robot.robot_type,
-                           robotPrice: robot.price,
-                           viewSource: "robots_listing",
-                           currentFilters: {
-                             searchQuery,
-                             selectedCategory,
-                             selectedLocation,
-                             selectedCondition,
-                             selectedPriceRange,
-                             selectedRobotType,
-                             selectedCompany,
-                             sortBy,
-                             groupBy,
-                             viewMode
-                           },
-                           groupName: key || "all"
-                         }
-                       });
-                        // Track comprehensive robot view with seller information
-                        trackButtonClick({
-                          buttonName: "Robot Card View",
-                          buttonType: "robot_listing_click",
-                          sellerId: robot.seller_id,
-                          sellerName: robot.profiles?.full_name,
-                          sellerCompany: robot.profiles?.company_name,
-                          sellerEmail: robot.profiles?.email,
-                          sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
-                          sellerLocation: robot.location,
-                          itemId: robot.id,
-                          itemType: "robot",
-                          additionalData: {
-                            robotName: robot.name,
-                            robotModel: robot.model,
-                            robotType: robot.robot_type,
-                            price: robot.price,
-                            brand: robot.brand,
-                            viewSource: "robot_listing_page",
-                            groupName: key || "all"
-                          }
-                         });
-                         navigate(`/robots/${robot.id}`);
-                       }}>
-                       {/* Robot Image */}
-                       <div className="relative overflow-hidden rounded-lg">
-                         {robot.images && robot.images.length > 0 ? (
-                           <ResponsiveImage
-                             src={robot.images[0]}
-                             alt={robot.name}
-                             aspectRatio="auto"
-                             objectFit="cover"
-                             hoverEffect={true}
-                             containerClassName="h-80 min-h-80 w-full"
-                             className="transition-transform duration-300 w-full h-full"
-                             style={{ 
-                               imageRendering: "auto"
-                             }}
-                           />
-                         ) : (
-                           <div className="w-full h-80 flex items-center justify-center bg-muted rounded-lg">
-                             <Bot className="w-16 h-16 text-muted-foreground" />
-                           </div>
-                         )}
-                         
-                         {/* Condition Badge */}
-                         <div className="absolute top-2 left-2">
-                           <Badge variant={robot.condition === 'new' ? 'default' : 'secondary'} className="text-xs">
-                             {robot.condition?.replace("_", " ") || "Used"}
-                           </Badge>
-                         </div>
-                         
-                         {/* View Count and Share Button */}
-                         <div className="absolute top-2 right-2 flex gap-1">
-                           <ViewCountDisplay targetType="robots" targetId={robot.id} />
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               if (navigator.share) {
-                                 navigator.share({
-                                   title: robot.name,
-                                   text: `Check out this ${robot.robot_type}: ${robot.name} for ${formatPrice(robot.price, robot.currency)}`,
-                                   url: `${window.location.origin}/robots/${robot.id}`,
-                                 });
-                               } else {
-                                 navigator.clipboard.writeText(`${window.location.origin}/robots/${robot.id}`);
-                                 toast({
-                                   title: "Link copied!",
-                                   description: "Robot listing link copied to clipboard",
-                                 });
-                               }
-                             }}
-                           >
-                             <Share2 className="w-4 h-4 text-gray-600" />
-                           </Button>
-                         </div>
-                       </div>
+                  {/* Group by */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium">Group by</span>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant={groupBy === "all" ? "default" : "outline"}
+                        onClick={() => setGroupBy("all")}
+                      >
+                        All
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={groupBy === "category" ? "default" : "outline"}
+                        onClick={() => setGroupBy("category")}
+                      >
+                        Category
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={groupBy === "company" ? "default" : "outline"}
+                        onClick={() => setGroupBy("company")}
+                      >
+                        Company
+                      </Button>
+                    </div>
+                  </div>
 
-                       <CardContent className="p-4">
-                         <div className="space-y-3">
-                           {/* Robot Details */}
-                           <div>
-                             <h3 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-primary transition-colors">
-                               {robot.name}
-                             </h3>
-                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                               <span className="font-medium">{robot.brand || "Unknown Brand"}</span>
-                               {robot.model && (
-                                 <>
-                                   <span>•</span>
-                                   <span>{robot.model}</span>
-                                 </>
-                               )}
-                             </div>
-                             <div className="flex items-center justify-between mb-2">
-                               <Badge variant="outline" className="text-xs">
-                                 {robot.robot_type}
-                               </Badge>
-                               <span className="text-xs text-muted-foreground">Qty: {robot.quantity || 1}</span>
-                             </div>
-                           </div>
+                  {/* View mode */}
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant={viewMode === "grid" ? "default" : "outline"}
+                      onClick={() => setViewMode("grid")}
+                    >
+                      <Grid className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant={viewMode === "list" ? "default" : "outline"}
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                           {/* Location & Price */}
-                           <div className="space-y-2">
-                             <div className="flex items-center text-sm text-muted-foreground">
-                               <MapPin className="w-3 h-3 mr-1" />
-                               <span className="line-clamp-1">{robot.location || "Location not specified"}</span>
-                             </div>
-                             <div className="flex items-center justify-between">
-                               <div className="flex items-center text-lg font-bold text-primary">
-                                 {formatPrice(robot.price, robot.currency)}
-                               </div>
-                               <Badge variant="secondary" className="text-xs">
-                                 {robot.availability}
-                               </Badge>
-                             </div>
-                           </div>
+          {/* Robots listing */}
+          {totalFilteredRobots === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Bot className="w-16 h-16 text-muted-foreground mb-4" />
+              <p className="text-lg font-semibold mb-2">No robots match the current filters.</p>
+              <p className="text-muted-foreground mb-4">Try clearing some filters or changing the search text.</p>
+              <Button onClick={() => window.location.reload()}>Reset</Button>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(filteredGroups).map(([key, robotsGroup]) => (
+                <div key={key} className="space-y-4">
+                  {key !== "All Robots" && (
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <div>
+                        <h3 className="text-xl font-semibold">
+                          {groupBy === "company"
+                            ? sellerProfiles[key]?.companyname || sellerProfiles[key]?.fullname || "Company"
+                            : key}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {robotsGroup.length} robot
+                          {robotsGroup.length !== 1 ? "s" : ""} available
+                        </p>
+                      </div>
+                      {groupBy === "company" && sellerProfiles[key] && <Badge variant="outline">Verified Seller</Badge>}
+                    </div>
+                  )}
 
-                           {/* Categories Tags */}
-                           {robot.category_tags && robot.category_tags.length > 0 && (
-                             <div className="flex flex-wrap gap-1">
-                               {robot.category_tags.slice(0, 2).map((tag, index) => (
-                                 <Badge key={index} variant="outline" className="text-xs">
-                                   {tag}
-                                 </Badge>
-                               ))}
-                               {robot.category_tags.length > 2 && (
-                                 <Badge variant="outline" className="text-xs">
-                                   +{robot.category_tags.length - 2}
-                                 </Badge>
-                               )}
-                             </div>
-                           )}
+                  {viewMode === "grid" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {robotsGroup.map((robot: any) => (
+                        <Card
+                          key={robot.id}
+                          className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                          onClick={async () => {
+                            await trackItemView("robots", robot.id);
+                            navigate(`/robots/${robot.id}`);
+                          }}
+                        >
+                          {/* Image */}
+                          <div className="relative overflow-hidden rounded-lg">
+                            {robot.images && robot.images.length > 0 ? (
+                              <ResponsiveImage
+                                src={robot.images[0]}
+                                alt={robot.name}
+                                aspectRatio="auto"
+                                objectFit="cover"
+                                hoverEffect
+                                containerClassName="h-64 w-full"
+                              />
+                            ) : (
+                              <div className="w-full h-64 flex items-center justify-center bg-muted rounded-lg">
+                                <Bot className="w-12 h-12 text-muted-foreground" />
+                              </div>
+                            )}
 
-                           {/* Seller info */}
-                           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-                             <div className="flex items-center">
-                               <Building className="w-3 h-3 mr-1" />
-                               <span className="line-clamp-1">
-                                 {robot.profiles?.company_name || robot.profiles?.full_name || "Verified Seller"}
-                               </span>
-                             </div>
-                             <div className="flex items-center">
-                               <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
-                               <span>Verified</span>
-                             </div>
-                           </div>
+                            {/* Condition */}
+                            {robot.condition && (
+                              <div className="absolute top-2 left-2">
+                                <Badge
+                                  variant={robot.condition === "New" ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {robot.condition}
+                                </Badge>
+                              </div>
+                            )}
 
-                            {/* Action Buttons */}
-                            <div className="space-y-2 pt-2">
+                            {/* View count + share */}
+                            <div className="absolute top-2 right-2 flex gap-1">
+                              <ViewCountDisplay targetType="robots" targetId={robot.id} />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const url = `${window.location.origin}/robots/${robot.id}`;
+                                  if (navigator.share) {
+                                    navigator.share({
+                                      title: robot.name,
+                                      text: `Check out this ${robot.robottype} ${robot.name} for ${formatPrice(
+                                        robot.price,
+                                        robot.currency,
+                                      )}`,
+                                      url,
+                                    });
+                                  } else {
+                                    navigator.clipboard.writeText(url);
+                                    toast({
+                                      title: "Link copied!",
+                                      description: "Robot listing link copied to clipboard.",
+                                    });
+                                  }
+                                }}
+                              >
+                                <Share2 className="w-4 h-4 text-gray-600" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <CardContent className="p-4 space-y-3">
+                            {/* Name */}
+                            <div>
+                              <h3 className="font-bold text-sm mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+                                {robot.name}
+                              </h3>
+                              <p className="text-xs text-muted-foreground line-clamp-1">
+                                {robot.brand || "Unknown Brand"}
+                                {robot.model && <span> · {robot.model}</span>}
+                              </p>
+                            </div>
+
+                            {/* Specs */}
+                            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                              <div>
+                                <p className="font-medium text-foreground">{robot.payload || "N/A"}</p>
+                                <p>kg Payload</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">{robot.reach || "N/A"}</p>
+                                <p>mm Reach</p>
+                              </div>
+                            </div>
+
+                            {/* Location + price */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                <span className="line-clamp-1">{robot.location || "Location not specified"}</span>
+                              </div>
+                              <div className="text-sm font-bold text-primary">
+                                {formatPrice(robot.price, robot.currency)}
+                              </div>
+                            </div>
+
+                            {/* Company + availability */}
+                            <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
+                              <div className="flex items-center">
+                                <Building className="w-3 h-3 mr-1" />
+                                <span className="line-clamp-1">
+                                  {robot.profiles?.companyname || robot.profiles?.fullname || "Seller"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500" />
+                                <span>{robot.availability || "Available"}</span>
+                              </div>
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="pt-2 space-y-2">
                               <div className="grid grid-cols-2 gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      // Track view details button click
-                                      trackButtonClick({
-                                        buttonName: "View Details",
-                                        buttonType: "robot_details_button",
-                                        sellerId: robot.seller_id,
-                                        sellerName: robot.profiles?.full_name,
-                                        sellerCompany: robot.profiles?.company_name,
-                                        sellerEmail: robot.profiles?.email,
-                                        sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
-                                        sellerLocation: robot.location,
-                                        itemId: robot.id,
-                                        itemType: "robot",
-                                        additionalData: {
-                                          robotName: robot.name,
-                                          robotType: robot.robot_type,
-                                          viewSource: "details_button"
-                                        }
-                                      });
-                                      navigate(`/robots/${robot.id}`);
-                                    }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/robots/${robot.id}`);
+                                  }}
                                 >
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
                                 </Button>
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  <ChatButton
-                                    otherUserId={robot.seller_id}
-                                    itemId={robot.id}
-                                    itemType="robot"
-                                    itemName={robot.name}
-                                    variant="outline"
-                                    size="sm"
-                                  />
-                                </div>
-                                </div>
+                                <ChatButton
+                                  otherUserId={robot.seller_id}
+                                  itemId={robot.id}
+                                  itemType="robot"
+                                  itemName={robot.name}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MessageCircle className="w-3 h-3 mr-1" />
+                                  Chat
+                                </ChatButton>
+                              </div>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1004,109 +955,136 @@ const Robots = () => {
                                 {addingToWatchlist.has(robot.id) ? (
                                   <Loader2 className="w-3 h-3 mr-2 animate-spin" />
                                 ) : (
-                                  <Heart className={`w-3 h-3 mr-2 ${watchlistItems.has(robot.id) ? 'fill-current text-red-500' : ''}`} />
+                                  <Heart
+                                    className={`w-3 h-3 mr-2 ${
+                                      watchlistItems.has(robot.id) ? "fill-current text-red-500" : ""
+                                    }`}
+                                  />
                                 )}
-                                {watchlistItems.has(robot.id) ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                                {watchlistItems.has(robot.id) ? "Remove from Watchlist" : "Add to Watchlist"}
                               </Button>
                             </div>
-
-                           {/* AI Analysis Button */}
-                           <Button
-                             variant={user ? "default" : "secondary"}
-                             size="sm"
-                             className="w-full"
-                             onClick={async (e) => {
-                               e.stopPropagation();
-                               if (!user) {
-                                 toast({
-                                   variant: "destructive",
-                                   title: "Sign In Required",
-                                   description: "Please sign in to use RobotVerse AI analysis",
-                                 });
-                                 return;
-                               }
-                               setShowAiDialog(true);
-                               setAiDialogLoading(true);
-                               setAiDialogData(null);
-                               try {
-                                 const { data, error } = await supabase.functions.invoke("roboverse-ai-analyze", {
-                                   body: { robotId: robot.id },
-                                 });
-                                 if (error) throw error;
-                                 setAiDialogData(data);
-                                 toast({
-                                   title: "AI Analysis Complete",
-                                   description: "AI analysis results loaded.",
-                                 });
-                               } catch (err) {
-                                 toast({
-                                   variant: "destructive",
-                                   title: "AI Analysis Failed",
-                                   description: err instanceof Error ? err.message : "Failed to get AI analysis",
-                                 });
-                                 setShowAiDialog(false);
-                               } finally {
-                                 setAiDialogLoading(false);
-                               }
-                             }}
-                           >
-                             <Brain className="w-4 h-4 mr-1" />
-                             {user ? "AI Analysis" : "Sign in for AI Analysis"}
-                           </Button>
-                         </div>
-                       </CardContent>
-                     </Card>
-                   ))}
-                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {/* AI Analysis Dialog */}
-        <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
-          <DialogContent className="bg-white text-gray-900 max-w-3xl max-h-[80vh] overflow-y-auto p-6">
-            <DialogHeader>
-              <DialogTitle>Robot AI Analysis</DialogTitle>
-              <DialogClose asChild>
-                <button className="absolute top-3 right-3 rounded p-1 hover:bg-gray-200">✕</button>
-              </DialogClose>
-            </DialogHeader>
-            <DialogDescription className="mt-4 whitespace-pre-wrap text-gray-900">
-              {aiDialogLoading && (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin w-6 h-6" /> Loading AI analysis...
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {robotsGroup.map((robot: any) => (
+                        <Card
+                          key={robot.id}
+                          className="hover:shadow-md transition cursor-pointer flex"
+                          onClick={async () => {
+                            await trackItemView("robots", robot.id);
+                            navigate(`/robots/${robot.id}`);
+                          }}
+                        >
+                          <div className="w-40 h-40 flex-shrink-0">
+                            {robot.images && robot.images.length > 0 ? (
+                              <ResponsiveImage
+                                src={robot.images[0]}
+                                alt={robot.name}
+                                aspectRatio="auto"
+                                objectFit="cover"
+                                hoverEffect
+                                containerClassName="w-full h-full"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted rounded-l-lg">
+                                <Bot className="w-10 h-10 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                          <CardContent className="flex-1 p-4 flex flex-col justify-between">
+                            <div className="flex justify-between gap-4">
+                              <div className="space-y-1">
+                                <h3 className="font-semibold text-base line-clamp-2">{robot.name}</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {robot.brand || "Unknown Brand"}
+                                  {robot.model && <span> · {robot.model}</span>}
+                                </p>
+                                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
+                                  <span>{robot.robottype || "Robot"}</span>
+                                  <span>· {robot.payload || "N/A"} kg</span>
+                                  <span>· {robot.reach || "N/A"} mm</span>
+                                </div>
+                                <div className="flex items-center text-xs text-muted-foreground mt-1">
+                                  <MapPin className="w-3 h-3 mr-1" />
+                                  <span>{robot.location || "Location not specified"}</span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                <div className="text-lg font-bold text-primary">
+                                  {formatPrice(robot.price, robot.currency)}
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  {robot.profiles?.companyname || robot.profiles?.fullname || "Seller"}
+                                </Badge>
+                                {robot.condition && (
+                                  <Badge
+                                    variant={robot.condition === "New" ? "default" : "secondary"}
+                                    className="text-xs"
+                                  >
+                                    {robot.condition}
+                                  </Badge>
+                                )}
+                                <ViewCountDisplay targetType="robots" targetId={robot.id} />
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-3">
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/robots/${robot.id}`);
+                                  }}
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Details
+                                </Button>
+                                <ChatButton
+                                  otherUserId={robot.seller_id}
+                                  itemId={robot.id}
+                                  itemType="robot"
+                                  itemName={robot.name}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MessageCircle className="w-3 h-3 mr-1" />
+                                  Chat
+                                </ChatButton>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => handleAddToWatchlist(robot, e)}
+                                disabled={addingToWatchlist.has(robot.id)}
+                              >
+                                {addingToWatchlist.has(robot.id) ? (
+                                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                ) : (
+                                  <Heart
+                                    className={`w-3 h-3 mr-2 ${
+                                      watchlistItems.has(robot.id) ? "fill-current text-red-500" : ""
+                                    }`}
+                                  />
+                                )}
+                                {watchlistItems.has(robot.id) ? "Remove from Watchlist" : "Add to Watchlist"}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-              {!aiDialogLoading && aiDialogData ? (
-                <>
-                  <section className="mb-4">
-                    <h3 className="font-semibold text-lg mb-1">Summary</h3>
-                    <p>{aiDialogData.analysis?.summary || "Analysis data unavailable"}</p>
-                  </section>
-                  {aiDialogData.analysis?.suitability && (
-                    <section className="mb-4">
-                      <h3 className="font-semibold text-lg mb-1">Suitability</h3>
-                      <p>{aiDialogData.analysis.suitability}</p>
-                    </section>
-                  )}
-                  {aiDialogData.analysis?.technicalInsights && (
-                    <section className="mb-4">
-                      <h3 className="font-semibold text-lg mb-1">Technical Insights</h3>
-                      <p>{aiDialogData.analysis.technicalInsights}</p>
-                    </section>
-                  )}
-                  <footer className="text-xs text-right text-muted border-t pt-2">
-                    Generated: {new Date().toLocaleString()}
-                  </footer>
-                </>
-              ) : (!aiDialogLoading && !aiDialogData) ? (
-                <p>No analysis data available.</p>
-              ) : null}
-            </DialogDescription>
-          </DialogContent>
-        </Dialog>
-
+              ))}
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
