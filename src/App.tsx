@@ -75,6 +75,9 @@ const App = () => (
             <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/parts/:id" element={<SparePartDetails />} />
+            <Route path="/spares/:category" element={<Parts />} />
+            <Route path="/spares/:category/:subcategory" element={<Parts />} />
+            <Route path="/spares/:category/:subcategory/:componentType" element={<Parts />} />
             <Route path="/services" element={<Services />} />
             <Route path="/logistics" element={<Logistics />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />

@@ -1,285 +1,605 @@
 // Spare Parts Category Structure - Robotverse
-// 4 Main Sub-Menus: Robot Parts, Devices, Tools, Software
+// Three-Level Taxonomy: Category > Subcategory > Component Type
 
-export const SPARE_PARTS_MENU = {
-  "Robot Parts": {
-    description: "Core robot hardware, motion components, electrical parts, power systems, mechanical spares, cabling, and structural items",
+export interface ComponentTypeData {
+  name: string;
+  slug: string;
+}
+
+export interface SubcategoryData {
+  name: string;
+  slug: string;
+  componentTypes: ComponentTypeData[];
+}
+
+export interface CategoryData {
+  name: string;
+  slug: string;
+  description: string;
+  icon: string;
+  subcategories: SubcategoryData[];
+}
+
+// Helper to create slug from name
+const toSlug = (name: string): string => 
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+// Helper to create component type data
+const ct = (name: string): ComponentTypeData => ({
+  name,
+  slug: toSlug(name),
+});
+
+export const SPARE_PARTS_TAXONOMY: CategoryData[] = [
+  {
+    name: "Robot Parts",
+    slug: "robot-parts",
+    description: "Core robot hardware, motion components, electrical parts, power systems, and structural items",
     icon: "Cpu",
-    categories: {
-      "Controllers & Drives": [
-        "Main Robot Controller",
-        "Servo Drives and Amplifiers",
-        "I/O Modules",
-        "Power Supply Units",
-        "Communication Modules",
-        "CPU Boards and Memory Cards",
-        "PLC Modules and Cards",
-        "I/O Expansion Modules",
-        "Relay Modules and Contactors",
-        "Frequency Converters / VFDs",
-        "Logic Processors",
-        "Safety PLC Modules",
-        "Motion Control Processors",
-        "Real-Time Control Modules",
-        "Distributed Control Components",
-      ],
-      "Motors & Gearboxes": [
-        "Servo Motors",
-        "Gearboxes and Reducers",
-        "Encoders and Pulse Coders",
-        "Brakes and Couplings",
-        "Harmonic Drives",
-        "Linear and Rotary Actuators",
-        "RV Reducers",
-        "Planetary Gearboxes",
-        "Cycloidal Reducers",
-        "Gear Couplings",
-        "High-Ratio Reduction Units",
-        "Gear Lubrication Systems",
-        "Gearbox Mounting Hardware",
-        "Spur and Helical Gears",
-        "Backlash Reducers",
-        "Speed Reducers and Multipliers",
-      ],
-      "Robot Arms & Motion": [
-        "Arm Segments and Links",
-        "Wrist Assemblies",
-        "Joint Components (Shoulder/Elbow/Wrist)",
-        "Arm Covers and Protective Shells",
-        "Mounting Flanges and Brackets",
-        "Axis Blocks and Bearings",
-        "Mechanical Stops and Limiters",
-        "Arm Cable Routing Systems",
-        "Axis Seals and Bellows",
-        "Joint Lubrication Systems",
-        "Wheel Assemblies and Wheels",
-        "Tracks and Caterpillar Systems",
-        "Motor Drives for Mobile Robots",
-        "Steering and Direction Control Modules",
-        "Motion Encoders and Feedback Sensors",
-        "Shock Absorbers and Suspension",
-        "Caster and Fixed Wheel Assemblies",
-      ],
-      "Cabling & Connectivity": [
-        "Power Cables",
-        "Encoder and Feedback Cables",
-        "Teach Pendant Cable",
-        "Signal and Communication Harness",
-        "Internal Arm Cables",
-        "Grounding and Extension Cables",
-        "High-Flex Robotic Cables",
-        "EtherCAT Communication Modules",
-        "Profibus and Profinet Adapters",
-        "Modbus Communication Cards",
-        "Network Interface Cards",
-        "Industrial Ethernet Adapters",
-        "Wireless Communication Modules",
-        "Gateway and Bridge Modules",
-        "Serial Communication Cards (RS-232 / RS-485)",
-        "Protocol Conversion Modules",
-        "Network Switching Components",
-        "IO-Link Masters and Nodes",
-      ],
-      "Power & Batteries": [
-        "Lithium-Ion (Li-ion) Batteries",
-        "Lithium Polymer (LiPo) Batteries",
-        "Nickel-Metal Hydride (NiMH) Batteries",
-        "Battery Backup Units (BBU)",
-        "UPS Systems for Robots",
-        "Battery Charging Modules",
-        "Power Distribution Boards",
-        "Battery Management System (BMS) Electronics",
-        "Emergency Backup Power Systems",
-        "Battery Connectors and Terminals",
-      ],
-      "Safety & Enclosures": [
-        "Safety Enclosure Panels",
-        "Protective Covers and Guards",
-        "Anti-collision Bumpers and Sensors",
-        "Safety Rails and Barriers",
-        "Transparent Safety Shields",
-        "Robot Bases and Pedestals",
-        "Floor Mounts and Fixtures",
-        "Safety Fencing and Enclosures",
-        "Control Cabinet Stands",
-        "Cable Management Systems",
-        "Workcell Frames",
-        "Anti-Vibration Mounts",
-        "Mobile Platforms",
-      ],
-      "Maintenance Hardware": [
-        "Seals and Gaskets",
-        "O-Rings and Bearings",
-        "Belts and Pulleys",
-        "Relays and Contactors",
-        "Filters",
-        "Cooling Fans",
-        "Replacement Covers and Panels",
-      ],
-    },
+    subcategories: [
+      {
+        name: "Controllers & Drives",
+        slug: "controllers-drives",
+        componentTypes: [
+          ct("Main Robot Controller"),
+          ct("Servo Drives"),
+          ct("Amplifiers"),
+          ct("PLC Modules"),
+          ct("I/O Modules"),
+          ct("I/O Expansion Modules"),
+          ct("Power Supply Units"),
+          ct("CPU Boards"),
+          ct("Memory Cards"),
+          ct("Interface Panels"),
+          ct("Operator Displays"),
+          ct("Communication Modules"),
+          ct("Relay Modules"),
+          ct("Contactors"),
+          ct("Frequency Converters / VFDs"),
+          ct("Safety PLC Modules"),
+          ct("Motion Control Processors"),
+          ct("Real-Time Control Modules"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Motors & Gearboxes",
+        slug: "motors-gearboxes",
+        componentTypes: [
+          ct("Servo Motors"),
+          ct("Gearboxes"),
+          ct("Planetary Gearboxes"),
+          ct("Cycloidal Reducers"),
+          ct("RV Reducers"),
+          ct("Harmonic Drives"),
+          ct("Speed Reducers"),
+          ct("Encoders"),
+          ct("Pulse Coders"),
+          ct("Brakes"),
+          ct("Couplings"),
+          ct("Spur Gears"),
+          ct("Helical Gears"),
+          ct("Gear Lubrication Systems"),
+          ct("Gearbox Mounting Hardware"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Robot Arms & Motion",
+        slug: "robot-arms-motion",
+        componentTypes: [
+          ct("Arm Segments"),
+          ct("Arm Links"),
+          ct("Wrist Assemblies"),
+          ct("Joint Components (Shoulder / Elbow / Wrist)"),
+          ct("Arm Covers"),
+          ct("Protective Shells"),
+          ct("Mounting Flanges"),
+          ct("Brackets"),
+          ct("Axis Blocks"),
+          ct("Bearings"),
+          ct("Mechanical Stops"),
+          ct("Limiters"),
+          ct("Axis Seals"),
+          ct("Bellows"),
+          ct("Wheel Assemblies"),
+          ct("Tracks & Caterpillar Systems"),
+          ct("Shock Absorbers"),
+          ct("Casters"),
+          ct("IMU"),
+          ct("Gyroscopes"),
+          ct("Accelerometers"),
+          ct("Odometry Sensors"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Cabling & Connectivity",
+        slug: "cabling-connectivity",
+        componentTypes: [
+          ct("Power Cables"),
+          ct("Encoder Cables"),
+          ct("Feedback Cables"),
+          ct("Teach Pendant Cables"),
+          ct("Internal Arm Cables"),
+          ct("Signal Harnesses"),
+          ct("High-Flex Robotic Cables"),
+          ct("EtherCAT Modules"),
+          ct("Profinet Adapters"),
+          ct("Profibus Adapters"),
+          ct("Modbus Cards"),
+          ct("Network Interface Cards"),
+          ct("Ethernet Adapters"),
+          ct("Gateway Modules"),
+          ct("Bridge Modules"),
+          ct("RS-232 / RS-485 Cards"),
+          ct("Protocol Converters"),
+          ct("Network Switches"),
+          ct("IO-Link Masters"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Power & Batteries",
+        slug: "power-batteries",
+        componentTypes: [
+          ct("Li-Ion Batteries"),
+          ct("LiPo Batteries"),
+          ct("NiMH Batteries"),
+          ct("Battery Backup Units (BBU)"),
+          ct("UPS Systems"),
+          ct("Battery Chargers"),
+          ct("Power Distribution Boards"),
+          ct("BMS Electronics"),
+          ct("Battery Connectors"),
+          ct("Battery Terminals"),
+          ct("Battery Health Sensors"),
+          ct("Fuel Gauge Controllers"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Safety & Enclosures",
+        slug: "safety-enclosures",
+        componentTypes: [
+          ct("Safety Enclosure Panels"),
+          ct("Protective Covers"),
+          ct("Guards"),
+          ct("Anti-Collision Bumpers"),
+          ct("Emergency Stop Stations"),
+          ct("Safety Relays"),
+          ct("Interlocks"),
+          ct("Safety Rails"),
+          ct("Safety Barriers"),
+          ct("Transparent Safety Shields"),
+          ct("Robot Bases"),
+          ct("Pedestals"),
+          ct("Floor Mounts"),
+          ct("Fixtures"),
+          ct("Safety Fencing"),
+          ct("Control Cabinet Stands"),
+          ct("Cable Management Systems"),
+          ct("Workcell Frames"),
+          ct("Anti-Vibration Mounts"),
+          ct("Others"),
+        ],
+      },
+    ],
   },
-  "Devices": {
-    description: "Sensors, vision systems, safety electronics, HMIs, operator and interface devices",
+  {
+    name: "Devices",
+    slug: "devices",
+    description: "Sensors, vision systems, safety electronics, HMIs, and interface devices",
     icon: "Monitor",
-    categories: {
-      "Sensors & Vision": [
-        "Proximity Sensors",
-        "Limit Sensors",
-        "Force and Torque Sensors",
-        "Laser Sensors",
-        "Light Curtains",
-        "Safety Mats",
-        "Area Scanners",
-        "Emergency Stop Units",
-        "Safety Relays",
-        "Industrial Vision Cameras",
-        "2D / 3D Vision Systems",
-        "Lens Assemblies and Focus Mechanisms",
-        "Camera Calibration Tools",
-        "Image Processing Modules",
-        "Vision Lighting Systems (Ring / Coaxial Lights)",
-        "Camera Mounts and Brackets",
-        "Vision Cable Assemblies",
-        "Code Readers and Barcode Scanners",
-        "LiDAR Sensors and Scanners",
-        "Gyroscopes and Accelerometers",
-        "Inertial Measurement Units (IMU)",
-        "Odometry Sensors",
-      ],
-      "HMIs & Teach Devices": [
-        "Teach Pendant",
-        "Pendant Holder and Protector",
-        "Programming Terminal",
-        "Backup and Restore Devices",
-        "Interface Adapters",
-        "Pendant Control Buttons",
-        "HMI Displays",
-        "Operator Panels",
-        "Touchscreen Interfaces",
-        "LCD and LED Display Panels",
-        "Button and Keypad Modules",
-        "Membrane Keypads",
-        "Emergency Stop Buttons and Switches",
-        "Control Panel Enclosures",
-        "Display Mounting Hardware",
-        "Industrial Switches and Selectors",
-        "Indicator Lights and Beacons",
-      ],
-      "Safety Devices": [
-        "Emergency Stop Devices and Stations",
-        "Pressure-Sensitive Safety Mats",
-        "Interlocks and Safety Switches",
-        "Warning Systems and Beacons",
-        "Safety Relay Modules",
-      ],
-    },
+    subcategories: [
+      {
+        name: "Sensors & Vision",
+        slug: "sensors-vision",
+        componentTypes: [
+          ct("Proximity Sensors"),
+          ct("Limit Sensors"),
+          ct("Force Sensors"),
+          ct("Torque Sensors"),
+          ct("Laser Sensors"),
+          ct("Light Curtains"),
+          ct("Safety Mats"),
+          ct("Area Scanners"),
+          ct("Industrial Vision Cameras"),
+          ct("2D Vision Systems"),
+          ct("3D Vision Systems"),
+          ct("Lens Assemblies"),
+          ct("Camera Calibration Tools"),
+          ct("Vision Lighting (Ring / Coaxial)"),
+          ct("Camera Mounts"),
+          ct("Vision Cables"),
+          ct("Barcode Scanners"),
+          ct("Code Readers"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "HMIs & Teach Devices",
+        slug: "hmis-teach-devices",
+        componentTypes: [
+          ct("Teach Pendants"),
+          ct("Pendant Holders"),
+          ct("Programming Terminals"),
+          ct("Backup Devices"),
+          ct("Restore Devices"),
+          ct("Interface Adapters"),
+          ct("Control Buttons"),
+          ct("HMI Displays"),
+          ct("Operator Panels"),
+          ct("Touchscreens"),
+          ct("LCD Panels"),
+          ct("LED Panels"),
+          ct("Keypad Modules"),
+          ct("Membrane Keypads"),
+          ct("Emergency Stop Buttons"),
+          ct("Control Panel Enclosures"),
+          ct("Display Mounts"),
+          ct("Industrial Switches"),
+          ct("Selector Switches"),
+          ct("Indicator Lights"),
+          ct("Beacons"),
+          ct("Others"),
+        ],
+      },
+    ],
   },
-  "Tools": {
-    description: "End-of-arm tooling, process tools, consumables, welding, cutting, painting, and maintenance tools",
+  {
+    name: "Tools",
+    slug: "tools",
+    description: "End-of-arm tooling, process tools, welding equipment, and maintenance tools",
     icon: "Wrench",
-    categories: {
-      "Tooling & End Effectors": [
-        "Grippers",
-        "Vacuum Cups and Ejectors",
-        "Drilling Tools",
-        "Polishing Tools",
-        "Tool Changers",
-        "Painting and Spray Guns",
-        "Cutting Tools",
-        "Laser Heads",
-        "Material Handling Attachments",
-        "Quick Couplers and Quick-Change Interfaces",
-      ],
-      "Welding & Processing Tools": [
-        "Welding Torches and Nozzles",
-        "Electrode Tip Dressers",
-        "Welding Contact Tips",
-        "Gas Nozzles and Diffusers",
-        "Welding Cables and Connectors",
-        "Spot Welding Guns",
-        "Seam Tracking Sensors",
-        "Arc Monitoring Systems",
-        "Shielding Gas Adapters",
-        "Welding Electrode Holders",
-        "Wire Feeders for Arc Welding",
-      ],
-      "Maintenance Tools": [
-        "Maintenance Tool Kits",
-        "Grease and Lubricants",
-        "Warning Labels",
-      ],
-    },
+    subcategories: [
+      {
+        name: "End Effectors",
+        slug: "end-effectors",
+        componentTypes: [
+          ct("Mechanical Grippers"),
+          ct("Vacuum Grippers"),
+          ct("Vacuum Cups"),
+          ct("Vacuum Ejectors"),
+          ct("Tool Changers"),
+          ct("Material Handling Attachments"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Welding Tools",
+        slug: "welding-tools",
+        componentTypes: [
+          ct("Welding Torches"),
+          ct("Spot Welding Guns"),
+          ct("Welding Contact Tips"),
+          ct("Electrode Tip Dressers"),
+          ct("Welding Cables"),
+          ct("Gas Nozzles"),
+          ct("Diffusers"),
+          ct("Wire Feeders"),
+          ct("Arc Monitoring Systems"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Processing Tools",
+        slug: "processing-tools",
+        componentTypes: [
+          ct("Cutting Tools"),
+          ct("Laser Heads"),
+          ct("Painting Guns"),
+          ct("Spray Guns"),
+          ct("Drilling Tools"),
+          ct("Polishing Tools"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Maintenance Tools",
+        slug: "maintenance-tools",
+        componentTypes: [
+          ct("Maintenance Tool Kits"),
+          ct("Grease"),
+          ct("Lubricants"),
+          ct("Warning Labels"),
+          ct("Others"),
+        ],
+      },
+    ],
   },
-  "Software": {
-    description: "All digital products, licenses, firmware, configuration tools, and cloud platforms",
+  {
+    name: "Software",
+    slug: "software",
+    description: "Programming software, licenses, firmware, and cloud platforms",
     icon: "Code",
-    categories: {
-      "Programming & Simulation": [
-        "Robot Programming Software Licenses",
-        "Offline Programming & Simulation Software",
-        "Robot Brand-Specific Programming Packages",
-        "Robot Simulation and Digital Twin Platforms",
-        "Path Planning and Optimization Software",
-      ],
-      "Monitoring & Diagnostics": [
-        "Vision Processing and Image Analysis Software",
-        "Robot Fleet Management Software",
-        "Robot Monitoring and Diagnostics Tools",
-        "Firmware and Controller Software Updates",
-      ],
-      "Configuration & Safety": [
-        "Configuration and Parameterization Tools",
-        "Fieldbus and Network Configuration Software",
-        "Safety Configuration and Validation Software",
-      ],
-      "Licenses & Cloud": [
-        "Licenses and Activation Keys",
-        "Cloud-Based Robot Management Platforms",
-      ],
-    },
+    subcategories: [
+      {
+        name: "Programming & Simulation",
+        slug: "programming-simulation",
+        componentTypes: [
+          ct("Robot Programming Licenses"),
+          ct("Brand-Specific Programming Packages"),
+          ct("Offline Programming Software"),
+          ct("Robot Simulation Software"),
+          ct("Digital Twin Platforms"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Vision & Analytics",
+        slug: "vision-analytics",
+        componentTypes: [
+          ct("Vision Processing Software"),
+          ct("Image Analysis Software"),
+          ct("Others"),
+        ],
+      },
+      {
+        name: "Management & System",
+        slug: "management-system",
+        componentTypes: [
+          ct("Robot Fleet Management Software"),
+          ct("Monitoring & Diagnostics Tools"),
+          ct("Firmware Updates"),
+          ct("Configuration Tools"),
+          ct("Parameterization Tools"),
+          ct("Fieldbus Configuration Software"),
+          ct("Safety Validation Software"),
+          ct("Licenses"),
+          ct("Activation Keys"),
+          ct("Cloud-Based Robot Platforms"),
+          ct("Others"),
+        ],
+      },
+    ],
   },
-} as const;
+];
 
-// Flatten for backward compatibility
-export const SPARE_PARTS_CATEGORIES = (() => {
-  const flat: Record<string, readonly string[]> = {};
-  
-  Object.entries(SPARE_PARTS_MENU).forEach(([_menuName, menuData]) => {
-    Object.entries(menuData.categories).forEach(([categoryName, subcategories]) => {
-      flat[categoryName] = subcategories;
+// Types
+export type CategoryName = typeof SPARE_PARTS_TAXONOMY[number]["name"];
+export type SubcategoryName = string;
+export type ComponentTypeName = string;
+
+// ============ HELPER FUNCTIONS ============
+
+// Get all categories
+export const getCategories = (): CategoryData[] => {
+  return SPARE_PARTS_TAXONOMY;
+};
+
+// Get category by name
+export const getCategoryByName = (categoryName: string): CategoryData | undefined => {
+  return SPARE_PARTS_TAXONOMY.find((cat) => cat.name === categoryName);
+};
+
+// Get category by slug
+export const getCategoryBySlug = (slug: string): CategoryData | undefined => {
+  return SPARE_PARTS_TAXONOMY.find((cat) => cat.slug === slug);
+};
+
+// Get subcategories for a category
+export const getSubcategoriesForCategory = (categoryName: string): SubcategoryData[] => {
+  const category = getCategoryByName(categoryName);
+  return category?.subcategories || [];
+};
+
+// Get subcategory by name within a category
+export const getSubcategoryByName = (
+  categoryName: string,
+  subcategoryName: string
+): SubcategoryData | undefined => {
+  const category = getCategoryByName(categoryName);
+  return category?.subcategories.find((sub) => sub.name === subcategoryName);
+};
+
+// Get subcategory by slug within a category
+export const getSubcategoryBySlug = (
+  categorySlug: string,
+  subcategorySlug: string
+): SubcategoryData | undefined => {
+  const category = getCategoryBySlug(categorySlug);
+  return category?.subcategories.find((sub) => sub.slug === subcategorySlug);
+};
+
+// Get component types for a subcategory
+export const getComponentTypesForSubcategory = (
+  categoryName: string,
+  subcategoryName: string
+): ComponentTypeData[] => {
+  const subcategory = getSubcategoryByName(categoryName, subcategoryName);
+  return subcategory?.componentTypes || [];
+};
+
+// Get component type by name
+export const getComponentTypeByName = (
+  categoryName: string,
+  subcategoryName: string,
+  componentTypeName: string
+): ComponentTypeData | undefined => {
+  const componentTypes = getComponentTypesForSubcategory(categoryName, subcategoryName);
+  return componentTypes.find((ct) => ct.name === componentTypeName);
+};
+
+// Get component type by slug
+export const getComponentTypeBySlug = (
+  categorySlug: string,
+  subcategorySlug: string,
+  componentTypeSlug: string
+): ComponentTypeData | undefined => {
+  const subcategory = getSubcategoryBySlug(categorySlug, subcategorySlug);
+  return subcategory?.componentTypes.find((ct) => ct.slug === componentTypeSlug);
+};
+
+// Find category by subcategory name
+export const findCategoryBySubcategory = (subcategoryName: string): CategoryData | undefined => {
+  return SPARE_PARTS_TAXONOMY.find((cat) =>
+    cat.subcategories.some((sub) => sub.name === subcategoryName)
+  );
+};
+
+// Find subcategory by component type name
+export const findSubcategoryByComponentType = (
+  categoryName: string,
+  componentTypeName: string
+): SubcategoryData | undefined => {
+  const category = getCategoryByName(categoryName);
+  return category?.subcategories.find((sub) =>
+    sub.componentTypes.some((ct) => ct.name === componentTypeName)
+  );
+};
+
+// Get all category names
+export const getCategoryNames = (): string[] => {
+  return SPARE_PARTS_TAXONOMY.map((cat) => cat.name);
+};
+
+// Get all subcategory names for a category
+export const getSubcategoryNames = (categoryName: string): string[] => {
+  const category = getCategoryByName(categoryName);
+  return category?.subcategories.map((sub) => sub.name) || [];
+};
+
+// Get all component type names for a subcategory
+export const getComponentTypeNames = (
+  categoryName: string,
+  subcategoryName: string
+): string[] => {
+  const componentTypes = getComponentTypesForSubcategory(categoryName, subcategoryName);
+  return componentTypes.map((ct) => ct.name);
+};
+
+// Generate breadcrumb from slugs
+export const generateBreadcrumb = (
+  categorySlug?: string,
+  subcategorySlug?: string,
+  componentTypeSlug?: string
+): { label: string; href: string }[] => {
+  const breadcrumb = [
+    { label: "Home", href: "/" },
+    { label: "Spare Parts", href: "/parts" },
+  ];
+
+  if (categorySlug) {
+    const category = getCategoryBySlug(categorySlug);
+    if (category) {
+      breadcrumb.push({
+        label: category.name,
+        href: `/spares/${categorySlug}`,
+      });
+
+      if (subcategorySlug) {
+        const subcategory = getSubcategoryBySlug(categorySlug, subcategorySlug);
+        if (subcategory) {
+          breadcrumb.push({
+            label: subcategory.name,
+            href: `/spares/${categorySlug}/${subcategorySlug}`,
+          });
+
+          if (componentTypeSlug) {
+            const componentType = getComponentTypeBySlug(
+              categorySlug,
+              subcategorySlug,
+              componentTypeSlug
+            );
+            if (componentType) {
+              breadcrumb.push({
+                label: componentType.name,
+                href: `/spares/${categorySlug}/${subcategorySlug}/${componentTypeSlug}`,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return breadcrumb;
+};
+
+// Get stats
+export const getCategoryStats = () => {
+  const categories = SPARE_PARTS_TAXONOMY.length;
+  let subcategories = 0;
+  let componentTypes = 0;
+
+  SPARE_PARTS_TAXONOMY.forEach((cat) => {
+    subcategories += cat.subcategories.length;
+    cat.subcategories.forEach((sub) => {
+      componentTypes += sub.componentTypes.length;
     });
   });
-  
+
+  return {
+    totalCategories: categories,
+    totalSubcategories: subcategories,
+    totalComponentTypes: componentTypes,
+    breakdown: SPARE_PARTS_TAXONOMY.map((cat) => ({
+      name: cat.name,
+      subcategories: cat.subcategories.length,
+      componentTypes: cat.subcategories.reduce(
+        (sum, sub) => sum + sub.componentTypes.length,
+        0
+      ),
+    })),
+  };
+};
+
+// ============ BACKWARD COMPATIBILITY ============
+
+// Flatten for backward compatibility with old code
+export const SPARE_PARTS_CATEGORIES = (() => {
+  const flat: Record<string, readonly string[]> = {};
+
+  SPARE_PARTS_TAXONOMY.forEach((category) => {
+    category.subcategories.forEach((subcategory) => {
+      flat[subcategory.name] = subcategory.componentTypes.map((ct) => ct.name);
+    });
+  });
+
   flat["Other"] = [];
   return flat;
 })();
 
-// Types
+export const SPARE_PARTS_MENU = (() => {
+  const menu: Record<string, { description: string; icon: string; categories: Record<string, readonly string[]> }> = {};
+
+  SPARE_PARTS_TAXONOMY.forEach((category) => {
+    const categories: Record<string, readonly string[]> = {};
+    category.subcategories.forEach((sub) => {
+      categories[sub.name] = sub.componentTypes.map((ct) => ct.name);
+    });
+
+    menu[category.name] = {
+      description: category.description,
+      icon: category.icon,
+      categories,
+    };
+  });
+
+  return menu;
+})();
+
 export type MainMenu = keyof typeof SPARE_PARTS_MENU;
 export type MainCategory = keyof typeof SPARE_PARTS_CATEGORIES;
 export type SubCategory = string;
 
-// Helper: get all main menus
 export const getMainMenus = (): MainMenu[] => {
   return Object.keys(SPARE_PARTS_MENU) as MainMenu[];
 };
 
-// Helper: get categories for a main menu
 export const getCategoriesForMenu = (menuName: MainMenu): string[] => {
-  return Object.keys(SPARE_PARTS_MENU[menuName].categories);
+  return Object.keys(SPARE_PARTS_MENU[menuName]?.categories || {});
 };
 
-// Helper: get sub-categories for a category
 export const getSubCategories = (categoryName: string): readonly string[] => {
   return SPARE_PARTS_CATEGORIES[categoryName] || [];
 };
 
-// Helper: get menu info
 export const getMenuInfo = (menuName: MainMenu) => {
   return SPARE_PARTS_MENU[menuName];
 };
 
-// Helper: find which menu a category belongs to
 export const findMenuForCategory = (categoryName: string): MainMenu | null => {
   for (const [menuName, menuData] of Object.entries(SPARE_PARTS_MENU)) {
     if (categoryName in menuData.categories) {
@@ -289,36 +609,14 @@ export const findMenuForCategory = (categoryName: string): MainMenu | null => {
   return null;
 };
 
-// Helper: get all main categories
 export const getMainCategories = (): string[] => {
   return Object.keys(SPARE_PARTS_CATEGORIES);
 };
 
-// Helper: flat list of all subcategories
 export const getAllSubCategories = (): string[] => {
   const all: string[] = [];
   Object.values(SPARE_PARTS_CATEGORIES).forEach((subs) => {
     all.push(...subs);
   });
   return all;
-};
-
-// Stats helper
-export const getCategoryStats = () => {
-  const menus = getMainMenus();
-  const categories = getMainCategories();
-  const subcategories = getAllSubCategories();
-
-  return {
-    totalMenus: menus.length,
-    totalCategories: categories.length,
-    totalSubCategories: subcategories.length,
-    menuBreakdown: menus.map(menu => ({
-      name: menu,
-      categories: getCategoriesForMenu(menu).length,
-      subcategories: getCategoriesForMenu(menu).reduce(
-        (sum, cat) => sum + getSubCategories(cat).length, 0
-      ),
-    })),
-  };
 };

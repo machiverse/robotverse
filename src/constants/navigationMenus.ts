@@ -1,5 +1,5 @@
 // Navigation Menu Structure for RobotVerse
-import { SPARE_PARTS_MENU } from './sparePartsCategories';
+import { SPARE_PARTS_TAXONOMY, getCategories } from './sparePartsCategories';
 
 // Robot Types for Robots Menu
 export const ROBOT_TYPES = [
@@ -70,12 +70,21 @@ export const ROBOBOOK_CATEGORIES = [
   "Events & Exhibitions",
 ] as const;
 
-// Build Spare Parts Sub-menu from categories
+// Build Spare Parts Sub-menu from three-level taxonomy
 export const getSparePartsSubMenus = () => {
-  return Object.entries(SPARE_PARTS_MENU).map(([menuName, menuData]) => ({
-    name: menuName,
-    description: menuData.description,
-    categories: Object.keys(menuData.categories),
+  return SPARE_PARTS_TAXONOMY.map((category) => ({
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    icon: category.icon,
+    subcategories: category.subcategories.map((sub) => ({
+      name: sub.name,
+      slug: sub.slug,
+      componentTypes: sub.componentTypes.map((ct) => ({
+        name: ct.name,
+        slug: ct.slug,
+      })),
+    })),
   }));
 };
 
@@ -92,12 +101,21 @@ export const NAVIGATION_CONFIG = {
   spares: {
     label: "Spare Parts",
     href: "/parts",
-    subMenus: getSparePartsSubMenus().map(menu => ({
-      label: menu.name,
-      href: `/parts?menu=${encodeURIComponent(menu.name)}`,
-      categories: menu.categories.map(cat => ({
-        label: cat,
-        href: `/parts?category=${encodeURIComponent(cat)}`,
+    // Three-level menu structure
+    categories: getSparePartsSubMenus().map(category => ({
+      label: category.name,
+      slug: category.slug,
+      description: category.description,
+      href: `/spares/${category.slug}`,
+      subcategories: category.subcategories.map(sub => ({
+        label: sub.name,
+        slug: sub.slug,
+        href: `/spares/${category.slug}/${sub.slug}`,
+        componentTypes: sub.componentTypes.map(ct => ({
+          label: ct.name,
+          slug: ct.slug,
+          href: `/spares/${category.slug}/${sub.slug}/${ct.slug}`,
+        })),
       })),
     })),
   },
@@ -134,3 +152,23 @@ export const NAVIGATION_CONFIG = {
     })),
   },
 } as const;
+
+// Legacy compatibility - SPARE_PARTS_MENU export
+export const SPARE_PARTS_MENU = (() => {
+  const menu: Record<string, { description: string; icon: string; categories: Record<string, readonly string[]> }> = {};
+
+  SPARE_PARTS_TAXONOMY.forEach((category) => {
+    const categories: Record<string, readonly string[]> = {};
+    category.subcategories.forEach((sub) => {
+      categories[sub.name] = sub.componentTypes.map((ct) => ct.name);
+    });
+
+    menu[category.name] = {
+      description: category.description,
+      icon: category.icon,
+      categories,
+    };
+  });
+
+  return menu;
+})();

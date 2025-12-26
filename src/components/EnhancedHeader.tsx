@@ -186,37 +186,37 @@ const EnhancedHeader = () => {
                   All Spare Parts
                 </Link>
                 <div className="border-t border-border my-1" />
-                {NAVIGATION_CONFIG.spares.subMenus.map((subMenu) => {
-                  const IconComponent = menuIcons[subMenu.label] || Package;
+                {NAVIGATION_CONFIG.spares.categories.map((category) => {
+                  const IconComponent = menuIcons[category.label] || Package;
                   return (
                     <div
-                      key={subMenu.label}
+                      key={category.label}
                       className="relative"
-                      onMouseEnter={() => setActiveSubMenu(subMenu.label)}
+                      onMouseEnter={() => setActiveSubMenu(category.label)}
                     >
                       <Link
-                        to={subMenu.href}
+                        to={category.href}
                         className="flex items-center justify-between px-3 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition group"
                         onClick={() => setActiveDropdown(null)}
                       >
                         <span className="flex items-center gap-2">
                           <IconComponent className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                          {subMenu.label}
+                          {category.label}
                         </span>
                         <ChevronDown className="h-3 w-3 -rotate-90" />
                       </Link>
-                      {/* Sub-menu categories */}
-                      {activeSubMenu === subMenu.label && (
+                      {/* Sub-menu subcategories */}
+                      {activeSubMenu === category.label && (
                         <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[240px] max-h-[400px] overflow-y-auto z-50">
                           <div className="p-2">
-                            {subMenu.categories.map((cat) => (
+                            {category.subcategories.map((sub) => (
                               <Link
-                                key={cat.label}
-                                to={cat.href}
+                                key={sub.label}
+                                to={sub.href}
                                 className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
                                 onClick={() => setActiveDropdown(null)}
                               >
-                                {cat.label}
+                                {sub.label}
                               </Link>
                             ))}
                           </div>
@@ -501,30 +501,30 @@ const EnhancedHeader = () => {
                   >
                     All Spare Parts
                   </Link>
-                  {NAVIGATION_CONFIG.spares.subMenus.map((subMenu) => {
-                    const IconComponent = menuIcons[subMenu.label] || Package;
+                  {NAVIGATION_CONFIG.spares.categories.map((category) => {
+                    const IconComponent = menuIcons[category.label] || Package;
                     return (
-                      <div key={subMenu.label}>
+                      <div key={category.label}>
                         <button
                           className="flex items-center justify-between w-full px-3 py-2 text-sm text-foreground hover:text-primary"
-                          onClick={() => setMobileExpandedSubMenu(mobileExpandedSubMenu === subMenu.label ? null : subMenu.label)}
+                          onClick={() => setMobileExpandedSubMenu(mobileExpandedSubMenu === category.label ? null : category.label)}
                         >
                           <span className="flex items-center gap-2">
                             <IconComponent className="h-3.5 w-3.5" />
-                            {subMenu.label}
+                            {category.label}
                           </span>
-                          <ChevronDown className={cn("h-3 w-3 transition-transform", mobileExpandedSubMenu === subMenu.label && "rotate-180")} />
+                          <ChevronDown className={cn("h-3 w-3 transition-transform", mobileExpandedSubMenu === category.label && "rotate-180")} />
                         </button>
-                        {mobileExpandedSubMenu === subMenu.label && (
+                        {mobileExpandedSubMenu === category.label && (
                           <div className="ml-4 mt-1 space-y-1 border-l border-border/50 pl-3">
-                            {subMenu.categories.map((cat) => (
+                            {category.subcategories.map((sub) => (
                               <Link
-                                key={cat.label}
-                                to={cat.href}
+                                key={sub.label}
+                                to={sub.href}
                                 className="block px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
                                 onClick={() => setMenuOpen(false)}
                               >
-                                {cat.label}
+                                {sub.label}
                               </Link>
                             ))}
                           </div>
