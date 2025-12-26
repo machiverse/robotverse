@@ -27,11 +27,7 @@ async function getSparePartDetails(sparePartId: string) {
   return data;
 }
 
-async function getMarketEcosystem(compatibleRobots: string[], category: string) {
-  const robotFilter = compatibleRobots.length > 0 
-    ? compatibleRobots.join(',') 
-    : 'industrial';
-
+async function getMarketEcosystem(compatibleRobots: string[], _category: string) {
   const [robotsRes, servicesRes, logisticsRes, financeRes] = await Promise.all([
     supabaseAdmin
       .from('robots')
@@ -54,7 +50,35 @@ async function getMarketEcosystem(compatibleRobots: string[], category: string) 
   };
 }
 
-function buildAnalysisPrompt(sparePart: any, marketData: any): string {
+interface SparePartData {
+  name: string;
+  part_number?: string;
+  brand?: string;
+  model?: string;
+  main_category?: string;
+  sub_category?: string;
+  price?: number;
+  currency?: string;
+  condition?: string;
+  location?: string;
+  compatible_robots?: string[];
+  description?: string;
+  specifications?: Record<string, unknown>;
+  is_international?: boolean;
+  profiles?: {
+    location?: string;
+    company_name?: string;
+  };
+}
+
+interface MarketData {
+  robots: unknown[];
+  services: unknown[];
+  logistics: unknown[];
+  finance: unknown[];
+}
+
+function buildAnalysisPrompt(sparePart: SparePartData, marketData: MarketData): string {
   const location = sparePart.profiles?.location || sparePart.location || 'Not specified';
   
   return `Analyze this industrial robot spare part and provide comprehensive market insights for the **Indian market**:
@@ -121,13 +145,13 @@ async function getAiAnalysis(prompt: string): Promise<string> {
 }
 
 function extractSection(analysis: string, sectionType: string): string {
-  const patterns = {
+  const patterns: Record<string, RegExp> = {
     pricing: /(?:pricing|price|cost|value)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
     compatibility: /(?:compatibility|compatible|fit|works with)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
     quality: /(?:quality|reliability|durability|brand)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
     applications: /(?:applications|use cases|industries|usage)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i
   };
-  const match = analysis.match(patterns[sectionType as keyof typeof patterns]);
+  const match = analysis.match(patterns[sectionType]);
   return match ? match[0].trim() : '';
 }
 
@@ -180,11 +204,12 @@ serve(async (req) => {
       marketEcosystem
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in roboverse-spare-part-ai-analyze:', error);
-    const status = error.message.includes('required') || error.message.includes('not found') ? 400 : 500;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const status = errorMessage.includes('required') || errorMessage.includes('not found') ? 400 : 500;
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ error: errorMessage }), 
       { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

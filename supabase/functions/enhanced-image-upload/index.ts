@@ -120,8 +120,8 @@ serve(async (req) => {
         console.log('Enhancing image quality...')
         finalBlob = await enhanceImageQuality(imageBlob)
         console.log('Image enhanced successfully, new size:', finalBlob.size)
-      } catch (error) {
-        console.error('Image enhancement failed, using original:', error)
+      } catch (enhanceError) {
+        console.error('Image enhancement failed, using original:', enhanceError)
         finalBlob = imageBlob
       }
     } else if (enhance && imageBlob.size >= 50 * 1024 * 1024) {
@@ -166,12 +166,13 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error in enhanced image upload:', error)
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: errorMessage 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -216,8 +217,8 @@ async function enhanceImageQuality(imageBlob: Blob): Promise<Blob> {
     
     return imageBlob
     
-  } catch (error) {
-    console.error('Enhancement error:', error)
-    throw error
+  } catch (enhanceError) {
+    console.error('Enhancement error:', enhanceError)
+    throw enhanceError
   }
 }

@@ -64,7 +64,7 @@ serve(async (req) => {
     if (servicesError) throw servicesError;
 
     // Get unique robot brands for category pages
-    const uniqueBrands = [...new Set(robots?.map((r: any) => r.brand).filter(Boolean))] as string[];
+    const uniqueBrands = [...new Set(robots?.map((r: { brand?: string }) => r.brand).filter(Boolean))] as string[];
 
     // Static pages
     const staticPages = [
@@ -110,7 +110,7 @@ serve(async (req) => {
     });
 
     // Add robot detail pages
-    robots?.forEach((robot: any) => {
+    robots?.forEach((robot: { id: string; updated_at: string }) => {
       sitemap += `  <url>\n`;
       sitemap += `    <loc>${baseUrl}/robots/${robot.id}</loc>\n`;
       sitemap += `    <changefreq>weekly</changefreq>\n`;
@@ -120,7 +120,7 @@ serve(async (req) => {
     });
 
     // Add blog posts
-    blogs?.forEach((blog: any) => {
+    blogs?.forEach((blog: { id: string; updated_at: string }) => {
       sitemap += `  <url>\n`;
       sitemap += `    <loc>${baseUrl}/robobook/${blog.id}</loc>\n`;
       sitemap += `    <changefreq>monthly</changefreq>\n`;
@@ -130,7 +130,7 @@ serve(async (req) => {
     });
 
     // Add community posts
-    posts?.forEach((post: any) => {
+    posts?.forEach((post: { id: string; updated_at: string }) => {
       sitemap += `  <url>\n`;
       sitemap += `    <loc>${baseUrl}/community/${post.id}</loc>\n`;
       sitemap += `    <changefreq>monthly</changefreq>\n`;
@@ -145,9 +145,10 @@ serve(async (req) => {
       headers: corsHeaders,
       status: 200,
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error("Error generating sitemap:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
