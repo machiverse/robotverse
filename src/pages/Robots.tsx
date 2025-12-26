@@ -51,14 +51,13 @@ const Robots = () => {
   const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
 
-  // Filter UI state
+  // Filter UI state - Business-logical order: Robot Type → Payload Range → Condition → Price Range → Location
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
+  const [selectedRobotType, setSelectedRobotType] = useState("all");
+  const [selectedPayloadRange, setSelectedPayloadRange] = useState("all");
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
-  const [selectedRobotType, setSelectedRobotType] = useState("all");
-  const [selectedCompany, setSelectedCompany] = useState("all");
+  const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
   const [groupBy, setGroupBy] = useState<"all" | "category" | "company">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -80,40 +79,45 @@ const Robots = () => {
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
   const [aiDialogData, setAiDialogData] = useState<any | null>(null);
 
-  // Dropdown options
-  const [categories, setCategories] = useState<{ value: string; label: string }[]>([
-    { value: "all", label: "All Categories" },
-  ]);
+  // Fixed filter options - Business-logical structure
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([
     { value: "all", label: "All Locations" },
   ]);
   const [conditions, setConditions] = useState<{ value: string; label: string }[]>([
     { value: "all", label: "All Conditions" },
   ]);
-  const [companies, setCompanies] = useState<{ value: string; label: string }[]>([
-    { value: "all", label: "All Companies" },
-  ]);
   const [robotTypes, setRobotTypes] = useState<{ value: string; label: string }[]>([
-    { value: "all", label: "All Types" },
+    { value: "all", label: "All Robot Types" },
   ]);
 
-  const priceRanges = [
-    { value: "all", label: "All Prices" },
-    { value: "under-50k", label: "Under 50,000" },
-    { value: "50k-200k", label: "50,000 - 2,00,000" },
-    { value: "200k-500k", label: "2,00,000 - 5,00,000" },
-    { value: "500k-1m", label: "5,00,000 - 10,00,000" },
-    { value: "over-1m", label: "Over 10,00,000" },
+  // Fixed payload ranges (kg) for industrial robots
+  const payloadRanges = [
+    { value: "all", label: "All Payloads" },
+    { value: "0-50", label: "0-50 kg" },
+    { value: "50-100", label: "50-100 kg" },
+    { value: "100-500", label: "100-500 kg" },
+    { value: "500-1000", label: "500-1000 kg" },
+    { value: "1000+", label: "1000+ kg" },
   ];
 
-  // Read filters from URL (category, groupBy)
+  // Fixed price ranges
+  const priceRanges = [
+    { value: "all", label: "All Prices" },
+    { value: "under-50k", label: "Under ₹50,000" },
+    { value: "50k-200k", label: "₹50,000 - ₹2,00,000" },
+    { value: "200k-500k", label: "₹2,00,000 - ₹5,00,000" },
+    { value: "500k-1m", label: "₹5,00,000 - ₹10,00,000" },
+    { value: "over-1m", label: "Over ₹10,00,000" },
+  ];
+
+  // Read filters from URL (type, groupBy)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const categoryParam = urlParams.get("category");
+    const typeParam = urlParams.get("type");
     const groupByParam = urlParams.get("groupBy");
 
-    if (categoryParam) {
-      setSelectedCategory(categoryParam.toLowerCase().replace(/ /g, "-"));
+    if (typeParam) {
+      setSelectedRobotType(typeParam.toLowerCase().replace(/ /g, "-"));
     }
     if (groupByParam) {
       setGroupBy(groupByParam as "company" | "category" | "all");
@@ -173,33 +177,16 @@ const Robots = () => {
           }
         }
 
-        // Extract filter options
-        const uniqueCategories = new Set<string>();
+        // Extract filter options - only Robot Type, Condition, Location (business-logical filters)
         const uniqueLocations = new Set<string>();
         const uniqueConditions = new Set<string>();
         const uniqueRobotTypes = new Set<string>();
-        const uniqueCompanies = new Set<string>();
 
         (data || []).forEach((robot: any) => {
           if (robot.robot_type) uniqueRobotTypes.add(robot.robot_type);
-          if (robot.robot_type) uniqueCategories.add(robot.robot_type);
-          if (robot.category_tags) {
-            robot.category_tags.forEach((tag: string) => uniqueCategories.add(tag.trim()));
-          }
           if (robot.location) uniqueLocations.add(robot.location.trim());
           if (robot.condition) uniqueConditions.add(robot.condition.trim());
-          if (robot.profiles?.company_name) uniqueCompanies.add(robot.profiles.company_name.trim());
         });
-
-        setCategories([
-          { value: "all", label: "All Categories" },
-          ...Array.from(uniqueCategories)
-            .sort()
-            .map((cat) => ({
-              value: cat.toLowerCase().replace(/ /g, "-"),
-              label: cat,
-            })),
-        ]);
 
         setLocations([
           { value: "all", label: "All Locations" },
@@ -222,22 +209,12 @@ const Robots = () => {
         ]);
 
         setRobotTypes([
-          { value: "all", label: "All Types" },
+          { value: "all", label: "All Robot Types" },
           ...Array.from(uniqueRobotTypes)
             .sort()
             .map((type) => ({
               value: type.toLowerCase().replace(/ /g, "-"),
               label: type,
-            })),
-        ]);
-
-        setCompanies([
-          { value: "all", label: "All Companies" },
-          ...Array.from(uniqueCompanies)
-            .sort()
-            .map((company) => ({
-              value: company.toLowerCase().replace(/ /g, "-"),
-              label: company,
             })),
         ]);
       } catch (err: any) {
@@ -270,35 +247,35 @@ const Robots = () => {
       });
     }
 
-    // Category
-    if (selectedCategory !== "all") {
-      const catLabel = getLabelFromValue(categories, selectedCategory);
-      filteredRobots = filteredRobots.filter((r) => {
-        const typeMatch = r.robot_type?.toLowerCase() === catLabel;
-        const tagMatch = r.category_tags?.some((tag: string) => tag.toLowerCase() === catLabel);
-        return typeMatch || tagMatch;
-      });
-    }
-
-    // Location
-    if (selectedLocation !== "all") {
-      const locLabel = getLabelFromValue(locations, selectedLocation);
-      filteredRobots = filteredRobots.filter((r) => r.location?.toLowerCase() === locLabel);
-    }
-
-    // Condition
-    if (selectedCondition !== "all") {
-      const condLabel = getLabelFromValue(conditions, selectedCondition);
-      filteredRobots = filteredRobots.filter((r) => r.condition?.toLowerCase() === condLabel);
-    }
-
-    // Robot type
+    // Robot type filter
     if (selectedRobotType !== "all") {
       const typeLabel = getLabelFromValue(robotTypes, selectedRobotType);
       filteredRobots = filteredRobots.filter((r) => r.robot_type?.toLowerCase() === typeLabel);
     }
 
-    // Price range
+    // Payload range filter (using payload_capacity field)
+    if (selectedPayloadRange !== "all") {
+      const payloadRangesMap: Record<string, [number, number]> = {
+        "0-50": [0, 50],
+        "50-100": [50, 100],
+        "100-500": [100, 500],
+        "500-1000": [500, 1000],
+        "1000+": [1000, Infinity],
+      };
+      const [minPayload, maxPayload] = payloadRangesMap[selectedPayloadRange] || [0, Infinity];
+      filteredRobots = filteredRobots.filter((r) => {
+        const payload = r.payload_capacity || 0;
+        return payload >= minPayload && payload < maxPayload;
+      });
+    }
+
+    // Condition filter
+    if (selectedCondition !== "all") {
+      const condLabel = getLabelFromValue(conditions, selectedCondition);
+      filteredRobots = filteredRobots.filter((r) => r.condition?.toLowerCase() === condLabel);
+    }
+
+    // Price range filter
     if (selectedPriceRange !== "all") {
       const ranges: Record<string, [number, number]> = {
         "under-50k": [0, 50000],
@@ -311,10 +288,10 @@ const Robots = () => {
       filteredRobots = filteredRobots.filter((r) => r.price >= min && r.price <= max);
     }
 
-    // Company
-    if (selectedCompany !== "all") {
-      const companyLabel = getLabelFromValue(companies, selectedCompany);
-      filteredRobots = filteredRobots.filter((r) => r.profiles?.company_name?.toLowerCase() === companyLabel);
+    // Location filter
+    if (selectedLocation !== "all") {
+      const locLabel = getLabelFromValue(locations, selectedLocation);
+      filteredRobots = filteredRobots.filter((r) => r.location?.toLowerCase() === locLabel);
     }
 
     // Sort
@@ -360,12 +337,11 @@ const Robots = () => {
     [
       robotsWithViews,
       searchQuery,
-      selectedCategory,
-      selectedLocation,
+      selectedRobotType,
+      selectedPayloadRange,
       selectedCondition,
       selectedPriceRange,
-      selectedRobotType,
-      selectedCompany,
+      selectedLocation,
       sortBy,
       groupBy,
     ],
@@ -559,63 +535,12 @@ const Robots = () => {
                   />
                 </div>
 
-                {/* Category */}
-                <div>
-                  <p className="text-xs font-semibold mb-1">Category</p>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <p className="text-xs font-semibold mb-1">Location</p>
-                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Condition */}
-                <div>
-                  <p className="text-xs font-semibold mb-1">Condition</p>
-                  <Select value={selectedCondition} onValueChange={setSelectedCondition}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Condition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {conditions.map((cond) => (
-                        <SelectItem key={cond.value} value={cond.value}>
-                          {cond.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Robot Type */}
+                {/* 1. Robot Type - First filter */}
                 <div>
                   <p className="text-xs font-semibold mb-1">Robot Type</p>
                   <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Robot Type" />
+                      <SelectValue placeholder="All Robot Types" />
                     </SelectTrigger>
                     <SelectContent>
                       {robotTypes.map((type) => (
@@ -627,34 +552,68 @@ const Robots = () => {
                   </Select>
                 </div>
 
-                {/* Company */}
+                {/* 2. Payload Range - Second filter */}
                 <div>
-                  <p className="text-xs font-semibold mb-1">Company</p>
-                  <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                  <p className="text-xs font-semibold mb-1">Payload Range (kg)</p>
+                  <Select value={selectedPayloadRange} onValueChange={setSelectedPayloadRange}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Company" />
+                      <SelectValue placeholder="All Payloads" />
                     </SelectTrigger>
                     <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company.value} value={company.value}>
-                          {company.label}
+                      {payloadRanges.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Price Range */}
+                {/* 3. Condition - Third filter */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Condition</p>
+                  <Select value={selectedCondition} onValueChange={setSelectedCondition}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Conditions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {conditions.map((cond) => (
+                        <SelectItem key={cond.value} value={cond.value}>
+                          {cond.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 4. Price Range - Fourth filter */}
                 <div>
                   <p className="text-xs font-semibold mb-1">Price Range</p>
                   <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Price Range" />
+                      <SelectValue placeholder="All Prices" />
                     </SelectTrigger>
                     <SelectContent>
                       {priceRanges.map((p) => (
                         <SelectItem key={p.value} value={p.value}>
                           {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 5. Location - Fifth filter */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Location</p>
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Locations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc) => (
+                        <SelectItem key={loc.value} value={loc.value}>
+                          {loc.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -881,10 +840,10 @@ const Robots = () => {
                               </p>
                             </div>
 
-                            {/* Specs */}
+                            {/* Specs - Payload Capacity */}
                             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                               <div>
-                                <p className="font-medium text-foreground">{robot.payload || "N/A"}</p>
+                                <p className="font-medium text-foreground">{robot.payload_capacity || "N/A"}</p>
                                 <p>kg Payload</p>
                               </div>
                               <div>
@@ -1001,7 +960,7 @@ const Robots = () => {
                                 </p>
                                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
                                   <span>{robot.robot_type || "Robot"}</span>
-                                  <span>· {robot.payload || "N/A"} kg</span>
+                                  <span>· {robot.payload_capacity || "N/A"} kg</span>
                                   <span>· {robot.reach || "N/A"} mm</span>
                                 </div>
                                 <div className="flex items-center text-xs text-muted-foreground mt-1">
