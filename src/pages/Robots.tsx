@@ -89,6 +89,10 @@ const Robots = () => {
   const [robotTypes, setRobotTypes] = useState<{ value: string; label: string }[]>([
     { value: "all", label: "All Robot Types" },
   ]);
+  const [manufacturers, setManufacturers] = useState<{ value: string; label: string }[]>([
+    { value: "all", label: "All Manufacturers" },
+  ]);
+  const [selectedManufacturer, setSelectedManufacturer] = useState("all");
 
   // Fixed payload ranges (kg) for industrial robots
   const payloadRanges = [
@@ -177,13 +181,15 @@ const Robots = () => {
           }
         }
 
-        // Extract filter options - only Robot Type, Condition, Location (business-logical filters)
+        // Extract filter options - Robot Type, Manufacturer, Condition, Location (business-logical filters)
         const uniqueLocations = new Set<string>();
         const uniqueConditions = new Set<string>();
         const uniqueRobotTypes = new Set<string>();
+        const uniqueManufacturers = new Set<string>();
 
         (data || []).forEach((robot: any) => {
           if (robot.robot_type) uniqueRobotTypes.add(robot.robot_type);
+          if (robot.brand) uniqueManufacturers.add(robot.brand.trim());
           if (robot.location) uniqueLocations.add(robot.location.trim());
           if (robot.condition) uniqueConditions.add(robot.condition.trim());
         });
@@ -215,6 +221,16 @@ const Robots = () => {
             .map((type) => ({
               value: type.toLowerCase().replace(/ /g, "-"),
               label: type,
+            })),
+        ]);
+
+        setManufacturers([
+          { value: "all", label: "All Manufacturers" },
+          ...Array.from(uniqueManufacturers)
+            .sort()
+            .map((brand) => ({
+              value: brand.toLowerCase().replace(/ /g, "-"),
+              label: brand,
             })),
         ]);
       } catch (err: any) {
@@ -251,6 +267,12 @@ const Robots = () => {
     if (selectedRobotType !== "all") {
       const typeLabel = getLabelFromValue(robotTypes, selectedRobotType);
       filteredRobots = filteredRobots.filter((r) => r.robot_type?.toLowerCase() === typeLabel);
+    }
+
+    // Manufacturer filter (using brand field)
+    if (selectedManufacturer !== "all") {
+      const brandLabel = getLabelFromValue(manufacturers, selectedManufacturer);
+      filteredRobots = filteredRobots.filter((r) => r.brand?.toLowerCase() === brandLabel);
     }
 
     // Payload range filter (using payload_capacity field)
@@ -338,6 +360,7 @@ const Robots = () => {
       robotsWithViews,
       searchQuery,
       selectedRobotType,
+      selectedManufacturer,
       selectedPayloadRange,
       selectedCondition,
       selectedPriceRange,
@@ -552,7 +575,24 @@ const Robots = () => {
                   </Select>
                 </div>
 
-                {/* 2. Payload Range - Second filter */}
+                {/* 2. Manufacturer - Second filter */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Manufacturer</p>
+                  <Select value={selectedManufacturer} onValueChange={setSelectedManufacturer}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Manufacturers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {manufacturers.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 3. Payload Range - Third filter */}
                 <div>
                   <p className="text-xs font-semibold mb-1">Payload Range (kg)</p>
                   <Select value={selectedPayloadRange} onValueChange={setSelectedPayloadRange}>
@@ -569,7 +609,7 @@ const Robots = () => {
                   </Select>
                 </div>
 
-                {/* 3. Condition - Third filter */}
+                {/* 4. Condition - Fourth filter */}
                 <div>
                   <p className="text-xs font-semibold mb-1">Condition</p>
                   <Select value={selectedCondition} onValueChange={setSelectedCondition}>
@@ -586,7 +626,7 @@ const Robots = () => {
                   </Select>
                 </div>
 
-                {/* 4. Price Range - Fourth filter */}
+                {/* 5. Price Range - Fifth filter */}
                 <div>
                   <p className="text-xs font-semibold mb-1">Price Range</p>
                   <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
@@ -603,7 +643,7 @@ const Robots = () => {
                   </Select>
                 </div>
 
-                {/* 5. Location - Fifth filter */}
+                {/* 6. Location - Sixth filter */}
                 <div>
                   <p className="text-xs font-semibold mb-1">Location</p>
                   <Select value={selectedLocation} onValueChange={setSelectedLocation}>
