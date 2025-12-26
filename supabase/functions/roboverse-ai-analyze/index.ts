@@ -60,10 +60,25 @@ async function getMarketEcosystem(robotType: string) {
   };
 }
 
+interface SparePartProfile {
+  company_name?: string;
+  location?: string;
+}
+
+interface ServiceProfile {
+  company_name?: string;
+  location?: string;
+}
+
+interface MarketDataItem {
+  profiles?: SparePartProfile | ServiceProfile;
+}
+
 // --- PROMPT GENERATION ---
-function buildAnalysisPrompt(robot: any, marketData: any): string {
+function buildAnalysisPrompt(robot: Record<string, unknown>, marketData: { sortedSpareParts: MarketDataItem[]; sortedServices: MarketDataItem[] }): string {
   const { sortedSpareParts, sortedServices } = marketData;
-  const robotLocation = robot.profiles?.location || 'Not specified';
+  const profiles = robot.profiles as { location?: string; company_name?: string } | undefined;
+  const robotLocation = profiles?.location || 'Not specified';
 
   return `Analyze this industrial robot and provide comprehensive market insights for the **Indian market** (general, not city-specific):
 
@@ -73,7 +88,7 @@ ROBOT DETAILS:
 - Model: ${robot.model || 'Not specified'}
 - Price: ${robot.price ? `${robot.currency || 'INR'} ${robot.price}` : 'Price on request'}
 - Location: ${robotLocation}
-- Seller: ${robot.profiles?.company_name || 'Not specified'}
+- Seller: ${profiles?.company_name || 'Not specified'}
 - Description: ${robot.description || 'No description provided'}
 - Technical Specs: ${robot.technical_specifications ? JSON.stringify(robot.technical_specifications) : 'Not available'}
 
@@ -82,8 +97,8 @@ MARKET ECOSYSTEM (Sample Indian Suppliers & Services):
 - Service Providers: ${sortedServices.length}
 
 SAMPLE SUPPLIERS:
-Spare Parts: ${sortedSpareParts.map((p: any) => `${p.profiles?.company_name} (${p.profiles?.location || 'India'})`).join(', ') || 'None found'}
-Services: ${sortedServices.map((s: any) => `${s.profiles?.company_name} (${s.profiles?.location || 'India'})`).join(', ') || 'None found'}
+Spare Parts: ${sortedSpareParts.map((p) => `${p.profiles?.company_name} (${p.profiles?.location || 'India'})`).join(', ') || 'None found'}
+Services: ${sortedServices.map((s) => `${s.profiles?.company_name} (${s.profiles?.location || 'India'})`).join(', ') || 'None found'}
 
 Provide detailed analysis covering:
 1. Market Position & Value Assessment (India-wide trends, competitiveness, demand)
@@ -128,13 +143,13 @@ async function getAiAnalysis(prompt: string): Promise<string> {
 
 // --- SECTION EXTRACTOR ---
 function extractSection(analysis: string, sectionType: string): string {
-  const patterns = {
+  const patterns: Record<string, RegExp> = {
     suitability: /(?:suitability|suitable|fit|appropriate|value)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
     technical: /(?:technical|specifications|performance|capabilities)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
     government: /(?:government|schemes|subsidies|incentives|pli|policy)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i,
     industries: /(?:industries|applications|sectors|use cases)[\s\S]*?(?=\n\n|\n[0-9]|\n#|$)/i
   };
-  const match = analysis.match(patterns[sectionType as keyof typeof patterns]);
+  const match = analysis.match(patterns[sectionType]);
   return match ? match[0].trim() : '';
 }
 
@@ -236,9 +251,10 @@ serve(async (req) => {
       marketEcosystem
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in roboverse-ai-analyze:', error);
-    const status = error.message.includes('Authentication') || error.message.includes('required') ? 400 : 500;
-    return new Response(JSON.stringify({ error: error.message }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const status = errorMessage.includes('Authentication') || errorMessage.includes('required') ? 400 : 500;
+    return new Response(JSON.stringify({ error: errorMessage }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

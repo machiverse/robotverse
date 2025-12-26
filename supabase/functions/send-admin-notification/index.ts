@@ -1,4 +1,4 @@
-/**import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.52.1';
 
@@ -129,10 +129,11 @@ const handler = async (req: Request) => {
         ...corsHeaders
       }
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error("Error in send-admin-notification function:", error);
     return new Response(JSON.stringify({
-      error: error.message
+      error: errorMessage
     }), {
       status: 500,
       headers: {

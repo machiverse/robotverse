@@ -121,8 +121,8 @@ serve(async (req) => {
         ...robot.technical_specifications
       },
       warranty: robot.warranty_info,
-      certifications: robot.certification_standards,
-      applications: robot.applications,
+      certifications: robot.certification_standards as string[] | null,
+      applications: robot.applications as string[] | null,
       accessories: robot.included_accessories,
       brochureUrl: robot.brochure_url,
       videoUrl: robot.video_url,
@@ -166,17 +166,17 @@ ${Object.entries(robotData.specifications)
 
 ${robotData.customFields.length > 0 ? `
 CUSTOM SPECIFICATIONS:
-${robotData.customFields.map(field => `- ${field.field_name}: ${field.field_value}`).join('\n')}
+${robotData.customFields.map((field: { field_name: string; field_value: string }) => `- ${field.field_name}: ${field.field_value}`).join('\n')}
 ` : ''}
 
 ${robotData.applications?.length ? `
 APPLICATIONS:
-${robotData.applications.map(app => `- ${app}`).join('\n')}
+${robotData.applications.map((app: string) => `- ${app}`).join('\n')}
 ` : ''}
 
 ${robotData.certifications?.length ? `
 CERTIFICATIONS:
-${robotData.certifications.map(cert => `- ${cert}`).join('\n')}
+${robotData.certifications.map((cert: string) => `- ${cert}`).join('\n')}
 ` : ''}
 
 ${robotData.warranty ? `WARRANTY: ${robotData.warranty}` : ''}
