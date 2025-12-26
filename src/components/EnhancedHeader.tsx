@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Bot,
@@ -7,9 +7,11 @@ import {
   Search,
   User,
   LogOut,
+  Home,
   Settings,
+  Package,
   Package as PartsIcon,
-  Briefcase as OrdersIcon, // currently unused, kept for future use
+  Briefcase as OrdersIcon,
   Truck,
   CreditCard,
   BookOpen,
@@ -19,8 +21,7 @@ import { useChatNotifications } from "@/hooks/useChatNotifications";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
-// Primary top-level navigation
-const primaryNavItems = [
+const navItems = [
   { name: "Robots", href: "/robots", icon: Bot },
   { name: "Spares", href: "/parts", icon: PartsIcon },
   { name: "Services", href: "/services", icon: Settings },
@@ -29,26 +30,12 @@ const primaryNavItems = [
   { name: "RoboBook", href: "/robobook", icon: BookOpen },
 ];
 
-// Future: Accessories submenu (for Tools / Devices / Robot Parts / Software)
-export const accessoriesNavItems = [
-  { name: "Tools", href: "/accessories/tools" },
-  { name: "Devices", href: "/accessories/devices" },
-  { name: "Robot Parts", href: "/accessories/robot-parts" },
-  { name: "Software", href: "/accessories/software" },
-];
-
 const EnhancedHeader = () => {
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const location = useLocation();
 
   // Enable global chat notification sounds for logged-in users
   useChatNotifications();
-
-  const isActive = (href: string) => {
-    if (href === "/") return location.pathname === "/";
-    return location.pathname.startsWith(href);
-  };
 
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur border-b border-border">
@@ -64,23 +51,17 @@ const EnhancedHeader = () => {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex space-x-2" aria-label="Main navigation">
-          {primaryNavItems.map(({ name, href, icon: Icon }) => {
-            const active = isActive(href);
-            return (
-              <Link
-                key={name}
-                to={href}
-                className={[
-                  "flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition",
-                  active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-primary/10 hover:text-primary",
-                ].join(" ")}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{name}</span>
-              </Link>
-            );
-          })}
+        <nav className="hidden lg:flex space-x-2">
+          {navItems.map(({ name, href, icon: Icon }) => (
+            <Link
+              key={name}
+              to={href}
+              className="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+            >
+              <Icon className="h-4 w-4" />
+              <span>{name}</span>
+            </Link>
+          ))}
         </nav>
 
         {/* Right Actions */}
@@ -133,12 +114,11 @@ const EnhancedHeader = () => {
 
           {/* Mobile menu toggle */}
           <button
-            type="button"
             aria-label="Toggle menu"
             aria-haspopup="true"
             aria-expanded={menuOpen}
             className="lg:hidden p-2"
-            onClick={() => setMenuOpen((prev) => !prev)}
+            onClick={() => setMenuOpen(!menuOpen)}
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -148,24 +128,18 @@ const EnhancedHeader = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="lg:hidden border-t border-border bg-background px-4 pb-4">
-          <nav className="flex flex-col space-y-1 pt-4" aria-label="Mobile navigation">
-            {primaryNavItems.map(({ name, href, icon: Icon }) => {
-              const active = isActive(href);
-              return (
-                <Link
-                  key={name}
-                  to={href}
-                  className={[
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition",
-                    active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-primary/10 hover:text-primary",
-                  ].join(" ")}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{name}</span>
-                </Link>
-              );
-            })}
+          <nav className="flex flex-col space-y-1 pt-4">
+            {navItems.map(({ name, href, icon: Icon }) => (
+              <Link
+                key={name}
+                to={href}
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{name}</span>
+              </Link>
+            ))}
           </nav>
 
           <div className="mt-4">
