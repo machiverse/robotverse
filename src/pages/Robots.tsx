@@ -128,7 +128,7 @@ const Robots = () => {
 
         const { data, error } = await supabase
           .from("robots")
-          .select("*, profiles!robots_seller_id_fkey(user_id, fullname, companyname, phone, mobilenumber, email)")
+          .select("*, profiles!robots_seller_id_fkey(user_id, full_name, company_name, phone, mobile_number, email)")
           .eq("availability", "available")
           .order("created_at", { ascending: false });
 
@@ -181,14 +181,14 @@ const Robots = () => {
         const uniqueCompanies = new Set<string>();
 
         (data || []).forEach((robot: any) => {
-          if (robot.robottype) uniqueRobotTypes.add(robot.robottype);
-          if (robot.robottype) uniqueCategories.add(robot.robottype);
-          if (robot.categorytags) {
-            robot.categorytags.forEach((tag: string) => uniqueCategories.add(tag.trim()));
+          if (robot.robot_type) uniqueRobotTypes.add(robot.robot_type);
+          if (robot.robot_type) uniqueCategories.add(robot.robot_type);
+          if (robot.category_tags) {
+            robot.category_tags.forEach((tag: string) => uniqueCategories.add(tag.trim()));
           }
           if (robot.location) uniqueLocations.add(robot.location.trim());
           if (robot.condition) uniqueConditions.add(robot.condition.trim());
-          if (robot.profiles?.companyname) uniqueCompanies.add(robot.profiles.companyname.trim());
+          if (robot.profiles?.company_name) uniqueCompanies.add(robot.profiles.company_name.trim());
         });
 
         setCategories([
@@ -264,8 +264,8 @@ const Robots = () => {
         return (
           r.name?.toLowerCase().includes(q) ||
           r.model?.toLowerCase().includes(q) ||
-          r.robottype?.toLowerCase().includes(q) ||
-          r.categorytags?.some((tag: string) => tag.toLowerCase().includes(q))
+          r.robot_type?.toLowerCase().includes(q) ||
+          r.category_tags?.some((tag: string) => tag.toLowerCase().includes(q))
         );
       });
     }
@@ -274,8 +274,8 @@ const Robots = () => {
     if (selectedCategory !== "all") {
       const catLabel = getLabelFromValue(categories, selectedCategory);
       filteredRobots = filteredRobots.filter((r) => {
-        const typeMatch = r.robottype?.toLowerCase() === catLabel;
-        const tagMatch = r.categorytags?.some((tag: string) => tag.toLowerCase() === catLabel);
+        const typeMatch = r.robot_type?.toLowerCase() === catLabel;
+        const tagMatch = r.category_tags?.some((tag: string) => tag.toLowerCase() === catLabel);
         return typeMatch || tagMatch;
       });
     }
@@ -295,7 +295,7 @@ const Robots = () => {
     // Robot type
     if (selectedRobotType !== "all") {
       const typeLabel = getLabelFromValue(robotTypes, selectedRobotType);
-      filteredRobots = filteredRobots.filter((r) => r.robottype?.toLowerCase() === typeLabel);
+      filteredRobots = filteredRobots.filter((r) => r.robot_type?.toLowerCase() === typeLabel);
     }
 
     // Price range
@@ -314,7 +314,7 @@ const Robots = () => {
     // Company
     if (selectedCompany !== "all") {
       const companyLabel = getLabelFromValue(companies, selectedCompany);
-      filteredRobots = filteredRobots.filter((r) => r.profiles?.companyname?.toLowerCase() === companyLabel);
+      filteredRobots = filteredRobots.filter((r) => r.profiles?.company_name?.toLowerCase() === companyLabel);
     }
 
     // Sort
@@ -344,7 +344,7 @@ const Robots = () => {
       });
     } else if (groupBy === "category") {
       filteredRobots.forEach((r) => {
-        const cat = r.robottype || "Others";
+        const cat = r.robot_type || "Others";
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(r);
       });
@@ -417,7 +417,7 @@ const Robots = () => {
           buttonName: "Remove from Watchlist",
           buttonType: "wishlist",
           sellerId: robot.seller_id,
-          sellerName: robot.profiles?.companyname || robot.profiles?.fullname,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
           itemId: robot.id,
           itemType: "robot",
           additionalData: {
@@ -454,7 +454,7 @@ const Robots = () => {
           buttonName: "Add to Watchlist",
           buttonType: "wishlist",
           sellerId: robot.seller_id,
-          sellerName: robot.profiles?.companyname || robot.profiles?.fullname,
+          sellerName: robot.profiles?.company_name || robot.profiles?.full_name,
           itemId: robot.id,
           itemType: "robot",
           additionalData: {
@@ -784,7 +784,7 @@ const Robots = () => {
                       <div>
                         <h3 className="text-xl font-semibold">
                           {groupBy === "company"
-                            ? sellerProfiles[key]?.companyname || sellerProfiles[key]?.fullname || "Company"
+                            ? sellerProfiles[key]?.company_name || sellerProfiles[key]?.full_name || "Company"
                             : key}
                         </h3>
                         <p className="text-xs text-muted-foreground">
@@ -849,7 +849,7 @@ const Robots = () => {
                                   if (navigator.share) {
                                     navigator.share({
                                       title: robot.name,
-                                      text: `Check out this ${robot.robottype} ${robot.name} for ${formatPrice(
+                                      text: `Check out this ${robot.robot_type} ${robot.name} for ${formatPrice(
                                         robot.price,
                                         robot.currency,
                                       )}`,
@@ -909,7 +909,7 @@ const Robots = () => {
                               <div className="flex items-center">
                                 <Building className="w-3 h-3 mr-1" />
                                 <span className="line-clamp-1">
-                                  {robot.profiles?.companyname || robot.profiles?.fullname || "Seller"}
+                                  {robot.profiles?.company_name || robot.profiles?.full_name || "Seller"}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
@@ -1000,7 +1000,7 @@ const Robots = () => {
                                   {robot.model && <span> · {robot.model}</span>}
                                 </p>
                                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
-                                  <span>{robot.robottype || "Robot"}</span>
+                                  <span>{robot.robot_type || "Robot"}</span>
                                   <span>· {robot.payload || "N/A"} kg</span>
                                   <span>· {robot.reach || "N/A"} mm</span>
                                 </div>
@@ -1014,7 +1014,7 @@ const Robots = () => {
                                   {formatPrice(robot.price, robot.currency)}
                                 </div>
                                 <Badge variant="outline" className="text-xs">
-                                  {robot.profiles?.companyname || robot.profiles?.fullname || "Seller"}
+                                  {robot.profiles?.company_name || robot.profiles?.full_name || "Seller"}
                                 </Badge>
                                 {robot.condition && (
                                   <Badge
