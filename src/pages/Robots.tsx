@@ -21,12 +21,12 @@ import {
   CheckCircle,
   Heart,
 } from "lucide-react";
-import ResponsiveImage from "@/components/ui/responsive-image";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import ChatButton from "@/components/chat/ChatButton";
+import { ChatButton } from "@/components/chat/ChatButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,12 +164,12 @@ const Robots = () => {
         if (user) {
           const { data: watchlistData } = await supabase
             .from("watchlists")
-            .select("itemid")
-            .eq("userid", user.id)
-            .eq("itemtype", "robot");
+            .select("item_id")
+            .eq("user_id", user.id)
+            .eq("item_type", "robot");
 
           if (watchlistData) {
-            setWatchlistItems(new Set(watchlistData.map((item: any) => item.itemid)));
+            setWatchlistItems(new Set(watchlistData.map((item: any) => item.item_id)));
           }
         }
 
@@ -401,9 +401,9 @@ const Robots = () => {
         const { error } = await supabase
           .from("watchlists")
           .delete()
-          .eq("userid", user.id)
-          .eq("itemtype", "robot")
-          .eq("itemid", robot.id);
+          .eq("user_id", user.id)
+          .eq("item_type", "robot")
+          .eq("item_id", robot.id);
 
         if (error) throw error;
 
@@ -435,9 +435,9 @@ const Robots = () => {
         });
       } else {
         const { error } = await supabase.from("watchlists").insert({
-          userid: user.id,
-          itemtype: "robot",
-          itemid: robot.id,
+          user_id: user.id,
+          item_type: "robot",
+          item_id: robot.id,
           notes: `${robot.name} - ${robot.model}`,
           priority: "medium",
         });
@@ -939,11 +939,7 @@ const Robots = () => {
                                   itemName={robot.name}
                                   variant="outline"
                                   size="sm"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MessageCircle className="w-3 h-3 mr-1" />
-                                  Chat
-                                </ChatButton>
+                                />
                               </div>
                               <Button
                                 variant="outline"
@@ -1051,11 +1047,7 @@ const Robots = () => {
                                   itemName={robot.name}
                                   variant="outline"
                                   size="sm"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MessageCircle className="w-3 h-3 mr-1" />
-                                  Chat
-                                </ChatButton>
+                                />
                               </div>
                               <Button
                                 variant="outline"
