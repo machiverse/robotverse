@@ -121,7 +121,8 @@ const Robots = () => {
     const groupByParam = urlParams.get("groupBy");
 
     if (typeParam) {
-      setSelectedRobotType(typeParam.toLowerCase().replace(/ /g, "-"));
+      // Store the original type from URL for direct matching
+      setSelectedRobotType(typeParam);
     }
     if (groupByParam) {
       setGroupBy(groupByParam as "company" | "category" | "all");
@@ -219,7 +220,7 @@ const Robots = () => {
           ...Array.from(uniqueRobotTypes)
             .sort()
             .map((type) => ({
-              value: type.toLowerCase().replace(/ /g, "-"),
+              value: type, // Use original type name to match URL params
               label: type,
             })),
         ]);
@@ -263,10 +264,9 @@ const Robots = () => {
       });
     }
 
-    // Robot type filter
+    // Robot type filter - direct comparison with original type name
     if (selectedRobotType !== "all") {
-      const typeLabel = getLabelFromValue(robotTypes, selectedRobotType);
-      filteredRobots = filteredRobots.filter((r) => r.robot_type?.toLowerCase() === typeLabel);
+      filteredRobots = filteredRobots.filter((r) => r.robot_type === selectedRobotType);
     }
 
     // Manufacturer filter (using brand field)
