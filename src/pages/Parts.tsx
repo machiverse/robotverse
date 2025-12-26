@@ -1,11 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, MapPin, Search, Grid, List, Star, Loader2, Building } from "lucide-react";
+import { 
+  Package, 
+  MapPin, 
+  Search, 
+  Grid, 
+  List, 
+  Star, 
+  Loader2, 
+  Building,
+  TrendingUp,
+  Filter,
+  ChevronRight,
+  X
+} from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
@@ -14,7 +28,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
-import { getMainCategories, getSubCategories } from "@/constants/sparePartsCategories";
+import { 
+  SPARE_PARTS_TAXONOMY,
+  getCategories,
+  getSubcategoriesForCategory,
+  getComponentTypesForSubcategory,
+} from "@/constants/sparePartsCategories";
 import { SEOHead } from "@/components/SEOHead";
 import { generateItemListSchema } from "@/utils/seoSchemas";
 
@@ -22,7 +41,8 @@ interface Part {
   id: string;
   name: string;
   category: string;
-  subCategory?: string;
+  subcategory?: string;
+  componentType?: string;
   customCategory?: string;
   price: number;
   location: string;
@@ -43,35 +63,83 @@ interface Part {
 }
 
 const Parts = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { trackButtonClick } = useButtonTracking();
+  const { trackItemView, getItemViewCount } = useUniversalViewTracking();
+
+  // Filter states - Three-level taxonomy
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMainCategory, setSelectedMainCategory] = useState("all");
-  const [selectedSubCategory, setSelectedSubCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedSubcategory, setSelectedSubcategory] = useState("all");
+  const [selectedComponentType, setSelectedComponentType] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
+  const [selectedPriceRange, setSelectedPriceRange] = useState("all");
+  const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Data states
   const [parts, setParts] = useState<Part[]>([]);
+  const [partsWithViews, setPartsWithViews] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const { trackButtonClick } = useButtonTracking();
-  const { trackItemView } = useUniversalViewTracking();
 
-  // Dynamic filter states
-  const [mainCategories, setMainCategories] = useState([{ value: "all", label: "All Categories" }]);
-  const [subCategories, setSubCategories] = useState([{ value: "all", label: "All Sub-Categories" }]);
-  const [locations, setLocations] = useState([{ value: "all", label: "All Locations" }]);
+  // Dynamic filter options
+  const [locations, setLocations] = useState<{ value: string; label: string }[]>([
+    { value: "all", label: "All Locations" },
+  ]);
 
-  // Fetch real parts data from Supabase
+  // Fixed price ranges
+  const priceRanges = [
+    { value: "all", label: "All Prices" },
+    { value: "under-5k", label: "Under ₹5,000" },
+    { value: "5k-25k", label: "₹5,000 - ₹25,000" },
+    { value: "25k-100k", label: "₹25,000 - ₹1,00,000" },
+    { value: "100k-500k", label: "₹1,00,000 - ₹5,00,000" },
+    { value: "over-500k", label: "Over ₹5,00,000" },
+  ];
+
+  // Get available subcategories based on selected category
+  const availableSubcategories = useMemo(() => {
+    if (selectedCategory === "all") return [];
+    return getSubcategoriesForCategory(selectedCategory);
+  }, [selectedCategory]);
+
+  // Get available component types based on selected subcategory
+  const availableComponentTypes = useMemo(() => {
+    if (selectedCategory === "all" || selectedSubcategory === "all") return [];
+    return getComponentTypesForSubcategory(selectedCategory, selectedSubcategory);
+  }, [selectedCategory, selectedSubcategory]);
+
+  // Read filters from URL
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    const subcategoryParam = searchParams.get("subcategory");
+    const componentTypeParam = searchParams.get("componentType");
+
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+    if (subcategoryParam) {
+      setSelectedSubcategory(subcategoryParam);
+    }
+    if (componentTypeParam) {
+      setSelectedComponentType(componentTypeParam);
+    }
+  }, [searchParams]);
+
+  // Fetch parts data
   useEffect(() => {
     const fetchParts = async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from("spare_parts")
-          .select(
-            `
+          .select(`
             *,
             profiles!spare_parts_seller_id_fkey (
               full_name,
@@ -81,25 +149,25 @@ const Parts = () => {
               mobile_number,
               email
             )
-          `,
-          )
+          `)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
 
         // Transform data to match interface
-        const transformedData = data.map((item) => ({
+        const transformedData = (data || []).map((item) => ({
           id: item.id,
           name: item.name,
-          category: item.main_category || item.category_tags?.[0] || "Other",
-          subCategory: item.sub_category || "",
+          category: item.category || "Robot Parts",
+          subcategory: item.main_category || "",
+          componentType: item.component_type || item.sub_category || "",
           customCategory: item.custom_category || "",
           price: item.price || 0,
           location: item.location || item.profiles?.location || "Location not specified",
           image: item.images?.[0] || "/placeholder.svg",
           partNumber: item.part_number || "N/A",
           compatibility: item.compatible_robots?.join(", ") || "Universal",
-          rating: 4.5, // Default rating
+          rating: 4.5,
           availability: "In Stock",
           quantity: item.quantity,
           seller: item.profiles || {},
@@ -109,29 +177,23 @@ const Parts = () => {
         setParts(transformedData);
         setError(null);
 
-        // Extract unique filter options dynamically and sort them
-        const uniqueMainCategories = new Set<string>();
-        const uniqueSubCategories = new Set<string>();
-        const uniqueLocations = new Set<string>();
+        // Fetch view counts
+        const partsWithViewCounts = await Promise.all(
+          transformedData.map(async (part) => {
+            const viewCount = await getItemViewCount("spare_parts", part.id);
+            return { ...part, viewCount };
+          })
+        );
+        setPartsWithViews(partsWithViewCounts);
 
+        // Extract unique locations
+        const uniqueLocations = new Set<string>();
         transformedData.forEach((part) => {
-          if (part.category) uniqueMainCategories.add(part.category.trim());
-          if (part.subCategory) uniqueSubCategories.add(part.subCategory.trim());
-          if (part.location) uniqueLocations.add(part.location.trim());
+          if (part.location && part.location !== "Location not specified") {
+            uniqueLocations.add(part.location.trim());
+          }
         });
 
-        // Set main categories sorted alphabetically
-        setMainCategories([
-          { value: "all", label: "All Categories" },
-          ...Array.from(uniqueMainCategories)
-            .sort()
-            .map((cat) => ({
-              value: cat.toLowerCase().replace(/\s+/g, "-"),
-              label: cat,
-            })),
-        ]);
-
-        // Set locations sorted alphabetically
         setLocations([
           { value: "all", label: "All Locations" },
           ...Array.from(uniqueLocations)
@@ -151,31 +213,108 @@ const Parts = () => {
     };
 
     fetchParts();
-  }, []);
+  }, [getItemViewCount]);
 
-  // Update sub-categories when main category changes
-  useEffect(() => {
-    if (selectedMainCategory && selectedMainCategory !== "all") {
-      const filteredSubCats = parts
-        .filter((part) => part.category.toLowerCase().replace(/\s+/g, "-") === selectedMainCategory)
-        .map((part) => part.subCategory)
-        .filter((sub) => sub && sub.trim() !== "");
+  // Handle category change - reset subcategory and component type
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setSelectedSubcategory("all");
+    setSelectedComponentType("all");
+  };
 
-      const uniqueSubCats = Array.from(new Set(filteredSubCats));
-      
-      setSubCategories([
-        { value: "all", label: "All Sub-Categories" },
-        ...uniqueSubCats
-          .sort()
-          .map((sub) => ({
-            value: sub.toLowerCase().replace(/\s+/g, "-"),
-            label: sub,
-          })),
-      ]);
-    } else {
-      setSubCategories([{ value: "all", label: "All Sub-Categories" }]);
+  // Handle subcategory change - reset component type
+  const handleSubcategoryChange = (value: string) => {
+    setSelectedSubcategory(value);
+    setSelectedComponentType("all");
+  };
+
+  // Filter and sort parts
+  const filteredParts = useMemo(() => {
+    let filtered = [...partsWithViews];
+
+    // Search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((part) => 
+        part.name.toLowerCase().includes(q) ||
+        part.partNumber.toLowerCase().includes(q) ||
+        part.compatibility.toLowerCase().includes(q)
+      );
     }
-  }, [selectedMainCategory, parts]);
+
+    // Category filter
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((part) => part.category === selectedCategory);
+    }
+
+    // Subcategory filter
+    if (selectedSubcategory !== "all") {
+      filtered = filtered.filter((part) => part.subcategory === selectedSubcategory);
+    }
+
+    // Component type filter
+    if (selectedComponentType !== "all") {
+      filtered = filtered.filter((part) => part.componentType === selectedComponentType);
+    }
+
+    // Location filter
+    if (selectedLocation !== "all") {
+      const locLabel = locations.find((l) => l.value === selectedLocation)?.label?.toLowerCase();
+      filtered = filtered.filter((part) => part.location.toLowerCase() === locLabel);
+    }
+
+    // Price range filter
+    if (selectedPriceRange !== "all") {
+      const ranges: Record<string, [number, number]> = {
+        "under-5k": [0, 5000],
+        "5k-25k": [5000, 25000],
+        "25k-100k": [25000, 100000],
+        "100k-500k": [100000, 500000],
+        "over-500k": [500000, Infinity],
+      };
+      const [min, max] = ranges[selectedPriceRange] || [0, Infinity];
+      filtered = filtered.filter((part) => part.price >= min && part.price <= max);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "views":
+          return ((b as any).viewCount || 0) - ((a as any).viewCount || 0);
+        case "price-low":
+          return (a.price || 0) - (b.price || 0);
+        case "price-high":
+          return (b.price || 0) - (a.price || 0);
+        case "newest":
+          return 0; // Already sorted by created_at desc
+        case "name":
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [partsWithViews, searchQuery, selectedCategory, selectedSubcategory, selectedComponentType, selectedLocation, selectedPriceRange, sortBy, locations]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setSelectedSubcategory("all");
+    setSelectedComponentType("all");
+    setSelectedLocation("all");
+    setSelectedPriceRange("all");
+  };
+
+  // Check if any filter is active
+  const hasActiveFilters = 
+    searchQuery || 
+    selectedCategory !== "all" || 
+    selectedSubcategory !== "all" || 
+    selectedComponentType !== "all" || 
+    selectedLocation !== "all" || 
+    selectedPriceRange !== "all";
 
   // Handle contact seller
   const handleContactSeller = async (part: Part) => {
@@ -199,7 +338,6 @@ const Parts = () => {
       return;
     }
 
-    // Track button interaction
     trackButtonClick({
       buttonName: "Contact Seller",
       buttonType: "spare_parts_contact",
@@ -220,48 +358,6 @@ const Parts = () => {
       },
     });
 
-    try {
-      // Log the contact request
-      const { error: requestError } = await supabase.from("user_requests").insert({
-        user_id: user.id,
-        user_name: user.user_metadata?.full_name || "Unknown User",
-        company_name: user.user_metadata?.company_name || "",
-        mobile_number: user.user_metadata?.phone || "",
-        email_address: user.email || "",
-        location: user.user_metadata?.location || "",
-        request_type: "Contact Seller",
-        item_type: "spare_parts",
-        item_id: part.id,
-        item_name: part.name,
-        seller_id: part.sellerId || "",
-        status: "pending",
-        requirements: `User contacted seller for spare part: ${part.name}`,
-      });
-
-      if (requestError) {
-        console.error("Error logging request:", requestError);
-      }
-
-      // Create notification for seller
-      if (part.sellerId) {
-        const { error: notificationError } = await supabase.from("seller_notifications").insert({
-          seller_id: part.sellerId,
-          user_id: user.id,
-          type: "contact_request",
-          title: "New Contact Request",
-          message: `${user.user_metadata?.full_name || "A user"} wants to contact you about ${part.name}`,
-          item_type: "spare_parts",
-          item_id: part.id,
-        });
-
-        if (notificationError) {
-          console.error("Error creating notification:", notificationError);
-        }
-      }
-    } catch (error) {
-      console.error("Error processing contact request:", error);
-    }
-
     window.open(`tel:${phone}`, "_self");
     toast({
       title: "Calling Seller",
@@ -280,7 +376,6 @@ const Parts = () => {
       return;
     }
 
-    // Track button interaction
     trackButtonClick({
       buttonName: "Request Quote",
       buttonType: "spare_parts_action",
@@ -303,278 +398,537 @@ const Parts = () => {
     setSelectedPart(part);
     setIsQuoteModalOpen(true);
   };
-  const filteredParts = parts.filter((part) => {
-    const matchesSearch =
-      part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      part.partNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      part.compatibility.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Helper to get label from value
-    const getLabelFromValue = (arr: { value: string; label: string }[], val: string) => 
-      arr.find((i) => i.value === val)?.label || "";
+  const formatPrice = (price?: number) => {
+    if (!price) return "Price on request";
+    return `₹${price.toLocaleString("en-IN")}`;
+  };
 
-    const matchesMainCategory = 
-      selectedMainCategory === "all" || 
-      part.category.toLowerCase() === getLabelFromValue(mainCategories, selectedMainCategory).toLowerCase();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <EnhancedHeader />
+        <main className="flex-grow flex items-center justify-center">
+          <Loader2 className="animate-spin w-10 h-10" />
+          <p className="ml-4 text-muted-foreground text-lg">Loading parts...</p>
+        </main>
+      </div>
+    );
+  }
 
-    const matchesSubCategory = 
-      selectedSubCategory === "all" || 
-      part.subCategory?.toLowerCase() === getLabelFromValue(subCategories, selectedSubCategory).toLowerCase();
-
-    const matchesLocation =
-      selectedLocation === "all" || 
-      part.location.toLowerCase() === getLabelFromValue(locations, selectedLocation).toLowerCase();
-
-    return matchesSearch && matchesMainCategory && matchesSubCategory && matchesLocation;
-  });
-
-  const LoadingState = () => (
-    <div className="flex flex-col items-center justify-center py-12">
-      <Loader2 className="w-8 h-8 animate-spin mb-4" />
-      <p className="text-muted-foreground">Loading parts...</p>
-    </div>
-  );
-
-  const ErrorState = () => (
-    <div className="flex flex-col items-center justify-center py-12">
-      <Package className="w-16 h-16 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold mb-2">Unable to load parts</h3>
-      <p className="text-muted-foreground mb-4">{error}</p>
-      <Button onClick={() => window.location.reload()} variant="outline">
-        Try Again
-      </Button>
-    </div>
-  );
-
-  const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-12">
-      <Package className="w-16 h-16 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold mb-2">No parts available</h3>
-      <p className="text-muted-foreground">
-        {searchQuery || selectedMainCategory !== "all" || selectedLocation !== "all"
-          ? "No parts match your current filters."
-          : "Parts inventory is currently empty."}
-      </p>
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <EnhancedHeader />
+        <main className="flex-grow flex flex-col justify-center items-center text-center px-4">
+          <Package className="w-16 h-16 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Failed to load parts</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title={`Genuine Robot Spare Parts & Accessories | RobotVerse`}
+        title="Genuine Robot Spare Parts & Accessories | RobotVerse"
         description="Source authentic spare parts and accessories for industrial robots from verified suppliers. Get genuine FANUC, ABB, KUKA, Yaskawa robot parts delivered to your facility."
         keywords="robot spare parts, industrial robot accessories, genuine robot parts, FANUC parts, ABB parts, KUKA parts, robot components, automation parts"
         jsonLd={generateItemListSchema(parts.slice(0, 20), "Robot Spare Parts & Accessories")}
       />
       <EnhancedHeader />
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Genuine Robot Spare Parts & Accessories
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Source authentic spare parts and accessories from verified suppliers - delivered to your facility
-          </p>
-        </div>
+      {/* Top title */}
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          Genuine Robot Spare Parts & Accessories
+        </h1>
+        <p className="text-muted-foreground">
+          Source authentic spare parts from verified suppliers - delivered to your facility
+        </p>
 
-        {/* Filters */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search parts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                disabled={loading}
-              />
-            </div>
-            <Select
-              value={selectedMainCategory}
-              onValueChange={(value) => {
-                setSelectedMainCategory(value);
-                setSelectedSubCategory("all");
-              }}
-              disabled={loading}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Main Category" />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                {mainCategories.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedMainCategory !== "all" && (
-              <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory} disabled={loading}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Sub Category" />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  {subCategories.map((subCat) => (
-                    <SelectItem key={subCat.value} value={subCat.value}>
-                      {subCat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Breadcrumb */}
+        {(selectedCategory !== "all" || selectedSubcategory !== "all" || selectedComponentType !== "all") && (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-4 flex-wrap">
+            <span className="hover:text-primary cursor-pointer" onClick={() => clearFilters()}>
+              Spare Parts
+            </span>
+            {selectedCategory !== "all" && (
+              <>
+                <ChevronRight className="w-3 h-3" />
+                <span 
+                  className="hover:text-primary cursor-pointer" 
+                  onClick={() => {
+                    setSelectedSubcategory("all");
+                    setSelectedComponentType("all");
+                  }}
+                >
+                  {selectedCategory}
+                </span>
+              </>
             )}
-            <Select value={selectedLocation} onValueChange={setSelectedLocation} disabled={loading}>
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                {locations.map((location) => (
-                  <SelectItem key={location.value} value={location.value}>
-                    {location.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex space-x-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-                disabled={loading}
-              >
-                <Grid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                disabled={loading}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
+            {selectedSubcategory !== "all" && (
+              <>
+                <ChevronRight className="w-3 h-3" />
+                <span 
+                  className="hover:text-primary cursor-pointer"
+                  onClick={() => setSelectedComponentType("all")}
+                >
+                  {selectedSubcategory}
+                </span>
+              </>
+            )}
+            {selectedComponentType !== "all" && (
+              <>
+                <ChevronRight className="w-3 h-3" />
+                <span className="text-primary font-medium">{selectedComponentType}</span>
+              </>
+            )}
           </div>
+        )}
+      </div>
 
-          {/* Results count */}
-          {!loading && !error && (
-            <div className="text-sm text-muted-foreground">
-              {filteredParts.length} {filteredParts.length === 1 ? "part" : "parts"} found
+      {/* Layout: left filter, right listing */}
+      <div className="container mx-auto px-4 pb-10 flex gap-6">
+        {/* LEFT FILTER COLUMN (sticky) */}
+        <aside className="w-72 flex-shrink-0 hidden lg:block">
+          <div className="sticky top-20 space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Filter className="w-4 h-4" />
+                    Filter Parts
+                  </CardTitle>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
+                      <X className="w-3 h-3 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search parts..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* 1. Category - First filter */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Category</p>
+                  <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {getCategories().map((cat) => (
+                        <SelectItem key={cat.name} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 2. Subcategory - Second filter */}
+                {selectedCategory !== "all" && (
+                  <div>
+                    <p className="text-xs font-semibold mb-1">Subcategory</p>
+                    <Select value={selectedSubcategory} onValueChange={handleSubcategoryChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Subcategories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Subcategories</SelectItem>
+                        {availableSubcategories.map((sub) => (
+                          <SelectItem key={sub.name} value={sub.name}>
+                            {sub.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* 3. Component Type - Third filter */}
+                {selectedSubcategory !== "all" && (
+                  <div>
+                    <p className="text-xs font-semibold mb-1">Component Type</p>
+                    <Select value={selectedComponentType} onValueChange={setSelectedComponentType}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Component Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Component Types</SelectItem>
+                        {availableComponentTypes.map((ct) => (
+                          <SelectItem key={ct.name} value={ct.name}>
+                            {ct.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* 4. Price Range */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Price Range</p>
+                  <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Prices" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {priceRanges.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 5. Location */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Location</p>
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Locations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc) => (
+                        <SelectItem key={loc.value} value={loc.value}>
+                          {loc.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </aside>
+
+        {/* RIGHT CONTENT COLUMN */}
+        <main className="flex-1 space-y-6">
+          {/* Top bar */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Spare Parts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* For mobile: filter + search */}
+              <div className="flex flex-col gap-3 lg:hidden">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search parts..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {getCategories().map((cat) => (
+                        <SelectItem key={cat.name} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedCategory !== "all" && (
+                    <Select value={selectedSubcategory} onValueChange={handleSubcategoryChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Subcategory" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Subcategories</SelectItem>
+                        {availableSubcategories.map((sub) => (
+                          <SelectItem key={sub.name} value={sub.name}>
+                            {sub.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing <span className="font-semibold">{filteredParts.length}</span> parts
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {/* Sort */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium hidden sm:inline">Sort by</span>
+                    <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="views">
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" />
+                            Most Popular
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="price-low">Price Low to High</SelectItem>
+                        <SelectItem value="price-high">Price High to Low</SelectItem>
+                        <SelectItem value="name">Name A-Z</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* View mode */}
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant={viewMode === "grid" ? "default" : "outline"}
+                      onClick={() => setViewMode("grid")}
+                    >
+                      <Grid className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant={viewMode === "list" ? "default" : "outline"}
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Parts listing */}
+          {filteredParts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Package className="w-16 h-16 text-muted-foreground mb-4" />
+              <p className="text-lg font-semibold mb-2">No parts match the current filters.</p>
+              <p className="text-muted-foreground mb-4">Try clearing some filters or changing the search text.</p>
+              <Button onClick={clearFilters}>Clear Filters</Button>
             </div>
-          )}
-        </div>
-
-        {/* Content */}
-        {loading ? (
-          <LoadingState />
-        ) : error ? (
-          <ErrorState />
-        ) : filteredParts.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <>
-            {/* Results */}
-            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+          ) : viewMode === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredParts.map((part) => (
                 <Card
                   key={part.id}
-                  className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-                  onClick={() => {
-                    window.location.href = `/parts/${part.id}`;
-                  }}
+                  className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
+                  onClick={() => navigate(`/parts/${part.id}`)}
                 >
-                  <CardHeader>
-                    {/* Small thumbnail preview image */}
-                    <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
-                      {part.image && part.image !== "/placeholder.svg" ? (
-                        <img
-                          src={part.image}
-                          alt={part.name}
-                          className="w-full h-full object-contain p-2 rounded-lg group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center w-full h-full">
-                          <Package className="w-12 h-12 text-muted-foreground" />
-                        </div>
+                  <div className="relative aspect-square overflow-hidden">
+                    <img
+                      src={part.image}
+                      alt={part.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <Badge className="absolute top-2 right-2 bg-green-500/90">
+                      {part.availability}
+                    </Badge>
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+                      {part.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Part #: {part.partNumber}
+                    </p>
+                    
+                    {/* Category badges */}
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {part.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {part.category}
+                        </Badge>
+                      )}
+                      {part.componentType && (
+                        <Badge variant="secondary" className="text-xs">
+                          {part.componentType}
+                        </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-lg">{part.name}</CardTitle>
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary" className="w-fit">
-                        {part.category}
-                      </Badge>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm text-muted-foreground">{part.rating}</span>
+
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                      <MapPin className="w-3 h-3" />
+                      <span className="truncate">{part.location}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-primary">
+                        {formatPrice(part.price)}
+                      </span>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span>{part.rating}</span>
                       </div>
                     </div>
-                    <ViewCountDisplay targetType="spare_parts" targetId={part.id} className="mt-2" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-primary">₹{part.price.toLocaleString()}</span>
-                        <Badge variant={part.availability === "In Stock" ? "default" : "secondary"}>
-                          {part.availability}
-                        </Badge>
+
+                    {part.seller?.company_name && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                        <Building className="w-3 h-3" />
+                        <span className="truncate">{part.seller.company_name}</span>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center">
-                          <Building className="w-4 h-4 mr-1" />
-                          <span className="text-sm font-medium">{part.seller?.company_name || "Company Name"}</span>
-                        </div>
-                        <div className="flex items-center text-muted-foreground">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          <span className="text-sm">{part.location}</span>
-                        </div>
-                      </div>
-                      <div className="text-sm space-y-1">
-                        <p>
-                          <span className="font-medium">Part #:</span> {part.partNumber}
-                        </p>
-                        <p>
-                          <span className="font-medium">Compatible:</span> {part.compatibility}
-                        </p>
-                        <p>
-                          <span className="font-medium">Quantity:</span> {part.quantity} available
-                        </p>
-                      </div>
-                      <div className="flex space-x-2 pt-2">
-                        <ChatButton
-                          otherUserId={part.sellerId || ""}
-                          itemId={part.id}
-                          itemType="spare_part"
-                          itemName={part.name}
-                          variant="default"
-                          className="flex-1"
-                        />
-                      </div>
+                    )}
+
+                    <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs"
+                        onClick={() => handleContactSeller(part)}
+                      >
+                        Contact
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() => handleRequestQuote(part)}
+                      >
+                        Get Quote
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredParts.map((part) => (
+                <Card
+                  key={part.id}
+                  className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  onClick={() => navigate(`/parts/${part.id}`)}
+                >
+                  <div className="flex flex-col sm:flex-row">
+                    <div className="relative w-full sm:w-48 h-48 flex-shrink-0">
+                      <img
+                        src={part.image}
+                        alt={part.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <Badge className="absolute top-2 left-2 bg-green-500/90">
+                        {part.availability}
+                      </Badge>
+                    </div>
+                    <CardContent className="flex-1 p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1">{part.name}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Part #: {part.partNumber}
+                          </p>
+                          
+                          {/* Category badges */}
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {part.category && (
+                              <Badge variant="outline" className="text-xs">
+                                {part.category}
+                              </Badge>
+                            )}
+                            {part.subcategory && (
+                              <Badge variant="secondary" className="text-xs">
+                                {part.subcategory}
+                              </Badge>
+                            )}
+                            {part.componentType && (
+                              <Badge variant="default" className="text-xs">
+                                {part.componentType}
+                              </Badge>
+                            )}
+                          </div>
 
-            {/* Load More */}
-            {filteredParts.length > 0 && (
-              <div className="text-center mt-8">
-                <Button variant="outline" size="lg">
-                  Load More Parts
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{part.location}</span>
+                            </div>
+                            {part.seller?.company_name && (
+                              <div className="flex items-center gap-1">
+                                <Building className="w-4 h-4" />
+                                <span>{part.seller.company_name}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span>{part.rating}</span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Compatible with: {part.compatibility}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-3">
+                          <span className="font-bold text-xl text-primary">
+                            {formatPrice(part.price)}
+                          </span>
+                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleContactSeller(part)}
+                            >
+                              Contact
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleRequestQuote(part)}
+                            >
+                              Get Quote
+                            </Button>
+                          </div>
+                          <ChatButton
+                            otherUserId={part.sellerId || ""}
+                            itemType="spare_part"
+                            itemId={part.id}
+                            itemName={part.name}
+                            variant="outline"
+                            size="sm"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </main>
       </div>
 
       {/* Quote Modal */}
       <SparePartQuoteModal
         isOpen={isQuoteModalOpen}
-        onClose={() => setIsQuoteModalOpen(false)}
+        onClose={() => {
+          setIsQuoteModalOpen(false);
+          setSelectedPart(null);
+        }}
         part={selectedPart}
         userEmail={user?.email || ""}
-        userName={user?.user_metadata?.full_name || "User"}
+        userName={user?.user_metadata?.full_name || ""}
       />
     </div>
   );
