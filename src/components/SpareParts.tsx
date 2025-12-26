@@ -8,10 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, X, Plus, Package } from "lucide-react";
+import { Upload, X, Plus, Package, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { formatPrice, type Currency } from "@/utils/currency";
-import { SPARE_PARTS_CATEGORIES, getMainCategories, getSubCategories } from "@/constants/sparePartsCategories";
+import { 
+  SPARE_PARTS_TAXONOMY,
+  getCategories,
+  getSubcategoriesForCategory,
+  getComponentTypesForSubcategory,
+  getCategoryByName,
+  getSubcategoryByName,
+} from "@/constants/sparePartsCategories";
 
 interface SparePartFormData {
   name: string;
@@ -24,6 +31,11 @@ interface SparePartFormData {
   location: string;
   specifications: Record<string, any>;
   category_tags: string[];
+  // Three-level taxonomy
+  category: string;
+  subcategory: string;
+  component_type: string;
+  // Legacy fields for backward compatibility
   main_category: string;
   sub_category: string;
   custom_category: string;
@@ -51,16 +63,64 @@ const SpareParts = () => {
     location: '',
     specifications: {},
     category_tags: [],
+    category: '',
+    subcategory: '',
+    component_type: '',
     main_category: '',
     sub_category: '',
     custom_category: '',
   });
+
+  // Get available subcategories based on selected category
+  const availableSubcategories = formData.category 
+    ? getSubcategoriesForCategory(formData.category) 
+    : [];
+
+  // Get available component types based on selected subcategory
+  const availableComponentTypes = formData.category && formData.subcategory
+    ? getComponentTypesForSubcategory(formData.category, formData.subcategory)
+    : [];
 
   // Update form fields
   const handleInputChange = (field: keyof SparePartFormData, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
+    }));
+  };
+
+  // Handle category change - reset subcategory and component type
+  const handleCategoryChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      category: value,
+      subcategory: '',
+      component_type: '',
+      // Update legacy fields
+      main_category: '',
+      sub_category: '',
+    }));
+  };
+
+  // Handle subcategory change - reset component type
+  const handleSubcategoryChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      subcategory: value,
+      component_type: '',
+      // Update legacy fields
+      main_category: value,
+      sub_category: '',
+    }));
+  };
+
+  // Handle component type change
+  const handleComponentTypeChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      component_type: value,
+      // Update legacy field
+      sub_category: value,
     }));
   };
 
@@ -167,6 +227,21 @@ const SpareParts = () => {
       return;
     }
 
+    if (!formData.category) {
+      toast.error("Please select a category");
+      return;
+    }
+
+    if (!formData.subcategory) {
+      toast.error("Please select a subcategory");
+      return;
+    }
+
+    if (!formData.component_type) {
+      toast.error("Please select a component type");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -186,8 +261,11 @@ const SpareParts = () => {
           location: formData.location,
           specifications: formData.specifications,
           category_tags: formData.category_tags,
-          main_category: formData.main_category,
-          sub_category: formData.sub_category,
+          // New three-level taxonomy
+          category: formData.category,
+          main_category: formData.subcategory, // subcategory stored in main_category
+          sub_category: formData.component_type, // component_type stored in sub_category
+          component_type: formData.component_type,
           custom_category: formData.custom_category,
           images: imageUrls,
         });
@@ -208,6 +286,9 @@ const SpareParts = () => {
         location: "",
         specifications: {},
         category_tags: [],
+        category: "",
+        subcategory: "",
+        component_type: "",
         main_category: "",
         sub_category: "",
         custom_category: "",
@@ -233,6 +314,104 @@ const SpareParts = () => {
 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Three-Level Category Selection */}
+          <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Classification *
+            </Label>
+            
+            {/* Breadcrumb Preview */}
+            {(formData.category || formData.subcategory || formData.component_type) && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground flex-wrap">
+                <span>Spare Parts</span>
+                {formData.category && (
+                  <>
+                    <ChevronRight className="w-3 h-3" />
+                    <span className="text-foreground">{formData.category}</span>
+                  </>
+                )}
+                {formData.subcategory && (
+                  <>
+                    <ChevronRight className="w-3 h-3" />
+                    <span className="text-foreground">{formData.subcategory}</span>
+                  </>
+                )}
+                {formData.component_type && (
+                  <>
+                    <ChevronRight className="w-3 h-3" />
+                    <span className="text-primary font-medium">{formData.component_type}</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Category Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-sm">Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={handleCategoryChange}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getCategories().map((category) => (
+                      <SelectItem key={category.name} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subcategory Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="subcategory" className="text-sm">Subcategory *</Label>
+                <Select
+                  value={formData.subcategory}
+                  onValueChange={handleSubcategoryChange}
+                  disabled={loading || !formData.category}
+                >
+                  <SelectTrigger className={!formData.category ? "opacity-50" : ""}>
+                    <SelectValue placeholder={formData.category ? "Select subcategory" : "Select category first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubcategories.map((sub) => (
+                      <SelectItem key={sub.name} value={sub.name}>
+                        {sub.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Component Type Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="component_type" className="text-sm">Component Type *</Label>
+                <Select
+                  value={formData.component_type}
+                  onValueChange={handleComponentTypeChange}
+                  disabled={loading || !formData.subcategory}
+                >
+                  <SelectTrigger className={!formData.subcategory ? "opacity-50" : ""}>
+                    <SelectValue placeholder={formData.subcategory ? "Select component type" : "Select subcategory first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableComponentTypes.map((ct) => (
+                      <SelectItem key={ct.name} value={ct.name}>
+                        {ct.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
           {/* Image Upload Section */}
           <div className="space-y-4">
             <Label>Part Images (1 - {MAX_IMAGES} required)</Label>
@@ -446,12 +625,12 @@ const SpareParts = () => {
 
           {/* Category Tags */}
           <div className="space-y-2">
-            <Label>Category Tags</Label>
+            <Label>Additional Tags</Label>
             <div className="flex gap-2">
               <Input
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Add category tag"
+                placeholder="Add additional tags"
                 onKeyPress={(e) =>
                   e.key === "Enter" && (e.preventDefault(), addTag())
                 }
@@ -477,7 +656,7 @@ const SpareParts = () => {
                       className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
                       onClick={() => removeTag(tag)}
                       disabled={loading}
-                      aria-label={`Remove category tag ${tag}`}
+                      aria-label={`Remove tag ${tag}`}
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -486,69 +665,6 @@ const SpareParts = () => {
               </div>
             )}
           </div>
-
-          {/* Main Category */}
-          <div className="space-y-2">
-            <Label htmlFor="main_category">Main Category *</Label>
-            <Select
-              value={formData.main_category}
-              onValueChange={(value) => {
-                handleInputChange("main_category", value);
-                handleInputChange("sub_category", "");
-                handleInputChange("custom_category", "");
-              }}
-              disabled={loading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select main category" />
-              </SelectTrigger>
-              <SelectContent>
-                {getMainCategories().map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Sub Category */}
-          {formData.main_category && formData.main_category !== "Other" && (
-            <div className="space-y-2">
-              <Label htmlFor="sub_category">Sub Category *</Label>
-              <Select
-                value={formData.sub_category}
-                onValueChange={(value) => handleInputChange("sub_category", value)}
-                disabled={loading || !formData.main_category}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select sub category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getSubCategories(formData.main_category).map((subCategory) => (
-                    <SelectItem key={subCategory} value={subCategory}>
-                      {subCategory}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Custom Category (shown when "Other" is selected) */}
-          {formData.main_category === "Other" && (
-            <div className="space-y-2">
-              <Label htmlFor="custom_category">Specify Category *</Label>
-              <Input
-                id="custom_category"
-                value={formData.custom_category}
-                onChange={(e) => handleInputChange("custom_category", e.target.value)}
-                placeholder="Enter your custom part or accessory name"
-                required
-                disabled={loading}
-              />
-            </div>
-          )}
 
           {/* Description */}
           <div className="space-y-2">

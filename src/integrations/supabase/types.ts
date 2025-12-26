@@ -2379,8 +2379,10 @@ export type Database = {
       spare_parts: {
         Row: {
           brand: string | null
+          category: string | null
           category_tags: string[] | null
           compatible_robots: string[] | null
+          component_type: string | null
           condition: string | null
           created_at: string
           currency: string | null
@@ -2407,8 +2409,10 @@ export type Database = {
         }
         Insert: {
           brand?: string | null
+          category?: string | null
           category_tags?: string[] | null
           compatible_robots?: string[] | null
+          component_type?: string | null
           condition?: string | null
           created_at?: string
           currency?: string | null
@@ -2435,8 +2439,10 @@ export type Database = {
         }
         Update: {
           brand?: string | null
+          category?: string | null
           category_tags?: string[] | null
           compatible_robots?: string[] | null
+          component_type?: string | null
           condition?: string | null
           created_at?: string
           currency?: string | null
