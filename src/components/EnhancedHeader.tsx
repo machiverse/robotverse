@@ -214,7 +214,7 @@ const EnhancedHeader = () => {
       {/* Secondary Navigation - Category Listings */}
       <nav className="hidden lg:block border-t border-border bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center space-x-1">
+          <div className="flex items-center justify-between">
             {/* Robots Menu */}
             <div
               className="relative"
