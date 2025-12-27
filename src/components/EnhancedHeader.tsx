@@ -18,6 +18,10 @@ import {
   Code,
   Package,
   X,
+  Heart,
+  GitCompare,
+  Bell,
+  LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -89,6 +93,7 @@ const EnhancedHeader = () => {
   const [mobileExpandedMenu, setMobileExpandedMenu] = useState<string | null>(null);
   const [mobileExpandedSubMenu, setMobileExpandedSubMenu] = useState<string | null>(null);
   const [mobileExpandedComponentMenu, setMobileExpandedComponentMenu] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   
   useChatNotifications();
 
@@ -111,362 +116,84 @@ const EnhancedHeader = () => {
     setMenuOpen(false);
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/robots?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      {/* Top Header - Logo, Search, Icons */}
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-3">
+        <Link to="/" className="flex items-center space-x-3 flex-shrink-0">
           <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
-          <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent hidden sm:block">
             RobotVerse
           </span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center space-x-1">
-          {/* Robots Menu */}
-          <div
-            className="relative"
-            onMouseEnter={() => handleDropdownEnter("robots")}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button
-              onClick={() => handleNavigation("/robots")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
-            >
-              <Bot className="h-4 w-4" />
-              <span>Robots</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <DropdownMenu isOpen={activeDropdown === "robots"} onClose={() => setActiveDropdown(null)}>
-              <div className="p-2 max-h-[400px] overflow-y-auto">
-                <Link
-                  to="/robots"
-                  className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
-                  onClick={() => setActiveDropdown(null)}
-                >
-                  All Robots
-                </Link>
-                <div className="border-t border-border my-1" />
-                {NAVIGATION_CONFIG.robots.subItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                    onClick={() => setActiveDropdown(null)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </DropdownMenu>
-          </div>
-
-          {/* Spare Parts Menu - Multi-level */}
-          <div
-            className="relative"
-            onMouseEnter={() => handleDropdownEnter("spares")}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button
-              onClick={() => handleNavigation("/parts")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
-            >
-              <Package className="h-4 w-4" />
-              <span>Spare Parts</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <DropdownMenu 
-              isOpen={activeDropdown === "spares"} 
-              onClose={() => setActiveDropdown(null)}
-              className="min-w-[240px]"
-            >
-              <div className="p-2">
-                <Link
-                  to="/parts"
-                  className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
-                  onClick={() => setActiveDropdown(null)}
-                >
-                  All Spare Parts
-                </Link>
-                <div className="border-t border-border my-1" />
-                {NAVIGATION_CONFIG.spares.categories.map((category) => {
-                  const IconComponent = menuIcons[category.label] || Package;
-                  return (
-                    <div
-                      key={category.label}
-                      className="relative"
-                      onMouseEnter={() => setActiveSubMenu(category.label)}
-                    >
-                      <Link
-                        to={category.href}
-                        className="flex items-center justify-between px-3 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition group"
-                        onClick={() => setActiveDropdown(null)}
-                      >
-                        <span className="flex items-center gap-2">
-                          <IconComponent className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                          {category.label}
-                        </span>
-                        <ChevronDown className="h-3 w-3 -rotate-90" />
-                      </Link>
-                      {/* Sub-menu subcategories */}
-                      {activeSubMenu === category.label && (
-                        <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
-                          <div className="p-2">
-                            <Link
-                              to={category.href}
-                              className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
-                              onClick={() => setActiveDropdown(null)}
-                            >
-                              All {category.label}
-                            </Link>
-                            <div className="border-t border-border my-1" />
-                            {category.subcategories.map((sub) => (
-                              <div
-                                key={sub.label}
-                                className="relative"
-                                onMouseEnter={() => setActiveComponentMenu(sub.label)}
-                              >
-                                <Link
-                                  to={sub.href}
-                                  className="flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                                  onClick={() => setActiveDropdown(null)}
-                                >
-                                  <span>{sub.label}</span>
-                                  <ChevronDown className="h-3 w-3 -rotate-90" />
-                                </Link>
-                                {/* Third level - Component Types */}
-                                {activeComponentMenu === sub.label && sub.componentTypes && sub.componentTypes.length > 0 && (
-                                  <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
-                                    <div className="p-2">
-                                      <Link
-                                        to={sub.href}
-                                        className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
-                                        onClick={() => setActiveDropdown(null)}
-                                      >
-                                        All {sub.label}
-                                      </Link>
-                                      <div className="border-t border-border my-1" />
-                                      {sub.componentTypes.map((ct) => (
-                                        <Link
-                                          key={ct.label}
-                                          to={ct.href}
-                                          className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                                          onClick={() => setActiveDropdown(null)}
-                                        >
-                                          {ct.label}
-                                        </Link>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </DropdownMenu>
-          </div>
-
-          {/* Services Menu */}
-          <div
-            className="relative"
-            onMouseEnter={() => handleDropdownEnter("services")}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button
-              onClick={() => handleNavigation("/services")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
-            >
-              <Settings className="h-4 w-4" />
-              <span>Services</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <DropdownMenu isOpen={activeDropdown === "services"} onClose={() => setActiveDropdown(null)}>
-              <div className="p-2 max-h-[400px] overflow-y-auto">
-                <Link
-                  to="/services"
-                  className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
-                  onClick={() => setActiveDropdown(null)}
-                >
-                  All Services
-                </Link>
-                <div className="border-t border-border my-1" />
-                {NAVIGATION_CONFIG.services.subItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                    onClick={() => setActiveDropdown(null)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </DropdownMenu>
-          </div>
-
-          {/* Logistics Menu */}
-          <div
-            className="relative"
-            onMouseEnter={() => handleDropdownEnter("logistics")}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button
-              onClick={() => handleNavigation("/logistics")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
-            >
-              <Truck className="h-4 w-4" />
-              <span>Logistics</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <DropdownMenu isOpen={activeDropdown === "logistics"} onClose={() => setActiveDropdown(null)}>
-              <div className="p-2 max-h-[400px] overflow-y-auto">
-                <Link
-                  to="/logistics"
-                  className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
-                  onClick={() => setActiveDropdown(null)}
-                >
-                  All Logistics
-                </Link>
-                <div className="border-t border-border my-1" />
-                {NAVIGATION_CONFIG.logistics.subItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                    onClick={() => setActiveDropdown(null)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </DropdownMenu>
-          </div>
-
-          {/* Financing Menu */}
-          <div
-            className="relative"
-            onMouseEnter={() => handleDropdownEnter("financing")}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button
-              onClick={() => handleNavigation("/financing")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
-            >
-              <CreditCard className="h-4 w-4" />
-              <span>Financing</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <DropdownMenu isOpen={activeDropdown === "financing"} onClose={() => setActiveDropdown(null)}>
-              <div className="p-2 max-h-[400px] overflow-y-auto">
-                <Link
-                  to="/financing"
-                  className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
-                  onClick={() => setActiveDropdown(null)}
-                >
-                  All Financing
-                </Link>
-                <div className="border-t border-border my-1" />
-                {NAVIGATION_CONFIG.financing.subItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                    onClick={() => setActiveDropdown(null)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </DropdownMenu>
-          </div>
-
-          {/* RoboBook Menu */}
-          <div
-            className="relative"
-            onMouseEnter={() => handleDropdownEnter("robobook")}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button
-              onClick={() => handleNavigation("/robobook")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>RoboBook</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            <DropdownMenu isOpen={activeDropdown === "robobook"} onClose={() => setActiveDropdown(null)}>
-              <div className="p-2 max-h-[400px] overflow-y-auto">
-                <Link
-                  to="/robobook"
-                  className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
-                  onClick={() => setActiveDropdown(null)}
-                >
-                  All Articles
-                </Link>
-                <div className="border-t border-border my-1" />
-                {NAVIGATION_CONFIG.robobook.subItems.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                    onClick={() => setActiveDropdown(null)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </DropdownMenu>
-          </div>
-        </nav>
-
-        {/* Right Actions */}
-        <div className="flex items-center space-x-3">
-          {/* Search (desktop) */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        {/* Centered Search Bar */}
+        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
+          <div className="relative w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <input
               type="text"
-              placeholder="Search..."
-              className="w-48 rounded-md border border-border bg-input py-2 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search robots, spare parts, services..."
+              className="w-full rounded-full border border-border bg-muted/50 py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:bg-background transition-all"
             />
           </div>
+        </form>
 
-          {/* Auth buttons */}
+        {/* Right Actions - Icons */}
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          {/* Wishlist */}
+          <Link to="/watchlist" className="hidden sm:flex">
+            <Button variant="ghost" size="icon" className="relative">
+              <Heart className="h-5 w-5" />
+              <span className="sr-only">Wishlist</span>
+            </Button>
+          </Link>
+
+          {/* Compare */}
+          <Button variant="ghost" size="icon" className="hidden sm:flex relative">
+            <GitCompare className="h-5 w-5" />
+            <span className="sr-only">Compare</span>
+          </Button>
+
+          {/* Notification Center */}
+          <NotificationCenter />
+
+          {/* Dashboard / Auth */}
           {user ? (
             <>
-              <div className="hidden md:flex items-center gap-2">
-                <NotificationCenter />
-                <Link to="/dashboard">
-                  <Button size="sm" variant="ghost" className="flex items-center gap-1">
-                    <User className="h-4 w-4" />
-                    Dashboard
-                  </Button>
-                </Link>
-                <span className="text-sm text-muted-foreground">
-                  {user.email?.split("@")[0]}
-                </span>
-                <Button size="sm" variant="outline" onClick={signOut}>
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
+              <Link to="/dashboard" className="hidden sm:flex">
+                <Button variant="ghost" size="icon">
+                  <LayoutDashboard className="h-5 w-5" />
+                  <span className="sr-only">Dashboard</span>
                 </Button>
-              </div>
-              <div className="md:hidden">
-                <NotificationCenter />
-              </div>
+              </Link>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={signOut}
+                className="hidden lg:flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="text-sm">Sign Out</span>
+              </Button>
             </>
           ) : (
-            <div className="hidden md:flex gap-2">
+            <div className="hidden sm:flex gap-2">
               <Link to="/auth">
                 <Button size="sm" variant="ghost">Sign In</Button>
               </Link>
               <Link to="/auth?signup=true">
-                <Button size="sm">Join Free!</Button>
+                <Button size="sm">Join Free</Button>
               </Link>
             </div>
           )}
@@ -484,10 +211,349 @@ const EnhancedHeader = () => {
         </div>
       </div>
 
+      {/* Secondary Navigation - Category Listings */}
+      <nav className="hidden lg:block border-t border-border bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center space-x-1">
+            {/* Robots Menu */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("robots")}
+              onMouseLeave={handleDropdownLeave}
+            >
+              <button
+                onClick={() => handleNavigation("/robots")}
+                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+              >
+                <Bot className="h-4 w-4" />
+                <span>Robots</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <DropdownMenu isOpen={activeDropdown === "robots"} onClose={() => setActiveDropdown(null)}>
+                <div className="p-2 max-h-[400px] overflow-y-auto">
+                  <Link
+                    to="/robots"
+                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    All Robots
+                  </Link>
+                  <div className="border-t border-border my-1" />
+                  {NAVIGATION_CONFIG.robots.subItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      onClick={() => setActiveDropdown(null)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </DropdownMenu>
+            </div>
+
+            {/* Spare Parts Menu - Multi-level */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("spares")}
+              onMouseLeave={handleDropdownLeave}
+            >
+              <button
+                onClick={() => handleNavigation("/parts")}
+                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+              >
+                <Package className="h-4 w-4" />
+                <span>Spare Parts</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <DropdownMenu 
+                isOpen={activeDropdown === "spares"} 
+                onClose={() => setActiveDropdown(null)}
+                className="min-w-[240px]"
+              >
+                <div className="p-2">
+                  <Link
+                    to="/parts"
+                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    All Spare Parts
+                  </Link>
+                  <div className="border-t border-border my-1" />
+                  {NAVIGATION_CONFIG.spares.categories.map((category) => {
+                    const IconComponent = menuIcons[category.label] || Package;
+                    return (
+                      <div
+                        key={category.label}
+                        className="relative"
+                        onMouseEnter={() => setActiveSubMenu(category.label)}
+                      >
+                        <Link
+                          to={category.href}
+                          className="flex items-center justify-between px-3 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition group"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <span className="flex items-center gap-2">
+                            <IconComponent className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                            {category.label}
+                          </span>
+                          <ChevronDown className="h-3 w-3 -rotate-90" />
+                        </Link>
+                        {/* Sub-menu subcategories */}
+                        {activeSubMenu === category.label && (
+                          <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
+                            <div className="p-2">
+                              <Link
+                                to={category.href}
+                                className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
+                                onClick={() => setActiveDropdown(null)}
+                              >
+                                All {category.label}
+                              </Link>
+                              <div className="border-t border-border my-1" />
+                              {category.subcategories.map((sub) => (
+                                <div
+                                  key={sub.label}
+                                  className="relative"
+                                  onMouseEnter={() => setActiveComponentMenu(sub.label)}
+                                >
+                                  <Link
+                                    to={sub.href}
+                                    className="flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                                    onClick={() => setActiveDropdown(null)}
+                                  >
+                                    <span>{sub.label}</span>
+                                    <ChevronDown className="h-3 w-3 -rotate-90" />
+                                  </Link>
+                                  {/* Third level - Component Types */}
+                                  {activeComponentMenu === sub.label && sub.componentTypes && sub.componentTypes.length > 0 && (
+                                    <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
+                                      <div className="p-2">
+                                        <Link
+                                          to={sub.href}
+                                          className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
+                                          onClick={() => setActiveDropdown(null)}
+                                        >
+                                          All {sub.label}
+                                        </Link>
+                                        <div className="border-t border-border my-1" />
+                                        {sub.componentTypes.map((ct) => (
+                                          <Link
+                                            key={ct.label}
+                                            to={ct.href}
+                                            className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                                            onClick={() => setActiveDropdown(null)}
+                                          >
+                                            {ct.label}
+                                          </Link>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </DropdownMenu>
+            </div>
+
+            {/* Services Menu */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("services")}
+              onMouseLeave={handleDropdownLeave}
+            >
+              <button
+                onClick={() => handleNavigation("/services")}
+                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Services</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <DropdownMenu isOpen={activeDropdown === "services"} onClose={() => setActiveDropdown(null)}>
+                <div className="p-2 max-h-[400px] overflow-y-auto">
+                  <Link
+                    to="/services"
+                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    All Services
+                  </Link>
+                  <div className="border-t border-border my-1" />
+                  {NAVIGATION_CONFIG.services.subItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      onClick={() => setActiveDropdown(null)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </DropdownMenu>
+            </div>
+
+            {/* Logistics Menu */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("logistics")}
+              onMouseLeave={handleDropdownLeave}
+            >
+              <button
+                onClick={() => handleNavigation("/logistics")}
+                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+              >
+                <Truck className="h-4 w-4" />
+                <span>Logistics</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <DropdownMenu isOpen={activeDropdown === "logistics"} onClose={() => setActiveDropdown(null)}>
+                <div className="p-2 max-h-[400px] overflow-y-auto">
+                  <Link
+                    to="/logistics"
+                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    All Logistics
+                  </Link>
+                  <div className="border-t border-border my-1" />
+                  {NAVIGATION_CONFIG.logistics.subItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      onClick={() => setActiveDropdown(null)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </DropdownMenu>
+            </div>
+
+            {/* Financing Menu */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("financing")}
+              onMouseLeave={handleDropdownLeave}
+            >
+              <button
+                onClick={() => handleNavigation("/financing")}
+                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+              >
+                <CreditCard className="h-4 w-4" />
+                <span>Financing</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <DropdownMenu isOpen={activeDropdown === "financing"} onClose={() => setActiveDropdown(null)}>
+                <div className="p-2 max-h-[400px] overflow-y-auto">
+                  <Link
+                    to="/financing"
+                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    All Financing
+                  </Link>
+                  <div className="border-t border-border my-1" />
+                  {NAVIGATION_CONFIG.financing.subItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      onClick={() => setActiveDropdown(null)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </DropdownMenu>
+            </div>
+
+            {/* RoboBook Menu */}
+            <div
+              className="relative"
+              onMouseEnter={() => handleDropdownEnter("robobook")}
+              onMouseLeave={handleDropdownLeave}
+            >
+              <button
+                onClick={() => handleNavigation("/robobook")}
+                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span>RoboBook</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <DropdownMenu isOpen={activeDropdown === "robobook"} onClose={() => setActiveDropdown(null)}>
+                <div className="p-2 max-h-[400px] overflow-y-auto">
+                  <Link
+                    to="/robobook"
+                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    All Articles
+                  </Link>
+                  <div className="border-t border-border my-1" />
+                  {NAVIGATION_CONFIG.robobook.subItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      onClick={() => setActiveDropdown(null)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="lg:hidden border-t border-border bg-background px-4 pb-4 max-h-[80vh] overflow-y-auto">
-          <nav className="flex flex-col space-y-1 pt-4">
+          {/* Mobile Search */}
+          <form onSubmit={handleSearch} className="pt-4 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full rounded-full border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          </form>
+
+          {/* Mobile Quick Actions */}
+          <div className="flex items-center justify-around py-3 mb-4 border-b border-border">
+            <Link to="/watchlist" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
+              <Heart className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Wishlist</span>
+            </Link>
+            <button className="flex flex-col items-center gap-1">
+              <GitCompare className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Compare</span>
+            </button>
+            {user && (
+              <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
+                <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Dashboard</span>
+              </Link>
+            )}
+          </div>
+
+          <nav className="flex flex-col space-y-1">
             {/* Robots */}
             <div>
               <button
@@ -749,29 +815,15 @@ const EnhancedHeader = () => {
             </div>
           </nav>
 
+          {/* Mobile Auth */}
           <div className="mt-4 pt-4 border-t border-border">
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full rounded-md border border-border bg-input py-2 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-
             {user ? (
               <div className="space-y-2">
-                <Link to="/dashboard" onClick={() => setMenuOpen(false)}>
-                  <Button size="sm" variant="ghost" className="w-full flex items-center gap-1">
-                    <User className="h-4 w-4" />
-                    Dashboard
-                  </Button>
-                </Link>
                 <p className="text-sm text-muted-foreground px-3">
-                  {user.email?.split("@")[0]}
+                  Signed in as {user.email?.split("@")[0]}
                 </p>
                 <Button size="sm" variant="outline" className="w-full" onClick={signOut}>
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
                 </Button>
               </div>
@@ -781,7 +833,7 @@ const EnhancedHeader = () => {
                   <Button size="sm" variant="ghost" className="w-full">Sign In</Button>
                 </Link>
                 <Link to="/auth?signup=true" onClick={() => setMenuOpen(false)}>
-                  <Button size="sm" className="w-full">Join Free!</Button>
+                  <Button size="sm" className="w-full">Join Free</Button>
                 </Link>
               </div>
             )}
