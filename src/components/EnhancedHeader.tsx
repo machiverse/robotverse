@@ -85,19 +85,23 @@ const EnhancedHeader = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
+  const [activeComponentMenu, setActiveComponentMenu] = useState<string | null>(null);
   const [mobileExpandedMenu, setMobileExpandedMenu] = useState<string | null>(null);
   const [mobileExpandedSubMenu, setMobileExpandedSubMenu] = useState<string | null>(null);
+  const [mobileExpandedComponentMenu, setMobileExpandedComponentMenu] = useState<string | null>(null);
   
   useChatNotifications();
 
   const handleDropdownEnter = (menu: string) => {
     setActiveDropdown(menu);
     setActiveSubMenu(null);
+    setActiveComponentMenu(null);
   };
 
   const handleDropdownLeave = () => {
     setActiveDropdown(null);
     setActiveSubMenu(null);
+    setActiveComponentMenu(null);
   };
 
   const handleNavigation = (href: string) => {
@@ -207,17 +211,56 @@ const EnhancedHeader = () => {
                       </Link>
                       {/* Sub-menu subcategories */}
                       {activeSubMenu === category.label && (
-                        <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[240px] max-h-[400px] overflow-y-auto z-50">
+                        <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
                           <div className="p-2">
+                            <Link
+                              to={category.href}
+                              className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
+                              onClick={() => setActiveDropdown(null)}
+                            >
+                              All {category.label}
+                            </Link>
+                            <div className="border-t border-border my-1" />
                             {category.subcategories.map((sub) => (
-                              <Link
+                              <div
                                 key={sub.label}
-                                to={sub.href}
-                                className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
-                                onClick={() => setActiveDropdown(null)}
+                                className="relative"
+                                onMouseEnter={() => setActiveComponentMenu(sub.label)}
                               >
-                                {sub.label}
-                              </Link>
+                                <Link
+                                  to={sub.href}
+                                  className="flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                                  onClick={() => setActiveDropdown(null)}
+                                >
+                                  <span>{sub.label}</span>
+                                  <ChevronDown className="h-3 w-3 -rotate-90" />
+                                </Link>
+                                {/* Third level - Component Types */}
+                                {activeComponentMenu === sub.label && sub.componentTypes && sub.componentTypes.length > 0 && (
+                                  <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
+                                    <div className="p-2">
+                                      <Link
+                                        to={sub.href}
+                                        className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
+                                        onClick={() => setActiveDropdown(null)}
+                                      >
+                                        All {sub.label}
+                                      </Link>
+                                      <div className="border-t border-border my-1" />
+                                      {sub.componentTypes.map((ct) => (
+                                        <Link
+                                          key={ct.label}
+                                          to={ct.href}
+                                          className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                                          onClick={() => setActiveDropdown(null)}
+                                        >
+                                          {ct.label}
+                                        </Link>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -517,15 +560,44 @@ const EnhancedHeader = () => {
                         </button>
                         {mobileExpandedSubMenu === category.label && (
                           <div className="ml-4 mt-1 space-y-1 border-l border-border/50 pl-3">
+                            <Link
+                              to={category.href}
+                              className="block px-2 py-1.5 text-xs font-medium text-primary"
+                              onClick={() => setMenuOpen(false)}
+                            >
+                              All {category.label}
+                            </Link>
                             {category.subcategories.map((sub) => (
-                              <Link
-                                key={sub.label}
-                                to={sub.href}
-                                className="block px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                                onClick={() => setMenuOpen(false)}
-                              >
-                                {sub.label}
-                              </Link>
+                              <div key={sub.label}>
+                                <button
+                                  className="flex items-center justify-between w-full px-2 py-1.5 text-xs text-foreground hover:text-primary"
+                                  onClick={() => setMobileExpandedComponentMenu(mobileExpandedComponentMenu === sub.label ? null : sub.label)}
+                                >
+                                  <span>{sub.label}</span>
+                                  <ChevronDown className={cn("h-3 w-3 transition-transform", mobileExpandedComponentMenu === sub.label && "rotate-180")} />
+                                </button>
+                                {mobileExpandedComponentMenu === sub.label && sub.componentTypes && sub.componentTypes.length > 0 && (
+                                  <div className="ml-3 mt-1 space-y-0.5 border-l border-border/30 pl-2">
+                                    <Link
+                                      to={sub.href}
+                                      className="block px-2 py-1 text-xs font-medium text-primary"
+                                      onClick={() => setMenuOpen(false)}
+                                    >
+                                      All {sub.label}
+                                    </Link>
+                                    {sub.componentTypes.map((ct) => (
+                                      <Link
+                                        key={ct.label}
+                                        to={ct.href}
+                                        className="block px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+                                        onClick={() => setMenuOpen(false)}
+                                      >
+                                        {ct.label}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
