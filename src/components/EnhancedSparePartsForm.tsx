@@ -30,7 +30,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice, type Currency, CURRENCY_SYMBOLS, convertToINR } from "@/utils/currency";
 import Papa from 'papaparse';
-import { SPARE_PARTS_CATEGORIES, getMainCategories, getSubCategories } from "@/constants/sparePartsCategories";
+import { 
+  SPARE_PARTS_TAXONOMY, 
+  getCategories, 
+  getSubcategoriesForCategory, 
+  getComponentTypesForSubcategory,
+  type CategoryData,
+  type SubcategoryData,
+  type ComponentTypeData
+} from "@/constants/sparePartsCategories";
 
 interface SparePartFormData {
   name: string;
@@ -51,9 +59,9 @@ interface SparePartFormData {
   is_international: boolean;
   duty_amount: number;
   shipping_amount: number;
-  main_category: string;
-  sub_category: string;
-  custom_category: string;
+  category: string;
+  subcategory: string;
+  component_type: string;
 }
 
 interface BulkUploadResult {
@@ -77,9 +85,9 @@ interface CSVRow {
   image_urls: string;
   compatible_robots: string;
   category_tags: string;
-  main_category: string;
-  sub_category: string;
-  custom_category: string;
+  category: string;
+  subcategory: string;
+  component_type: string;
 }
 
 const conditionOptions = [
@@ -90,6 +98,28 @@ const conditionOptions = [
   { value: 'poor', label: 'Poor' },
   { value: 'refurbished', label: 'Refurbished' }
 ];
+
+// Get category names in order: Robot Parts, Devices, Tools, Software
+const getCategoryOptions = (): string[] => {
+  return getCategories().map(cat => cat.name);
+};
+
+// Get subcategory names for a category
+const getSubcategoryOptions = (categoryName: string): string[] => {
+  return getSubcategoriesForCategory(categoryName).map(sub => sub.name);
+};
+
+// Get component type names for a subcategory (with "Others" always last)
+const getComponentTypeOptions = (categoryName: string, subcategoryName: string): string[] => {
+  const types = getComponentTypesForSubcategory(categoryName, subcategoryName).map(ct => ct.name);
+  // Ensure "Others" is always last
+  const othersIndex = types.findIndex(t => t === "Others");
+  if (othersIndex > -1) {
+    const others = types.splice(othersIndex, 1);
+    types.push(others[0]);
+  }
+  return types;
+};
 
 const MAX_IMAGES = 10;
 
@@ -142,9 +172,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
         is_international: editingPart.is_international || false,
         duty_amount: editingPart.duty_amount || 0,
         shipping_amount: editingPart.shipping_amount || 0,
-        main_category: editingPart.main_category || '',
-        sub_category: editingPart.sub_category || '',
-        custom_category: editingPart.custom_category || '',
+        category: editingPart.category || '',
+        subcategory: editingPart.subcategory || '',
+        component_type: editingPart.component_type || '',
       };
     }
     return {
@@ -166,9 +196,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
       is_international: false,
       duty_amount: 0,
       shipping_amount: 0,
-      main_category: '',
-      sub_category: '',
-      custom_category: '',
+      category: '',
+      subcategory: '',
+      component_type: '',
     };
   });
 
@@ -333,9 +363,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
         is_international: formData.is_international,
         duty_amount: formData.duty_amount,
         shipping_amount: formData.shipping_amount,
-        main_category: formData.main_category,
-        sub_category: formData.sub_category,
-        custom_category: formData.custom_category,
+        category: formData.category,
+        subcategory: formData.subcategory,
+        component_type: formData.component_type,
         images: finalImageUrls,
       };
 
@@ -395,14 +425,14 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
       'image_urls',
       'compatible_robots',
       'category_tags',
-      'main_category',
-      'sub_category',
-      'custom_category'
+      'category',
+      'subcategory',
+      'component_type'
     ];
     
     const sampleData = [
-      'Robot Arm Joint',
-      'RB-001-ARM',
+      'Servo Motor',
+      'SM-001-ABB',
       'ABB',
       'IRB-6700',
       'new',
@@ -411,13 +441,13 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
       'Chennai',
       'Tamil Nadu',
       '600001',
-      'High precision robot arm joint for industrial applications',
+      'High precision servo motor for industrial robot applications',
       'https://example.com/image1.jpg,https://example.com/image2.jpg',
       'IRB-6700,IRB-6650',
-      'robot-parts,arm-joint,industrial',
-      'Motors & Motion Components',
-      'Servo Motors',
-      ''
+      'robot-parts,servo-motor,industrial',
+      'Robot Parts',
+      'Motors & Gearboxes',
+      'Servo Motors'
     ];
 
     const csvContent = [headers, sampleData].map(row => row.join(',')).join('\n');
@@ -547,9 +577,9 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
             is_international: false,
             duty_amount: 0,
             shipping_amount: 0,
-            main_category: row.main_category || null,
-            sub_category: row.sub_category || null,
-            custom_category: row.custom_category || null,
+            category: row.category || null,
+            subcategory: row.subcategory || null,
+            component_type: row.component_type || null,
             images: imageUrls,
           };
 
@@ -1015,69 +1045,80 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                 )}
               </div>
 
-              {/* Main Category */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="main_category">Main Category *</Label>
-                  <Select
-                    value={formData.main_category}
-                    onValueChange={(value) => {
-                      handleInputChange("main_category", value);
-                      handleInputChange("sub_category", "");
-                      handleInputChange("custom_category", "");
-                    }}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select main category" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background">
-                      {getMainCategories().map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Sub Category */}
-                {formData.main_category && formData.main_category !== "Other" && (
+              {/* Three-Level Category Selection */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Product Classification *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Category (Level 1) */}
                   <div className="space-y-2">
-                    <Label htmlFor="sub_category">Sub Category *</Label>
+                    <Label htmlFor="category">Category</Label>
                     <Select
-                      value={formData.sub_category}
-                      onValueChange={(value) => handleInputChange("sub_category", value)}
-                      disabled={loading || !formData.main_category}
+                      value={formData.category}
+                      onValueChange={(value) => {
+                        handleInputChange("category", value);
+                        handleInputChange("subcategory", "");
+                        handleInputChange("component_type", "");
+                      }}
+                      disabled={loading}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select sub category" />
+                        <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-background">
-                        {getSubCategories(formData.main_category).map((subCategory) => (
-                          <SelectItem key={subCategory} value={subCategory}>
-                            {subCategory}
+                        {getCategoryOptions().map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                )}
 
-                {/* Custom Category (shown when "Other" is selected) */}
-                {formData.main_category === "Other" && (
+                  {/* Subcategory (Level 2) */}
                   <div className="space-y-2">
-                    <Label htmlFor="custom_category">Specify Category *</Label>
-                    <Input
-                      id="custom_category"
-                      value={formData.custom_category}
-                      onChange={(e) => handleInputChange("custom_category", e.target.value)}
-                      placeholder="Enter your custom part or accessory name"
-                      required
-                      disabled={loading}
-                    />
+                    <Label htmlFor="subcategory">Subcategory</Label>
+                    <Select
+                      value={formData.subcategory}
+                      onValueChange={(value) => {
+                        handleInputChange("subcategory", value);
+                        handleInputChange("component_type", "");
+                      }}
+                      disabled={loading || !formData.category}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={formData.category ? "Select subcategory" : "Select category first"} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background">
+                        {formData.category && getSubcategoryOptions(formData.category).map((subcategory) => (
+                          <SelectItem key={subcategory} value={subcategory}>
+                            {subcategory}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+
+                  {/* Component Type (Level 3) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="component_type">Component Type</Label>
+                    <Select
+                      value={formData.component_type}
+                      onValueChange={(value) => handleInputChange("component_type", value)}
+                      disabled={loading || !formData.subcategory}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={formData.subcategory ? "Select component type" : "Select subcategory first"} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background max-h-60">
+                        {formData.category && formData.subcategory && getComponentTypeOptions(formData.category, formData.subcategory).map((componentType) => (
+                          <SelectItem key={componentType} value={componentType}>
+                            {componentType}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {/* Description */}
@@ -1152,7 +1193,13 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p><strong>Required columns:</strong> name, quantity</p>
                       <p><strong>Optional columns:</strong> part_number, brand, model, condition, price, location, state, pincode, description</p>
-                      <p><strong>Special columns:</strong></p>
+                      <p><strong>Classification columns (3-Level):</strong></p>
+                      <ul className="list-disc list-inside ml-4 space-y-1">
+                        <li><strong>category:</strong> Robot Parts, Devices, Tools, Software</li>
+                        <li><strong>subcategory:</strong> e.g., Motors & Gearboxes, Sensors & Vision, End Effectors</li>
+                        <li><strong>component_type:</strong> e.g., Servo Motors, Proximity Sensors, Mechanical Grippers</li>
+                      </ul>
+                      <p><strong>Other columns:</strong></p>
                       <ul className="list-disc list-inside ml-4 space-y-1">
                         <li><strong>image_urls:</strong> Comma-separated URLs (e.g., "url1.jpg,url2.jpg")</li>
                         <li><strong>compatible_robots:</strong> Comma-separated robot models</li>
