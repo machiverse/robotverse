@@ -74,7 +74,7 @@ const DropdownMenu = ({ isOpen, onClose, children, className }: DropdownMenuProp
     <div
       ref={ref}
       className={cn(
-        "absolute top-full left-0 mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[220px]",
+        "absolute top-full left-0 mt-2 dropdown-professional min-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150",
         className
       )}
     >
@@ -124,43 +124,56 @@ const EnhancedHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-50 bg-[hsl(var(--header-bg))] shadow-[var(--shadow-header)] backdrop-blur-md">
       {/* Top Header - Logo, Search, Icons */}
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-3 flex-shrink-0">
-          <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
-          <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent hidden sm:block">
-            RobotVerse
-          </span>
+        <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group">
+          <div className="relative">
+            <img 
+              src={robotverseLogo} 
+              alt="RobotVerse Logo" 
+              className="h-11 w-11 object-cover rounded-xl border-2 border-primary/20 shadow-md transition-transform duration-200 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div className="hidden sm:block">
+            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent tracking-tight">
+              RobotVerse
+            </span>
+            <p className="text-[10px] text-muted-foreground font-medium -mt-0.5 tracking-wide">INDUSTRIAL MARKETPLACE</p>
+          </div>
         </Link>
 
         {/* Centered Search Bar */}
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
+        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-8">
+          <div className="relative w-full group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5 transition-colors group-focus-within:text-primary" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search robots, spare parts, services..."
-              className="w-full rounded-full border border-border bg-muted/50 py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:bg-background transition-all"
+              className="w-full rounded-xl border-2 border-border bg-muted/30 py-3 pl-12 pr-5 text-sm focus:outline-none focus:border-primary focus:bg-background focus:shadow-[var(--shadow-md)] transition-all placeholder:text-muted-foreground/70"
             />
+            <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 bg-muted px-2 py-1 rounded-md border border-border">
+              ⌘K
+            </kbd>
           </div>
         </form>
 
         {/* Right Actions - Icons */}
-        <div className="flex items-center space-x-1 sm:space-x-2">
+        <div className="flex items-center space-x-1">
           {/* Wishlist */}
           <Link to="/watchlist" className="hidden sm:flex">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors">
               <Heart className="h-5 w-5" />
               <span className="sr-only">Wishlist</span>
             </Button>
           </Link>
 
           {/* Compare */}
-          <Button variant="ghost" size="icon" className="hidden sm:flex relative">
+          <Button variant="ghost" size="icon" className="hidden sm:flex relative h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors">
             <GitCompare className="h-5 w-5" />
             <span className="sr-only">Compare</span>
           </Button>
@@ -172,28 +185,33 @@ const EnhancedHeader = () => {
           {user ? (
             <>
               <Link to="/dashboard" className="hidden sm:flex">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors">
                   <LayoutDashboard className="h-5 w-5" />
                   <span className="sr-only">Dashboard</span>
                 </Button>
               </Link>
+              <div className="hidden lg:block w-px h-8 bg-border mx-2" />
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={signOut}
-                className="hidden lg:flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                className="hidden lg:flex items-center gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl px-4 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
-                <span className="text-sm">Sign Out</span>
+                <span className="text-sm font-medium">Sign Out</span>
               </Button>
             </>
           ) : (
-            <div className="hidden sm:flex gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               <Link to="/auth">
-                <Button size="sm" variant="ghost">Sign In</Button>
+                <Button size="sm" variant="ghost" className="rounded-xl px-4 font-medium hover:bg-primary/10 hover:text-primary">
+                  Sign In
+                </Button>
               </Link>
               <Link to="/auth?signup=true">
-                <Button size="sm">Join Free</Button>
+                <Button size="sm" className="rounded-xl px-5 font-medium shadow-md hover:shadow-lg transition-shadow">
+                  Join Free
+                </Button>
               </Link>
             </div>
           )}
@@ -203,7 +221,7 @@ const EnhancedHeader = () => {
             aria-label="Toggle menu"
             aria-haspopup="true"
             aria-expanded={menuOpen}
-            className="lg:hidden p-2"
+            className="lg:hidden p-2.5 rounded-xl hover:bg-muted transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
           >
             {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -212,38 +230,39 @@ const EnhancedHeader = () => {
       </div>
 
       {/* Secondary Navigation - Category Listings */}
-      <nav className="hidden lg:block border-t border-border bg-muted/30">
-        <div className="container mx-auto px-4">
+      <nav className="hidden lg:block border-t border-[hsl(var(--header-border))] bg-[hsl(var(--nav-bg))]">
+        <div className="container mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between">
             {/* Robots Menu */}
             <div
-              className="relative"
+              className="relative flex-1"
               onMouseEnter={() => handleDropdownEnter("robots")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/robots")}
-                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+                className="nav-item flex items-center justify-center gap-2 w-full"
               >
                 <Bot className="h-4 w-4" />
                 <span>Robots</span>
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", activeDropdown === "robots" && "rotate-180")} />
               </button>
               <DropdownMenu isOpen={activeDropdown === "robots"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-2 max-h-[400px] overflow-y-auto">
+                <div className="p-3 max-h-[400px] overflow-y-auto">
                   <Link
                     to="/robots"
-                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    className="dropdown-item font-semibold text-primary"
                     onClick={() => setActiveDropdown(null)}
                   >
+                    <Bot className="h-4 w-4" />
                     All Robots
                   </Link>
-                  <div className="border-t border-border my-1" />
+                  <div className="border-t border-border my-2" />
                   {NAVIGATION_CONFIG.robots.subItems.map((item) => (
                     <Link
                       key={item.label}
                       to={item.href}
-                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      className="dropdown-item"
                       onClick={() => setActiveDropdown(null)}
                     >
                       {item.label}
@@ -255,32 +274,33 @@ const EnhancedHeader = () => {
 
             {/* Spare Parts Menu - Multi-level */}
             <div
-              className="relative"
+              className="relative flex-1"
               onMouseEnter={() => handleDropdownEnter("spares")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/parts")}
-                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+                className="nav-item flex items-center justify-center gap-2 w-full"
               >
                 <Package className="h-4 w-4" />
                 <span>Spare Parts</span>
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", activeDropdown === "spares" && "rotate-180")} />
               </button>
               <DropdownMenu 
                 isOpen={activeDropdown === "spares"} 
                 onClose={() => setActiveDropdown(null)}
-                className="min-w-[240px]"
+                className="min-w-[260px]"
               >
-                <div className="p-2">
+                <div className="p-3">
                   <Link
                     to="/parts"
-                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    className="dropdown-item font-semibold text-primary"
                     onClick={() => setActiveDropdown(null)}
                   >
+                    <Package className="h-4 w-4" />
                     All Spare Parts
                   </Link>
-                  <div className="border-t border-border my-1" />
+                  <div className="border-t border-border my-2" />
                   {NAVIGATION_CONFIG.spares.categories.map((category) => {
                     const IconComponent = menuIcons[category.label] || Package;
                     return (
@@ -291,27 +311,27 @@ const EnhancedHeader = () => {
                       >
                         <Link
                           to={category.href}
-                          className="flex items-center justify-between px-3 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition group"
+                          className="dropdown-item justify-between group"
                           onClick={() => setActiveDropdown(null)}
                         >
-                          <span className="flex items-center gap-2">
-                            <IconComponent className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                          <span className="flex items-center gap-3">
+                            <IconComponent className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             {category.label}
                           </span>
-                          <ChevronDown className="h-3 w-3 -rotate-90" />
+                          <ChevronDown className="h-3 w-3 -rotate-90 text-muted-foreground group-hover:text-primary transition-colors" />
                         </Link>
                         {/* Sub-menu subcategories */}
                         {activeSubMenu === category.label && (
-                          <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
-                            <div className="p-2">
+                          <div className="absolute left-full top-0 ml-1 dropdown-professional min-w-[280px] max-h-[450px] overflow-y-auto">
+                            <div className="p-3">
                               <Link
                                 to={category.href}
-                                className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
+                                className="dropdown-item font-semibold text-primary"
                                 onClick={() => setActiveDropdown(null)}
                               >
                                 All {category.label}
                               </Link>
-                              <div className="border-t border-border my-1" />
+                              <div className="border-t border-border my-2" />
                               {category.subcategories.map((sub) => (
                                 <div
                                   key={sub.label}
@@ -320,29 +340,29 @@ const EnhancedHeader = () => {
                                 >
                                   <Link
                                     to={sub.href}
-                                    className="flex items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                                    className="dropdown-item justify-between group"
                                     onClick={() => setActiveDropdown(null)}
                                   >
                                     <span>{sub.label}</span>
-                                    <ChevronDown className="h-3 w-3 -rotate-90" />
+                                    <ChevronDown className="h-3 w-3 -rotate-90 text-muted-foreground group-hover:text-primary transition-colors" />
                                   </Link>
                                   {/* Third level - Component Types */}
                                   {activeComponentMenu === sub.label && sub.componentTypes && sub.componentTypes.length > 0 && (
-                                    <div className="absolute left-full top-0 ml-1 bg-popover border border-border rounded-lg shadow-xl min-w-[260px] max-h-[450px] overflow-y-auto z-50">
-                                      <div className="p-2">
+                                    <div className="absolute left-full top-0 ml-1 dropdown-professional min-w-[280px] max-h-[450px] overflow-y-auto">
+                                      <div className="p-3">
                                         <Link
                                           to={sub.href}
-                                          className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition mb-1"
+                                          className="dropdown-item font-semibold text-primary"
                                           onClick={() => setActiveDropdown(null)}
                                         >
                                           All {sub.label}
                                         </Link>
-                                        <div className="border-t border-border my-1" />
+                                        <div className="border-t border-border my-2" />
                                         {sub.componentTypes.map((ct) => (
                                           <Link
                                             key={ct.label}
                                             to={ct.href}
-                                            className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                                            className="dropdown-item"
                                             onClick={() => setActiveDropdown(null)}
                                           >
                                             {ct.label}
@@ -365,33 +385,34 @@ const EnhancedHeader = () => {
 
             {/* Services Menu */}
             <div
-              className="relative"
+              className="relative flex-1"
               onMouseEnter={() => handleDropdownEnter("services")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/services")}
-                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+                className="nav-item flex items-center justify-center gap-2 w-full"
               >
                 <Settings className="h-4 w-4" />
                 <span>Services</span>
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", activeDropdown === "services" && "rotate-180")} />
               </button>
               <DropdownMenu isOpen={activeDropdown === "services"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-2 max-h-[400px] overflow-y-auto">
+                <div className="p-3 max-h-[400px] overflow-y-auto">
                   <Link
                     to="/services"
-                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    className="dropdown-item font-semibold text-primary"
                     onClick={() => setActiveDropdown(null)}
                   >
+                    <Settings className="h-4 w-4" />
                     All Services
                   </Link>
-                  <div className="border-t border-border my-1" />
+                  <div className="border-t border-border my-2" />
                   {NAVIGATION_CONFIG.services.subItems.map((item) => (
                     <Link
                       key={item.label}
                       to={item.href}
-                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      className="dropdown-item"
                       onClick={() => setActiveDropdown(null)}
                     >
                       {item.label}
@@ -403,33 +424,34 @@ const EnhancedHeader = () => {
 
             {/* Logistics Menu */}
             <div
-              className="relative"
+              className="relative flex-1"
               onMouseEnter={() => handleDropdownEnter("logistics")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/logistics")}
-                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+                className="nav-item flex items-center justify-center gap-2 w-full"
               >
                 <Truck className="h-4 w-4" />
                 <span>Logistics</span>
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", activeDropdown === "logistics" && "rotate-180")} />
               </button>
               <DropdownMenu isOpen={activeDropdown === "logistics"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-2 max-h-[400px] overflow-y-auto">
+                <div className="p-3 max-h-[400px] overflow-y-auto">
                   <Link
                     to="/logistics"
-                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    className="dropdown-item font-semibold text-primary"
                     onClick={() => setActiveDropdown(null)}
                   >
+                    <Truck className="h-4 w-4" />
                     All Logistics
                   </Link>
-                  <div className="border-t border-border my-1" />
+                  <div className="border-t border-border my-2" />
                   {NAVIGATION_CONFIG.logistics.subItems.map((item) => (
                     <Link
                       key={item.label}
                       to={item.href}
-                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      className="dropdown-item"
                       onClick={() => setActiveDropdown(null)}
                     >
                       {item.label}
@@ -441,33 +463,34 @@ const EnhancedHeader = () => {
 
             {/* Financing Menu */}
             <div
-              className="relative"
+              className="relative flex-1"
               onMouseEnter={() => handleDropdownEnter("financing")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/financing")}
-                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+                className="nav-item flex items-center justify-center gap-2 w-full"
               >
                 <CreditCard className="h-4 w-4" />
                 <span>Financing</span>
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", activeDropdown === "financing" && "rotate-180")} />
               </button>
               <DropdownMenu isOpen={activeDropdown === "financing"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-2 max-h-[400px] overflow-y-auto">
+                <div className="p-3 max-h-[400px] overflow-y-auto">
                   <Link
                     to="/financing"
-                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    className="dropdown-item font-semibold text-primary"
                     onClick={() => setActiveDropdown(null)}
                   >
+                    <CreditCard className="h-4 w-4" />
                     All Financing
                   </Link>
-                  <div className="border-t border-border my-1" />
+                  <div className="border-t border-border my-2" />
                   {NAVIGATION_CONFIG.financing.subItems.map((item) => (
                     <Link
                       key={item.label}
                       to={item.href}
-                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      className="dropdown-item"
                       onClick={() => setActiveDropdown(null)}
                     >
                       {item.label}
@@ -479,33 +502,34 @@ const EnhancedHeader = () => {
 
             {/* RoboBook Menu */}
             <div
-              className="relative"
+              className="relative flex-1"
               onMouseEnter={() => handleDropdownEnter("robobook")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/robobook")}
-                className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/10 hover:text-primary transition"
+                className="nav-item flex items-center justify-center gap-2 w-full"
               >
                 <BookOpen className="h-4 w-4" />
                 <span>RoboBook</span>
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", activeDropdown === "robobook" && "rotate-180")} />
               </button>
               <DropdownMenu isOpen={activeDropdown === "robobook"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-2 max-h-[400px] overflow-y-auto">
+                <div className="p-3 max-h-[400px] overflow-y-auto">
                   <Link
                     to="/robobook"
-                    className="block px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition"
+                    className="dropdown-item font-semibold text-primary"
                     onClick={() => setActiveDropdown(null)}
                   >
+                    <BookOpen className="h-4 w-4" />
                     All Articles
                   </Link>
-                  <div className="border-t border-border my-1" />
+                  <div className="border-t border-border my-2" />
                   {NAVIGATION_CONFIG.robobook.subItems.map((item) => (
                     <Link
                       key={item.label}
                       to={item.href}
-                      className="block px-3 py-2 text-sm text-foreground hover:bg-muted hover:text-primary rounded-md transition"
+                      className="dropdown-item"
                       onClick={() => setActiveDropdown(null)}
                     >
                       {item.label}
