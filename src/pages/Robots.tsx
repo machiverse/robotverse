@@ -1,6 +1,6 @@
 // src/pages/Robots.tsx
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -46,20 +46,26 @@ import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seoSch
 
 const Robots = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
 
+  // Read initial values from URL params
+  const initialType = searchParams.get("type") || "all";
+  const initialSearch = searchParams.get("search") || "";
+  const initialGroupBy = searchParams.get("groupBy") as "all" | "category" | "company" || "all";
+
   // Filter UI state - Business-logical order: Robot Type → Payload Range → Condition → Price Range → Location
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRobotType, setSelectedRobotType] = useState("all");
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [selectedRobotType, setSelectedRobotType] = useState(initialType);
   const [selectedPayloadRange, setSelectedPayloadRange] = useState("all");
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
-  const [groupBy, setGroupBy] = useState<"all" | "category" | "company">("all");
+  const [groupBy, setGroupBy] = useState<"all" | "category" | "company">(initialGroupBy);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Watchlist
@@ -114,20 +120,59 @@ const Robots = () => {
     { value: "over-1m", label: "Over ₹10,00,000" },
   ];
 
-  // Read filters from URL (type, groupBy)
+  // Sync URL params with filter state (reactive to URL changes)
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const typeParam = urlParams.get("type");
-    const groupByParam = urlParams.get("groupBy");
+    const typeParam = searchParams.get("type");
+    const searchParam = searchParams.get("search");
+    const groupByParam = searchParams.get("groupBy");
 
     if (typeParam) {
-      // Store the original type from URL for direct matching
       setSelectedRobotType(typeParam);
+    } else {
+      setSelectedRobotType("all");
     }
+    
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+    
     if (groupByParam) {
       setGroupBy(groupByParam as "company" | "category" | "all");
     }
-  }, []);
+  }, [searchParams]);
+
+  // Update URL when filters change
+  const updateURLParams = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams);
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value && value !== "all" && value !== "") {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    
+    setSearchParams(newParams, { replace: true });
+  };
+
+  // Handle robot type filter change
+  const handleRobotTypeChange = (value: string) => {
+    setSelectedRobotType(value);
+    updateURLParams({ type: value });
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setSelectedRobotType("all");
+    setSelectedManufacturer("all");
+    setSelectedPayloadRange("all");
+    setSelectedCondition("all");
+    setSelectedPriceRange("all");
+    setSelectedLocation("all");
+    setSearchParams({}, { replace: true });
+  };
 
   // Fetch robots and filters
   useEffect(() => {
@@ -527,10 +572,14 @@ const Robots = () => {
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
         <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-          Industrial Robots Marketplace
+          {selectedRobotType !== "all" 
+            ? `${selectedRobotType} - Industrial Robots` 
+            : "Industrial Robots Marketplace"}
         </h1>
         <p className="text-muted-foreground">
-          Browse verified robots from trusted sellers - with financing, logistics, parts and service support.
+          {selectedRobotType !== "all"
+            ? `Browse ${selectedRobotType} from verified sellers - with financing, logistics, parts and service support.`
+            : "Browse verified robots from trusted sellers - with financing, logistics, parts and service support."}
         </p>
       </div>
 
@@ -539,6 +588,52 @@ const Robots = () => {
         {/* LEFT FILTER COLUMN (sticky) */}
         <aside className="w-72 flex-shrink-0 hidden lg:block">
           <div className="sticky top-20 space-y-4">
+            {/* Active Filters Display */}
+            {(selectedRobotType !== "all" || searchQuery) && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="py-3 px-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-primary">Active Filters</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={handleClearFilters}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedRobotType !== "all" && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedRobotType}
+                        <button 
+                          className="ml-1.5 hover:text-destructive" 
+                          onClick={() => handleRobotTypeChange("all")}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    )}
+                    {searchQuery && (
+                      <Badge variant="secondary" className="text-xs">
+                        Search: {searchQuery}
+                        <button 
+                          className="ml-1.5 hover:text-destructive" 
+                          onClick={() => {
+                            setSearchQuery("");
+                            updateURLParams({ search: null });
+                          }}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -561,7 +656,7 @@ const Robots = () => {
                 {/* 1. Robot Type - First filter */}
                 <div>
                   <p className="text-xs font-semibold mb-1">Robot Type</p>
-                  <Select value={selectedRobotType} onValueChange={setSelectedRobotType}>
+                  <Select value={selectedRobotType} onValueChange={handleRobotTypeChange}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="All Robot Types" />
                     </SelectTrigger>
@@ -772,7 +867,7 @@ const Robots = () => {
               <Bot className="w-16 h-16 text-muted-foreground mb-4" />
               <p className="text-lg font-semibold mb-2">No robots match the current filters.</p>
               <p className="text-muted-foreground mb-4">Try clearing some filters or changing the search text.</p>
-              <Button onClick={() => window.location.reload()}>Reset</Button>
+              <Button onClick={handleClearFilters}>Clear Filters</Button>
             </div>
           ) : (
             <div className="space-y-8">
