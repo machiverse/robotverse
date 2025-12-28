@@ -41,6 +41,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import EnhancedHeader from '@/components/EnhancedHeader';
 
 const ProfileSettings = () => {
@@ -358,57 +359,82 @@ const ProfileSettings = () => {
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
           <Button 
             variant="outline" 
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-fit rounded-xl border-2 hover:bg-primary/5 hover:border-primary/30 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
               Profile & Settings
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm mt-1">
               Manage your account information and preferences
             </p>
           </div>
         </div>
 
         {/* Profile Completion Alert */}
-        <Alert className={`mb-8 border-2 ${profileCompletion >= 80 ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
-          <Activity className="w-4 h-4" />
-          <AlertDescription>
-            <div className="flex items-center justify-between">
+        <div className={cn(
+          "mb-8 p-4 rounded-xl border-2 transition-colors",
+          profileCompletion >= 80 
+            ? "border-green-500/30 bg-green-500/5" 
+            : "border-amber-500/30 bg-amber-500/5"
+        )}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center",
+                profileCompletion >= 80 ? "bg-green-500/10" : "bg-amber-500/10"
+              )}>
+                <Activity className={cn(
+                  "w-6 h-6",
+                  profileCompletion >= 80 ? "text-green-600" : "text-amber-600"
+                )} />
+              </div>
               <div>
-                <strong>Profile Completion: {profileCompletion}%</strong>
-                <p className="text-sm">
+                <p className="font-semibold text-foreground">
+                  Profile Completion: {profileCompletion}%
+                </p>
+                <p className="text-sm text-muted-foreground">
                   {profileCompletion >= 80 
                     ? 'Great! Your profile is well-completed.' 
-                    : 'Complete your profile to unlock all features and build trust with other users.'
+                    : 'Complete your profile to unlock all features.'
                   }
                 </p>
               </div>
-              <div className="text-right">
-                <div className={`text-2xl font-bold ${getCompletionColor(profileCompletion)}`}>
-                  {profileCompletion}%
-                </div>
-                <Progress value={profileCompletion} className="w-24 mt-1" />
-              </div>
             </div>
-          </AlertDescription>
-        </Alert>
+            <div className="text-right hidden sm:block">
+              <div className={cn(
+                "text-3xl font-bold",
+                profileCompletion >= 80 ? "text-green-600" : "text-amber-600"
+              )}>
+                {profileCompletion}%
+              </div>
+              <Progress value={profileCompletion} className="w-28 mt-2 h-2" />
+            </div>
+          </div>
+        </div>
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 h-12 rounded-xl bg-muted/50 p-1">
+            <TabsTrigger 
+              value="profile" 
+              className="flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md transition-all"
+            >
               <User className="w-4 h-4" />
-              Profile Details
+              <span className="hidden sm:inline">Profile Details</span>
+              <span className="sm:hidden">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger 
+              value="settings" 
+              className="flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md transition-all"
+            >
               <Settings className="w-4 h-4" />
               Settings
             </TabsTrigger>
