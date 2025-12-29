@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { Loader2, Grid, List, Search, MapPin, Phone, ChevronRight, Home, Package } from "lucide-react";
+import { Loader2, Grid, List, Search, MapPin, ChevronRight, Home, Package } from "lucide-react";
+import { ChatButton } from "@/components/chat/ChatButton";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -363,15 +364,15 @@ const SpareCategory = () => {
                   </div>
 
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <ChatButton
+                      otherUserId={part.seller_id || ""}
+                      itemType="spare_part"
+                      itemId={part.id}
+                      itemName={part.name}
+                      variant="outline"
+                      size="sm"
                       className="flex-1"
-                      onClick={() => handleContactSeller(part)}
-                    >
-                      <Phone className="w-4 h-4 mr-1" />
-                      Call
-                    </Button>
+                    />
                     <Button size="sm" className="flex-1" onClick={() => navigate(`/parts/${part.id}`)}>
                       Details
                     </Button>

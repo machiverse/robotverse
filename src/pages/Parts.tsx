@@ -794,14 +794,15 @@ const Parts = () => {
                     )}
 
                     <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        size="sm"
+                      <ChatButton
+                        otherUserId={part.sellerId || ""}
+                        itemType="spare_part"
+                        itemId={part.id}
+                        itemName={part.name}
                         variant="outline"
+                        size="sm"
                         className="flex-1 text-xs"
-                        onClick={() => handleContactSeller(part)}
-                      >
-                        Contact
-                      </Button>
+                      />
                       <Button
                         size="sm"
                         className="flex-1 text-xs"
@@ -886,13 +887,14 @@ const Parts = () => {
                             {formatPrice(part.price)}
                           </span>
                           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              size="sm"
+                            <ChatButton
+                              otherUserId={part.sellerId || ""}
+                              itemType="spare_part"
+                              itemId={part.id}
+                              itemName={part.name}
                               variant="outline"
-                              onClick={() => handleContactSeller(part)}
-                            >
-                              Contact
-                            </Button>
+                              size="sm"
+                            />
                             <Button
                               size="sm"
                               onClick={() => handleRequestQuote(part)}
@@ -900,14 +902,6 @@ const Parts = () => {
                               Get Quote
                             </Button>
                           </div>
-                          <ChatButton
-                            otherUserId={part.sellerId || ""}
-                            itemType="spare_part"
-                            itemId={part.id}
-                            itemName={part.name}
-                            variant="outline"
-                            size="sm"
-                          />
                         </div>
                       </div>
                     </CardContent>
