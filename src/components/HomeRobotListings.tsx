@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -46,14 +46,13 @@ const HomeRobotListings = () => {
   const [loading, setLoading] = useState(true);
   const [robotsByType, setRobotsByType] = useState<Record<string, Robot[]>>({});
 
-  // ✅ EVERY 5 SECONDS AUTO-SCROLL
-  const autoplayPlugin = useRef(
+  // Create autoplay plugin for each type
+  const createAutoplayPlugin = () =>
     Autoplay({
-      delay: 5000, // 5 seconds scroll
+      delay: 5000,
       stopOnMouseEnter: true,
       stopOnInteraction: false,
-    }),
-  );
+    });
 
   useEffect(() => {
     fetchRobots();
@@ -241,7 +240,7 @@ const HomeRobotListings = () => {
                     align: "start",
                     loop: robotsOfType.length > 4,
                   }}
-                  plugins={[autoplayPlugin.current]}
+                  plugins={[createAutoplayPlugin()]}
                   className="w-full"
                 >
                   <CarouselContent className="-ml-4">
