@@ -94,20 +94,21 @@ const HomeRobotListings = () => {
     setRobotsByType(grouped);
   };
 
-  // Calculate statistics for a group of robots
-  const getTypeStats = (robotsOfType: Robot[]) => {
-    const prices = robotsOfType.filter(r => r.price && r.price > 0).map(r => r.price);
-    const brands = new Set(robotsOfType.map(r => r.brand).filter(Boolean));
+  // Calculate overall statistics for all robots
+  const getOverallStats = () => {
+    const prices = robots.filter(r => r.price && r.price > 0).map(r => r.price);
+    const brands = new Set(robots.map(r => r.brand).filter(Boolean));
+    const typeCount = Object.keys(robotsByType).length;
     
     if (prices.length === 0) {
-      return { minPrice: 0, maxPrice: 0, avgPrice: 0, brandCount: brands.size, count: robotsOfType.length };
+      return { minPrice: 0, maxPrice: 0, avgPrice: 0, brandCount: brands.size, count: robots.length, typeCount };
     }
     
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
     
-    return { minPrice, maxPrice, avgPrice, brandCount: brands.size, count: robotsOfType.length };
+    return { minPrice, maxPrice, avgPrice, brandCount: brands.size, count: robots.length, typeCount };
   };
 
   const formatPrice = (price: number, currency: Currency) => {
@@ -149,17 +150,47 @@ const HomeRobotListings = () => {
     );
   }
 
+  const overallStats = getOverallStats();
+
   return (
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Robot Marketplace
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
             Discover cutting-edge industrial robots from verified sellers
           </p>
+          
+          {/* Overall Stats */}
+          <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+            <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold">
+              {overallStats.count} Robots
+            </span>
+            <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium">
+              {overallStats.typeCount} Categories
+            </span>
+            {overallStats.brandCount > 0 && (
+              <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium">
+                {overallStats.brandCount} Brands
+              </span>
+            )}
+            {overallStats.minPrice > 0 && (
+              <>
+                <span className="px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 font-medium">
+                  Min: {formatPrice(overallStats.minPrice, "INR")}
+                </span>
+                <span className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                  Avg: {formatPrice(overallStats.avgPrice, "INR")}
+                </span>
+                <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium">
+                  Max: {formatPrice(overallStats.maxPrice, "INR")}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Robot Type Sections */}
@@ -167,38 +198,16 @@ const HomeRobotListings = () => {
           {robotTypes.map((robotType) => {
             const robotsOfType = robotsByType[robotType];
             if (!robotsOfType?.length) return null;
-            const stats = getTypeStats(robotsOfType);
 
             return (
               <div key={robotType} className="relative">
-                {/* Type Header with Stats */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                {/* Type Header */}
+                <div className="flex items-center justify-between mb-6">
                   <div className="space-y-1">
                     <h3 className="text-2xl font-bold text-foreground">{getTypeLabel(robotType)}</h3>
-                    {/* Stats Row */}
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                      <span className="px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
-                        {stats.count} {stats.count === 1 ? "Robot" : "Robots"}
-                      </span>
-                      {stats.brandCount > 0 && (
-                        <span className="px-2 py-1 rounded-md bg-muted text-muted-foreground">
-                          {stats.brandCount} {stats.brandCount === 1 ? "Brand" : "Brands"}
-                        </span>
-                      )}
-                      {stats.minPrice > 0 && (
-                        <>
-                          <span className="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
-                            Min: {formatPrice(stats.minPrice, "INR")}
-                          </span>
-                          <span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                            Avg: {formatPrice(stats.avgPrice, "INR")}
-                          </span>
-                          <span className="px-2 py-1 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400">
-                            Max: {formatPrice(stats.maxPrice, "INR")}
-                          </span>
-                        </>
-                      )}
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {robotsOfType.length} {robotsOfType.length === 1 ? "robot" : "robots"} available
+                    </p>
                   </div>
                   <Button
                     variant="outline"
