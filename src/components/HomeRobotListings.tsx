@@ -46,10 +46,10 @@ const HomeRobotListings = () => {
   const [loading, setLoading] = useState(true);
   const [robotsByType, setRobotsByType] = useState<Record<string, Robot[]>>({});
 
-  // Autoplay plugin for listing carousels only
+  // ✅ EVERY 5 SECONDS AUTO-SCROLL
   const autoplayPlugin = useRef(
     Autoplay({
-      delay: 4000,
+      delay: 5000, // 5 seconds scroll
       stopOnMouseEnter: true,
       stopOnInteraction: false,
     }),
@@ -95,6 +95,7 @@ const HomeRobotListings = () => {
     setRobotsByType(grouped);
   };
 
+  // Calculate overall statistics for all robots
   const getOverallStats = () => {
     const prices = robots.filter((r) => r.price && r.price > 0).map((r) => r.price);
     const brands = new Set(robots.map((r) => r.brand).filter(Boolean));
@@ -234,7 +235,7 @@ const HomeRobotListings = () => {
                   </Button>
                 </div>
 
-                {/* Auto Carousel - ONLY listing auto-scrolls */}
+                {/* ✅ AUTO-SCROLLS EVERY 5 SECONDS */}
                 <Carousel
                   opts={{
                     align: "start",
