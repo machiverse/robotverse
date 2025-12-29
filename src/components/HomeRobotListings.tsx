@@ -46,6 +46,7 @@ const HomeRobotListings = () => {
   const [loading, setLoading] = useState(true);
   const [robotsByType, setRobotsByType] = useState<Record<string, Robot[]>>({});
 
+  // Autoplay plugin for listing carousels only
   const autoplayPlugin = useRef(
     Autoplay({
       delay: 4000,
@@ -94,21 +95,34 @@ const HomeRobotListings = () => {
     setRobotsByType(grouped);
   };
 
-  // Calculate overall statistics for all robots
   const getOverallStats = () => {
-    const prices = robots.filter(r => r.price && r.price > 0).map(r => r.price);
-    const brands = new Set(robots.map(r => r.brand).filter(Boolean));
+    const prices = robots.filter((r) => r.price && r.price > 0).map((r) => r.price);
+    const brands = new Set(robots.map((r) => r.brand).filter(Boolean));
     const typeCount = Object.keys(robotsByType).length;
-    
+
     if (prices.length === 0) {
-      return { minPrice: 0, maxPrice: 0, avgPrice: 0, brandCount: brands.size, count: robots.length, typeCount };
+      return {
+        minPrice: 0,
+        maxPrice: 0,
+        avgPrice: 0,
+        brandCount: brands.size,
+        count: robots.length,
+        typeCount,
+      };
     }
-    
+
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
-    
-    return { minPrice, maxPrice, avgPrice, brandCount: brands.size, count: robots.length, typeCount };
+
+    return {
+      minPrice,
+      maxPrice,
+      avgPrice,
+      brandCount: brands.size,
+      count: robots.length,
+      typeCount,
+    };
   };
 
   const formatPrice = (price: number, currency: Currency) => {
@@ -163,7 +177,7 @@ const HomeRobotListings = () => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
             Discover cutting-edge industrial robots from verified sellers
           </p>
-          
+
           {/* Overall Stats */}
           <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
             <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold">
@@ -220,7 +234,7 @@ const HomeRobotListings = () => {
                   </Button>
                 </div>
 
-                {/* Auto Carousel */}
+                {/* Auto Carousel - ONLY listing auto-scrolls */}
                 <Carousel
                   opts={{
                     align: "start",
