@@ -1,23 +1,24 @@
 // Navigation Menu Structure for RobotVerse
 import { SPARE_PARTS_TAXONOMY, getCategories } from './sparePartsCategories';
 
-// Robot Types for Robots Menu
+// Robot Types for Robots Menu - Must match database robot_type values exactly
 export const ROBOT_TYPES = [
-  "Articulated Robots",
-  "SCARA Robots",
-  "Delta Robots",
-  "Cartesian Robots",
-  "Collaborative Robots (Cobots)",
-  "Mobile Robots (AGV/AMR)",
-  "Humanoid Robots",
-  "Welding Robots",
-  "Painting Robots",
-  "Palletizing Robots",
-  "Pick and Place Robots",
-  "Assembly Robots",
-  "Inspection Robots",
-  "Material Handling Robots",
-  "Packaging Robots",
+  "Articulated Robot",
+  "SCARA Robot",
+  "Collaborative Robot (Cobot)",
+  "Cobot",
+  "AGV / AMR",
+  "AMR (Autonomous Mobile Robot)",
+  "Mobile Robot",
+  "Palletizing Robot",
+  "Industrial Robot",
+  "Heavy Handling Robot",
+  "Medium Handling Robot",
+  "Small Handling Robot",
+  "Linear Robot",
+  "Laser Cutting Robot",
+  "Laser Welding Robot",
+  "Mig Welding Robot",
 ] as const;
 
 // Service Types
