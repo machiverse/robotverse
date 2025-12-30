@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -9,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,16 +44,26 @@ interface FinanceProvider {
 
 const Financing = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
   const { seoData } = useAutoSEO({ type: 'financing' });
   const [providers, setProviders] = useState<FinanceProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
   const [selectedProvider, setSelectedProvider] = useState<FinanceProvider | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
+
+  // Read filter from URL params
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (typeParam) {
+      setSelectedType(typeParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchFinanceProviders();
@@ -87,11 +99,17 @@ const Financing = () => {
     }
   };
 
-  const filteredProviders = providers.filter(provider =>
-    provider.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.loan_type.some(type => type.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredProviders = providers.filter(provider => {
+    const matchesSearch = 
+      provider.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.loan_type.some(type => type.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesType = selectedType === "all" ||
+      provider.loan_type.some(type => type.toLowerCase().includes(selectedType.toLowerCase()));
+
+    return matchesSearch && matchesType;
+  });
 
   const handleViewContact = (provider: FinanceProvider) => {
     // Track view contact interaction
@@ -245,14 +263,31 @@ const Financing = () => {
             </p>
           </div>
           
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search financing options..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Loan Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Business Loan">Business Loan</SelectItem>
+                <SelectItem value="Equipment Finance">Equipment Finance</SelectItem>
+                <SelectItem value="Working Capital">Working Capital</SelectItem>
+                <SelectItem value="Invoice Financing">Invoice Financing</SelectItem>
+                <SelectItem value="Term Loan">Term Loan</SelectItem>
+                <SelectItem value="MSME Loan">MSME Loan</SelectItem>
+                <SelectItem value="Startup Funding">Startup Funding</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search financing options..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
         </div>
 

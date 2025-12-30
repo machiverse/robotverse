@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -16,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -66,16 +68,26 @@ interface LogisticsProvider {
 
 const Logistics = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
   const { seoData } = useAutoSEO({ type: 'logistics' });
   const [providers, setProviders] = useState<LogisticsProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
   const [selectedProvider, setSelectedProvider] =
     useState<LogisticsProvider | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+
+  // Read filter from URL params
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (typeParam) {
+      setSelectedType(typeParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchLogisticsProviders();
@@ -114,15 +126,20 @@ const Logistics = () => {
   };
 
   const filteredProviders = providers.filter(
-    (provider) =>
-      provider.service_name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      provider.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.coverage_areas.some((area) =>
-        area.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    (provider) => {
+      const matchesSearch = 
+        provider.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        provider.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        provider.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        provider.coverage_areas.some((area) =>
+          area.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      
+      const matchesType = selectedType === "all" ||
+        provider.service_type.toLowerCase().includes(selectedType.toLowerCase());
+
+      return matchesSearch && matchesType;
+    }
   );
 
   const handleViewContact = (provider: LogisticsProvider) => {
@@ -239,14 +256,32 @@ const Logistics = () => {
             </p>
           </div>
 
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search providers, services, or regions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Service Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Local Delivery">Local Delivery</SelectItem>
+                <SelectItem value="Inter-city Transport">Inter-city Transport</SelectItem>
+                <SelectItem value="International Shipping">International Shipping</SelectItem>
+                <SelectItem value="Heavy Equipment Transport">Heavy Equipment Transport</SelectItem>
+                <SelectItem value="Express Delivery">Express Delivery</SelectItem>
+                <SelectItem value="Warehousing & Storage">Warehousing & Storage</SelectItem>
+                <SelectItem value="Last Mile Delivery">Last Mile Delivery</SelectItem>
+                <SelectItem value="Temperature Controlled Transport">Temperature Controlled</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search providers, services, or regions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
         </div>
 
