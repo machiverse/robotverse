@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,9 @@ import {
   getCategories,
   getSubcategoriesForCategory,
   getComponentTypesForSubcategory,
+  getCategoryNameFromSlug,
+  getSubcategoryNameFromSlug,
+  getComponentTypeNameFromSlug,
 } from "@/constants/sparePartsCategories";
 import { SEOHead } from "@/components/SEOHead";
 import { generateItemListSchema } from "@/utils/seoSchemas";
@@ -65,6 +68,7 @@ interface Part {
 const Parts = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { category: urlCategory, subcategory: urlSubcategory, componentType: urlComponentType } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const { trackButtonClick } = useButtonTracking();
@@ -115,22 +119,43 @@ const Parts = () => {
     return getComponentTypesForSubcategory(selectedCategory, selectedSubcategory);
   }, [selectedCategory, selectedSubcategory]);
 
-  // Read filters from URL
+  // Read filters from URL path params (priority) or query params
+  // Convert slugs to actual names for filtering
   useEffect(() => {
-    const categoryParam = searchParams.get("category");
-    const subcategoryParam = searchParams.get("subcategory");
-    const componentTypeParam = searchParams.get("componentType");
+    // Path params take priority (from /spares/:category/:subcategory/:componentType routes)
+    if (urlCategory) {
+      // Convert slug to actual category name for dropdown display
+      const categoryName = getCategoryNameFromSlug(urlCategory);
+      setSelectedCategory(categoryName || urlCategory);
+    } else {
+      const categoryParam = searchParams.get("category");
+      if (categoryParam) {
+        setSelectedCategory(categoryParam);
+      }
+    }
 
-    if (categoryParam) {
-      setSelectedCategory(categoryParam);
+    if (urlSubcategory && urlCategory) {
+      // Convert slug to actual subcategory name
+      const subcategoryName = getSubcategoryNameFromSlug(urlCategory, urlSubcategory);
+      setSelectedSubcategory(subcategoryName || urlSubcategory);
+    } else {
+      const subcategoryParam = searchParams.get("subcategory");
+      if (subcategoryParam) {
+        setSelectedSubcategory(subcategoryParam);
+      }
     }
-    if (subcategoryParam) {
-      setSelectedSubcategory(subcategoryParam);
+
+    if (urlComponentType && urlCategory && urlSubcategory) {
+      // Convert slug to actual component type name
+      const componentTypeName = getComponentTypeNameFromSlug(urlCategory, urlSubcategory, urlComponentType);
+      setSelectedComponentType(componentTypeName || urlComponentType);
+    } else {
+      const componentTypeParam = searchParams.get("componentType");
+      if (componentTypeParam) {
+        setSelectedComponentType(componentTypeParam);
+      }
     }
-    if (componentTypeParam) {
-      setSelectedComponentType(componentTypeParam);
-    }
-  }, [searchParams]);
+  }, [urlCategory, urlSubcategory, urlComponentType, searchParams]);
 
   // Fetch parts data
   useEffect(() => {
@@ -242,19 +267,30 @@ const Parts = () => {
       );
     }
 
-    // Category filter
+    // Category filter - match against category or check if subcategory belongs to this category
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((part) => part.category === selectedCategory);
+      filtered = filtered.filter((part) => {
+        // Direct match on category field
+        if (part.category?.toLowerCase() === selectedCategory.toLowerCase()) return true;
+        // Check if the subcategory (main_category in DB) belongs to this category
+        const subcats = getSubcategoriesForCategory(selectedCategory);
+        return subcats.some(sub => sub.name.toLowerCase() === part.subcategory?.toLowerCase());
+      });
     }
 
-    // Subcategory filter
+    // Subcategory filter - match against subcategory (main_category in DB)
     if (selectedSubcategory !== "all") {
-      filtered = filtered.filter((part) => part.subcategory === selectedSubcategory);
+      filtered = filtered.filter((part) => 
+        part.subcategory?.toLowerCase() === selectedSubcategory.toLowerCase()
+      );
     }
 
-    // Component type filter
+    // Component type filter - match against componentType (sub_category or component_type in DB)
     if (selectedComponentType !== "all") {
-      filtered = filtered.filter((part) => part.componentType === selectedComponentType);
+      filtered = filtered.filter((part) => 
+        part.componentType?.toLowerCase() === selectedComponentType.toLowerCase() ||
+        part.componentType?.toLowerCase().includes(selectedComponentType.toLowerCase())
+      );
     }
 
     // Location filter

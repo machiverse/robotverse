@@ -539,3 +539,25 @@ export const getAllSubCategories = (): string[] => {
   });
   return all;
 };
+
+// Lookup functions for slug-to-name conversion
+export const getCategoryNameFromSlug = (slug: string): string | null => {
+  const category = SPARE_PARTS_TAXONOMY.find(cat => cat.slug === slug);
+  return category?.name || null;
+};
+
+export const getSubcategoryNameFromSlug = (categorySlug: string, subcategorySlug: string): string | null => {
+  const category = SPARE_PARTS_TAXONOMY.find(cat => cat.slug === categorySlug);
+  if (!category) return null;
+  const subcategory = category.subcategories.find(sub => sub.slug === subcategorySlug);
+  return subcategory?.name || null;
+};
+
+export const getComponentTypeNameFromSlug = (categorySlug: string, subcategorySlug: string, componentTypeSlug: string): string | null => {
+  const category = SPARE_PARTS_TAXONOMY.find(cat => cat.slug === categorySlug);
+  if (!category) return null;
+  const subcategory = category.subcategories.find(sub => sub.slug === subcategorySlug);
+  if (!subcategory) return null;
+  const componentType = subcategory.componentTypes.find(ct => ct.slug === componentTypeSlug);
+  return componentType?.name || null;
+};
