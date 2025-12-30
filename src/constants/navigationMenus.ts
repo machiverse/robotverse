@@ -21,55 +21,56 @@ export const ROBOT_TYPES = [
   "Mig Welding Robot",
 ] as const;
 
-// Service Types
+// Service Types - Must match database service_type values
 export const SERVICE_TYPES = [
-  "Robot Installation",
-  "Robot Maintenance",
-  "Robot Programming",
-  "Robot Integration",
-  "Robot Training",
-  "Robot Repair",
-  "Preventive Maintenance",
-  "Emergency Support",
-  "System Upgrades",
-  "Safety Audits",
+  "Installation",
+  "Maintenance",
+  "Repair",
+  "Calibration",
+  "Training",
+  "Consulting",
+  "Inspection",
+  "Upgrades",
 ] as const;
 
-// Logistics Types
+// Logistics Types - Must match database service_type values
 export const LOGISTICS_TYPES = [
-  "Domestic Shipping",
+  "Local Delivery",
+  "Inter-city Transport",
   "International Shipping",
   "Heavy Equipment Transport",
   "Express Delivery",
-  "Warehouse Services",
-  "Customs Clearance",
-  "Door-to-Door Delivery",
+  "Warehousing & Storage",
   "Last Mile Delivery",
+  "Temperature Controlled Transport",
 ] as const;
 
-// Finance Types
+// Finance Types - Must match database loan_type values
 export const FINANCE_TYPES = [
-  "Equipment Leasing",
-  "Robot Financing",
-  "Working Capital Loans",
-  "Asset-Based Lending",
-  "Government Schemes",
-  "MSME Loans",
-  "Trade Finance",
-  "Project Finance",
+  "Business Loan",
+  "Equipment Finance",
+  "Working Capital",
+  "Invoice Financing",
+  "Term Loan",
+  "MSME Loan",
+  "Startup Funding",
 ] as const;
 
-// RoboBook Categories
+// RoboBook Categories - Post types for filtering
 export const ROBOBOOK_CATEGORIES = [
-  "Industry News",
-  "Robot Reviews",
-  "How-To Guides",
-  "Case Studies",
-  "Technology Trends",
-  "Expert Insights",
-  "Product Launches",
-  "Events & Exhibitions",
+  "blog",
+  "video",
+  "short_post",
+  "media",
 ] as const;
+
+// RoboBook display labels
+export const ROBOBOOK_CATEGORY_LABELS: Record<string, string> = {
+  "blog": "Articles",
+  "video": "Videos", 
+  "short_post": "Quick Posts",
+  "media": "Media",
+};
 
 // Build Spare Parts Sub-menu from three-level taxonomy
 export const getSparePartsSubMenus = () => {
@@ -148,7 +149,7 @@ export const NAVIGATION_CONFIG = {
     label: "RoboBook",
     href: "/robobook",
     subItems: ROBOBOOK_CATEGORIES.map(cat => ({
-      label: cat,
+      label: ROBOBOOK_CATEGORY_LABELS[cat] || cat,
       href: `/robobook?category=${encodeURIComponent(cat)}`,
     })),
   },

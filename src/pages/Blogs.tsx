@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePostInteractions } from "@/hooks/usePostInteractions";
@@ -60,6 +61,7 @@ interface CommunityPost {
 
 const Community = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -69,6 +71,14 @@ const Community = () => {
   const [filterType, setFilterType] = useState("all");
   const [selectedTag, setSelectedTag] = useState("all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+
+  // Read filter from URL params
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    if (categoryParam) {
+      setFilterType(categoryParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchPosts();

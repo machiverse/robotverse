@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ interface Service {
 const Services = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
   const [services, setServices] = useState<Service[]>([]);
@@ -61,6 +63,14 @@ const Services = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+
+  // Read filter from URL params
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (typeParam) {
+      setSelectedCategory(typeParam);
+    }
+  }, [searchParams]);
 
   // Fetch services from Supabase
   useEffect(() => {
