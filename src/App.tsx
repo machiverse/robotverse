@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import RobotComparison from "./pages/RobotComparison";
 import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
@@ -60,19 +62,21 @@ const GlobalChatNotifications = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <GlobalChatNotifications />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AutoSignInPopup />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/robots" element={<Robots />} />
-            <Route path="/robots/:id" element={<RobotDetails />} />
-            <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
+      <RobotComparisonProvider>
+        <TooltipProvider>
+          <GlobalChatNotifications />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AutoSignInPopup />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/robots" element={<Robots />} />
+              <Route path="/robots/:id" element={<RobotDetails />} />
+              <Route path="/robots/compare" element={<RobotComparison />} />
+              <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/parts/:id" element={<SparePartDetails />} />
             <Route path="/spares/:category" element={<Parts />} />
@@ -116,12 +120,13 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
-            <Route path="/chat" element={<Chat />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+              <Route path="/chat" element={<Chat />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </RobotComparisonProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

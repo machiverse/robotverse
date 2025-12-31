@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useRobotComparison } from "@/contexts/RobotComparisonContext";
 import {
   Loader2,
   Bot,
@@ -20,6 +21,8 @@ import {
   Building,
   CheckCircle,
   Heart,
+  GitCompare,
+  Check,
 } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -51,6 +54,7 @@ const Robots = () => {
   const { toast } = useToast();
   const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
+  const { addRobot, isSelected, removeRobot } = useRobotComparison();
 
   // Read initial values from URL params
   const initialType = searchParams.get("type") || "all";
@@ -1016,15 +1020,23 @@ const Robots = () => {
                             <div className="pt-2 space-y-2">
                               <div className="grid grid-cols-2 gap-2">
                                 <Button
-                                  variant="outline"
+                                  variant={isSelected(robot.id) ? "default" : "outline"}
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/robots/${robot.id}`);
+                                    if (isSelected(robot.id)) {
+                                      removeRobot(robot.id);
+                                    } else {
+                                      addRobot(robot);
+                                    }
                                   }}
                                 >
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  Details
+                                  {isSelected(robot.id) ? (
+                                    <Check className="w-3 h-3 mr-1" />
+                                  ) : (
+                                    <GitCompare className="w-3 h-3 mr-1" />
+                                  )}
+                                  {isSelected(robot.id) ? "Selected" : "Compare"}
                                 </Button>
                                 <ChatButton
                                   otherUserId={robot.seller_id}
