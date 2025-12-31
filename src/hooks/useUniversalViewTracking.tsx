@@ -34,9 +34,23 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
-// Always count views - no throttling for any item type
+// Throttle view counting - prevent counting same item multiple times within cooldown period
+const VIEW_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes cooldown
+
 const shouldCountView = (itemType: ItemType, itemId: string): boolean => {
-  // Always return true to ensure every page visit increments the view count
+  const key = `view_${itemType}_${itemId}`;
+  const lastViewed = localStorage.getItem(key);
+  const now = Date.now();
+  
+  if (lastViewed) {
+    const lastViewTime = parseInt(lastViewed, 10);
+    if (now - lastViewTime < VIEW_COOLDOWN_MS) {
+      return false; // Too soon since last view
+    }
+  }
+  
+  // Mark this item as viewed
+  localStorage.setItem(key, now.toString());
   return true;
 };
 
