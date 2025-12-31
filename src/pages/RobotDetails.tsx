@@ -57,6 +57,8 @@ import {
   ZoomIn,
   Share2,
   Calendar,
+  GitCompare,
+  Check,
 } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -72,6 +74,7 @@ import { type RobotSEOData } from "@/utils/seo";
 import { useRobotSEO } from "@/hooks/useRobotSEO";
 import { SEOHead } from "@/components/SEOHead";
 import { generateProductSchema } from "@/utils/seoSchemas";
+import { useRobotComparison } from "@/contexts/RobotComparisonContext";
 
 interface Robot {
   id: string;
@@ -189,6 +192,7 @@ const RobotDetails = () => {
   const { toast } = useToast();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
+  const { addRobot, isSelected, removeRobot } = useRobotComparison();
 
   const [robot, setRobot] = useState<Robot | null>(null);
   const [loading, setLoading] = useState(true);

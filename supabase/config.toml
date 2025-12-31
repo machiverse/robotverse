@@ -25,6 +25,9 @@ verify_jwt = false
 [functions.generate-sitemap-auto]
 verify_jwt = false
 
+[functions.robot-comparison-ai]
+verify_jwt = false
+
 [db]
 enabled = true
 port = 54322

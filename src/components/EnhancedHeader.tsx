@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
+import { useRobotComparison } from "@/contexts/RobotComparisonContext";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
@@ -86,6 +87,7 @@ const DropdownMenu = ({ isOpen, onClose, children, className }: DropdownMenuProp
 const EnhancedHeader = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { selectedRobots, maxRobots } = useRobotComparison();
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
@@ -94,6 +96,8 @@ const EnhancedHeader = () => {
   const [mobileExpandedSubMenu, setMobileExpandedSubMenu] = useState<string | null>(null);
   const [mobileExpandedComponentMenu, setMobileExpandedComponentMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const comparisonCount = selectedRobots.length;
 
   useChatNotifications();
 
@@ -182,10 +186,23 @@ const EnhancedHeader = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="hidden sm:flex relative h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
+            onClick={() => comparisonCount >= 2 ? navigate('/robots/compare') : null}
+            disabled={comparisonCount < 2}
+            className={cn(
+              "hidden sm:flex relative h-10 w-10 rounded-xl transition-colors",
+              comparisonCount >= 2
+                ? "hover:bg-primary/10 hover:text-primary cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
+            )}
+            title={comparisonCount < 2 ? `Select at least 2 robots to compare (${comparisonCount}/${maxRobots})` : `Compare ${comparisonCount} robots`}
           >
             <GitCompare className="h-5 w-5" />
-            <span className="sr-only">Compare</span>
+            {comparisonCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {comparisonCount}
+              </span>
+            )}
+            <span className="sr-only">Compare ({comparisonCount}/{maxRobots})</span>
           </Button>
 
           {/* Notification Center */}
