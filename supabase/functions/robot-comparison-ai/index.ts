@@ -91,55 +91,34 @@ serve(async (req) => {
 
     const prompt = buildComparisonPrompt(robots);
 
-    // Try LOVABLE_API_KEY first (Lovable AI Gateway), then fallback to DEEPSEEK_API_KEY
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
+    // Use GEMINI_API_KEY
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
-    let response: Response;
-    
-    if (lovableApiKey) {
-      // Use Lovable AI Gateway
-      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a senior industrial robotics consultant specializing in comparing industrial robots for procurement decisions. Always respond with valid JSON only.'
-            },
-            { role: 'user', content: prompt }
-          ],
-        }),
-      });
-    } else if (deepseekApiKey) {
-      // Fallback to DeepSeek
-      response = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${deepseekApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a senior industrial robotics consultant specializing in comparing industrial robots for procurement decisions. Always respond with valid JSON only.'
-            },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000,
-        }),
-      });
-    } else {
-      throw new Error('No AI API key configured (LOVABLE_API_KEY or DEEPSEEK_API_KEY required)');
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY is not configured');
     }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `You are a senior industrial robotics consultant specializing in comparing industrial robots for procurement decisions. Always respond with valid JSON only.\n\n${prompt}`
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2000,
+        }
+      }),
+    });
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -148,7 +127,14 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    const analysisContent = result.choices[0].message.content;
+    
+    // Gemini response format: result.candidates[0].content.parts[0].text
+    const analysisContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!analysisContent) {
+      console.error('No content in Gemini response:', JSON.stringify(result));
+      throw new Error('No content in AI response');
+    }
 
     // Parse the JSON response
     let parsedAnalysis;
