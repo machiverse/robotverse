@@ -91,50 +91,62 @@ serve(async (req) => {
 
     const prompt = buildComparisonPrompt(robots);
 
-    // Use GEMINI_API_KEY
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    // Use Lovable AI Gateway
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!geminiApiKey) {
-      throw new Error('GEMINI_API_KEY is not configured');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
+    console.log('Calling Lovable AI Gateway for robot comparison...');
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [
+        model: 'google/gemini-2.5-flash',
+        messages: [
           {
-            parts: [
-              {
-                text: `You are a senior industrial robotics consultant specializing in comparing industrial robots for procurement decisions. Always respond with valid JSON only.\n\n${prompt}`
-              }
-            ]
-          }
+            role: 'system',
+            content: 'You are a senior industrial robotics consultant specializing in comparing industrial robots for procurement decisions. Always respond with valid JSON only.'
+          },
+          { role: 'user', content: prompt }
         ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2000,
-        }
       }),
     });
 
     if (!response.ok) {
       const errorBody = await response.text();
       console.error('AI API error:', response.status, errorBody);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a few moments.' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       throw new Error(`AI API failed with status ${response.status}`);
     }
 
     const result = await response.json();
-    
-    // Gemini response format: result.candidates[0].content.parts[0].text
-    const analysisContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    const analysisContent = result.choices?.[0]?.message?.content;
     
     if (!analysisContent) {
-      console.error('No content in Gemini response:', JSON.stringify(result));
+      console.error('No content in AI response:', JSON.stringify(result));
       throw new Error('No content in AI response');
     }
+
+    console.log('AI response received successfully');
 
     // Parse the JSON response
     let parsedAnalysis;
