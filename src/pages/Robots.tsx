@@ -1024,6 +1024,15 @@ const Robots = () => {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    if (!user) {
+                                      toast({
+                                        title: "Sign in required",
+                                        description: "Please sign in to compare robots",
+                                        variant: "default",
+                                      });
+                                      navigate('/auth');
+                                      return;
+                                    }
                                     if (isSelected(robot.id)) {
                                       removeRobot(robot.id);
                                     } else {

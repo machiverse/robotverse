@@ -87,7 +87,7 @@ const DropdownMenu = ({ isOpen, onClose, children, className }: DropdownMenuProp
 const EnhancedHeader = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { selectedRobots, maxRobots } = useRobotComparison();
+  const { selectedRobots, maxRobots, removeRobot, clearComparison } = useRobotComparison();
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
@@ -96,8 +96,31 @@ const EnhancedHeader = () => {
   const [mobileExpandedSubMenu, setMobileExpandedSubMenu] = useState<string | null>(null);
   const [mobileExpandedComponentMenu, setMobileExpandedComponentMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [compareDropdownOpen, setCompareDropdownOpen] = useState(false);
+  const compareDropdownRef = useRef<HTMLDivElement>(null);
 
   const comparisonCount = selectedRobots.length;
+
+  // Close compare dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (compareDropdownRef.current && !compareDropdownRef.current.contains(event.target as Node)) {
+        setCompareDropdownOpen(false);
+      }
+    };
+    if (compareDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [compareDropdownOpen]);
+
+  const handleCompareClick = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    setCompareDropdownOpen(!compareDropdownOpen);
+  };
 
   useChatNotifications();
 
@@ -183,27 +206,112 @@ const EnhancedHeader = () => {
           </Link>
 
           {/* Compare */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => comparisonCount >= 2 ? navigate('/robots/compare') : null}
-            disabled={comparisonCount < 2}
-            className={cn(
-              "hidden sm:flex relative h-10 w-10 rounded-xl transition-colors",
-              comparisonCount >= 2
-                ? "hover:bg-primary/10 hover:text-primary cursor-pointer"
-                : "opacity-50 cursor-not-allowed"
+          <div className="relative hidden sm:block" ref={compareDropdownRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCompareClick}
+              className={cn(
+                "relative h-10 w-10 rounded-xl transition-colors hover:bg-primary/10 hover:text-primary",
+                compareDropdownOpen && "bg-primary/10 text-primary"
+              )}
+              title={!user ? "Sign in to compare robots" : `Compare robots (${comparisonCount}/${maxRobots})`}
+            >
+              <GitCompare className="h-5 w-5" />
+              {comparisonCount > 0 && user && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {comparisonCount}
+                </span>
+              )}
+              <span className="sr-only">Compare ({comparisonCount}/{maxRobots})</span>
+            </Button>
+
+            {/* Compare Dropdown */}
+            {compareDropdownOpen && user && (
+              <div className="absolute right-0 top-full mt-2 w-80 dropdown-professional animate-in fade-in-0 zoom-in-95 duration-150 z-50">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-sm">Robot Comparison</h3>
+                    <span className="text-xs text-muted-foreground">{comparisonCount}/{maxRobots} selected</span>
+                  </div>
+
+                  {comparisonCount === 0 ? (
+                    <div className="text-center py-6">
+                      <GitCompare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">No robots selected</p>
+                      <p className="text-xs text-muted-foreground mt-1">Browse robots and click "Compare" to add</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-3"
+                        onClick={() => {
+                          setCompareDropdownOpen(false);
+                          navigate('/robots');
+                        }}
+                      >
+                        Browse Robots
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {selectedRobots.map((robot) => (
+                          <div
+                            key={robot.id}
+                            className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                          >
+                            <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {robot.images && robot.images[0] ? (
+                                <img src={robot.images[0]} alt={robot.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <Bot className="h-6 w-6 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{robot.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{robot.brand || robot.robot_type}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                              onClick={() => removeRobot(robot.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="border-t border-border mt-3 pt-3 space-y-2">
+                        <Button
+                          className="w-full"
+                          disabled={comparisonCount < 2}
+                          onClick={() => {
+                            setCompareDropdownOpen(false);
+                            navigate('/robots/compare');
+                          }}
+                        >
+                          Compare {comparisonCount} Robots
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            clearComparison();
+                            setCompareDropdownOpen(false);
+                          }}
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             )}
-            title={comparisonCount < 2 ? `Select at least 2 robots to compare (${comparisonCount}/${maxRobots})` : `Compare ${comparisonCount} robots`}
-          >
-            <GitCompare className="h-5 w-5" />
-            {comparisonCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                {comparisonCount}
-              </span>
-            )}
-            <span className="sr-only">Compare ({comparisonCount}/{maxRobots})</span>
-          </Button>
+          </div>
 
           {/* Notification Center */}
           <NotificationCenter />
