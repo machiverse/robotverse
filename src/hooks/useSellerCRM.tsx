@@ -27,11 +27,26 @@ export interface Lead {
   is_unlocked: boolean;
   created_at: string;
   updated_at: string;
-  // Product details
-  product_price: number | null;
-  product_brand: string | null;
-  product_model: string | null;
-  viewed_at: string | null;
+  // Product details - optional since they're enriched later
+  product_price?: number | null;
+  product_brand?: string | null;
+  product_model?: string | null;
+  viewed_at?: string | null;
+  // New CRM fields from database
+  lead_source?: string;
+  lead_type?: string;
+  product_category?: string | null;
+  assigned_to?: string | null;
+  expected_close_date?: string | null;
+  contact_person_name?: string | null;
+  contact_designation?: string | null;
+  industry_type?: string | null;
+  account_id?: string | null;
+  converted_to_opportunity?: boolean;
+  opportunity_id?: string | null;
+  lost_reason?: string | null;
+  qualification_score?: number;
+  lead_score?: number;
 }
 
 export interface ProductView {
