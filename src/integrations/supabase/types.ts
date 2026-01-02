@@ -734,6 +734,705 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_accounts: {
+        Row: {
+          account_name: string
+          account_type: string | null
+          annual_revenue: number | null
+          billing_address: string | null
+          city: string | null
+          company_size: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          email: string | null
+          gst_number: string | null
+          id: string
+          industry: string | null
+          is_active: boolean | null
+          last_order_date: string | null
+          logo_url: string | null
+          pan_number: string | null
+          phone: string | null
+          pincode: string | null
+          seller_id: string
+          shipping_address: string | null
+          state: string | null
+          total_orders: number | null
+          total_revenue: number | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          account_name: string
+          account_type?: string | null
+          annual_revenue?: number | null
+          billing_address?: string | null
+          city?: string | null
+          company_size?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          email?: string | null
+          gst_number?: string | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean | null
+          last_order_date?: string | null
+          logo_url?: string | null
+          pan_number?: string | null
+          phone?: string | null
+          pincode?: string | null
+          seller_id: string
+          shipping_address?: string | null
+          state?: string | null
+          total_orders?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_type?: string | null
+          annual_revenue?: number | null
+          billing_address?: string | null
+          city?: string | null
+          company_size?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          email?: string | null
+          gst_number?: string | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean | null
+          last_order_date?: string | null
+          logo_url?: string | null
+          pan_number?: string | null
+          phone?: string | null
+          pincode?: string | null
+          seller_id?: string
+          shipping_address?: string | null
+          state?: string | null
+          total_orders?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      crm_activity_logs: {
+        Row: {
+          account_id: string | null
+          activity_type: string
+          attachments: Json | null
+          call_direction: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_minutes: number | null
+          email_body: string | null
+          email_subject: string | null
+          id: string
+          lead_id: string | null
+          logged_at: string | null
+          opportunity_id: string | null
+          outcome: string | null
+          seller_id: string
+          subject: string
+        }
+        Insert: {
+          account_id?: string | null
+          activity_type: string
+          attachments?: Json | null
+          call_direction?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          lead_id?: string | null
+          logged_at?: string | null
+          opportunity_id?: string | null
+          outcome?: string | null
+          seller_id: string
+          subject: string
+        }
+        Update: {
+          account_id?: string | null
+          activity_type?: string
+          attachments?: Json | null
+          call_direction?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          lead_id?: string | null
+          logged_at?: string | null
+          opportunity_id?: string | null
+          outcome?: string | null
+          seller_id?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activity_logs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activity_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activity_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activity_logs_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contacts: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          department: string | null
+          designation: string | null
+          email: string | null
+          first_name: string
+          id: string
+          is_decision_maker: boolean | null
+          is_primary: boolean | null
+          last_name: string | null
+          linkedin_url: string | null
+          mobile: string | null
+          notes: string | null
+          phone: string | null
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          is_decision_maker?: boolean | null
+          is_primary?: boolean | null
+          last_name?: string | null
+          linkedin_url?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_decision_maker?: boolean | null
+          is_primary?: boolean | null
+          last_name?: string | null
+          linkedin_url?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_documents: {
+        Row: {
+          account_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          document_type: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          is_approved: boolean | null
+          lead_id: string | null
+          mime_type: string | null
+          notes: string | null
+          opportunity_id: string | null
+          quotation_id: string | null
+          seller_id: string
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          account_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          document_type: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_approved?: boolean | null
+          lead_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          quotation_id?: string | null
+          seller_id: string
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          account_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_approved?: boolean | null
+          lead_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          quotation_id?: string | null
+          seller_id?: string
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_documents_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_documents_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_documents_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_documents_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "crm_quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_opportunities: {
+        Row: {
+          account_id: string | null
+          actual_close_date: string | null
+          assigned_to: string | null
+          competitors: string[] | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          expected_close_date: string | null
+          expected_value: number | null
+          id: string
+          is_closed: boolean | null
+          lead_id: string | null
+          loss_reason: string | null
+          next_step: string | null
+          opportunity_name: string
+          opportunity_number: string
+          probability: number | null
+          products: Json | null
+          seller_id: string
+          stage: string | null
+          updated_at: string
+          weighted_value: number | null
+          win_reason: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          actual_close_date?: string | null
+          assigned_to?: string | null
+          competitors?: string[] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          expected_close_date?: string | null
+          expected_value?: number | null
+          id?: string
+          is_closed?: boolean | null
+          lead_id?: string | null
+          loss_reason?: string | null
+          next_step?: string | null
+          opportunity_name: string
+          opportunity_number?: string
+          probability?: number | null
+          products?: Json | null
+          seller_id: string
+          stage?: string | null
+          updated_at?: string
+          weighted_value?: number | null
+          win_reason?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          actual_close_date?: string | null
+          assigned_to?: string | null
+          competitors?: string[] | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          expected_close_date?: string | null
+          expected_value?: number | null
+          id?: string
+          is_closed?: boolean | null
+          lead_id?: string | null
+          loss_reason?: string | null
+          next_step?: string | null
+          opportunity_name?: string
+          opportunity_number?: string
+          probability?: number | null
+          products?: Json | null
+          seller_id?: string
+          stage?: string | null
+          updated_at?: string
+          weighted_value?: number | null
+          win_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_opportunities_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_pipeline_stages: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_lost_stage: boolean | null
+          is_won_stage: boolean | null
+          probability: number | null
+          seller_id: string
+          stage_name: string
+          stage_order: number
+          stage_type: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_lost_stage?: boolean | null
+          is_won_stage?: boolean | null
+          probability?: number | null
+          seller_id: string
+          stage_name: string
+          stage_order: number
+          stage_type?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_lost_stage?: boolean | null
+          is_won_stage?: boolean | null
+          probability?: number | null
+          seller_id?: string
+          stage_name?: string
+          stage_order?: number
+          stage_type?: string | null
+        }
+        Relationships: []
+      }
+      crm_quotations: {
+        Row: {
+          accepted_at: string | null
+          account_id: string | null
+          buyer_address: string | null
+          buyer_company: string | null
+          buyer_email: string | null
+          buyer_name: string
+          buyer_phone: string | null
+          created_at: string
+          currency: string | null
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
+          id: string
+          items: Json
+          lead_id: string | null
+          notes: string | null
+          opportunity_id: string | null
+          parent_quotation_id: string | null
+          quotation_number: string
+          rejected_at: string | null
+          rejection_reason: string | null
+          seller_id: string
+          sent_at: string | null
+          shipping_amount: number | null
+          status: string | null
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          terms_conditions: string | null
+          total_amount: number
+          updated_at: string
+          valid_until: string | null
+          version: number | null
+          viewed_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          account_id?: string | null
+          buyer_address?: string | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_name: string
+          buyer_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          items?: Json
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          parent_quotation_id?: string | null
+          quotation_number?: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          seller_id: string
+          sent_at?: string | null
+          shipping_amount?: number | null
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          terms_conditions?: string | null
+          total_amount?: number
+          updated_at?: string
+          valid_until?: string | null
+          version?: number | null
+          viewed_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          account_id?: string | null
+          buyer_address?: string | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_name?: string
+          buyer_phone?: string | null
+          created_at?: string
+          currency?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          items?: Json
+          lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          parent_quotation_id?: string | null
+          quotation_number?: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          seller_id?: string
+          sent_at?: string | null
+          shipping_amount?: number | null
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          terms_conditions?: string | null
+          total_amount?: number
+          updated_at?: string
+          valid_until?: string | null
+          version?: number | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_quotations_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_quotations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_quotations_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_quotations_parent_quotation_id_fkey"
+            columns: ["parent_quotation_id"]
+            isOneToOne: false
+            referencedRelation: "crm_quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tasks: {
+        Row: {
+          account_id: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          duration_minutes: number | null
+          id: string
+          lead_id: string | null
+          opportunity_id: string | null
+          outcome: string | null
+          priority: string | null
+          reminder_at: string | null
+          seller_id: string
+          status: string | null
+          subject: string
+          task_type: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          outcome?: string | null
+          priority?: string | null
+          reminder_at?: string | null
+          seller_id: string
+          status?: string | null
+          subject: string
+          task_type: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          outcome?: string | null
+          priority?: string | null
+          reminder_at?: string | null
+          seller_id?: string
+          status?: string | null
+          subject?: string
+          task_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tasks_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_uploads: {
         Row: {
           document_type: string
@@ -1969,24 +2668,38 @@ export type Database = {
       }
       seller_leads: {
         Row: {
+          account_id: string | null
+          assigned_to: string | null
           buyer_company: string | null
           buyer_email: string | null
           buyer_id: string | null
           buyer_location: string | null
           buyer_name: string | null
           buyer_phone: string | null
+          contact_designation: string | null
+          contact_person_name: string | null
+          converted_to_opportunity: boolean | null
           created_at: string
           currency: string | null
+          expected_close_date: string | null
           expected_value: number | null
           id: string
+          industry_type: string | null
           is_unlocked: boolean | null
           item_id: string | null
           item_name: string | null
           item_type: string
           last_contacted_at: string | null
+          lead_score: number | null
+          lead_source: string | null
+          lead_type: string | null
+          lost_reason: string | null
           next_follow_up: string | null
           notes: string | null
+          opportunity_id: string | null
           priority: string | null
+          product_category: string | null
+          qualification_score: number | null
           seller_id: string
           source: string | null
           status: string
@@ -1994,24 +2707,38 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
+          assigned_to?: string | null
           buyer_company?: string | null
           buyer_email?: string | null
           buyer_id?: string | null
           buyer_location?: string | null
           buyer_name?: string | null
           buyer_phone?: string | null
+          contact_designation?: string | null
+          contact_person_name?: string | null
+          converted_to_opportunity?: boolean | null
           created_at?: string
           currency?: string | null
+          expected_close_date?: string | null
           expected_value?: number | null
           id?: string
+          industry_type?: string | null
           is_unlocked?: boolean | null
           item_id?: string | null
           item_name?: string | null
           item_type?: string
           last_contacted_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_type?: string | null
+          lost_reason?: string | null
           next_follow_up?: string | null
           notes?: string | null
+          opportunity_id?: string | null
           priority?: string | null
+          product_category?: string | null
+          qualification_score?: number | null
           seller_id: string
           source?: string | null
           status?: string
@@ -2019,31 +2746,53 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
+          assigned_to?: string | null
           buyer_company?: string | null
           buyer_email?: string | null
           buyer_id?: string | null
           buyer_location?: string | null
           buyer_name?: string | null
           buyer_phone?: string | null
+          contact_designation?: string | null
+          contact_person_name?: string | null
+          converted_to_opportunity?: boolean | null
           created_at?: string
           currency?: string | null
+          expected_close_date?: string | null
           expected_value?: number | null
           id?: string
+          industry_type?: string | null
           is_unlocked?: boolean | null
           item_id?: string | null
           item_name?: string | null
           item_type?: string
           last_contacted_at?: string | null
+          lead_score?: number | null
+          lead_source?: string | null
+          lead_type?: string | null
+          lost_reason?: string | null
           next_follow_up?: string | null
           notes?: string | null
+          opportunity_id?: string | null
           priority?: string | null
+          product_category?: string | null
+          qualification_score?: number | null
           seller_id?: string
           source?: string | null
           status?: string
           tags?: string[] | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "seller_leads_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seller_notifications: {
         Row: {
@@ -2886,6 +3635,33 @@ export type Database = {
       }
     }
     Enums: {
+      lead_source_type:
+        | "website"
+        | "inquiry"
+        | "referral"
+        | "exhibition"
+        | "partner"
+        | "direct"
+        | "chat"
+        | "phone"
+        | "email"
+        | "other"
+      lead_type:
+        | "robot"
+        | "spare_parts"
+        | "tools"
+        | "services"
+        | "software"
+        | "logistics"
+        | "finance"
+        | "other"
+      opportunity_stage:
+        | "qualification"
+        | "needs_analysis"
+        | "proposal"
+        | "negotiation"
+        | "closed_won"
+        | "closed_lost"
       seller_role_enum: "robot_seller" | "parts_seller" | "service_provider"
       user_type_enum:
         | "buyer"
@@ -3021,6 +3797,36 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      lead_source_type: [
+        "website",
+        "inquiry",
+        "referral",
+        "exhibition",
+        "partner",
+        "direct",
+        "chat",
+        "phone",
+        "email",
+        "other",
+      ],
+      lead_type: [
+        "robot",
+        "spare_parts",
+        "tools",
+        "services",
+        "software",
+        "logistics",
+        "finance",
+        "other",
+      ],
+      opportunity_stage: [
+        "qualification",
+        "needs_analysis",
+        "proposal",
+        "negotiation",
+        "closed_won",
+        "closed_lost",
+      ],
       seller_role_enum: ["robot_seller", "parts_seller", "service_provider"],
       user_type_enum: [
         "buyer",
