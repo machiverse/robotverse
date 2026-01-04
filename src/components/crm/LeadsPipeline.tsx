@@ -64,61 +64,65 @@ const DraggableLeadCard = ({ lead, onLeadClick }: DraggableLeadCardProps) => {
     <Card
       ref={setNodeRef}
       style={style}
-      className="group cursor-pointer border border-border/60 bg-card p-3 text-xs shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md"
+      className="group cursor-pointer border border-border/40 bg-card p-3.5 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md"
       onClick={() => onLeadClick(lead)}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2.5">
         <button
           type="button"
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
-          className="mt-0.5 cursor-grab text-muted-foreground opacity-40 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+          className="mt-0.5 cursor-grab text-muted-foreground/40 transition-colors group-hover:text-muted-foreground active:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4" />
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-1.5 flex items-center gap-2">
+          {/* Header with avatar and name */}
+          <div className="mb-2 flex items-center gap-2.5">
             {lead.is_unlocked ? (
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
-                <Unlock className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                  {(lead.buyer_name || "U").charAt(0).toUpperCase()}
+                </span>
               </div>
             ) : (
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted">
-                <Lock className="h-3 w-3 text-muted-foreground" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <Lock className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
               </div>
             )}
-            <p className="truncate text-sm font-semibold">
+            <p className="truncate text-sm font-semibold text-foreground">
               {lead.is_unlocked ? lead.buyer_name || "Unknown" : "XXXXX"}
             </p>
           </div>
 
-          <div className="space-y-1 text-[11px] text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Building2 className="h-3 w-3 shrink-0" />
+          {/* Company and Product info */}
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
               <span className="truncate">
                 {lead.is_unlocked ? lead.buyer_company || "No company" : "XXXXX"}
               </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Package className="h-3 w-3 shrink-0" />
-              <span className="truncate font-medium text-foreground">
+            <div className="flex items-center gap-2">
+              <Package className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+              <span className="truncate font-medium text-foreground/90">
                 {lead.item_name || "Unknown product"}
               </span>
             </div>
           </div>
 
-          <div className="mt-2 flex items-center justify-between">
-            {lead.product_price && (
-              <Badge
-                variant="secondary"
-                className="bg-primary/10 text-[10px] font-semibold text-primary"
-              >
+          {/* Footer with price and date */}
+          <div className="mt-3 flex items-center justify-between border-t border-border/30 pt-2">
+            {lead.product_price ? (
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                 ₹{lead.product_price.toLocaleString()}
-              </Badge>
+              </span>
+            ) : (
+              <span />
             )}
-            <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
               <Clock className="h-3 w-3" />
               {format(new Date(lead.created_at), "dd MMM")}
             </span>
@@ -167,37 +171,39 @@ const DroppableColumn = ({ stage, leads, onLeadClick }: DroppableColumnProps) =>
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-w-[230px] max-w-[320px] flex-1 flex-col rounded-xl border-2 transition-all duration-200 ${
+      className={`flex min-w-[240px] max-w-[320px] flex-1 flex-col rounded-xl border transition-all duration-200 ${
         isOver
-          ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-          : `border-transparent ${stage.bgLight}`
+          ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10"
+          : "border-border/30 bg-card/50"
       }`}
     >
-      <div className="border-b border-border/40 p-3">
-        <div className="flex items-center gap-2">
-          <span className={`h-2.5 w-2.5 rounded-full ${stage.dot}`} />
-          <span className="text-sm font-semibold tracking-tight">{stage.label}</span>
+      {/* Column Header */}
+      <div className={`rounded-t-xl border-b border-border/20 px-4 py-3 ${stage.bgLight}`}>
+        <div className="flex items-center gap-2.5">
+          <span className={`h-2.5 w-2.5 rounded-full ${stage.dot} ring-2 ring-white dark:ring-slate-900`} />
+          <span className="text-sm font-semibold text-foreground tracking-tight">{stage.label}</span>
           <Badge
             variant="secondary"
-            className="ml-auto px-2 text-[10px] font-bold"
+            className="ml-auto h-5 min-w-[20px] justify-center rounded-full px-2 text-[10px] font-bold bg-background/80 text-foreground"
           >
             {leads.length}
           </Badge>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-2">
-        <div className="space-y-2">
+      {/* Cards Area */}
+      <ScrollArea className="flex-1 p-2.5">
+        <div className="space-y-2.5">
           {leads.map((lead) => (
             <DraggableLeadCard key={lead.id} lead={lead} onLeadClick={onLeadClick} />
           ))}
           {leads.length === 0 && (
-            <div className="py-10 text-center text-[11px] text-muted-foreground">
-              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-muted/50">
-                <Package className="h-4 w-4 text-muted-foreground/60" />
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted/30">
+                <Package className="h-5 w-5 text-muted-foreground/40" />
               </div>
-              <p>No leads</p>
-              <p className="text-[10px] text-muted-foreground/60">Drag leads here</p>
+              <p className="text-xs font-medium text-muted-foreground/60">No leads</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground/40">Drag leads here</p>
             </div>
           )}
         </div>
