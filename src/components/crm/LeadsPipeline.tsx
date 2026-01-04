@@ -33,13 +33,13 @@ interface LeadsPipelineProps {
   onLeadClick: (lead: Lead) => void;
 }
 
-const PIPELINE_STAGES: { status: Lead["status"]; label: string; color: string; bgLight: string; dot: string }[] = [
-  { status: "new",          label: "New",         color: "bg-blue-500",    bgLight: "bg-blue-50 dark:bg-blue-950/30",    dot: "bg-blue-500" },
-  { status: "contacted",    label: "Contacted",   color: "bg-amber-500",   bgLight: "bg-amber-50 dark:bg-amber-950/30",  dot: "bg-amber-500" },
-  { status: "quoted",       label: "Quoted",      color: "bg-violet-500",  bgLight: "bg-violet-50 dark:bg-violet-950/30", dot: "bg-violet-500" },
-  { status: "negotiating",  label: "Negotiation", color: "bg-orange-500",  bgLight: "bg-orange-50 dark:bg-orange-950/30", dot: "bg-orange-500" },
-  { status: "closed_won",   label: "Won",         color: "bg-emerald-500", bgLight: "bg-emerald-50 dark:bg-emerald-950/30", dot: "bg-emerald-500" },
-  { status: "closed_lost",  label: "Lost",        color: "bg-red-500",     bgLight: "bg-red-50 dark:bg-red-950/30",      dot: "bg-red-500" },
+const PIPELINE_STAGES: { status: Lead["status"]; label: string; color: string; bgLight: string; dot: string; textColor: string }[] = [
+  { status: "new",          label: "New",         color: "bg-blue-500",    bgLight: "bg-blue-50 dark:bg-blue-950/30",    dot: "bg-blue-500", textColor: "text-blue-700 dark:text-blue-300" },
+  { status: "contacted",    label: "Contacted",   color: "bg-amber-500",   bgLight: "bg-amber-50 dark:bg-amber-950/30",  dot: "bg-amber-500", textColor: "text-amber-700 dark:text-amber-300" },
+  { status: "quoted",       label: "Quoted",      color: "bg-violet-500",  bgLight: "bg-violet-50 dark:bg-violet-950/30", dot: "bg-violet-500", textColor: "text-violet-700 dark:text-violet-300" },
+  { status: "negotiating",  label: "Negotiation", color: "bg-orange-500",  bgLight: "bg-orange-50 dark:bg-orange-950/30", dot: "bg-orange-500", textColor: "text-orange-700 dark:text-orange-300" },
+  { status: "closed_won",   label: "Won",         color: "bg-emerald-500", bgLight: "bg-emerald-50 dark:bg-emerald-950/30", dot: "bg-emerald-500", textColor: "text-emerald-700 dark:text-emerald-300" },
+  { status: "closed_lost",  label: "Lost",        color: "bg-red-500",     bgLight: "bg-red-50 dark:bg-red-950/30",      dot: "bg-red-500", textColor: "text-red-700 dark:text-red-300" },
 ];
 
 interface DraggableLeadCardProps {
@@ -181,7 +181,7 @@ const DroppableColumn = ({ stage, leads, onLeadClick }: DroppableColumnProps) =>
       <div className={`rounded-t-xl border-b border-border/20 px-4 py-3 ${stage.bgLight}`}>
         <div className="flex items-center gap-2.5">
           <span className={`h-2.5 w-2.5 rounded-full ${stage.dot} ring-2 ring-white dark:ring-slate-900`} />
-          <span className="text-sm font-semibold text-foreground tracking-tight">{stage.label}</span>
+          <span className={`text-sm font-semibold tracking-tight ${stage.textColor}`}>{stage.label}</span>
           <Badge
             variant="secondary"
             className="ml-auto h-5 min-w-[20px] justify-center rounded-full px-2 text-[10px] font-bold bg-background/80 text-foreground"
