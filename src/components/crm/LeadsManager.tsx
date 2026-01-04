@@ -255,94 +255,100 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
   const isCurrentlyConverting = convertingId === view.id;
 
   return (
-    <div className="border-muted/60 bg-card hover:bg-accent/40 flex items-center justify-between rounded-md border p-4 transition-colors">
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className={`mt-1 rounded-full p-1.5 ${view.is_anonymous ? "bg-muted" : "bg-blue-100 dark:bg-blue-900/30"}`}>
-          {view.is_anonymous ? (
-            <Users className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Eye className="h-4 w-4 text-blue-600" />
-          )}
-        </div>
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-medium">
-              {view.is_anonymous ? "Anonymous Users" : view.user_name || "Unknown user"}
-            </p>
-            {view.view_count > 1 && (
-              <Badge variant="secondary" className="text-[10px]">
-                Viewed {view.view_count} times
-              </Badge>
-            )}
-            {view.user_company && !view.is_anonymous && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <Building2 className="h-3 w-3" />
-                {view.user_company}
-              </span>
-            )}
-          </div>
-
-          {!view.is_anonymous && (
-            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                {view.user_mobile || "Not provided"}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Mail className="h-3 w-3" />
-                {view.user_email || "Not provided"}
-              </span>
-              {view.user_location && (
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {view.user_location}
+    <Card className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
+      <div className="flex items-stretch">
+        {/* Left accent bar */}
+        <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : "bg-blue-500"}`} />
+        
+        <div className="flex flex-1 items-center justify-between gap-4 p-4">
+          {/* Avatar & Info */}
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${view.is_anonymous ? "bg-muted" : "bg-blue-100 dark:bg-blue-900/40"}`}>
+              {view.is_anonymous ? (
+                <Users className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <span className="text-lg font-semibold text-blue-600">
+                  {(view.user_name || "U").charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
-          )}
+            
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <h4 className="truncate font-semibold text-foreground">
+                  {view.is_anonymous ? "Anonymous Users" : view.user_name || "Unknown user"}
+                </h4>
+                {view.view_count > 1 && (
+                  <Badge variant="secondary" className="shrink-0 text-xs font-medium">
+                    {view.view_count} views
+                  </Badge>
+                )}
+              </div>
+              
+              {!view.is_anonymous && view.user_company && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {view.user_company}
+                </p>
+              )}
+              
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs">
+                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="font-medium">{view.item_name || "Unknown product"}</span>
+                </div>
+                {view.item_type && (
+                  <Badge variant="outline" className="capitalize text-xs">
+                    {view.item_type}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
-              <Package className="h-3 w-3" />
-              <span className="font-medium text-foreground">{view.item_name || "Unknown product"}</span>
-            </span>
-            {view.item_type && (
-              <Badge variant="outline" className="capitalize">
-                {view.item_type}
-              </Badge>
+          {/* Right side - Contact info & Actions */}
+          <div className="flex shrink-0 flex-col items-end gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
+            </div>
+            
+            {!view.is_anonymous && (
+              <div className="flex flex-col items-end gap-1.5 text-xs text-muted-foreground">
+                {view.user_mobile && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="h-3 w-3" />
+                    {view.user_mobile}
+                  </span>
+                )}
+                {view.user_email && (
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="h-3 w-3" />
+                    {view.user_email}
+                  </span>
+                )}
+              </div>
             )}
-            {view.button_name && (
-              <Badge variant="secondary" className="text-[10px]">
-                {view.button_name}
-              </Badge>
+            
+            {!view.is_anonymous && (
+              <Button
+                size="sm"
+                onClick={() => onConvertToLead(view.id)}
+                disabled={isConverting || isCurrentlyConverting}
+                className="h-9 px-4 font-medium shadow-sm"
+              >
+                {isCurrentlyConverting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <User className="mr-2 h-4 w-4" />
+                )}
+                Convert to Lead
+              </Button>
             )}
           </div>
         </div>
       </div>
-
-      <div className="ml-4 flex flex-col items-end gap-2">
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
-        </span>
-        {!view.is_anonymous && (
-          <Button
-            size="sm"
-            variant="default"
-            onClick={() => onConvertToLead(view.id)}
-            disabled={isConverting || isCurrentlyConverting}
-            className="h-8 text-xs"
-          >
-            {isCurrentlyConverting ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            ) : (
-              <User className="mr-1 h-3 w-3" />
-            )}
-            Convert to Lead
-          </Button>
-        )}
-      </div>
-    </div>
+    </Card>
   );
 };
 
@@ -382,292 +388,267 @@ const LeadRow = ({
   const creditsNeeded = getCreditsNeeded(lead.item_type);
   const canUnlock = creditsBalance >= creditsNeeded;
 
+  const getStatusAccentColor = (status: Lead["status"]) => {
+    const colors = {
+      new: "bg-blue-500",
+      contacted: "bg-yellow-500",
+      quoted: "bg-purple-500",
+      negotiating: "bg-orange-500",
+      closed_won: "bg-green-500",
+      closed_lost: "bg-red-500",
+    };
+    return colors[status] || "bg-muted";
+  };
+
   return (
-    <div
-      className="border-muted/60 bg-card hover:bg-accent/40 rounded-md border p-4 transition-colors cursor-pointer"
+    <Card
+      className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20 cursor-pointer"
       onClick={() => onRowClick(lead)}
     >
-      <div className="flex items-start justify-between gap-4">
-        {/* Left */}
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <div
-              className={`rounded-full p-1.5 ${lead.is_unlocked ? "bg-green-100 dark:bg-green-900/30" : "bg-muted"}`}
-            >
-              {lead.is_unlocked ? (
-                <Unlock className="h-4 w-4 text-green-600" />
-              ) : (
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              )}
+      <div className="flex items-stretch">
+        {/* Left accent bar with status color */}
+        <div className={`w-1 shrink-0 ${getStatusAccentColor(lead.status)}`} />
+        
+        <div className="flex-1 p-4">
+          {/* Top row: Avatar, Name, Company + Status badges */}
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${lead.is_unlocked ? "bg-green-100 dark:bg-green-900/40" : "bg-muted"}`}>
+                {lead.is_unlocked ? (
+                  <span className="text-base font-semibold text-green-600">
+                    {(lead.buyer_name || "L").charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <Lock className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-foreground truncate">
+                    {getMaskedValue(lead.buyer_name, lead.is_unlocked)}
+                  </h4>
+                  {!lead.is_unlocked && (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      <Lock className="h-3 w-3 mr-1" />
+                      Locked
+                    </Badge>
+                  )}
+                </div>
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{getMaskedValue(lead.buyer_name, lead.is_unlocked)}</p>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Building2 className="h-3 w-3" />
-                {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
-              </p>
+            
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0 font-medium`}>
+                {statusConfig.label}
+              </Badge>
+              <Badge variant="outline" className={`${priorityConfig.color} font-medium`}>
+                {priorityConfig.label}
+              </Badge>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-52 bg-popover"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <DropdownMenuItem onClick={() => onOpenDetails(lead)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    View full details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onOpenFollowUp(lead)}>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Schedule follow-up
+                  </DropdownMenuItem>
+                  {lead.is_unlocked && (
+                    <Fragment>
+                      <DropdownMenuItem onClick={() => onStartChat(lead)}>
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Start chat
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onOpenQuotation(lead)}>
+                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                        Send quotation
+                      </DropdownMenuItem>
+                    </Fragment>
+                  )}
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Change status</div>
+                  {Object.entries(STATUS_CONFIG).map(([status, config]) => (
+                    <DropdownMenuItem
+                      key={status}
+                      disabled={lead.status === status}
+                      onClick={() => onStatusChange(lead.id, status as Lead["status"])}
+                    >
+                      <span className={`mr-2 h-2 w-2 rounded-full ${config.bg}`} />
+                      {config.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-xs">
+          {/* Contact info row */}
+          <div className="flex flex-wrap items-center gap-4 mb-3 text-sm">
             {lead.is_unlocked ? (
               <Fragment>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCall(lead);
-                  }}
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
-                >
-                  <Phone className="h-3 w-3" />
-                  {lead.buyer_phone || "Not provided"}
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEmail(lead);
-                  }}
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
-                >
-                  <Mail className="h-3 w-3" />
-                  {lead.buyer_email || "Not provided"}
-                </button>
+                {lead.buyer_phone && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onCall(lead); }}
+                    className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    {lead.buyer_phone}
+                  </button>
+                )}
+                {lead.buyer_email && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onEmail(lead); }}
+                    className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    {lead.buyer_email}
+                  </button>
+                )}
                 {lead.buyer_location && (
-                  <span className="inline-flex items-center gap-1 text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
                     {lead.buyer_location}
                   </span>
                 )}
               </Fragment>
             ) : (
-              <Fragment>
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Phone className="h-3 w-3" />
-                  XXXXX
+              <div className="flex gap-4 text-muted-foreground/60">
+                <span className="inline-flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" />
+                  ••••••••••
                 </span>
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Mail className="h-3 w-3" />
-                  XXXXX
+                <span className="inline-flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />
+                  ••••••••••
                 </span>
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  XXXXX
-                </span>
-              </Fragment>
+              </div>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
-              <Package className="h-3 w-3" />
-              <span className="font-medium text-foreground">{lead.item_name || "Unknown product"}</span>
-            </span>
+          {/* Product info row */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1 text-sm">
+              <Package className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="font-medium">{lead.item_name || "Unknown product"}</span>
+            </div>
             {lead.product_brand && (
-              <Badge variant="outline" className="text-[10px]">
-                {lead.product_brand}
-              </Badge>
+              <Badge variant="outline" className="text-xs">{lead.product_brand}</Badge>
             )}
             {lead.product_model && (
-              <Badge variant="secondary" className="text-[10px]">
-                {lead.product_model}
-              </Badge>
+              <Badge variant="secondary" className="text-xs">{lead.product_model}</Badge>
             )}
-            <Badge variant="outline" className="capitalize">
-              {lead.item_type}
-            </Badge>
+            <Badge variant="outline" className="capitalize text-xs">{lead.item_type}</Badge>
             {lead.product_price && (
-              <span className="font-medium text-green-600">
+              <span className="font-semibold text-green-600 text-sm">
                 ₹{lead.product_price.toLocaleString()}
               </span>
             )}
           </div>
-          
-          {lead.viewed_at && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Eye className="h-3 w-3" />
-              Viewed: {format(new Date(lead.viewed_at), "MMM d, yyyy 'at' h:mm a")}
+
+          {/* Bottom row: Time info + Actions */}
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
+              </span>
+              {lead.viewed_at && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  Viewed {format(new Date(lead.viewed_at), "MMM d")}
+                </span>
+              )}
+              {lead.next_follow_up && (
+                <span className="inline-flex items-center gap-1.5 text-orange-600 font-medium">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Follow-up: {format(new Date(lead.next_follow_up), "MMM d")}
+                </span>
+              )}
             </div>
-          )}
 
-          {lead.is_unlocked && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="default"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStartChat(lead);
-                }}
-                className="h-8 text-xs"
-              >
-                <MessageSquare className="mr-1 h-3 w-3" />
-                Start chat
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onWhatsApp(lead);
-                }}
-                className="h-8 text-xs border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
-              >
-                <MessageCircle className="mr-1 h-3 w-3" />
-                WhatsApp
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEmail(lead);
-                }}
-                className="h-8 text-xs"
-              >
-                <Mail className="mr-1 h-3 w-3" />
-                Email
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCall(lead);
-                }}
-                className="h-8 text-xs"
-              >
-                <Phone className="mr-1 h-3 w-3" />
-                Call
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenQuotation(lead);
-                }}
-                className="h-8 text-xs"
-              >
-                <FileSpreadsheet className="mr-1 h-3 w-3" />
-                Send quotation
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Right */}
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0`}>{statusConfig.label}</Badge>
-            <Badge variant="outline" className={priorityConfig.color}>
-              {priorityConfig.label}
-            </Badge>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
-          </p>
-
-          <div className="flex items-center gap-2">
-            {!lead.is_unlocked && (
-              <Button
-                size="sm"
-                variant={canUnlock ? "default" : "outline"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUnlock(lead);
-                }}
-                disabled={!canUnlock || unlockingId === lead.id}
-                className="h-8 text-xs"
-              >
-                {unlockingId === lead.id ? (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                ) : (
-                  <Unlock className="mr-1 h-3 w-3" />
-                )}
-                Unlock ({creditsNeeded} credits)
-              </Button>
-            )}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-2">
+              {!lead.is_unlocked ? (
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={(e) => e.stopPropagation()}
+                  size="sm"
+                  variant={canUnlock ? "default" : "outline"}
+                  onClick={(e) => { e.stopPropagation(); onUnlock(lead); }}
+                  disabled={!canUnlock || unlockingId === lead.id}
+                  className="h-9 px-4 font-medium shadow-sm"
                 >
-                  <MoreHorizontal className="h-4 w-4" />
+                  {unlockingId === lead.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Unlock className="mr-2 h-4 w-4" />
+                  )}
+                  Unlock ({creditsNeeded} credits)
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-52"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <DropdownMenuItem
-                  onClick={() => {
-                    onOpenDetails(lead);
-                  }}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  View full details
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    onOpenFollowUp(lead);
-                  }}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Schedule follow-up
-                </DropdownMenuItem>
-                {lead.is_unlocked && (
-                  <Fragment>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        onStartChat(lead);
-                      }}
-                    >
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      Start chat
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        onOpenQuotation(lead);
-                      }}
-                    >
-                      <FileSpreadsheet className="mr-2 h-4 w-4" />
-                      Send quotation
-                    </DropdownMenuItem>
-                  </Fragment>
-                )}
-                <DropdownMenuSeparator />
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">Change status</div>
-                {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-                  <DropdownMenuItem
-                    key={status}
-                    disabled={lead.status === status}
-                    onClick={() => onStatusChange(lead.id, status as Lead["status"])}
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); onStartChat(lead); }}
+                    className="h-8 px-3 text-xs font-medium"
                   >
-                    <span className={`mr-2 h-2 w-2 rounded-full ${config.bg}`} />
-                    {config.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {lead.next_follow_up && (
-            <div className="mt-1 flex items-center gap-1 text-xs text-orange-600">
-              <Calendar className="h-3 w-3" />
-              Follow-up: {format(new Date(lead.next_follow_up), "MMM d")}
+                    <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+                    Chat
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => { e.stopPropagation(); onWhatsApp(lead); }}
+                    className="h-8 px-3 text-xs font-medium border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
+                  >
+                    <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+                    WhatsApp
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => { e.stopPropagation(); onEmail(lead); }}
+                    className="h-8 px-3 text-xs font-medium"
+                  >
+                    <Mail className="mr-1.5 h-3.5 w-3.5" />
+                    Email
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => { e.stopPropagation(); onOpenQuotation(lead); }}
+                    className="h-8 px-3 text-xs font-medium"
+                  >
+                    <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+                    Quote
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 
