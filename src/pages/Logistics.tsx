@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
@@ -25,12 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search,
@@ -41,6 +35,13 @@ import {
   Package,
   Clock,
   Shield,
+  Filter,
+  X,
+  Grid,
+  List,
+  TrendingUp,
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -66,6 +67,18 @@ interface LogisticsProvider {
   };
 }
 
+const SERVICE_TYPES = [
+  { value: "all", label: "All Types" },
+  { value: "Local Delivery", label: "Local Delivery" },
+  { value: "Inter-city Transport", label: "Inter-city Transport" },
+  { value: "International Shipping", label: "International Shipping" },
+  { value: "Heavy Equipment Transport", label: "Heavy Equipment Transport" },
+  { value: "Express Delivery", label: "Express Delivery" },
+  { value: "Warehousing & Storage", label: "Warehousing & Storage" },
+  { value: "Last Mile Delivery", label: "Last Mile Delivery" },
+  { value: "Temperature Controlled Transport", label: "Temperature Controlled" },
+];
+
 const Logistics = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -76,10 +89,12 @@ const Logistics = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
-  const [selectedProvider, setSelectedProvider] =
-    useState<LogisticsProvider | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState("all");
+  const [selectedProvider, setSelectedProvider] = useState<LogisticsProvider | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest">("views");
 
   // Read filter from URL params
   useEffect(() => {
@@ -125,25 +140,72 @@ const Logistics = () => {
     }
   };
 
-  const filteredProviders = providers.filter(
-    (provider) => {
-      const matchesSearch = 
+  // Dynamic location list
+  const locationFilterList = useMemo(() => {
+    const locations = new Set<string>();
+    providers.forEach((p) => {
+      if (p.provider?.location) {
+        locations.add(p.provider.location);
+      }
+      p.coverage_areas?.forEach((area) => locations.add(area));
+    });
+    return [
+      { value: "all", label: "All Locations" },
+      ...Array.from(locations)
+        .sort()
+        .map((loc) => ({ value: loc, label: loc })),
+    ];
+  }, [providers]);
+
+  const filteredProviders = useMemo(() => {
+    let filtered = providers.filter((provider) => {
+      const matchesSearch =
         provider.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         provider.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         provider.service_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
         provider.coverage_areas.some((area) =>
           area.toLowerCase().includes(searchTerm.toLowerCase())
         );
-      
-      const matchesType = selectedType === "all" ||
+
+      const matchesType =
+        selectedType === "all" ||
         provider.service_type.toLowerCase().includes(selectedType.toLowerCase());
 
-      return matchesSearch && matchesType;
-    }
-  );
+      const matchesLocation =
+        selectedLocation === "all" ||
+        provider.provider?.location?.toLowerCase() === selectedLocation.toLowerCase() ||
+        provider.coverage_areas.some(
+          (area) => area.toLowerCase() === selectedLocation.toLowerCase()
+        );
+
+      return matchesSearch && matchesType && matchesLocation;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return (a.base_price || 0) - (b.base_price || 0);
+        case "price-high":
+          return (b.base_price || 0) - (a.base_price || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [providers, searchTerm, selectedType, selectedLocation, sortBy]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedType("all");
+    setSelectedLocation("all");
+  };
+
+  const hasActiveFilters = searchTerm || selectedType !== "all" || selectedLocation !== "all";
 
   const handleViewContact = (provider: LogisticsProvider) => {
-    // Track contact interaction
     trackButtonClick({
       buttonName: "Contact Provider",
       buttonType: "logistics_contact",
@@ -169,7 +231,6 @@ const Logistics = () => {
   };
 
   const handleGetQuote = (provider: LogisticsProvider) => {
-    // Track quote request interaction
     trackButtonClick({
       buttonName: "Get Quote",
       buttonType: "logistics_quote",
@@ -199,9 +260,7 @@ const Logistics = () => {
         <Input placeholder="Enter pickup address" />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">
-          Delivery Location
-        </label>
+        <label className="block text-sm font-medium mb-2">Delivery Location</label>
         <Input placeholder="Enter delivery address" />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -210,18 +269,14 @@ const Logistics = () => {
           <Input type="number" placeholder="0" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">
-            Dimensions
-          </label>
+          <label className="block text-sm font-medium mb-2">Dimensions</label>
           <Input placeholder="L x W x H (cm)" />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">
-          Additional Requirements
-        </label>
+        <label className="block text-sm font-medium mb-2">Additional Requirements</label>
         <textarea
-          className="w-full p-2 border rounded-md resize-none"
+          className="w-full p-2 border rounded-md resize-none bg-background"
           rows={3}
           placeholder="Special handling instructions, delivery time requirements, etc."
         />
@@ -229,6 +284,18 @@ const Logistics = () => {
       <Button className="w-full">Submit Quote Request</Button>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <EnhancedHeader />
+        <main className="flex-grow flex items-center justify-center">
+          <Loader2 className="animate-spin w-10 h-10" />
+          <p className="ml-4 text-muted-foreground text-lg">Loading logistics providers...</p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -246,174 +313,297 @@ const Logistics = () => {
       )}
       <EnhancedHeader />
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Search & Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Specialized Robot Logistics</h1>
-            <p className="text-muted-foreground mt-2 text-lg">
-              Safe handling and delivery of your robots with specialized logistics partners who understand precision equipment
-            </p>
-          </div>
+      {/* Top title */}
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          Specialized Robot Logistics
+        </h1>
+        <p className="text-muted-foreground">
+          Safe handling and delivery with specialized logistics partners
+        </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Service Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Local Delivery">Local Delivery</SelectItem>
-                <SelectItem value="Inter-city Transport">Inter-city Transport</SelectItem>
-                <SelectItem value="International Shipping">International Shipping</SelectItem>
-                <SelectItem value="Heavy Equipment Transport">Heavy Equipment Transport</SelectItem>
-                <SelectItem value="Express Delivery">Express Delivery</SelectItem>
-                <SelectItem value="Warehousing & Storage">Warehousing & Storage</SelectItem>
-                <SelectItem value="Last Mile Delivery">Last Mile Delivery</SelectItem>
-                <SelectItem value="Temperature Controlled Transport">Temperature Controlled</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search providers, services, or regions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+        {/* Breadcrumb */}
+        {selectedType !== "all" && (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-4 flex-wrap">
+            <span className="hover:text-primary cursor-pointer" onClick={() => clearFilters()}>
+              Logistics
+            </span>
+            <ChevronRight className="w-3 h-3" />
+            <span className="text-primary font-medium">{selectedType}</span>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Providers grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-6 bg-muted rounded w-3/4"></div>
-                  <div className="h-4 bg-muted rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded"></div>
-                    <div className="h-4 bg-muted rounded w-2/3"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProviders.map((provider) => (
-              <Card 
-                key={provider.id} 
-                className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all"
-                onClick={() => trackItemView('logistics_services', provider.id, provider)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Truck className="h-5 w-5 text-primary" />
-                    {provider.service_name}
+      {/* Layout: left filter, right listing */}
+      <div className="container mx-auto px-4 pb-10 flex gap-6">
+        {/* LEFT FILTER COLUMN (sticky) */}
+        <aside className="w-72 flex-shrink-0 hidden lg:block">
+          <div className="sticky top-20 space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Filter className="w-4 h-4" />
+                    Filter Logistics
                   </CardTitle>
-                  <CardDescription>
-                    {provider.provider?.company_name ||
-                      provider.provider?.full_name}
-                  </CardDescription>
-                </CardHeader>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
+                      <X className="w-3 h-3 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search providers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
 
-                <CardContent className="flex-1">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {provider.description}
-                  </p>
+                {/* Service Type */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Service Type</p>
+                  <Select value={selectedType} onValueChange={setSelectedType}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SERVICE_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{provider.service_type}</span>
-                    </div>
+                {/* Location */}
+                <div>
+                  <p className="text-xs font-semibold mb-1">Location</p>
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Locations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locationFilterList.map((loc) => (
+                        <SelectItem key={loc.value} value={loc.value}>
+                          {loc.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </aside>
 
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {provider.delivery_time_hours}h delivery
-                      </span>
-                    </div>
+        {/* RIGHT CONTENT COLUMN */}
+        <main className="flex-1 space-y-6">
+          {/* Top bar */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="w-5 h-5" />
+                Logistics Providers
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* For mobile: filter + search */}
+              <div className="flex flex-col gap-3 lg:hidden">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search providers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={selectedType} onValueChange={setSelectedType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Service Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SERVICE_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locationFilterList.map((loc) => (
+                        <SelectItem key={loc.value} value={loc.value}>
+                          {loc.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-                    <div className="flex flex-wrap gap-1">
-                      {provider.tracking_available && (
-                        <Badge variant="secondary" className="text-xs">
-                          Tracking
-                        </Badge>
-                      )}
-                      {provider.insurance_included && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Shield className="h-3 w-3 mr-1" />
-                          Insured
-                        </Badge>
-                      )}
-                      {provider.emergency_delivery && (
-                        <Badge variant="secondary" className="text-xs">
-                          Emergency
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      <strong>Coverage:</strong>{" "}
-                      {provider.coverage_areas.slice(0, 2).join(", ")}
-                      {provider.coverage_areas.length > 2 &&
-                        ` +${provider.coverage_areas.length - 2} more`}
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      <strong>Transport:</strong>{" "}
-                      {provider.transport_modes.join(", ")}
-                    </div>
+              {/* Sort + View toggle */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing <span className="font-semibold text-foreground">{filteredProviders.length}</span> providers
+                </p>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Sort by</span>
+                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                    <SelectTrigger className="w-36">
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="views">Most Popular</SelectItem>
+                      <SelectItem value="price-low">Price: Low-High</SelectItem>
+                      <SelectItem value="price-high">Price: High-Low</SelectItem>
+                      <SelectItem value="newest">Newest</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex border rounded-md overflow-hidden">
+                    <Button
+                      variant={viewMode === "grid" ? "default" : "ghost"}
+                      size="icon"
+                      className="rounded-none h-8 w-8"
+                      onClick={() => setViewMode("grid")}
+                    >
+                      <Grid className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "list" ? "default" : "ghost"}
+                      size="icon"
+                      className="rounded-none h-8 w-8"
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List className="w-4 h-4" />
+                    </Button>
                   </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Providers grid/list */}
+          {filteredProviders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Card className="max-w-md bg-card border-border">
+                <CardContent className="p-8 text-center">
+                  <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-foreground">No logistics providers found</h3>
+                  <p className="text-muted-foreground">
+                    {hasActiveFilters
+                      ? "Try adjusting your search terms"
+                      : "No providers are currently available"}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                  )}
                 </CardContent>
-
-                {/* 🚀 Two Action Buttons */}
-                <CardFooter className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    size="sm"
-                    disabled={!user}
-                    onClick={() => handleViewContact(provider)}
-                  >
-                    <Phone className="h-4 w-4 mr-2" />
-                    Contact
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    size="sm"
-                    disabled={!user}
-                    onClick={() => handleGetQuote(provider)}
-                  >
-                    <Package className="h-4 h-4 mr-2" />
-                    Get Quote
-                  </Button>
-                </CardFooter>
               </Card>
-            ))}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "space-y-4"}>
+              {filteredProviders.map((provider) => (
+                <Card
+                  key={provider.id}
+                  className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all"
+                  onClick={() => trackItemView('logistics_services', provider.id, provider)}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Truck className="h-5 w-5 text-primary" />
+                      {provider.service_name}
+                    </CardTitle>
+                    <CardDescription>
+                      {provider.provider?.company_name || provider.provider?.full_name}
+                    </CardDescription>
+                  </CardHeader>
 
-        {filteredProviders.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Truck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              No logistics providers found
-            </h3>
-            <p className="text-muted-foreground">
-              {searchTerm
-                ? "Try adjusting your search terms"
-                : "No providers are currently available"}
-            </p>
-          </div>
-        )}
-      </main>
+                  <CardContent className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {provider.description}
+                    </p>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{provider.service_type}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{provider.delivery_time_hours}h delivery</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1">
+                        {provider.tracking_available && (
+                          <Badge variant="secondary" className="text-xs">Tracking</Badge>
+                        )}
+                        {provider.insurance_included && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Insured
+                          </Badge>
+                        )}
+                        {provider.emergency_delivery && (
+                          <Badge variant="secondary" className="text-xs">Emergency</Badge>
+                        )}
+                      </div>
+
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Coverage:</strong>{" "}
+                        {provider.coverage_areas.slice(0, 2).join(", ")}
+                        {provider.coverage_areas.length > 2 && ` +${provider.coverage_areas.length - 2} more`}
+                      </div>
+
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Transport:</strong> {provider.transport_modes.join(", ")}
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      size="sm"
+                      disabled={!user}
+                      onClick={(e) => { e.stopPropagation(); handleViewContact(provider); }}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contact
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      size="sm"
+                      disabled={!user}
+                      onClick={(e) => { e.stopPropagation(); handleGetQuote(provider); }}
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Get Quote
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Contact Details Modal */}
       <Dialog open={showContactModal} onOpenChange={setShowContactModal}>
@@ -421,8 +611,7 @@ const Logistics = () => {
           <DialogHeader>
             <DialogTitle>Contact Details</DialogTitle>
             <DialogDescription>
-              {selectedProvider?.provider?.company_name ||
-                selectedProvider?.provider?.full_name}
+              {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
             </DialogDescription>
           </DialogHeader>
 
@@ -430,21 +619,15 @@ const Logistics = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {selectedProvider.provider.phone || "Not provided"}
-                </span>
+                <span>{selectedProvider.provider.phone || "Not provided"}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {selectedProvider.provider.email || "Not provided"}
-                </span>
+                <span>{selectedProvider.provider.email || "Not provided"}</span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {selectedProvider.provider.location || "Not provided"}
-                </span>
+                <span>{selectedProvider.provider.location || "Not provided"}</span>
               </div>
             </div>
           )}
@@ -457,9 +640,7 @@ const Logistics = () => {
           <DialogHeader>
             <DialogTitle>Request Quote</DialogTitle>
             <DialogDescription>
-              Get a quote from{" "}
-              {selectedProvider?.provider?.company_name ||
-                selectedProvider?.provider?.full_name}
+              Get a quote from {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
             </DialogDescription>
           </DialogHeader>
           <QuoteRequestForm />
