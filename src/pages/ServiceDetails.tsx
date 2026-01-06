@@ -16,13 +16,9 @@ import {
   Users,
   Loader2,
   Wrench,
-  Phone,
-  Mail,
-  Building2,
   CheckCircle,
   FileText,
-  Shield,
-  Award
+  Shield
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -154,49 +150,6 @@ const ServiceDetails = () => {
     }
   };
 
-  const handleContactProvider = () => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please sign in to contact service providers.",
-      });
-      return;
-    }
-
-    if (!service) return;
-
-    const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
-    if (!phone) {
-      toast({
-        variant: "destructive",
-        title: "Contact Unavailable",
-        description: "Provider's phone number is not available.",
-      });
-      return;
-    }
-
-    trackButtonClick({
-      buttonName: "Contact Provider",
-      buttonType: "service_contact",
-      sellerId: service.providerId,
-      sellerName: service.providerProfile?.full_name || service.provider,
-      sellerCompany: service.providerProfile?.company_name || service.provider,
-      sellerEmail: service.providerProfile?.email,
-      sellerMobile: phone,
-      sellerLocation: service.location,
-      itemId: service.id,
-      itemType: "service",
-      additionalData: {
-        serviceName: service.name,
-        serviceCategory: service.category,
-        contactMethod: "phone"
-      }
-    });
-
-    window.open(`tel:${phone}`, "_self");
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -226,215 +179,179 @@ const ServiceDetails = () => {
     );
   }
 
-  const hasPhone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <EnhancedHeader />
 
       <main className="flex-grow">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-br from-primary/5 via-background to-primary/10 border-b">
-          <div className="container mx-auto px-4 py-8">
-            <Button variant="ghost" onClick={() => navigate("/services")} className="mb-4 -ml-2">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+        {/* Breadcrumb */}
+        <div className="border-b bg-muted/30">
+          <div className="container mx-auto px-4 py-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/services")} className="-ml-2 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
               Back to Services
             </Button>
-
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              {/* Left: Service Info */}
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge className="bg-primary/10 text-primary border-primary/20">
-                    {service.category}
-                  </Badge>
-                  <Badge 
-                    variant={service.availability === "Available" ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {service.availability}
-                  </Badge>
-                </div>
-                
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-                  {service.name}
-                </h1>
-                
-                <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    {service.location}
-                  </span>
-                  {service.rating && (
-                    <span className="flex items-center gap-1 text-amber-600">
-                      <Star className="w-4 h-4 fill-amber-500" />
-                      {service.rating.toFixed(1)} Rating
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-4 text-2xl font-bold text-primary">
-                  {service.priceRange}
-                </div>
-              </div>
-
-              {/* Right: Provider Card (Compact) */}
-              <Card className="lg:w-80 border-0 shadow-lg">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-12 w-12 ring-2 ring-primary/20">
-                      <AvatarImage src={service.providerProfile?.avatar_url} />
-                      <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                        {service.provider.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground truncate">{service.provider}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Shield className="w-3 h-3" />
-                        Verified Provider
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                    <MapPin className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{service.location}</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Button className="w-full" onClick={handleRequestQuote}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Request Quote
-                    </Button>
-                    
-                    {hasPhone && (
-                      <Button variant="outline" className="w-full" onClick={handleContactProvider}>
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call Provider
-                      </Button>
-                    )}
-
-                    {user && service.providerId && user.id !== service.providerId && (
-                      <ChatButton
-                        otherUserId={service.providerId}
-                        itemType="service"
-                        itemId={service.id}
-                        itemName={service.name}
-                        className="w-full"
-                        variant="secondary"
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
 
-        {/* Content Section */}
+        {/* Main Content */}
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Description */}
-              <div>
-                <h2 className="text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
-                  About This Service
-                </h2>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {service.description}
-                </p>
+          <div className="max-w-5xl mx-auto">
+            {/* Service Header */}
+            <div className="mb-8">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-medium">
+                  {service.category}
+                </Badge>
+                <Badge 
+                  variant={service.availability === "Available" ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {service.availability}
+                </Badge>
+                {service.rating && (
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                    <Star className="w-3 h-3 fill-amber-500 mr-1" />
+                    {service.rating.toFixed(1)}
+                  </Badge>
+                )}
               </div>
+              
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                {service.name}
+              </h1>
+              
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <MapPin className="w-4 h-4" />
+                <span>{service.location}</span>
+              </div>
+            </div>
 
-              {/* Service Stats */}
-              <div>
-                <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-primary" />
-                  Service Overview
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Card className="border-0 bg-muted/30">
-                    <CardContent className="p-4 text-center">
-                      <Clock className="w-6 h-6 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground mb-1">Response Time</p>
-                      <p className="font-semibold text-sm text-foreground">{service.responseTime}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-0 bg-muted/30">
-                    <CardContent className="p-4 text-center">
-                      <Users className="w-6 h-6 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground mb-1">Projects Done</p>
-                      <p className="font-semibold text-sm text-foreground">{service.completedJobs || "New Provider"}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-0 bg-muted/30">
-                    <CardContent className="p-4 text-center">
-                      <Shield className="w-6 h-6 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground mb-1">Status</p>
-                      <p className="font-semibold text-sm text-foreground">Verified</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-0 bg-muted/30">
-                    <CardContent className="p-4 text-center">
-                      <CheckCircle className="w-6 h-6 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground mb-1">Availability</p>
-                      <p className="font-semibold text-sm text-foreground">{service.availability}</p>
-                    </CardContent>
-                  </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Details */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Price Card */}
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Service Price Range</p>
+                        <p className="text-3xl font-bold text-primary">{service.priceRange}</p>
+                      </div>
+                      <Wrench className="w-12 h-12 text-primary/20" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Description */}
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground mb-4">About This Service</h2>
+                  <div className="prose prose-sm max-w-none">
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {service.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Service Details</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Clock className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Response Time</p>
+                        <p className="font-medium text-foreground">{service.responseTime}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Projects Completed</p>
+                        <p className="font-medium text-foreground">{service.completedJobs || "New Provider"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+                      <div className="p-2 rounded-lg bg-green-500/10">
+                        <Shield className="w-5 h-5 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Verification</p>
+                        <p className="font-medium text-foreground">Verified Provider</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Current Status</p>
+                        <p className="font-medium text-foreground">{service.availability}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Sidebar - Mobile Action Card */}
-            <div className="lg:hidden">
-              <Card>
-                <CardContent className="p-5 space-y-3">
-                  <div className="text-center mb-2">
-                    <p className="text-2xl font-bold text-primary">{service.priceRange}</p>
-                  </div>
-                  <Button className="w-full" size="lg" onClick={handleRequestQuote}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Request Quote
-                  </Button>
-                  {hasPhone && (
-                    <Button variant="outline" className="w-full" size="lg" onClick={handleContactProvider}>
-                      <Phone className="w-4 h-4 mr-2" />
-                      Call Provider
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar - Desktop */}
-            <div className="hidden lg:block">
-              <div className="sticky top-24 space-y-4">
-                <Card className="border-0 shadow-md">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Building2 className="w-4 h-4" />
-                      About the Provider
-                    </CardTitle>
+              {/* Right Column - Provider & Actions */}
+              <div className="space-y-4">
+                <Card className="sticky top-24">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-base">Service Provider</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-4">
+                    {/* Provider Info */}
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-12 w-12 ring-2 ring-border">
                         <AvatarImage src={service.providerProfile?.avatar_url} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                           {service.provider.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{service.provider}</p>
-                        <p className="text-xs text-muted-foreground">{service.location}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate">{service.provider}</p>
+                        <div className="flex items-center gap-1 text-xs text-green-600">
+                          <Shield className="w-3 h-3" />
+                          <span>Verified</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-                      <Shield className="w-3.5 h-3.5 text-green-500" />
-                      <span>Verified & Trusted Provider</span>
+
+                    {/* Location */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-3 border-t border-b">
+                      <MapPin className="w-4 h-4 flex-shrink-0" />
+                      <span>{service.location}</span>
                     </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2 pt-2">
+                      <Button className="w-full" size="lg" onClick={handleRequestQuote}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Request Quote
+                      </Button>
+
+                      {user && service.providerId && user.id !== service.providerId && (
+                        <ChatButton
+                          otherUserId={service.providerId}
+                          itemType="service"
+                          itemId={service.id}
+                          itemName={service.name}
+                          className="w-full"
+                          variant="outline"
+                          size="lg"
+                        />
+                      )}
+                    </div>
+
+                    {!user && (
+                      <p className="text-xs text-center text-muted-foreground pt-2">
+                        Sign in to contact this provider
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
