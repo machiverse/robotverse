@@ -15,8 +15,11 @@ import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
 import SparePartDetails from "./pages/SparePartDetails";
 import Services from "./pages/Services";
+import ServiceDetails from "./pages/ServiceDetails";
 import Logistics from "./pages/Logistics";
+import LogisticsDetails from "./pages/LogisticsDetails";
 import Financing from "./pages/Financing";
+import FinancingDetails from "./pages/FinancingDetails";
 import Blogs from "./pages/Blogs";
 import BlogDetails from "./pages/BlogDetails";
 import BlogEditor from "./pages/BlogEditor";
@@ -84,9 +87,12 @@ const App = () => (
             <Route path="/spares/:category/:subcategory" element={<Parts />} />
             <Route path="/spares/:category/:subcategory/:componentType" element={<Parts />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/services/:id" element={<ServiceDetails />} />
             <Route path="/logistics" element={<Logistics />} />
+            <Route path="/logistics/:id" element={<LogisticsDetails />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />
             <Route path="/financing" element={<Financing />} />
+            <Route path="/financing/:id" element={<FinancingDetails />} />
             <Route path="/robobook" element={<Blogs />} />
             <Route path="/community" element={<Blogs />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />

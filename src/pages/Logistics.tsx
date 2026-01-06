@@ -1,16 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useAutoSEO } from "@/hooks/useAutoSEO";
 import { AutoSEOHead } from "@/components/SEO/AutoSEOHead";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -18,21 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search,
   Truck,
-  MapPin,
-  Phone,
-  Mail,
-  Package,
   Clock,
   Shield,
   Filter,
@@ -81,20 +66,20 @@ const SERVICE_TYPES = [
 
 const Logistics = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { trackButtonClick } = useButtonTracking();
-  const { trackItemView } = useUniversalViewTracking();
   const { seoData } = useAutoSEO({ type: 'logistics' });
   const [providers, setProviders] = useState<LogisticsProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
-  const [selectedProvider, setSelectedProvider] = useState<LogisticsProvider | null>(null);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest">("views");
+
+  const handleProviderClick = (providerId: string) => {
+    navigate(`/logistics/${providerId}`);
+  };
 
   // Read filter from URL params
   useEffect(() => {
@@ -205,85 +190,6 @@ const Logistics = () => {
 
   const hasActiveFilters = searchTerm || selectedType !== "all" || selectedLocation !== "all";
 
-  const handleViewContact = (provider: LogisticsProvider) => {
-    trackButtonClick({
-      buttonName: "Contact Provider",
-      buttonType: "logistics_contact",
-      sellerId: provider.provider_id,
-      sellerName: provider.provider?.full_name,
-      sellerCompany: provider.provider?.company_name,
-      sellerEmail: provider.provider?.email,
-      sellerMobile: provider.provider?.phone,
-      sellerLocation: provider.provider?.location,
-      itemId: provider.id,
-      itemType: "logistics",
-      additionalData: {
-        serviceName: provider.service_name,
-        serviceType: provider.service_type,
-        coverageAreas: provider.coverage_areas,
-        transportModes: provider.transport_modes,
-        basePrice: provider.base_price
-      }
-    });
-
-    setSelectedProvider(provider);
-    setShowContactModal(true);
-  };
-
-  const handleGetQuote = (provider: LogisticsProvider) => {
-    trackButtonClick({
-      buttonName: "Get Quote",
-      buttonType: "logistics_quote",
-      sellerId: provider.provider_id,
-      sellerName: provider.provider?.full_name,
-      sellerCompany: provider.provider?.company_name,
-      sellerEmail: provider.provider?.email,
-      sellerMobile: provider.provider?.phone,
-      sellerLocation: provider.provider?.location,
-      itemId: provider.id,
-      itemType: "logistics",
-      additionalData: {
-        serviceName: provider.service_name,
-        serviceType: provider.service_type,
-        deliveryTime: provider.delivery_time_hours
-      }
-    });
-
-    setSelectedProvider(provider);
-    setShowQuoteModal(true);
-  };
-
-  const QuoteRequestForm = () => (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-2">Pickup Location</label>
-        <Input placeholder="Enter pickup address" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-2">Delivery Location</label>
-        <Input placeholder="Enter delivery address" />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Weight (kg)</label>
-          <Input type="number" placeholder="0" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Dimensions</label>
-          <Input placeholder="L x W x H (cm)" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-2">Additional Requirements</label>
-        <textarea
-          className="w-full p-2 border rounded-md resize-none bg-background"
-          rows={3}
-          placeholder="Special handling instructions, delivery time requirements, etc."
-        />
-      </div>
-      <Button className="w-full">Submit Quote Request</Button>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -521,131 +427,61 @@ const Logistics = () => {
               {filteredProviders.map((provider) => (
                 <Card
                   key={provider.id}
-                  className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all"
-                  onClick={() => trackItemView('logistics_services', provider.id, provider)}
+                  className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all group"
+                  onClick={() => handleProviderClick(provider.id)}
                 >
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
                       <Truck className="h-5 w-5 text-primary" />
                       {provider.service_name}
                     </CardTitle>
-                    <CardDescription>
+                    <p className="text-sm text-muted-foreground">
                       {provider.provider?.company_name || provider.provider?.full_name}
-                    </CardDescription>
+                    </p>
                   </CardHeader>
 
-                  <CardContent className="flex-1">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {provider.description}
-                    </p>
+                  <CardContent className="pt-0 space-y-3">
+                    {/* Service Type Badge */}
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                      {provider.service_type}
+                    </Badge>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{provider.service_type}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{provider.delivery_time_hours}h delivery</span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {provider.tracking_available && (
-                          <Badge variant="secondary" className="text-xs">Tracking</Badge>
-                        )}
-                        {provider.insurance_included && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Insured
-                          </Badge>
-                        )}
-                        {provider.emergency_delivery && (
-                          <Badge variant="secondary" className="text-xs">Emergency</Badge>
-                        )}
-                      </div>
-
-                      <div className="text-sm text-muted-foreground">
-                        <strong>Coverage:</strong>{" "}
-                        {provider.coverage_areas.slice(0, 2).join(", ")}
-                        {provider.coverage_areas.length > 2 && ` +${provider.coverage_areas.length - 2} more`}
-                      </div>
-
-                      <div className="text-sm text-muted-foreground">
-                        <strong>Transport:</strong> {provider.transport_modes.join(", ")}
-                      </div>
+                    {/* Price */}
+                    <div className="text-lg font-bold text-primary">
+                      ₹{provider.base_price?.toLocaleString() || "Contact for price"}
                     </div>
-                  </CardContent>
 
-                  <CardFooter className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      size="sm"
-                      disabled={!user}
-                      onClick={(e) => { e.stopPropagation(); handleViewContact(provider); }}
-                    >
-                      <Phone className="h-4 w-4 mr-2" />
-                      Contact
+                    {/* Delivery Time */}
+                    <div className="flex items-center text-muted-foreground text-sm">
+                      <Clock className="w-4 h-4 mr-1.5 text-primary flex-shrink-0" />
+                      <span>{provider.delivery_time_hours}h delivery</span>
+                    </div>
+
+                    {/* Features Badges */}
+                    <div className="flex flex-wrap gap-1">
+                      {provider.tracking_available && (
+                        <Badge variant="outline" className="text-xs">Tracking</Badge>
+                      )}
+                      {provider.insurance_included && (
+                        <Badge variant="outline" className="text-xs">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Insured
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* View Details Button */}
+                    <Button variant="outline" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <ChevronRight className="w-4 h-4 mr-1" />
+                      View Details
                     </Button>
-                    <Button
-                      className="flex-1"
-                      size="sm"
-                      disabled={!user}
-                      onClick={(e) => { e.stopPropagation(); handleGetQuote(provider); }}
-                    >
-                      <Package className="h-4 w-4 mr-2" />
-                      Get Quote
-                    </Button>
-                  </CardFooter>
+                  </CardContent>
                 </Card>
               ))}
             </div>
           )}
         </main>
       </div>
-
-      {/* Contact Details Modal */}
-      <Dialog open={showContactModal} onOpenChange={setShowContactModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Contact Details</DialogTitle>
-            <DialogDescription>
-              {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedProvider?.provider && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.phone || "Not provided"}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.email || "Not provided"}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.location || "Not provided"}</span>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Quote Request Modal */}
-      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Request Quote</DialogTitle>
-            <DialogDescription>
-              Get a quote from {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-          <QuoteRequestForm />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

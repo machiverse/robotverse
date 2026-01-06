@@ -1,27 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useAutoSEO } from "@/hooks/useAutoSEO";
 import { AutoSEOHead } from "@/components/SEO/AutoSEOHead";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search,
   CreditCard,
-  Phone,
-  Mail,
-  MapPin,
   Clock,
-  FileText,
   Filter,
   X,
   Grid,
@@ -78,21 +70,20 @@ const AMOUNT_RANGES = [
 
 const Financing = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { trackButtonClick } = useButtonTracking();
-  const { trackItemView } = useUniversalViewTracking();
   const { seoData } = useAutoSEO({ type: 'financing' });
   const [providers, setProviders] = useState<FinanceProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedAmountRange, setSelectedAmountRange] = useState("all");
-  const [selectedProvider, setSelectedProvider] = useState<FinanceProvider | null>(null);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [showCallModal, setShowCallModal] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"views" | "interest-low" | "interest-high" | "amount-high">("views");
+
+  const handleProviderClick = (providerId: string) => {
+    navigate(`/financing/${providerId}`);
+  };
 
   // Read filter from URL params
   useEffect(() => {
@@ -187,77 +178,6 @@ const Financing = () => {
 
   const hasActiveFilters = searchTerm || selectedType !== "all" || selectedAmountRange !== "all";
 
-  const handleViewContact = (provider: FinanceProvider) => {
-    trackButtonClick({
-      buttonName: "View Contact",
-      buttonType: "finance_contact",
-      sellerId: provider.provider_id,
-      sellerName: provider.provider?.full_name,
-      sellerCompany: provider.provider?.company_name,
-      sellerEmail: provider.provider?.email,
-      sellerMobile: provider.provider?.phone,
-      sellerLocation: provider.provider?.location,
-      itemId: provider.id,
-      itemType: "financing",
-      additionalData: {
-        productName: provider.product_name,
-        loanTypes: provider.loan_type,
-        minAmount: provider.min_amount,
-        maxAmount: provider.max_amount,
-        interestRate: `${provider.min_interest_rate}%-${provider.max_interest_rate}%`
-      }
-    });
-
-    setSelectedProvider(provider);
-    setShowContactModal(true);
-  };
-
-  const handleApplyNow = (provider: FinanceProvider) => {
-    trackButtonClick({
-      buttonName: "Apply Now",
-      buttonType: "finance_application",
-      sellerId: provider.provider_id,
-      sellerName: provider.provider?.full_name,
-      sellerCompany: provider.provider?.company_name,
-      sellerEmail: provider.provider?.email,
-      sellerMobile: provider.provider?.phone,
-      sellerLocation: provider.provider?.location,
-      itemId: provider.id,
-      itemType: "financing",
-      additionalData: {
-        productName: provider.product_name,
-        loanTypes: provider.loan_type,
-        minAmount: provider.min_amount,
-        maxAmount: provider.max_amount
-      }
-    });
-
-    setSelectedProvider(provider);
-    setShowApplicationModal(true);
-  };
-
-  const handleCallProvider = (provider: FinanceProvider) => {
-    trackButtonClick({
-      buttonName: "Call Provider",
-      buttonType: "finance_call",
-      sellerId: provider.provider_id,
-      sellerName: provider.provider?.full_name,
-      sellerCompany: provider.provider?.company_name,
-      sellerEmail: provider.provider?.email,
-      sellerMobile: provider.provider?.phone,
-      sellerLocation: provider.provider?.location,
-      itemId: provider.id,
-      itemType: "financing",
-      additionalData: {
-        productName: provider.product_name,
-        contactMethod: "phone"
-      }
-    });
-
-    setSelectedProvider(provider);
-    setShowCallModal(true);
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -266,7 +186,6 @@ const Financing = () => {
       maximumFractionDigits: 0,
     }).format(amount);
   };
-
   const ApplicationForm = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -545,228 +464,64 @@ const Financing = () => {
               {filteredProviders.map((provider) => (
                 <Card
                   key={provider.id}
-                  className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all"
-                  onClick={() => trackItemView('loan_products', provider.id, provider)}
+                  className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-all group"
+                  onClick={() => handleProviderClick(provider.id)}
                 >
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
                       <CreditCard className="h-5 w-5 text-primary" />
                       {provider.product_name}
                     </CardTitle>
-                    <CardDescription>
+                    <p className="text-sm text-muted-foreground">
                       {provider.provider?.company_name || provider.provider?.full_name}
-                    </CardDescription>
+                    </p>
                   </CardHeader>
 
-                  <CardContent className="flex-1">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {provider.description}
-                    </p>
-
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Amount Range:</span>
-                          <div className="text-muted-foreground">
-                            {formatCurrency(provider.min_amount)} - {formatCurrency(provider.max_amount)}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Interest Rate:</span>
-                          <div className="text-muted-foreground">
-                            {provider.min_interest_rate}% - {provider.max_interest_rate}%
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Tenure:</span>
-                          <div className="text-muted-foreground">
-                            {provider.min_tenure_months} - {provider.max_tenure_months} months
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium">Processing Fee:</span>
-                          <div className="text-muted-foreground">
-                            {provider.processing_fee_percentage}%
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {provider.quick_approval && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Quick Approval
-                          </Badge>
-                        )}
-                        {provider.digital_process && (
-                          <Badge variant="secondary" className="text-xs">Digital Process</Badge>
-                        )}
-                        {!provider.collateral_required && (
-                          <Badge variant="secondary" className="text-xs">No Collateral</Badge>
-                        )}
-                      </div>
-
-                      <div className="text-sm text-muted-foreground">
-                        <strong>Loan Types:</strong> {provider.loan_type.join(", ")}
-                      </div>
+                  <CardContent className="pt-0 space-y-3">
+                    {/* Loan Type Badges */}
+                    <div className="flex flex-wrap gap-1">
+                      {provider.loan_type.slice(0, 2).map((type, idx) => (
+                        <Badge key={idx} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                          {type}
+                        </Badge>
+                      ))}
                     </div>
+
+                    {/* Amount Range */}
+                    <div className="text-lg font-bold text-primary">
+                      {formatCurrency(provider.min_amount)} - {formatCurrency(provider.max_amount)}
+                    </div>
+
+                    {/* Interest Rate */}
+                    <div className="text-sm text-muted-foreground">
+                      Interest: {provider.min_interest_rate}% - {provider.max_interest_rate}%
+                    </div>
+
+                    {/* Features Badges */}
+                    <div className="flex flex-wrap gap-1">
+                      {provider.quick_approval && (
+                        <Badge variant="outline" className="text-xs">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Quick Approval
+                        </Badge>
+                      )}
+                      {!provider.collateral_required && (
+                        <Badge variant="outline" className="text-xs">No Collateral</Badge>
+                      )}
+                    </div>
+
+                    {/* View Details Button */}
+                    <Button variant="outline" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <ChevronRight className="w-4 h-4 mr-1" />
+                      View Details
+                    </Button>
                   </CardContent>
-
-                  <CardFooter className="flex flex-col gap-2">
-                    <div className="flex gap-2 w-full">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full"
-                                disabled={!user}
-                                onClick={(e) => { e.stopPropagation(); handleViewContact(provider); }}
-                              >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Contact
-                              </Button>
-                            </div>
-                          </TooltipTrigger>
-                          {!user && (
-                            <TooltipContent>
-                              <p>Sign in to access this feature</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full"
-                                disabled={!user}
-                                onClick={(e) => { e.stopPropagation(); handleCallProvider(provider); }}
-                              >
-                                <Phone className="h-4 w-4 mr-2" />
-                                Call
-                              </Button>
-                            </div>
-                          </TooltipTrigger>
-                          {!user && (
-                            <TooltipContent>
-                              <p>Sign in to access this feature</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="w-full">
-                            <Button
-                              size="sm"
-                              className="w-full"
-                              disabled={!user}
-                              onClick={(e) => { e.stopPropagation(); handleApplyNow(provider); }}
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Apply Now
-                            </Button>
-                          </div>
-                        </TooltipTrigger>
-                        {!user && (
-                          <TooltipContent>
-                            <p>Sign in to access this feature</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  </CardFooter>
                 </Card>
               ))}
             </div>
           )}
         </main>
       </div>
-
-      {/* Contact Details Modal */}
-      <Dialog open={showContactModal} onOpenChange={setShowContactModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Contact Details</DialogTitle>
-            <DialogDescription>
-              {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedProvider?.provider && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.phone || "Not provided"}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.email || "Not provided"}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.location || "Not provided"}</span>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Application Modal */}
-      <Dialog open={showApplicationModal} onOpenChange={setShowApplicationModal}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Loan Application</DialogTitle>
-            <DialogDescription>
-              Apply for {selectedProvider?.product_name} from {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-          <ApplicationForm />
-        </DialogContent>
-      </Dialog>
-
-      {/* Call Modal */}
-      <Dialog open={showCallModal} onOpenChange={setShowCallModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Call Provider</DialogTitle>
-            <DialogDescription>
-              {selectedProvider?.provider?.company_name || selectedProvider?.provider?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedProvider?.provider?.phone ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{selectedProvider.provider.phone}</span>
-              </div>
-              <Button
-                className="w-full"
-                onClick={() => window.open(`tel:${selectedProvider.provider?.phone}`, "_self")}
-              >
-                <Phone className="h-4 w-4 mr-2" />
-                Call Now
-              </Button>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">Phone number not available</p>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
