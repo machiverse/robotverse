@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import EnhancedHeader from "@/components/EnhancedHeader";
-import ServiceRequestModal from "@/components/ServiceRequestModal";
-import { ChatButton } from "@/components/chat/ChatButton";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Search,
@@ -15,8 +13,6 @@ import {
   List,
   MapPin,
   Star,
-  Clock,
-  Users,
   Loader2,
   Filter,
   X,
@@ -54,11 +50,10 @@ interface Service {
 }
 
 const Services = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { trackItemView } = useUniversalViewTracking();
-  const { trackButtonClick } = useButtonTracking();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +61,6 @@ const Services = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [sortBy, setSortBy] = useState<"views" | "rating" | "newest" | "name">("views");
 
   // Read filter from URL params
@@ -209,81 +202,8 @@ const Services = () => {
   // Check if any filter is active
   const hasActiveFilters = searchQuery || selectedCategory !== "all" || selectedLocation !== "all";
 
-  const handleRequestQuote = (service: Service) => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please sign in to request a quote from service providers.",
-      });
-      return;
-    }
-
-    trackButtonClick({
-      buttonName: "Request Quote",
-      buttonType: "service_action",
-      sellerId: service.providerId,
-      sellerName: service.providerProfile?.full_name || service.provider,
-      sellerCompany: service.providerProfile?.company_name || service.provider,
-      sellerEmail: service.providerProfile?.email,
-      sellerMobile: service.providerProfile?.phone || service.providerProfile?.mobile_number,
-      sellerLocation: service.location,
-      itemId: service.id,
-      itemType: "service",
-      additionalData: {
-        serviceName: service.name,
-        serviceCategory: service.category,
-        priceRange: service.priceRange
-      }
-    });
-
-    setSelectedService(service);
-    setShowRequestModal(true);
-  };
-
-  const handleContactProvider = (service: Service) => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please sign in to contact service providers.",
-      });
-      return;
-    }
-
-    const phone = service.providerProfile?.phone || service.providerProfile?.mobile_number;
-    if (!phone) {
-      toast({
-        variant: "destructive",
-        title: "Contact Unavailable",
-        description: "Provider's phone number is not available.",
-      });
-      return;
-    }
-
-    trackButtonClick({
-      buttonName: "Contact Provider",
-      buttonType: "service_contact",
-      sellerId: service.providerId,
-      sellerName: service.providerProfile?.full_name || service.provider,
-      sellerCompany: service.providerProfile?.company_name || service.provider,
-      sellerEmail: service.providerProfile?.email,
-      sellerMobile: phone,
-      sellerLocation: service.location,
-      itemId: service.id,
-      itemType: "service",
-      additionalData: {
-        serviceName: service.name,
-        serviceCategory: service.category,
-        contactMethod: "phone"
-      }
-    });
-
-    window.open(`tel:${phone}`, "_self");
-    toast({
-      title: "Calling Provider",
-      description: `Calling ${service.provider}...`,
-    });
+  const handleServiceClick = (serviceId: string) => {
+    navigate(`/services/${serviceId}`);
   };
 
   if (loading) {
@@ -522,96 +442,58 @@ const Services = () => {
           ) : (
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "space-y-4"}>
               {filteredServices.map((service) => (
-                <Card key={service.id} className="group bg-card border-border hover:shadow-lg transition-all duration-300 hover:scale-[1.01]">
-                  <CardHeader className="pb-4">
+                <Card 
+                  key={service.id} 
+                  className="group bg-card border-border hover:shadow-lg transition-all duration-300 hover:scale-[1.01] cursor-pointer"
+                  onClick={() => handleServiceClick(service.id)}
+                >
+                  <CardHeader className="pb-3">
                     {/* Provider Info */}
-                    <div className="flex items-center space-x-3 mb-4">
-                      <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                         {service.providerProfile.avatar_url ? (
                           <AvatarImage src={service.providerProfile.avatar_url} alt={service.provider} />
                         ) : (
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-primary-foreground font-semibold">
+                          <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-primary-foreground font-semibold text-sm">
                             {service.provider.charAt(0)}
                           </AvatarFallback>
                         )}
                       </Avatar>
-                      <div className="flex-1">
-                        <CardTitle className="text-lg font-bold text-foreground">{service.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{service.provider}</p>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base font-bold text-foreground truncate">{service.name}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{service.provider}</p>
                       </div>
                       {service.rating !== null && (
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-1 flex-shrink-0">
                           <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
                           <span className="text-sm font-semibold text-foreground">{service.rating.toFixed(1)}</span>
                         </div>
                       )}
                     </div>
-
-                    {/* Category and Availability */}
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                        {service.category}
-                      </Badge>
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
-                        {service.availability}
-                      </Badge>
-                    </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="pt-0 space-y-3">
+                    {/* Category Badge */}
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                      {service.category}
+                    </Badge>
+
                     {/* Price */}
-                    <div className="text-center">
-                      <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                        {service.priceRange}
-                      </span>
+                    <div className="text-lg font-bold text-primary">
+                      {service.priceRange}
                     </div>
 
                     {/* Location */}
-                    <div className="flex items-center text-muted-foreground">
-                      <MapPin className="w-4 h-4 mr-2 text-primary" />
-                      <span className="text-sm font-medium">{service.location}</span>
+                    <div className="flex items-center text-muted-foreground text-sm">
+                      <MapPin className="w-4 h-4 mr-1.5 text-primary flex-shrink-0" />
+                      <span className="truncate">{service.location}</span>
                     </div>
 
-                    {/* Description */}
-                    <div className="relative">
-                      <div className="h-20 overflow-y-auto pr-2 text-sm text-muted-foreground leading-relaxed bg-muted p-3 rounded-lg border border-border">
-                        {service.description}
-                      </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <span className="text-muted-foreground">Response: {service.responseTime}</span>
-                      </div>
-                      {service.completedJobs !== null && (
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">{service.completedJobs} projects</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-2">
-                      <ChatButton
-                        otherUserId={service.providerId}
-                        itemType="service"
-                        itemId={service.id}
-                        itemName={service.name}
-                        className="flex-1"
-                        variant="outline"
-                      />
-                      <Button
-                        variant="default"
-                        className="flex-1"
-                        onClick={() => handleRequestQuote(service)}
-                        disabled={!user}
-                      >
-                        Get Quote
-                      </Button>
-                    </div>
+                    {/* View Details Button */}
+                    <Button variant="outline" className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <ChevronRight className="w-4 h-4 mr-1" />
+                      View Details
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -619,29 +501,6 @@ const Services = () => {
           )}
         </main>
       </div>
-
-      {/* Service Request Modal */}
-      {selectedService && (
-        <ServiceRequestModal
-          open={showRequestModal}
-          onOpenChange={setShowRequestModal}
-          service={{
-            id: selectedService.id,
-            name: selectedService.name,
-            category: selectedService.category,
-            priceRange: selectedService.priceRange,
-            location: selectedService.location,
-            provider: selectedService.provider,
-            description: selectedService.description,
-            rating: selectedService.rating || 0,
-            responseTime: selectedService.responseTime,
-            completedJobs: selectedService.completedJobs || 0,
-            availability: selectedService.availability,
-            providerProfile: selectedService.providerProfile,
-            providerId: selectedService.providerId
-          }}
-        />
-      )}
     </div>
   );
 };
