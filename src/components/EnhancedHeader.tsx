@@ -19,9 +19,9 @@ import {
   Package,
   X,
   Heart,
-  GitCompare,
+  Scale,
   Bell,
-  LayoutDashboard,
+  LayoutGrid,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -217,7 +217,7 @@ const EnhancedHeader = () => {
               )}
               title={!user ? "Sign in to compare robots" : `Compare robots (${comparisonCount}/${maxRobots})`}
             >
-              <GitCompare className="h-5 w-5" />
+              <Scale className="h-5 w-5" />
               {comparisonCount > 0 && user && (
                 <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {comparisonCount}
@@ -237,7 +237,7 @@ const EnhancedHeader = () => {
 
                   {comparisonCount === 0 ? (
                     <div className="text-center py-6">
-                      <GitCompare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <Scale className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">No robots selected</p>
                       <p className="text-xs text-muted-foreground mt-1">Browse robots and click "Compare" to add</p>
                       <Button
@@ -325,7 +325,7 @@ const EnhancedHeader = () => {
                   size="icon"
                   className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
                 >
-                  <LayoutDashboard className="h-5 w-5" />
+                  <LayoutGrid className="h-5 w-5" />
                   <span className="sr-only">Dashboard</span>
                 </Button>
               </Link>
@@ -741,12 +741,12 @@ const EnhancedHeader = () => {
               <span className="text-xs text-muted-foreground">Wishlist</span>
             </Link>
             <button className="flex flex-col items-center gap-1">
-              <GitCompare className="h-5 w-5 text-muted-foreground" />
+              <Scale className="h-5 w-5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Compare</span>
             </button>
             {user && (
               <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
-                <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+                <LayoutGrid className="h-5 w-5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Dashboard</span>
               </Link>
             )}
