@@ -18,7 +18,8 @@ import {
   X,
   Wrench,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  Eye
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +48,7 @@ interface Service {
     email?: string;
   };
   providerId: string;
+  viewCount: number;
 }
 
 const Services = () => {
@@ -76,6 +78,8 @@ const Services = () => {
     const fetchServices = async () => {
       try {
         setLoading(true);
+        
+        // Fetch services
         const { data, error } = await supabase
           .from("services")
           .select(
@@ -96,6 +100,17 @@ const Services = () => {
 
         if (error) throw error;
 
+        // Fetch view counts for all services
+        const { data: viewCounts } = await supabase
+          .from("item_view_counts")
+          .select("item_id, total_views")
+          .eq("item_type", "services");
+
+        const viewCountMap = new Map<string, number>();
+        (viewCounts || []).forEach((vc: any) => {
+          viewCountMap.set(vc.item_id, vc.total_views || 0);
+        });
+
         const transformedData = (data || []).map((item: any) => ({
           id: item.id,
           name: item.name || "Service",
@@ -110,6 +125,7 @@ const Services = () => {
           availability: item.availability || "Available",
           providerProfile: item.profiles || {},
           providerId: item.provider_id || "",
+          viewCount: viewCountMap.get(item.id) || 0,
         }));
 
         setServices(transformedData);
@@ -178,6 +194,8 @@ const Services = () => {
     // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case "views":
+          return b.viewCount - a.viewCount;
         case "rating":
           return (b.rating || 0) - (a.rating || 0);
         case "newest":
@@ -185,7 +203,7 @@ const Services = () => {
         case "name":
           return a.name.localeCompare(b.name);
         default:
-          return 0;
+          return b.viewCount - a.viewCount;
       }
     });
 
@@ -483,10 +501,16 @@ const Services = () => {
                       {service.priceRange}
                     </div>
 
-                    {/* Location */}
-                    <div className="flex items-center text-muted-foreground text-sm">
-                      <MapPin className="w-4 h-4 mr-1.5 text-primary flex-shrink-0" />
-                      <span className="truncate">{service.location}</span>
+                    {/* Location & Views */}
+                    <div className="flex items-center justify-between text-muted-foreground text-sm">
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-1.5 text-primary flex-shrink-0" />
+                        <span className="truncate">{service.location}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>{service.viewCount}</span>
+                      </div>
                     </div>
 
                     {/* View Details Button */}
