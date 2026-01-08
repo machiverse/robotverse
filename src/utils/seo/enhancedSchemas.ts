@@ -85,7 +85,7 @@ export const generateEnhancedProductSchema = (robot: any) => {
     "@context": "https://schema.org",
     "@type": "Product",
     name: `${brand} ${model} Industrial Robot`,
-    description: robot.description || `${brand} ${model} industrial robot for sale on RobotVerse India`,
+    description: robot.description || `${brand} ${model} industrial robot for sale on RobotVerse`,
     brand: {
       "@type": "Brand",
       name: brand,
