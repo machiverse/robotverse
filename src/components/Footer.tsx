@@ -92,29 +92,31 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Contact</h3>
             <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                <div className="text-sm text-muted-foreground">
-                  <p>SIPCOT IT Park, 5-B/9,</p>
-                  <p>6th Cross St, Siruseri,</p>
-                  <p>Chennai, Tamil Nadu 603103</p>
-                </div>
+            <div className="flex items-start space-x-3">
+              <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+              <div className="text-sm text-muted-foreground leading-relaxed">
+                <p className="font-medium text-foreground">RobotVerse India</p>
+                <p>No. 309A, ECR, Near PEC & PU,</p>
+                <p>Pillaichavady, Vanur Taluk,</p>
+                <p>Villupuram District,</p>
+                <p>Tamil Nadu – 605014, India</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <Phone className="h-4 w-4 text-primary" />
-                <a href="tel:+918610925352" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  +918610925352
-                </a>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Mail className="h-4 w-4 text-primary" />
-                <a href="mailto:support@robotverse.in" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  support@robotverse.in
-                </a>
-              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Phone className="h-4 w-4 text-primary flex-shrink-0" />
+              <a href="tel:+918610925352" className="text-sm text-muted-foreground hover:text-primary transition-colors font-medium">
+                +91 86109 25352
+              </a>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Mail className="h-4 w-4 text-primary flex-shrink-0" />
+              <a href="mailto:support@robotverse.in" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                support@robotverse.in
+              </a>
             </div>
           </div>
         </div>
+      </div>
 
         <Separator className="my-8" />
 
