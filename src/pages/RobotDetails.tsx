@@ -57,7 +57,7 @@ import {
   ZoomIn,
   Share2,
   Calendar,
-  GitCompare,
+  Scale,
   Check,
 } from "lucide-react";
 import ViewCountDisplay from "@/components/ViewCountDisplay";

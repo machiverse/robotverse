@@ -21,7 +21,7 @@ import {
   Building,
   CheckCircle,
   Heart,
-  GitCompare,
+  Scale,
   Check,
 } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
@@ -1043,7 +1043,7 @@ const Robots = () => {
                                   {isSelected(robot.id) ? (
                                     <Check className="w-3 h-3 mr-1" />
                                   ) : (
-                                    <GitCompare className="w-3 h-3 mr-1" />
+                                    <Scale className="w-3 h-3 mr-1" />
                                   )}
                                   {isSelected(robot.id) ? "Selected" : "Compare"}
                                 </Button>
