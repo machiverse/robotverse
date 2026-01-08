@@ -596,7 +596,7 @@ const SparePartsSellerDashboard = () => {
         </TabsContent>
 
         <TabsContent value="views" className="mt-6">
-          <ViewAnalyticsDashboard sellerId={user?.id} />
+          <ViewAnalyticsDashboard sellerId={user?.id} filterItemTypes={['spare_parts']} />
         </TabsContent>
       </Tabs>
       </div>
