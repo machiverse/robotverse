@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 interface ViewAnalyticsDashboardProps {
   sellerId?: string;
   className?: string;
+  filterItemTypes?: ItemType[];
 }
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', 'hsl(var(--destructive))'];
@@ -88,7 +89,7 @@ const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   blogs: 'Blogs'
 };
 
-export const ViewAnalyticsDashboard = ({ sellerId, className = "" }: ViewAnalyticsDashboardProps) => {
+export const ViewAnalyticsDashboard = ({ sellerId, className = "", filterItemTypes }: ViewAnalyticsDashboardProps) => {
   const { user } = useAuth();
   const { getSellerAnalytics, getTopViewedItems, loading } = useUniversalViewTracking();
   const [analytics, setAnalytics] = useState<ViewAnalytics[]>([]);
@@ -105,7 +106,13 @@ export const ViewAnalyticsDashboard = ({ sellerId, className = "" }: ViewAnalyti
     if (!currentSellerId) return;
     
     try {
-      const data = await getSellerAnalytics(currentSellerId, dateRange);
+      let data = await getSellerAnalytics(currentSellerId, dateRange);
+      
+      // Filter by specific item types if provided
+      if (filterItemTypes && filterItemTypes.length > 0) {
+        data = data.filter(item => filterItemTypes.includes(item.itemType));
+      }
+      
       setAnalytics(data);
       
       // Force refresh view counts to ensure we have latest data
