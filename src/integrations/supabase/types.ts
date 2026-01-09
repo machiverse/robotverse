@@ -734,6 +734,84 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_packs: {
+        Row: {
+          bonus_credits: number | null
+          created_at: string
+          credits_amount: number
+          id: string
+          is_active: boolean | null
+          is_popular: boolean | null
+          pack_name: string
+          price: number
+        }
+        Insert: {
+          bonus_credits?: number | null
+          created_at?: string
+          credits_amount: number
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          pack_name: string
+          price: number
+        }
+        Update: {
+          bonus_credits?: number | null
+          created_at?: string
+          credits_amount?: number
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          pack_name?: string
+          price?: number
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          balance_after: number
+          balance_before: number
+          created_at: string
+          credits_amount: number
+          description: string | null
+          id: string
+          payment_id: string | null
+          payment_status: string | null
+          reference_id: string | null
+          reference_type: string | null
+          seller_id: string
+          transaction_type: string
+        }
+        Insert: {
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          credits_amount: number
+          description?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          seller_id: string
+          transaction_type: string
+        }
+        Update: {
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          credits_amount?: number
+          description?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          seller_id?: string
+          transaction_type?: string
+        }
+        Relationships: []
+      }
       crm_accounts: {
         Row: {
           account_name: string
@@ -2577,6 +2655,59 @@ export type Database = {
           },
         ]
       }
+      seller_credits: {
+        Row: {
+          created_at: string
+          current_balance: number
+          id: string
+          next_credit_refresh: string | null
+          seller_id: string
+          subscription_end_date: string | null
+          subscription_plan_id: string | null
+          subscription_start_date: string | null
+          subscription_status: string | null
+          total_earned: number
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_balance?: number
+          id?: string
+          next_credit_refresh?: string | null
+          seller_id: string
+          subscription_end_date?: string | null
+          subscription_plan_id?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_balance?: number
+          id?: string
+          next_credit_refresh?: string | null
+          seller_id?: string
+          subscription_end_date?: string | null
+          subscription_plan_id?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_credits_subscription_plan_id_fkey"
+            columns: ["subscription_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_invoices: {
         Row: {
           buyer_address: string | null
@@ -3241,6 +3372,45 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          annual_price: number | null
+          created_at: string
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          monthly_credits: number
+          monthly_price: number
+          plan_name: string
+          plan_type: string
+          updated_at: string
+        }
+        Insert: {
+          annual_price?: number | null
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_credits?: number
+          monthly_price?: number
+          plan_name: string
+          plan_type: string
+          updated_at?: string
+        }
+        Update: {
+          annual_price?: number | null
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_credits?: number
+          monthly_price?: number
+          plan_name?: string
+          plan_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           category: string | null
@@ -3279,6 +3449,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      unlocked_leads: {
+        Row: {
+          credits_used: number
+          id: string
+          lead_id: string
+          seller_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          credits_used: number
+          id?: string
+          lead_id: string
+          seller_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          credits_used?: number
+          id?: string
+          lead_id?: string
+          seller_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unlocked_leads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "seller_leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_interactions: {
         Row: {
