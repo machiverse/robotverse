@@ -1,9 +1,10 @@
-import { Coins, CreditCard, History, Crown } from 'lucide-react';
+import { Coins, History, Crown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditBalanceWidget } from '@/components/credits/CreditBalanceWidget';
 import { SubscriptionPlans } from '@/components/credits/SubscriptionPlans';
 import { CreditPacksStore } from '@/components/credits/CreditPacksStore';
 import { CreditTransactionHistory } from '@/components/credits/CreditTransactionHistory';
+import { DashboardSettingsLayout } from '@/components/dashboard/DashboardSettingsLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
@@ -12,7 +13,7 @@ const Credits = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -23,13 +24,10 @@ const Credits = () => {
   }
 
   return (
-    <div className="container max-w-6xl mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Credits & Subscription</h1>
-        <p className="text-muted-foreground">
-          Manage your credits and subscription to unlock buyer leads
-        </p>
-      </div>
+    <DashboardSettingsLayout
+      title="Credits & Subscription"
+      description="Manage your credits and subscription to unlock buyer leads"
+    >
 
       <div className="grid lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-1">
@@ -84,7 +82,7 @@ const Credits = () => {
           <CreditTransactionHistory />
         </TabsContent>
       </Tabs>
-    </div>
+    </DashboardSettingsLayout>
   );
 };
 
