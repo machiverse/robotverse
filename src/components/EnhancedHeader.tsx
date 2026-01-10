@@ -22,6 +22,8 @@ import {
   Scale,
   Bell,
   LayoutGrid,
+  Crown,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -30,6 +32,7 @@ import robotverseLogo from "@/assets/robotverse-r-logo.png";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const menuIcons: Record<string, React.ElementType> = {
   "Robot Parts": Cpu,
@@ -97,9 +100,35 @@ const EnhancedHeader = () => {
   const [mobileExpandedComponentMenu, setMobileExpandedComponentMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [compareDropdownOpen, setCompareDropdownOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const compareDropdownRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const comparisonCount = selectedRobots.length;
+
+  const getInitials = (email: string) => {
+    return email?.substring(0, 2).toUpperCase() || 'U';
+  };
+
+  const profileMenuItems = [
+    { label: 'Account', icon: User, href: '/profile-settings' },
+    { label: 'Dashboard', icon: LayoutGrid, href: '/dashboard' },
+    { label: 'Subscription & Credits', icon: Crown, href: '/dashboard/credits' },
+    { label: 'Privacy & Security', icon: Shield, href: '/dashboard/privacy' },
+    { label: 'Settings', icon: Settings, href: '/dashboard/settings' },
+  ];
+
+  const handleProfileMenuClick = (href: string) => {
+    navigate(href);
+    setProfileDropdownOpen(false);
+    setMenuOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    setProfileDropdownOpen(false);
+    setMenuOpen(false);
+    await signOut();
+  };
 
   // Close compare dropdown on outside click
   useEffect(() => {
@@ -113,6 +142,19 @@ const EnhancedHeader = () => {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [compareDropdownOpen]);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    if (profileDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileDropdownOpen]);
 
   const handleCompareClick = () => {
     if (!user) {
@@ -318,28 +360,79 @@ const EnhancedHeader = () => {
 
           {/* Dashboard / Auth */}
           {user ? (
-            <>
-              <Link to="/dashboard" className="hidden sm:flex">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
-                >
-                  <LayoutGrid className="h-5 w-5" />
-                  <span className="sr-only">Dashboard</span>
-                </Button>
-              </Link>
-              <div className="hidden lg:block w-px h-8 bg-border mx-2" />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={signOut}
-                className="hidden lg:flex items-center gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl px-4 transition-colors"
+            <div className="relative hidden sm:block" ref={profileDropdownRef}>
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-accent transition-colors"
               >
-                <LogOut className="h-4 w-4" />
-                <span className="text-sm font-medium">Sign Out</span>
-              </Button>
-            </>
+                <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                    {getInitials(user.email || '')}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground hidden lg:block max-w-[100px] truncate">
+                  {user.email?.split('@')[0]}
+                </span>
+                <ChevronDown className={cn(
+                  "w-4 h-4 text-muted-foreground transition-transform hidden lg:block",
+                  profileDropdownOpen && "rotate-180"
+                )} />
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
+                  {/* User Info Header */}
+                  <div className="px-4 py-3 border-b border-border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                          {getInitials(user.email || '')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate">
+                          {user.email?.split('@')[0]}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="py-2">
+                    {profileMenuItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.href}
+                          onClick={() => handleProfileMenuClick(item.href)}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                        >
+                          <Icon className="w-4 h-4 text-muted-foreground" />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Sign Out */}
+                  <div className="border-t border-border py-2">
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="hidden sm:flex items-center gap-2">
               <Link to="/auth">
@@ -1047,9 +1140,50 @@ const EnhancedHeader = () => {
           {/* Mobile Auth */}
           <div className="mt-4 pt-4 border-t border-border">
             {user ? (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground px-3">Signed in as {user.email?.split("@")[0]}</p>
-                <Button size="sm" variant="outline" className="w-full" onClick={signOut}>
+              <div className="space-y-3">
+                {/* User Profile Header */}
+                <div className="flex items-center gap-3 px-3 pb-3 border-b border-border">
+                  <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                      {getInitials(user.email || '')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground truncate">
+                      {user.email?.split('@')[0]}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Profile Menu Items */}
+                <div className="space-y-1">
+                  {profileMenuItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-accent rounded-lg transition-colors"
+                      >
+                        <Icon className="w-4 h-4 text-muted-foreground" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Sign Out Button */}
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full text-destructive hover:text-destructive hover:bg-destructive/10" 
+                  onClick={handleSignOut}
+                >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
                 </Button>
