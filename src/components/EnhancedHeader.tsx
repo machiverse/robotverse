@@ -33,6 +33,7 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 
 const menuIcons: Record<string, React.ElementType> = {
   "Robot Parts": Cpu,
@@ -101,13 +102,50 @@ const EnhancedHeader = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [compareDropdownOpen, setCompareDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ full_name?: string; avatar_url?: string } | null>(null);
   const compareDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const comparisonCount = selectedRobots.length;
 
-  const getInitials = (email: string) => {
+  // Fetch user profile for name and avatar
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) {
+        setUserProfile(null);
+        return;
+      }
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) {
+        setUserProfile(data);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
+
+  const getInitials = (name?: string, email?: string) => {
+    if (name) {
+      const parts = name.trim().split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    }
     return email?.substring(0, 2).toUpperCase() || 'U';
+  };
+
+  const getDisplayName = () => {
+    if (userProfile?.full_name) {
+      return userProfile.full_name;
+    }
+    return user?.email?.split('@')[0] || 'User';
   };
 
   const profileMenuItems = [
@@ -366,13 +404,13 @@ const EnhancedHeader = () => {
                 className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-accent transition-colors"
               >
                 <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-                  <AvatarImage src="" />
+                  <AvatarImage src={userProfile?.avatar_url || ''} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                    {getInitials(user.email || '')}
+                    {getInitials(userProfile?.full_name, user.email)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-foreground hidden lg:block max-w-[100px] truncate">
-                  {user.email?.split('@')[0]}
+                <span className="text-sm font-medium text-foreground hidden lg:block max-w-[120px] truncate">
+                  {getDisplayName()}
                 </span>
                 <ChevronDown className={cn(
                   "w-4 h-4 text-muted-foreground transition-transform hidden lg:block",
@@ -387,14 +425,14 @@ const EnhancedHeader = () => {
                   <div className="px-4 py-3 border-b border-border bg-muted/30">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-                        <AvatarImage src="" />
+                        <AvatarImage src={userProfile?.avatar_url || ''} />
                         <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                          {getInitials(user.email || '')}
+                          {getInitials(userProfile?.full_name, user.email)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-foreground truncate">
-                          {user.email?.split('@')[0]}
+                          {getDisplayName()}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
                           {user.email}
@@ -1144,14 +1182,14 @@ const EnhancedHeader = () => {
                 {/* User Profile Header */}
                 <div className="flex items-center gap-3 px-3 pb-3 border-b border-border">
                   <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-                    <AvatarImage src="" />
+                    <AvatarImage src={userProfile?.avatar_url || ''} />
                     <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                      {getInitials(user.email || '')}
+                      {getInitials(userProfile?.full_name, user.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground truncate">
-                      {user.email?.split('@')[0]}
+                      {getDisplayName()}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {user.email}
