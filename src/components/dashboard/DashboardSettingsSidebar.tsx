@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { User, Settings, Crown, Bell, Shield, LogOut, LayoutDashboard, HelpCircle } from 'lucide-react';
+import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { Crown, LogOut, CreditCard, History, ShoppingCart, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,50 +9,50 @@ import { Badge } from '@/components/ui/badge';
 
 const menuItems = [
   {
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/dashboard',
-    description: 'Overview & stats'
+    label: 'Credits Overview',
+    icon: Coins,
+    href: '/dashboard/credits',
+    description: 'Your credit balance',
+    tab: null
   },
   {
-    label: 'Account',
-    icon: User,
-    href: '/profile-settings',
-    description: 'Personal information'
-  },
-  {
-    label: 'Subscription & Credits',
+    label: 'Subscription Plans',
     icon: Crown,
     href: '/dashboard/credits',
-    description: 'Plans & billing',
-    badge: 'Pro'
+    description: 'Upgrade your plan',
+    tab: 'plans'
   },
   {
-    label: 'Notifications',
-    icon: Bell,
-    href: '/dashboard/settings',
-    description: 'Alert preferences'
+    label: 'Buy Credits',
+    icon: ShoppingCart,
+    href: '/dashboard/credits',
+    description: 'Purchase credit packs',
+    tab: 'packs'
   },
   {
-    label: 'Privacy & Security',
-    icon: Shield,
-    href: '/dashboard/privacy',
-    description: 'Security settings'
-  },
-  {
-    label: 'Help & Support',
-    icon: HelpCircle,
-    href: '/dashboard/help',
-    description: 'Get assistance'
+    label: 'Transaction History',
+    icon: History,
+    href: '/dashboard/credits',
+    description: 'View all transactions',
+    tab: 'history'
   },
 ];
 
 export const DashboardSettingsSidebar = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, signOut } = useAuth();
+  const currentTab = searchParams.get('tab');
 
   const getInitials = (email: string) => {
     return email?.substring(0, 2).toUpperCase() || 'U';
+  };
+
+  const isItemActive = (item: typeof menuItems[0]) => {
+    if (item.tab === null) {
+      return location.pathname === item.href && !currentTab;
+    }
+    return currentTab === item.tab;
   };
 
   return (
@@ -83,17 +83,18 @@ export const DashboardSettingsSidebar = () => {
       {/* Navigation Menu */}
       <nav className="flex-1 p-4 overflow-y-auto">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 px-4">
-          Settings
+          Billing & Credits
         </p>
         <ul className="space-y-1">
           {menuItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = isItemActive(item);
             const Icon = item.icon;
+            const linkHref = item.tab ? `${item.href}?tab=${item.tab}` : item.href;
 
             return (
-              <li key={item.href + item.label}>
+              <li key={item.label}>
                 <NavLink
-                  to={item.href}
+                  to={linkHref}
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group',
                     'hover:bg-accent/50 hover:text-accent-foreground',
@@ -107,16 +108,9 @@ export const DashboardSettingsSidebar = () => {
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className={cn('font-medium truncate', isActive ? 'text-primary' : 'text-foreground')}>
-                        {item.label}
-                      </p>
-                      {item.badge && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </div>
+                    <p className={cn('font-medium truncate', isActive ? 'text-primary' : 'text-foreground')}>
+                      {item.label}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                   </div>
                 </NavLink>
@@ -128,16 +122,23 @@ export const DashboardSettingsSidebar = () => {
 
       <Separator />
 
-      {/* Sign Out Button */}
-      <div className="p-4">
+      {/* Back to Dashboard */}
+      <div className="p-4 space-y-2">
+        <NavLink to="/dashboard">
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-3 rounded-xl py-3"
+          >
+            <CreditCard className="h-4 w-4" />
+            <span className="font-medium">Back to Dashboard</span>
+          </Button>
+        </NavLink>
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl py-3"
           onClick={() => signOut()}
         >
-          <div className="p-2 rounded-lg bg-destructive/10">
-            <LogOut className="h-4 w-4" />
-          </div>
+          <LogOut className="h-4 w-4" />
           <span className="font-medium">Sign Out</span>
         </Button>
       </div>
