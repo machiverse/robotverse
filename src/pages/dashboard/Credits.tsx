@@ -7,10 +7,21 @@ import { CreditPacksStore } from '@/components/credits/CreditPacksStore';
 import { CreditTransactionHistory } from '@/components/credits/CreditTransactionHistory';
 import { DashboardSettingsLayout } from '@/components/dashboard/DashboardSettingsLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 
 const Credits = () => {
   const { user, loading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'plans';
+
+  const handleTabChange = (value: string) => {
+    if (value === 'plans') {
+      searchParams.delete('tab');
+    } else {
+      searchParams.set('tab', value);
+    }
+    setSearchParams(searchParams);
+  };
 
   if (loading) {
     return (
@@ -84,7 +95,7 @@ const Credits = () => {
       {/* Tabs Section */}
       <Card className="border-0 shadow-lg bg-gradient-to-b from-card to-card/50">
         <CardContent className="p-6">
-          <Tabs defaultValue="plans" className="space-y-6">
+          <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 h-12 p-1 bg-muted/50">
               <TabsTrigger 
                 value="plans" 
