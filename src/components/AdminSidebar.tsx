@@ -17,6 +17,7 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
 
   const menuItems = useMemo(() => [
     { id: "overview", label: "Overview", icon: Activity },
+    { id: "activity-center", label: "Activity Center", icon: Eye },
     { id: "users", label: "Users", icon: Users },
     { id: "equipment", label: "Equipment", icon: Bot },
     { id: "buyer-access", label: "Buyer Access", icon: Shield },
