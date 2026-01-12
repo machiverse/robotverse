@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "./AdminSidebar";
 import AdminOverview from "./admin/AdminOverview";
+import AdminActivityCenter from "./admin/AdminActivityCenter";
 import AdminUsers from "./admin/AdminUsers";
 import AdminEquipment from "./admin/AdminEquipment";
 import AdminBuyerAccessRequests from "./admin/AdminBuyerAccessRequests";
@@ -57,6 +58,8 @@ const AdminDashboardLayout = React.memo(({
     switch (activeSection) {
       case "overview":
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
+      case "activity-center":
+        return <AdminActivityCenter />;
       case "users":
         return <AdminUsers key={`users-${users.length}`} users={users} onRefresh={onRefresh} />;
       case "equipment":
