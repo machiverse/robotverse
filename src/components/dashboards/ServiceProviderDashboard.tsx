@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import WatchlistSection from '@/components/WatchlistSection';
 import { LeadsManager } from '@/components/crm';
+import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
+import { FileText } from 'lucide-react';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
@@ -263,13 +265,35 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-6">
               <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="quotes" className="flex items-center gap-1">
+                <FileText className="w-4 h-4" />
+                Quotes
+              </TabsTrigger>
               <TabsTrigger value="leads">Lead Manager</TabsTrigger>
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
             </TabsList>
+
+            {/* Quote Requests Tab */}
+            <TabsContent value="quotes">
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Quote Requests
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage quote requests from potential customers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QuoteRequestsSection sellerId={user?.id || ''} itemType="service" />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             {/* Lead Manager Tab */}
             <TabsContent value="leads">

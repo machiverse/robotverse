@@ -59,6 +59,7 @@ import { DashboardHeader } from '@/components/DashboardHeader';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
 import { LeadsManager } from '@/components/crm';
+import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -620,10 +621,14 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-12">
+        <TabsList className="grid w-full grid-cols-6 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
+          </TabsTrigger>
+          <TabsTrigger value="quotes" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Quote Requests
           </TabsTrigger>
           <TabsTrigger value="leads" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
@@ -642,6 +647,28 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             Settings
           </TabsTrigger>
         </TabsList>
+
+        {/* Quote Requests Tab */}
+        <TabsContent value="quotes" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Quote Requests
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage quote requests from potential buyers
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <QuoteRequestsSection sellerId={user?.id || ''} itemType="robot" />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Lead Manager Tab */}
         <TabsContent value="leads" className="mt-6">

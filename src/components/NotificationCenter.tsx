@@ -54,20 +54,25 @@ interface GeneralNotification {
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case "robot_view":
+    case "robots_view":
     case "robot_inquiry":
     case "robot_quote":
       return <Bot className="h-4 w-4 text-blue-500" />;
     case "spare_part_view":
+    case "spare_parts_view":
     case "spare_part_inquiry":
     case "spare_part_quote":
       return <Package className="h-4 w-4 text-orange-500" />;
     case "service_view":
+    case "services_view":
     case "service_inquiry":
     case "service_quote":
       return <Settings className="h-4 w-4 text-purple-500" />;
+    case "logistics_view":
     case "logistics_inquiry":
     case "logistics_quote":
       return <Truck className="h-4 w-4 text-green-500" />;
+    case "financing_view":
     case "finance_inquiry":
     case "finance_application":
       return <CreditCard className="h-4 w-4 text-yellow-500" />;
@@ -364,6 +369,9 @@ export const NotificationCenter = () => {
           default:
             navigate(`/dashboard`);
         }
+      } else if (notification.notification_type === 'quote_request') {
+        // Navigate to dashboard for quote requests
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error("Error handling notification click:", error);
