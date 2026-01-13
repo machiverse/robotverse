@@ -124,6 +124,23 @@ const SupplierQuoteForm = ({ onClose, supplierInfo, itemInfo, robotInfo }: Suppl
         console.error('Error logging request:', dbError);
         // Don't fail the entire process if logging fails
       } else {
+        // Send notification to seller about the quote request
+        if (supplierInfo.sellerId) {
+          try {
+            await supabase.from('notifications').insert({
+              user_id: supplierInfo.sellerId,
+              notification_type: 'quote_request',
+              title: 'New Quote Request',
+              message: `${formData.customerName} requested a quote for "${itemInfo.name}"`,
+              reference_id: itemInfo.id,
+              reference_type: itemInfo.type,
+              is_read: false
+            });
+            console.log('Quote notification sent to seller:', supplierInfo.sellerId);
+          } catch (notificationError) {
+            console.error('Error sending quote notification:', notificationError);
+          }
+        }
         // Cross-provider notifications for spare parts enquiries
         if (itemInfo.type === 'spare_part') {
           try {
