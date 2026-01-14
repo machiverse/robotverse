@@ -29,6 +29,7 @@ import {
   Bot,
   Wrench,
 } from "lucide-react";
+import LockedContactCard from "@/components/LockedContactCard";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
@@ -477,29 +478,16 @@ const SparePartDetails = () => {
 
                   <Separator />
 
-                  {/* Seller Info */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold flex items-center gap-2 text-lg">
-                      <Building className="w-4 h-4" />
-                      Seller Information
-                    </h3>
-                    <div className="grid gap-2 text-sm">
-                      <p className="flex items-center gap-2">
-                        <Building className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-semibold">
-                          {sparePart.profiles?.company_name || sparePart.profiles?.full_name}
-                        </span>
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>
-                          {sparePart.location}
-                          {sparePart.state && `, ${sparePart.state}`}
-                          {sparePart.pincode && ` - ${sparePart.pincode}`}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+                  {/* Seller Info - Credit-locked */}
+                  <LockedContactCard
+                    sellerId={sparePart.seller_id}
+                    itemId={sparePart.id}
+                    itemType="spare_part"
+                    itemName={sparePart.name}
+                    sellerProfile={sparePart.profiles}
+                    showLocation={true}
+                    variant="compact"
+                  />
                 </CardContent>
               </Card>
             </div>

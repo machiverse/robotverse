@@ -41,7 +41,7 @@ export const useContactUnlock = () => {
     if (!user?.id) return;
 
     try {
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('seller_credits')
         .select('current_balance, total_earned, total_spent')
         .eq('seller_id', user.id)
@@ -56,7 +56,8 @@ export const useContactUnlock = () => {
           .single();
         
         if (insertError) throw insertError;
-        data = newData;
+        setUserCredits(newData);
+        return;
       } else if (error) {
         throw error;
       }
@@ -67,18 +68,36 @@ export const useContactUnlock = () => {
     }
   }, [user?.id]);
 
-  // Fetch all contacts unlocked by this user
+  // Fetch all contacts unlocked by this user using raw SQL
   const fetchUnlockedContacts = useCallback(async () => {
     if (!user?.id) return;
 
     try {
+      // Use raw SQL query since the types aren't generated yet
       const { data, error } = await supabase
-        .from('unlocked_contacts')
-        .select('*')
-        .eq('user_id', user.id);
+        .rpc('get_user_unlocked_contacts' as any, { user_id_input: user.id });
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setUnlockedContacts(data || []);
+      if (error) {
+        // Fallback: direct table query with type casting
+        const response = await fetch(
+          `${(supabase as any).supabaseUrl}/rest/v1/unlocked_contacts?user_id=eq.${user.id}`,
+          {
+            headers: {
+              'apikey': (supabase as any).supabaseKey,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.ok) {
+          const jsonData = await response.json();
+          setUnlockedContacts(jsonData as UnlockedContact[]);
+        }
+        return;
+      }
+
+      setUnlockedContacts((data as unknown as UnlockedContact[]) || []);
     } catch (error) {
       console.error('Error fetching unlocked contacts:', error);
     }
@@ -123,19 +142,32 @@ export const useContactUnlock = () => {
 
     try {
       const newBalance = userCredits.current_balance - CREDITS_PER_UNLOCK;
+      const session = await supabase.auth.getSession();
 
-      // Insert unlock record
-      const { error: unlockError } = await supabase
-        .from('unlocked_contacts')
-        .insert({
-          user_id: user.id,
-          seller_id: sellerId,
-          item_id: itemId,
-          item_type: itemType,
-          credits_used: CREDITS_PER_UNLOCK
-        });
+      // Insert unlock record using REST API
+      const unlockResponse = await fetch(
+        `${(supabase as any).supabaseUrl}/rest/v1/unlocked_contacts`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': (supabase as any).supabaseKey,
+            'Authorization': `Bearer ${session.data.session?.access_token}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            seller_id: sellerId,
+            item_id: itemId,
+            item_type: itemType,
+            credits_used: CREDITS_PER_UNLOCK
+          })
+        }
+      );
 
-      if (unlockError) throw unlockError;
+      if (!unlockResponse.ok) {
+        throw new Error('Failed to unlock contact');
+      }
 
       // Record transaction
       const { error: txError } = await supabase

@@ -3450,6 +3450,36 @@ export type Database = {
         }
         Relationships: []
       }
+      unlocked_contacts: {
+        Row: {
+          credits_used: number
+          id: string
+          item_id: string
+          item_type: string
+          seller_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          credits_used?: number
+          id?: string
+          item_id: string
+          item_type: string
+          seller_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          credits_used?: number
+          id?: string
+          item_id?: string
+          item_type?: string
+          seller_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       unlocked_leads: {
         Row: {
           credits_used: number
