@@ -20,6 +20,7 @@ import {
   FileText,
   Shield
 } from "lucide-react";
+import LockedContactCard from "@/components/LockedContactCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -299,9 +300,28 @@ const ServiceDetails = () => {
 
               {/* Right Column - Provider & Actions */}
               <div className="space-y-4">
+                {/* Locked Contact Card */}
+                {service.providerId && (
+                  <LockedContactCard
+                    sellerId={service.providerId}
+                    itemId={service.id}
+                    itemType="service"
+                    itemName={service.name}
+                    sellerProfile={{
+                      full_name: service.providerProfile?.full_name,
+                      company_name: service.providerProfile?.company_name,
+                      phone: service.providerProfile?.phone,
+                      mobile_number: service.providerProfile?.mobile_number,
+                      email: service.providerProfile?.email,
+                      location: service.location
+                    }}
+                    showLocation={true}
+                  />
+                )}
+
                 <Card className="sticky top-24">
                   <CardHeader className="pb-4">
-                    <CardTitle className="text-base">Service Provider</CardTitle>
+                    <CardTitle className="text-base">Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Provider Info */}

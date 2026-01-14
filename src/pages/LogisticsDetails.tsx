@@ -21,6 +21,7 @@ import {
   FileText,
   CheckCircle
 } from "lucide-react";
+import LockedContactCard from "@/components/LockedContactCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -300,41 +301,23 @@ const LogisticsDetails = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Provider Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  Provider Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="font-semibold text-foreground">{provider.provider?.company_name || provider.provider?.full_name}</p>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t">
-                  {provider.provider?.phone && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="w-4 h-4" />
-                      <span>{provider.provider.phone}</span>
-                    </div>
-                  )}
-                  {provider.provider?.email && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="w-4 h-4" />
-                      <span>{provider.provider.email}</span>
-                    </div>
-                  )}
-                  {provider.provider?.location && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      <span>{provider.provider.location}</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Locked Contact Card */}
+            {provider.provider_id && (
+              <LockedContactCard
+                sellerId={provider.provider_id}
+                itemId={provider.id}
+                itemType="logistics"
+                itemName={provider.service_name}
+                sellerProfile={{
+                  full_name: provider.provider?.full_name,
+                  company_name: provider.provider?.company_name,
+                  phone: provider.provider?.phone,
+                  email: provider.provider?.email,
+                  location: provider.provider?.location
+                }}
+                showLocation={true}
+              />
+            )}
 
             {/* Action Buttons */}
             <Card>
