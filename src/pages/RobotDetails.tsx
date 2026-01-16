@@ -62,7 +62,7 @@ import {
   GitCompare,
   FileQuestion,
 } from "lucide-react";
-import LockedContactCard from "@/components/LockedContactCard";
+
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
@@ -2445,18 +2445,6 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
 
           {/* Right Sidebar (4/12 width) */}
           <div className="lg:col-span-4 space-y-6">
-            {/* Seller Contact Card - Credit-locked */}
-            {robot.seller_id && user?.id !== robot.seller_id && (
-              <LockedContactCard
-                sellerId={robot.seller_id}
-                itemId={robot.id}
-                itemType="robot"
-                itemName={robot.name}
-                sellerProfile={robot.profiles}
-                showLocation={true}
-              />
-            )}
-
             {/* Market Insights Card */}
             <Card className="shadow-xl border-2 border-purple/20 bg-gradient-to-br from-card to-card/80">
               <CardHeader className="border-b bg-gradient-to-r from-purple-500/10 to-purple-400/5">
