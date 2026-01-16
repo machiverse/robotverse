@@ -59,6 +59,8 @@ import {
   Calendar,
   Scale,
   Check,
+  GitCompare,
+  FileQuestion,
 } from "lucide-react";
 import LockedContactCard from "@/components/LockedContactCard";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
@@ -1559,53 +1561,127 @@ ${user?.user_metadata?.full_name || "Interested Buyer"}`;
             </Card>
 
             {/* Quick Actions */}
-            {user && (
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAIAnalysis}
-                      className="text-purple-600 border-purple-200 hover:bg-purple-50 hover:shadow-md transition-all"
-                    >
-                      <Brain className="w-4 h-4 mr-2" />
-                      AI Analysis
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateReport}
-                      className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:shadow-md transition-all"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Get Report
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCheckLoan}
-                      className="text-green-600 border-green-200 hover:bg-green-50 hover:shadow-md transition-all"
-                    >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Check Loan
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleFindSimilar}
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:shadow-md transition-all"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Find Similar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {/* Compare Button */}
+                  <Button
+                    variant={isSelected(robot.id) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      if (isSelected(robot.id)) {
+                        removeRobot(robot.id);
+                      } else {
+                        addRobot({
+                          id: robot.id,
+                          name: robot.name,
+                          model: robot.model,
+                          brand: robot.brand,
+                          robot_type: robot.robot_type,
+                          price: robot.price,
+                          currency: robot.currency,
+                          payload_capacity: robot.payload_capacity,
+                          reach: robot.reach,
+                          repeatability: robot.repeatability,
+                          images: robot.images,
+                          applications: robot.applications,
+                          technical_specifications: robot.technical_specifications,
+                          condition: robot.condition,
+                          location: robot.location,
+                          profiles: robot.profiles,
+                        });
+                      }
+                    }}
+                    className={isSelected(robot.id) 
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md transition-all" 
+                      : "text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:shadow-md transition-all"
+                    }
+                  >
+                    <GitCompare className="w-4 h-4 mr-2" />
+                    {isSelected(robot.id) ? "Added" : "Compare"}
+                  </Button>
+                  
+                  {/* Get Quote Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (!user) {
+                        toast({
+                          title: "Login Required",
+                          description: "Please log in to request a quote.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setSelectedSupplier({
+                        name: robot.profiles?.full_name || "Seller",
+                        email: robot.profiles?.email || "",
+                        company: robot.profiles?.company_name || "",
+                        phone: robot.profiles?.mobile_number || robot.profiles?.phone,
+                        sellerId: robot.seller_id,
+                      });
+                      setSelectedItem({
+                        type: "robot" as const,
+                        name: robot.name,
+                        id: robot.id,
+                        model: robot.model,
+                        category: robot.robot_type,
+                      });
+                      setShowQuoteForm(true);
+                    }}
+                    className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:shadow-md transition-all"
+                  >
+                    <FileQuestion className="w-4 h-4 mr-2" />
+                    Get Quote
+                  </Button>
+                  
+                  {user && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAIAnalysis}
+                        className="text-purple-600 border-purple-200 hover:bg-purple-50 hover:shadow-md transition-all"
+                      >
+                        <Brain className="w-4 h-4 mr-2" />
+                        AI Analysis
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateReport}
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:shadow-md transition-all"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Get Report
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCheckLoan}
+                        className="text-green-600 border-green-200 hover:bg-green-50 hover:shadow-md transition-all"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Check Loan
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleFindSimilar}
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:shadow-md transition-all"
+                      >
+                        <Search className="w-4 h-4 mr-2" />
+                        Find Similar
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Detailed Tabs */}
             <Card className="shadow-lg">

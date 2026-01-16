@@ -22,12 +22,16 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  Lock,
+  Unlock,
+  Coins
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { useContactUnlock } from '@/hooks/useContactUnlock';
 
 interface QuoteRequest {
   id: string;
@@ -58,6 +62,7 @@ interface QuoteRequestsSectionProps {
 const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isContactUnlocked, unlockContact, userCredits, creditsRequired, loading: creditsLoading } = useContactUnlock();
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +71,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
   const [filterUrgency, setFilterUrgency] = useState('all');
   const [selectedRequest, setSelectedRequest] = useState<QuoteRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQuoteRequests();
@@ -217,6 +223,36 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
     setShowDetailModal(true);
   };
 
+  const handleUnlockBuyerContact = async (request: QuoteRequest) => {
+    setUnlockingId(request.id);
+    const success = await unlockContact(
+      request.user_id, // buyer's ID
+      request.item_id || request.id, // item ID or request ID as fallback
+      request.item_type as any,
+      request.item_name || 'Quote Request'
+    );
+    setUnlockingId(null);
+    if (success) {
+      // Refresh the request data
+      fetchQuoteRequests();
+    }
+  };
+
+  const isBuyerContactUnlocked = (request: QuoteRequest) => {
+    return isContactUnlocked(
+      request.user_id,
+      request.item_id || request.id,
+      request.item_type as any
+    );
+  };
+
+  const getMaskedValue = (value: string | null, type: 'email' | 'phone' | 'name') => {
+    if (!value) return 'N/A';
+    if (type === 'email') return '•••••@••••.•••';
+    if (type === 'phone') return '•••••-•••••';
+    return '••••••••••';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -348,15 +384,29 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRequests.map((request) => (
+              {filteredRequests.map((request) => {
+                const isUnlocked = isBuyerContactUnlocked(request);
+                return (
                 <TableRow key={request.id} className="hover:bg-muted/50">
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium">{request.user_name}</span>
-                      {request.company_name && (
-                        <span className="text-sm text-muted-foreground">{request.company_name}</span>
+                      {isUnlocked ? (
+                        <>
+                          <span className="font-medium">{request.user_name}</span>
+                          {request.company_name && (
+                            <span className="text-sm text-muted-foreground">{request.company_name}</span>
+                          )}
+                          <span className="text-xs text-muted-foreground">{request.email_address}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium flex items-center gap-1">
+                            <Lock className="w-3 h-3" />
+                            {getMaskedValue(request.user_name, 'name')}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{getMaskedValue(request.email_address, 'email')}</span>
+                        </>
                       )}
-                      <span className="text-xs text-muted-foreground">{request.email_address}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -378,44 +428,67 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => viewRequestDetails(request)}
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleStartChat(request)}
-                        title="Start Chat"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
-                      {request.mobile_number && (
+                      {!isUnlocked ? (
                         <Button
-                          variant="ghost"
+                          variant="default"
                           size="sm"
-                          onClick={() => window.open(`tel:${request.mobile_number}`)}
-                          title="Call"
+                          onClick={() => handleUnlockBuyerContact(request)}
+                          disabled={unlockingId === request.id || creditsLoading}
+                          title={`Unlock for ${creditsRequired} credits`}
+                          className="bg-primary hover:bg-primary/90"
                         >
-                          <Phone className="w-4 h-4" />
+                          {unlockingId === request.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Unlock className="w-4 h-4 mr-1" />
+                              {creditsRequired}
+                            </>
+                          )}
                         </Button>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => viewRequestDetails(request)}
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleStartChat(request)}
+                            title="Start Chat"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
+                          {request.mobile_number && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(`tel:${request.mobile_number}`)}
+                              title="Call"
+                            >
+                              <Phone className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`mailto:${request.email_address}`)}
+                            title="Email"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(`mailto:${request.email_address}`)}
-                        title="Email"
-                      >
-                        <Mail className="w-4 h-4" />
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -430,7 +503,9 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
               Quote Request Details
             </DialogTitle>
           </DialogHeader>
-          {selectedRequest && (
+          {selectedRequest && (() => {
+            const isUnlocked = isBuyerContactUnlocked(selectedRequest);
+            return (
             <ScrollArea className="max-h-[70vh]">
               <div className="space-y-6 p-1">
                 {/* Customer Info */}
@@ -438,38 +513,90 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                   <h3 className="font-semibold flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Customer Information
+                    {!isUnlocked && (
+                      <Badge variant="secondary" className="ml-2">
+                        <Lock className="w-3 h-3 mr-1" />
+                        Locked
+                      </Badge>
+                    )}
                   </h3>
-                  <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Name</p>
-                      <p className="font-medium">{selectedRequest.user_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{selectedRequest.email_address}</p>
-                    </div>
-                    {selectedRequest.company_name && (
+                  
+                  {isUnlocked ? (
+                    <div className="grid grid-cols-2 gap-4 bg-green-50/50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
                       <div>
-                        <p className="text-sm text-muted-foreground">Company</p>
-                        <p className="font-medium">{selectedRequest.company_name}</p>
+                        <p className="text-sm text-muted-foreground">Name</p>
+                        <p className="font-medium">{selectedRequest.user_name}</p>
                       </div>
-                    )}
-                    {selectedRequest.mobile_number && (
                       <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="font-medium">{selectedRequest.mobile_number}</p>
+                        <p className="text-sm text-muted-foreground">Email</p>
+                        <p className="font-medium">{selectedRequest.email_address}</p>
                       </div>
-                    )}
-                    {selectedRequest.location && (
-                      <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">Location</p>
-                        <p className="font-medium flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {selectedRequest.location}
+                      {selectedRequest.company_name && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Company</p>
+                          <p className="font-medium">{selectedRequest.company_name}</p>
+                        </div>
+                      )}
+                      {selectedRequest.mobile_number && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium">{selectedRequest.mobile_number}</p>
+                        </div>
+                      )}
+                      {selectedRequest.location && (
+                        <div className="col-span-2">
+                          <p className="text-sm text-muted-foreground">Location</p>
+                          <p className="font-medium flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {selectedRequest.location}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-muted/50 p-4 rounded-lg border-2 border-dashed border-muted-foreground/30">
+                      <div className="grid grid-cols-2 gap-4 opacity-50">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Name</p>
+                          <p className="font-medium blur-sm">••••••••••</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="font-medium blur-sm">•••••@••••.•••</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Company</p>
+                          <p className="font-medium blur-sm">••••••••••</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium blur-sm">•••••-•••••</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <Button 
+                          onClick={() => handleUnlockBuyerContact(selectedRequest)}
+                          disabled={unlockingId === selectedRequest.id || creditsLoading}
+                          className="w-full"
+                        >
+                          {unlockingId === selectedRequest.id ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Unlocking...
+                            </>
+                          ) : (
+                            <>
+                              <Unlock className="w-4 h-4 mr-2" />
+                              Unlock Contact ({creditsRequired} credits)
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-xs text-center text-muted-foreground mt-2">
+                          Your balance: {userCredits?.current_balance || 0} credits
                         </p>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Item Info */}
@@ -533,19 +660,28 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2 pt-4 border-t">
-                  <Button onClick={() => handleStartChat(selectedRequest)}>
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Start Chat
-                  </Button>
-                  <Button variant="outline" onClick={() => window.open(`mailto:${selectedRequest.email_address}`)}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Send Email
-                  </Button>
-                  {selectedRequest.mobile_number && (
-                    <Button variant="outline" onClick={() => window.open(`tel:${selectedRequest.mobile_number}`)}>
-                      <Phone className="w-4 h-4 mr-2" />
-                      Call
-                    </Button>
+                  {isUnlocked ? (
+                    <>
+                      <Button onClick={() => handleStartChat(selectedRequest)}>
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Start Chat
+                      </Button>
+                      <Button variant="outline" onClick={() => window.open(`mailto:${selectedRequest.email_address}`)}>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Email
+                      </Button>
+                      {selectedRequest.mobile_number && (
+                        <Button variant="outline" onClick={() => window.open(`tel:${selectedRequest.mobile_number}`)}>
+                          <Phone className="w-4 h-4 mr-2" />
+                          Call
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      Unlock contact to access communication options
+                    </p>
                   )}
                   <div className="flex-1" />
                   <Select 
@@ -568,7 +704,8 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                 </div>
               </div>
             </ScrollArea>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
