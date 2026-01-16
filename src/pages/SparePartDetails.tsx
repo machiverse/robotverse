@@ -29,7 +29,7 @@ import {
   Bot,
   Wrench,
 } from "lucide-react";
-import LockedContactCard from "@/components/LockedContactCard";
+
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
@@ -476,18 +476,6 @@ const SparePartDetails = () => {
                     </Button>
                   </div>
 
-                  <Separator />
-
-                  {/* Seller Info - Credit-locked */}
-                  <LockedContactCard
-                    sellerId={sparePart.seller_id}
-                    itemId={sparePart.id}
-                    itemType="spare_part"
-                    itemName={sparePart.name}
-                    sellerProfile={sparePart.profiles}
-                    showLocation={true}
-                    variant="compact"
-                  />
                 </CardContent>
               </Card>
             </div>

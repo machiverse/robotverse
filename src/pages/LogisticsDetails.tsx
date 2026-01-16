@@ -21,7 +21,7 @@ import {
   FileText,
   CheckCircle
 } from "lucide-react";
-import LockedContactCard from "@/components/LockedContactCard";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -301,24 +301,6 @@ const LogisticsDetails = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Locked Contact Card */}
-            {provider.provider_id && (
-              <LockedContactCard
-                sellerId={provider.provider_id}
-                itemId={provider.id}
-                itemType="logistics"
-                itemName={provider.service_name}
-                sellerProfile={{
-                  full_name: provider.provider?.full_name,
-                  company_name: provider.provider?.company_name,
-                  phone: provider.provider?.phone,
-                  email: provider.provider?.email,
-                  location: provider.provider?.location
-                }}
-                showLocation={true}
-              />
-            )}
-
             {/* Action Buttons */}
             <Card>
               <CardContent className="pt-6 space-y-3">
