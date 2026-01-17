@@ -1350,21 +1350,21 @@ const RobotDetails = () => {
       {/* Report Modal */}
       {robot && (
         <ProfessionalRobotReportModal
-          robot={robot as any}
-          open={showReportModal}
-          onOpenChange={setShowReportModal}
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          robotData={robot}
         />
       )}
 
       {/* Loan Application Modal */}
-      {selectedFinanceProvider && robot && (
+      {robot && (
         <LoanApplicationModal
           open={showLoanApplication}
           onOpenChange={(open) => {
             setShowLoanApplication(open);
             if (!open) setSelectedFinanceProvider(null);
           }}
-          provider={selectedFinanceProvider}
+          financeProvider={selectedFinanceProvider}
           robotDetails={{
             name: robot.name,
             model: robot.model,
