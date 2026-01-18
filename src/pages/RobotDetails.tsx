@@ -616,8 +616,8 @@ const RobotDetails = () => {
         <div className="container mx-auto px-4 py-8 lg:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Image Section */}
-            <div className="space-y-4">
-              <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-muted border shadow-lg">
+            <div className="space-y-4 h-full">
+              <div className="relative aspect-square lg:aspect-[4/3] lg:h-[500px] rounded-xl overflow-hidden bg-muted border shadow-lg">
                 {robot?.images && robot.images.length > 0 ? (
                   <>
                     <ResponsiveImage
@@ -767,11 +767,11 @@ const RobotDetails = () => {
               {/* View Count */}
               <ViewCountDisplay targetType="robots" targetId={robot.id} />
 
-              {/* Primary CTA */}
+              {/* Primary CTA Buttons */}
               <div className="space-y-3 pt-2">
                 {user && user.id === robot.seller_id ? (
-                  <Button disabled variant="outline" className="w-full h-14 text-lg" size="lg">
-                    <MessageCircle className="h-5 w-5 mr-2" />
+                  <Button disabled variant="outline" className="w-full h-10" size="default">
+                    <MessageCircle className="h-4 w-4 mr-2" />
                     You are the Seller
                   </Button>
                 ) : (
@@ -781,34 +781,75 @@ const RobotDetails = () => {
                     itemType="robot"
                     itemName={robot.name}
                     variant="default"
-                    className="w-full h-14 text-lg bg-primary hover:bg-primary/90 shadow-lg"
-                    size="lg"
+                    className="w-full h-10 bg-primary hover:bg-primary/90 shadow-md"
+                    size="default"
                   />
                 )}
 
-                {user && user.id !== robot.seller_id && (
+                <div className="grid grid-cols-3 gap-2">
+                  {user && user.id !== robot.seller_id && (
+                    <Button
+                      onClick={handleAddToWatchlist}
+                      variant="outline"
+                      disabled={addingToWatchlist}
+                      className="h-9"
+                      size="sm"
+                    >
+                      <Heart className={`h-4 w-4 mr-1.5 ${isInWatchlist ? "fill-current text-red-500" : ""}`} />
+                      Watchlist
+                    </Button>
+                  )}
                   <Button
-                    onClick={handleAddToWatchlist}
+                    onClick={() => {
+                      if (robot) {
+                        addRobot({
+                          id: robot.id,
+                          name: robot.name,
+                          model: robot.model,
+                          brand: robot.brand,
+                          robot_type: robot.robot_type,
+                          price: robot.price,
+                          currency: robot.currency,
+                          payload_capacity: robot.payload_capacity,
+                          reach: robot.reach,
+                          repeatability: robot.repeatability,
+                          images: robot.images,
+                          applications: robot.applications,
+                          technical_specifications: robot.technical_specifications,
+                          condition: robot.condition,
+                          location: robot.location,
+                          profiles: robot.profiles,
+                        });
+                      }
+                    }}
                     variant="outline"
-                    disabled={addingToWatchlist}
-                    className="w-full h-12"
-                    size="lg"
+                    className="h-9"
+                    size="sm"
                   >
-                    <Heart className={`h-5 w-5 mr-2 ${isInWatchlist ? "fill-current text-red-500" : ""}`} />
-                    {isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
+                    <Scale className="h-4 w-4 mr-1.5" />
+                    Compare
                   </Button>
-                )}
-
-                {!user && (
-                  <div className="p-4 rounded-lg border bg-muted/30 text-center">
-                    <p className="text-sm text-muted-foreground">
-                      <Button variant="link" className="p-0 h-auto text-primary" onClick={() => navigate("/auth")}>
-                        Sign in
-                      </Button>{" "}
-                      to chat with the seller
-                    </p>
-                  </div>
-                )}
+                  <Button
+                    onClick={() => {
+                      trackButtonClick({
+                        buttonName: "get_quote",
+                        buttonType: "cta",
+                        itemId: robot.id,
+                        itemType: "robot"
+                      });
+                      toast({
+                        title: "Quote Request",
+                        description: "Please use the chat feature to request a quote from the seller.",
+                      });
+                    }}
+                    variant="outline"
+                    className="h-9 border-primary/50 text-primary hover:bg-primary/10"
+                    size="sm"
+                  >
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    Get Quote
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
