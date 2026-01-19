@@ -17,6 +17,7 @@ import {
 import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
+import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import {
@@ -201,7 +202,8 @@ const RobotDetails = () => {
 
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMarketAnalysis, setShowMarketAnalysis] = useState(false);
-  const [showQuoteForm, setShowQuoteForm] = useState(false);
+const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showRobotQuoteModal, setShowRobotQuoteModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
@@ -831,16 +833,21 @@ const RobotDetails = () => {
                   </Button>
                   <Button
                     onClick={() => {
+                      if (!user) {
+                        toast({
+                          title: "Login Required",
+                          description: "Please log in to request a quote.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
                       trackButtonClick({
                         buttonName: "get_quote",
                         buttonType: "cta",
                         itemId: robot.id,
                         itemType: "robot"
                       });
-                      toast({
-                        title: "Quote Request",
-                        description: "Please use the chat feature to request a quote from the seller.",
-                      });
+                      setShowRobotQuoteModal(true);
                     }}
                     variant="outline"
                     className="h-9 border-primary/50 text-primary hover:bg-primary/10"
@@ -1413,6 +1420,15 @@ const RobotDetails = () => {
             currency: robot.currency,
             type: robot.robot_type,
           }}
+        />
+      )}
+
+      {/* Robot Quote Modal */}
+      {robot && (
+        <RobotQuoteModal
+          isOpen={showRobotQuoteModal}
+          onClose={() => setShowRobotQuoteModal(false)}
+          robot={robot}
         />
       )}
     </div>
