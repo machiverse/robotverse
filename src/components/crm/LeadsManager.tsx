@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -26,6 +26,7 @@ import {
   LayoutGrid,
   List,
   Users,
+  FileQuestion,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import LeadDetailView from "./LeadDetailView";
 import LeadsPipeline from "./LeadsPipeline";
+import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
 
 interface LeadsManagerProps {
   sellerId: string;
@@ -90,11 +92,13 @@ const StatsHeader = ({
   leadsCount,
   unlockedCount,
   creditsBalance,
+  quoteRequestsCount,
 }: {
   viewsCount: number;
   leadsCount: number;
   unlockedCount: number;
   creditsBalance: number;
+  quoteRequestsCount: number;
 }) => {
   return (
     <div className="mb-6 space-y-4">
@@ -107,7 +111,7 @@ const StatsHeader = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Card className="border-muted/60 bg-card p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900/30">
@@ -128,6 +132,18 @@ const StatsHeader = ({
             <div>
               <p className="text-xs font-medium uppercase text-muted-foreground">Total leads</p>
               <p className="text-2xl font-semibold">{leadsCount}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border-muted/60 bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-indigo-100 p-2 dark:bg-indigo-900/30">
+              <FileQuestion className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase text-muted-foreground">Quote requests</p>
+              <p className="text-2xl font-semibold">{quoteRequestsCount}</p>
             </div>
           </div>
         </Card>
@@ -171,6 +187,7 @@ const LeadsToolbar = ({
   setStatusFilter,
   leadsCount,
   viewsCount,
+  quoteRequestsCount,
   viewMode,
   setViewMode,
 }: {
@@ -182,6 +199,7 @@ const LeadsToolbar = ({
   setStatusFilter: (v: string) => void;
   leadsCount: number;
   viewsCount: number;
+  quoteRequestsCount: number;
   viewMode: "list" | "pipeline";
   setViewMode: (v: "list" | "pipeline") => void;
 }) => (
@@ -196,6 +214,10 @@ const LeadsToolbar = ({
           <TabsTrigger value="leads" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Leads ({leadsCount})
+          </TabsTrigger>
+          <TabsTrigger value="quotes" className="flex items-center gap-2">
+            <FileQuestion className="h-4 w-4" />
+            Quote Requests ({quoteRequestsCount})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -212,33 +234,35 @@ const LeadsToolbar = ({
       )}
     </div>
 
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="relative flex-1">
-        <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-        <Input
-          placeholder="Search by name, company, or product…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+    {viewTab !== "quotes" && (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+          <Input
+            placeholder="Search by name, company, or product…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        {viewTab === "leads" && viewMode === "list" && (
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-44">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                <SelectItem key={value} value={value}>
+                  {config.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
-      {viewTab === "leads" && viewMode === "list" && (
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-44">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            {Object.entries(STATUS_CONFIG).map(([value, config]) => (
-              <SelectItem key={value} value={value}>
-                {config.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-    </div>
+    )}
   </div>
 );
 
@@ -678,6 +702,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewTab, setViewTab] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "pipeline">("list");
+  const [quoteRequestsCount, setQuoteRequestsCount] = useState(0);
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
@@ -699,6 +724,24 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [quotationTaxRate, setQuotationTaxRate] = useState(18);
   const [quotationValidity, setQuotationValidity] = useState(7);
   const [sendingQuotation, setSendingQuotation] = useState(false);
+
+  // Fetch quote requests count
+  useEffect(() => {
+    const fetchQuoteRequestsCount = async () => {
+      if (!user?.id) return;
+      try {
+        const { count } = await supabase
+          .from('user_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+          .eq('request_type', 'get_quote');
+        setQuoteRequestsCount(count || 0);
+      } catch (error) {
+        console.error('Error fetching quote requests count:', error);
+      }
+    };
+    fetchQuoteRequestsCount();
+  }, [user?.id]);
 
   const filteredLeads = leads.filter((lead) => {
     const q = searchQuery.toLowerCase();
@@ -946,6 +989,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         leadsCount={leads.length}
         unlockedCount={leads.filter((l) => l.is_unlocked).length}
         creditsBalance={creditsBalance}
+        quoteRequestsCount={quoteRequestsCount}
       />
 
       <Card className="border-muted/70 bg-background">
@@ -959,6 +1003,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
             setStatusFilter={setStatusFilter}
             leadsCount={leads.length}
             viewsCount={aggregatedViews.length}
+            quoteRequestsCount={quoteRequestsCount}
             viewMode={viewMode}
             setViewMode={setViewMode}
           />
@@ -966,7 +1011,9 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         <Separator />
 
         <div className="p-4 pt-3">
-          {viewTab === "all" ? (
+          {viewTab === "quotes" ? (
+            <QuoteRequestsSection sellerId={user?.id || ''} itemType={itemType} />
+          ) : viewTab === "all" ? (
             filteredViews.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-sm">
                 <Eye className="mb-3 h-10 w-10 text-muted-foreground" />
@@ -988,7 +1035,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                 ))}
               </div>
             )
-          ) : viewMode === "pipeline" ? (
+          ) : viewTab === "leads" && viewMode === "pipeline" ? (
             <LeadsPipeline
               leads={filteredLeads}
               onStatusChange={updateLeadStatus}
