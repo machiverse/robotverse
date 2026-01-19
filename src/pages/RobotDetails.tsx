@@ -616,14 +616,14 @@ const RobotDetails = () => {
         <div className="container mx-auto px-4 py-8 lg:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Image Section */}
-            <div className="space-y-4 h-full">
-              <div className="relative aspect-square lg:aspect-[4/3] lg:h-[500px] rounded-xl overflow-hidden bg-muted border shadow-lg">
+            <div className="space-y-4">
+              <div className="relative aspect-square lg:aspect-[4/3] lg:h-[420px] rounded-xl overflow-hidden bg-muted/50 border shadow-lg flex items-center justify-center">
                 {robot?.images && robot.images.length > 0 ? (
                   <>
                     <ResponsiveImage
                       src={robot.images[currentImageIndex]}
                       alt={`${robot.name} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-full object-cover cursor-pointer transition-transform duration-500 hover:scale-105"
+                      className="max-w-full max-h-full object-contain cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
                       onClick={() => setShowFullscreen(true)}
                     />
                     <Button
@@ -689,12 +689,12 @@ const RobotDetails = () => {
             <div className="space-y-6">
               {/* Brand and Status */}
               <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {robot.brand && (
-                    <p className="text-sm font-medium text-primary uppercase tracking-wide">{robot.brand}</p>
+                    <p className="text-xs font-medium text-primary uppercase tracking-wider">{robot.brand}</p>
                   )}
-                  <h1 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight">{robot.name}</h1>
-                  <p className="text-lg text-muted-foreground">{robot.model}</p>
+                  <h1 className="text-xl lg:text-2xl font-semibold text-foreground leading-snug">{robot.name}</h1>
+                  <p className="text-sm text-muted-foreground">{robot.model}</p>
                 </div>
                 <Badge
                   variant="outline"
@@ -709,8 +709,8 @@ const RobotDetails = () => {
               </div>
 
               {/* Price */}
-              <div className="space-y-2">
-                <p className="text-4xl lg:text-5xl font-bold text-primary">
+              <div className="space-y-1">
+                <p className="text-2xl lg:text-3xl font-bold text-primary">
                   {robot.price ? formatPrice(robot.price, robot.currency) : "Price on Request"}
                 </p>
                 {outsideIndia && importDuty && (
