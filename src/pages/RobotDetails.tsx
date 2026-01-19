@@ -671,14 +671,14 @@ const RobotDetails = () => {
                   {robot.images.map((image, index) => (
                     <button
                       key={index}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all bg-muted/50 flex items-center justify-center ${
                         index === currentImageIndex
                           ? "border-primary ring-2 ring-primary/20"
                           : "border-border hover:border-primary/50 opacity-70 hover:opacity-100"
                       }`}
                       onClick={() => setCurrentImageIndex(index)}
                     >
-                      <img src={image} alt={`${robot.name} ${index + 1}`} className="w-full h-full object-cover" />
+                      <img src={image} alt={`${robot.name} ${index + 1}`} className="max-w-full max-h-full object-contain" />
                     </button>
                   ))}
                 </div>
