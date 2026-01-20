@@ -59,10 +59,12 @@ interface QuoteRequestsSectionProps {
   itemType?: string; // Optional filter by item type
 }
 
+const QUOTE_UNLOCK_CREDITS = 10; // Quote requests cost 10 credits to unlock
+
 const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isContactUnlocked, unlockContact, userCredits, creditsRequired, loading: creditsLoading } = useContactUnlock();
+  const { isContactUnlocked, userCredits, loading: creditsLoading, refreshCredits } = useContactUnlock();
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,17 +226,89 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
   };
 
   const handleUnlockBuyerContact = async (request: QuoteRequest) => {
+    if (!userCredits || userCredits.current_balance < QUOTE_UNLOCK_CREDITS) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient Credits",
+        description: `You need ${QUOTE_UNLOCK_CREDITS} credits to unlock buyer details. Current balance: ${userCredits?.current_balance || 0}`
+      });
+      return;
+    }
+
     setUnlockingId(request.id);
-    const success = await unlockContact(
-      request.user_id, // buyer's ID
-      request.item_id || request.id, // item ID or request ID as fallback
-      request.item_type as any,
-      request.item_name || 'Quote Request'
-    );
-    setUnlockingId(null);
-    if (success) {
-      // Refresh the request data
-      fetchQuoteRequests();
+    try {
+      const session = await supabase.auth.getSession();
+      const newBalance = userCredits.current_balance - QUOTE_UNLOCK_CREDITS;
+
+      // Insert unlock record
+      const unlockResponse = await fetch(
+        `https://cmahwgetrqczytnijbuk.supabase.co/rest/v1/unlocked_contacts`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtYWh3Z2V0cnFjenl0bmlqYnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNTUxNDYsImV4cCI6MjA2ODkzMTE0Nn0.zmC3yOwfW5qw7mRzTt01AiP-xTWUEz7I5zn0Aoieerg',
+            'Authorization': `Bearer ${session.data.session?.access_token}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            user_id: sellerId,
+            seller_id: request.user_id,
+            item_id: request.item_id || request.id,
+            item_type: 'quote_request',
+            credits_used: QUOTE_UNLOCK_CREDITS
+          })
+        }
+      );
+
+      if (!unlockResponse.ok) {
+        throw new Error('Failed to unlock contact');
+      }
+
+      // Record transaction
+      const { error: txError } = await supabase
+        .from('credit_transactions')
+        .insert({
+          seller_id: sellerId,
+          transaction_type: 'quote_unlock',
+          credits_amount: -QUOTE_UNLOCK_CREDITS,
+          balance_before: userCredits.current_balance,
+          balance_after: newBalance,
+          description: `Unlocked quote request from ${request.user_name} for ${request.item_name || 'Quote Request'}`,
+          reference_id: request.id,
+          reference_type: 'quote_request'
+        });
+
+      if (txError) throw txError;
+
+      // Update credits
+      const { error: updateError } = await supabase
+        .from('seller_credits')
+        .update({
+          current_balance: newBalance,
+          total_spent: userCredits.total_spent + QUOTE_UNLOCK_CREDITS,
+          updated_at: new Date().toISOString()
+        })
+        .eq('seller_id', sellerId);
+
+      if (updateError) throw updateError;
+
+      await refreshCredits();
+      await fetchQuoteRequests();
+
+      toast({
+        title: "Buyer Details Unlocked",
+        description: `You spent ${QUOTE_UNLOCK_CREDITS} credits to unlock buyer information`
+      });
+    } catch (error) {
+      console.error('Error unlocking buyer contact:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to unlock buyer details"
+      });
+    } finally {
+      setUnlockingId(null);
     }
   };
 
@@ -434,7 +508,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                           size="sm"
                           onClick={() => handleUnlockBuyerContact(request)}
                           disabled={unlockingId === request.id || creditsLoading}
-                          title={`Unlock for ${creditsRequired} credits`}
+                          title={`Unlock for ${QUOTE_UNLOCK_CREDITS} credits`}
                           className="bg-primary hover:bg-primary/90"
                         >
                           {unlockingId === request.id ? (
@@ -442,7 +516,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                           ) : (
                             <>
                               <Unlock className="w-4 h-4 mr-1" />
-                              {creditsRequired}
+                              {QUOTE_UNLOCK_CREDITS}
                             </>
                           )}
                         </Button>
@@ -587,7 +661,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                           ) : (
                             <>
                               <Unlock className="w-4 h-4 mr-2" />
-                              Unlock Contact ({creditsRequired} credits)
+                              Unlock Contact ({QUOTE_UNLOCK_CREDITS} credits)
                             </>
                           )}
                         </Button>
