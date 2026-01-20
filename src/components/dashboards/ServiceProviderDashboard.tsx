@@ -286,7 +286,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <LeadsManager sellerId={user?.id || ''} itemType="services" />
+                  <LeadsManager sellerId={user?.id || ''} itemType="service" />
                 </CardContent>
               </Card>
             </TabsContent>

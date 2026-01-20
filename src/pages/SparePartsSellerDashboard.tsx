@@ -446,7 +446,7 @@ const SparePartsSellerDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <LeadsManager sellerId={user?.id || ''} itemType="spare_parts" />
+              <LeadsManager sellerId={user?.id || ''} itemType="spare_part" />
             </CardContent>
           </Card>
         </TabsContent>
