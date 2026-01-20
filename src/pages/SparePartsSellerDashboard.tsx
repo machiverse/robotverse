@@ -428,32 +428,11 @@ const SparePartsSellerDashboard = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
-          <TabsTrigger value="quotes" className="flex items-center gap-1">
-            <FileText className="w-4 h-4" />
-            Quote Requests
-          </TabsTrigger>
           <TabsTrigger value="leads">Lead Manager</TabsTrigger>
           <TabsTrigger value="views">View Statistics</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="quotes" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Quote Requests
-              </CardTitle>
-              <CardDescription>
-                View and manage quote requests from potential buyers
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <QuoteRequestsSection sellerId={user?.id || ''} itemType="spare_part" />
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="leads" className="mt-6">
           <Card>
