@@ -661,7 +661,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <LeadsManager sellerId={user?.id || ''} itemType="robots" />
+              <LeadsManager sellerId={user?.id || ''} itemType="robot" />
             </CardContent>
           </Card>
         </TabsContent>
