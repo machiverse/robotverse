@@ -275,85 +275,81 @@ interface AggregatedViewRowProps {
   convertingId: string | null;
 }
 
+// AggregatedViewRow - ANONYMOUS product view display (NO user details shown)
 const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }: AggregatedViewRowProps) => {
   const isCurrentlyConverting = convertingId === view.id;
+
+  // Determine item type label
+  const getItemTypeLabel = (type: string | null) => {
+    if (!type) return 'Product';
+    const labels: Record<string, string> = {
+      'robot': 'Robot',
+      'robots': 'Robot',
+      'spare_part': 'Spare Part',
+      'spare_parts': 'Spare Part',
+      'service': 'Service',
+      'services': 'Service',
+      'logistics': 'Logistics',
+      'finance': 'Finance',
+    };
+    return labels[type] || type;
+  };
 
   return (
     <Card className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
       <div className="flex items-stretch">
-        {/* Left accent bar */}
-        <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : "bg-blue-500"}`} />
+        {/* Left accent bar - blue for product views */}
+        <div className="w-1 shrink-0 bg-blue-500" />
         
         <div className="flex flex-1 items-center justify-between gap-4 p-4">
-          {/* Avatar & Info */}
+          {/* Left side - Product info ONLY (NO user details) */}
           <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${view.is_anonymous ? "bg-muted" : "bg-blue-100 dark:bg-blue-900/40"}`}>
-              {view.is_anonymous ? (
-                <Users className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <span className="text-lg font-semibold text-blue-600">
-                  {(view.user_name || "U").charAt(0).toUpperCase()}
-                </span>
-              )}
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
+              <Package className="h-5 w-5 text-blue-600" />
             </div>
             
             <div className="min-w-0 flex-1 space-y-1">
+              {/* Product Name */}
               <div className="flex items-center gap-2">
                 <h4 className="truncate font-semibold text-foreground">
-                  {view.is_anonymous ? "Anonymous Users" : view.user_name || "Unknown user"}
+                  {view.item_name || "Unknown Product"}
                 </h4>
                 {view.view_count > 1 && (
                   <Badge variant="secondary" className="shrink-0 text-xs font-medium">
-                    {view.view_count} views
+                    {view.view_count} Views
+                  </Badge>
+                )}
+                {view.view_count === 1 && (
+                  <Badge variant="secondary" className="shrink-0 text-xs font-medium">
+                    1 View
                   </Badge>
                 )}
               </div>
               
-              {!view.is_anonymous && view.user_company && (
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {view.user_company}
-                </p>
-              )}
-              
+              {/* Product Type Badge */}
               <div className="flex flex-wrap items-center gap-3 pt-1">
-                <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs">
-                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-medium">{view.item_name || "Unknown product"}</span>
-                </div>
                 {view.item_type && (
                   <Badge variant="outline" className="capitalize text-xs">
-                    {view.item_type}
+                    {getItemTypeLabel(view.item_type)}
+                  </Badge>
+                )}
+                {view.is_anonymous && (
+                  <Badge variant="secondary" className="text-xs">
+                    Anonymous
                   </Badge>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right side - Contact info & Actions */}
+          {/* Right side - Time & Convert button */}
           <div className="flex shrink-0 flex-col items-end gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
               {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
             </div>
             
-            {!view.is_anonymous && (
-              <div className="flex flex-col items-end gap-1.5 text-xs text-muted-foreground">
-                {view.user_mobile && (
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="h-3 w-3" />
-                    {view.user_mobile}
-                  </span>
-                )}
-                {view.user_email && (
-                  <span className="flex items-center gap-1.5">
-                    <Mail className="h-3 w-3" />
-                    {view.user_email}
-                  </span>
-                )}
-              </div>
-            )}
-            
+            {/* Convert to Lead button - only for non-anonymous views */}
             {!view.is_anonymous && (
               <Button
                 size="sm"
@@ -754,12 +750,11 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     return matchesSearch && matchesStatus;
   });
 
+  // Filter aggregated views by product name only (no user info filtering)
   const filteredViews = aggregatedViews.filter((view) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       !q ||
-      view.user_name?.toLowerCase().includes(q) ||
-      view.user_company?.toLowerCase().includes(q) ||
       view.item_name?.toLowerCase().includes(q);
     return matchesSearch;
   });
