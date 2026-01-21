@@ -102,12 +102,92 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       const { data, error } = await query;
 
       if (error) throw error;
-      setViews(data || []);
+      
+      // Enrich views with actual product names from database
+      const enrichedViews = await enrichViewsWithProductNames(data || []);
+      setViews(enrichedViews);
     } catch (error) {
       console.error('Error fetching views:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const enrichViewsWithProductNames = async (viewsData: ProductView[]): Promise<ProductView[]> => {
+    // Get unique item_ids grouped by item_type
+    const robotIds = new Set<string>();
+    const sparePartIds = new Set<string>();
+    const serviceIds = new Set<string>();
+    
+    viewsData.forEach(view => {
+      if (view.item_id) {
+        if (view.item_type === 'robot' || view.item_type === 'robots') {
+          robotIds.add(view.item_id);
+        } else if (view.item_type === 'spare_part' || view.item_type === 'spare_parts') {
+          sparePartIds.add(view.item_id);
+        } else if (view.item_type === 'service' || view.item_type === 'services') {
+          serviceIds.add(view.item_id);
+        }
+      }
+    });
+
+    // Fetch product names in parallel
+    const productNameMap = new Map<string, string>();
+
+    const fetchPromises: Promise<void>[] = [];
+
+    if (robotIds.size > 0) {
+      const robotPromise = (async () => {
+        const { data } = await supabase
+          .from('robots')
+          .select('id, name')
+          .in('id', Array.from(robotIds));
+        (data || []).forEach((robot: any) => {
+          productNameMap.set(robot.id, robot.name);
+        });
+      })();
+      fetchPromises.push(robotPromise);
+    }
+
+    if (sparePartIds.size > 0) {
+      const sparePartPromise = (async () => {
+        const { data } = await supabase
+          .from('spare_parts')
+          .select('id, name')
+          .in('id', Array.from(sparePartIds));
+        (data || []).forEach((part: any) => {
+          productNameMap.set(part.id, part.name);
+        });
+      })();
+      fetchPromises.push(sparePartPromise);
+    }
+
+    if (serviceIds.size > 0) {
+      const servicePromise = (async () => {
+        const { data } = await supabase
+          .from('services')
+          .select('id, name')
+          .in('id', Array.from(serviceIds));
+        (data || []).forEach((service: any) => {
+          productNameMap.set(service.id, service.name);
+        });
+      })();
+      fetchPromises.push(servicePromise);
+    }
+
+    await Promise.all(fetchPromises);
+
+    // Enrich views with product names
+    return viewsData.map(view => {
+      const productName = view.item_id ? productNameMap.get(view.item_id) : null;
+      return {
+        ...view,
+        additional_data: {
+          ...view.additional_data,
+          item_name: productName || view.additional_data?.item_name || view.button_name || 'Unknown Product'
+        }
+      };
+    });
   };
 
   const fetchConvertedLeads = async () => {
