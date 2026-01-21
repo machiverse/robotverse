@@ -4,11 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Eye, 
-  Lock, 
-  Unlock, 
-  Clock, 
-  CheckCircle, 
-  XCircle,
   Activity,
   Loader2,
   Bot,
@@ -17,7 +12,8 @@ import {
   Truck,
   CreditCard,
   UserPlus,
-  Coins
+  Coins,
+  ArrowRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -59,27 +55,29 @@ interface AggregatedView {
 interface ProductViewsSectionProps {
   sellerId: string;
   itemType?: string;
+  onLeadConverted?: () => void;
 }
 
-const UNLOCK_CREDITS = 10;
+const CONVERT_CREDITS = 10;
 
-const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) => {
+const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductViewsSectionProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isContactUnlocked, userCredits, refreshCredits } = useContactUnlock();
+  const { userCredits, refreshCredits } = useContactUnlock();
   const [views, setViews] = useState<ProductView[]>([]);
   const [aggregatedViews, setAggregatedViews] = useState<AggregatedView[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [convertedLeads, setConvertedLeads] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (sellerId) {
       fetchViews();
+      fetchConvertedLeads();
     }
   }, [sellerId, itemType]);
 
   useEffect(() => {
-    // Aggregate views by user + product
     aggregateViews();
   }, [views]);
 
@@ -95,7 +93,6 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
         query = query.eq('item_type', itemType);
       }
 
-      // Include all view and interaction types
       query = query.in('button_type', [
         'view', 'robot_view', 'spare_part_view', 'service_view', 'logistics_view', 'finance_view',
         'details_click', 'specification_view', 'inquiry', 'contact', 
@@ -113,22 +110,41 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
     }
   };
 
+  const fetchConvertedLeads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('crm_leads' as any)
+        .select('buyer_id, item_id')
+        .eq('seller_id', sellerId)
+        .eq('source', 'product_view');
+
+      if (error) throw error;
+      
+      const convertedSet = new Set<string>();
+      ((data as any[]) || []).forEach((lead: any) => {
+        if (lead.buyer_id && lead.item_id) {
+          convertedSet.add(`${lead.buyer_id}_${lead.item_id}`);
+        }
+      });
+      setConvertedLeads(convertedSet);
+    } catch (error) {
+      console.error('Error fetching converted leads:', error);
+    }
+  };
+
   const aggregateViews = () => {
     const aggregationMap = new Map<string, AggregatedView>();
 
     views.forEach((view) => {
-      // Create a unique key based on user_id + item_id
       const key = `${view.user_id || 'anonymous'}_${view.item_id || 'unknown'}`;
       
       if (aggregationMap.has(key)) {
         const existing = aggregationMap.get(key)!;
         existing.view_count += 1;
         existing.interactions.push(view);
-        // Update last_viewed if this view is more recent
         if (new Date(view.created_at) > new Date(existing.last_viewed)) {
           existing.last_viewed = view.created_at;
         }
-        // Update first_viewed if this view is older
         if (new Date(view.created_at) < new Date(existing.first_viewed)) {
           existing.first_viewed = view.created_at;
         }
@@ -151,7 +167,6 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
       }
     });
 
-    // Convert map to array and sort by last_viewed
     const aggregated = Array.from(aggregationMap.values()).sort(
       (a, b) => new Date(b.last_viewed).getTime() - new Date(a.last_viewed).getTime()
     );
@@ -159,17 +174,18 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
     setAggregatedViews(aggregated);
   };
 
-  const isViewUnlocked = (view: AggregatedView): boolean => {
+  const isAlreadyConverted = (view: AggregatedView): boolean => {
     if (!view.user_id || !view.item_id) return false;
-    return isContactUnlocked(view.user_id, view.item_id, 'product_view');
+    return convertedLeads.has(`${view.user_id}_${view.item_id}`);
   };
 
-  const handleUnlockContact = async (view: AggregatedView) => {
-    if (!userCredits || userCredits.current_balance < UNLOCK_CREDITS) {
+  const handleConvertToLead = async (view: AggregatedView) => {
+    // Check credits
+    if (!userCredits || userCredits.current_balance < CONVERT_CREDITS) {
       toast({
         variant: "destructive",
         title: "Insufficient Credits",
-        description: `You need ${UNLOCK_CREDITS} credits to unlock buyer details. Current balance: ${userCredits?.current_balance || 0}`
+        description: `⚠️ Insufficient credits. Please recharge to unlock this lead. Required: ${CONVERT_CREDITS}, Available: ${userCredits?.current_balance || 0}`
       });
       return;
     }
@@ -177,51 +193,63 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
     if (!view.user_id || !view.item_id) {
       toast({
         variant: "destructive",
-        title: "Cannot Unlock",
+        title: "Cannot Convert",
         description: "This view doesn't have complete user information."
       });
       return;
     }
 
-    setUnlockingId(view.key);
+    setConvertingId(view.key);
     try {
-      const newBalance = userCredits.current_balance - UNLOCK_CREDITS;
+      const newBalance = userCredits.current_balance - CONVERT_CREDITS;
 
-      // Insert unlock record
-      const { error: unlockError } = await supabase
-        .from('unlocked_contacts')
+      // Create lead in crm_leads table
+      const { data: leadData, error: leadError } = await supabase
+        .from('crm_leads' as any)
         .insert({
-          user_id: sellerId,
-          seller_id: view.user_id,
+          seller_id: sellerId,
+          buyer_id: view.user_id,
+          buyer_name: view.user_name,
+          buyer_email: view.user_email,
+          buyer_phone: view.user_mobile,
+          buyer_company: view.user_company,
           item_id: view.item_id,
-          item_type: 'product_view',
-          credits_used: UNLOCK_CREDITS
-        });
+          item_type: view.item_type,
+          item_name: view.item_name,
+          source: 'product_view',
+          status: 'new',
+          is_unlocked: true,
+          priority: 'medium'
+        })
+        .select('id')
+        .single();
 
-      if (unlockError) {
-        if (unlockError.code === '23505') {
+      if (leadError) {
+        if (leadError.code === '23505') {
           toast({
-            title: "Already Unlocked",
-            description: "You have already unlocked this contact."
+            title: "Already Converted",
+            description: "This view has already been converted to a lead."
           });
-          await refreshCredits();
+          await fetchConvertedLeads();
           return;
         }
-        throw unlockError;
+        throw leadError;
       }
 
-      // Record transaction
+      const leadId = (leadData as any)?.id;
+
+      // Record credit transaction
       const { error: txError } = await supabase
         .from('credit_transactions')
         .insert({
           seller_id: sellerId,
-          transaction_type: 'product_view_unlock',
-          credits_amount: -UNLOCK_CREDITS,
+          transaction_type: 'lead_conversion',
+          credits_amount: -CONVERT_CREDITS,
           balance_before: userCredits.current_balance,
           balance_after: newBalance,
-          description: `Unlocked product view from ${view.user_name || 'Unknown User'} for ${view.item_name}`,
-          reference_id: view.item_id,
-          reference_type: 'product_view'
+          description: `Converted product view to lead for ${view.item_name}`,
+          reference_id: leadId,
+          reference_type: 'lead'
         });
 
       if (txError) throw txError;
@@ -231,28 +259,35 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
         .from('seller_credits')
         .update({
           current_balance: newBalance,
-          total_spent: userCredits.total_spent + UNLOCK_CREDITS,
+          total_spent: userCredits.total_spent + CONVERT_CREDITS,
           updated_at: new Date().toISOString()
         })
         .eq('seller_id', sellerId);
 
       if (updateError) throw updateError;
 
+      // Add to converted set
+      setConvertedLeads(prev => new Set(prev).add(`${view.user_id}_${view.item_id}`));
+
       await refreshCredits();
 
       toast({
-        title: "Contact Unlocked!",
-        description: `You spent ${UNLOCK_CREDITS} credits to view buyer details.`
+        title: "Lead Created!",
+        description: `Successfully converted to lead. ${CONVERT_CREDITS} credits spent. View details in Leads tab.`
       });
+
+      // Notify parent to refresh leads
+      onLeadConverted?.();
+
     } catch (error) {
-      console.error('Error unlocking contact:', error);
+      console.error('Error converting to lead:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to unlock contact. Please try again."
+        description: "Failed to convert to lead. Please try again."
       });
     } finally {
-      setUnlockingId(null);
+      setConvertingId(null);
     }
   };
 
@@ -316,6 +351,9 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
     );
   }
 
+  // Filter out already converted views
+  const unconvertedViews = aggregatedViews.filter(view => !isAlreadyConverted(view));
+
   return (
     <Card className="border-0 shadow-lg bg-card overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
@@ -327,7 +365,7 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
             <div>
               <CardTitle className="text-lg">Product Views</CardTitle>
               <CardDescription className="mt-1">
-                Users who viewed your products • Unlock to see their details
+                Anonymous product views • Convert to lead to see user details
               </CardDescription>
             </div>
           </div>
@@ -337,27 +375,28 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
               {userCredits?.current_balance || 0} Credits
             </Badge>
             <Badge variant="secondary" className="text-sm">
-              {aggregatedViews.length} viewers
+              {unconvertedViews.length} views
             </Badge>
           </div>
         </div>
       </CardHeader>
       
       <CardContent className="p-0">
-        {aggregatedViews.length === 0 ? (
+        {unconvertedViews.length === 0 ? (
           <div className="text-center py-16 px-4">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <Eye className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">No views yet</h3>
+            <h3 className="font-semibold text-foreground mb-2">No product views</h3>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              When users view your products, their activity will appear here.
+              {aggregatedViews.length > 0 
+                ? "All views have been converted to leads. Check the Leads tab."
+                : "When users view your products, their activity will appear here."}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {aggregatedViews.map((view) => {
-              const isUnlocked = isViewUnlocked(view);
+            {unconvertedViews.map((view) => {
               const isNew = new Date(view.last_viewed) > new Date(Date.now() - 24 * 60 * 60 * 1000);
 
               return (
@@ -365,87 +404,51 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
                   key={view.key} 
                   className="p-4 hover:bg-muted/30 transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    {/* Left side - Product info only (user details hidden until unlocked) */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          {getItemTypeIcon(view.item_type)}
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Left side - Product info ONLY (no user details) */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {getItemTypeIcon(view.item_type)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-foreground truncate">
+                            {view.item_name}
+                          </p>
+                          {getItemTypeBadge(view.item_type)}
+                          {isNew && (
+                            <Badge className="bg-primary/10 text-primary border-0 text-xs">New</Badge>
+                          )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-foreground">
-                              {view.item_name}
-                            </p>
-                            {getItemTypeBadge(view.item_type)}
-                            {isNew && (
-                              <Badge className="bg-primary/10 text-primary border-0 text-xs">New</Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>{view.view_count} {view.view_count === 1 ? 'view' : 'views'} by 1 user</span>
-                            <span>•</span>
-                            <span title={format(new Date(view.last_viewed), 'PPpp')}>
-                              {formatDistanceToNow(new Date(view.last_viewed), { addSuffix: true })}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="font-medium text-foreground">{view.view_count} {view.view_count === 1 ? 'View' : 'Views'}</span>
+                          <span>•</span>
+                          <span title={format(new Date(view.last_viewed), 'PPpp')}>
+                            {formatDistanceToNow(new Date(view.last_viewed), { addSuffix: true })}
+                          </span>
                         </div>
                       </div>
-                      
-                      {/* User details - ONLY show if unlocked */}
-                      {isUnlocked && (
-                        <div className="ml-13 mt-3 p-3 rounded-lg bg-accent/50 border border-border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Unlock className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-medium text-foreground">Buyer Details</span>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Name: </span>
-                              <span className="font-medium">{view.user_name || 'Not provided'}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Company: </span>
-                              <span className="font-medium">{view.user_company || 'Not provided'}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Email: </span>
-                              <span className="font-medium">{view.user_email || 'Not provided'}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Mobile: </span>
-                              <span className="font-medium">{view.user_mobile || 'Not provided'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Right side - Unlock button */}
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      {isUnlocked ? (
-                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Unlocked
-                        </Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleUnlockContact(view)}
-                          disabled={unlockingId === view.key || !view.user_id}
-                          className="flex items-center gap-2"
-                        >
-                          {unlockingId === view.key ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Unlock className="w-4 h-4" />
-                              Unlock ({UNLOCK_CREDITS} credits)
-                            </>
-                          )}
-                        </Button>
-                      )}
+                    {/* Right side - Convert to Lead button */}
+                    <div className="flex-shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => handleConvertToLead(view)}
+                        disabled={convertingId === view.key || !view.user_id}
+                        className="flex items-center gap-2"
+                      >
+                        {convertingId === view.key ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4" />
+                            Convert to Lead
+                            <span className="text-xs opacity-75">({CONVERT_CREDITS} cr)</span>
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
