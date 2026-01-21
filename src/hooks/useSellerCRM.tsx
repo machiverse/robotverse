@@ -67,15 +67,18 @@ export interface ProductView {
   additional_data: Record<string, unknown> | null;
 }
 
+// AggregatedProductView - User details are INTERNAL only, never displayed in Product Views
 export interface AggregatedProductView {
   key: string; // unique key for user+product combination
   id: string; // ID of the first/latest view
-  user_id: string | null;
-  user_name: string | null;
-  user_email: string | null;
-  user_mobile: string | null;
-  user_company: string | null;
-  user_location: string | null;
+  // INTERNAL fields - stored for conversion only, NEVER displayed
+  _internal_user_id: string | null;
+  _internal_user_name: string | null;
+  _internal_user_email: string | null;
+  _internal_user_mobile: string | null;
+  _internal_user_company: string | null;
+  _internal_user_location: string | null;
+  // Display fields - only these should be shown in UI
   seller_id: string | null;
   item_id: string | null;
   item_type: string | null;
@@ -351,12 +354,14 @@ export const useSellerCRM = (itemType?: string) => {
             aggregationMap.set(anonKey, {
               key: anonKey,
               id: view.id,
-              user_id: null,
-              user_name: 'Anonymous Users',
-              user_email: null,
-              user_mobile: null,
-              user_company: null,
-              user_location: null,
+              // Internal fields - for conversion only
+              _internal_user_id: null,
+              _internal_user_name: 'Anonymous Users',
+              _internal_user_email: null,
+              _internal_user_mobile: null,
+              _internal_user_company: null,
+              _internal_user_location: null,
+              // Display fields
               seller_id: view.seller_id,
               item_id: view.item_id,
               item_type: view.item_type,
@@ -386,12 +391,14 @@ export const useSellerCRM = (itemType?: string) => {
             aggregationMap.set(key, {
               key,
               id: view.id,
-              user_id: view.user_id,
-              user_name: view.user_name,
-              user_email: view.user_email,
-              user_mobile: view.user_mobile,
-              user_company: view.user_company,
-              user_location: view.user_location,
+              // Internal fields - for conversion only
+              _internal_user_id: view.user_id,
+              _internal_user_name: view.user_name,
+              _internal_user_email: view.user_email,
+              _internal_user_mobile: view.user_mobile,
+              _internal_user_company: view.user_company,
+              _internal_user_location: view.user_location,
+              // Display fields
               seller_id: view.seller_id,
               item_id: view.item_id,
               item_type: view.item_type,
