@@ -309,10 +309,10 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
             </div>
             
             <div className="min-w-0 flex-1 space-y-1">
-              {/* Product Name */}
+              {/* Item Name */}
               <div className="flex items-center gap-2">
                 <h4 className="truncate font-semibold text-foreground">
-                  {view.item_name || "Unknown Product"}
+                  {view.item_name || "Unknown Item"}
                 </h4>
                 {view.view_count > 1 && (
                   <Badge variant="secondary" className="shrink-0 text-xs font-medium">
