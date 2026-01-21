@@ -366,9 +366,9 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
                   className="p-4 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    {/* Left side - Product info */}
+                    {/* Left side - Product info only (user details hidden until unlocked) */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                           {getItemTypeIcon(view.item_type)}
                         </div>
@@ -384,21 +384,21 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                             <Eye className="w-3.5 h-3.5" />
-                            <span>{view.view_count} {view.view_count === 1 ? 'view' : 'views'}</span>
+                            <span>{view.view_count} {view.view_count === 1 ? 'view' : 'views'} by 1 user</span>
                             <span>•</span>
                             <span title={format(new Date(view.last_viewed), 'PPpp')}>
-                              Last: {formatDistanceToNow(new Date(view.last_viewed), { addSuffix: true })}
+                              {formatDistanceToNow(new Date(view.last_viewed), { addSuffix: true })}
                             </span>
                           </div>
                         </div>
                       </div>
                       
-                      {/* User details - only show if unlocked */}
-                      {isUnlocked ? (
-                        <div className="ml-13 mt-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                      {/* User details - ONLY show if unlocked */}
+                      {isUnlocked && (
+                        <div className="ml-13 mt-3 p-3 rounded-lg bg-accent/50 border border-border">
                           <div className="flex items-center gap-2 mb-2">
-                            <Unlock className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-700 dark:text-green-300">Contact Unlocked</span>
+                            <Unlock className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-foreground">Buyer Details</span>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                             <div>
@@ -417,15 +417,6 @@ const ProductViewsSection = ({ sellerId, itemType }: ProductViewsSectionProps) =
                               <span className="text-muted-foreground">Mobile: </span>
                               <span className="font-medium">{view.user_mobile || 'Not provided'}</span>
                             </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="ml-13 mt-3 p-3 rounded-lg bg-muted/50 border border-border">
-                          <div className="flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">
-                              User details hidden • Unlock to view contact information
-                            </span>
                           </div>
                         </div>
                       )}
