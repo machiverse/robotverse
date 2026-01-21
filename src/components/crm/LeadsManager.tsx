@@ -211,13 +211,13 @@ const LeadsToolbar = ({
             <Eye className="h-4 w-4" />
             Product views ({viewsCount})
           </TabsTrigger>
-          <TabsTrigger value="leads" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Leads ({leadsCount})
-          </TabsTrigger>
           <TabsTrigger value="quotes" className="flex items-center gap-2">
             <FileQuestion className="h-4 w-4" />
             Quote Requests ({quoteRequestsCount})
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Leads ({leadsCount})
           </TabsTrigger>
         </TabsList>
       </Tabs>

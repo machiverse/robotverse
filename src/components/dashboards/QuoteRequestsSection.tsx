@@ -313,10 +313,11 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
   };
 
   const isBuyerContactUnlocked = (request: QuoteRequest) => {
+    // Check using quote_request as item_type since that's what we store when unlocking
     return isContactUnlocked(
       request.user_id,
       request.item_id || request.id,
-      request.item_type as any
+      'quote_request'
     );
   };
 
