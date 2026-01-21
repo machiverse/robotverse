@@ -36,20 +36,22 @@ interface ProductView {
   additional_data: any;
 }
 
+// AggregatedView - User details stored internally for conversion only, NEVER displayed
 interface AggregatedView {
   key: string;
-  user_id: string | null;
-  user_name: string | null;
-  user_email: string | null;
-  user_company: string | null;
-  user_mobile: string | null;
+  // Internal use only - for conversion to lead
+  _internal_user_id: string | null;
+  _internal_user_name: string | null;
+  _internal_user_email: string | null;
+  _internal_user_company: string | null;
+  _internal_user_mobile: string | null;
+  // Display fields
   item_id: string | null;
   item_type: string | null;
   item_name: string;
   view_count: number;
   last_viewed: string;
   first_viewed: string;
-  interactions: ProductView[];
 }
 
 interface ProductViewsSectionProps {
@@ -221,7 +223,6 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       if (aggregationMap.has(key)) {
         const existing = aggregationMap.get(key)!;
         existing.view_count += 1;
-        existing.interactions.push(view);
         if (new Date(view.created_at) > new Date(existing.last_viewed)) {
           existing.last_viewed = view.created_at;
         }
@@ -231,18 +232,19 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       } else {
         aggregationMap.set(key, {
           key,
-          user_id: view.user_id,
-          user_name: view.user_name,
-          user_email: view.user_email,
-          user_company: view.user_company,
-          user_mobile: view.user_mobile,
+          // Internal fields - stored for conversion only, NEVER displayed
+          _internal_user_id: view.user_id,
+          _internal_user_name: view.user_name,
+          _internal_user_email: view.user_email,
+          _internal_user_company: view.user_company,
+          _internal_user_mobile: view.user_mobile,
+          // Display fields
           item_id: view.item_id,
           item_type: view.item_type,
           item_name: view.additional_data?.item_name || 'Unknown Product',
           view_count: 1,
           last_viewed: view.created_at,
           first_viewed: view.created_at,
-          interactions: [view]
         });
       }
     });
@@ -255,12 +257,12 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
   };
 
   const isAlreadyConverted = (view: AggregatedView): boolean => {
-    if (!view.user_id || !view.item_id) return false;
-    return convertedLeads.has(`${view.user_id}_${view.item_id}`);
+    if (!view._internal_user_id || !view.item_id) return false;
+    return convertedLeads.has(`${view._internal_user_id}_${view.item_id}`);
   };
 
   const handleConvertToLead = async (view: AggregatedView) => {
-    // Check credits
+    // Check credits ONLY when convert button is clicked
     if (!userCredits || userCredits.current_balance < CONVERT_CREDITS) {
       toast({
         variant: "destructive",
@@ -270,7 +272,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       return;
     }
 
-    if (!view.user_id || !view.item_id) {
+    if (!view._internal_user_id || !view.item_id) {
       toast({
         variant: "destructive",
         title: "Cannot Convert",
@@ -283,16 +285,16 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
     try {
       const newBalance = userCredits.current_balance - CONVERT_CREDITS;
 
-      // Create lead in crm_leads table
+      // Create lead in crm_leads table using internal user details
       const { data: leadData, error: leadError } = await supabase
         .from('crm_leads' as any)
         .insert({
           seller_id: sellerId,
-          buyer_id: view.user_id,
-          buyer_name: view.user_name,
-          buyer_email: view.user_email,
-          buyer_phone: view.user_mobile,
-          buyer_company: view.user_company,
+          buyer_id: view._internal_user_id,
+          buyer_name: view._internal_user_name,
+          buyer_email: view._internal_user_email,
+          buyer_phone: view._internal_user_mobile,
+          buyer_company: view._internal_user_company,
           item_id: view.item_id,
           item_type: view.item_type,
           item_name: view.item_name,
@@ -347,7 +349,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       if (updateError) throw updateError;
 
       // Add to converted set
-      setConvertedLeads(prev => new Set(prev).add(`${view.user_id}_${view.item_id}`));
+      setConvertedLeads(prev => new Set(prev).add(`${view._internal_user_id}_${view.item_id}`));
 
       await refreshCredits();
 
@@ -516,7 +518,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
                       <Button
                         size="sm"
                         onClick={() => handleConvertToLead(view)}
-                        disabled={convertingId === view.key || !view.user_id}
+                        disabled={convertingId === view.key || !view._internal_user_id}
                         className="flex items-center gap-2"
                       >
                         {convertingId === view.key ? (
