@@ -57,7 +57,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-
 import LeadDetailView from "./LeadDetailView";
 import LeadsPipeline from "./LeadsPipeline";
 import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
@@ -68,39 +67,15 @@ interface LeadsManagerProps {
 }
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
-  new: {
-    label: "New",
-    color: "text-blue-700",
-    bg: "bg-blue-100 dark:bg-blue-900/30",
-  },
-  contacted: {
-    label: "Contacted",
-    color: "text-yellow-700",
-    bg: "bg-yellow-100 dark:bg-yellow-900/30",
-  },
-  quoted: {
-    label: "Quoted",
-    color: "text-purple-700",
-    bg: "bg-purple-100 dark:bg-purple-900/30",
-  },
-  negotiating: {
-    label: "Negotiating",
-    color: "text-orange-700",
-    bg: "bg-orange-100 dark:bg-orange-900/30",
-  },
-  closed_won: {
-    label: "Won",
-    color: "text-green-700",
-    bg: "bg-green-100 dark:bg-green-900/30",
-  },
-  closed_lost: {
-    label: "Lost",
-    color: "text-red-700",
-    bg: "bg-red-100 dark:bg-red-900/30",
-  },
+  new: { label: "New", color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-900/30" },
+  contacted: { label: "Contacted", color: "text-yellow-700", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
+  quoted: { label: "Quoted", color: "text-purple-700", bg: "bg-purple-100 dark:bg-purple-900/30" },
+  negotiating: { label: "Negotiating", color: "text-orange-700", bg: "bg-orange-100 dark:bg-orange-900/30" },
+  closed_won: { label: "Won", color: "text-green-700", bg: "bg-green-100 dark:bg-green-900/30" },
+  closed_lost: { label: "Lost", color: "text-red-700", bg: "bg-red-100 dark:bg-red-900/30" },
 };
 
-const PRIORITY_CONFIG: Record<NonNullable<Lead["priority"]>, { label: string; color: string }> = {
+const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string }> = {
   low: { label: "Low", color: "text-gray-600" },
   medium: { label: "Medium", color: "text-blue-600" },
   high: { label: "High", color: "text-orange-600" },
@@ -108,7 +83,7 @@ const PRIORITY_CONFIG: Record<NonNullable<Lead["priority"]>, { label: string; co
 };
 
 const getMaskedValue = (value: string | null, isUnlocked: boolean): string => {
-  if (isUnlocked) return value || "";
+  if (isUnlocked && value) return value;
   return "XXXXX";
 };
 
@@ -209,20 +184,6 @@ const StatsHeader = ({
 
 /* ---------- TOOLBAR (search + filters) ---------- */
 
-interface LeadsToolbarProps {
-  viewTab: string;
-  setViewTab: (v: string) => void;
-  searchQuery: string;
-  setSearchQuery: (v: string) => void;
-  statusFilter: string;
-  setStatusFilter: (v: string) => void;
-  leadsCount: number;
-  viewsCount: number;
-  quoteRequestsCount: number;
-  viewMode: "list" | "pipeline";
-  setViewMode: (v: "list" | "pipeline") => void;
-}
-
 const LeadsToolbar = ({
   viewTab,
   setViewTab,
@@ -235,33 +196,40 @@ const LeadsToolbar = ({
   quoteRequestsCount,
   viewMode,
   setViewMode,
-}: LeadsToolbarProps) => {
-  return (
-    <div className="mb-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <Tabs value={viewTab} onValueChange={setViewTab} className="flex-1">
-          <TabsList className="mb-2">
-            <TabsTrigger value="all" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Product views ({viewsCount})
-            </TabsTrigger>
-            <TabsTrigger value="quotes" className="flex items-center gap-2">
-              <FileQuestion className="h-4 w-4" />
-              Quote Requests ({quoteRequestsCount})
-            </TabsTrigger>
-            <TabsTrigger value="leads" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Leads ({leadsCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+}: {
+  viewTab: string;
+  setViewTab: (v: string) => void;
+  searchQuery: string;
+  setSearchQuery: (v: string) => void;
+  statusFilter: string;
+  setStatusFilter: (v: string) => void;
+  leadsCount: number;
+  viewsCount: number;
+  quoteRequestsCount: number;
+  viewMode: "list" | "pipeline";
+  setViewMode: (v: "list" | "pipeline") => void;
+}) => (
+  <div className="mb-4 space-y-3">
+    <div className="flex items-center justify-between">
+      <Tabs value={viewTab} onValueChange={setViewTab} className="flex-1">
+        <TabsList className="mb-2">
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Product views ({viewsCount})
+          </TabsTrigger>
+          <TabsTrigger value="quotes" className="flex items-center gap-2">
+            <FileQuestion className="h-4 w-4" />
+            Quote Requests ({quoteRequestsCount})
+          </TabsTrigger>
+          <TabsTrigger value="leads" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Leads ({leadsCount})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-        <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(v) => v && setViewMode(v as "list" | "pipeline")}
-          className="hidden items-center gap-1 sm:flex"
-        >
+      {viewTab === "leads" && (
+        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "list" | "pipeline")}>
           <ToggleGroupItem value="list" aria-label="List view" className="h-8 px-3">
             <List className="h-4 w-4" />
           </ToggleGroupItem>
@@ -269,41 +237,40 @@ const LeadsToolbar = ({
             <LayoutGrid className="h-4 w-4" />
           </ToggleGroupItem>
         </ToggleGroup>
-      </div>
-
-      {viewTab !== "quotes" && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-            <Input
-              placeholder="Search by name, company, or product"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          {viewTab === "leads" && viewMode === "list" && (
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-44">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All status</SelectItem>
-                {Object.entries(STATUS_CONFIG).map(([value, config]) => (
-                  <SelectItem key={value} value={value}>
-                    {config.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
       )}
     </div>
-  );
-};
+
+    {viewTab !== "quotes" && (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+          <Input
+            placeholder="Search by name, company, or product…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        {viewTab === "leads" && viewMode === "list" && (
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-44">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                <SelectItem key={value} value={value}>
+                  {config.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+    )}
+  </div>
+);
 
 /* ---------- ROW COMPONENTS ---------- */
 
@@ -314,34 +281,71 @@ interface AggregatedViewRowProps {
   convertingId: string | null;
 }
 
-/** OLD behaviour: show user info + company + contact + convert button */
+// AggregatedViewRow - ANONYMOUS product view display (NO user details shown)
 const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }: AggregatedViewRowProps) => {
   const isCurrentlyConverting = convertingId === view.id;
+
+  // Determine item type label
+  const getItemTypeLabel = (type: string | null) => {
+    if (!type) return "Product";
+    const labels: Record<string, string> = {
+      robot: "Robot",
+      robots: "Robot",
+      spare_part: "Spare Part",
+      spare_parts: "Spare Part",
+      service: "Service",
+      services: "Service",
+      logistics: "Logistics",
+      finance: "Finance",
+    };
+    return labels[type] || type;
+  };
 
   return (
     <Card className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
       <div className="flex items-stretch">
         {/* Left accent bar */}
-        <div className="w-1 shrink-0 bg-blue-500" />
+        <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : "bg-blue-500"}`} />
 
         <div className="flex flex-1 items-center justify-between gap-4 p-4">
-          {/* Avatar + Info */}
+          {/* Avatar & Info */}
           <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
-              <Package className="h-5 w-5 text-blue-600" />
+            <div
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${view.is_anonymous ? "bg-muted" : "bg-blue-100 dark:bg-blue-900/40"}`}
+            >
+              {view.is_anonymous ? (
+                <Users className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <span className="text-lg font-semibold text-blue-600">
+                  {(view.user_name || "U").charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
 
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <h4 className="truncate font-semibold text-foreground">
-                  {view.item_name || "Unknown Item"}
+                  {view.is_anonymous ? "Anonymous Users" : view.user_name || "Unknown user"}
                 </h4>
-                <Badge variant="secondary" className="shrink-0 text-xs font-medium">
-                  {view.view_count} {view.view_count === 1 ? "View" : "Views"}
-                </Badge>
+                {view.view_count > 1 && (
+                  <Badge variant="secondary" className="shrink-0 text-xs font-medium">
+                    {view.view_count} views
+                  </Badge>
+                )}
               </div>
 
+              {!view.is_anonymous && view.user_company && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {view.user_company}
+                </p>
+              )}
+
               <div className="flex flex-wrap items-center gap-3 pt-1">
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs">
+                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="font-medium">{view.item_name || "Unknown product"}</span>
+                </div>
                 {view.item_type && (
                   <Badge variant="outline" className="capitalize text-xs">
                     {view.item_type}
@@ -351,16 +355,29 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
             </div>
           </div>
 
-          {/* Right side - Time + Actions */}
+          {/* Right side - Contact info & Actions */}
           <div className="flex shrink-0 flex-col items-end gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
-              <div>
-                {formatDistanceToNow(new Date(view.created_at), {
-                  addSuffix: true,
-                })}
-              </div>
+              {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
             </div>
+
+            {!view.is_anonymous && (
+              <div className="flex flex-col items-end gap-1.5 text-xs text-muted-foreground">
+                {view.user_mobile && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="h-3 w-3" />
+                    {view.user_mobile}
+                  </span>
+                )}
+                {view.user_email && (
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="h-3 w-3" />
+                    {view.user_email}
+                  </span>
+                )}
+              </div>
+            )}
 
             {!view.is_anonymous && (
               <Button
@@ -393,14 +410,13 @@ interface LeadRowProps {
   onWhatsApp: (lead: Lead) => void;
   onEmail: (lead: Lead) => void;
   onCall: (lead: Lead) => void;
-  onStatusChange: (leadId: string, status: Lead["status"]) => Promise<boolean>;
+  onStatusChange: (leadId: string, status: Lead["status"]) => Promise<boolean | void>;
   onOpenDetails: (lead: Lead) => void;
   onOpenFollowUp: (lead: Lead) => void;
   onOpenQuotation: (lead: Lead) => void;
-  onRowClick: (lead: Lead) => void;
+  onRowClick: (lead: Lead) => void; // NEW
 }
 
-/* NEWer LeadRow kept from your new file (unchanged structure) */
 const LeadRow = ({
   lead,
   creditsBalance,
@@ -417,13 +433,12 @@ const LeadRow = ({
   onRowClick,
 }: LeadRowProps) => {
   const statusConfig = STATUS_CONFIG[lead.status];
-  const priorityConfig = PRIORITY_CONFIG[lead.priority || ("medium" as NonNullable<Lead["priority"]>)];
-
-  const creditsNeeded = getCreditsNeeded(lead.item_type || "");
+  const priorityConfig = PRIORITY_CONFIG[lead.priority];
+  const creditsNeeded = getCreditsNeeded(lead.item_type);
   const canUnlock = creditsBalance >= creditsNeeded;
 
   const getStatusAccentColor = (status: Lead["status"]) => {
-    const colors: Record<Lead["status"], string> = {
+    const colors = {
       new: "bg-blue-500",
       contacted: "bg-yellow-500",
       quoted: "bg-purple-500",
@@ -444,17 +459,15 @@ const LeadRow = ({
         <div className={`w-1 shrink-0 ${getStatusAccentColor(lead.status)}`} />
 
         <div className="flex-1 p-4">
-          {/* Top row: Avatar, Name, Company, Status badges */}
-          <div className="mb-3 flex items-start justify-between gap-4">
+          {/* Top row: Avatar, Name, Company + Status badges */}
+          <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex items-center gap-3">
               <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                  lead.is_unlocked ? "bg-green-100 dark:bg-green-900/40" : "bg-muted"
-                }`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${lead.is_unlocked ? "bg-green-100 dark:bg-green-900/40" : "bg-muted"}`}
               >
                 {lead.is_unlocked ? (
                   <span className="text-base font-semibold text-green-600">
-                    {lead.buyer_name?.charAt(0).toUpperCase() || "L"}
+                    {(lead.buyer_name || "L").charAt(0).toUpperCase()}
                   </span>
                 ) : (
                   <Lock className="h-5 w-5 text-muted-foreground" />
@@ -466,7 +479,6 @@ const LeadRow = ({
                   <h4 className="font-semibold text-foreground truncate">
                     {getMaskedValue(lead.buyer_name, lead.is_unlocked)}
                   </h4>
-
                   {!lead.is_unlocked && (
                     <Badge variant="secondary" className="text-xs shrink-0">
                       <Lock className="h-3 w-3 mr-1" />
@@ -474,7 +486,6 @@ const LeadRow = ({
                     </Badge>
                   )}
                 </div>
-
                 <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Building2 className="h-3.5 w-3.5" />
                   {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
@@ -486,12 +497,9 @@ const LeadRow = ({
               <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0 font-medium`}>
                 {statusConfig.label}
               </Badge>
-
-              {lead.priority && (
-                <Badge variant="outline" className={`${priorityConfig.color} font-medium`}>
-                  {priorityConfig.label}
-                </Badge>
-              )}
+              <Badge variant="outline" className={`${priorityConfig.color} font-medium`}>
+                {priorityConfig.label}
+              </Badge>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -513,7 +521,6 @@ const LeadRow = ({
                     <Calendar className="mr-2 h-4 w-4" />
                     Schedule follow-up
                   </DropdownMenuItem>
-
                   {lead.is_unlocked && (
                     <Fragment>
                       <DropdownMenuItem onClick={() => onStartChat(lead)}>
@@ -526,7 +533,6 @@ const LeadRow = ({
                       </DropdownMenuItem>
                     </Fragment>
                   )}
-
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Change status</div>
                   {Object.entries(STATUS_CONFIG).map(([status, config]) => (
@@ -545,7 +551,7 @@ const LeadRow = ({
           </div>
 
           {/* Contact info row */}
-          <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-4 mb-3 text-sm">
             {lead.is_unlocked ? (
               <Fragment>
                 {lead.buyer_phone && (
@@ -585,23 +591,22 @@ const LeadRow = ({
               <div className="flex gap-4 text-muted-foreground/60">
                 <span className="inline-flex items-center gap-1.5">
                   <Phone className="h-3.5 w-3.5" />
-                  <span>Phone hidden</span>
+                  ••••••••••
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5" />
-                  <span>Email hidden</span>
+                  ••••••••••
                 </span>
               </div>
             )}
           </div>
 
           {/* Product info row */}
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1 text-sm">
               <Package className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="font-medium">{lead.item_name || "Unknown product"}</span>
             </div>
-
             {lead.product_brand && (
               <Badge variant="outline" className="text-xs">
                 {lead.product_brand}
@@ -612,45 +617,37 @@ const LeadRow = ({
                 {lead.product_model}
               </Badge>
             )}
-            {lead.item_type && (
-              <Badge variant="outline" className="capitalize text-xs">
-                {lead.item_type}
-              </Badge>
-            )}
-            {typeof lead.product_price === "number" && (
-              <span className="font-semibold text-green-600 text-sm">{lead.product_price.toLocaleString()}</span>
+            <Badge variant="outline" className="capitalize text-xs">
+              {lead.item_type}
+            </Badge>
+            {lead.product_price && (
+              <span className="font-semibold text-green-600 text-sm">₹{lead.product_price.toLocaleString()}</span>
             )}
           </div>
 
           {/* Bottom row: Time info + Actions */}
-          <div className="flex items-center justify-between gap-4 border-t border-border/50 pt-2 text-xs">
-            <div className="flex items-center gap-4 text-muted-foreground">
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                <span>
-                  {formatDistanceToNow(new Date(lead.created_at), {
-                    addSuffix: true,
-                  })}
-                </span>
+                {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
               </span>
-
               {lead.viewed_at && (
                 <span className="inline-flex items-center gap-1.5">
                   <Eye className="h-3.5 w-3.5" />
-                  <span>Viewed {format(new Date(lead.viewed_at), "MMM d")}</span>
+                  Viewed {format(new Date(lead.viewed_at), "MMM d")}
                 </span>
               )}
-
               {lead.next_follow_up && (
                 <span className="inline-flex items-center gap-1.5 text-orange-600 font-medium">
                   <Calendar className="h-3.5 w-3.5" />
-                  <span>Follow-up {format(new Date(lead.next_follow_up), "MMM d")}</span>
+                  Follow-up: {format(new Date(lead.next_follow_up), "MMM d")}
                 </span>
               )}
             </div>
 
             <div className="flex items-center gap-2">
-              {!lead.is_unlocked && (
+              {!lead.is_unlocked ? (
                 <Button
                   size="sm"
                   variant={canUnlock ? "default" : "outline"}
@@ -668,10 +665,8 @@ const LeadRow = ({
                   )}
                   Unlock ({creditsNeeded} credits)
                 </Button>
-              )}
-
-              {lead.is_unlocked && (
-                <Fragment>
+              ) : (
+                <div className="flex items-center gap-1.5">
                   <Button
                     size="sm"
                     onClick={(e) => {
@@ -683,7 +678,6 @@ const LeadRow = ({
                     <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
                     Chat
                   </Button>
-
                   <Button
                     size="sm"
                     variant="outline"
@@ -696,7 +690,6 @@ const LeadRow = ({
                     <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                     WhatsApp
                   </Button>
-
                   <Button
                     size="sm"
                     variant="outline"
@@ -709,7 +702,6 @@ const LeadRow = ({
                     <Mail className="mr-1.5 h-3.5 w-3.5" />
                     Email
                   </Button>
-
                   <Button
                     size="sm"
                     variant="outline"
@@ -722,7 +714,7 @@ const LeadRow = ({
                     <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
                     Quote
                   </Button>
-                </Fragment>
+                </div>
               )}
             </div>
           </div>
@@ -762,6 +754,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
+
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [showQuotationModal, setShowQuotationModal] = useState(false);
 
@@ -773,16 +766,14 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [leadActivities, setLeadActivities] = useState<LeadActivity[]>([]);
   const [convertingId, setConvertingId] = useState<string | null>(null);
 
-  const [quotationItems, setQuotationItems] = useState<{ name: string; quantity: number; unit_price: number }[]>([
-    { name: "", quantity: 1, unit_price: 0 },
-  ]);
+  const [quotationItems, setQuotationItems] = useState([{ name: "", quantity: 1, unit_price: 0 }]);
   const [quotationNotes, setQuotationNotes] = useState("");
   const [quotationDiscount, setQuotationDiscount] = useState(0);
   const [quotationTaxRate, setQuotationTaxRate] = useState(18);
   const [quotationValidity, setQuotationValidity] = useState(7);
   const [sendingQuotation, setSendingQuotation] = useState(false);
 
-  /* Fetch quote requests count */
+  // Fetch quote requests count
   useEffect(() => {
     const fetchQuoteRequestsCount = async () => {
       if (!user?.id) return;
@@ -790,46 +781,37 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         const { count } = await supabase
           .from("user_requests")
           .select("*", { count: "exact", head: true })
-          .eq("seller_id", user?.id)
+          .eq("seller_id", user.id)
           .eq("request_type", "get_quote");
         setQuoteRequestsCount(count || 0);
       } catch (error) {
-        console.error("Error fetching quote requests count", error);
+        console.error("Error fetching quote requests count:", error);
       }
     };
     fetchQuoteRequestsCount();
   }, [user?.id]);
 
-  /* Leads filter (unchanged from new code) */
   const filteredLeads = leads.filter((lead) => {
     const q = searchQuery.toLowerCase();
-
     const matchesSearch =
       !q ||
       lead.buyer_name?.toLowerCase().includes(q) ||
       lead.buyer_company?.toLowerCase().includes(q) ||
       lead.item_name?.toLowerCase().includes(q);
-
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
-
     return matchesSearch && matchesStatus;
   });
 
-  /* Product views filter: item-based search only */
+  // Filter aggregated views by product name only (no user info filtering)
   const filteredViews = aggregatedViews.filter((view) => {
     const q = searchQuery.toLowerCase();
-
-    const matchesSearch =
-      !q ||
-      view.item_name?.toLowerCase().includes(q) ||
-      view.item_type?.toLowerCase().includes(q);
-
+    const matchesSearch = !q || view.item_name?.toLowerCase().includes(q);
     return matchesSearch;
   });
 
   const handleUnlock = async (lead: Lead) => {
     setUnlocking(lead.id);
-    await unlockBuyerInfo(lead.id, lead.item_type || "");
+    await unlockBuyerInfo(lead.id, lead.item_type);
     setUnlocking(null);
   };
 
@@ -847,17 +829,13 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   const handleScheduleFollowUp = async () => {
     if (!selectedLead || !followUpDate) return;
-
     await scheduleFollowUp(selectedLead.id, followUpDate);
-
     if (followUpNote) {
       await addActivity(selectedLead.id, "follow_up", "Follow-up Scheduled", followUpNote, followUpDate);
     }
-
     setShowFollowUpModal(false);
     setFollowUpDate("");
     setFollowUpNote("");
-
     toast({
       title: "Follow-up scheduled",
       description: `Follow-up set for ${format(new Date(followUpDate), "PPP")}`,
@@ -875,7 +853,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
       toast({
         variant: "destructive",
         title: "Cannot start chat",
-        description: "Buyer information must be unlocked first.",
+        description: "Buyer information must be unlocked first",
       });
       return;
     }
@@ -908,41 +886,35 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         if (error) throw error;
 
         await addActivity(lead.id, "chat", "Chat Started", `Started chat with ${lead.buyer_name}`);
-
         navigate(`/chat?session=${newSession.id}`);
       }
     } catch (error) {
-      console.error("Error starting chat", error);
+      console.error("Error starting chat:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to start chat.",
+        description: "Failed to start chat",
       });
     }
   };
 
   const handleWhatsApp = (lead: Lead) => {
     if (!lead.is_unlocked || !lead.buyer_phone) return;
-
     const phone = lead.buyer_phone.replace(/\D/g, "");
     const message = encodeURIComponent(
       `Hi ${lead.buyer_name}, I'm reaching out regarding your inquiry about ${lead.item_name}. How can I help you?`,
     );
     window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
-
     addActivity(lead.id, "call", "WhatsApp Sent", "Contacted via WhatsApp");
   };
 
   const handleEmail = (lead: Lead) => {
     if (!lead.is_unlocked || !lead.buyer_email) return;
-
-    const subject = encodeURIComponent(`Regarding your inquiry ${lead.item_name}`);
+    const subject = encodeURIComponent(`Regarding your inquiry: ${lead.item_name}`);
     const body = encodeURIComponent(
-      `Dear ${lead.buyer_name},\n\nThank you for your interest in ${lead.item_name}. Please let me know how I can assist you further.\n\nBest regards,`,
+      `Dear ${lead.buyer_name},\n\nThank you for your interest in ${lead.item_name}.\n\nPlease let me know how I can assist you further.\n\nBest regards`,
     );
-
     window.open(`mailto:${lead.buyer_email}?subject=${subject}&body=${body}`, "_blank");
-
     addActivity(lead.id, "email", "Email Sent", `Sent email to ${lead.buyer_email}`);
   };
 
@@ -956,7 +928,6 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     if (!selectedLead || quotationItems.length === 0) return;
 
     setSendingQuotation(true);
-
     try {
       const items = quotationItems.map((item) => ({
         name: item.name || selectedLead.item_name || "Product",
@@ -968,7 +939,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
       const subtotal = items.reduce((sum, item) => sum + item.total, 0);
       const discountAmount = quotationDiscount;
       const afterDiscount = subtotal - discountAmount;
-      const taxAmount = (afterDiscount * quotationTaxRate) / 100;
+      const taxAmount = afterDiscount * (quotationTaxRate / 100);
       const totalAmount = afterDiscount + taxAmount;
 
       const validityDate = new Date();
@@ -987,19 +958,18 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         discount_amount: discountAmount,
         total_amount: totalAmount,
         notes: quotationNotes
-          ? `${quotationNotes}\n\nValid until ${format(validityDate, "PPP")}`
-          : `Valid until ${format(validityDate, "PPP")}`,
+          ? `${quotationNotes}\n\nValid until: ${format(validityDate, "PPP")}`
+          : `Valid until: ${format(validityDate, "PPP")}`,
         status: "sent",
         due_date: validityDate.toISOString(),
       });
 
       await updateLeadStatus(selectedLead.id, "quoted");
-
       await addActivity(
         selectedLead.id,
         "invoice_sent",
         "Quotation Sent",
-        `Quotation of ₹${totalAmount.toLocaleString()} sent. Valid for ${quotationValidity} days.`,
+        `Quotation of ₹${totalAmount.toLocaleString()} sent (Valid for ${quotationValidity} days)`,
       );
 
       setShowQuotationModal(false);
@@ -1011,14 +981,14 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
       toast({
         title: "Quotation sent",
-        description: "Quotation has been created and sent successfully.",
+        description: "Quotation has been created and sent successfully",
       });
     } catch (error) {
-      console.error("Error sending quotation", error);
+      console.error("Error sending quotation:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send quotation.",
+        description: "Failed to send quotation",
       });
     } finally {
       setSendingQuotation(false);
@@ -1039,11 +1009,11 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   const openQuotation = (lead: Lead) => {
     setSelectedLead(lead);
-
+    // Auto-fill with product details
     const productName = lead.item_name || "";
     const productBrand = lead.product_brand ? `${lead.product_brand} ` : "";
-    const productModel = lead.product_model ? ` ${lead.product_model}` : "";
-    const fullProductName = `${productBrand}${productName}${productModel}`.trim();
+    const productModel = lead.product_model ? `(${lead.product_model})` : "";
+    const fullProductName = `${productBrand}${productName} ${productModel}`.trim();
 
     setQuotationItems([
       {
@@ -1056,7 +1026,6 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     setQuotationTaxRate(18);
     setQuotationValidity(7);
     setQuotationNotes("");
-
     setShowQuotationModal(true);
   };
 
@@ -1140,7 +1109,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                   onOpenDetails={openLeadDetails}
                   onOpenFollowUp={openFollowUp}
                   onOpenQuotation={openQuotation}
-                  onRowClick={openLeadDetails}
+                  onRowClick={openLeadDetails} // CLICK ROW => open details
                 />
               ))}
             </div>
@@ -1248,51 +1217,41 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
               Send quotation
             </DialogTitle>
           </DialogHeader>
-
           {selectedLead && (
             <div className="space-y-4 py-2">
-              {/* Buyer + Product summary */}
+              {/* Buyer & Product Info */}
               <div className="rounded-md bg-muted p-3 text-xs space-y-1">
                 <p>
-                  <span className="font-medium">To: </span>
-                  {selectedLead.buyer_name}
+                  <span className="font-medium">To:</span> {selectedLead.buyer_name}
                 </p>
                 <p>
-                  <span className="font-medium">Company: </span>
-                  {selectedLead.buyer_company || "Not provided"}
+                  <span className="font-medium">Company:</span> {selectedLead.buyer_company || "Not provided"}
                 </p>
                 <p>
-                  <span className="font-medium">Email: </span>
-                  {selectedLead.buyer_email || "Not available"}
+                  <span className="font-medium">Email:</span> {selectedLead.buyer_email || "Not available"}
                 </p>
-
                 <Separator className="my-2" />
-
                 <p>
-                  <span className="font-medium">Product: </span>
-                  {selectedLead.item_name}
+                  <span className="font-medium">Product:</span> {selectedLead.item_name}
                 </p>
                 {selectedLead.product_brand && (
                   <p>
-                    <span className="font-medium">Brand: </span>
-                    {selectedLead.product_brand}
+                    <span className="font-medium">Brand:</span> {selectedLead.product_brand}
                   </p>
                 )}
                 {selectedLead.product_model && (
                   <p>
-                    <span className="font-medium">Model: </span>
-                    {selectedLead.product_model}
+                    <span className="font-medium">Model:</span> {selectedLead.product_model}
                   </p>
                 )}
-                {typeof selectedLead.product_price === "number" && (
+                {selectedLead.product_price && (
                   <p>
-                    <span className="font-medium">Listed Price: </span>
-                    {selectedLead.product_price.toLocaleString()}
+                    <span className="font-medium">Listed Price:</span> ₹{selectedLead.product_price.toLocaleString()}
                   </p>
                 )}
                 {selectedLead.viewed_at && (
                   <p>
-                    <span className="font-medium">Viewed on: </span>
+                    <span className="font-medium">Viewed on:</span>{" "}
                     {format(new Date(selectedLead.viewed_at), "PPP 'at' p")}
                   </p>
                 )}
@@ -1326,7 +1285,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                     />
                     <Input
                       type="number"
-                      placeholder="Unit Price"
+                      placeholder="Unit Price (₹)"
                       value={item.unit_price}
                       onChange={(e) => {
                         const next = [...quotationItems];
@@ -1336,7 +1295,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                       className="col-span-3"
                     />
                     <div className="col-span-2 text-right text-xs font-medium">
-                      {(item.quantity * item.unit_price).toLocaleString()}
+                      ₹{(item.quantity * item.unit_price).toLocaleString()}
                     </div>
                   </div>
                 ))}
@@ -1353,7 +1312,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
               {/* Discount, Tax, Validity */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Discount</label>
+                  <label className="text-xs font-medium text-muted-foreground">Discount (₹)</label>
                   <Input
                     type="number"
                     value={quotationDiscount}
@@ -1362,7 +1321,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Tax Rate</label>
+                  <label className="text-xs font-medium text-muted-foreground">Tax Rate (%)</label>
                   <Input
                     type="number"
                     value={quotationTaxRate}
@@ -1387,7 +1346,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                 {(() => {
                   const subtotal = quotationItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
                   const afterDiscount = subtotal - quotationDiscount;
-                  const taxAmount = (afterDiscount * quotationTaxRate) / 100;
+                  const taxAmount = afterDiscount * (quotationTaxRate / 100);
                   const total = afterDiscount + taxAmount;
                   const validityDate = new Date();
                   validityDate.setDate(validityDate.getDate() + quotationValidity);
@@ -1396,24 +1355,24 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                     <>
                       <div className="flex items-center justify-between">
                         <span>Subtotal</span>
-                        <span>{subtotal.toLocaleString()}</span>
+                        <span>₹{subtotal.toLocaleString()}</span>
                       </div>
                       {quotationDiscount > 0 && (
                         <div className="flex items-center justify-between text-green-600">
                           <span>Discount</span>
-                          <span>- {quotationDiscount.toLocaleString()}</span>
+                          <span>- ₹{quotationDiscount.toLocaleString()}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
                         <span>Tax ({quotationTaxRate}%)</span>
-                        <span>{taxAmount.toLocaleString()}</span>
+                        <span>₹{taxAmount.toLocaleString()}</span>
                       </div>
                       <Separator className="my-2" />
                       <div className="flex items-center justify-between font-medium text-sm">
                         <span>Total</span>
-                        <span>{total.toLocaleString()}</span>
+                        <span>₹{total.toLocaleString()}</span>
                       </div>
-                      <div className="mt-2 flex items-center justify-between text-muted-foreground">
+                      <div className="flex items-center justify-between text-muted-foreground mt-2">
                         <span>Valid until</span>
                         <span>{format(validityDate, "PPP")}</span>
                       </div>
@@ -1427,13 +1386,12 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
                 <Textarea
                   value={quotationNotes}
                   onChange={(e) => setQuotationNotes(e.target.value)}
-                  placeholder="Additional terms or clarifications for this quotation"
+                  placeholder="Additional terms or clarifications for this quotation…"
                   rows={3}
                 />
               </div>
             </div>
           )}
-
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setShowQuotationModal(false)}>
               Cancel
