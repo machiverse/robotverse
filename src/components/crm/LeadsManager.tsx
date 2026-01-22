@@ -282,20 +282,25 @@ interface AggregatedViewRowProps {
   convertingId: string | null;
 }
 
-// AggregatedViewRow - ANONYMOUS product view display (NO user details shown)
+// AggregatedViewRow - Product view display with user name/anonymous label
 const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }: AggregatedViewRowProps) => {
   const isCurrentlyConverting = convertingId === view.id;
+
+  // Get display name - show _internal_user_name or "Anonymous Visitor"
+  const displayName = view._internal_user_name || "Anonymous Visitor";
+  const isAnonymous = !view._internal_user_name;
+  const initial = displayName.charAt(0).toUpperCase();
 
   // Determine item type label
   const getItemTypeLabel = (type: string | null) => {
     if (!type) return "Product";
     const labels: Record<string, string> = {
-      robot: "Robot",
-      robots: "Robot",
-      spare_part: "Spare Part",
-      spare_parts: "Spare Part",
-      service: "Service",
-      services: "Service",
+      robot: "Robots",
+      robots: "Robots",
+      spare_part: "Spare Parts",
+      spare_parts: "Spare Parts",
+      service: "Services",
+      services: "Services",
       logistics: "Logistics",
       finance: "Finance",
     };
@@ -306,29 +311,37 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
     <Card className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
       <div className="flex items-stretch">
         {/* Left accent bar */}
-        <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : "bg-blue-500"}`} />
+        <div className={`w-1 shrink-0 ${isAnonymous ? "bg-muted-foreground/30" : "bg-primary"}`} />
 
         <div className="flex flex-1 items-center justify-between gap-4 p-4">
-          {/* Avatar & Info - Item-centric, no user details shown */}
+          {/* Avatar & User/Product Info */}
           <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Package className="h-5 w-5 text-primary" />
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${isAnonymous ? "bg-muted" : "bg-primary/10"}`}>
+              <span className={`text-sm font-semibold ${isAnonymous ? "text-muted-foreground" : "text-primary"}`}>
+                {initial}
+              </span>
             </div>
 
-            <div className="min-w-0 flex-1 space-y-1">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              {/* User name row */}
               <div className="flex items-center gap-2">
-                <h4 className="truncate font-semibold text-foreground">
-                  {view.item_name || "Unknown Product"}
+                <h4 className="font-semibold text-foreground">
+                  {displayName}
                 </h4>
-                <Badge variant="secondary" className="shrink-0 text-xs font-medium">
-                  {view.view_count} {view.view_count === 1 ? 'View' : 'Views'}
-                </Badge>
+                {view.view_count > 1 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {view.view_count} views
+                  </Badge>
+                )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              {/* Product info row */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Package className="h-3.5 w-3.5" />
+                <span className="truncate">{view.item_name || "Unknown Product"}</span>
                 {view.item_type && (
-                  <Badge variant="outline" className="capitalize text-xs">
-                    {view.item_type.replace('_', ' ')}
+                  <Badge variant="outline" className="text-xs">
+                    {getItemTypeLabel(view.item_type)}
                   </Badge>
                 )}
               </div>
@@ -336,7 +349,7 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
           </div>
 
           {/* Right side - Time & Convert Action */}
-          <div className="flex shrink-0 flex-col items-end gap-3">
+          <div className="flex shrink-0 items-center gap-4">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
               {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
@@ -346,7 +359,7 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
               size="sm"
               onClick={() => onConvertToLead(view.id)}
               disabled={isConverting || isCurrentlyConverting}
-              className="h-9 px-4 font-medium shadow-sm"
+              className="h-9 px-4"
             >
               {isCurrentlyConverting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -354,7 +367,6 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
                 <UserPlus className="mr-2 h-4 w-4" />
               )}
               Convert to Lead
-              <span className="ml-1 text-xs opacity-75">(10 cr)</span>
             </Button>
           </div>
         </div>
