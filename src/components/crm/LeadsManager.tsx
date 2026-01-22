@@ -17,6 +17,7 @@ import {
   Eye,
   Send,
   User,
+  UserPlus,
   Package,
   MapPin,
   Clock,
@@ -308,92 +309,53 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
         <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : "bg-blue-500"}`} />
 
         <div className="flex flex-1 items-center justify-between gap-4 p-4">
-          {/* Avatar & Info */}
+          {/* Avatar & Info - Item-centric, no user details shown */}
           <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${view.is_anonymous ? "bg-muted" : "bg-blue-100 dark:bg-blue-900/40"}`}
-            >
-              {view.is_anonymous ? (
-                <Users className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <span className="text-lg font-semibold text-blue-600">
-                  {(view.user_name || "U").charAt(0).toUpperCase()}
-                </span>
-              )}
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Package className="h-5 w-5 text-primary" />
             </div>
 
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <h4 className="truncate font-semibold text-foreground">
-                  {view.is_anonymous ? "Anonymous Users" : view.user_name || "Unknown user"}
+                  {view.item_name || "Unknown Product"}
                 </h4>
-                {view.view_count > 1 && (
-                  <Badge variant="secondary" className="shrink-0 text-xs font-medium">
-                    {view.view_count} views
-                  </Badge>
-                )}
+                <Badge variant="secondary" className="shrink-0 text-xs font-medium">
+                  {view.view_count} {view.view_count === 1 ? 'View' : 'Views'}
+                </Badge>
               </div>
 
-              {!view.is_anonymous && view.user_company && (
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {view.user_company}
-                </p>
-              )}
-
               <div className="flex flex-wrap items-center gap-3 pt-1">
-                <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs">
-                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-medium">{view.item_name || "Unknown product"}</span>
-                </div>
                 {view.item_type && (
                   <Badge variant="outline" className="capitalize text-xs">
-                    {view.item_type}
+                    {view.item_type.replace('_', ' ')}
                   </Badge>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right side - Contact info & Actions */}
+          {/* Right side - Time & Convert Action */}
           <div className="flex shrink-0 flex-col items-end gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
               {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
             </div>
 
-            {!view.is_anonymous && (
-              <div className="flex flex-col items-end gap-1.5 text-xs text-muted-foreground">
-                {view.user_mobile && (
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="h-3 w-3" />
-                    {view.user_mobile}
-                  </span>
-                )}
-                {view.user_email && (
-                  <span className="flex items-center gap-1.5">
-                    <Mail className="h-3 w-3" />
-                    {view.user_email}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {!view.is_anonymous && (
-              <Button
-                size="sm"
-                onClick={() => onConvertToLead(view.id)}
-                disabled={isConverting || isCurrentlyConverting}
-                className="h-9 px-4 font-medium shadow-sm"
-              >
-                {isCurrentlyConverting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <User className="mr-2 h-4 w-4" />
-                )}
-                Convert to Lead
-              </Button>
-            )}
+            <Button
+              size="sm"
+              onClick={() => onConvertToLead(view.id)}
+              disabled={isConverting || isCurrentlyConverting}
+              className="h-9 px-4 font-medium shadow-sm"
+            >
+              {isCurrentlyConverting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="mr-2 h-4 w-4" />
+              )}
+              Convert to Lead
+              <span className="ml-1 text-xs opacity-75">(10 cr)</span>
+            </Button>
           </div>
         </div>
       </div>
