@@ -58,9 +58,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
-import { LeadDetailView } from "./LeadDetailView";
-import { LeadsPipeline } from "./LeadsPipeline";
-import { QuoteRequestsSection } from "@/components/dashboards/QuoteRequestsSection";
+import LeadDetailView from "./LeadDetailView";
+import LeadsPipeline from "./LeadsPipeline";
+import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
 
 interface LeadsManagerProps {
   sellerId: string;
@@ -328,37 +328,20 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
           {/* Avatar + Info */}
           <div className="flex min-w-0 flex-1 items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
-              {view.is_anonymous ? (
-                <Users className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <span className="text-lg font-semibold text-blue-600">
-                  {view.user_name?.charAt(0).toUpperCase() || "U"}
-                </span>
-              )}
+              <Package className="h-5 w-5 text-blue-600" />
             </div>
 
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <h4 className="truncate font-semibold text-foreground">
-                  {view.is_anonymous ? "Anonymous Users" : view.user_name || "Unknown user"}
+                  {view.item_name || "Unknown Item"}
                 </h4>
                 <Badge variant="secondary" className="shrink-0 text-xs font-medium">
-                  {view.view_count} {view.view_count === 1 ? "view" : "views"}
+                  {view.view_count} {view.view_count === 1 ? "View" : "Views"}
                 </Badge>
               </div>
 
-              {!view.is_anonymous && (
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {view.user_company || "Company not specified"}
-                </p>
-              )}
-
               <div className="flex flex-wrap items-center gap-3 pt-1">
-                <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 text-xs">
-                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-medium">{view.item_name || "Unknown product"}</span>
-                </div>
                 {view.item_type && (
                   <Badge variant="outline" className="capitalize text-xs">
                     {view.item_type}
@@ -368,7 +351,7 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
             </div>
           </div>
 
-          {/* Right side - Contact info + Actions */}
+          {/* Right side - Time + Actions */}
           <div className="flex shrink-0 flex-col items-end gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
@@ -378,23 +361,6 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
                 })}
               </div>
             </div>
-
-            {!view.is_anonymous && (
-              <div className="flex flex-col items-end gap-1.5 text-xs text-muted-foreground">
-                {view.user_mobile && (
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="h-3 w-3" />
-                    {view.user_mobile}
-                  </span>
-                )}
-                {view.user_email && (
-                  <span className="flex items-center gap-1.5">
-                    <Mail className="h-3 w-3" />
-                    {view.user_email}
-                  </span>
-                )}
-              </div>
-            )}
 
             {!view.is_anonymous && (
               <Button
@@ -769,7 +735,7 @@ const LeadRow = ({
 /* ---------- MAIN COMPONENT ---------- */
 
 const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
-  const user = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -824,7 +790,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         const { count } = await supabase
           .from("user_requests")
           .select("*", { count: "exact", head: true })
-          .eq("seller_id", user.id)
+          .eq("seller_id", user?.id)
           .eq("request_type", "get_quote");
         setQuoteRequestsCount(count || 0);
       } catch (error) {
@@ -849,15 +815,14 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     return matchesSearch && matchesStatus;
   });
 
-  /* Product views filter: OLD behaviour from old file */
+  /* Product views filter: item-based search only */
   const filteredViews = aggregatedViews.filter((view) => {
     const q = searchQuery.toLowerCase();
 
     const matchesSearch =
       !q ||
-      view.user_name?.toLowerCase().includes(q) ||
-      view.user_company?.toLowerCase().includes(q) ||
-      view.item_name?.toLowerCase().includes(q);
+      view.item_name?.toLowerCase().includes(q) ||
+      view.item_type?.toLowerCase().includes(q);
 
     return matchesSearch;
   });
@@ -886,7 +851,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     await scheduleFollowUp(selectedLead.id, followUpDate);
 
     if (followUpNote) {
-      await addActivity(selectedLead.id, "followup", "Follow-up Scheduled", followUpNote, followUpDate);
+      await addActivity(selectedLead.id, "follow_up", "Follow-up Scheduled", followUpNote, followUpDate);
     }
 
     setShowFollowUpModal(false);
