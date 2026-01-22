@@ -309,36 +309,24 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
             </div>
             
             <div className="min-w-0 flex-1 space-y-1">
-              {/* Item Name */}
+              {/* Item Name & View Count */}
               <div className="flex items-center gap-2">
                 <h4 className="truncate font-semibold text-foreground">
                   {view.item_name || "Unknown Item"}
                 </h4>
-                {view.view_count > 1 && (
-                  <Badge variant="secondary" className="shrink-0 text-xs font-medium">
-                    {view.view_count} Views
-                  </Badge>
-                )}
-                {view.view_count === 1 && (
-                  <Badge variant="secondary" className="shrink-0 text-xs font-medium">
-                    1 View
-                  </Badge>
-                )}
+                <Badge variant="secondary" className="shrink-0 text-xs font-medium">
+                  {view.view_count} {view.view_count === 1 ? 'View' : 'Views'}
+                </Badge>
               </div>
               
-              {/* Product Type Badge */}
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                {view.item_type && (
+              {/* Product Type Badge only */}
+              {view.item_type && (
+                <div className="pt-1">
                   <Badge variant="outline" className="capitalize text-xs">
                     {getItemTypeLabel(view.item_type)}
                   </Badge>
-                )}
-                {view.is_anonymous && (
-                  <Badge variant="secondary" className="text-xs">
-                    Anonymous
-                  </Badge>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
