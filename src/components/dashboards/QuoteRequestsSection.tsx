@@ -450,8 +450,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Item</TableHead>
+                <TableHead>Item Name</TableHead>
                 <TableHead>Urgency</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
@@ -464,29 +463,8 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                 return (
                 <TableRow key={request.id} className="hover:bg-muted/50">
                   <TableCell>
-                    <div className="flex flex-col">
-                      {isUnlocked ? (
-                        <>
-                          <span className="font-medium">{request.user_name}</span>
-                          {request.company_name && (
-                            <span className="text-sm text-muted-foreground">{request.company_name}</span>
-                          )}
-                          <span className="text-xs text-muted-foreground">{request.email_address}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="font-medium flex items-center gap-1">
-                            <Lock className="w-3 h-3" />
-                            {getMaskedValue(request.user_name, 'name')}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{getMaskedValue(request.email_address, 'email')}</span>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
                     <div className="flex flex-col gap-1">
-                      <span className="font-medium">{request.item_name || 'N/A'}</span>
+                      <span className="font-medium">{request.item_name || 'Unknown Item'}</span>
                       {getItemTypeBadge(request.item_type)}
                     </div>
                   </TableCell>
