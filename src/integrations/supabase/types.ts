@@ -2359,6 +2359,95 @@ export type Database = {
         }
         Relationships: []
       }
+      razorpay_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          credits: number
+          currency: string
+          id: string
+          pack_id: string | null
+          razorpay_order_id: string
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credits: number
+          currency?: string
+          id?: string
+          pack_id?: string | null
+          razorpay_order_id: string
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          pack_id?: string | null
+          razorpay_order_id?: string
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "razorpay_orders_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      razorpay_webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_id: string
+          event_type: string
+          id: string
+          payload: Json
+          processed: boolean
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          payload: Json
+          processed?: boolean
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed?: boolean
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
       robot_ai_analysis: {
         Row: {
           analysis_data: Json
@@ -3383,6 +3472,7 @@ export type Database = {
           monthly_price: number
           plan_name: string
           plan_type: string
+          razorpay_plan_id: string | null
           updated_at: string
         }
         Insert: {
@@ -3395,6 +3485,7 @@ export type Database = {
           monthly_price?: number
           plan_name: string
           plan_type: string
+          razorpay_plan_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -3407,9 +3498,75 @@ export type Database = {
           monthly_price?: number
           plan_name?: string
           plan_type?: string
+          razorpay_plan_id?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          billing_cycle: string | null
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          end_date: string | null
+          id: string
+          next_billing_date: string | null
+          plan_id: string | null
+          plan_name: string
+          razorpay_customer_id: string | null
+          razorpay_subscription_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          billing_cycle?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          end_date?: string | null
+          id?: string
+          next_billing_date?: string | null
+          plan_id?: string | null
+          plan_name?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          end_date?: string | null
+          id?: string
+          next_billing_date?: string | null
+          plan_id?: string | null
+          plan_name?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_tickets: {
         Row: {
