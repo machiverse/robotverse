@@ -54,6 +54,7 @@ import Sitemap from "./pages/Sitemap";
 import Accessibility from "./pages/Accessibility";
 import Chat from "./pages/Chat";
 import CRM from "./pages/CRM";
+import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
 
 const queryClient = new QueryClient();
@@ -131,6 +132,7 @@ const App = () => (
             <Route path="/accessibility" element={<Accessibility />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/crm" element={<CRM />} />
+              <Route path="/pricing" element={<Pricing />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
