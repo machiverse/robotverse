@@ -68,10 +68,10 @@ export const useSellerCredits = () => {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // No record found, create one
+        // No record found, create one with 100 free credits
         const { data: newCredits, error: insertError } = await supabase
           .from('seller_credits')
-          .insert({ seller_id: user.id, current_balance: 0 })
+          .insert({ seller_id: user.id, current_balance: 100, total_earned: 100 })
           .select()
           .single();
 

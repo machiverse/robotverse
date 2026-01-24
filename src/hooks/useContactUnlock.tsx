@@ -48,10 +48,10 @@ export const useContactUnlock = () => {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // Create credits record if doesn't exist
+        // Create credits record if doesn't exist - give 100 free credits to new users
         const { data: newData, error: insertError } = await supabase
           .from('seller_credits')
-          .insert({ seller_id: user.id, current_balance: 10 }) // Give 10 free credits to new users
+          .insert({ seller_id: user.id, current_balance: 100, total_earned: 100 })
           .select('current_balance, total_earned, total_spent')
           .single();
         
