@@ -306,10 +306,10 @@ export const useSellerCRM = (itemType?: string) => {
       
       const views = data || [];
       
-      // Then fetch item names in background
-      const robotIds = [...new Set(views.filter(v => v.item_type === 'robots' && v.item_id).map(v => v.item_id))];
-      const partIds = [...new Set(views.filter(v => v.item_type === 'spare_parts' && v.item_id).map(v => v.item_id))];
-      const serviceIds = [...new Set(views.filter(v => v.item_type === 'services' && v.item_id).map(v => v.item_id))];
+      // Then fetch item names in background - handle both singular and plural item_type values
+      const robotIds = [...new Set(views.filter(v => (v.item_type === 'robots' || v.item_type === 'robot') && v.item_id).map(v => v.item_id))];
+      const partIds = [...new Set(views.filter(v => (v.item_type === 'spare_parts' || v.item_type === 'spare_part') && v.item_id).map(v => v.item_id))];
+      const serviceIds = [...new Set(views.filter(v => (v.item_type === 'services' || v.item_type === 'service') && v.item_id).map(v => v.item_id))];
       
       // Fetch all names in parallel
       const [robotsData, partsData, servicesData] = await Promise.all([
@@ -323,13 +323,13 @@ export const useSellerCRM = (itemType?: string) => {
       const partNames = new Map((partsData.data || []).map(p => [p.id, p.name]));
       const serviceNames = new Map((servicesData.data || []).map(s => [s.id, s.name]));
       
-      // Update views with names
+      // Update views with names - handle both singular and plural item_type values
       const enrichedViews = views.map(view => {
         let itemName: string | null = null;
         if (view.item_id) {
-          if (view.item_type === 'robots') itemName = robotNames.get(view.item_id) || null;
-          else if (view.item_type === 'spare_parts') itemName = partNames.get(view.item_id) || null;
-          else if (view.item_type === 'services') itemName = serviceNames.get(view.item_id) || null;
+          if (view.item_type === 'robots' || view.item_type === 'robot') itemName = robotNames.get(view.item_id) || null;
+          else if (view.item_type === 'spare_parts' || view.item_type === 'spare_part') itemName = partNames.get(view.item_id) || null;
+          else if (view.item_type === 'services' || view.item_type === 'service') itemName = serviceNames.get(view.item_id) || null;
         }
         return { ...view, item_name: itemName } as ProductView;
       });
