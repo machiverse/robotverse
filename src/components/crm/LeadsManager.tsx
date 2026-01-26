@@ -575,28 +575,45 @@ const LeadRow = ({
             )}
           </div>
 
-          {/* Product info row */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-2.5 py-1 text-sm">
-              <Package className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="font-medium">{lead.item_name || "Unknown product"}</span>
+          {/* Product info row with image */}
+          <div className="flex items-center gap-3 mb-3">
+            {/* Product Image */}
+            <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-muted">
+              {lead.item_image ? (
+                <img 
+                  src={lead.item_image} 
+                  alt={lead.item_name || "Product"} 
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center">
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
             </div>
-            {lead.product_brand && (
-              <Badge variant="outline" className="text-xs">
-                {lead.product_brand}
-              </Badge>
-            )}
-            {lead.product_model && (
-              <Badge variant="secondary" className="text-xs">
-                {lead.product_model}
-              </Badge>
-            )}
-            <Badge variant="outline" className="capitalize text-xs">
-              {lead.item_type}
-            </Badge>
-            {lead.product_price && (
-              <span className="font-semibold text-green-600 text-sm">₹{lead.product_price.toLocaleString()}</span>
-            )}
+            
+            {/* Product Details */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium text-sm truncate">{lead.item_name || "Unknown product"}</span>
+                <Badge variant="outline" className="capitalize text-xs">
+                  {lead.item_type}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {lead.product_brand && (
+                  <Badge variant="secondary" className="text-xs">
+                    {lead.product_brand}
+                  </Badge>
+                )}
+                {lead.product_model && (
+                  <span className="text-xs text-muted-foreground">{lead.product_model}</span>
+                )}
+                {lead.product_price && (
+                  <span className="font-semibold text-green-600 text-sm">₹{lead.product_price.toLocaleString()}</span>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Bottom row: Time info + Actions */}
