@@ -15,6 +15,7 @@ export interface Lead {
   item_id: string | null;
   item_type: string;
   item_name: string | null;
+  item_image?: string | null;
   source: string;
   status: 'new' | 'contacted' | 'quoted' | 'negotiating' | 'closed_won' | 'closed_lost';
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -228,55 +229,77 @@ export const useSellerCRM = (itemType?: string) => {
         }
       }
       
-      // Fetch product details (price, brand, model) for each lead
-      const robotItemIds = leadsData.filter(l => l.item_id && l.item_type === 'robots').map(l => l.item_id as string);
-      const sparePartItemIds = leadsData.filter(l => l.item_id && l.item_type === 'spare_parts').map(l => l.item_id as string);
+      // Fetch product details (price, brand, model, image) for each lead
+      const robotItemIds = leadsData.filter(l => l.item_id && (l.item_type === 'robots' || l.item_type === 'robot')).map(l => l.item_id as string);
+      const sparePartItemIds = leadsData.filter(l => l.item_id && (l.item_type === 'spare_parts' || l.item_type === 'spare_part')).map(l => l.item_id as string);
+      const serviceItemIds = leadsData.filter(l => l.item_id && (l.item_type === 'services' || l.item_type === 'service')).map(l => l.item_id as string);
       
-      const productPriceMap = new Map<string, { price: number | null; brand: string | null; model: string | null; name: string | null }>();
+      const productDetailsMap = new Map<string, { price: number | null; brand: string | null; model: string | null; name: string | null; image: string | null }>();
       
-      // Fetch robot prices
+      // Fetch robot details including images
       if (robotItemIds.length > 0) {
         const { data: robots } = await supabase
           .from('robots')
-          .select('id, price, brand, model, name')
+          .select('id, price, brand, model, name, images')
           .in('id', robotItemIds);
         
         if (robots) {
-          robots.forEach(r => productPriceMap.set(r.id, { 
+          robots.forEach(r => productDetailsMap.set(r.id, { 
             price: r.price, 
             brand: r.brand, 
             model: r.model,
-            name: r.name 
+            name: r.name,
+            image: r.images && r.images.length > 0 ? r.images[0] : null
           }));
         }
       }
       
-      // Fetch spare parts prices
+      // Fetch spare parts details including images
       if (sparePartItemIds.length > 0) {
         const { data: spareParts } = await supabase
           .from('spare_parts')
-          .select('id, price, brand, model, name')
+          .select('id, price, brand, model, name, images')
           .in('id', sparePartItemIds);
         
         if (spareParts) {
-          spareParts.forEach(p => productPriceMap.set(p.id, { 
+          spareParts.forEach(p => productDetailsMap.set(p.id, { 
             price: p.price, 
             brand: p.brand, 
             model: p.model,
-            name: p.name 
+            name: p.name,
+            image: p.images && p.images.length > 0 ? p.images[0] : null
+          }));
+        }
+      }
+
+      // Fetch service details (services table doesn't have images or price columns)
+      if (serviceItemIds.length > 0) {
+        const { data: services } = await supabase
+          .from('services')
+          .select('id, name, price_range')
+          .in('id', serviceItemIds);
+        
+        if (services) {
+          services.forEach((s: any) => productDetailsMap.set(s.id, { 
+            price: null, 
+            brand: null, 
+            model: null,
+            name: s.name,
+            image: null
           }));
         }
       }
       
       // Enrich leads with product details
       const enrichedLeads = leadsData.map(lead => {
-        const productDetails = lead.item_id ? productPriceMap.get(lead.item_id) : null;
+        const productDetails = lead.item_id ? productDetailsMap.get(lead.item_id) : null;
         return {
           ...lead,
           product_price: productDetails?.price || lead.expected_value,
           product_brand: productDetails?.brand || null,
           product_model: productDetails?.model || null,
           item_name: lead.item_name || productDetails?.name || null,
+          item_image: productDetails?.image || null,
           viewed_at: lead.created_at, // Use created_at as viewed_at
         };
       });

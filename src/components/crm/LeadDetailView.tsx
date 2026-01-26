@@ -387,8 +387,19 @@ const LeadDetailView = ({
                         Product Interest
                       </h3>
                       <div className="flex items-start gap-4">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
-                          <Package className="h-8 w-8 text-primary" />
+                        {/* Product Image */}
+                        <div className="h-20 w-20 shrink-0 rounded-xl overflow-hidden bg-muted">
+                          {lead.item_image ? (
+                            <img 
+                              src={lead.item_image} 
+                              alt={lead.item_name || "Product"} 
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                              <Package className="h-8 w-8 text-primary" />
+                            </div>
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className="text-lg font-semibold">{lead.item_name || "Unknown Product"}</h4>

@@ -98,15 +98,28 @@ const DraggableLeadCard = ({ lead, onLeadClick }: DraggableLeadCardProps) => {
           </div>
 
           {/* Company and Product info */}
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-2 text-xs">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
               <span className="truncate">
                 {lead.is_unlocked ? lead.buyer_company || "No company" : "XXXXX"}
               </span>
             </div>
+            {/* Product with image */}
             <div className="flex items-center gap-2">
-              <Package className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+              <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-muted">
+                {lead.item_image ? (
+                  <img 
+                    src={lead.item_image} 
+                    alt={lead.item_name || "Product"} 
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               <span className="truncate font-medium text-foreground/90">
                 {lead.item_name || "Unknown product"}
               </span>
