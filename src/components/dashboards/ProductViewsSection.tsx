@@ -60,7 +60,13 @@ interface ProductViewsSectionProps {
   onLeadConverted?: () => void;
 }
 
-const CONVERT_CREDITS = 10;
+// Credit costs based on item type: Robots = 10, Spare Parts = 5, Services = 5
+const getCreditsForItemType = (itemType: string | null): number => {
+  if (itemType === 'robot' || itemType === 'robots') return 10;
+  if (itemType === 'spare_part' || itemType === 'spare_parts') return 5;
+  if (itemType === 'service' || itemType === 'services') return 5;
+  return 10; // Default for other types
+};
 
 const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductViewsSectionProps) => {
   const { user } = useAuth();
@@ -262,12 +268,14 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
   };
 
   const handleConvertToLead = async (view: AggregatedView) => {
+    const creditsRequired = getCreditsForItemType(view.item_type);
+    
     // Check credits ONLY when convert button is clicked
-    if (!userCredits || userCredits.current_balance < CONVERT_CREDITS) {
+    if (!userCredits || userCredits.current_balance < creditsRequired) {
       toast({
         variant: "destructive",
         title: "Insufficient Credits",
-        description: `⚠️ Insufficient credits. Please recharge to unlock this lead. Required: ${CONVERT_CREDITS}, Available: ${userCredits?.current_balance || 0}`
+        description: `⚠️ Insufficient credits. Please recharge to unlock this lead. Required: ${creditsRequired}, Available: ${userCredits?.current_balance || 0}`
       });
       return;
     }
@@ -283,7 +291,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
 
     setConvertingId(view.key);
     try {
-      const newBalance = userCredits.current_balance - CONVERT_CREDITS;
+      const newBalance = userCredits.current_balance - creditsRequired;
 
       // Create lead in crm_leads table using internal user details
       const { data: leadData, error: leadError } = await supabase
@@ -326,7 +334,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
         .insert({
           seller_id: sellerId,
           transaction_type: 'lead_conversion',
-          credits_amount: -CONVERT_CREDITS,
+          credits_amount: -creditsRequired,
           balance_before: userCredits.current_balance,
           balance_after: newBalance,
           description: `Converted product view to lead for ${view.item_name}`,
@@ -341,7 +349,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
         .from('seller_credits')
         .update({
           current_balance: newBalance,
-          total_spent: userCredits.total_spent + CONVERT_CREDITS,
+          total_spent: userCredits.total_spent + creditsRequired,
           updated_at: new Date().toISOString()
         })
         .eq('seller_id', sellerId);
@@ -355,7 +363,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
 
       toast({
         title: "Lead Created!",
-        description: `Successfully converted to lead. ${CONVERT_CREDITS} credits spent. View details in Leads tab.`
+        description: `Successfully converted to lead. ${creditsRequired} credits spent. View details in Leads tab.`
       });
 
       // Notify parent to refresh leads
@@ -527,7 +535,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
                           <>
                             <UserPlus className="w-4 h-4" />
                             Convert to Lead
-                            <span className="text-xs opacity-75">({CONVERT_CREDITS} cr)</span>
+                            <span className="text-xs opacity-75">({getCreditsForItemType(view.item_type)} cr)</span>
                           </>
                         )}
                       </Button>
