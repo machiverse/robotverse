@@ -237,68 +237,34 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
 
     setUnlockingId(request.id);
     try {
-      const session = await supabase.auth.getSession();
-      const newBalance = userCredits.current_balance - QUOTE_UNLOCK_CREDITS;
-
-      // Insert unlock record
-      const unlockResponse = await fetch(
-        `https://cmahwgetrqczytnijbuk.supabase.co/rest/v1/unlocked_contacts`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtYWh3Z2V0cnFjenl0bmlqYnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNTUxNDYsImV4cCI6MjA2ODkzMTE0Nn0.zmC3yOwfW5qw7mRzTt01AiP-xTWUEz7I5zn0Aoieerg',
-            'Authorization': `Bearer ${session.data.session?.access_token}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({
-            user_id: sellerId,
-            seller_id: request.user_id,
-            item_id: request.item_id || request.id,
-            item_type: 'quote_request',
-            credits_used: QUOTE_UNLOCK_CREDITS
-          })
-        }
-      );
-
-      if (!unlockResponse.ok) {
-        throw new Error('Failed to unlock contact');
-      }
-
-      // Record transaction
-      const { error: txError } = await supabase
-        .from('credit_transactions')
-        .insert({
-          seller_id: sellerId,
-          transaction_type: 'quote_unlock',
-          credits_amount: -QUOTE_UNLOCK_CREDITS,
-          balance_before: userCredits.current_balance,
-          balance_after: newBalance,
-          description: `Unlocked quote request from ${request.user_name} for ${request.item_name || 'Quote Request'}`,
-          reference_id: request.id,
-          reference_type: 'quote_request'
+      // Call the database function to convert quote request to lead
+      // This handles: credit deduction, transaction logging, unlock record, and lead creation
+      const { data: leadId, error } = await supabase
+        .rpc('convert_quote_to_lead', {
+          p_request_id: request.id,
+          p_seller_id: sellerId
         });
 
-      if (txError) throw txError;
-
-      // Update credits
-      const { error: updateError } = await supabase
-        .from('seller_credits')
-        .update({
-          current_balance: newBalance,
-          total_spent: userCredits.total_spent + QUOTE_UNLOCK_CREDITS,
-          updated_at: new Date().toISOString()
-        })
-        .eq('seller_id', sellerId);
-
-      if (updateError) throw updateError;
+      if (error) {
+        console.error('Error converting quote to lead:', error);
+        if (error.message.includes('Insufficient credits')) {
+          toast({
+            variant: "destructive",
+            title: "Insufficient Credits",
+            description: `You need ${QUOTE_UNLOCK_CREDITS} credits to unlock buyer details.`
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
 
       await refreshCredits();
       await fetchQuoteRequests();
 
       toast({
-        title: "Buyer Details Unlocked",
-        description: `You spent ${QUOTE_UNLOCK_CREDITS} credits to unlock buyer information`
+        title: "Lead Created Successfully",
+        description: `Quote request converted to lead. You spent ${QUOTE_UNLOCK_CREDITS} credits. View in Leads tab.`
       });
     } catch (error) {
       console.error('Error unlocking buyer contact:', error);

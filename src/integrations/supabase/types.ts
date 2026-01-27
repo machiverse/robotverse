@@ -3832,6 +3832,10 @@ export type Database = {
           user_roles: string[]
         }[]
       }
+      convert_quote_to_lead: {
+        Args: { p_request_id: string; p_seller_id: string }
+        Returns: string
+      }
       convert_view_to_lead: {
         Args: { p_seller_id: string; p_view_id: string }
         Returns: string
