@@ -151,6 +151,8 @@ export interface CRMStats {
   pendingFollowUps: number;
   creditsBalance: number;
   totalViews: number;
+  quoteRequestsCount: number;
+  unlockedLeads: number;
 }
 
 export const useSellerCRM = (itemType?: string) => {
@@ -171,10 +173,13 @@ export const useSellerCRM = (itemType?: string) => {
     totalRevenue: 0,
     pendingFollowUps: 0,
     creditsBalance: 0,
-    totalViews: 0
+    totalViews: 0,
+    quoteRequestsCount: 0,
+    unlockedLeads: 0
   });
   const [loading, setLoading] = useState(true);
   const [creditsBalance, setCreditsBalance] = useState(0);
+  const [quoteRequestsCount, setQuoteRequestsCount] = useState(0);
 
   const fetchLeads = useCallback(async () => {
     if (!user) return;
@@ -495,16 +500,34 @@ export const useSellerCRM = (itemType?: string) => {
     if (!user) return;
 
     try {
+      // Fetch from seller_credits table (the main credits store)
       const { data, error } = await supabase
-        .from('profiles')
-        .select('credits_balance')
-        .eq('user_id', user.id)
+        .from('seller_credits')
+        .select('current_balance')
+        .eq('seller_id', user.id)
         .single();
 
-      if (error) throw error;
-      setCreditsBalance(data?.credits_balance || 0);
+      if (error && error.code !== 'PGRST116') throw error;
+      setCreditsBalance(data?.current_balance || 0);
     } catch (error) {
       console.error('Error fetching credits:', error);
+    }
+  }, [user]);
+
+  const fetchQuoteRequestsCount = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('user_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('seller_id', user.id)
+        .eq('request_type', 'get_quote');
+
+      if (error) throw error;
+      setQuoteRequestsCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching quote requests count:', error);
     }
   }, [user]);
 
@@ -514,6 +537,7 @@ export const useSellerCRM = (itemType?: string) => {
     const quotedLeads = leads.filter(l => l.status === 'quoted').length;
     const closedWon = leads.filter(l => l.status === 'closed_won').length;
     const closedLost = leads.filter(l => l.status === 'closed_lost').length;
+    const unlockedLeads = leads.filter(l => l.is_unlocked).length;
     const totalRevenue = invoices
       .filter(i => i.status === 'paid')
       .reduce((sum, i) => sum + i.total_amount, 0);
@@ -531,9 +555,11 @@ export const useSellerCRM = (itemType?: string) => {
       totalRevenue,
       pendingFollowUps,
       creditsBalance,
-      totalViews: productViews.length
+      totalViews: productViews.length,
+      quoteRequestsCount,
+      unlockedLeads
     });
-  }, [leads, invoices, creditsBalance, productViews]);
+  }, [leads, invoices, creditsBalance, productViews, quoteRequestsCount]);
 
   useEffect(() => {
     if (user) {
@@ -542,10 +568,11 @@ export const useSellerCRM = (itemType?: string) => {
         fetchProductViews(),
         fetchInvoices(),
         fetchActivities(),
-        fetchCreditsBalance()
+        fetchCreditsBalance(),
+        fetchQuoteRequestsCount()
       ]).then(() => setLoading(false));
     }
-  }, [user, fetchLeads, fetchProductViews, fetchInvoices, fetchActivities, fetchCreditsBalance]);
+  }, [user, fetchLeads, fetchProductViews, fetchInvoices, fetchActivities, fetchCreditsBalance, fetchQuoteRequestsCount]);
 
   useEffect(() => {
     calculateStats();
