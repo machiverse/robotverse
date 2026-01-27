@@ -17,6 +17,7 @@ import {
   LogOut,
   Bell,
   Search,
+  MessageCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -66,6 +67,7 @@ export function DashboardSidebar({ userProfile }: DashboardSidebarProps) {
   // Main navigation items
   const mainNavItems = [
     { title: "Dashboard", url: "/dashboard", icon: Home },
+    { title: "Messages", url: "/dashboard/messages", icon: MessageCircle },
     { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
     { title: "Reports", url: "/dashboard/reports", icon: FileText },
   ];

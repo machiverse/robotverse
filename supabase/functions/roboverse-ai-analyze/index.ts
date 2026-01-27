@@ -143,15 +143,6 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // AUTH
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders });
-    }
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (userError) throw new Error(`Authentication failed: ${userError.message}`);
-    if (!user) throw new Error('User not found or token invalid.');
-
     const { robotId } = await req.json();
     if (!robotId) throw new Error('Robot ID is required.');
 

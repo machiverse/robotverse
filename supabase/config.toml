@@ -13,10 +13,16 @@ verify_jwt = false
 [functions.roboverse-ai-analyze]
 verify_jwt = false
 
+[functions.roboverse-spare-part-ai-analyze]
+verify_jwt = false
+
 [functions.roboverse-robot-report]
 verify_jwt = false
 
 [functions.enhanced-image-upload]
+verify_jwt = false
+
+[functions.generate-sitemap-auto]
 verify_jwt = false
 
 [db]

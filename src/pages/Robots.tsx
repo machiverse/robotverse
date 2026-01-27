@@ -4,13 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye, Share2, MessageCircle, Brain, MapPin, Building, CheckCircle, Phone, Heart } from "lucide-react";
+import { Loader2, Bot, Grid, List, Search, TrendingUp, Eye, Share2, MessageCircle, Brain, MapPin, Building, CheckCircle, Heart } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import { ContactMethodDialog } from "@/components/ContactMethodDialog";
+import { ChatButton } from "@/components/chat/ChatButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { SEOHead } from "@/components/SEOHead";
+import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seoSchemas";
 
 const Robots = () => {
   const navigate = useNavigate();
@@ -55,9 +57,6 @@ const Robots = () => {
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
   const [aiDialogData, setAiDialogData] = useState<any>(null);
   
-  // Contact Method Dialog states
-  const [showContactDialog, setShowContactDialog] = useState(false);
-  const [selectedRobotForContact, setSelectedRobotForContact] = useState<any>(null);
 
   // Dropdown options dynamically extracted from robots data
   const [categories, setCategories] = useState([{ value: "all", label: "All Categories" }]);
@@ -460,6 +459,40 @@ const Robots = () => {
   // Count all filtered robots
   const totalFilteredRobots = Object.values(filteredGroups).reduce((acc, arr) => acc + arr.length, 0);
 
+  // Generate SEO based on filters
+  const generatePageSEO = () => {
+    let title = "Industrial Robots for Sale";
+    let description = "Browse verified industrial robots from trusted sellers. Find ABB, KUKA, Fanuc, Yaskawa robots with warranty, financing, and logistics support.";
+    
+    if (selectedCategory && selectedCategory !== "all") {
+      const categoryLabel = categories.find(c => c.value === selectedCategory)?.label;
+      title = `${categoryLabel} Robots for Sale`;
+      description = `Buy ${categoryLabel?.toLowerCase()} robots from verified sellers. Professional automation equipment with warranty and support.`;
+    }
+    
+    if (selectedLocation && selectedLocation !== "all") {
+      const locationLabel = locations.find(l => l.value === selectedLocation)?.label;
+      title += ` in ${locationLabel}`;
+      description = description.replace("from verified sellers", `from verified sellers in ${locationLabel}`);
+    }
+    
+    if (totalFilteredRobots > 0) {
+      title = `${totalFilteredRobots}+ ${title}`;
+    }
+    
+    title += " | RobotVerse";
+    
+    const jsonLd = generateItemListSchema(
+      robotsWithViews.slice(0, 20),
+      title,
+      selectedCategory !== "all" ? selectedCategory : undefined
+    );
+    
+    return { title, description, jsonLd };
+  };
+
+  const pageSEO = generatePageSEO();
+
   // Loading and error UI
   if (loading) {
     return (
@@ -489,6 +522,12 @@ const Robots = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords="industrial robots, automation equipment, robot marketplace, buy robots online, robot sellers India, FANUC, ABB, KUKA, Yaskawa"
+        jsonLd={pageSEO.jsonLd}
+      />
       <EnhancedHeader />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">Industrial Robots Marketplace</h1>
@@ -948,54 +987,17 @@ const Robots = () => {
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="whitespace-nowrap px-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!user) {
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Sign In Required",
-                                        description: "Please sign in to contact sellers",
-                                      });
-                                      return;
-                                    }
-                                    if (!robot.profiles?.phone && !robot.profiles?.email) {
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Contact Unavailable",
-                                        description: "Contact information not available for this seller",
-                                      });
-                                      return;
-                                    }
-                                    // Track contact button click
-                                    trackButtonClick({
-                                      buttonName: "Contact Seller",
-                                      buttonType: "contact_seller_button",
-                                      sellerId: robot.seller_id,
-                                      sellerName: robot.profiles?.full_name,
-                                      sellerCompany: robot.profiles?.company_name,
-                                      sellerEmail: robot.profiles?.email,
-                                      sellerMobile: robot.profiles?.phone || robot.profiles?.mobile_number,
-                                      sellerLocation: robot.location,
-                                      itemId: robot.id,
-                                      itemType: "robot",
-                                      additionalData: {
-                                        robotName: robot.name,
-                                        robotType: robot.robot_type
-                                      }
-                                    });
-                                    setSelectedRobotForContact(robot);
-                                    setShowContactDialog(true);
-                                  }}
-                                  disabled={!user || (!robot.profiles?.phone && !robot.profiles?.email)}
-                                >
-                                  <MessageCircle className="w-3 h-3 mr-1" />
-                                  {user ? "Contact" : "Sign In"}
-                                </Button>
-                              </div>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <ChatButton
+                                    otherUserId={robot.seller_id}
+                                    itemId={robot.id}
+                                    itemType="robot"
+                                    itemName={robot.name}
+                                    variant="outline"
+                                    size="sm"
+                                  />
+                                </div>
+                                </div>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1109,34 +1111,6 @@ const Robots = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Contact Method Dialog */}
-        <ContactMethodDialog
-          open={showContactDialog}
-          onOpenChange={setShowContactDialog}
-          robotName={selectedRobotForContact?.name || ""}
-          sellerName={selectedRobotForContact?.profiles?.full_name || selectedRobotForContact?.profiles?.company_name || "Seller"}
-          sellerPhone={selectedRobotForContact?.profiles?.phone || selectedRobotForContact?.profiles?.mobile_number}
-          sellerEmail={selectedRobotForContact?.profiles?.email}
-          onContactMethodSelected={(method) => {
-            trackButtonClick({
-              buttonName: `Contact via ${method}`,
-              buttonType: `contact_${method}_button`,
-              sellerId: selectedRobotForContact?.seller_id,
-              sellerName: selectedRobotForContact?.profiles?.full_name,
-              sellerCompany: selectedRobotForContact?.profiles?.company_name,
-              sellerEmail: selectedRobotForContact?.profiles?.email,
-              sellerMobile: selectedRobotForContact?.profiles?.phone || selectedRobotForContact?.profiles?.mobile_number,
-              sellerLocation: selectedRobotForContact?.location,
-              itemId: selectedRobotForContact?.id,
-              itemType: "robot",
-              additionalData: {
-                robotName: selectedRobotForContact?.name,
-                robotType: selectedRobotForContact?.robot_type,
-                contactMethod: method
-              }
-            });
-          }}
-        />
       </div>
     </div>
   );

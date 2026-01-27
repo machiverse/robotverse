@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,12 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
   Eye, 
-  Play, 
-  Clock,
+  Play,
   User,
   BookOpen,
   Video,
@@ -39,11 +35,13 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { useContentInteractions } from "@/hooks/useContentInteractions";
 import { toast } from "sonner";
-import ViewCountDisplay from "@/components/ViewCountDisplay";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
 import EditPostModal from "@/components/EditPostModal";
+import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
 
 interface CommunityPost {
   id: string;
@@ -81,10 +79,20 @@ interface CommunityPostCardProps {
 
 const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted }: CommunityPostCardProps) => {
   const { user } = useAuth();
-  const [isLiking, setIsLiking] = useState(false);
+  const navigate = useNavigate();
+  const { trackButtonClick } = useButtonTracking();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Use new unified interaction system
+  const contentType = post.post_type === 'blog' ? 'blog' : (post.post_type === 'video' ? 'video' : 'community_post');
+  const { 
+    likeCount, 
+    commentCount, 
+    userHasLiked, 
+    toggleLike 
+  } = useContentInteractions(post.id, contentType);
 
   const getPostTypeIcon = () => {
     switch (post.post_type) {
@@ -116,77 +124,42 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     }
   };
 
-  const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!user) {
-      toast.error('Please sign in to like posts');
-      return;
+  const handleLike = async () => {
+    if (user) {
+      // Track button click
+      await trackButtonClick({
+        buttonName: userHasLiked ? 'Unlike Post' : 'Like Post',
+        buttonType: 'community_interaction',
+        itemId: post.id,
+        itemType: 'community_post',
+        additionalData: {
+          post_title: post.title,
+          post_type: post.post_type,
+          author_id: post.author_id,
+          action: userHasLiked ? 'unlike' : 'like'
+        }
+      });
     }
     
-    if (isLiking) return;
-
-    try {
-      setIsLiking(true);
-      
-      // Determine if this is a blog post or community post
-      const isBlogPost = post.post_type === 'blog';
-      
-      if (post.user_liked) {
-        // Unlike the post
-        if (isBlogPost) {
-          const { error } = await supabase
-            .from('blog_likes')
-            .delete()
-            .eq('blog_id', post.id)
-            .eq('user_id', user.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from('post_likes')
-            .delete()
-            .eq('post_id', post.id)
-            .eq('user_id', user.id);
-          if (error) throw error;
-        }
-        
-        onLikeUpdate?.(post.id, post.like_count - 1, false);
-        toast.success('Post unliked');
-      } else {
-        // Like the post
-        if (isBlogPost) {
-          const { error } = await supabase
-            .from('blog_likes')
-            .insert({ 
-              blog_id: post.id, 
-              user_id: user.id 
-            });
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from('post_likes')
-            .insert({ 
-              post_id: post.id, 
-              user_id: user.id 
-            });
-          if (error) throw error;
-        }
-        
-        onLikeUpdate?.(post.id, post.like_count + 1, true);
-        toast.success('Post liked!');
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      toast.error('Failed to update like. Please try again.');
-    } finally {
-      setIsLiking(false);
-    }
+    return await toggleLike();
   };
 
-  const handleShare = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleShare = () => {
+    // Track share button click
+    if (user) {
+      trackButtonClick({
+        buttonName: 'Share Post',
+        buttonType: 'community_interaction',
+        itemId: post.id,
+        itemType: 'community_post',
+        additionalData: {
+          post_title: post.title,
+          post_type: post.post_type,
+          author_id: post.author_id,
+          action: 'share'
+        }
+      });
+    }
     
     try {
       // Use custom domain for sharing
@@ -202,43 +175,15 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
       };
       
       if (navigator.share && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
+        navigator.share(shareData);
         toast.success('Post shared successfully!');
       } else {
-        await navigator.clipboard.writeText(shareData.url);
+        navigator.clipboard.writeText(shareData.url);
         toast.success('Link copied to clipboard!');
       }
-
-      // Track share - only for authenticated users
-      if (user) {
-        // Determine if this is a blog post or community post
-        const isBlogPost = post.post_type === 'blog' && !post.media_url;
-        
-        if (isBlogPost) {
-          await supabase
-            .from('blog_shares')
-            .insert({ 
-              blog_id: post.id, 
-              user_id: user.id,
-              shared_to: navigator.share ? 'native_share' : 'clipboard'
-            });
-        } else {
-          await supabase
-            .from('post_shares')
-            .insert({ 
-              post_id: post.id, 
-              user_id: user.id,
-              shared_to: navigator.share ? 'native_share' : 'clipboard'
-            });
-        }
-      }
-      
-      // Update share count in UI regardless of auth status
-      onLikeUpdate?.(post.id, post.like_count, post.user_liked || false);
     } catch (error) {
       console.error('Error sharing:', error);
       if (error instanceof Error && error.name === 'AbortError') {
-        // User cancelled the share, don't show error
         return;
       }
       toast.error('Failed to share post');
@@ -284,8 +229,24 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons or interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') || 
+      target.closest('a') || 
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+    navigate(`/robobook/${post.id}`);
+  };
+
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 bg-card border border-border/50 rounded-xl overflow-hidden w-full">
+    <Card 
+      className="group hover:shadow-lg transition-all duration-300 bg-card border border-border/50 rounded-xl overflow-hidden w-full cursor-pointer"
+      onClick={handleCardClick}
+    >
       {/* Author Header */}
       <div className="flex items-center justify-between p-4 pb-0">
         <div className="flex items-center gap-3">
@@ -413,67 +374,14 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
       {/* Engagement Actions */}
       <div className="px-4 py-3 border-t border-border/50 bg-muted/20">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLike}
-              disabled={isLiking}
-              className={`h-9 px-3 rounded-full transition-all hover:scale-105 ${
-                post.user_liked 
-                  ? 'text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-950 dark:hover:bg-red-900' 
-                  : 'hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950'
-              }`}
-            >
-              <Heart className={`h-4 w-4 mr-1 ${post.user_liked ? 'fill-current' : ''}`} />
-              <span className="font-medium">{post.like_count}</span>
-            </Button>
-
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-9 px-3 rounded-full hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-all hover:scale-105"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!user) {
-                  toast.error('Please sign in to comment');
-                  return;
-                }
-                // Navigate to post with comments focused
-                window.location.href = post.post_type === 'blog' ? `/robobook/${post.id}#comments` : `/community/${post.id}#comments`;
-              }}
-            >
-              <MessageCircle className="h-4 w-4 mr-1" />
-              <span className="font-medium">{post.comment_count || 0}</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleShare}
-              className="h-9 px-3 rounded-full hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-950 transition-all hover:scale-105"
-            >
-              <Share2 className="h-4 w-4 mr-1" />
-              <span className="font-medium">{post.share_count || 0}</span>
-            </Button>
-          </div>
-          
-          {/* View Count and Details Link */}
-          <div className="flex items-center gap-2">
-            <ViewCountDisplay 
-              targetType={post.post_type === 'blog' ? 'blogs' : 'community_posts'} 
-              targetId={post.id} 
-              className="text-xs"
-            />
-            <Link 
-              to={post.post_type === 'blog' ? `/robobook/${post.id}` : `/community/${post.id}`}
-              className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              View Details →
-            </Link>
-          </div>
+          <ContentInteractionButtons
+            likeCount={likeCount}
+            commentCount={commentCount}
+            userHasLiked={userHasLiked}
+            onLike={handleLike}
+            onCommentClick={() => navigate(`/robobook/${post.id}#comments`)}
+            onShare={handleShare}
+          />
         </div>
       </div>
 

@@ -205,6 +205,8 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
       setLoading(true);
       setError(null);
       
+      console.log('🔄 Fetching admin dashboard data...');
+      
       const [
         usersResult,
         robotsResult, 
@@ -219,21 +221,22 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
         supabase.from('document_uploads').select('*').order('uploaded_at', { ascending: false })
       ]);
 
-      // Process results
+      // Process results with fresh data
       if (usersResult.status === 'fulfilled' && usersResult.value.data) {
-        setUsers(usersResult.value.data);
+        console.log('✅ Users data refreshed:', usersResult.value.data.length, 'users');
+        setUsers([...usersResult.value.data]); // Create new array to trigger re-render
       }
       if (robotsResult.status === 'fulfilled' && robotsResult.value.data) {
-        setRobots(robotsResult.value.data);
+        setRobots([...robotsResult.value.data]);
       }
       if (servicesResult.status === 'fulfilled' && servicesResult.value.data) {
-        setServices(servicesResult.value.data);
+        setServices([...servicesResult.value.data]);
       }
       if (sparePartsResult.status === 'fulfilled' && sparePartsResult.value.data) {
-        setSpareParts(sparePartsResult.value.data);
+        setSpareParts([...sparePartsResult.value.data]);
       }
       if (documentsResult.status === 'fulfilled' && documentsResult.value.data) {
-        setDocuments(documentsResult.value.data);
+        setDocuments([...documentsResult.value.data]);
       }
 
       // Check for errors
@@ -242,10 +245,13 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
       
       if (hasErrors) {
         setError('Some data failed to load');
+        console.warn('⚠️ Some admin data failed to load');
+      } else {
+        console.log('✅ All admin data loaded successfully');
       }
 
     } catch (error) {
-      console.error('Error fetching admin data:', error);
+      console.error('❌ Error fetching admin data:', error);
       setError('Failed to load admin data');
       toast({
         title: "Error",

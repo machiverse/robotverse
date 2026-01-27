@@ -1,14 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /reset-password
+
+# Main Sitemap
+Sitemap: https://www.robotverse.in/sitemap.xml
+
+# Crawl-delay for bots
+Crawl-delay: 1
+
+# Allow specific search engines
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: *
 Allow: /

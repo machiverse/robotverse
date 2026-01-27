@@ -4,12 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { useChatNotifications } from "@/hooks/useChatNotifications";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
+import SparePartDetails from "./pages/SparePartDetails";
 import Services from "./pages/Services";
 import Logistics from "./pages/Logistics";
 import Financing from "./pages/Financing";
@@ -36,6 +38,7 @@ import LogisticsDashboard from "./pages/dashboard/Logistics";
 import Settings from "./pages/dashboard/Settings";
 import Help from "./pages/dashboard/Help";
 import Privacy from "./pages/dashboard/Privacy";
+import Messages from "./pages/dashboard/Messages";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -43,16 +46,26 @@ import BuyerGuide from "./pages/BuyerGuide";
 import Cookies from "./pages/Cookies";
 import Sitemap from "./pages/Sitemap";
 import Accessibility from "./pages/Accessibility";
+import Chat from "./pages/Chat";
+import { AutoSignInPopup } from "./components/AutoSignInPopup";
 
 const queryClient = new QueryClient();
+
+// Global notification listener component
+const GlobalChatNotifications = () => {
+  useChatNotifications();
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        <GlobalChatNotifications />
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AutoSignInPopup />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -61,6 +74,7 @@ const App = () => (
             <Route path="/robots/:id" element={<RobotDetails />} />
             <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
+            <Route path="/parts/:id" element={<SparePartDetails />} />
             <Route path="/services" element={<Services />} />
             <Route path="/logistics" element={<Logistics />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />
@@ -68,17 +82,18 @@ const App = () => (
             <Route path="/robobook" element={<Blogs />} />
             <Route path="/community" element={<Blogs />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
+            <Route path="/robobook/:id" element={<CommunityPostDetails />} />
             <Route path="/community/:id" element={<CommunityPostDetails />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
-            <Route path="/robobook/:id" element={<BlogDetails />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
-            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/blogs/:id" element={<CommunityPostDetails />} />
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/analytics" element={<Analytics />} />
             <Route path="/dashboard/reports" element={<Reports />} />
+            <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/dashboard/robots" element={<MyRobots />} />
             <Route path="/dashboard/parts" element={<PartsManagement />} />
             <Route path="/dashboard/services" element={<ServicesManagement />} />
@@ -98,6 +113,7 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
+            <Route path="/chat" element={<Chat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
