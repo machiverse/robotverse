@@ -735,13 +735,14 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     activities,
     createInvoice,
     convertViewToLead,
+    stats,
   } = useSellerCRM(itemType);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewTab, setViewTab] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "pipeline">("list");
-  const [quoteRequestsCount, setQuoteRequestsCount] = useState(0);
+  // Use stats.quoteRequestsCount from hook instead of local state
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
@@ -764,23 +765,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [quotationValidity, setQuotationValidity] = useState(7);
   const [sendingQuotation, setSendingQuotation] = useState(false);
 
-  // Fetch quote requests count
-  useEffect(() => {
-    const fetchQuoteRequestsCount = async () => {
-      if (!user?.id) return;
-      try {
-        const { count } = await supabase
-          .from("user_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("seller_id", user.id)
-          .eq("request_type", "get_quote");
-        setQuoteRequestsCount(count || 0);
-      } catch (error) {
-        console.error("Error fetching quote requests count:", error);
-      }
-    };
-    fetchQuoteRequestsCount();
-  }, [user?.id]);
+  // Quote requests count now comes from stats via useSellerCRM hook
 
   const filteredLeads = leads.filter((lead) => {
     const q = searchQuery.toLowerCase();
@@ -1023,11 +1008,11 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   return (
     <div className="space-y-4 p-6">
       <StatsHeader
-        viewsCount={productViews.length}
-        leadsCount={leads.length}
-        unlockedCount={leads.filter((l) => l.is_unlocked).length}
-        creditsBalance={creditsBalance}
-        quoteRequestsCount={quoteRequestsCount}
+        viewsCount={stats.totalViews}
+        leadsCount={stats.totalLeads}
+        unlockedCount={stats.unlockedLeads}
+        creditsBalance={stats.creditsBalance}
+        quoteRequestsCount={stats.quoteRequestsCount}
       />
 
       <Card className="border-muted/70 bg-background">
@@ -1039,9 +1024,9 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
             setSearchQuery={setSearchQuery}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
-            leadsCount={leads.length}
+            leadsCount={stats.totalLeads}
             viewsCount={aggregatedViews.length}
-            quoteRequestsCount={quoteRequestsCount}
+            quoteRequestsCount={stats.quoteRequestsCount}
             viewMode={viewMode}
             setViewMode={setViewMode}
           />
