@@ -59,7 +59,13 @@ interface QuoteRequestsSectionProps {
   itemType?: string; // Optional filter by item type
 }
 
-const QUOTE_UNLOCK_CREDITS = 10; // Quote requests cost 10 credits to unlock
+// Credit costs based on item type: Robots = 10, Spare Parts = 5, Services = 5
+const getCreditsForItemType = (itemType: string): number => {
+  if (itemType === 'robot' || itemType === 'robots') return 10;
+  if (itemType === 'spare_part' || itemType === 'spare_parts') return 5;
+  if (itemType === 'service' || itemType === 'services') return 5;
+  return 10; // Default for other types
+};
 
 const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps) => {
   const { toast } = useToast();
@@ -226,11 +232,13 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
   };
 
   const handleUnlockBuyerContact = async (request: QuoteRequest) => {
-    if (!userCredits || userCredits.current_balance < QUOTE_UNLOCK_CREDITS) {
+    const creditsRequired = getCreditsForItemType(request.item_type);
+    
+    if (!userCredits || userCredits.current_balance < creditsRequired) {
       toast({
         variant: "destructive",
         title: "Insufficient Credits",
-        description: `You need ${QUOTE_UNLOCK_CREDITS} credits to unlock buyer details. Current balance: ${userCredits?.current_balance || 0}`
+        description: `You need ${creditsRequired} credits to unlock buyer details. Current balance: ${userCredits?.current_balance || 0}`
       });
       return;
     }
@@ -251,7 +259,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
           toast({
             variant: "destructive",
             title: "Insufficient Credits",
-            description: `You need ${QUOTE_UNLOCK_CREDITS} credits to unlock buyer details.`
+            description: `You need ${creditsRequired} credits to unlock buyer details.`
           });
         } else {
           throw error;
@@ -264,7 +272,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
 
       toast({
         title: "Lead Created Successfully",
-        description: `Quote request converted to lead. You spent ${QUOTE_UNLOCK_CREDITS} credits. View in Leads tab.`
+        description: `Quote request converted to lead. You spent ${creditsRequired} credits. View in Leads tab.`
       });
     } catch (error) {
       console.error('Error unlocking buyer contact:', error);
@@ -476,7 +484,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                           size="sm"
                           onClick={() => handleUnlockBuyerContact(request)}
                           disabled={unlockingId === request.id || creditsLoading}
-                          title={`Unlock for ${QUOTE_UNLOCK_CREDITS} credits`}
+                          title={`Unlock for ${getCreditsForItemType(request.item_type)} credits`}
                           className="bg-primary hover:bg-primary/90"
                         >
                           {unlockingId === request.id ? (
@@ -484,7 +492,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                           ) : (
                             <>
                               <Unlock className="w-4 h-4 mr-1" />
-                              {QUOTE_UNLOCK_CREDITS}
+                              {getCreditsForItemType(request.item_type)}
                             </>
                           )}
                         </Button>
@@ -629,7 +637,7 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                           ) : (
                             <>
                               <Unlock className="w-4 h-4 mr-2" />
-                              Unlock Contact ({QUOTE_UNLOCK_CREDITS} credits)
+                              Unlock Contact ({selectedRequest ? getCreditsForItemType(selectedRequest.item_type) : 10} credits)
                             </>
                           )}
                         </Button>
