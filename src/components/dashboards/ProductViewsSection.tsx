@@ -307,9 +307,20 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
     ) || null;
   };
 
-  const handleConvertToLead = async (view: AggregatedView, selectedItem?: ViewedItem) => {
-    const item = selectedItem || getFirstUnconvertedItem(view);
-    if (!item) {
+  // Calculate total credits needed to convert all items for a user
+  const getTotalCreditsForUser = (view: AggregatedView): number => {
+    const unconvertedItems = view.items.filter(item => 
+      !item.item_id || !convertedLeads.has(`${view._internal_user_id}_${item.item_id}`)
+    );
+    return unconvertedItems.reduce((total, item) => total + getCreditsForItemType(item.item_type), 0);
+  };
+
+  const handleConvertToLead = async (view: AggregatedView) => {
+    const unconvertedItems = view.items.filter(item => 
+      !item.item_id || !convertedLeads.has(`${view._internal_user_id}_${item.item_id}`)
+    );
+
+    if (unconvertedItems.length === 0) {
       toast({
         title: "Already Converted",
         description: "All items from this viewer have been converted to leads."
@@ -317,19 +328,19 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       return;
     }
 
-    const creditsRequired = getCreditsForItemType(item.item_type);
+    const totalCreditsRequired = getTotalCreditsForUser(view);
     
     // Check credits ONLY when convert button is clicked
-    if (!userCredits || userCredits.current_balance < creditsRequired) {
+    if (!userCredits || userCredits.current_balance < totalCreditsRequired) {
       toast({
         variant: "destructive",
         title: "Insufficient Credits",
-        description: `⚠️ Insufficient credits. Please recharge to unlock this lead. Required: ${creditsRequired}, Available: ${userCredits?.current_balance || 0}`
+        description: `⚠️ Insufficient credits. Required: ${totalCreditsRequired}, Available: ${userCredits?.current_balance || 0}`
       });
       return;
     }
 
-    if (!view._internal_user_id || !item.item_id) {
+    if (!view._internal_user_id) {
       toast({
         variant: "destructive",
         title: "Cannot Convert",
@@ -338,84 +349,88 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       return;
     }
 
-    setConvertingId(`${view.key}_${item.item_id}`);
+    setConvertingId(view.key);
     try {
-      const newBalance = userCredits.current_balance - creditsRequired;
+      let creditsSpent = 0;
+      const newConvertedSet = new Set(convertedLeads);
 
-      // Create lead in crm_leads table using internal user details
-      const { data: leadData, error: leadError } = await supabase
-        .from('crm_leads' as any)
-        .insert({
-          seller_id: sellerId,
-          buyer_id: view._internal_user_id,
-          buyer_name: view._internal_user_name,
-          buyer_email: view._internal_user_email,
-          buyer_phone: view._internal_user_mobile,
-          buyer_company: view._internal_user_company,
-          item_id: item.item_id,
-          item_type: item.item_type,
-          item_name: item.item_name,
-          source: 'product_view',
-          status: 'new',
-          is_unlocked: true,
-          priority: 'medium'
-        })
-        .select('id')
-        .single();
+      // Convert all unconverted items for this user
+      for (const item of unconvertedItems) {
+        if (!item.item_id) continue;
+        
+        const itemCredits = getCreditsForItemType(item.item_type);
+        const newBalance = userCredits.current_balance - creditsSpent - itemCredits;
 
-      if (leadError) {
-        if (leadError.code === '23505') {
-          toast({
-            title: "Already Converted",
-            description: "This view has already been converted to a lead."
-          });
-          await fetchConvertedLeads();
-          return;
+        // Create lead in crm_leads table using internal user details
+        const { data: leadData, error: leadError } = await supabase
+          .from('crm_leads' as any)
+          .insert({
+            seller_id: sellerId,
+            buyer_id: view._internal_user_id,
+            buyer_name: view._internal_user_name,
+            buyer_email: view._internal_user_email,
+            buyer_phone: view._internal_user_mobile,
+            buyer_company: view._internal_user_company,
+            item_id: item.item_id,
+            item_type: item.item_type,
+            item_name: item.item_name,
+            source: 'product_view',
+            status: 'new',
+            is_unlocked: true,
+            priority: 'medium'
+          })
+          .select('id')
+          .single();
+
+        if (leadError) {
+          if (leadError.code === '23505') {
+            // Already converted, skip
+            newConvertedSet.add(`${view._internal_user_id}_${item.item_id}`);
+            continue;
+          }
+          throw leadError;
         }
-        throw leadError;
+
+        const leadId = (leadData as any)?.id;
+        creditsSpent += itemCredits;
+
+        // Record credit transaction
+        await supabase
+          .from('credit_transactions')
+          .insert({
+            seller_id: sellerId,
+            transaction_type: 'lead_conversion',
+            credits_amount: -itemCredits,
+            balance_before: userCredits.current_balance - creditsSpent + itemCredits,
+            balance_after: userCredits.current_balance - creditsSpent,
+            description: `Converted product view to lead for ${item.item_name}`,
+            reference_id: leadId,
+            reference_type: 'lead'
+          });
+
+        newConvertedSet.add(`${view._internal_user_id}_${item.item_id}`);
       }
 
-      const leadId = (leadData as any)?.id;
+      if (creditsSpent > 0) {
+        // Update credits balance
+        await supabase
+          .from('seller_credits')
+          .update({
+            current_balance: userCredits.current_balance - creditsSpent,
+            total_spent: userCredits.total_spent + creditsSpent,
+            updated_at: new Date().toISOString()
+          })
+          .eq('seller_id', sellerId);
+      }
 
-      // Record credit transaction
-      const { error: txError } = await supabase
-        .from('credit_transactions')
-        .insert({
-          seller_id: sellerId,
-          transaction_type: 'lead_conversion',
-          credits_amount: -creditsRequired,
-          balance_before: userCredits.current_balance,
-          balance_after: newBalance,
-          description: `Converted product view to lead for ${item.item_name}`,
-          reference_id: leadId,
-          reference_type: 'lead'
-        });
-
-      if (txError) throw txError;
-
-      // Update credits balance
-      const { error: updateError } = await supabase
-        .from('seller_credits')
-        .update({
-          current_balance: newBalance,
-          total_spent: userCredits.total_spent + creditsRequired,
-          updated_at: new Date().toISOString()
-        })
-        .eq('seller_id', sellerId);
-
-      if (updateError) throw updateError;
-
-      // Add to converted set
-      setConvertedLeads(prev => new Set(prev).add(`${view._internal_user_id}_${item.item_id}`));
-
+      setConvertedLeads(newConvertedSet);
       await refreshCredits();
 
       toast({
         title: "Lead Created!",
-        description: `Successfully converted to lead. ${creditsRequired} credits spent. View details in Leads tab.`
+        description: `Successfully converted ${unconvertedItems.length} item(s) to lead. ${creditsSpent} credits spent.`
       });
 
-      // Notify parent to refresh leads
       onLeadConverted?.();
 
     } catch (error) {
@@ -537,86 +552,85 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
           <div className="divide-y divide-border">
             {unconvertedViews.map((view) => {
               const isNew = new Date(view.last_viewed) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-              // Get unconverted items for this user
               const unconvertedItems = view.items.filter(item => 
                 !item.item_id || !convertedLeads.has(`${view._internal_user_id}_${item.item_id}`)
               );
+              const isConverting = convertingId === view.key;
+              const totalCredits = getTotalCreditsForUser(view);
+
+              // Format items as inline text: "Item1 (3), Item2 (2)"
+              const itemsDisplay = unconvertedItems.map(item => 
+                `${item.item_name} (${item.view_count})`
+              ).join(', ');
 
               return (
                 <div 
                   key={view.key} 
                   className="p-4 hover:bg-muted/30 transition-colors"
                 >
-                  <div className="flex flex-col gap-3">
-                    {/* Header with total views and time */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Eye className="w-4 h-4" />
-                        <span className="font-medium text-foreground">{view.total_view_count} Total {view.total_view_count === 1 ? 'View' : 'Views'}</span>
-                        <span>•</span>
-                        <span title={format(new Date(view.last_viewed), 'PPpp')}>
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Left side - User info and items */}
+                    <div className="flex-1 min-w-0">
+                      {/* Header with view count and time */}
+                      <div className="flex items-center gap-2 text-sm mb-2">
+                        <div className="p-1.5 rounded-md bg-primary/10">
+                          <Eye className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="font-medium text-foreground">
+                          {view.total_view_count} {view.total_view_count === 1 ? 'View' : 'Views'}
+                        </span>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-muted-foreground" title={format(new Date(view.last_viewed), 'PPpp')}>
                           {formatDistanceToNow(new Date(view.last_viewed), { addSuffix: true })}
                         </span>
                         {isNew && (
-                          <Badge className="bg-primary/10 text-primary border-0 text-xs ml-2">New</Badge>
+                          <Badge className="bg-primary/10 text-primary border-0 text-xs">New</Badge>
                         )}
                       </div>
-                    </div>
-
-                    {/* Items list - show all items this user viewed with numbers */}
-                    <div className="space-y-2">
-                      {unconvertedItems.map((item, idx) => {
-                        const itemConvertingId = `${view.key}_${item.item_id}`;
-                        const isConverting = convertingId === itemConvertingId;
-                        const itemNumber = idx + 1;
-                        
-                        return (
-                          <div 
+                      
+                      {/* Items viewed - inline display */}
+                      <div className="text-sm text-foreground">
+                        <span className="text-muted-foreground mr-1">Items:</span>
+                        <span className="font-medium">{itemsDisplay}</span>
+                      </div>
+                      
+                      {/* Item type badges */}
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {unconvertedItems.map((item, idx) => (
+                          <Badge 
                             key={`${item.item_id}_${idx}`}
-                            className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded-lg"
+                            variant="outline" 
+                            className="text-xs flex items-center gap-1"
                           >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              {/* Item number */}
-                              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-primary">
-                                {itemNumber}
-                              </div>
-                              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                {getItemTypeIcon(item.item_type)}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="font-medium text-foreground text-sm truncate">
-                                    {item.item_name}
-                                  </p>
-                                  {getItemTypeBadge(item.item_type)}
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-0.5">
-                                  {item.view_count} {item.view_count === 1 ? 'view' : 'views'}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleConvertToLead(view, item)}
-                              disabled={isConverting || !view._internal_user_id}
-                              className="flex items-center gap-1.5 text-xs"
-                            >
-                              {isConverting ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <UserPlus className="w-3.5 h-3.5" />
-                                  Convert
-                                  <span className="opacity-75">({getCreditsForItemType(item.item_type)} cr)</span>
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        );
-                      })}
+                            {getItemTypeIcon(item.item_type)}
+                            {item.item_type === 'robot' || item.item_type === 'robots' ? 'Robot' : 
+                             item.item_type === 'spare_part' || item.item_type === 'spare_parts' ? 'Part' : 
+                             item.item_type === 'service' || item.item_type === 'services' ? 'Service' : 
+                             'Item'}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
+                    
+                    {/* Right side - Convert button */}
+                    <Button
+                      size="sm"
+                      onClick={() => handleConvertToLead(view)}
+                      disabled={isConverting || !view._internal_user_id}
+                      className="flex items-center gap-1.5 whitespace-nowrap"
+                    >
+                      {isConverting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4" />
+                          Convert to Lead
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {totalCredits} cr
+                          </Badge>
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               );
