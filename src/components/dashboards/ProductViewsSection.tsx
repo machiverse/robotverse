@@ -36,6 +36,14 @@ interface ProductView {
   additional_data: any;
 }
 
+// ViewedItem - Individual item viewed by a user
+interface ViewedItem {
+  item_id: string | null;
+  item_type: string | null;
+  item_name: string;
+  view_count: number;
+}
+
 // AggregatedView - User details stored internally for conversion only, NEVER displayed
 interface AggregatedView {
   key: string;
@@ -45,11 +53,9 @@ interface AggregatedView {
   _internal_user_email: string | null;
   _internal_user_company: string | null;
   _internal_user_mobile: string | null;
-  // Display fields
-  item_id: string | null;
-  item_type: string | null;
-  item_name: string;
-  view_count: number;
+  // Display fields - now supports multiple items per user
+  items: ViewedItem[];
+  total_view_count: number;
   last_viewed: string;
   first_viewed: string;
 }
@@ -224,11 +230,32 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
     const aggregationMap = new Map<string, AggregatedView>();
 
     views.forEach((view) => {
-      const key = `${view.user_id || 'anonymous'}_${view.item_id || 'unknown'}`;
+      // Group by user_id only - same user viewing different items stays in one entry
+      const userKey = view.user_id || 'anonymous';
+      const itemKey = `${view.item_id || 'unknown'}_${view.item_type || 'unknown'}`;
       
-      if (aggregationMap.has(key)) {
-        const existing = aggregationMap.get(key)!;
-        existing.view_count += 1;
+      if (aggregationMap.has(userKey)) {
+        const existing = aggregationMap.get(userKey)!;
+        
+        // Check if this item already exists for this user
+        const existingItemIndex = existing.items.findIndex(
+          i => i.item_id === view.item_id && i.item_type === view.item_type
+        );
+        
+        if (existingItemIndex >= 0) {
+          // Increment view count for existing item
+          existing.items[existingItemIndex].view_count += 1;
+        } else {
+          // Add new item to user's viewed items
+          existing.items.push({
+            item_id: view.item_id,
+            item_type: view.item_type,
+            item_name: view.additional_data?.item_name || 'Unknown Product',
+            view_count: 1
+          });
+        }
+        
+        existing.total_view_count += 1;
         if (new Date(view.created_at) > new Date(existing.last_viewed)) {
           existing.last_viewed = view.created_at;
         }
@@ -236,19 +263,22 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
           existing.first_viewed = view.created_at;
         }
       } else {
-        aggregationMap.set(key, {
-          key,
+        aggregationMap.set(userKey, {
+          key: userKey,
           // Internal fields - stored for conversion only, NEVER displayed
           _internal_user_id: view.user_id,
           _internal_user_name: view.user_name,
           _internal_user_email: view.user_email,
           _internal_user_company: view.user_company,
           _internal_user_mobile: view.user_mobile,
-          // Display fields
-          item_id: view.item_id,
-          item_type: view.item_type,
-          item_name: view.additional_data?.item_name || 'Unknown Product',
-          view_count: 1,
+          // Display fields - multiple items per user
+          items: [{
+            item_id: view.item_id,
+            item_type: view.item_type,
+            item_name: view.additional_data?.item_name || 'Unknown Product',
+            view_count: 1
+          }],
+          total_view_count: 1,
           last_viewed: view.created_at,
           first_viewed: view.created_at,
         });
@@ -263,12 +293,31 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
   };
 
   const isAlreadyConverted = (view: AggregatedView): boolean => {
-    if (!view._internal_user_id || !view.item_id) return false;
-    return convertedLeads.has(`${view._internal_user_id}_${view.item_id}`);
+    if (!view._internal_user_id) return false;
+    // Check if all items for this user have been converted
+    return view.items.every(item => 
+      item.item_id && convertedLeads.has(`${view._internal_user_id}_${item.item_id}`)
+    );
   };
 
-  const handleConvertToLead = async (view: AggregatedView) => {
-    const creditsRequired = getCreditsForItemType(view.item_type);
+  // Get the first unconverted item for this user
+  const getFirstUnconvertedItem = (view: AggregatedView): ViewedItem | null => {
+    return view.items.find(item => 
+      !item.item_id || !convertedLeads.has(`${view._internal_user_id}_${item.item_id}`)
+    ) || null;
+  };
+
+  const handleConvertToLead = async (view: AggregatedView, selectedItem?: ViewedItem) => {
+    const item = selectedItem || getFirstUnconvertedItem(view);
+    if (!item) {
+      toast({
+        title: "Already Converted",
+        description: "All items from this viewer have been converted to leads."
+      });
+      return;
+    }
+
+    const creditsRequired = getCreditsForItemType(item.item_type);
     
     // Check credits ONLY when convert button is clicked
     if (!userCredits || userCredits.current_balance < creditsRequired) {
@@ -280,7 +329,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       return;
     }
 
-    if (!view._internal_user_id || !view.item_id) {
+    if (!view._internal_user_id || !item.item_id) {
       toast({
         variant: "destructive",
         title: "Cannot Convert",
@@ -289,7 +338,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       return;
     }
 
-    setConvertingId(view.key);
+    setConvertingId(`${view.key}_${item.item_id}`);
     try {
       const newBalance = userCredits.current_balance - creditsRequired;
 
@@ -303,9 +352,9 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
           buyer_email: view._internal_user_email,
           buyer_phone: view._internal_user_mobile,
           buyer_company: view._internal_user_company,
-          item_id: view.item_id,
-          item_type: view.item_type,
-          item_name: view.item_name,
+          item_id: item.item_id,
+          item_type: item.item_type,
+          item_name: item.item_name,
           source: 'product_view',
           status: 'new',
           is_unlocked: true,
@@ -337,7 +386,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
           credits_amount: -creditsRequired,
           balance_before: userCredits.current_balance,
           balance_after: newBalance,
-          description: `Converted product view to lead for ${view.item_name}`,
+          description: `Converted product view to lead for ${item.item_name}`,
           reference_id: leadId,
           reference_type: 'lead'
         });
@@ -357,7 +406,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
       if (updateError) throw updateError;
 
       // Add to converted set
-      setConvertedLeads(prev => new Set(prev).add(`${view._internal_user_id}_${view.item_id}`));
+      setConvertedLeads(prev => new Set(prev).add(`${view._internal_user_id}_${item.item_id}`));
 
       await refreshCredits();
 
@@ -488,57 +537,80 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
           <div className="divide-y divide-border">
             {unconvertedViews.map((view) => {
               const isNew = new Date(view.last_viewed) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+              // Get unconverted items for this user
+              const unconvertedItems = view.items.filter(item => 
+                !item.item_id || !convertedLeads.has(`${view._internal_user_id}_${item.item_id}`)
+              );
 
               return (
                 <div 
                   key={view.key} 
                   className="p-4 hover:bg-muted/30 transition-colors"
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    {/* Left side - Product info ONLY (no user details) */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        {getItemTypeIcon(view.item_type)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-foreground truncate">
-                            {view.item_name}
-                          </p>
-                          {getItemTypeBadge(view.item_type)}
-                          {isNew && (
-                            <Badge className="bg-primary/10 text-primary border-0 text-xs">New</Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                          <Eye className="w-3.5 h-3.5" />
-                          <span className="font-medium text-foreground">{view.view_count} {view.view_count === 1 ? 'View' : 'Views'}</span>
-                          <span>•</span>
-                          <span title={format(new Date(view.last_viewed), 'PPpp')}>
-                            {formatDistanceToNow(new Date(view.last_viewed), { addSuffix: true })}
-                          </span>
-                        </div>
+                  <div className="flex flex-col gap-3">
+                    {/* Header with total views and time */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Eye className="w-4 h-4" />
+                        <span className="font-medium text-foreground">{view.total_view_count} Total {view.total_view_count === 1 ? 'View' : 'Views'}</span>
+                        <span>•</span>
+                        <span title={format(new Date(view.last_viewed), 'PPpp')}>
+                          {formatDistanceToNow(new Date(view.last_viewed), { addSuffix: true })}
+                        </span>
+                        {isNew && (
+                          <Badge className="bg-primary/10 text-primary border-0 text-xs ml-2">New</Badge>
+                        )}
                       </div>
                     </div>
 
-                    {/* Right side - Convert to Lead button */}
-                    <div className="flex-shrink-0">
-                      <Button
-                        size="sm"
-                        onClick={() => handleConvertToLead(view)}
-                        disabled={convertingId === view.key || !view._internal_user_id}
-                        className="flex items-center gap-2"
-                      >
-                        {convertingId === view.key ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <UserPlus className="w-4 h-4" />
-                            Convert to Lead
-                            <span className="text-xs opacity-75">({getCreditsForItemType(view.item_type)} cr)</span>
-                          </>
-                        )}
-                      </Button>
+                    {/* Items list - show all items this user viewed */}
+                    <div className="space-y-2">
+                      {unconvertedItems.map((item, idx) => {
+                        const itemConvertingId = `${view.key}_${item.item_id}`;
+                        const isConverting = convertingId === itemConvertingId;
+                        
+                        return (
+                          <div 
+                            key={`${item.item_id}_${idx}`}
+                            className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded-lg"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                {getItemTypeIcon(item.item_type)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-medium text-foreground text-sm truncate">
+                                    {item.item_name}
+                                  </p>
+                                  {getItemTypeBadge(item.item_type)}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {item.view_count} {item.view_count === 1 ? 'view' : 'views'}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleConvertToLead(view, item)}
+                              disabled={isConverting || !view._internal_user_id}
+                              className="flex items-center gap-1.5 text-xs"
+                            >
+                              {isConverting ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <UserPlus className="w-3.5 h-3.5" />
+                                  Convert
+                                  <span className="opacity-75">({getCreditsForItemType(item.item_type)} cr)</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
