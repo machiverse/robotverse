@@ -563,11 +563,12 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
                       </div>
                     </div>
 
-                    {/* Items list - show all items this user viewed */}
+                    {/* Items list - show all items this user viewed with numbers */}
                     <div className="space-y-2">
                       {unconvertedItems.map((item, idx) => {
                         const itemConvertingId = `${view.key}_${item.item_id}`;
                         const isConverting = convertingId === itemConvertingId;
+                        const itemNumber = idx + 1;
                         
                         return (
                           <div 
@@ -575,6 +576,10 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
                             className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded-lg"
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {/* Item number */}
+                              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-primary">
+                                {itemNumber}
+                              </div>
                               <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                                 {getItemTypeIcon(item.item_type)}
                               </div>
