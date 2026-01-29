@@ -358,26 +358,44 @@ export const useSellerCRM = (itemType?: string) => {
       const serviceData = new Map((servicesData.data || []).map(s => [s.id, { name: s.name, image: s.image_url || null }]));
       
       // Update views with names and images - handle both singular and plural item_type values
-      const enrichedViews = views.map(view => {
-        let itemName: string | null = null;
-        let itemImage: string | null = null;
-        if (view.item_id) {
-          if (view.item_type === 'robots' || view.item_type === 'robot') {
-            const data = robotData.get(view.item_id);
-            itemName = data?.name || null;
-            itemImage = data?.image || null;
-          } else if (view.item_type === 'spare_parts' || view.item_type === 'spare_part') {
-            const data = partData.get(view.item_id);
-            itemName = data?.name || null;
-            itemImage = data?.image || null;
-          } else if (view.item_type === 'services' || view.item_type === 'service') {
-            const data = serviceData.get(view.item_id);
-            itemName = data?.name || null;
-            itemImage = data?.image || null;
+      // ONLY include views where the item actually exists in the database
+      const enrichedViews = views
+        .map(view => {
+          let itemName: string | null = null;
+          let itemImage: string | null = null;
+          let itemExists = false;
+          
+          if (view.item_id) {
+            if (view.item_type === 'robots' || view.item_type === 'robot') {
+              const data = robotData.get(view.item_id);
+              if (data) {
+                itemName = data.name;
+                itemImage = data.image || null;
+                itemExists = true;
+              }
+            } else if (view.item_type === 'spare_parts' || view.item_type === 'spare_part') {
+              const data = partData.get(view.item_id);
+              if (data) {
+                itemName = data.name;
+                itemImage = data.image || null;
+                itemExists = true;
+              }
+            } else if (view.item_type === 'services' || view.item_type === 'service') {
+              const data = serviceData.get(view.item_id);
+              if (data) {
+                itemName = data.name;
+                itemImage = data.image || null;
+                itemExists = true;
+              }
+            }
           }
-        }
-        return { ...view, item_name: itemName, item_image: itemImage } as ProductView & { item_image: string | null };
-      });
+          
+          // Return null for items that don't exist in the database
+          if (!itemExists) return null;
+          
+          return { ...view, item_name: itemName, item_image: itemImage } as ProductView & { item_image: string | null };
+        })
+        .filter((view): view is ProductView & { item_image: string | null } => view !== null);
       
       setProductViews(enrichedViews);
       
