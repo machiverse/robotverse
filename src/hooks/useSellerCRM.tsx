@@ -329,6 +329,8 @@ export const useSellerCRM = (itemType?: string) => {
         .from('button_interactions')
         .select('*')
         .eq('seller_id', user.id)
+        .not('item_id', 'is', null)
+        .in('button_type', ['product_view', 'item_view', 'view'])
         .order('created_at', { ascending: false });
 
       if (itemType) {
@@ -338,7 +340,8 @@ export const useSellerCRM = (itemType?: string) => {
       const { data, error } = await query;
       if (error) throw error;
       
-      const views = data || [];
+      // Filter to only views that have an item_id (actual product views)
+      const views = (data || []).filter(v => v.item_id);
       
       // Then fetch item names in background - handle both singular and plural item_type values
       const robotIds = [...new Set(views.filter(v => (v.item_type === 'robots' || v.item_type === 'robot') && v.item_id).map(v => v.item_id))];
