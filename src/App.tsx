@@ -4,17 +4,22 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import RobotComparison from "./pages/RobotComparison";
 import Robots from "./pages/Robots";
 import RobotDetails from "./pages/RobotDetails";
 import Parts from "./pages/Parts";
 import SparePartDetails from "./pages/SparePartDetails";
 import Services from "./pages/Services";
+import ServiceDetails from "./pages/ServiceDetails";
 import Logistics from "./pages/Logistics";
+import LogisticsDetails from "./pages/LogisticsDetails";
 import Financing from "./pages/Financing";
+import FinancingDetails from "./pages/FinancingDetails";
 import Blogs from "./pages/Blogs";
 import BlogDetails from "./pages/BlogDetails";
 import BlogEditor from "./pages/BlogEditor";
@@ -39,6 +44,7 @@ import Settings from "./pages/dashboard/Settings";
 import Help from "./pages/dashboard/Help";
 import Privacy from "./pages/dashboard/Privacy";
 import Messages from "./pages/dashboard/Messages";
+import Credits from "./pages/dashboard/Credits";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -47,6 +53,8 @@ import Cookies from "./pages/Cookies";
 import Sitemap from "./pages/Sitemap";
 import Accessibility from "./pages/Accessibility";
 import Chat from "./pages/Chat";
+import CRM from "./pages/CRM";
+import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
 
 const queryClient = new QueryClient();
@@ -60,25 +68,33 @@ const GlobalChatNotifications = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <GlobalChatNotifications />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AutoSignInPopup />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/robots" element={<Robots />} />
-            <Route path="/robots/:id" element={<RobotDetails />} />
-            <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
+      <RobotComparisonProvider>
+        <TooltipProvider>
+          <GlobalChatNotifications />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AutoSignInPopup />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/robots" element={<Robots />} />
+              <Route path="/robots/:id" element={<RobotDetails />} />
+              <Route path="/robots/compare" element={<RobotComparison />} />
+              <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/parts/:id" element={<SparePartDetails />} />
+            <Route path="/spares/:category" element={<Parts />} />
+            <Route path="/spares/:category/:subcategory" element={<Parts />} />
+            <Route path="/spares/:category/:subcategory/:componentType" element={<Parts />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/services/:id" element={<ServiceDetails />} />
             <Route path="/logistics" element={<Logistics />} />
+            <Route path="/logistics/:id" element={<LogisticsDetails />} />
             <Route path="/test-image-migration" element={<TestImageMigration />} />
             <Route path="/financing" element={<Financing />} />
+            <Route path="/financing/:id" element={<FinancingDetails />} />
             <Route path="/robobook" element={<Blogs />} />
             <Route path="/community" element={<Blogs />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
@@ -102,6 +118,7 @@ const App = () => (
             <Route path="/dashboard/settings" element={<Settings />} />
             <Route path="/dashboard/help" element={<Help />} />
             <Route path="/dashboard/privacy" element={<Privacy />} />
+            <Route path="/dashboard/credits" element={<Credits />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
             <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
@@ -113,12 +130,15 @@ const App = () => (
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
-            <Route path="/chat" element={<Chat />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/crm" element={<CRM />} />
+              <Route path="/pricing" element={<Pricing />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </RobotComparisonProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

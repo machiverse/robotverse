@@ -339,10 +339,10 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
       bgColor: 'bg-blue-50'
     },
     {
-      title: 'Total Views',
-      value: viewStats.totalViews || 0,
+      title: 'Logistics Views',
+      value: viewStats.viewsByCategory.logistics_services || 0,
       icon: Eye,
-      trend: `${viewStats.viewsByCategory.logistics_services} service views`,
+      trend: 'Views on your logistics services',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
     },

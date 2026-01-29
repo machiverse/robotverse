@@ -25,6 +25,21 @@ verify_jwt = false
 [functions.generate-sitemap-auto]
 verify_jwt = false
 
+[functions.robot-comparison-ai]
+verify_jwt = false
+
+[functions.razorpay-create-order]
+verify_jwt = false
+
+[functions.razorpay-verify-payment]
+verify_jwt = false
+
+[functions.razorpay-create-subscription]
+verify_jwt = false
+
+[functions.razorpay-webhook]
+verify_jwt = false
+
 [db]
 enabled = true
 port = 54322

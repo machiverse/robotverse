@@ -128,3 +128,16 @@ export function calculateTotalInINR(items: Array<{ price: number; currency: Curr
     return total + convertToINR(item.price, item.currency);
   }, 0);
 }
+
+/**
+ * Format amount in INR (simplified helper)
+ */
+export function formatAmount(amount: number): string {
+  if (amount === null || amount === undefined) {
+    return '₹0';
+  }
+  return `₹${amount.toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  })}`;
+}

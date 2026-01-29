@@ -2,7 +2,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import EnhancedHero from "@/components/EnhancedHero";
 import LiveStats from "@/components/LiveStats";
 import MarketplaceCategories from "@/components/MarketplaceCategories";
-import RobotListings from "@/components/RobotListings";
+import HomeRobotListings from "@/components/HomeRobotListings";
 import WhyChooseRobotVerse from "@/components/WhyChooseRobotVerse";
 import ProfessionalCategories from "@/components/ProfessionalCategories";
 import Footer from "@/components/Footer";
@@ -30,7 +30,7 @@ const Index = () => {
       )}
       <EnhancedHeader />
       <EnhancedHero />
-      <RobotListings />
+      <HomeRobotListings />
       <MarketplaceCategories />
       <ProfessionalCategories />
       <WhyChooseRobotVerse />

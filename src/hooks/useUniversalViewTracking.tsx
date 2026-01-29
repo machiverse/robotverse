@@ -34,25 +34,24 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
-// Check if view should be counted (prevent duplicate counts in same session)
-const shouldCountView = (itemType: ItemType, itemId: string): boolean => {
-  // For spare parts, always count every detail page open to ensure views increment reliably
-  if (itemType === 'spare_parts') {
-    return true;
-  }
+// Throttle view counting - prevent counting same item multiple times within cooldown period
+const VIEW_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes cooldown
 
-  const key = `viewed_${itemType}_${itemId}`;
-  const lastView = localStorage.getItem(key);
+const shouldCountView = (itemType: ItemType, itemId: string): boolean => {
+  const key = `view_${itemType}_${itemId}`;
+  const lastViewed = localStorage.getItem(key);
   const now = Date.now();
-  const threshold = 30 * 1000; // 30 seconds for other item types
   
-  if (!lastView || (now - parseInt(lastView)) > threshold) {
-    localStorage.setItem(key, now.toString());
-    return true;
+  if (lastViewed) {
+    const lastViewTime = parseInt(lastViewed, 10);
+    if (now - lastViewTime < VIEW_COOLDOWN_MS) {
+      return false; // Too soon since last view
+    }
   }
   
-  console.log(`📊 View not counted for ${itemType} ${itemId} - last viewed ${Math.round((now - parseInt(lastView)) / 1000)}s ago`);
-  return false;
+  // Mark this item as viewed
+  localStorage.setItem(key, now.toString());
+  return true;
 };
 
 export const useUniversalViewTracking = () => {
@@ -115,22 +114,26 @@ export const useUniversalViewTracking = () => {
       }
 
       // Store detailed view interaction data
+      const sellerId = itemData?.seller_id || itemData?.provider_id || null;
+      const viewerName = user ? (userProfile?.full_name || user?.user_metadata?.full_name || user?.email || 'Unknown User') : 'Anonymous Visitor';
+      const itemName = itemData?.name || itemData?.service_name || itemData?.product_name || 'Item';
+      
       const { error: interactionError } = await supabase
         .from('button_interactions')
         .insert({
           user_id: user?.id || null,
-          user_name: user ? (userProfile?.full_name || user?.user_metadata?.full_name || user?.email || 'Unknown User') : 'Anonymous',
+          user_name: viewerName,
           button_name: `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} Page View`,
           button_type: "view",
           page_url: window.location.href,
           item_id: itemId,
           item_type: itemType,
-          seller_id: itemData?.seller_id || itemData?.provider_id || null,
+          seller_id: sellerId,
           seller_name: itemData?.profiles?.company_name || itemData?.profiles?.full_name || null,
           additional_data: {
             session_id: sessionId,
             item_details: {
-              name: itemData?.name,
+              name: itemName,
               model: itemData?.model,
               type: itemData?.type || itemData?.service_type || itemData?.robot_type,
               price: itemData?.price,
@@ -160,6 +163,34 @@ export const useUniversalViewTracking = () => {
 
       if (interactionError) {
         console.error('Error storing interaction data:', interactionError);
+      }
+
+      // Send notification to seller if they exist and viewer is not the seller
+      if (sellerId && sellerId !== user?.id) {
+        const notificationType = `${itemType.replace('_', '_')}_view`;
+        const referenceType = itemType === 'robots' ? 'robot' : 
+                              itemType === 'spare_parts' ? 'spare_part' :
+                              itemType === 'services' ? 'service' :
+                              itemType === 'logistics_services' ? 'logistics' :
+                              itemType === 'loan_products' ? 'financing' : itemType;
+        
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: sellerId,
+            notification_type: notificationType,
+            title: `New view on your ${itemType.replace('_', ' ')}`,
+            message: `${viewerName} viewed your "${itemName}" (Total: ${newCount} views)`,
+            reference_id: itemId,
+            reference_type: referenceType,
+            is_read: false
+          });
+
+        if (notificationError) {
+          console.error('Error sending seller notification:', notificationError);
+        } else {
+          console.log(`🔔 Notification sent to seller ${sellerId} for ${itemType} view`);
+        }
       }
 
       console.log(`📊 ${itemType} view tracked: ${itemId} (New count: ${newCount})`);

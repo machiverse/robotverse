@@ -130,38 +130,67 @@ export const useViewTracking = () => {
       const logisticsIds = logisticsData.data?.map(l => l.id) || [];
       const financeIds = financeData.data?.map(f => f.id) || [];
 
-      // Get view counts for each category
-      const [robotViews, sparePartViews, serviceViews, logisticsViews, financeViews, recentViewsData] = await Promise.all([
+      // Get view counts from item_view_counts table (aggregated counts)
+      const [robotViewCounts, sparePartViewCounts, serviceViewCounts, logisticsViewCounts, financeViewCounts] = await Promise.all([
+        robotIds.length > 0 ? supabase
+          .from('item_view_counts')
+          .select('total_views')
+          .eq('item_type', 'robots')
+          .in('item_id', robotIds) : { data: [] },
+        sparePartIds.length > 0 ? supabase
+          .from('item_view_counts')
+          .select('total_views')
+          .eq('item_type', 'spare_parts')
+          .in('item_id', sparePartIds) : { data: [] },
+        serviceIds.length > 0 ? supabase
+          .from('item_view_counts')
+          .select('total_views')
+          .eq('item_type', 'services')
+          .in('item_id', serviceIds) : { data: [] },
+        logisticsIds.length > 0 ? supabase
+          .from('item_view_counts')
+          .select('total_views')
+          .eq('item_type', 'logistics_services')
+          .in('item_id', logisticsIds) : { data: [] },
+        financeIds.length > 0 ? supabase
+          .from('item_view_counts')
+          .select('total_views')
+          .eq('item_type', 'loan_products')
+          .in('item_id', financeIds) : { data: [] }
+      ]);
+
+      // Also get counts from user_interactions table as fallback
+      const [robotInteractions, sparePartInteractions, serviceInteractions, logisticsInteractions, financeInteractions, recentViewsData] = await Promise.all([
         robotIds.length > 0 ? supabase
           .from('user_interactions')
-          .select('*')
+          .select('id', { count: 'exact', head: true })
           .eq('interaction_type', 'view')
           .eq('target_type', 'robots')
-          .in('target_id', robotIds) : { data: [] },
+          .in('target_id', robotIds) : { count: 0 },
         sparePartIds.length > 0 ? supabase
           .from('user_interactions')
-          .select('*')
+          .select('id', { count: 'exact', head: true })
           .eq('interaction_type', 'view')
           .eq('target_type', 'spare_parts')
-          .in('target_id', sparePartIds) : { data: [] },
+          .in('target_id', sparePartIds) : { count: 0 },
         serviceIds.length > 0 ? supabase
           .from('user_interactions')
-          .select('*')
+          .select('id', { count: 'exact', head: true })
           .eq('interaction_type', 'view')
           .eq('target_type', 'services')
-          .in('target_id', serviceIds) : { data: [] },
+          .in('target_id', serviceIds) : { count: 0 },
         logisticsIds.length > 0 ? supabase
           .from('user_interactions')
-          .select('*')
+          .select('id', { count: 'exact', head: true })
           .eq('interaction_type', 'view')
           .eq('target_type', 'logistics_services')
-          .in('target_id', logisticsIds) : { data: [] },
+          .in('target_id', logisticsIds) : { count: 0 },
         financeIds.length > 0 ? supabase
           .from('user_interactions')
-          .select('*')
+          .select('id', { count: 'exact', head: true })
           .eq('interaction_type', 'view')
           .eq('target_type', 'loan_products')
-          .in('target_id', financeIds) : { data: [] },
+          .in('target_id', financeIds) : { count: 0 },
         (() => {
           const allIds = [...robotIds, ...sparePartIds, ...serviceIds, ...logisticsIds, ...financeIds];
           if (allIds.length === 0) {
@@ -177,12 +206,25 @@ export const useViewTracking = () => {
         })()
       ]);
 
+      // Sum up view counts from item_view_counts table
+      const sumViewCounts = (data: any[] | null) => 
+        (data || []).reduce((sum, item) => sum + (item.total_views || 0), 0);
+
+      const viewCountsFromTable = {
+        robots: sumViewCounts(robotViewCounts.data),
+        spare_parts: sumViewCounts(sparePartViewCounts.data),
+        services: sumViewCounts(serviceViewCounts.data),
+        logistics_services: sumViewCounts(logisticsViewCounts.data),
+        loan_products: sumViewCounts(financeViewCounts.data)
+      };
+
+      // Use the higher count between item_view_counts and user_interactions
       const viewsByCategory = {
-        robots: robotViews.data?.length || 0,
-        spare_parts: sparePartViews.data?.length || 0,
-        services: serviceViews.data?.length || 0,
-        logistics_services: logisticsViews.data?.length || 0,
-        loan_products: financeViews.data?.length || 0
+        robots: Math.max(viewCountsFromTable.robots, robotInteractions.count || 0),
+        spare_parts: Math.max(viewCountsFromTable.spare_parts, sparePartInteractions.count || 0),
+        services: Math.max(viewCountsFromTable.services, serviceInteractions.count || 0),
+        logistics_services: Math.max(viewCountsFromTable.logistics_services, logisticsInteractions.count || 0),
+        loan_products: Math.max(viewCountsFromTable.loan_products, financeInteractions.count || 0)
       };
 
       const totalViews = Object.values(viewsByCategory).reduce((sum, count) => sum + count, 0);
@@ -193,6 +235,7 @@ export const useViewTracking = () => {
         recentViews: recentViewsData.data || []
       };
 
+      console.log('📊 View tracking result:', result);
       setViewStats(result);
       return result;
     } catch (error) {

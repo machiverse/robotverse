@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
   Bot,
   Wrench,
 } from "lucide-react";
+
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
@@ -96,6 +97,9 @@ const SparePartDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
 
+  // Ref to prevent duplicate view counting
+  const viewCountedRef = useRef<string | null>(null);
+
   // Generate SEO when spare part data is loaded
   useEffect(() => {
     if (sparePart) {
@@ -145,38 +149,42 @@ const SparePartDetails = () => {
         setSparePart(data as unknown as SparePart);
 
         // Track spare part view using universal view tracking system (increments view count)
-        await trackItemView("spare_parts", data.id, data);
+        // Only count view once per page load to prevent duplicate counting
+        if (viewCountedRef.current !== data.id) {
+          viewCountedRef.current = data.id;
+          await trackItemView("spare_parts", data.id, data);
 
-        // Track detailed button interaction for analytics
-        await trackButtonClick({
-          buttonName: "Spare Part Page View",
-          buttonType: "spare_part_page_view",
-          sellerId: data.seller_id,
-          sellerName: data.profiles?.full_name || "No Name Available",
-          sellerCompany: data.profiles?.company_name || "No Company Available",
-          sellerEmail: data.profiles?.email || "No Email Available",
-          sellerMobile: data.profiles?.mobile_number || data.profiles?.phone || "No Phone Available",
-          sellerLocation: data.profiles?.location || data.location || "No Location Available",
-          itemId: data.id,
-          itemType: "spare_part",
-          additionalData: {
-            partName: data.name,
-            partModel: data.model,
-            partNumber: data.part_number,
-            brand: data.brand,
-            mainCategory: data.main_category,
-            subCategory: data.sub_category,
-            price: data.price,
-            currency: data.currency,
-            condition: data.condition,
-            location: data.location,
-            state: data.state,
-            pageType: "spare_part_details",
-            viewSource: "direct_page_visit",
-            sellerProfileExists: !!data.profiles,
-            trackingNote: "Spare part details page view with comprehensive tracking",
-          },
-        });
+          // Track detailed button interaction for analytics
+          await trackButtonClick({
+            buttonName: "Spare Part Page View",
+            buttonType: "spare_part_page_view",
+            sellerId: data.seller_id,
+            sellerName: data.profiles?.full_name || "No Name Available",
+            sellerCompany: data.profiles?.company_name || "No Company Available",
+            sellerEmail: data.profiles?.email || "No Email Available",
+            sellerMobile: data.profiles?.mobile_number || data.profiles?.phone || "No Phone Available",
+            sellerLocation: data.profiles?.location || data.location || "No Location Available",
+            itemId: data.id,
+            itemType: "spare_part",
+            additionalData: {
+              partName: data.name,
+              partModel: data.model,
+              partNumber: data.part_number,
+              brand: data.brand,
+              mainCategory: data.main_category,
+              subCategory: data.sub_category,
+              price: data.price,
+              currency: data.currency,
+              condition: data.condition,
+              location: data.location,
+              state: data.state,
+              pageType: "spare_part_details",
+              viewSource: "direct_page_visit",
+              sellerProfileExists: !!data.profiles,
+              trackingNote: "Spare part details page view with comprehensive tracking",
+            },
+          });
+        }
 
         // Fetch compatible robots
         if (data.compatible_robots && data.compatible_robots.length > 0) {
@@ -468,31 +476,6 @@ const SparePartDetails = () => {
                     </Button>
                   </div>
 
-                  <Separator />
-
-                  {/* Seller Info */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold flex items-center gap-2 text-lg">
-                      <Building className="w-4 h-4" />
-                      Seller Information
-                    </h3>
-                    <div className="grid gap-2 text-sm">
-                      <p className="flex items-center gap-2">
-                        <Building className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-semibold">
-                          {sparePart.profiles?.company_name || sparePart.profiles?.full_name}
-                        </span>
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>
-                          {sparePart.location}
-                          {sparePart.state && `, ${sparePart.state}`}
-                          {sparePart.pincode && ` - ${sparePart.pincode}`}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>

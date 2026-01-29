@@ -20,7 +20,7 @@ interface SupplierQuoteFormProps {
     sellerId?: string; // Add sellerId to track which seller this is for
   };
   itemInfo: {
-    type: 'spare_part' | 'service' | 'logistics';
+    type: 'spare_part' | 'service' | 'logistics' | 'robot';
     name: string;
     id: string;
     model?: string;
@@ -60,6 +60,7 @@ const SupplierQuoteForm = ({ onClose, supplierInfo, itemInfo, robotInfo }: Suppl
       case 'spare_part': return 'Spare Part';
       case 'service': return 'Service';
       case 'logistics': return 'Logistics Service';
+      case 'robot': return 'Robot';
       default: return 'Item';
     }
   };
@@ -124,6 +125,54 @@ const SupplierQuoteForm = ({ onClose, supplierInfo, itemInfo, robotInfo }: Suppl
         console.error('Error logging request:', dbError);
         // Don't fail the entire process if logging fails
       } else {
+        // Send notification to seller about the quote request
+        if (supplierInfo.sellerId) {
+          try {
+            // Fetch user profile for additional details
+            const { data: userProfile } = await supabase
+              .from('profiles')
+              .select('full_name, company_name, mobile_number, email, location')
+              .eq('user_id', user.id)
+              .single();
+
+            await supabase.from('notifications').insert({
+              user_id: supplierInfo.sellerId,
+              notification_type: 'quote_request',
+              title: 'New Quote Request - Use Credits to Unlock',
+              message: `A buyer requested a quote for "${itemInfo.name}". Use credits to unlock buyer contact details.`,
+              reference_id: itemInfo.id,
+              reference_type: itemInfo.type,
+              is_read: false
+            });
+
+            // Also create a lead entry in seller_leads for credit-based unlock
+            await supabase.from('seller_leads').upsert({
+              seller_id: supplierInfo.sellerId,
+              buyer_id: user.id,
+              lead_source: 'quote_request',
+              item_type: itemInfo.type,
+              item_id: itemInfo.id,
+              item_name: itemInfo.name,
+              buyer_name: formData.customerName || userProfile?.full_name || 'Unknown',
+              buyer_email: formData.customerEmail || userProfile?.email || '',
+              buyer_phone: formData.customerPhone || userProfile?.mobile_number || '',
+              buyer_company: formData.company || userProfile?.company_name || '',
+              buyer_location: userProfile?.location || '',
+              requirements: formData.requirements,
+              urgency: formData.urgency,
+              status: 'new',
+              is_unlocked: false,
+              created_at: new Date().toISOString()
+            }, { 
+              onConflict: 'seller_id,buyer_id,item_id',
+              ignoreDuplicates: false 
+            });
+
+            console.log('Quote notification and lead created for seller:', supplierInfo.sellerId);
+          } catch (notificationError) {
+            console.error('Error sending quote notification:', notificationError);
+          }
+        }
         // Cross-provider notifications for spare parts enquiries
         if (itemInfo.type === 'spare_part') {
           try {

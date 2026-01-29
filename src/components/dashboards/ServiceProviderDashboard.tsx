@@ -18,9 +18,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
-import UserRequestsManagement from '@/components/UserRequestsManagement';
-import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
+import { LeadsManager } from '@/components/crm';
+import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
+import { FileText } from 'lucide-react';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
@@ -239,7 +240,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {[ 
-              { title: "Total Views", val: viewStats.totalViews || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
+              { title: "Service Views", val: viewStats.viewsByCategory.services || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
               { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600" },
               { title: "Active Requests", val: dashboardStats.activeRequests, icon: Clock, variant: "secondary", color: "text-orange-600" },
               { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600" },
@@ -264,14 +265,31 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-6">
-              <TabsTrigger value="requests">Service Requests</TabsTrigger>
-              <TabsTrigger value="user-requests">User Requests</TabsTrigger>
+            <TabsList className="grid grid-cols-5">
               <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
-              <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
+              <TabsTrigger value="leads">Lead Manager</TabsTrigger>
+              <TabsTrigger value="requests">Service Requests</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
+              <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
             </TabsList>
+
+            {/* Lead Manager Tab */}
+            <TabsContent value="leads">
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="w-5 h-5" />
+                    Lead Manager
+                  </CardTitle>
+                  <CardDescription>
+                    View product viewers, unlock buyer details, start chat, WhatsApp, email, call, send quotations, and track follow-ups
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <LeadsManager sellerId={user?.id || ''} itemType="service" />
+                </CardContent>
+              </Card>
+            </TabsContent>
             {/* Service Requests Tab */}
             <TabsContent value="requests">
               <Card className="mt-6">
@@ -419,11 +437,6 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* User Requests Tab */}
-            <TabsContent value="user-requests">
-              <UserRequestsManagement />
             </TabsContent>
 
             {/* Watchlist Tab */}
