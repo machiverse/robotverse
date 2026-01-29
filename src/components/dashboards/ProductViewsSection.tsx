@@ -230,9 +230,26 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
     const aggregationMap = new Map<string, AggregatedView>();
 
     views.forEach((view) => {
-      // Group by user_id only - same user viewing different items stays in one entry
-      const userKey = view.user_id || 'anonymous';
-      const itemKey = `${view.item_id || 'unknown'}_${view.item_type || 'unknown'}`;
+      // Create a unique key for each user:
+      // 1. If user_id exists (logged in user), use it
+      // 2. If user_email exists, use it as identifier
+      // 3. If user_mobile exists, use it as identifier
+      // 4. Otherwise, combine user_name + user_company + user_email + user_mobile for uniqueness
+      let userKey: string;
+      
+      if (view.user_id) {
+        userKey = view.user_id;
+      } else if (view.user_email) {
+        userKey = `email_${view.user_email}`;
+      } else if (view.user_mobile) {
+        userKey = `mobile_${view.user_mobile}`;
+      } else {
+        // For truly anonymous users, group by name+company combination
+        // This prevents one "Anonymous Visitor" entry per view
+        const nameKey = view.user_name || 'Anonymous';
+        const companyKey = view.user_company || 'Unknown';
+        userKey = `anon_${nameKey}_${companyKey}`;
+      }
       
       if (aggregationMap.has(userKey)) {
         const existing = aggregationMap.get(userKey)!;
