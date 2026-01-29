@@ -72,6 +72,7 @@ export interface ViewedItem {
   item_id: string | null;
   item_type: string | null;
   item_name: string;
+  item_image: string | null;
   view_count: number;
 }
 
@@ -344,27 +345,38 @@ export const useSellerCRM = (itemType?: string) => {
       const partIds = [...new Set(views.filter(v => (v.item_type === 'spare_parts' || v.item_type === 'spare_part') && v.item_id).map(v => v.item_id))];
       const serviceIds = [...new Set(views.filter(v => (v.item_type === 'services' || v.item_type === 'service') && v.item_id).map(v => v.item_id))];
       
-      // Fetch all names in parallel
+      // Fetch all names and images in parallel
       const [robotsData, partsData, servicesData] = await Promise.all([
-        robotIds.length > 0 ? supabase.from('robots').select('id, name').in('id', robotIds) : { data: [] },
-        partIds.length > 0 ? supabase.from('spare_parts').select('id, name').in('id', partIds) : { data: [] },
-        serviceIds.length > 0 ? supabase.from('services').select('id, name').in('id', serviceIds) : { data: [] }
+        robotIds.length > 0 ? supabase.from('robots').select('id, name, images').in('id', robotIds) : { data: [] },
+        partIds.length > 0 ? supabase.from('spare_parts').select('id, name, images').in('id', partIds) : { data: [] },
+        serviceIds.length > 0 ? supabase.from('services').select('id, name, image_url').in('id', serviceIds) : { data: [] }
       ]);
       
-      // Create lookup maps
-      const robotNames = new Map((robotsData.data || []).map(r => [r.id, r.name]));
-      const partNames = new Map((partsData.data || []).map(p => [p.id, p.name]));
-      const serviceNames = new Map((servicesData.data || []).map(s => [s.id, s.name]));
+      // Create lookup maps for names and images
+      const robotData = new Map((robotsData.data || []).map(r => [r.id, { name: r.name, image: r.images?.[0] || null }]));
+      const partData = new Map((partsData.data || []).map(p => [p.id, { name: p.name, image: p.images?.[0] || null }]));
+      const serviceData = new Map((servicesData.data || []).map(s => [s.id, { name: s.name, image: s.image_url || null }]));
       
-      // Update views with names - handle both singular and plural item_type values
+      // Update views with names and images - handle both singular and plural item_type values
       const enrichedViews = views.map(view => {
         let itemName: string | null = null;
+        let itemImage: string | null = null;
         if (view.item_id) {
-          if (view.item_type === 'robots' || view.item_type === 'robot') itemName = robotNames.get(view.item_id) || null;
-          else if (view.item_type === 'spare_parts' || view.item_type === 'spare_part') itemName = partNames.get(view.item_id) || null;
-          else if (view.item_type === 'services' || view.item_type === 'service') itemName = serviceNames.get(view.item_id) || null;
+          if (view.item_type === 'robots' || view.item_type === 'robot') {
+            const data = robotData.get(view.item_id);
+            itemName = data?.name || null;
+            itemImage = data?.image || null;
+          } else if (view.item_type === 'spare_parts' || view.item_type === 'spare_part') {
+            const data = partData.get(view.item_id);
+            itemName = data?.name || null;
+            itemImage = data?.image || null;
+          } else if (view.item_type === 'services' || view.item_type === 'service') {
+            const data = serviceData.get(view.item_id);
+            itemName = data?.name || null;
+            itemImage = data?.image || null;
+          }
         }
-        return { ...view, item_name: itemName } as ProductView;
+        return { ...view, item_name: itemName, item_image: itemImage } as ProductView & { item_image: string | null };
       });
       
       setProductViews(enrichedViews);
@@ -397,6 +409,7 @@ export const useSellerCRM = (itemType?: string) => {
         
         const existing = aggregationMap.get(userKey);
         const itemName = view.item_name || view.button_name || 'Unknown Product';
+        const itemImage = (view as ProductView & { item_image: string | null }).item_image || null;
         
         if (existing) {
           // Check if this item already exists for this user
@@ -413,6 +426,7 @@ export const useSellerCRM = (itemType?: string) => {
               item_id: view.item_id,
               item_type: view.item_type,
               item_name: itemName,
+              item_image: itemImage,
               view_count: 1
             });
           }
@@ -440,6 +454,7 @@ export const useSellerCRM = (itemType?: string) => {
               item_id: view.item_id,
               item_type: view.item_type,
               item_name: itemName,
+              item_image: itemImage,
               view_count: 1
             }],
             created_at: view.created_at,
