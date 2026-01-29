@@ -282,91 +282,37 @@ interface AggregatedViewRowProps {
   convertingId: string | null;
 }
 
-// AggregatedViewRow - Product view display with user name and multiple items
+// AggregatedViewRow - Product view display with user name and items with images
 const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }: AggregatedViewRowProps) => {
   const isCurrentlyConverting = convertingId === view.id;
 
-  // Get display name - show _internal_user_name or "Anonymous Visitor"
+  // Get display name
   const displayName = view._internal_user_name || "Anonymous Visitor";
   const isAnonymous = view.is_anonymous;
   const initial = displayName.charAt(0).toUpperCase();
 
-  // Determine item type label
-  const getItemTypeLabel = (type: string | null) => {
-    if (!type) return "Product";
-    const labels: Record<string, string> = {
-      robot: "Robot",
-      robots: "Robot",
-      spare_part: "Spare Part",
-      spare_parts: "Spare Part",
-      service: "Service",
-      services: "Service",
-      logistics: "Logistics",
-      finance: "Finance",
-    };
-    return labels[type] || type;
-  };
-
-  // Format items as inline text: "Item1 (3), Item2 (2)"
-  const itemsDisplay = view.items.map(item => 
-    `${item.item_name} (${item.view_count})`
-  ).join(', ');
-
   return (
-    <Card className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
+    <Card className="overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
       <div className="flex items-stretch">
         {/* Left accent bar */}
         <div className={`w-1 shrink-0 ${isAnonymous ? "bg-muted-foreground/30" : "bg-primary"}`} />
 
-        <div className="flex flex-1 items-center justify-between gap-4 p-4">
-          {/* Avatar & User/Product Info */}
-          <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${isAnonymous ? "bg-muted" : "bg-primary/10"}`}>
-              <span className={`text-sm font-semibold ${isAnonymous ? "text-muted-foreground" : "text-primary"}`}>
-                {initial}
-              </span>
-            </div>
-
-            <div className="min-w-0 flex-1 space-y-1.5">
-              {/* User name row */}
-              <div className="flex items-center gap-2">
-                <h4 className="font-semibold text-foreground">
-                  {displayName}
-                </h4>
-                {view.total_view_count > 1 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {view.total_view_count} views
-                  </Badge>
-                )}
+        <div className="flex-1 p-4">
+          {/* User name header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${isAnonymous ? "bg-muted" : "bg-primary/10"}`}>
+                <span className={`text-sm font-semibold ${isAnonymous ? "text-muted-foreground" : "text-primary"}`}>
+                  {initial}
+                </span>
               </div>
-
-              {/* Items viewed - inline display */}
-              <div className="text-sm text-foreground">
-                <span className="text-muted-foreground mr-1">Items:</span>
-                <span className="font-medium">{itemsDisplay}</span>
+              <div>
+                <h4 className="font-semibold text-foreground">{displayName}</h4>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
+                </div>
               </div>
-
-              {/* Item type badges */}
-              <div className="flex flex-wrap gap-1.5">
-                {view.items.map((item, idx) => (
-                  <Badge 
-                    key={`${item.item_id}_${idx}`}
-                    variant="outline" 
-                    className="text-xs flex items-center gap-1"
-                  >
-                    <Package className="h-3 w-3" />
-                    {getItemTypeLabel(item.item_type)}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right side - Time & Convert Action */}
-          <div className="flex shrink-0 items-center gap-4">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
             </div>
 
             <Button
@@ -382,6 +328,45 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
               )}
               Convert to Lead
             </Button>
+          </div>
+
+          {/* Items list with images */}
+          <div className="space-y-2 pl-[52px]">
+            {view.items.map((item, idx) => (
+              <div 
+                key={`${item.item_id}_${idx}`}
+                className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
+              >
+                {/* Item number */}
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary shrink-0">
+                  {idx + 1}
+                </span>
+
+                {/* Item image */}
+                {item.item_image ? (
+                  <img 
+                    src={item.item_image} 
+                    alt={item.item_name}
+                    className="h-10 w-10 rounded object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
+                    <Package className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+
+                {/* Item name */}
+                <span className="font-medium text-sm text-foreground flex-1 truncate">
+                  {item.item_name || "Unknown Item"}
+                </span>
+
+                {/* View count badge */}
+                <Badge variant="secondary" className="shrink-0 flex items-center gap-1">
+                  <Eye className="h-3 w-3" />
+                  {item.view_count} {item.view_count === 1 ? "view" : "views"}
+                </Badge>
+              </div>
+            ))}
           </div>
         </div>
       </div>
