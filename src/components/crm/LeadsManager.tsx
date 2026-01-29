@@ -282,30 +282,35 @@ interface AggregatedViewRowProps {
   convertingId: string | null;
 }
 
-// AggregatedViewRow - Product view display with user name/anonymous label
+// AggregatedViewRow - Product view display with user name and multiple items
 const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }: AggregatedViewRowProps) => {
   const isCurrentlyConverting = convertingId === view.id;
 
   // Get display name - show _internal_user_name or "Anonymous Visitor"
   const displayName = view._internal_user_name || "Anonymous Visitor";
-  const isAnonymous = !view._internal_user_name;
+  const isAnonymous = view.is_anonymous;
   const initial = displayName.charAt(0).toUpperCase();
 
   // Determine item type label
   const getItemTypeLabel = (type: string | null) => {
     if (!type) return "Product";
     const labels: Record<string, string> = {
-      robot: "Robots",
-      robots: "Robots",
-      spare_part: "Spare Parts",
-      spare_parts: "Spare Parts",
-      service: "Services",
-      services: "Services",
+      robot: "Robot",
+      robots: "Robot",
+      spare_part: "Spare Part",
+      spare_parts: "Spare Part",
+      service: "Service",
+      services: "Service",
       logistics: "Logistics",
       finance: "Finance",
     };
     return labels[type] || type;
   };
+
+  // Format items as inline text: "Item1 (3), Item2 (2)"
+  const itemsDisplay = view.items.map(item => 
+    `${item.item_name} (${item.view_count})`
+  ).join(', ');
 
   return (
     <Card className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
@@ -328,22 +333,31 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
                 <h4 className="font-semibold text-foreground">
                   {displayName}
                 </h4>
-                {view.view_count > 1 && (
+                {view.total_view_count > 1 && (
                   <Badge variant="secondary" className="text-xs">
-                    {view.view_count} views
+                    {view.total_view_count} views
                   </Badge>
                 )}
               </div>
 
-              {/* Product info row */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Package className="h-3.5 w-3.5" />
-                <span className="truncate">{view.item_name || "Unknown Product"}</span>
-                {view.item_type && (
-                  <Badge variant="outline" className="text-xs">
-                    {getItemTypeLabel(view.item_type)}
+              {/* Items viewed - inline display */}
+              <div className="text-sm text-foreground">
+                <span className="text-muted-foreground mr-1">Items:</span>
+                <span className="font-medium">{itemsDisplay}</span>
+              </div>
+
+              {/* Item type badges */}
+              <div className="flex flex-wrap gap-1.5">
+                {view.items.map((item, idx) => (
+                  <Badge 
+                    key={`${item.item_id}_${idx}`}
+                    variant="outline" 
+                    className="text-xs flex items-center gap-1"
+                  >
+                    <Package className="h-3 w-3" />
+                    {getItemTypeLabel(item.item_type)}
                   </Badge>
-                )}
+                ))}
               </div>
             </div>
           </div>
@@ -778,10 +792,13 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     return matchesSearch && matchesStatus;
   });
 
-  // Filter aggregated views by product name only (no user info filtering)
+  // Filter aggregated views by product name only (search across all items for each user)
   const filteredViews = aggregatedViews.filter((view) => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !q || view.item_name?.toLowerCase().includes(q);
+    // Search across all items for this user
+    const matchesSearch = !q || view.items.some(item => 
+      item.item_name?.toLowerCase().includes(q)
+    );
     return matchesSearch;
   });
 
