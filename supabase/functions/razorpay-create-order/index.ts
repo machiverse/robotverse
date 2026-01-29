@@ -64,7 +64,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create Razorpay order
+    // Create Razorpay order - receipt must be max 40 chars
+    const shortUserId = user.id.replace(/-/g, '').substring(0, 12);
+    const receipt = `cr_${shortUserId}_${Date.now().toString(36)}`;
+    
     const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
@@ -74,7 +77,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         amount: amount * 100, // Razorpay expects amount in paise
         currency: 'INR',
-        receipt: `credits_${user.id}_${Date.now()}`,
+        receipt: receipt,
         notes: {
           user_id: user.id,
           pack_id: pack_id,
