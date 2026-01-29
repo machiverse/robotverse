@@ -67,10 +67,18 @@ export interface ProductView {
   created_at: string;
   additional_data: Record<string, unknown> | null;
 }
+// ViewedItem - Individual item viewed by a user
+export interface ViewedItem {
+  item_id: string | null;
+  item_type: string | null;
+  item_name: string;
+  view_count: number;
+}
 
 // AggregatedProductView - User details are INTERNAL only, never displayed in Product Views
+// Now groups by USER, not by user+product - one row per user with multiple items
 export interface AggregatedProductView {
-  key: string; // unique key for user+product combination
+  key: string; // unique key for user only
   id: string; // ID of the first/latest view
   // INTERNAL fields - stored for conversion only, NEVER displayed
   _internal_user_id: string | null;
@@ -81,13 +89,10 @@ export interface AggregatedProductView {
   _internal_user_location: string | null;
   // Display fields - only these should be shown in UI
   seller_id: string | null;
-  item_id: string | null;
-  item_type: string | null;
-  item_name?: string | null;
-  button_type: string;
-  button_name: string;
+  // Multiple items per user
+  items: ViewedItem[];
   created_at: string;
-  view_count: number;
+  total_view_count: number;
   is_anonymous: boolean;
 }
 
@@ -364,80 +369,83 @@ export const useSellerCRM = (itemType?: string) => {
       
       setProductViews(enrichedViews);
       
-      // Aggregate views by user+product combination
+      // Aggregate views by USER only - one row per user with all their viewed items
       const aggregationMap = new Map<string, AggregatedProductView>();
-      let anonymousViewCount = 0;
-      let anonymousView: ProductView | null = null;
       
       enrichedViews.forEach(view => {
         const isAnonymous = !view.user_id && !view.user_name && !view.user_email;
         
-        if (isAnonymous) {
-          // Count anonymous views separately per product
-          const anonKey = `anonymous_${view.item_id || 'unknown'}`;
-          const existing = aggregationMap.get(anonKey);
-          if (existing) {
-            existing.view_count++;
+        // Create a unique key for each user:
+        // 1. If user_id exists (logged in user), use it
+        // 2. If user_email exists, use it as identifier
+        // 3. If user_mobile exists, use it as identifier
+        // 4. Otherwise, group all anonymous users together
+        let userKey: string;
+        
+        if (view.user_id) {
+          userKey = view.user_id;
+        } else if (view.user_email) {
+          userKey = `email_${view.user_email}`;
+        } else if (view.user_mobile) {
+          userKey = `mobile_${view.user_mobile}`;
+        } else if (view.user_name && view.user_name !== 'Anonymous' && view.user_name !== 'Anonymous Visitor') {
+          userKey = `name_${view.user_name}_${view.user_company || 'unknown'}`;
+        } else {
+          // Group all truly anonymous users together
+          userKey = 'anonymous_users';
+        }
+        
+        const existing = aggregationMap.get(userKey);
+        const itemName = view.item_name || view.button_name || 'Unknown Product';
+        
+        if (existing) {
+          // Check if this item already exists for this user
+          const existingItemIndex = existing.items.findIndex(
+            i => i.item_id === view.item_id && i.item_type === view.item_type
+          );
+          
+          if (existingItemIndex >= 0) {
+            // Increment view count for existing item
+            existing.items[existingItemIndex].view_count += 1;
           } else {
-            aggregationMap.set(anonKey, {
-              key: anonKey,
-              id: view.id,
-              // Internal fields - for conversion only
-              _internal_user_id: null,
-              _internal_user_name: 'Anonymous Users',
-              _internal_user_email: null,
-              _internal_user_mobile: null,
-              _internal_user_company: null,
-              _internal_user_location: null,
-              // Display fields
-              seller_id: view.seller_id,
+            // Add new item to user's viewed items
+            existing.items.push({
               item_id: view.item_id,
               item_type: view.item_type,
-              item_name: view.item_name,
-              button_type: view.button_type,
-              button_name: view.button_name,
-              created_at: view.created_at,
-              view_count: 1,
-              is_anonymous: true,
+              item_name: itemName,
+              view_count: 1
             });
+          }
+          
+          existing.total_view_count += 1;
+          // Keep the most recent view data
+          if (new Date(view.created_at) > new Date(existing.created_at)) {
+            existing.created_at = view.created_at;
+            existing.id = view.id;
           }
         } else {
-          // Aggregate by user + product combination
-          const userKey = view.user_id || view.user_email || view.user_name || 'unknown';
-          const productKey = view.item_id || 'unknown';
-          const key = `${userKey}_${productKey}`;
-          
-          const existing = aggregationMap.get(key);
-          if (existing) {
-            existing.view_count++;
-            // Keep the most recent view data
-            if (new Date(view.created_at) > new Date(existing.created_at)) {
-              existing.created_at = view.created_at;
-              existing.id = view.id;
-            }
-          } else {
-            aggregationMap.set(key, {
-              key,
-              id: view.id,
-              // Internal fields - for conversion only
-              _internal_user_id: view.user_id,
-              _internal_user_name: view.user_name,
-              _internal_user_email: view.user_email,
-              _internal_user_mobile: view.user_mobile,
-              _internal_user_company: view.user_company,
-              _internal_user_location: view.user_location,
-              // Display fields
-              seller_id: view.seller_id,
+          aggregationMap.set(userKey, {
+            key: userKey,
+            id: view.id,
+            // Internal fields - for conversion only
+            _internal_user_id: view.user_id,
+            _internal_user_name: view.user_name || (isAnonymous ? 'Anonymous Visitor' : null),
+            _internal_user_email: view.user_email,
+            _internal_user_mobile: view.user_mobile,
+            _internal_user_company: view.user_company,
+            _internal_user_location: view.user_location,
+            // Display fields
+            seller_id: view.seller_id,
+            items: [{
               item_id: view.item_id,
               item_type: view.item_type,
-              item_name: view.item_name,
-              button_type: view.button_type,
-              button_name: view.button_name,
-              created_at: view.created_at,
-              view_count: 1,
-              is_anonymous: false,
-            });
-          }
+              item_name: itemName,
+              view_count: 1
+            }],
+            created_at: view.created_at,
+            total_view_count: 1,
+            is_anonymous: isAnonymous,
+          });
         }
       });
       
