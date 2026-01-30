@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
+import { SEOHead } from '@/components/SEOHead';
 
 // Use exact types from schema
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
@@ -1143,8 +1144,18 @@ const Auth = () => {
 
   // Main Authentication Form
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
+    <>
+      <SEOHead
+        title={isSignUp ? "Create Account | Join RobotVerse Robot Marketplace" : "Sign In | RobotVerse - Industrial Robot Marketplace"}
+        description={isSignUp 
+          ? "Create your free RobotVerse account. Buy and sell industrial robots, spare parts, and automation services. Join thousands of robotics professionals in India."
+          : "Sign in to RobotVerse marketplace. Access your robot listings, manage orders, and connect with buyers and sellers of industrial automation equipment."
+        }
+        keywords="robotverse login, robotverse signup, robot marketplace account, industrial robot seller registration, robot buyer signup, automation marketplace india"
+        noindex={true}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
         {/* Back to Home Link */}
         <Link 
           to="/" 
@@ -1737,6 +1748,7 @@ const Auth = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };
 

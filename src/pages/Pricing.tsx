@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatAmount } from '@/utils/currency';
+import { SEOHead } from '@/components/SEOHead';
 
 const planIcons: Record<string, React.ReactNode> = {
   free: <Zap className="h-6 w-6" />,
@@ -86,6 +87,24 @@ const Pricing = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Pricing & Credit Plans | RobotVerse - Industrial Robot Marketplace"
+        description="Affordable pricing plans and credit packs for accessing verified industrial robot leads. Subscribe monthly or buy credits as needed. Start free with 100 credits."
+        keywords="robotverse pricing, robot marketplace pricing, industrial robot leads cost, subscription plans, buy credits, robot marketplace fees, seller pricing india"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": "RobotVerse Subscription Plans",
+          "description": "Credit-based access to verified industrial robot buyer leads",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "INR",
+            "lowPrice": 0,
+            "highPrice": 4999,
+            "offerCount": 4
+          }
+        }}
+      />
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
