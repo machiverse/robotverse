@@ -66,17 +66,26 @@ export const generateRobotSEO = (robot: any): SEOMetadata => {
   const description = `${brand} ${model} ${controller ? `with ${controller} controller` : ''} for sale. ${robot.payload_capacity ? `Payload: ${robot.payload_capacity}kg` : ''} ${robot.reach ? `Reach: ${robot.reach}mm` : ''}. ${robot.description?.substring(0, 100) || 'Industrial automation robot'}.`;
   
   const keywords = [
-    `${brand} robot`,
-    `${model} robot`,
-    'used industrial robot',
-    'robot automation',
-    'industrial robot for sale',
-    brand.toLowerCase(),
-    model.toLowerCase(),
-    ...(robot.applications || []),
-    'RobotVerse',
-    'robot marketplace India'
-  ];
+    // Single-word keywords
+    brand.toLowerCase(), model.toLowerCase(), 'robot', 'automation', 'industrial',
+    // Core phrases
+    `${brand} robot`, `${model} robot`, 'used industrial robot', 'robot automation',
+    'industrial robot for sale', brand.toLowerCase(), model.toLowerCase(),
+    // Long-tail keywords
+    `${brand} ${model} price india`, `${brand} robot for sale`, `used ${brand} robot`,
+    `${brand} ${model} specifications`, `buy ${brand} ${model}`, `${brand} industrial robot`,
+    // Application keywords
+    ...(robot.applications || []).map((app: string) => `${app} robot`),
+    ...(robot.applications || []).map((app: string) => `${brand} ${app} robot`),
+    // Category keywords
+    'RobotVerse', 'robot marketplace India', 'industrial automation india',
+    // Controller/year specific
+    controller ? `${controller} controller` : '',
+    year ? `${brand} robot ${year}` : '',
+    // Payload/reach if available
+    robot.payload_capacity ? `${robot.payload_capacity}kg payload robot` : '',
+    robot.reach ? `${robot.reach}mm reach robot` : ''
+  ].filter(Boolean);
   
   const slug = generateSlug(`${brand}-${model}-${controller}-${year}`);
   
@@ -135,16 +144,23 @@ export const generateRobotListingSEO = (brand?: string, category?: string): SEOM
     : `India's leading marketplace for used industrial robots. Fanuc, ABB, KUKA, Yaskawa robots for sale. Automation solutions for manufacturing.`;
   
   const keywords = [
-    'fanuc robot',
-    'kuka robot',
-    'abb robot',
-    'yaskawa robot',
-    'used industrial robots',
-    'robot automation',
-    'industrial robot marketplace',
-    'robot for sale India',
-    ...(brand ? [`${brand} robot`, `used ${brand} robots`] : []),
-    ...(category ? [category, `${category} robots`] : [])
+    // Single-word keywords
+    'robots', 'fanuc', 'kuka', 'abb', 'yaskawa', 'kawasaki', 'automation',
+    // Core brand phrases
+    'fanuc robot', 'kuka robot', 'abb robot', 'yaskawa robot',
+    // Condition-based
+    'used industrial robots', 'refurbished robots', 'second hand robots',
+    // Long-tail keywords
+    'industrial robot marketplace', 'robot for sale India', 'buy industrial robot online',
+    'used robot arm price india', 'second hand welding robot', 'refurbished pick and place robot',
+    // Brand-specific if provided
+    ...(brand ? [`${brand} robot`, `used ${brand} robots`, `buy ${brand} robot india`] : []),
+    // Category-specific if provided
+    ...(category ? [category, `${category} robots`, `${category} robot for sale`] : []),
+    // Application keywords
+    'welding robot india', 'palletizing robot india', 'assembly robot india', 'material handling robot',
+    // Location keywords
+    'industrial robot delhi', 'robot mumbai', 'automation bangalore', 'robot chennai', 'robot pune'
   ];
   
   const slug = brand ? generateSlug(brand) : 'all';
@@ -182,14 +198,20 @@ export const generateSparePartSEO = (part: any): SEOMetadata => {
   const description = `${brand} ${partName} spare part for industrial robots. ${part.description?.substring(0, 100) || 'High-quality replacement part'}. Compatible with ${part.compatible_robots?.join(', ') || 'multiple models'}.`;
   
   const keywords = [
-    `${brand} robot spare parts`,
-    `${partName}`,
-    'robot replacement parts',
-    'industrial robot parts',
-    ...(part.compatible_robots || []),
-    ...(part.category ? [part.category] : []),
-    brand.toLowerCase(),
-    'RobotVerse parts'
+    // Single-word keywords  
+    'parts', 'spares', 'components', brand.toLowerCase(), 'replacement',
+    // Core phrases
+    `${brand} robot spare parts`, partName, 'robot replacement parts', 'industrial robot parts',
+    // Long-tail keywords
+    `${brand} ${partName} price india`, `buy ${brand} spare parts`, `${brand} parts supplier`,
+    `robot ${partName}`, `industrial robot ${partName}`, `${brand} original parts`,
+    // Compatible robots
+    ...(part.compatible_robots || []).map((r: string) => `${r} spare parts`),
+    // Category
+    ...(part.category ? [part.category, `${part.category} parts`, `robot ${part.category}`] : []),
+    // Location keywords
+    'robot parts india', 'robot spares delhi', 'robot components mumbai',
+    brand.toLowerCase(), 'RobotVerse parts'
   ];
   
   const slug = generateSlug(`${brand}-${partName}-${partNumber}`);
@@ -237,15 +259,20 @@ export const generateServiceSEO = (service: any): SEOMetadata => {
   const description = `Professional ${serviceType.toLowerCase()} for ${brand} industrial robots. ${service.description?.substring(0, 100) || 'Expert maintenance, repair, and support services'}. Available in ${service.location || 'India'}.`;
   
   const keywords = [
-    'robot repair',
-    'robot maintenance',
-    'robot diagnostics',
-    'robot service',
-    `${brand} service`,
-    `${serviceType}`,
-    'industrial robot support',
-    'robot automation service India',
-    ...(service.specializations || [])
+    // Single-word keywords
+    'repair', 'maintenance', 'service', 'installation', 'programming', 'calibration', 'training',
+    // Core phrases
+    'robot repair', 'robot maintenance', 'robot diagnostics', 'robot service',
+    `${brand} service`, serviceType, 'industrial robot support', 'robot automation service India',
+    // Long-tail keywords
+    `${serviceType} for ${brand}`, `${brand} robot repair india`, `robot ${serviceType.toLowerCase()} near me`,
+    `industrial robot ${serviceType.toLowerCase()} service`, `robot technician india`,
+    // Brand-specific
+    `${brand} authorized service`, `${brand} robot expert`,
+    // Specializations
+    ...(service.specializations || []).map((s: string) => `robot ${s}`),
+    // Location keywords
+    'robot service delhi', 'robot repair mumbai', 'robot maintenance bangalore', 'robot service chennai'
   ];
   
   const slug = generateSlug(`${serviceType}-${brand}`);
@@ -284,12 +311,15 @@ export const generateRoboBookSEO = (post: any): SEOMetadata => {
   const description = post.excerpt || post.content?.substring(0, 160) || 'Latest robotics and automation news';
   
   const keywords = [
-    'robotics news',
-    'industrial automation',
-    'robot technology',
-    'automation updates',
-    'RoboBook',
-    'robot trends',
+    // Single-word keywords
+    'robotics', 'automation', 'news', 'technology', 'trends', 'innovation', 'industry',
+    // Core phrases
+    'robotics news', 'industrial automation', 'robot technology', 'automation updates', 'RoboBook',
+    'robot trends', 'automation industry news', 'robotics articles',
+    // Long-tail keywords
+    'industrial robot technology news india', 'automation industry updates', 'robotics blog india',
+    'robot technology trends', 'industrial automation news', 'manufacturing automation articles',
+    // Extracted from content
     ...extractKeywords(post.content || '', post.tags || [])
   ];
   
@@ -387,13 +417,18 @@ export const generateLogisticsSEO = (service?: any): SEOMetadata => {
     const description = `${service.service_name} for industrial robots. ${service.description?.substring(0, 100) || 'Professional robot transportation and logistics'}. Coverage: ${service.coverage_areas?.join(', ') || 'India'}.`;
     
     const keywords = [
-      'robot logistics',
-      'industrial robot transportation',
-      'robot shipping India',
-      'heavy machinery transport',
-      service.service_type,
-      ...(service.transport_modes || []),
-      ...(service.coverage_areas || []),
+      // Single-word keywords
+      'logistics', 'shipping', 'transport', 'delivery', 'freight', 'cargo', 'handling',
+      // Core phrases
+      'robot logistics', 'industrial robot transportation', 'robot shipping India',
+      'heavy machinery transport', service.service_type, 'robot delivery', 'equipment transport',
+      // Long-tail keywords
+      'industrial robot shipping india', 'heavy equipment transport service', 'robot relocation service',
+      'machinery moving service india', 'robot freight forwarding', 'automation equipment logistics',
+      // Transport modes
+      ...(service.transport_modes || []).map((m: string) => `${m} transport`),
+      // Coverage areas
+      ...(service.coverage_areas || []).map((a: string) => `robot logistics ${a}`),
       'RobotVerse logistics'
     ];
     
@@ -430,14 +465,15 @@ export const generateLogisticsSEO = (service?: any): SEOMetadata => {
   const description = 'Specialized logistics and transportation for industrial robots. Safe handling, insured shipping, tracking available. Nationwide coverage across India.';
   
   const keywords = [
-    'robot logistics India',
-    'industrial robot transportation',
-    'robot shipping',
-    'heavy equipment logistics',
-    'robot freight',
-    'machinery transport',
-    'specialized logistics',
-    'robot delivery services'
+    // Single-word keywords
+    'logistics', 'transport', 'shipping', 'freight', 'delivery', 'moving', 'relocation',
+    // Core phrases
+    'robot logistics India', 'industrial robot transportation', 'robot shipping',
+    'heavy equipment logistics', 'robot freight', 'machinery transport', 'specialized logistics',
+    // Long-tail keywords
+    'industrial robot shipping service india', 'heavy machinery transport company', 
+    'robot moving service', 'automation equipment logistics', 'robot relocation india',
+    'robot delivery services', 'industrial equipment shipping', 'factory equipment transport'
   ];
   
   const schemaMarkup = {
@@ -471,14 +507,17 @@ export const generateFinancingSEO = (product?: any): SEOMetadata => {
     const description = `${product.product_name}. ${product.description?.substring(0, 100) || 'Flexible financing for industrial robots'}. Interest rates from ${product.min_interest_rate}%. Loan amount: ${product.min_amount?.toLocaleString('en-IN')} - ${product.max_amount?.toLocaleString('en-IN')} INR.`;
     
     const keywords = [
-      'robot financing India',
-      'industrial robot loans',
-      'automation equipment finance',
-      'robot leasing',
-      product.product_name,
-      ...(product.loan_type || []),
-      'business equipment financing',
-      'RobotVerse financing'
+      // Single-word keywords
+      'financing', 'loan', 'EMI', 'leasing', 'credit', 'funding', 'capital',
+      // Core phrases
+      'robot financing India', 'industrial robot loans', 'automation equipment finance',
+      'robot leasing', product.product_name, 'equipment financing india',
+      // Long-tail keywords
+      'industrial robot loan india', 'robot EMI options', 'automation financing india',
+      'machinery loan for robots', 'robot purchase financing', 'equipment lease india',
+      // Loan types
+      ...(product.loan_type || []).map((t: string) => `${t} for robots`),
+      'business equipment financing', 'RobotVerse financing', 'robot finance company india'
     ];
     
     const slug = generateSlug(product.product_name);
@@ -515,14 +554,15 @@ export const generateFinancingSEO = (product?: any): SEOMetadata => {
   const description = 'Flexible financing options for industrial robots. Easy EMI, quick approval, competitive interest rates. Make automation affordable for your business.';
   
   const keywords = [
-    'robot financing India',
-    'industrial robot loans',
-    'automation equipment finance',
-    'robot EMI',
-    'business equipment loans',
-    'robot leasing India',
-    'manufacturing equipment finance',
-    'robot purchase financing'
+    // Single-word keywords
+    'financing', 'loans', 'EMI', 'leasing', 'credit', 'funding', 'capital',
+    // Core phrases
+    'robot financing India', 'industrial robot loans', 'automation equipment finance',
+    'robot EMI', 'business equipment loans', 'robot leasing India',
+    // Long-tail keywords
+    'industrial robot loan india', 'robot purchase EMI options', 'automation equipment financing',
+    'machinery loan for manufacturing', 'robot finance company india', 'equipment leasing india',
+    'manufacturing equipment finance', 'robot purchase financing', 'easy robot loans india'
   ];
   
   const schemaMarkup = {
@@ -553,32 +593,44 @@ export const generateHomeSEO = (): SEOMetadata => {
   const title = 'RobotVerse – Buy & Sell Industrial Robots | India\'s Leading Automation Marketplace';
   const description = 'India\'s #1 marketplace for industrial robots. Buy FANUC, ABB, KUKA, Yaskawa robots with warranty. Spare parts, automation services, financing & logistics support available.';
   
+  // Comprehensive single-word and long-tail keywords for maximum search visibility
   const keywords = [
-    'industrial robots India',
-    'buy robots online',
-    'FANUC robots',
-    'ABB robots',
-    'KUKA robots',
-    'Yaskawa robots',
-    'robot marketplace',
-    'automation equipment',
-    'robot spare parts',
-    'robot services',
-    'used industrial robots',
-    'robot automation India'
+    // Single-word keywords
+    'robots', 'automation', 'FANUC', 'ABB', 'KUKA', 'Yaskawa', 'Kawasaki', 'Epson', 'Mitsubishi', 'Nachi', 'Staubli', 'Denso', 'Comau', 'Motoman',
+    // Core phrases
+    'industrial robots India', 'buy robots online', 'robot marketplace', 'automation equipment',
+    // Brand-specific
+    'FANUC robots', 'ABB robots', 'KUKA robots', 'Yaskawa robots', 'Kawasaki robots',
+    // Long-tail keywords
+    'used industrial robots for sale India', 'second hand robot arm price', 'refurbished welding robot', 
+    'palletizing robot for sale', 'pick and place robot', 'articulated robot arm', '6 axis robot',
+    // Application-specific
+    'welding robot', 'painting robot', 'assembly robot', 'material handling robot', 'packaging robot',
+    'arc welding robot', 'spot welding robot', 'laser cutting robot', 'deburring robot', 'grinding robot',
+    // Location-specific
+    'industrial robot delhi', 'robot supplier mumbai', 'automation chennai', 'robot bangalore', 'robot pune',
+    'robot hyderabad', 'robot ahmedabad', 'robot kolkata', 'robot noida', 'robot gurgaon',
+    // Intent-based
+    'buy industrial robot', 'sell robot', 'robot quotation', 'robot price india', 'robot dealer',
+    'robot importer india', 'robot supplier india', 'robot trading india', 'used robot market india'
   ];
   
   const schemaMarkup = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "RobotVerse",
+    "alternateName": ["Robot Verse", "RobotVerse India", "RobotVerse Marketplace"],
     "description": description,
     "url": "https://www.robotverse.in",
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://www.robotverse.in/robots?search={search_term_string}",
       "query-input": "required name=search_term_string"
-    }
+    },
+    "sameAs": [
+      "https://twitter.com/robotverse",
+      "https://linkedin.com/company/robotverse"
+    ]
   };
   
   return {
@@ -603,14 +655,19 @@ export const generateBrandSEO = (brand: string, robotCount?: number): SEOMetadat
   const description = `Buy used ${brand} industrial robots in India. ${robotCount ? `${robotCount}+ ${brand} robots` : 'Wide selection'} available. Welding, material handling, palletizing robots with warranty & support.`;
   
   const keywords = [
-    `${brand} robot`,
-    `${brand} industrial robot`,
-    `buy ${brand} robots`,
-    `used ${brand} robots India`,
-    `${brand} robot for sale`,
-    'industrial automation',
-    'robot marketplace',
-    brand.toLowerCase()
+    // Single-word keywords
+    brand.toLowerCase(), 'robot', 'automation', 'industrial', 'used', 'refurbished',
+    // Core phrases
+    `${brand} robot`, `${brand} industrial robot`, `buy ${brand} robots`,
+    `used ${brand} robots India`, `${brand} robot for sale`, 'industrial automation', 'robot marketplace',
+    // Long-tail keywords
+    `${brand} robot price india`, `buy used ${brand} robot`, `${brand} robot dealer india`,
+    `second hand ${brand} robot`, `refurbished ${brand} robot`, `${brand} robot supplier`,
+    // Application-specific
+    `${brand} welding robot`, `${brand} palletizing robot`, `${brand} material handling robot`,
+    `${brand} assembly robot`, `${brand} pick and place robot`, `${brand} arc welding robot`,
+    // Location keywords
+    `${brand} robot delhi`, `${brand} robot mumbai`, `${brand} robot bangalore`, `${brand} robot chennai`
   ];
   
   const slug = generateSlug(brand);

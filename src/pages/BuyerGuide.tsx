@@ -4,12 +4,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Search, Shield, CreditCard, Truck, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
-import SEOMetaTags from "@/components/SEOMetaTags";
+import { SEOHead } from "@/components/SEOHead";
 
 const BuyerGuide = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* SEO handled by document title */}
+      <SEOHead
+        title="Robot Buyer's Guide | How to Buy Industrial Robots - RobotVerse"
+        description="Complete guide to buying industrial robots. Learn how to evaluate equipment condition, negotiate prices, and make secure purchases on RobotVerse marketplace."
+        keywords="buy industrial robot, robot buying guide, how to buy robot, robot purchase tips, used robot buying, industrial automation purchase, robot buyer india"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          "name": "How to Buy Industrial Robots",
+          "description": "Step-by-step guide to purchasing industrial robots on RobotVerse",
+          "step": [
+            {"@type": "HowToStep", "name": "Find the Right Robot", "text": "Use filters to find robots matching your specifications"},
+            {"@type": "HowToStep", "name": "Evaluate Condition", "text": "Review photos, documentation, and maintenance history"},
+            {"@type": "HowToStep", "name": "Secure Purchase", "text": "Use our secure payment system and coordinate delivery"}
+          ]
+        }}
+      />
       <EnhancedHeader />
       
       <main className="container mx-auto px-4 py-8">

@@ -1,12 +1,16 @@
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import SEOMetaTags from "@/components/SEOMetaTags";
+import { SEOHead } from "@/components/SEOHead";
 
 const Terms = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* SEO handled by document title */}
+      <SEOHead
+        title="Terms of Service | RobotVerse - Industrial Robot Marketplace"
+        description="Read the RobotVerse terms of service. Understand our platform policies, user responsibilities, and guidelines for buying and selling industrial robots."
+        keywords="robotverse terms, terms of service, robot marketplace policy, industrial robots terms, seller agreement, buyer terms india"
+      />
       <EnhancedHeader />
       
       <main className="container mx-auto px-4 py-8">
