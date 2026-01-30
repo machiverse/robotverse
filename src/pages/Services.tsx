@@ -26,6 +26,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
+import { SEOHead } from "@/components/SEOHead";
+import { generateItemListSchema } from "@/utils/seoSchemas";
 
 interface Service {
   id: string;
@@ -252,6 +254,12 @@ const Services = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Robot Repair & Maintenance Services | Industrial Robot Service Providers - RobotVerse"
+        description="Find certified robot service providers for installation, maintenance, repair, and programming. Expert technicians for FANUC, ABB, KUKA, Yaskawa robots across India."
+        keywords="robot repair, robot maintenance, robot service, robot installation, robot programming, industrial robot service, FANUC service, ABB service, KUKA service, robot technician india"
+        jsonLd={generateItemListSchema(services.slice(0, 20), "Robot Service Providers")}
+      />
       <EnhancedHeader />
 
       {/* Top title */}

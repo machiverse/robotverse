@@ -4,12 +4,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Upload, DollarSign, Truck, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
-import SEOMetaTags from "@/components/SEOMetaTags";
+import { SEOHead } from "@/components/SEOHead";
 
 const SellerGuide = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* SEO handled by document title */}
+      <SEOHead
+        title="Robot Seller's Guide | How to Sell Industrial Robots - RobotVerse"
+        description="Complete guide to selling industrial robots on RobotVerse. Learn how to create listings, price equipment, and reach verified buyers across India."
+        keywords="sell industrial robot, robot selling guide, how to sell robot, robot listing tips, sell used robot, industrial automation sale, robot seller india"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          "name": "How to Sell Industrial Robots",
+          "description": "Step-by-step guide to selling industrial robots on RobotVerse",
+          "step": [
+            {"@type": "HowToStep", "name": "Create Listing", "text": "Add photos, specifications, and documentation"},
+            {"@type": "HowToStep", "name": "Price Equipment", "text": "Research market and set competitive pricing"},
+            {"@type": "HowToStep", "name": "Manage Orders", "text": "Respond to inquiries and coordinate shipping"}
+          ]
+        }}
+      />
       <EnhancedHeader />
       
       <main className="container mx-auto px-4 py-8">
