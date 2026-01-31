@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import WatchlistSection from '@/components/WatchlistSection';
+import BuyerQuotationsView from '@/components/dashboards/BuyerQuotationsView';
 
 interface BuyerDashboardProps {
   userProfile: any;
@@ -444,9 +445,10 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="robots">Robots ({recentRobots.length})</TabsTrigger>
+          <TabsTrigger value="quotations">Quotations</TabsTrigger>
           <TabsTrigger value="services">Services ({recentServices.length})</TabsTrigger>
           <TabsTrigger value="parts">Parts ({recentParts.length})</TabsTrigger>
         </TabsList>
@@ -624,6 +626,10 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="quotations" className="mt-6">
+          <BuyerQuotationsView />
         </TabsContent>
 
         <TabsContent value="services" className="mt-6">
