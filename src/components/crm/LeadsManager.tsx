@@ -61,6 +61,7 @@ import { useToast } from "@/hooks/use-toast";
 import LeadDetailView from "./LeadDetailView";
 import LeadsPipeline from "./LeadsPipeline";
 import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
+import CreateQuotationModal from "./CreateQuotationModal";
 
 interface LeadsManagerProps {
   sellerId: string;
@@ -735,6 +736,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     createInvoice,
     convertViewToLead,
     stats,
+    fetchLeads,
   } = useSellerCRM(itemType);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -757,12 +759,7 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
   const [leadActivities, setLeadActivities] = useState<LeadActivity[]>([]);
   const [convertingId, setConvertingId] = useState<string | null>(null);
 
-  const [quotationItems, setQuotationItems] = useState([{ name: "", quantity: 1, unit_price: 0 }]);
-  const [quotationNotes, setQuotationNotes] = useState("");
-  const [quotationDiscount, setQuotationDiscount] = useState(0);
-  const [quotationTaxRate, setQuotationTaxRate] = useState(18);
-  const [quotationValidity, setQuotationValidity] = useState(7);
-  const [sendingQuotation, setSendingQuotation] = useState(false);
+  // Quotation modal now uses CreateQuotationModal component
 
   // Quote requests count now comes from stats via useSellerCRM hook
 
@@ -902,77 +899,6 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
     addActivity(lead.id, "call", "Phone Call Made", `Called ${lead.buyer_phone}`);
   };
 
-  const handleSendQuotation = async () => {
-    if (!selectedLead || quotationItems.length === 0) return;
-
-    setSendingQuotation(true);
-    try {
-      const items = quotationItems.map((item) => ({
-        name: item.name || selectedLead.item_name || "Product",
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total: item.quantity * item.unit_price,
-      }));
-
-      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-      const discountAmount = quotationDiscount;
-      const afterDiscount = subtotal - discountAmount;
-      const taxAmount = afterDiscount * (quotationTaxRate / 100);
-      const totalAmount = afterDiscount + taxAmount;
-
-      const validityDate = new Date();
-      validityDate.setDate(validityDate.getDate() + quotationValidity);
-
-      await createInvoice({
-        buyer_name: selectedLead.buyer_name || "",
-        buyer_email: selectedLead.buyer_email,
-        buyer_phone: selectedLead.buyer_phone,
-        buyer_company: selectedLead.buyer_company,
-        lead_id: selectedLead.id,
-        items,
-        subtotal,
-        tax_rate: quotationTaxRate,
-        tax_amount: taxAmount,
-        discount_amount: discountAmount,
-        total_amount: totalAmount,
-        notes: quotationNotes
-          ? `${quotationNotes}\n\nValid until: ${format(validityDate, "PPP")}`
-          : `Valid until: ${format(validityDate, "PPP")}`,
-        status: "sent",
-        due_date: validityDate.toISOString(),
-      });
-
-      await updateLeadStatus(selectedLead.id, "quoted");
-      await addActivity(
-        selectedLead.id,
-        "invoice_sent",
-        "Quotation Sent",
-        `Quotation of ₹${totalAmount.toLocaleString()} sent (Valid for ${quotationValidity} days)`,
-      );
-
-      setShowQuotationModal(false);
-      setQuotationItems([{ name: "", quantity: 1, unit_price: 0 }]);
-      setQuotationNotes("");
-      setQuotationDiscount(0);
-      setQuotationTaxRate(18);
-      setQuotationValidity(7);
-
-      toast({
-        title: "Quotation sent",
-        description: "Quotation has been created and sent successfully",
-      });
-    } catch (error) {
-      console.error("Error sending quotation:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send quotation",
-      });
-    } finally {
-      setSendingQuotation(false);
-    }
-  };
-
   const openLeadDetails = (lead: Lead) => {
     setSelectedLead(lead);
     setNotes(lead.notes || "");
@@ -987,23 +913,6 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
 
   const openQuotation = (lead: Lead) => {
     setSelectedLead(lead);
-    // Auto-fill with product details
-    const productName = lead.item_name || "";
-    const productBrand = lead.product_brand ? `${lead.product_brand} ` : "";
-    const productModel = lead.product_model ? `(${lead.product_model})` : "";
-    const fullProductName = `${productBrand}${productName} ${productModel}`.trim();
-
-    setQuotationItems([
-      {
-        name: fullProductName || "Product",
-        quantity: 1,
-        unit_price: lead.product_price || lead.expected_value || 0,
-      },
-    ]);
-    setQuotationDiscount(0);
-    setQuotationTaxRate(18);
-    setQuotationValidity(7);
-    setQuotationNotes("");
     setShowQuotationModal(true);
   };
 
@@ -1186,201 +1095,28 @@ const LeadsManager = ({ sellerId, itemType }: LeadsManagerProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Quotation modal */}
-      <Dialog open={showQuotationModal} onOpenChange={setShowQuotationModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <FileSpreadsheet className="h-5 w-5" />
-              Send quotation
-            </DialogTitle>
-          </DialogHeader>
-          {selectedLead && (
-            <div className="space-y-4 py-2">
-              {/* Buyer & Product Info */}
-              <div className="rounded-md bg-muted p-3 text-xs space-y-1">
-                <p>
-                  <span className="font-medium">To:</span> {selectedLead.buyer_name}
-                </p>
-                <p>
-                  <span className="font-medium">Company:</span> {selectedLead.buyer_company || "Not provided"}
-                </p>
-                <p>
-                  <span className="font-medium">Email:</span> {selectedLead.buyer_email || "Not available"}
-                </p>
-                <Separator className="my-2" />
-                <p>
-                  <span className="font-medium">Product:</span> {selectedLead.item_name}
-                </p>
-                {selectedLead.product_brand && (
-                  <p>
-                    <span className="font-medium">Brand:</span> {selectedLead.product_brand}
-                  </p>
-                )}
-                {selectedLead.product_model && (
-                  <p>
-                    <span className="font-medium">Model:</span> {selectedLead.product_model}
-                  </p>
-                )}
-                {selectedLead.product_price && (
-                  <p>
-                    <span className="font-medium">Listed Price:</span> ₹{selectedLead.product_price.toLocaleString()}
-                  </p>
-                )}
-                {selectedLead.viewed_at && (
-                  <p>
-                    <span className="font-medium">Viewed on:</span>{" "}
-                    {format(new Date(selectedLead.viewed_at), "PPP 'at' p")}
-                  </p>
-                )}
-              </div>
-
-              {/* Line items */}
-              <div className="space-y-3">
-                <label className="text-xs font-medium text-muted-foreground">Line items</label>
-                {quotationItems.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                    <Input
-                      placeholder="Item name"
-                      value={item.name}
-                      onChange={(e) => {
-                        const next = [...quotationItems];
-                        next[index].name = e.target.value;
-                        setQuotationItems(next);
-                      }}
-                      className="col-span-5"
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Qty"
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const next = [...quotationItems];
-                        next[index].quantity = parseInt(e.target.value) || 1;
-                        setQuotationItems(next);
-                      }}
-                      className="col-span-2"
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Unit Price (₹)"
-                      value={item.unit_price}
-                      onChange={(e) => {
-                        const next = [...quotationItems];
-                        next[index].unit_price = parseFloat(e.target.value) || 0;
-                        setQuotationItems(next);
-                      }}
-                      className="col-span-3"
-                    />
-                    <div className="col-span-2 text-right text-xs font-medium">
-                      ₹{(item.quantity * item.unit_price).toLocaleString()}
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuotationItems([...quotationItems, { name: "", quantity: 1, unit_price: 0 }])}
-                >
-                  + Add item
-                </Button>
-              </div>
-
-              {/* Discount, Tax, Validity */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Discount (₹)</label>
-                  <Input
-                    type="number"
-                    value={quotationDiscount}
-                    onChange={(e) => setQuotationDiscount(parseFloat(e.target.value) || 0)}
-                    min={0}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Tax Rate (%)</label>
-                  <Input
-                    type="number"
-                    value={quotationTaxRate}
-                    onChange={(e) => setQuotationTaxRate(parseFloat(e.target.value) || 0)}
-                    min={0}
-                    max={100}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Validity (days)</label>
-                  <Input
-                    type="number"
-                    value={quotationValidity}
-                    onChange={(e) => setQuotationValidity(parseInt(e.target.value) || 7)}
-                    min={1}
-                  />
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="rounded-md bg-muted p-3 text-xs">
-                {(() => {
-                  const subtotal = quotationItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
-                  const afterDiscount = subtotal - quotationDiscount;
-                  const taxAmount = afterDiscount * (quotationTaxRate / 100);
-                  const total = afterDiscount + taxAmount;
-                  const validityDate = new Date();
-                  validityDate.setDate(validityDate.getDate() + quotationValidity);
-
-                  return (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span>Subtotal</span>
-                        <span>₹{subtotal.toLocaleString()}</span>
-                      </div>
-                      {quotationDiscount > 0 && (
-                        <div className="flex items-center justify-between text-green-600">
-                          <span>Discount</span>
-                          <span>- ₹{quotationDiscount.toLocaleString()}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span>Tax ({quotationTaxRate}%)</span>
-                        <span>₹{taxAmount.toLocaleString()}</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex items-center justify-between font-medium text-sm">
-                        <span>Total</span>
-                        <span>₹{total.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-muted-foreground mt-2">
-                        <span>Valid until</span>
-                        <span>{format(validityDate, "PPP")}</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Notes to buyer</label>
-                <Textarea
-                  value={quotationNotes}
-                  onChange={(e) => setQuotationNotes(e.target.value)}
-                  placeholder="Additional terms or clarifications for this quotation…"
-                  rows={3}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setShowQuotationModal(false)}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleSendQuotation} disabled={sendingQuotation}>
-              {sendingQuotation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Send quotation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Professional Quotation modal with PDF */}
+      {selectedLead && (
+        <CreateQuotationModal
+          open={showQuotationModal}
+          onOpenChange={setShowQuotationModal}
+          onSuccess={() => {
+            fetchLeads();
+            setShowQuotationModal(false);
+          }}
+          leadData={{
+            leadId: selectedLead.id,
+            buyerName: selectedLead.buyer_name || "",
+            buyerEmail: selectedLead.buyer_email || "",
+            buyerPhone: selectedLead.buyer_phone || "",
+            buyerCompany: selectedLead.buyer_company || "",
+            productName: selectedLead.item_name || "",
+            productPrice: selectedLead.product_price || selectedLead.expected_value || 0,
+            productBrand: selectedLead.product_brand || "",
+            productModel: selectedLead.product_model || "",
+          }}
+        />
+      )}
     </div>
   );
 };

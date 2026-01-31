@@ -5,3 +5,5 @@ export { default as LeadDetailModal } from './LeadDetailModal';
 export { default as InvoicesManager } from './InvoicesManager';
 export { default as FollowUpReminders } from './FollowUpReminders';
 export { default as CreditsDisplay } from './CreditsDisplay';
+export { default as CRMQuotationsView } from './CRMQuotationsView';
+export { default as CreateQuotationModal } from './CreateQuotationModal';
