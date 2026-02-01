@@ -48,6 +48,12 @@ export interface Lead {
   lost_reason?: string | null;
   qualification_score?: number;
   lead_score?: number;
+  // Quotation tracking fields - enriched from crm_quotations
+  latest_quotation_number?: string | null;
+  latest_quotation_date?: string | null;
+  latest_quotation_amount?: number | null;
+  latest_quotation_status?: string | null;
+  quotation_count?: number;
 }
 
 export interface ProductView {
@@ -301,9 +307,47 @@ export const useSellerCRM = (itemType?: string) => {
         }
       }
       
-      // Enrich leads with product details
+      // Fetch quotation data for all leads
+      const leadIds = leadsData.map(l => l.id);
+      const quotationMap = new Map<string, { 
+        quotation_number: string; 
+        created_at: string; 
+        total_amount: number; 
+        status: string;
+        count: number;
+      }>();
+      
+      if (leadIds.length > 0) {
+        const { data: quotations } = await supabase
+          .from('crm_quotations')
+          .select('lead_id, quotation_number, created_at, total_amount, status')
+          .in('lead_id', leadIds)
+          .order('created_at', { ascending: false });
+        
+        if (quotations) {
+          // Group quotations by lead_id and get latest + count
+          quotations.forEach(q => {
+            if (!q.lead_id) return;
+            const existing = quotationMap.get(q.lead_id);
+            if (!existing) {
+              quotationMap.set(q.lead_id, {
+                quotation_number: q.quotation_number,
+                created_at: q.created_at,
+                total_amount: q.total_amount,
+                status: q.status || 'draft',
+                count: 1
+              });
+            } else {
+              existing.count += 1;
+            }
+          });
+        }
+      }
+      
+      // Enrich leads with product details and quotation info
       const enrichedLeads = leadsData.map(lead => {
         const productDetails = lead.item_id ? productDetailsMap.get(lead.item_id) : null;
+        const quotationInfo = quotationMap.get(lead.id);
         return {
           ...lead,
           product_price: productDetails?.price || lead.expected_value,
@@ -312,6 +356,12 @@ export const useSellerCRM = (itemType?: string) => {
           item_name: lead.item_name || productDetails?.name || null,
           item_image: productDetails?.image || null,
           viewed_at: lead.created_at, // Use created_at as viewed_at
+          // Quotation info
+          latest_quotation_number: quotationInfo?.quotation_number || null,
+          latest_quotation_date: quotationInfo?.created_at || null,
+          latest_quotation_amount: quotationInfo?.total_amount || null,
+          latest_quotation_status: quotationInfo?.status || null,
+          quotation_count: quotationInfo?.count || 0,
         };
       });
       

@@ -616,6 +616,31 @@ const LeadRow = ({
             </div>
           </div>
 
+          {/* Quotation info row */}
+          {lead.quotation_count && lead.quotation_count > 0 && (
+            <div className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
+              <FileSpreadsheet className="h-4 w-4 text-violet-600" />
+              <div className="flex items-center gap-2 flex-wrap text-sm">
+                <span className="font-medium text-violet-700 dark:text-violet-300">
+                  {lead.latest_quotation_number}
+                </span>
+                <Badge variant="outline" className="text-xs capitalize border-violet-300 text-violet-600">
+                  {lead.latest_quotation_status}
+                </Badge>
+                {lead.latest_quotation_amount && (
+                  <span className="font-semibold text-violet-700 dark:text-violet-300">
+                    ₹{lead.latest_quotation_amount.toLocaleString()}
+                  </span>
+                )}
+                {lead.quotation_count > 1 && (
+                  <span className="text-xs text-muted-foreground">
+                    +{lead.quotation_count - 1} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Bottom row: Time info + Actions */}
           <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/50">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -623,10 +648,10 @@ const LeadRow = ({
                 <Clock className="h-3.5 w-3.5" />
                 {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
               </span>
-              {lead.viewed_at && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5" />
-                  Viewed {format(new Date(lead.viewed_at), "MMM d")}
+              {lead.latest_quotation_date && (
+                <span className="inline-flex items-center gap-1.5 text-violet-600">
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  Quoted {format(new Date(lead.latest_quotation_date), "MMM d")}
                 </span>
               )}
               {lead.next_follow_up && (
