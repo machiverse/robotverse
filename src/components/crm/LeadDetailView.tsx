@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   ArrowLeft,
@@ -26,6 +26,7 @@ import {
   Hash,
   ExternalLink,
   MoreHorizontal,
+  History,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -47,6 +48,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { type Lead, type LeadActivity } from "@/hooks/useSellerCRM";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import LeadQuotationHistory from "./LeadQuotationHistory";
+import LeadTimeline from "./LeadTimeline";
+import CreateQuotationModal from "./CreateQuotationModal";
 
 interface LeadDetailViewProps {
   lead: Lead;
@@ -121,6 +127,7 @@ const LeadDetailView = ({
   onScheduleFollowUp,
   onSendQuotation,
 }: LeadDetailViewProps) => {
+  const { user } = useAuth();
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState(lead.notes || "");
   const [savingNotes, setSavingNotes] = useState(false);
@@ -143,6 +150,24 @@ const LeadDetailView = ({
   ]);
   const [quotationNotes, setQuotationNotes] = useState("");
   const [sendingQuotation, setSendingQuotation] = useState(false);
+  
+  // Professional quotation modal state
+  const [showProfessionalQuotationModal, setShowProfessionalQuotationModal] = useState(false);
+  const [quotationCount, setQuotationCount] = useState(0);
+  
+  // Fetch quotation count for this lead
+  useEffect(() => {
+    const fetchQuotationCount = async () => {
+      if (!user || !lead.id) return;
+      const { count } = await supabase
+        .from("crm_quotations")
+        .select("*", { count: "exact", head: true })
+        .eq("lead_id", lead.id)
+        .eq("seller_id", user.id);
+      setQuotationCount(count || 0);
+    };
+    fetchQuotationCount();
+  }, [lead.id, user]);
 
   const statusConfig = STATUS_CONFIG[lead.status];
   const priorityConfig = PRIORITY_CONFIG[lead.priority];
@@ -331,7 +356,7 @@ const LeadDetailView = ({
                     <Calendar className="mr-2 h-4 w-4" />
                     Schedule Follow-up
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowQuotationModal(true)}>
+                  <DropdownMenuItem onClick={() => setShowProfessionalQuotationModal(true)}>
                     <FileSpreadsheet className="mr-2 h-4 w-4" />
                     Create Quotation
                   </DropdownMenuItem>
@@ -357,12 +382,26 @@ const LeadDetailView = ({
                 
                 {/* Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="w-full justify-start border-b bg-transparent p-0">
+                  <TabsList className="w-full justify-start border-b bg-transparent p-0 flex-wrap">
                     <TabsTrigger 
                       value="overview" 
                       className="rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
                       Overview
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="timeline" 
+                      className="rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                    >
+                      <History className="h-4 w-4 mr-1.5" />
+                      Timeline
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="quotations" 
+                      className="rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                    >
+                      <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                      Quotations {quotationCount > 0 && `(${quotationCount})`}
                     </TabsTrigger>
                     <TabsTrigger 
                       value="activity" 
@@ -498,6 +537,34 @@ const LeadDetailView = ({
                         </div>
                       </div>
                     )}
+                  </TabsContent>
+
+                  {/* Timeline Tab */}
+                  <TabsContent value="timeline" className="mt-6">
+                    <div className="rounded-xl border bg-card p-6">
+                      {user && (
+                        <LeadTimeline
+                          leadId={lead.id}
+                          sellerId={user.id}
+                          activities={activities}
+                          leadCreatedAt={lead.created_at}
+                          leadSource={lead.source}
+                        />
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Quotations Tab */}
+                  <TabsContent value="quotations" className="mt-6">
+                    <div className="rounded-xl border bg-card p-6">
+                      {user && (
+                        <LeadQuotationHistory
+                          leadId={lead.id}
+                          sellerId={user.id}
+                          onCreateQuotation={() => setShowProfessionalQuotationModal(true)}
+                        />
+                      )}
+                    </div>
                   </TabsContent>
 
                   {/* Activity Tab */}
@@ -969,6 +1036,43 @@ const LeadDetailView = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Professional Quotation Modal */}
+      {user && (
+        <CreateQuotationModal
+          open={showProfessionalQuotationModal}
+          onOpenChange={setShowProfessionalQuotationModal}
+          onSuccess={async () => {
+            // Refresh quotation count
+            const { count } = await supabase
+              .from("crm_quotations")
+              .select("*", { count: "exact", head: true })
+              .eq("lead_id", lead.id)
+              .eq("seller_id", user.id);
+            setQuotationCount(count || 0);
+            
+            // Update lead status to quoted if not already
+            if (lead.status === "new" || lead.status === "contacted") {
+              await onStatusChange(lead.id, "quoted");
+            }
+            
+            // Log activity
+            await onAddActivity(lead.id, "status_change", "Quotation sent", "Professional quotation generated and sent");
+          }}
+          leadData={{
+            leadId: lead.id,
+            buyerName: lead.buyer_name || "",
+            buyerEmail: lead.buyer_email || "",
+            buyerPhone: lead.buyer_phone || "",
+            buyerCompany: lead.buyer_company || "",
+            buyerAddress: lead.buyer_location || "",
+            productName: lead.item_name || undefined,
+            productPrice: lead.product_price || undefined,
+            productBrand: lead.product_brand || undefined,
+            productModel: lead.product_model || undefined,
+          }}
+        />
+      )}
     </div>
   );
 };
