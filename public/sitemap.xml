@@ -1,35 +1,157 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- This is a static fallback sitemap -->
-  <!-- Dynamic sitemap is generated at /api/sitemap.xml -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Homepage - Highest Priority -->
   <url>
-    <loc>https://robotverse.com/</loc>
+    <loc>https://www.robotverse.in/</loc>
+    <lastmod>2026-02-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://www.robotverse.in/og-image.jpg</image:loc>
+      <image:title>RobotVerse - Industrial Robots Marketplace India</image:title>
+      <image:caption>Buy and sell industrial robots on India's largest B2B robot marketplace</image:caption>
+    </image:image>
   </url>
+
+  <!-- Robot Listings - High Priority -->
   <url>
-    <loc>https://robotverse.com/robots</loc>
+    <loc>https://www.robotverse.in/robots</loc>
+    <lastmod>2026-02-02</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
   </url>
+
+  <!-- Robot Category Pages -->
   <url>
-    <loc>https://robotverse.com/parts</loc>
+    <loc>https://www.robotverse.in/robots?type=Articulated</loc>
+    <lastmod>2026-02-02</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://robotverse.com/services</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://www.robotverse.in/robots?type=SCARA</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://robotverse.com/logistics</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://www.robotverse.in/robots?type=Delta</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://robotverse.com/financing</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://www.robotverse.in/robots?type=Cartesian</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
   </url>
+  <url>
+    <loc>https://www.robotverse.in/robots?type=Collaborative</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- Spare Parts - High Priority -->
+  <url>
+    <loc>https://www.robotverse.in/parts</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- Services - High Priority -->
+  <url>
+    <loc>https://www.robotverse.in/services</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Logistics -->
+  <url>
+    <loc>https://www.robotverse.in/logistics</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- Financing -->
+  <url>
+    <loc>https://www.robotverse.in/financing</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- RoboBook/Blog -->
+  <url>
+    <loc>https://www.robotverse.in/robobook</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://www.robotverse.in/blogs</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- Informational Pages -->
+  <url>
+    <loc>https://www.robotverse.in/contact</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://www.robotverse.in/pricing</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://www.robotverse.in/buyer-guide</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://www.robotverse.in/seller-guide</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- Legal Pages -->
+  <url>
+    <loc>https://www.robotverse.in/terms</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.30</priority>
+  </url>
+  <url>
+    <loc>https://www.robotverse.in/privacy</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.30</priority>
+  </url>
+  <url>
+    <loc>https://www.robotverse.in/cookies</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.30</priority>
+  </url>
+  <url>
+    <loc>https://www.robotverse.in/accessibility</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.30</priority>
+  </url>
+
 </urlset>
