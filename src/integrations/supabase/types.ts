@@ -3466,6 +3466,8 @@ export type Database = {
           annual_price: number | null
           created_at: string
           features: Json | null
+          has_advanced_analytics: boolean | null
+          has_lead_manager_access: boolean | null
           id: string
           is_active: boolean | null
           monthly_credits: number
@@ -3473,12 +3475,18 @@ export type Database = {
           plan_name: string
           plan_type: string
           razorpay_plan_id: string | null
+          robot_limit: number | null
+          service_limit: number | null
+          spare_part_limit: number | null
+          support_level: string | null
           updated_at: string
         }
         Insert: {
           annual_price?: number | null
           created_at?: string
           features?: Json | null
+          has_advanced_analytics?: boolean | null
+          has_lead_manager_access?: boolean | null
           id?: string
           is_active?: boolean | null
           monthly_credits?: number
@@ -3486,12 +3494,18 @@ export type Database = {
           plan_name: string
           plan_type: string
           razorpay_plan_id?: string | null
+          robot_limit?: number | null
+          service_limit?: number | null
+          spare_part_limit?: number | null
+          support_level?: string | null
           updated_at?: string
         }
         Update: {
           annual_price?: number | null
           created_at?: string
           features?: Json | null
+          has_advanced_analytics?: boolean | null
+          has_lead_manager_access?: boolean | null
           id?: string
           is_active?: boolean | null
           monthly_credits?: number
@@ -3499,6 +3513,10 @@ export type Database = {
           plan_name?: string
           plan_type?: string
           razorpay_plan_id?: string | null
+          robot_limit?: number | null
+          service_limit?: number | null
+          spare_part_limit?: number | null
+          support_level?: string | null
           updated_at?: string
         }
         Relationships: []
