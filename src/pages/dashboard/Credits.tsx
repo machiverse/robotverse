@@ -1,10 +1,11 @@
-import { Coins, History, Crown, Sparkles, Shield, Zap } from 'lucide-react';
+import { Coins, History, Crown, Sparkles, Shield, Zap, LayoutDashboard } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { CreditBalanceWidget } from '@/components/credits/CreditBalanceWidget';
 import { SubscriptionPlans } from '@/components/credits/SubscriptionPlans';
 import { CreditPacksStore } from '@/components/credits/CreditPacksStore';
 import { CreditTransactionHistory } from '@/components/credits/CreditTransactionHistory';
+import { SellerDashboardOverview } from '@/components/credits/SellerDashboardOverview';
 import { DashboardSettingsLayout } from '@/components/dashboard/DashboardSettingsLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate, useSearchParams } from 'react-router-dom';
@@ -12,10 +13,10 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 const Credits = () => {
   const { user, loading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'plans';
+  const currentTab = searchParams.get('tab') || 'overview';
 
   const handleTabChange = (value: string) => {
-    if (value === 'plans') {
+    if (value === 'overview') {
       searchParams.delete('tab');
     } else {
       searchParams.set('tab', value);
@@ -96,7 +97,14 @@ const Credits = () => {
       <Card className="border-0 shadow-lg bg-gradient-to-b from-card to-card/50">
         <CardContent className="p-6">
           <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 h-12 p-1 bg-muted/50">
+            <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4 h-12 p-1 bg-muted/50">
+              <TabsTrigger 
+                value="overview" 
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Overview</span>
+              </TabsTrigger>
               <TabsTrigger 
                 value="plans" 
                 className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md transition-all"
@@ -119,6 +127,10 @@ const Credits = () => {
                 <span className="hidden sm:inline">History</span>
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="overview" className="mt-6">
+              <SellerDashboardOverview />
+            </TabsContent>
 
             <TabsContent value="plans" className="mt-6">
               <div className="space-y-6">
