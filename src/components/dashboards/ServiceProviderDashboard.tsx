@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import WatchlistSection from '@/components/WatchlistSection';
-import { LeadsManager } from '@/components/crm';
+import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
 import { FileText } from 'lucide-react';
 
@@ -286,7 +286,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <LeadsManager sellerId={user?.id || ''} itemType="service" />
+                  <CRMLeadsView />
                 </CardContent>
               </Card>
             </TabsContent>
