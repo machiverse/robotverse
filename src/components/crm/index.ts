@@ -9,3 +9,5 @@ export { default as FollowUpReminders } from './FollowUpReminders';
 export { default as CreditsDisplay } from './CreditsDisplay';
 export { default as CRMQuotationsView } from './CRMQuotationsView';
 export { default as CreateQuotationModal } from './CreateQuotationModal';
+export { default as BuyLeadsTab } from './BuyLeadsTab';
+export { default as FullScreenLeadManager } from './FullScreenLeadManager';
