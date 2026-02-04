@@ -288,44 +288,53 @@ const BuyLeadsTab = ({
     return false;
   };
 
-  // Filter leads based on seller's categories and search
+  // Filter leads based on seller's categories and search, and filter items within each lead
   const filteredLeads = useMemo(() => {
-    return buyableLeads.filter((lead) => {
-      // If forcedCategoryFilter is set, only show leads matching that category
-      if (forcedCategoryFilter) {
-        const hasMatchingItems = lead.items.some((item) =>
-          matchesItemCategory(item.item_type, forcedCategoryFilter)
-        );
-        if (!hasMatchingItems) return false;
-      } else {
-        // Category filter - only show leads for categories the seller sells
-        const matchesCategory =
-          categoryFilter === "all"
-            ? sellerCategories.length === 0 ||
-              lead.items.some((item) =>
-                sellerCategories.includes(item.item_type) ||
-                sellerCategories.includes(item.item_type + 's') ||
-                sellerCategories.includes(item.item_type.replace(/s$/, ''))
-              )
-            : lead.items.some(
-                (item) =>
-                  item.item_type === categoryFilter ||
-                  item.item_type === categoryFilter + 's' ||
-                  item.item_type.replace(/s$/, '') === categoryFilter.replace(/s$/, '')
-              );
+    return buyableLeads
+      .map((lead) => {
+        // Filter items within each lead by category
+        let filteredItems = lead.items;
         
-        if (!matchesCategory) return false;
-      }
+        if (forcedCategoryFilter) {
+          filteredItems = lead.items.filter((item) =>
+            matchesItemCategory(item.item_type, forcedCategoryFilter)
+          );
+        } else if (categoryFilter !== "all") {
+          filteredItems = lead.items.filter(
+            (item) =>
+              item.item_type === categoryFilter ||
+              item.item_type === categoryFilter + 's' ||
+              item.item_type.replace(/s$/, '') === categoryFilter.replace(/s$/, '')
+          );
+        } else if (sellerCategories.length > 0) {
+          filteredItems = lead.items.filter((item) =>
+            sellerCategories.includes(item.item_type) ||
+            sellerCategories.includes(item.item_type + 's') ||
+            sellerCategories.includes(item.item_type.replace(/s$/, ''))
+          );
+        }
+        
+        // Recalculate credits for filtered items only
+        const totalCredits = filteredItems.reduce(
+          (sum, item) => sum + getCreditsForItemType(item.item_type),
+          0
+        );
+        
+        return { ...lead, items: filteredItems, total_credits_required: totalCredits };
+      })
+      .filter((lead) => {
+        // Remove leads with no matching items
+        if (lead.items.length === 0) return false;
+        
+        // Search filter
+        const q = searchQuery.toLowerCase();
+        const matchesSearch =
+          !q ||
+          lead.buyer_first_name.toLowerCase().includes(q) ||
+          lead.items.some((item) => item.item_name.toLowerCase().includes(q));
 
-      // Search filter
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        !q ||
-        lead.buyer_first_name.toLowerCase().includes(q) ||
-        lead.items.some((item) => item.item_name.toLowerCase().includes(q));
-
-      return matchesSearch;
-    });
+        return matchesSearch;
+      });
   }, [buyableLeads, categoryFilter, sellerCategories, searchQuery, forcedCategoryFilter]);
 
   const handleBuyLead = async (lead: BuyableLead) => {
