@@ -446,7 +446,7 @@ const SparePartsSellerDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <CRMLeadsView />
+              <CRMLeadsView categoryFilter="spare_part" />
             </CardContent>
           </Card>
         </TabsContent>

@@ -3,17 +3,22 @@ import { Button } from "@/components/ui/button";
 import { LayoutDashboard } from "lucide-react";
 import FullScreenLeadManager from "./FullScreenLeadManager";
 
+interface CRMLeadsViewProps {
+  /** Force a specific category filter (robot, spare_part, service) */
+  categoryFilter?: 'robot' | 'spare_part' | 'service';
+}
+
 /**
  * CRMLeadsView - Entry point for Lead Manager
  * 
  * When the user clicks "Open Lead Manager", the full-screen CRM interface opens.
- * This component is self-contained and doesn't require external props.
+ * Pass categoryFilter to restrict leads to a specific item type.
  */
-const CRMLeadsView = () => {
+const CRMLeadsView = ({ categoryFilter }: CRMLeadsViewProps) => {
   const [showFullScreen, setShowFullScreen] = useState(false);
   
   if (showFullScreen) {
-    return <FullScreenLeadManager onClose={() => setShowFullScreen(false)} />;
+    return <FullScreenLeadManager onClose={() => setShowFullScreen(false)} categoryFilter={categoryFilter} />;
   }
   
   return (

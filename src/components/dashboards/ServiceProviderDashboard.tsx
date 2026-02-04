@@ -286,7 +286,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <CRMLeadsView />
+                  <CRMLeadsView categoryFilter="service" />
                 </CardContent>
               </Card>
             </TabsContent>

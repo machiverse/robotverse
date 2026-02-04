@@ -98,9 +98,11 @@ const getCreditsNeeded = (leadItemType: string): number => {
 
 interface FullScreenLeadManagerProps {
   onClose: () => void;
+  /** Force a specific category filter (robot, spare_part, service) */
+  categoryFilter?: 'robot' | 'spare_part' | 'service';
 }
 
-const FullScreenLeadManager = ({ onClose }: FullScreenLeadManagerProps) => {
+const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManagerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -136,6 +138,22 @@ const FullScreenLeadManager = ({ onClose }: FullScreenLeadManagerProps) => {
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [leadActivities, setLeadActivities] = useState<LeadActivity[]>([]);
 
+  // Helper to match item_type with category filter
+  const matchesCategory = (itemType: string): boolean => {
+    if (!categoryFilter) return true;
+    const normalized = itemType?.toLowerCase() || '';
+    if (categoryFilter === 'robot') {
+      return normalized === 'robot' || normalized === 'robots';
+    }
+    if (categoryFilter === 'spare_part') {
+      return normalized === 'spare_part' || normalized === 'spare_parts';
+    }
+    if (categoryFilter === 'service') {
+      return normalized === 'service' || normalized === 'services';
+    }
+    return true;
+  };
+
   const filteredLeads = leads.filter((lead) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
@@ -144,7 +162,8 @@ const FullScreenLeadManager = ({ onClose }: FullScreenLeadManagerProps) => {
       lead.buyer_company?.toLowerCase().includes(q) ||
       lead.item_name?.toLowerCase().includes(q);
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesCat = matchesCategory(lead.item_type);
+    return matchesSearch && matchesStatus && matchesCat;
   });
 
   const filteredViews = aggregatedViews.filter((view) => {
@@ -152,7 +171,9 @@ const FullScreenLeadManager = ({ onClose }: FullScreenLeadManagerProps) => {
     const matchesSearch = !q || view.items.some(item => 
       item.item_name?.toLowerCase().includes(q)
     );
-    return matchesSearch;
+    // Filter items by category
+    const hasMatchingItems = view.items.some(item => matchesCategory(item.item_type));
+    return matchesSearch && hasMatchingItems;
   });
 
   const handleUnlock = async (lead: Lead) => {
@@ -540,6 +561,7 @@ const FullScreenLeadManager = ({ onClose }: FullScreenLeadManagerProps) => {
                     setActiveTab("leads");
                   }}
                   onBuyCredits={() => navigate("/dashboard/credits")}
+                  forcedCategoryFilter={categoryFilter}
                 />
               </TabsContent>
 
