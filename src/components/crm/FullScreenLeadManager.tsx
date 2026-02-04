@@ -166,15 +166,27 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     return matchesSearch && matchesStatus && matchesCat;
   });
 
-  const filteredViews = aggregatedViews.filter((view) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !q || view.items.some(item => 
-      item.item_name?.toLowerCase().includes(q)
-    );
-    // Filter items by category
-    const hasMatchingItems = view.items.some(item => matchesCategory(item.item_type));
-    return matchesSearch && hasMatchingItems;
-  });
+  // Filter views and their items by category
+  const filteredViews = aggregatedViews
+    .map((view) => {
+      // Filter items within each view by category
+      const filteredItems = categoryFilter 
+        ? view.items.filter(item => matchesCategory(item.item_type))
+        : view.items;
+      
+      return { ...view, items: filteredItems };
+    })
+    .filter((view) => {
+      // Remove views with no matching items
+      if (view.items.length === 0) return false;
+      
+      // Apply search filter
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || view.items.some(item => 
+        item.item_name?.toLowerCase().includes(q)
+      );
+      return matchesSearch;
+    });
 
   const handleUnlock = async (lead: Lead) => {
     setUnlocking(lead.id);
