@@ -58,6 +58,8 @@ interface BuyLeadsTabProps {
   creditsBalance: number;
   onLeadPurchased: () => void;
   onBuyCredits: () => void;
+  /** Force a specific category filter (robot, spare_part, service) */
+  forcedCategoryFilter?: 'robot' | 'spare_part' | 'service';
 }
 
 const CREDIT_COSTS: Record<string, number> = {
@@ -78,6 +80,7 @@ const BuyLeadsTab = ({
   creditsBalance,
   onLeadPurchased,
   onBuyCredits,
+  forcedCategoryFilter,
 }: BuyLeadsTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -268,24 +271,51 @@ const BuyLeadsTab = ({
     fetchBuyableLeads();
   }, [fetchSellerCategories, fetchBuyableLeads]);
 
+  // Helper function to check if item type matches category filter
+  const matchesItemCategory = (itemType: string, targetCategory: string): boolean => {
+    const normalized = itemType?.toLowerCase() || '';
+    const target = targetCategory.toLowerCase();
+    
+    if (target === 'robot' || target === 'robots') {
+      return normalized === 'robot' || normalized === 'robots';
+    }
+    if (target === 'spare_part' || target === 'spare_parts') {
+      return normalized === 'spare_part' || normalized === 'spare_parts';
+    }
+    if (target === 'service' || target === 'services') {
+      return normalized === 'service' || normalized === 'services';
+    }
+    return false;
+  };
+
   // Filter leads based on seller's categories and search
   const filteredLeads = useMemo(() => {
     return buyableLeads.filter((lead) => {
-      // Category filter - only show leads for categories the seller sells
-      const matchesCategory =
-        categoryFilter === "all"
-          ? sellerCategories.length === 0 ||
-            lead.items.some((item) =>
-              sellerCategories.includes(item.item_type) ||
-              sellerCategories.includes(item.item_type + 's') ||
-              sellerCategories.includes(item.item_type.replace(/s$/, ''))
-            )
-          : lead.items.some(
-              (item) =>
-                item.item_type === categoryFilter ||
-                item.item_type === categoryFilter + 's' ||
-                item.item_type.replace(/s$/, '') === categoryFilter.replace(/s$/, '')
-            );
+      // If forcedCategoryFilter is set, only show leads matching that category
+      if (forcedCategoryFilter) {
+        const hasMatchingItems = lead.items.some((item) =>
+          matchesItemCategory(item.item_type, forcedCategoryFilter)
+        );
+        if (!hasMatchingItems) return false;
+      } else {
+        // Category filter - only show leads for categories the seller sells
+        const matchesCategory =
+          categoryFilter === "all"
+            ? sellerCategories.length === 0 ||
+              lead.items.some((item) =>
+                sellerCategories.includes(item.item_type) ||
+                sellerCategories.includes(item.item_type + 's') ||
+                sellerCategories.includes(item.item_type.replace(/s$/, ''))
+              )
+            : lead.items.some(
+                (item) =>
+                  item.item_type === categoryFilter ||
+                  item.item_type === categoryFilter + 's' ||
+                  item.item_type.replace(/s$/, '') === categoryFilter.replace(/s$/, '')
+              );
+        
+        if (!matchesCategory) return false;
+      }
 
       // Search filter
       const q = searchQuery.toLowerCase();
@@ -294,9 +324,9 @@ const BuyLeadsTab = ({
         lead.buyer_first_name.toLowerCase().includes(q) ||
         lead.items.some((item) => item.item_name.toLowerCase().includes(q));
 
-      return matchesCategory && matchesSearch;
+      return matchesSearch;
     });
-  }, [buyableLeads, categoryFilter, sellerCategories, searchQuery]);
+  }, [buyableLeads, categoryFilter, sellerCategories, searchQuery, forcedCategoryFilter]);
 
   const handleBuyLead = async (lead: BuyableLead) => {
     if (creditsBalance < lead.total_credits_required) {

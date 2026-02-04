@@ -661,7 +661,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <CRMLeadsView />
+              <CRMLeadsView categoryFilter="robot" />
             </CardContent>
           </Card>
         </TabsContent>
