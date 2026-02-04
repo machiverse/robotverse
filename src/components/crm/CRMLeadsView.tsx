@@ -1,23 +1,15 @@
 import { useState } from "react";
-import type { useCRM } from "@/hooks/useCRM";
-import type { useSellerCRM } from "@/hooks/useSellerCRM";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard } from "lucide-react";
 import FullScreenLeadManager from "./FullScreenLeadManager";
-
-interface CRMLeadsViewProps {
-  sellerCRM: ReturnType<typeof useSellerCRM>;
-  crmData: ReturnType<typeof useCRM>;
-}
 
 /**
  * CRMLeadsView - Entry point for Lead Manager
  * 
  * When the user clicks "Open Lead Manager", the full-screen CRM interface opens.
+ * This component is self-contained and doesn't require external props.
  */
-const CRMLeadsView = ({ sellerCRM, crmData }: CRMLeadsViewProps) => {
-  const { user } = useAuth();
+const CRMLeadsView = () => {
   const [showFullScreen, setShowFullScreen] = useState(false);
   
   if (showFullScreen) {

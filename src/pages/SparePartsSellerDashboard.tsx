@@ -42,7 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
-import { LeadsManager } from '@/components/crm';
+import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
 import { FileText } from 'lucide-react';
@@ -446,7 +446,7 @@ const SparePartsSellerDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <LeadsManager sellerId={user?.id || ''} itemType="spare_part" />
+              <CRMLeadsView />
             </CardContent>
           </Card>
         </TabsContent>

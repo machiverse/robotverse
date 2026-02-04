@@ -58,7 +58,7 @@ import RobotUpload from '@/components/RobotUpload';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDashboard';
 import WatchlistSection from '@/components/WatchlistSection';
-import { LeadsManager } from '@/components/crm';
+import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
 
 interface RobotSellerDashboardProps {
@@ -661,7 +661,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <LeadsManager sellerId={user?.id || ''} itemType="robot" />
+              <CRMLeadsView />
             </CardContent>
           </Card>
         </TabsContent>

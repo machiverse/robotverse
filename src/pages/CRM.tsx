@@ -48,7 +48,7 @@ const CRM = () => {
       case "overview":
         return <CRMOverview crmData={crmData} sellerCRM={sellerCRM} />;
       case "leads":
-        return <CRMLeadsView sellerCRM={sellerCRM} crmData={crmData} />;
+        return <CRMLeadsView />;
       case "opportunities":
         return <CRMOpportunitiesView crmData={crmData} />;
       case "accounts":
