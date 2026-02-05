@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Eye,
@@ -166,27 +166,29 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     return matchesSearch && matchesStatus && matchesCat;
   });
 
-  // Filter views and their items by category
-  const filteredViews = aggregatedViews
-    .map((view) => {
-      // Filter items within each view by category
-      const filteredItems = categoryFilter 
-        ? view.items.filter(item => matchesCategory(item.item_type))
-        : view.items;
-      
-      return { ...view, items: filteredItems };
-    })
-    .filter((view) => {
-      // Remove views with no matching items
-      if (view.items.length === 0) return false;
-      
-      // Apply search filter
-      const q = searchQuery.toLowerCase();
-      const matchesSearch = !q || view.items.some(item => 
-        item.item_name?.toLowerCase().includes(q)
-      );
-      return matchesSearch;
-    });
+  // Filter views and their items by category - ensure immutability
+  const filteredViews = useMemo(() => {
+    return aggregatedViews
+      .map((view) => {
+        // Filter items within each view by category
+        const filteredItems = categoryFilter 
+          ? view.items.filter(item => matchesCategory(item.item_type || ''))
+          : [...view.items]; // Create a copy to avoid mutation
+        
+        return { ...view, items: filteredItems };
+      })
+      .filter((view) => {
+        // Remove views with no matching items
+        if (view.items.length === 0) return false;
+        
+        // Apply search filter
+        const q = searchQuery.toLowerCase();
+        const matchesSearch = !q || view.items.some(item => 
+          item.item_name?.toLowerCase().includes(q)
+        );
+        return matchesSearch;
+      });
+  }, [aggregatedViews, categoryFilter, searchQuery]);
 
   const handleUnlock = async (lead: Lead) => {
     setUnlocking(lead.id);
