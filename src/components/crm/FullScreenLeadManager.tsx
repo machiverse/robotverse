@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Eye,
@@ -12,7 +12,6 @@ import {
   Search,
   Filter,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,13 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
 import { useAuth } from "@/hooks/useAuth";
 import { useSellerCRM, type Lead, type LeadActivity } from "@/hooks/useSellerCRM";
 
@@ -125,12 +117,11 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     creditsBalance,
     activities,
     createInvoice,
-    convertViewToLead,
     stats,
     fetchLeads,
   } = useSellerCRM();
 
-  const [activeTab, setActiveTab] = useState<string>("views");
+  const [activeTab, setActiveTab] = useState<string>("quotes");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "pipeline">("list");
@@ -142,7 +133,6 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpNote, setFollowUpNote] = useState("");
   const [unlocking, setUnlocking] = useState<string | null>(null);
-  const [convertingId, setConvertingId] = useState<string | null>(null);
   const [leadActivities, setLeadActivities] = useState<LeadActivity[]>([]);
 
   // Helper to match item_type with category filter
@@ -173,46 +163,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     return matchesSearch && matchesStatus && matchesCat;
   });
 
-  // Filter views and their items by category - ensure immutability
-  const filteredViews = useMemo(() => {
-    return aggregatedViews
-      .map((view) => {
-        // Filter items within each view by category
-        const filteredItems = categoryFilter 
-          ? view.items.filter(item => matchesCategory(item.item_type || ''))
-          : [...view.items]; // Create a copy to avoid mutation
-        
-        return { ...view, items: filteredItems };
-      })
-      .filter((view) => {
-        // Remove views with no matching items
-        if (view.items.length === 0) return false;
-        
-        // Apply search filter
-        const q = searchQuery.toLowerCase();
-        const matchesSearch = !q || view.items.some(item => 
-          item.item_name?.toLowerCase().includes(q)
-        );
-        return matchesSearch;
-      });
-  }, [aggregatedViews, categoryFilter, searchQuery]);
-
   const handleUnlock = async (lead: Lead) => {
     setUnlocking(lead.id);
     await unlockBuyerInfo(lead.id, lead.item_type);
     setUnlocking(null);
-  };
-
-  const handleConvertToLead = async (viewId: string) => {
-    setConvertingId(viewId);
-    try {
-      const leadId = await convertViewToLead(viewId);
-      if (leadId) {
-        setActiveTab("leads");
-      }
-    } finally {
-      setConvertingId(null);
-    }
   };
 
   const handleScheduleFollowUp = async () => {
@@ -348,19 +302,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
 
       {/* Stats Row */}
       <div className="px-6 py-4 border-b bg-muted/30 shrink-0">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-          <Card className="border-muted/60 bg-card p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900/30">
-                <Eye className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase text-muted-foreground">Product Views</p>
-                <p className="text-2xl font-semibold">{aggregatedViews.length}</p>
-              </div>
-            </div>
-          </Card>
-
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Card className="border-muted/60 bg-card p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-indigo-100 p-2 dark:bg-indigo-900/30">
@@ -419,13 +361,6 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
             <div className="p-4 pb-0 border-b">
               <div className="flex items-center justify-between mb-4">
                 <TabsList className="h-10">
-                  <TabsTrigger value="views" className="flex items-center gap-2 px-4">
-                    <Eye className="h-4 w-4" />
-                    Product Views
-                    <Badge variant="secondary" className="ml-1">
-                      {aggregatedViews.length}
-                    </Badge>
-                  </TabsTrigger>
                   <TabsTrigger value="quotes" className="flex items-center gap-2 px-4">
                     <FileQuestion className="h-4 w-4" />
                     Quote Requests
@@ -461,8 +396,8 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                 )}
               </div>
 
-              {/* Search Bar (not for quotes tab) */}
-              {activeTab !== "quotes" && activeTab !== "buy" && (
+              {/* Search Bar (not for quotes tab or buy tab) */}
+              {activeTab === "leads" && (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center pb-4">
                   <div className="relative flex-1">
                     <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
@@ -495,150 +430,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
 
             {/* Tab Contents */}
             <div className="flex-1 overflow-auto p-4">
-              <TabsContent value="views" className="mt-0 h-full">
-                {filteredViews.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <Eye className="mb-3 h-10 w-10 text-muted-foreground" />
-                    <p className="font-medium">No views yet</p>
-                    <p className="max-w-sm text-sm text-muted-foreground">
-                      Views will appear here when buyers interact with your products.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <TooltipProvider>
-                      {filteredViews.map((view) => {
-                        // Check if this viewer is already a lead
-                        const isAlreadyLead = leads.some(l => 
-                          l.buyer_id === view._internal_user_id ||
-                          (view._internal_user_email && l.buyer_email === view._internal_user_email)
-                        );
-                        
-                        // Check if view is from an anonymous user (can still convert but limited info)
-                        const hasInsufficientCredits = creditsBalance < 10;
-                        
-                        // Determine button state and tooltip message
-                        let buttonDisabled = convertingId !== null;
-                        let tooltipMessage = "";
-                        
-                        if (isAlreadyLead) {
-                          buttonDisabled = true;
-                          tooltipMessage = "This viewer has already been converted to a lead.";
-                        } else if (hasInsufficientCredits) {
-                          buttonDisabled = true;
-                          tooltipMessage = "Insufficient credits. You need 10 credits to convert.";
-                        }
-
-                        return (
-                          <Card key={view.key} className="overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
-                            <div className="flex items-stretch">
-                              <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : isAlreadyLead ? "bg-green-500" : "bg-primary"}`} />
-                              <div className="flex-1 p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${view.is_anonymous ? "bg-muted" : isAlreadyLead ? "bg-green-100 dark:bg-green-900/30" : "bg-primary/10"}`}>
-                                      <span className={`text-sm font-semibold ${view.is_anonymous ? "text-muted-foreground" : isAlreadyLead ? "text-green-600" : "text-primary"}`}>
-                                        {(view._internal_user_name || "A").charAt(0).toUpperCase()}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <h4 className="font-semibold text-foreground">{view._internal_user_name || "Anonymous Visitor"}</h4>
-                                        {isAlreadyLead && (
-                                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30">
-                                            <CheckCircle className="h-3 w-3 mr-1" />
-                                            Lead
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                        <Clock className="h-3.5 w-3.5" />
-                                        {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  {isAlreadyLead ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-9 px-4 text-green-600 border-green-200"
-                                      onClick={() => setActiveTab("leads")}
-                                    >
-                                      <CheckCircle className="mr-2 h-4 w-4" />
-                                      View in Leads
-                                    </Button>
-                                  ) : tooltipMessage ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div>
-                                          <Button
-                                            size="sm"
-                                            onClick={() => handleConvertToLead(view.id)}
-                                            disabled={buttonDisabled}
-                                            className="h-9 px-4"
-                                          >
-                                            {convertingId === view.id ? (
-                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : hasInsufficientCredits ? (
-                                              <AlertTriangle className="mr-2 h-4 w-4" />
-                                            ) : (
-                                              <UserPlus className="mr-2 h-4 w-4" />
-                                            )}
-                                            Convert to Lead
-                                          </Button>
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>{tooltipMessage}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  ) : (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleConvertToLead(view.id)}
-                                      disabled={buttonDisabled}
-                                      className="h-9 px-4"
-                                    >
-                                      {convertingId === view.id ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                      )}
-                                      Convert to Lead
-                                    </Button>
-                                  )}
-                                </div>
-                                <div className="space-y-2 pl-[52px]">
-                                  {view.items.map((item, idx) => (
-                                    <div key={`${item.item_id}_${idx}`} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary shrink-0">
-                                        {idx + 1}
-                                      </span>
-                                      {item.item_image ? (
-                                        <img src={item.item_image} alt={item.item_name} className="h-10 w-10 rounded object-cover shrink-0" />
-                                      ) : (
-                                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
-                                          <Package className="h-5 w-5 text-muted-foreground" />
-                                        </div>
-                                      )}
-                                      <span className="font-medium text-sm text-foreground flex-1 truncate">{item.item_name || "Unknown Item"}</span>
-                                      <Badge variant="secondary" className="shrink-0 flex items-center gap-1">
-                                        <Eye className="h-3 w-3" />
-                                        {item.view_count} {item.view_count === 1 ? "view" : "views"}
-                                      </Badge>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        );
-                      })}
-                    </TooltipProvider>
-                  </div>
-                )}
-              </TabsContent>
+              {/* Product Views tab removed - use Buy Leads instead */}
 
               <TabsContent value="quotes" className="mt-0 h-full">
                 <QuoteRequestsSection sellerId={user?.id || ""} />
