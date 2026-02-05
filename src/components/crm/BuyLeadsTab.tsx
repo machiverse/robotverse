@@ -62,7 +62,9 @@ interface BuyLeadsTabProps {
   forcedCategoryFilter?: 'robot' | 'spare_part' | 'service';
 }
 
-const CREDIT_COSTS: Record<string, number> = {
+// User-based credit costs (per user, not per item)
+// Credit cost is determined by the seller's primary category
+const USER_CREDIT_COSTS: Record<string, number> = {
   robot: 10,
   robots: 10,
   spare_part: 5,
@@ -71,8 +73,9 @@ const CREDIT_COSTS: Record<string, number> = {
   services: 5,
 };
 
-const getCreditsForItemType = (itemType: string): number => {
-  return CREDIT_COSTS[itemType] || 5;
+const getCreditsForCategory = (category: string): number => {
+  const normalized = category?.toLowerCase() || '';
+  return USER_CREDIT_COSTS[normalized] || 5;
 };
 
 const BuyLeadsTab = ({
@@ -213,9 +216,7 @@ const BuyLeadsTab = ({
               item_image: itemInfo.image,
               created_at: view.created_at,
             });
-            existing.total_credits_required += getCreditsForItemType(
-              view.item_type || "robot"
-            );
+            // Note: total_credits_required will be recalculated based on user-based pricing
           }
 
           if (new Date(view.created_at) > new Date(existing.latest_activity)) {
@@ -239,9 +240,8 @@ const BuyLeadsTab = ({
               },
             ],
             latest_activity: view.created_at,
-            total_credits_required: getCreditsForItemType(
-              view.item_type || "robot"
-            ),
+            // Will be recalculated with user-based pricing in filteredLeads
+            total_credits_required: 0,
           });
         }
       });
@@ -288,7 +288,20 @@ const BuyLeadsTab = ({
     return false;
   };
 
+  // Determine seller's primary category for user-based credit pricing
+  const sellerPrimaryCategory = useMemo(() => {
+    if (forcedCategoryFilter) return forcedCategoryFilter;
+    if (sellerCategories.includes("robots")) return "robots";
+    if (sellerCategories.includes("spare_parts")) return "spare_parts";
+    if (sellerCategories.includes("services")) return "services";
+    return "robots"; // Default
+  }, [forcedCategoryFilter, sellerCategories]);
+
+  // Get credit cost per user based on seller's category
+  const creditsPerUser = getCreditsForCategory(sellerPrimaryCategory);
+
   // Filter leads based on seller's categories and search, and filter items within each lead
+  // Credits are now USER-BASED (flat rate per user, not per item)
   const filteredLeads = useMemo(() => {
     return buyableLeads
       .map((lead) => {
@@ -314,13 +327,9 @@ const BuyLeadsTab = ({
           );
         }
         
-        // Recalculate credits for filtered items only
-        const totalCredits = filteredItems.reduce(
-          (sum, item) => sum + getCreditsForItemType(item.item_type),
-          0
-        );
-        
-        return { ...lead, items: filteredItems, total_credits_required: totalCredits };
+        // USER-BASED CREDITS: Flat rate per user, not per item
+        // Credit cost is based on seller's primary category
+        return { ...lead, items: filteredItems, total_credits_required: creditsPerUser };
       })
       .filter((lead) => {
         // Remove leads with no matching items
@@ -335,10 +344,13 @@ const BuyLeadsTab = ({
 
         return matchesSearch;
       });
-  }, [buyableLeads, categoryFilter, sellerCategories, searchQuery, forcedCategoryFilter]);
+  }, [buyableLeads, categoryFilter, sellerCategories, searchQuery, forcedCategoryFilter, creditsPerUser]);
 
   const handleBuyLead = async (lead: BuyableLead) => {
-    if (creditsBalance < lead.total_credits_required) {
+    // USER-BASED CREDITS: Flat rate per user
+    const creditsToDeduct = creditsPerUser;
+    
+    if (creditsBalance < creditsToDeduct) {
       setSelectedLeadForPurchase(lead);
       setShowInsufficientCreditsModal(true);
       return;
@@ -347,9 +359,19 @@ const BuyLeadsTab = ({
     setPurchasingId(lead.buyer_id);
 
     try {
-      // Convert each item to a lead
+      // Get current balance ONCE before processing
+      const { data: creditData } = await supabase
+        .from("seller_credits")
+        .select("current_balance, total_spent")
+        .eq("seller_id", user?.id)
+        .single();
+
+      if (!creditData) {
+        throw new Error("Could not fetch credit balance");
+      }
+
+      // Insert all items as leads (but only deduct credits ONCE per user)
       for (const item of lead.items) {
-        // Insert lead directly
         const { error: insertError } = await supabase
           .from("seller_leads")
           .insert({
@@ -368,47 +390,35 @@ const BuyLeadsTab = ({
           console.error("Error inserting lead:", insertError);
           throw insertError;
         }
-
-        // Deduct credits manually
-        const creditsToDeduct = getCreditsForItemType(item.item_type);
-        
-        // Get current balance
-        const { data: creditData } = await supabase
-          .from("seller_credits")
-          .select("current_balance, total_spent")
-          .eq("seller_id", user?.id)
-          .single();
-
-        if (creditData) {
-          const newBalance = creditData.current_balance - creditsToDeduct;
-          
-          // Update credits
-          await supabase
-            .from("seller_credits")
-            .update({
-              current_balance: newBalance,
-              total_spent: (creditData.total_spent || 0) + creditsToDeduct,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("seller_id", user?.id);
-
-          // Record transaction
-          await supabase.from("credit_transactions").insert({
-            seller_id: user?.id,
-            transaction_type: "lead_unlock",
-            credits_amount: -creditsToDeduct,
-            balance_before: creditData.current_balance,
-            balance_after: newBalance,
-            description: `Purchased lead for ${item.item_name}`,
-            reference_id: item.item_id,
-            reference_type: item.item_type,
-          });
-        }
       }
+
+      // Deduct credits ONCE per user (not per item)
+      const newBalance = creditData.current_balance - creditsToDeduct;
+      
+      await supabase
+        .from("seller_credits")
+        .update({
+          current_balance: newBalance,
+          total_spent: (creditData.total_spent || 0) + creditsToDeduct,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("seller_id", user?.id);
+
+      // Record single transaction for the user purchase
+      await supabase.from("credit_transactions").insert({
+        seller_id: user?.id,
+        transaction_type: "lead_unlock",
+        credits_amount: -creditsToDeduct,
+        balance_before: creditData.current_balance,
+        balance_after: newBalance,
+        description: `Purchased lead for buyer ${lead.buyer_first_name} (${lead.items.length} item${lead.items.length > 1 ? 's' : ''})`,
+        reference_id: lead.buyer_id,
+        reference_type: sellerPrimaryCategory,
+      });
 
       toast({
         title: "Lead Purchased!",
-        description: `Successfully purchased lead for ${lead.buyer_first_name}. ${lead.total_credits_required} credits deducted.`,
+        description: `Successfully purchased lead for ${lead.buyer_first_name}. ${creditsToDeduct} credits deducted.`,
       });
 
       onLeadPurchased();
@@ -469,16 +479,15 @@ const BuyLeadsTab = ({
       </div>
 
       {/* Info Banner */}
-      <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
+      <Card className="border-primary/20 bg-primary/5 dark:border-primary/30 dark:bg-primary/10">
         <CardContent className="flex items-start gap-3 p-4">
-          <ShoppingCart className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <ShoppingCart className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-medium text-blue-900 dark:text-blue-100">
-              Buy Leads to Unlock Buyer Details
+            <p className="font-medium text-foreground">
+              Buy Leads - {creditsPerUser} Credits Per Buyer
             </p>
-            <p className="text-blue-700 dark:text-blue-300 mt-1">
-              Purchase leads to access full buyer contact information. Leads are
-              grouped by buyer - you'll unlock all their viewed items at once.
+            <p className="text-muted-foreground mt-1">
+              Purchase a lead to unlock full buyer contact information. All items viewed by the same buyer are included - you pay once per user, not per item.
             </p>
           </div>
         </CardContent>
