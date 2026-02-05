@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,12 +79,15 @@ const DropdownMenu = ({ isOpen, onClose, children, className }: DropdownMenuProp
   return (
     <div
       ref={ref}
+      onMouseEnter={(e) => e.stopPropagation()}
       className={cn(
-        "absolute top-full left-0 mt-2 dropdown-professional min-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150",
+        "absolute top-full left-0 pt-2 dropdown-professional min-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150",
         className,
       )}
     >
-      {children}
+      <div className="bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-sm">
+        {children}
+      </div>
     </div>
   );
 };
@@ -105,6 +109,9 @@ const EnhancedHeader = () => {
   const [userProfile, setUserProfile] = useState<{ full_name?: string; avatar_url?: string } | null>(null);
   const compareDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const subMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const componentMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const comparisonCount = selectedRobots.length;
 
@@ -204,17 +211,92 @@ const EnhancedHeader = () => {
 
   useChatNotifications();
 
-  const handleDropdownEnter = (menu: string) => {
-    setActiveDropdown(menu);
-    setActiveSubMenu(null);
-    setActiveComponentMenu(null);
-  };
+  // Clear all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+      if (subMenuTimeoutRef.current) clearTimeout(subMenuTimeoutRef.current);
+      if (componentMenuTimeoutRef.current) clearTimeout(componentMenuTimeoutRef.current);
+    };
+  }, []);
 
-  const handleDropdownLeave = () => {
-    setActiveDropdown(null);
-    setActiveSubMenu(null);
+  const handleDropdownEnter = useCallback((menu: string) => {
+    // Clear any pending close timeout
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+    // Immediately open new dropdown
+    setActiveDropdown(menu);
+    // Only reset submenus if switching to a different dropdown
+    if (activeDropdown !== menu) {
+      setActiveSubMenu(null);
+      setActiveComponentMenu(null);
+    }
+  }, [activeDropdown]);
+
+  const handleDropdownLeave = useCallback(() => {
+    // Add delay before closing to allow cursor to move to submenu
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+      setActiveSubMenu(null);
+      setActiveComponentMenu(null);
+    }, 150);
+  }, []);
+
+  const handleSubMenuEnter = useCallback((category: string) => {
+    // Clear any pending close timeout
+    if (subMenuTimeoutRef.current) {
+      clearTimeout(subMenuTimeoutRef.current);
+      subMenuTimeoutRef.current = null;
+    }
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+    setActiveSubMenu(category);
+    // Reset component menu when switching categories
     setActiveComponentMenu(null);
-  };
+  }, []);
+
+  const handleSubMenuLeave = useCallback(() => {
+    // Add delay before closing to allow cursor to move to component menu
+    subMenuTimeoutRef.current = setTimeout(() => {
+      setActiveSubMenu(null);
+      setActiveComponentMenu(null);
+    }, 150);
+  }, []);
+
+  const handleComponentMenuEnter = useCallback((sub: string) => {
+    // Clear any pending close timeouts
+    if (componentMenuTimeoutRef.current) {
+      clearTimeout(componentMenuTimeoutRef.current);
+      componentMenuTimeoutRef.current = null;
+    }
+    if (subMenuTimeoutRef.current) {
+      clearTimeout(subMenuTimeoutRef.current);
+      subMenuTimeoutRef.current = null;
+    }
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+    setActiveComponentMenu(sub);
+  }, []);
+
+  const handleComponentMenuLeave = useCallback(() => {
+    componentMenuTimeoutRef.current = setTimeout(() => {
+      setActiveComponentMenu(null);
+    }, 150);
+  }, []);
+
+  // Keep dropdown open when hovering over the dropdown content
+  const handleDropdownContentEnter = useCallback(() => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+  }, []);
 
   const handleNavigation = (href: string) => {
     navigate(href);
@@ -509,13 +591,16 @@ const EnhancedHeader = () => {
           <div className="flex items-center justify-between">
             {/* Robots Menu */}
             <div
-              className="relative flex-1"
+              className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("robots")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/robots")}
-                className="nav-item flex items-center justify-center gap-2 w-full"
+                className={cn(
+                  "nav-item flex items-center justify-center gap-2 w-full",
+                  activeDropdown === "robots" && "text-primary"
+                )}
               >
                 <Bot className="h-4 w-4" />
                 <span>Robots</span>
@@ -526,8 +611,14 @@ const EnhancedHeader = () => {
                   )}
                 />
               </button>
-              <DropdownMenu isOpen={activeDropdown === "robots"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-3 max-h-[400px] overflow-y-auto">
+              <DropdownMenu 
+                isOpen={activeDropdown === "robots"} 
+                onClose={() => setActiveDropdown(null)}
+              >
+                <div 
+                  className="p-3 max-h-[400px] overflow-y-auto"
+                  onMouseEnter={handleDropdownContentEnter}
+                >
                   <Link
                     to="/robots"
                     className="dropdown-item font-semibold text-primary"
@@ -553,13 +644,16 @@ const EnhancedHeader = () => {
 
             {/* Spare Parts Menu - Multi-level */}
             <div
-              className="relative flex-1"
+              className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("spares")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/parts")}
-                className="nav-item flex items-center justify-center gap-2 w-full"
+                className={cn(
+                  "nav-item flex items-center justify-center gap-2 w-full",
+                  activeDropdown === "spares" && "text-primary"
+                )}
               >
                 <Package className="h-4 w-4" />
                 <span>Spare Parts</span>
@@ -575,7 +669,10 @@ const EnhancedHeader = () => {
                 onClose={() => setActiveDropdown(null)}
                 className="min-w-[260px]"
               >
-                <div className="p-3">
+                <div 
+                  className="p-3"
+                  onMouseEnter={handleDropdownContentEnter}
+                >
                   <Link
                     to="/parts"
                     className="dropdown-item font-semibold text-primary"
@@ -591,11 +688,15 @@ const EnhancedHeader = () => {
                       <div
                         key={category.label}
                         className="relative"
-                        onMouseEnter={() => setActiveSubMenu(category.label)}
+                        onMouseEnter={() => handleSubMenuEnter(category.label)}
+                        onMouseLeave={handleSubMenuLeave}
                       >
                         <Link
                           to={category.href}
-                          className="dropdown-item justify-between group"
+                          className={cn(
+                            "dropdown-item justify-between group",
+                            activeSubMenu === category.label && "bg-primary/10 text-primary"
+                          )}
                           onClick={() => setActiveDropdown(null)}
                         >
                           <span className="flex items-center gap-3">
@@ -606,8 +707,14 @@ const EnhancedHeader = () => {
                         </Link>
                         {/* Sub-menu subcategories */}
                         {activeSubMenu === category.label && (
-                          <div className="absolute left-full top-0 ml-1 dropdown-professional min-w-[280px] max-h-[450px] overflow-y-auto">
-                            <div className="p-3">
+                          <div 
+                            className="absolute left-full top-0 pl-1 min-w-[280px] max-h-[450px] z-[60]"
+                            onMouseEnter={() => {
+                              handleSubMenuEnter(category.label);
+                              if (subMenuTimeoutRef.current) clearTimeout(subMenuTimeoutRef.current);
+                            }}
+                          >
+                            <div className="p-3 bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-sm overflow-y-auto max-h-[450px]">
                               <Link
                                 to={category.href}
                                 className="dropdown-item font-semibold text-primary"
@@ -620,11 +727,15 @@ const EnhancedHeader = () => {
                                 <div
                                   key={sub.label}
                                   className="relative"
-                                  onMouseEnter={() => setActiveComponentMenu(sub.label)}
+                                  onMouseEnter={() => handleComponentMenuEnter(sub.label)}
+                                  onMouseLeave={handleComponentMenuLeave}
                                 >
                                   <Link
                                     to={sub.href}
-                                    className="dropdown-item justify-between group"
+                                    className={cn(
+                                      "dropdown-item justify-between group",
+                                      activeComponentMenu === sub.label && "bg-primary/10 text-primary"
+                                    )}
                                     onClick={() => setActiveDropdown(null)}
                                   >
                                     <span>{sub.label}</span>
@@ -634,8 +745,14 @@ const EnhancedHeader = () => {
                                   {activeComponentMenu === sub.label &&
                                     sub.componentTypes &&
                                     sub.componentTypes.length > 0 && (
-                                      <div className="absolute left-full top-0 ml-1 dropdown-professional min-w-[280px] max-h-[450px] overflow-y-auto">
-                                        <div className="p-3">
+                                      <div 
+                                        className="absolute left-full top-0 pl-1 min-w-[280px] max-h-[450px] z-[70]"
+                                        onMouseEnter={() => {
+                                          handleComponentMenuEnter(sub.label);
+                                          if (componentMenuTimeoutRef.current) clearTimeout(componentMenuTimeoutRef.current);
+                                        }}
+                                      >
+                                        <div className="p-3 bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-sm overflow-y-auto max-h-[450px]">
                                           <Link
                                             to={sub.href}
                                             className="dropdown-item font-semibold text-primary"
@@ -671,13 +788,16 @@ const EnhancedHeader = () => {
 
             {/* Services Menu */}
             <div
-              className="relative flex-1"
+              className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("services")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/services")}
-                className="nav-item flex items-center justify-center gap-2 w-full"
+                className={cn(
+                  "nav-item flex items-center justify-center gap-2 w-full",
+                  activeDropdown === "services" && "text-primary"
+                )}
               >
                 <Settings className="h-4 w-4" />
                 <span>Services</span>
@@ -688,8 +808,14 @@ const EnhancedHeader = () => {
                   )}
                 />
               </button>
-              <DropdownMenu isOpen={activeDropdown === "services"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-3 max-h-[400px] overflow-y-auto">
+              <DropdownMenu 
+                isOpen={activeDropdown === "services"} 
+                onClose={() => setActiveDropdown(null)}
+              >
+                <div 
+                  className="p-3 max-h-[400px] overflow-y-auto"
+                  onMouseEnter={handleDropdownContentEnter}
+                >
                   <Link
                     to="/services"
                     className="dropdown-item font-semibold text-primary"
@@ -715,13 +841,16 @@ const EnhancedHeader = () => {
 
             {/* Logistics Menu */}
             <div
-              className="relative flex-1"
+              className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("logistics")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/logistics")}
-                className="nav-item flex items-center justify-center gap-2 w-full"
+                className={cn(
+                  "nav-item flex items-center justify-center gap-2 w-full",
+                  activeDropdown === "logistics" && "text-primary"
+                )}
               >
                 <Truck className="h-4 w-4" />
                 <span>Logistics</span>
@@ -732,8 +861,14 @@ const EnhancedHeader = () => {
                   )}
                 />
               </button>
-              <DropdownMenu isOpen={activeDropdown === "logistics"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-3 max-h-[400px] overflow-y-auto">
+              <DropdownMenu 
+                isOpen={activeDropdown === "logistics"} 
+                onClose={() => setActiveDropdown(null)}
+              >
+                <div 
+                  className="p-3 max-h-[400px] overflow-y-auto"
+                  onMouseEnter={handleDropdownContentEnter}
+                >
                   <Link
                     to="/logistics"
                     className="dropdown-item font-semibold text-primary"
@@ -759,13 +894,16 @@ const EnhancedHeader = () => {
 
             {/* Financing Menu */}
             <div
-              className="relative flex-1"
+              className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("financing")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/financing")}
-                className="nav-item flex items-center justify-center gap-2 w-full"
+                className={cn(
+                  "nav-item flex items-center justify-center gap-2 w-full",
+                  activeDropdown === "financing" && "text-primary"
+                )}
               >
                 <CreditCard className="h-4 w-4" />
                 <span>Financing</span>
@@ -776,8 +914,14 @@ const EnhancedHeader = () => {
                   )}
                 />
               </button>
-              <DropdownMenu isOpen={activeDropdown === "financing"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-3 max-h-[400px] overflow-y-auto">
+              <DropdownMenu 
+                isOpen={activeDropdown === "financing"} 
+                onClose={() => setActiveDropdown(null)}
+              >
+                <div 
+                  className="p-3 max-h-[400px] overflow-y-auto"
+                  onMouseEnter={handleDropdownContentEnter}
+                >
                   <Link
                     to="/financing"
                     className="dropdown-item font-semibold text-primary"
@@ -803,13 +947,16 @@ const EnhancedHeader = () => {
 
             {/* RoboBook Menu */}
             <div
-              className="relative flex-1"
+              className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("robobook")}
               onMouseLeave={handleDropdownLeave}
             >
               <button
                 onClick={() => handleNavigation("/robobook")}
-                className="nav-item flex items-center justify-center gap-2 w-full"
+                className={cn(
+                  "nav-item flex items-center justify-center gap-2 w-full",
+                  activeDropdown === "robobook" && "text-primary"
+                )}
               >
                 <BookOpen className="h-4 w-4" />
                 <span>RoboBook</span>
@@ -820,8 +967,14 @@ const EnhancedHeader = () => {
                   )}
                 />
               </button>
-              <DropdownMenu isOpen={activeDropdown === "robobook"} onClose={() => setActiveDropdown(null)}>
-                <div className="p-3 max-h-[400px] overflow-y-auto">
+              <DropdownMenu 
+                isOpen={activeDropdown === "robobook"} 
+                onClose={() => setActiveDropdown(null)}
+              >
+                <div 
+                  className="p-3 max-h-[400px] overflow-y-auto"
+                  onMouseEnter={handleDropdownContentEnter}
+                >
                   <Link
                     to="/robobook"
                     className="dropdown-item font-semibold text-primary"
