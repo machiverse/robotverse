@@ -388,7 +388,13 @@ export const useSellerCRM = (itemType?: string) => {
       const { data, error } = await query;
       if (error) throw error;
       
-      const views = data || [];
+      // CRITICAL: Exclude self-views - seller should never see their own views as leads
+      // Filter out views where the viewer is the same as the seller
+      const views = (data || []).filter(view => {
+        // Exclude if user_id matches seller's id (logged-in seller viewing their own product)
+        if (view.user_id && view.user_id === user.id) return false;
+        return true;
+      });
       
       // Then fetch item names in background - handle both singular and plural item_type values
       const robotIds = [...new Set(views.filter(v => (v.item_type === 'robots' || v.item_type === 'robot') && v.item_id).map(v => v.item_id))];
@@ -672,6 +678,43 @@ export const useSellerCRM = (itemType?: string) => {
   const convertViewToLead = async (viewId: string): Promise<string | null> => {
     if (!user) return null;
 
+    // Find the view being converted
+    const viewToConvert = aggregatedViews.find(v => v.id === viewId || v.key === viewId);
+    
+    // VALIDATION: Check if viewer is the same as seller (should never happen after filtering, but double-check)
+    if (viewToConvert?._internal_user_id === user.id) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Convert",
+        description: "You cannot convert your own view into a lead."
+      });
+      return null;
+    }
+
+    // VALIDATION: Check credit balance before attempting conversion
+    if (creditsBalance < 10) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient Credits",
+        description: "You need at least 10 credits to convert a view to lead."
+      });
+      return null;
+    }
+
+    // Check if already converted to a lead
+    const existingLead = leads.find(l => 
+      l.buyer_id === viewToConvert?._internal_user_id ||
+      l.buyer_email === viewToConvert?._internal_user_email
+    );
+    
+    if (existingLead) {
+      toast({
+        title: "Already a Lead",
+        description: "This viewer has already been converted to a lead."
+      });
+      return existingLead.id;
+    }
+
     try {
       const { data, error } = await supabase.rpc('convert_view_to_lead', {
         p_view_id: viewId,
@@ -682,18 +725,23 @@ export const useSellerCRM = (itemType?: string) => {
 
       toast({
         title: "Lead Created",
-        description: "View converted to lead. 10 credits deducted."
+        description: "View converted to lead. Credits deducted."
       });
 
       // Refresh leads, product views, and credits balance
-      fetchLeads();
-      fetchProductViews();
-      fetchCreditsBalance();
+      await Promise.all([
+        fetchLeads(),
+        fetchProductViews(),
+        fetchCreditsBalance()
+      ]);
+      
       return data;
     } catch (error: any) {
       console.error('Error converting view to lead:', error);
       const errorMessage = error?.message?.includes('Insufficient credits') 
-        ? 'Insufficient credits. You need 10 credits to convert a view to lead.'
+        ? 'Insufficient credits. You need credits to convert a view to lead.'
+        : error?.message?.includes('already') 
+        ? 'This view has already been converted to a lead.'
         : 'Failed to convert view to lead';
       toast({
         variant: "destructive",

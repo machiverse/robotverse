@@ -12,6 +12,7 @@ import {
   Search,
   Filter,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useSellerCRM, type Lead, type LeadActivity } from "@/hooks/useSellerCRM";
@@ -499,65 +506,136 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {filteredViews.map((view) => (
-                      <Card key={view.key} className="overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
-                        <div className="flex items-stretch">
-                          <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : "bg-primary"}`} />
-                          <div className="flex-1 p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${view.is_anonymous ? "bg-muted" : "bg-primary/10"}`}>
-                                  <span className={`text-sm font-semibold ${view.is_anonymous ? "text-muted-foreground" : "text-primary"}`}>
-                                    {(view._internal_user_name || "A").charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                                <div>
-                                  <h4 className="font-semibold text-foreground">{view._internal_user_name || "Anonymous Visitor"}</h4>
-                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
+                    <TooltipProvider>
+                      {filteredViews.map((view) => {
+                        // Check if this viewer is already a lead
+                        const isAlreadyLead = leads.some(l => 
+                          l.buyer_id === view._internal_user_id ||
+                          (view._internal_user_email && l.buyer_email === view._internal_user_email)
+                        );
+                        
+                        // Check if view is from an anonymous user (can still convert but limited info)
+                        const hasInsufficientCredits = creditsBalance < 10;
+                        
+                        // Determine button state and tooltip message
+                        let buttonDisabled = convertingId !== null;
+                        let tooltipMessage = "";
+                        
+                        if (isAlreadyLead) {
+                          buttonDisabled = true;
+                          tooltipMessage = "This viewer has already been converted to a lead.";
+                        } else if (hasInsufficientCredits) {
+                          buttonDisabled = true;
+                          tooltipMessage = "Insufficient credits. You need 10 credits to convert.";
+                        }
+
+                        return (
+                          <Card key={view.key} className="overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
+                            <div className="flex items-stretch">
+                              <div className={`w-1 shrink-0 ${view.is_anonymous ? "bg-muted-foreground/30" : isAlreadyLead ? "bg-green-500" : "bg-primary"}`} />
+                              <div className="flex-1 p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${view.is_anonymous ? "bg-muted" : isAlreadyLead ? "bg-green-100 dark:bg-green-900/30" : "bg-primary/10"}`}>
+                                      <span className={`text-sm font-semibold ${view.is_anonymous ? "text-muted-foreground" : isAlreadyLead ? "text-green-600" : "text-primary"}`}>
+                                        {(view._internal_user_name || "A").charAt(0).toUpperCase()}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-semibold text-foreground">{view._internal_user_name || "Anonymous Visitor"}</h4>
+                                        {isAlreadyLead && (
+                                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30">
+                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                            Lead
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Clock className="h-3.5 w-3.5" />
+                                        {formatDistanceToNow(new Date(view.created_at), { addSuffix: true })}
+                                      </div>
+                                    </div>
                                   </div>
+                                  
+                                  {isAlreadyLead ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-9 px-4 text-green-600 border-green-200"
+                                      onClick={() => setActiveTab("leads")}
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      View in Leads
+                                    </Button>
+                                  ) : tooltipMessage ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleConvertToLead(view.id)}
+                                            disabled={buttonDisabled}
+                                            className="h-9 px-4"
+                                          >
+                                            {convertingId === view.id ? (
+                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : hasInsufficientCredits ? (
+                                              <AlertTriangle className="mr-2 h-4 w-4" />
+                                            ) : (
+                                              <UserPlus className="mr-2 h-4 w-4" />
+                                            )}
+                                            Convert to Lead
+                                          </Button>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{tooltipMessage}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleConvertToLead(view.id)}
+                                      disabled={buttonDisabled}
+                                      className="h-9 px-4"
+                                    >
+                                      {convertingId === view.id ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <UserPlus className="mr-2 h-4 w-4" />
+                                      )}
+                                      Convert to Lead
+                                    </Button>
+                                  )}
+                                </div>
+                                <div className="space-y-2 pl-[52px]">
+                                  {view.items.map((item, idx) => (
+                                    <div key={`${item.item_id}_${idx}`} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary shrink-0">
+                                        {idx + 1}
+                                      </span>
+                                      {item.item_image ? (
+                                        <img src={item.item_image} alt={item.item_name} className="h-10 w-10 rounded object-cover shrink-0" />
+                                      ) : (
+                                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
+                                          <Package className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                      <span className="font-medium text-sm text-foreground flex-1 truncate">{item.item_name || "Unknown Item"}</span>
+                                      <Badge variant="secondary" className="shrink-0 flex items-center gap-1">
+                                        <Eye className="h-3 w-3" />
+                                        {item.view_count} {item.view_count === 1 ? "view" : "views"}
+                                      </Badge>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => handleConvertToLead(view.id)}
-                                disabled={convertingId !== null}
-                                className="h-9 px-4"
-                              >
-                                {convertingId === view.id ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                  <UserPlus className="mr-2 h-4 w-4" />
-                                )}
-                                Convert to Lead
-                              </Button>
                             </div>
-                            <div className="space-y-2 pl-[52px]">
-                              {view.items.map((item, idx) => (
-                                <div key={`${item.item_id}_${idx}`} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary shrink-0">
-                                    {idx + 1}
-                                  </span>
-                                  {item.item_image ? (
-                                    <img src={item.item_image} alt={item.item_name} className="h-10 w-10 rounded object-cover shrink-0" />
-                                  ) : (
-                                    <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0">
-                                      <Package className="h-5 w-5 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  <span className="font-medium text-sm text-foreground flex-1 truncate">{item.item_name || "Unknown Item"}</span>
-                                  <Badge variant="secondary" className="shrink-0 flex items-center gap-1">
-                                    <Eye className="h-3 w-3" />
-                                    {item.view_count} {item.view_count === 1 ? "view" : "views"}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
+                          </Card>
+                        );
+                      })}
+                    </TooltipProvider>
                   </div>
                 )}
               </TabsContent>
