@@ -1,47 +1,14 @@
-import { useState } from "react";
+import React, { Fragment, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Eye,
   FileQuestion,
   ShoppingCart,
   User,
   X,
-  List,
   LayoutGrid,
   CreditCard,
   Search,
   Filter,
-  Loader2,
-} from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useAuth } from "@/hooks/useAuth";
-import { useSellerCRM, type Lead, type LeadActivity } from "@/hooks/useSellerCRM";
-
-import BuyLeadsTab from "./BuyLeadsTab";
-import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
-import LeadsPipeline from "./LeadsPipeline";
-import LeadDetailView from "./LeadDetailView";
-import CreateQuotationModal from "./CreateQuotationModal";
-
-// Reuse the existing components from LeadsManager
-import { format, formatDistanceToNow } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import {
   Lock,
   Unlock,
   Phone,
@@ -49,34 +16,74 @@ import {
   Building2,
   Calendar,
   MessageSquare,
-  FileText,
-  MoreHorizontal,
   Package,
-  MapPin,
   Clock,
   MessageCircle,
   FileSpreadsheet,
-  CheckCircle,
-  UserPlus,
+  Loader2,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Fragment } from "react";
+
+import { useAuth } from "@/hooks/useAuth";
+import { useSellerCRM, type Lead, type LeadActivity } from "@/hooks/useSellerCRM";
+import { useToast } from "@/hooks/use-toast";
+
+import BuyLeadsTab from "./BuyLeadsTab";
+import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
+import LeadsPipeline from "./LeadsPipeline";
+import LeadDetailView from "./LeadDetailView";
+import CreateQuotationModal from "./CreateQuotationModal";
+
+import { format, formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+
+type ViewMode = "list" | "pipeline";
+type LeadTab = "quotes" | "buy" | "leads";
+
+const TAB_QUOTES: LeadTab = "quotes";
+const TAB_BUY: LeadTab = "buy";
+const TAB_LEADS: LeadTab = "leads";
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
-  new: { label: "New", color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-900/30" },
-  contacted: { label: "Contacted", color: "text-yellow-700", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
-  quoted: { label: "Quoted", color: "text-purple-700", bg: "bg-purple-100 dark:bg-purple-900/30" },
-  negotiating: { label: "Negotiating", color: "text-orange-700", bg: "bg-orange-100 dark:bg-orange-900/30" },
-  closed_won: { label: "Won", color: "text-green-700", bg: "bg-green-100 dark:bg-green-900/30" },
-  closed_lost: { label: "Lost", color: "text-red-700", bg: "bg-red-100 dark:bg-red-900/30" },
+  new: {
+    label: "New",
+    color: "text-blue-700",
+    bg: "bg-blue-100 dark:bg-blue-900/30",
+  },
+  contacted: {
+    label: "Contacted",
+    color: "text-yellow-700",
+    bg: "bg-yellow-100 dark:bg-yellow-900/30",
+  },
+  quoted: {
+    label: "Quoted",
+    color: "text-purple-700",
+    bg: "bg-purple-100 dark:bg-purple-900/30",
+  },
+  negotiating: {
+    label: "Negotiating",
+    color: "text-orange-700",
+    bg: "bg-orange-100 dark:bg-orange-900/30",
+  },
+  closed_won: {
+    label: "Won",
+    color: "text-green-700",
+    bg: "bg-green-100 dark:bg-green-900/30",
+  },
+  closed_lost: {
+    label: "Lost",
+    color: "text-red-700",
+    bg: "bg-red-100 dark:bg-red-900/30",
+  },
 };
 
 const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string }> = {
@@ -92,14 +99,43 @@ const getMaskedValue = (value: string | null, isUnlocked: boolean): string => {
 };
 
 const getCreditsNeeded = (leadItemType: string): number => {
-  return leadItemType === "robots" || leadItemType === "robot" ? 10 : 5;
+  const normalized = leadItemType?.toLowerCase() || "";
+  return normalized === "robots" || normalized === "robot" ? 10 : 5;
+};
+
+const getStatusAccentColor = (status: Lead["status"]): string => {
+  const map: Record<Lead["status"], string> = {
+    new: "bg-blue-500",
+    contacted: "bg-yellow-500",
+    quoted: "bg-purple-500",
+    negotiating: "bg-orange-500",
+    closed_won: "bg-green-500",
+    closed_lost: "bg-red-500",
+  };
+  return map[status] ?? "bg-muted";
 };
 
 interface FullScreenLeadManagerProps {
   onClose: () => void;
   /** Force a specific category filter (robot, spare_part, service) */
-  categoryFilter?: 'robot' | 'spare_part' | 'service';
+  categoryFilter?: "robot" | "spare_part" | "service";
 }
+
+const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManagerProps["categoryFilter"]): boolean => {
+  if (!categoryFilter) return true;
+  const normalized = itemType?.toLowerCase() || "";
+
+  if (categoryFilter === "robot") {
+    return normalized === "robot" || normalized === "robots";
+  }
+  if (categoryFilter === "spare_part") {
+    return normalized === "spare_part" || normalized === "spare_parts";
+  }
+  if (categoryFilter === "service") {
+    return normalized === "service" || normalized === "services";
+  }
+  return true;
+};
 
 const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManagerProps) => {
   const { user } = useAuth();
@@ -121,10 +157,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     fetchLeads,
   } = useSellerCRM();
 
-  const [activeTab, setActiveTab] = useState<string>("quotes");
+  const [activeTab, setActiveTab] = useState<LeadTab>(TAB_QUOTES);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"list" | "pipeline">("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
@@ -135,35 +171,24 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
   const [unlocking, setUnlocking] = useState<string | null>(null);
   const [leadActivities, setLeadActivities] = useState<LeadActivity[]>([]);
 
-  // Helper to match item_type with category filter
-  const matchesCategory = (itemType: string): boolean => {
-    if (!categoryFilter) return true;
-    const normalized = itemType?.toLowerCase() || '';
-    if (categoryFilter === 'robot') {
-      return normalized === 'robot' || normalized === 'robots';
-    }
-    if (categoryFilter === 'spare_part') {
-      return normalized === 'spare_part' || normalized === 'spare_parts';
-    }
-    if (categoryFilter === 'service') {
-      return normalized === 'service' || normalized === 'services';
-    }
-    return true;
-  };
-
   const filteredLeads = leads.filter((lead) => {
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
       lead.buyer_name?.toLowerCase().includes(q) ||
       lead.buyer_company?.toLowerCase().includes(q) ||
       lead.item_name?.toLowerCase().includes(q);
+
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
-    const matchesCat = matchesCategory(lead.item_type);
+    const matchesCat = matchesCategory(lead.item_type, categoryFilter);
+
     return matchesSearch && matchesStatus && matchesCat;
   });
 
   const handleUnlock = async (lead: Lead) => {
+    const creditsNeeded = getCreditsNeeded(lead.item_type);
+    if (creditsBalance < creditsNeeded) return;
+
     setUnlocking(lead.id);
     await unlockBuyerInfo(lead.id, lead.item_type);
     setUnlocking(null);
@@ -171,13 +196,16 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
 
   const handleScheduleFollowUp = async () => {
     if (!selectedLead || !followUpDate) return;
+
     await scheduleFollowUp(selectedLead.id, followUpDate);
     if (followUpNote) {
       await addActivity(selectedLead.id, "follow_up", "Follow-up Scheduled", followUpNote, followUpDate);
     }
+
     setShowFollowUpModal(false);
     setFollowUpDate("");
     setFollowUpNote("");
+
     toast({
       title: "Follow-up scheduled",
       description: `Follow-up set for ${format(new Date(followUpDate), "PPP")}`,
@@ -276,77 +304,74 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     setShowQuotationModal(true);
   };
 
-  // Count of unlocked leads only
   const unlockedLeadsCount = leads.filter((l) => l.is_unlocked).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background">
       {/* Header */}
-      <header className="flex h-16 items-center justify-between border-b bg-background px-6 shrink-0">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Lead Manager</h1>
-          <p className="text-sm text-muted-foreground">
-            CRM workspace for managing leads and buyer inquiries
-          </p>
+      <header className="flex h-16 items-center justify-between border-b bg-background px-6">
+        <div className="space-y-0.5">
+          <h1 className="text-lg font-semibold tracking-tight">Lead Manager</h1>
+          <p className="text-xs text-muted-foreground">CRM workspace for managing leads and buyer inquiries</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs">
             <CreditCard className="h-4 w-4 text-amber-600" />
-            <span className="text-sm font-medium">{creditsBalance} credits</span>
+            <span className="font-medium">{creditsBalance} credits</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close lead manager" type="button">
             <X className="h-5 w-5" />
           </Button>
         </div>
       </header>
 
       {/* Stats Row */}
-      <div className="px-6 py-4 border-b bg-muted/30 shrink-0">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Card className="border-muted/60 bg-card p-4">
+      <div className="border-b bg-muted/40 px-6 py-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-indigo-100 p-2 dark:bg-indigo-900/30">
                 <FileQuestion className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-muted-foreground">Quote Requests</p>
-                <p className="text-2xl font-semibold">{stats.quoteRequestsCount}</p>
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">Quote Requests</p>
+                <p className="text-xl font-semibold">{stats.quoteRequestsCount}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="border-muted/60 bg-card p-4">
+          <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-amber-100 p-2 dark:bg-amber-900/30">
                 <ShoppingCart className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-muted-foreground">Buy Leads</p>
-                <p className="text-2xl font-semibold">{aggregatedViews.filter(v => !v.is_anonymous).length}</p>
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">Buy Leads</p>
+                <p className="text-xl font-semibold">{aggregatedViews.filter((v) => !v.is_anonymous).length}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="border-muted/60 bg-card p-4">
+          <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/30">
                 <User className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-muted-foreground">Total Leads</p>
-                <p className="text-2xl font-semibold">{leads.length}</p>
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">Total Leads</p>
+                <p className="text-xl font-semibold">{leads.length}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="border-muted/60 bg-card p-4">
+          <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30">
                 <Unlock className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-muted-foreground">Unlocked</p>
-                <p className="text-2xl font-semibold">{unlockedLeadsCount}</p>
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">Unlocked</p>
+                <p className="text-xl font-semibold">{unlockedLeadsCount}</p>
               </div>
             </div>
           </Card>
@@ -355,39 +380,46 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
-        <Card className="border-muted/70 bg-background h-full flex flex-col">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <Card className="flex h-full flex-col border-muted/70 bg-background">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as LeadTab)}
+            className="flex flex-1 flex-col"
+          >
             {/* Tabs Header */}
-            <div className="p-4 pb-0 border-b">
-              <div className="flex items-center justify-between mb-4">
+            <div className="border-b p-4 pb-0">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <TabsList className="h-10">
-                  <TabsTrigger value="quotes" className="flex items-center gap-2 px-4">
+                  <TabsTrigger value={TAB_QUOTES} className="flex items-center gap-2 px-4">
                     <FileQuestion className="h-4 w-4" />
-                    Quote Requests
+                    <span>Quote Requests</span>
                     <Badge variant="secondary" className="ml-1">
                       {stats.quoteRequestsCount}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="buy" className="flex items-center gap-2 px-4">
+                  <TabsTrigger value={TAB_BUY} className="flex items-center gap-2 px-4">
                     <ShoppingCart className="h-4 w-4" />
-                    Buy Leads
-                    <Badge className="ml-1 bg-amber-500">
-                      {aggregatedViews.filter(v => !v.is_anonymous).length}
-                    </Badge>
+                    <span>Buy Leads</span>
+                    <Badge className="ml-1 bg-amber-500">{aggregatedViews.filter((v) => !v.is_anonymous).length}</Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="leads" className="flex items-center gap-2 px-4">
+                  <TabsTrigger value={TAB_LEADS} className="flex items-center gap-2 px-4">
                     <User className="h-4 w-4" />
-                    Leads
+                    <span>Leads</span>
                     <Badge variant="secondary" className="ml-1">
                       {leads.length}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
 
-                {activeTab === "leads" && (
-                  <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "list" | "pipeline")}>
+                {activeTab === TAB_LEADS && (
+                  <ToggleGroup
+                    type="single"
+                    value={viewMode}
+                    onValueChange={(val) => val && setViewMode(val as ViewMode)}
+                    aria-label="Select leads view mode"
+                  >
                     <ToggleGroupItem value="list" aria-label="List view" className="h-8 px-3">
-                      <List className="h-4 w-4" />
+                      <LayoutGrid className="h-4 w-4 rotate-90" />
                     </ToggleGroupItem>
                     <ToggleGroupItem value="pipeline" aria-label="Pipeline view" className="h-8 px-3">
                       <LayoutGrid className="h-4 w-4" />
@@ -396,11 +428,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                 )}
               </div>
 
-              {/* Search Bar (not for quotes tab or buy tab) */}
-              {activeTab === "leads" && (
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center pb-4">
+              {activeTab === TAB_LEADS && (
+                <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center">
                   <div className="relative flex-1">
-                    <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                    <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
                     <Input
                       placeholder="Search by name, company, or product…"
                       value={searchQuery}
@@ -408,7 +439,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                       className="pl-9"
                     />
                   </div>
-                  {activeTab === "leads" && viewMode === "list" && (
+                  {viewMode === "list" && (
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger className="w-full sm:w-44">
                         <Filter className="mr-2 h-4 w-4" />
@@ -430,28 +461,30 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
 
             {/* Tab Contents */}
             <div className="flex-1 overflow-auto p-4">
-              {/* Product Views tab removed - use Buy Leads instead */}
-
-              <TabsContent value="quotes" className="mt-0 h-full">
+              <TabsContent value={TAB_QUOTES} className="mt-0 h-full">
                 <QuoteRequestsSection sellerId={user?.id || ""} />
               </TabsContent>
 
-              <TabsContent value="buy" className="mt-0 h-full">
+              <TabsContent value={TAB_BUY} className="mt-0 h-full">
                 <BuyLeadsTab
                   sellerId={user?.id || ""}
                   creditsBalance={creditsBalance}
                   onLeadPurchased={() => {
                     fetchLeads();
-                    setActiveTab("leads");
+                    setActiveTab(TAB_LEADS);
                   }}
                   onBuyCredits={() => navigate("/dashboard/credits")}
                   forcedCategoryFilter={categoryFilter}
                 />
               </TabsContent>
 
-              <TabsContent value="leads" className="mt-0 h-full">
+              <TabsContent value={TAB_LEADS} className="mt-0 h-full">
                 {viewMode === "pipeline" ? (
-                  <LeadsPipeline leads={filteredLeads} onStatusChange={updateLeadStatus} onLeadClick={openLeadDetails} />
+                  <LeadsPipeline
+                    leads={filteredLeads}
+                    onStatusChange={updateLeadStatus}
+                    onLeadClick={openLeadDetails}
+                  />
                 ) : filteredLeads.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <User className="mb-3 h-10 w-10 text-muted-foreground" />
@@ -468,31 +501,32 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                       const creditsNeeded = getCreditsNeeded(lead.item_type);
                       const canUnlock = creditsBalance >= creditsNeeded;
 
-                      const getStatusAccentColor = (status: Lead["status"]) => {
-                        const colors = {
-                          new: "bg-blue-500",
-                          contacted: "bg-yellow-500",
-                          quoted: "bg-purple-500",
-                          negotiating: "bg-orange-500",
-                          closed_won: "bg-green-500",
-                          closed_lost: "bg-red-500",
-                        };
-                        return colors[status] || "bg-muted";
-                      };
-
                       return (
                         <Card
                           key={lead.id}
-                          className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20 cursor-pointer"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Open lead details for ${lead.buyer_name ?? "buyer"}`}
+                          className="group cursor-pointer overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                           onClick={() => openLeadDetails(lead)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              openLeadDetails(lead);
+                            }
+                          }}
                         >
                           <div className="flex items-stretch">
                             <div className={`w-1 shrink-0 ${getStatusAccentColor(lead.status)}`} />
                             <div className="flex-1 p-4">
                               {/* Top row */}
-                              <div className="flex items-start justify-between gap-4 mb-3">
+                              <div className="mb-3 flex items-start justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${lead.is_unlocked ? "bg-green-100 dark:bg-green-900/40" : "bg-muted"}`}>
+                                  <div
+                                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                                      lead.is_unlocked ? "bg-green-100 dark:bg-green-900/40" : "bg-muted"
+                                    }`}
+                                  >
                                     {lead.is_unlocked ? (
                                       <span className="text-base font-semibold text-green-600">
                                         {(lead.buyer_name || "L").charAt(0).toUpperCase()}
@@ -501,44 +535,52 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                       <Lock className="h-5 w-5 text-muted-foreground" />
                                     )}
                                   </div>
-                                  <div className="min-w-0">
+                                  <div className="min-w-0 space-y-0.5">
                                     <div className="flex items-center gap-2">
-                                      <h4 className="font-semibold text-foreground truncate">
+                                      <h4 className="max-w-[200px] truncate text-sm font-semibold text-foreground">
                                         {getMaskedValue(lead.buyer_name, lead.is_unlocked)}
                                       </h4>
                                       {!lead.is_unlocked && (
-                                        <Badge variant="secondary" className="text-xs shrink-0">
-                                          <Lock className="h-3 w-3 mr-1" />
+                                        <Badge variant="secondary" className="shrink-0 text-[10px]">
+                                          <Lock className="mr-1 h-3 w-3" />
                                           Locked
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                       <Building2 className="h-3.5 w-3.5" />
-                                      {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
+                                      <span className="truncate">
+                                        {getMaskedValue(lead.buyer_company, lead.is_unlocked)}
+                                      </span>
                                     </p>
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <Badge className={`${statusConfig.bg} ${statusConfig.color} border-0 font-medium`}>
+                                <div className="flex shrink-0 items-center gap-2">
+                                  <Badge
+                                    className={`${statusConfig.bg} ${statusConfig.color} border-0 text-xs font-medium`}
+                                  >
                                     {statusConfig.label}
                                   </Badge>
-                                  <Badge variant="outline" className={`${priorityConfig.color} font-medium`}>
+                                  <Badge variant="outline" className={`${priorityConfig.color} text-xs font-medium`}>
                                     {priorityConfig.label}
                                   </Badge>
                                 </div>
                               </div>
 
                               {/* Contact info */}
-                              <div className="flex flex-wrap items-center gap-4 mb-3 text-sm">
+                              <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
                                 {lead.is_unlocked ? (
                                   <Fragment>
                                     {lead.buyer_phone && (
                                       <button
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); handleCall(lead); }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCall(lead);
+                                        }}
                                         className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                                        aria-label={`Call ${lead.buyer_name ?? "buyer"}`}
                                       >
                                         <Phone className="h-3.5 w-3.5" />
                                         {lead.buyer_phone}
@@ -547,8 +589,12 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                     {lead.buyer_email && (
                                       <button
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); handleEmail(lead); }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEmail(lead);
+                                        }}
                                         className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                                        aria-label={`Email ${lead.buyer_name ?? "buyer"}`}
                                       >
                                         <Mail className="h-3.5 w-3.5" />
                                         {lead.buyer_email}
@@ -556,7 +602,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                     )}
                                   </Fragment>
                                 ) : (
-                                  <div className="flex gap-4 text-muted-foreground/60">
+                                  <div className="flex gap-4 text-xs text-muted-foreground/60">
                                     <span className="inline-flex items-center gap-1.5">
                                       <Phone className="h-3.5 w-3.5" />
                                       ••••••••••
@@ -570,20 +616,26 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                               </div>
 
                               {/* Product info */}
-                              <div className="flex items-center gap-3 mb-3">
-                                <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-muted">
+                              <div className="mb-3 flex items-center gap-3">
+                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
                                   {lead.item_image ? (
-                                    <img src={lead.item_image} alt={lead.item_name || "Product"} className="h-full w-full object-cover" />
+                                    <img
+                                      src={lead.item_image}
+                                      alt={lead.item_name || "Product"}
+                                      className="h-full w-full object-cover"
+                                    />
                                   ) : (
-                                    <div className="h-full w-full flex items-center justify-center">
+                                    <div className="flex h-full w-full items-center justify-center">
                                       <Package className="h-5 w-5 text-muted-foreground" />
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-medium text-sm truncate">{lead.item_name || "Unknown product"}</span>
-                                    <Badge variant="outline" className="capitalize text-xs">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="max-w-[220px] truncate text-sm font-medium">
+                                      {lead.item_name || "Unknown product"}
+                                    </span>
+                                    <Badge className="text-[11px] capitalize" variant="outline">
                                       {lead.item_type}
                                     </Badge>
                                   </div>
@@ -591,7 +643,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                               </div>
 
                               {/* Bottom row */}
-                              <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/50">
+                              <div className="flex items-center justify-between gap-4 border-t border-border/50 pt-2">
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                   <span className="inline-flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5" />
@@ -604,14 +656,19 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                     <Button
                                       size="sm"
                                       variant={canUnlock ? "default" : "outline"}
-                                      onClick={(e) => { e.stopPropagation(); handleUnlock(lead); }}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!canUnlock) return;
+                                        handleUnlock(lead);
+                                      }}
                                       disabled={!canUnlock || unlocking === lead.id}
-                                      className="h-9 px-4 font-medium shadow-sm"
+                                      className="h-8 px-3 text-xs font-medium shadow-sm"
                                     >
                                       {unlocking === lead.id ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                                       ) : (
-                                        <Unlock className="mr-2 h-4 w-4" />
+                                        <Unlock className="mr-1.5 h-3.5 w-3.5" />
                                       )}
                                       Unlock ({creditsNeeded} cr)
                                     </Button>
@@ -619,7 +676,11 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                     <div className="flex items-center gap-1.5">
                                       <Button
                                         size="sm"
-                                        onClick={(e) => { e.stopPropagation(); handleStartChat(lead); }}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStartChat(lead);
+                                        }}
                                         className="h-8 px-3 text-xs font-medium"
                                       >
                                         <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
@@ -628,7 +689,11 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={(e) => { e.stopPropagation(); handleWhatsApp(lead); }}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleWhatsApp(lead);
+                                        }}
                                         className="h-8 px-3 text-xs font-medium border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
                                       >
                                         <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
@@ -637,7 +702,11 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={(e) => { e.stopPropagation(); openQuotation(lead); }}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openQuotation(lead);
+                                        }}
                                         className="h-8 px-3 text-xs font-medium"
                                       >
                                         <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
@@ -741,10 +810,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setShowFollowUpModal(false)}>
+            <Button variant="outline" size="sm" type="button" onClick={() => setShowFollowUpModal(false)}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleScheduleFollowUp} disabled={!followUpDate}>
+            <Button size="sm" type="button" onClick={handleScheduleFollowUp} disabled={!followUpDate}>
               <Calendar className="mr-2 h-4 w-4" />
               Schedule
             </Button>
