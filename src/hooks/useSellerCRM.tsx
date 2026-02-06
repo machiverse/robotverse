@@ -615,18 +615,32 @@ export const useSellerCRM = (itemType?: string) => {
     if (!user) return;
 
     try {
-      const { count, error } = await supabase
+      let query = supabase
         .from('user_requests')
         .select('*', { count: 'exact', head: true })
         .eq('seller_id', user.id)
         .eq('request_type', 'get_quote');
+
+      // Apply category filter if itemType is provided
+      if (itemType) {
+        // Handle both singular and plural variations
+        if (itemType === 'robot' || itemType === 'robots') {
+          query = query.or('item_type.eq.robot,item_type.eq.robots');
+        } else if (itemType === 'spare_part' || itemType === 'spare_parts') {
+          query = query.or('item_type.eq.spare_part,item_type.eq.spare_parts');
+        } else if (itemType === 'service' || itemType === 'services') {
+          query = query.or('item_type.eq.service,item_type.eq.services');
+        }
+      }
+
+      const { count, error } = await query;
 
       if (error) throw error;
       setQuoteRequestsCount(count || 0);
     } catch (error) {
       console.error('Error fetching quote requests count:', error);
     }
-  }, [user]);
+  }, [user, itemType]);
 
   const calculateStats = useCallback(() => {
     const newLeads = leads.filter(l => l.status === 'new').length;

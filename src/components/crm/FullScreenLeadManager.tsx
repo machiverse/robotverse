@@ -304,7 +304,12 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     setShowQuotationModal(true);
   };
 
-  const unlockedLeadsCount = leads.filter((l) => l.is_unlocked).length;
+  // Filter counts by category for tab badges and stats
+  const categoryFilteredLeads = leads.filter((l) => matchesCategory(l.item_type, categoryFilter));
+  const categoryFilteredViews = aggregatedViews.filter((v) => 
+    !v.is_anonymous && v.items.some((item) => matchesCategory(item.item_type || '', categoryFilter))
+  );
+  const unlockedLeadsCount = categoryFilteredLeads.filter((l) => l.is_unlocked).length;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
@@ -325,7 +330,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
         </div>
       </header>
 
-      {/* Stats Row */}
+      {/* Stats Row - Category-filtered counts */}
       <div className="border-b bg-muted/40 px-6 py-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-muted/60 bg-card px-3 py-3">
@@ -347,7 +352,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
               </div>
               <div>
                 <p className="text-[11px] font-medium uppercase text-muted-foreground">Buy Leads</p>
-                <p className="text-xl font-semibold">{aggregatedViews.filter((v) => !v.is_anonymous).length}</p>
+                <p className="text-xl font-semibold">{categoryFilteredViews.length}</p>
               </div>
             </div>
           </Card>
@@ -359,7 +364,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
               </div>
               <div>
                 <p className="text-[11px] font-medium uppercase text-muted-foreground">Total Leads</p>
-                <p className="text-xl font-semibold">{leads.length}</p>
+                <p className="text-xl font-semibold">{categoryFilteredLeads.length}</p>
               </div>
             </div>
           </Card>
@@ -400,13 +405,13 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                   <TabsTrigger value={TAB_BUY} className="flex items-center gap-2 px-4">
                     <ShoppingCart className="h-4 w-4" />
                     <span>Buy Leads</span>
-                    <Badge className="ml-1 bg-amber-500">{aggregatedViews.filter((v) => !v.is_anonymous).length}</Badge>
+                    <Badge className="ml-1 bg-amber-500">{categoryFilteredViews.length}</Badge>
                   </TabsTrigger>
                   <TabsTrigger value={TAB_LEADS} className="flex items-center gap-2 px-4">
                     <User className="h-4 w-4" />
                     <span>Leads</span>
                     <Badge variant="secondary" className="ml-1">
-                      {leads.length}
+                      {categoryFilteredLeads.length}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
