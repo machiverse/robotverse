@@ -292,12 +292,42 @@ const CreateQuotationModal = ({
         });
       }
 
+      // Send email notification to buyer
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-quotation-notification', {
+          body: {
+            buyerEmail: buyerEmail,
+            buyerName: buyerName,
+            sellerName: sellerProfile.full_name,
+            sellerCompany: sellerProfile.company_name || '',
+            quotationNumber: quotationNumber,
+            totalAmount: totalAmount,
+            validUntil: validUntil,
+            items: items.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              total: item.total,
+            })),
+          },
+        });
+        
+        if (emailError) {
+          console.error("Email notification error:", emailError);
+          // Don't fail the whole operation if email fails
+        } else {
+          console.log("Email notification sent successfully");
+        }
+      } catch (emailErr) {
+        console.error("Failed to send email notification:", emailErr);
+        // Continue with the flow even if email fails
+      }
+
       // Download the PDF for the seller
       await downloadQuotationPDF(getPDFData(quotationNumber));
 
       toast({
         title: "Quotation sent successfully!",
-        description: `Quotation ${quotationNumber} has been created and the PDF has been downloaded.`,
+        description: `Quotation ${quotationNumber} has been created and notification sent to the buyer.`,
       });
 
       onSuccess?.();
