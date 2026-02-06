@@ -462,7 +462,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
             {/* Tab Contents */}
             <div className="flex-1 overflow-auto p-4">
               <TabsContent value={TAB_QUOTES} className="mt-0 h-full">
-                <QuoteRequestsSection sellerId={user?.id || ""} />
+                <QuoteRequestsSection 
+                  sellerId={user?.id || ""} 
+                  itemType={categoryFilter === "robot" ? "robot" : categoryFilter === "spare_part" ? "spare_part" : categoryFilter === "service" ? "service" : undefined}
+                />
               </TabsContent>
 
               <TabsContent value={TAB_BUY} className="mt-0 h-full">
