@@ -642,7 +642,7 @@ const EnhancedHeader = () => {
               </DropdownMenu>
             </div>
 
-            {/* Spare Parts Menu - Multi-level */}
+            {/* Spare Parts Menu - Mega Menu Style */}
             <div
               className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("spares")}
@@ -664,126 +664,89 @@ const EnhancedHeader = () => {
                   )}
                 />
               </button>
-              <DropdownMenu
-                isOpen={activeDropdown === "spares"}
-                onClose={() => setActiveDropdown(null)}
-                className="min-w-[260px]"
-              >
+              
+              {/* Mega Menu Dropdown */}
+              {activeDropdown === "spares" && (
                 <div 
-                  className="p-3"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[1200px] z-[100] animate-in fade-in-0 zoom-in-95 duration-150"
                   onMouseEnter={handleDropdownContentEnter}
+                  onMouseLeave={handleDropdownLeave}
                 >
-                  <Link
-                    to="/parts"
-                    className="dropdown-item font-semibold text-primary"
-                    onClick={() => setActiveDropdown(null)}
-                  >
-                    <Package className="h-4 w-4" />
-                    All Spare Parts
-                  </Link>
-                  <div className="border-t border-border my-2" />
-                  {NAVIGATION_CONFIG.spares.categories.map((category) => {
-                    const IconComponent = menuIcons[category.label] || Package;
-                    return (
-                      <div
-                        key={category.label}
-                        className="relative"
-                        onMouseEnter={() => handleSubMenuEnter(category.label)}
-                        onMouseLeave={handleSubMenuLeave}
+                  <div className="bg-popover border border-border rounded-xl shadow-2xl ring-1 ring-border/50 backdrop-blur-sm overflow-hidden">
+                    {/* Header */}
+                    <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Package className="h-5 w-5 text-primary" />
+                        <span className="font-semibold text-lg">Spare Parts Categories</span>
+                      </div>
+                      <Link
+                        to="/parts"
+                        className="text-sm text-primary hover:underline font-medium"
+                        onClick={() => setActiveDropdown(null)}
                       >
-                        <Link
-                          to={category.href}
-                          className={cn(
-                            "dropdown-item justify-between group",
-                            activeSubMenu === category.label && "bg-primary/10 text-primary"
-                          )}
-                          onClick={() => setActiveDropdown(null)}
-                        >
-                          <span className="flex items-center gap-3">
-                            <IconComponent className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                            {category.label}
-                          </span>
-                          <ChevronDown className="h-3 w-3 -rotate-90 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </Link>
-                        {/* Sub-menu subcategories */}
-                        {activeSubMenu === category.label && (
-                          <div 
-                            className="absolute left-full top-0 pl-1 min-w-[280px] max-h-[450px] z-[60]"
-                            onMouseEnter={() => {
-                              handleSubMenuEnter(category.label);
-                              if (subMenuTimeoutRef.current) clearTimeout(subMenuTimeoutRef.current);
-                            }}
-                          >
-                            <div className="p-3 bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-sm overflow-y-auto max-h-[450px]">
-                              <Link
-                                to={category.href}
-                                className="dropdown-item font-semibold text-primary"
-                                onClick={() => setActiveDropdown(null)}
-                              >
-                                All {category.label}
-                              </Link>
-                              <div className="border-t border-border my-2" />
+                        View All Spare Parts →
+                      </Link>
+                    </div>
+                    
+                    {/* Categories Grid */}
+                    <div className="p-4 grid grid-cols-4 gap-6 max-h-[60vh] overflow-y-auto">
+                      {NAVIGATION_CONFIG.spares.categories.map((category) => {
+                        const IconComponent = menuIcons[category.label] || Package;
+                        return (
+                          <div key={category.label} className="space-y-3">
+                            {/* Category Header */}
+                            <Link
+                              to={category.href}
+                              className="flex items-center gap-2 text-primary font-semibold hover:underline"
+                              onClick={() => setActiveDropdown(null)}
+                            >
+                              <IconComponent className="h-4 w-4" />
+                              {category.label}
+                            </Link>
+                            
+                            {/* Subcategories */}
+                            <div className="space-y-1">
                               {category.subcategories.map((sub) => (
-                                <div
-                                  key={sub.label}
-                                  className="relative"
-                                  onMouseEnter={() => handleComponentMenuEnter(sub.label)}
-                                  onMouseLeave={handleComponentMenuLeave}
-                                >
+                                <div key={sub.label} className="space-y-1">
                                   <Link
                                     to={sub.href}
-                                    className={cn(
-                                      "dropdown-item justify-between group",
-                                      activeComponentMenu === sub.label && "bg-primary/10 text-primary"
-                                    )}
+                                    className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-1"
                                     onClick={() => setActiveDropdown(null)}
                                   >
-                                    <span>{sub.label}</span>
-                                    <ChevronDown className="h-3 w-3 -rotate-90 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    {sub.label}
                                   </Link>
-                                  {/* Third level - Component Types */}
-                                  {activeComponentMenu === sub.label &&
-                                    sub.componentTypes &&
-                                    sub.componentTypes.length > 0 && (
-                                      <div 
-                                        className="absolute left-full top-0 pl-1 min-w-[280px] max-h-[450px] z-[70]"
-                                        onMouseEnter={() => {
-                                          handleComponentMenuEnter(sub.label);
-                                          if (componentMenuTimeoutRef.current) clearTimeout(componentMenuTimeoutRef.current);
-                                        }}
+                                  {/* Component Types */}
+                                  <div className="pl-3 space-y-0.5 border-l-2 border-border/50">
+                                    {sub.componentTypes.slice(0, 6).map((ct) => (
+                                      <Link
+                                        key={ct.label}
+                                        to={ct.href}
+                                        className="block text-xs text-muted-foreground hover:text-primary transition-colors py-0.5"
+                                        onClick={() => setActiveDropdown(null)}
                                       >
-                                        <div className="p-3 bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-sm overflow-y-auto max-h-[450px]">
-                                          <Link
-                                            to={sub.href}
-                                            className="dropdown-item font-semibold text-primary"
-                                            onClick={() => setActiveDropdown(null)}
-                                          >
-                                            All {sub.label}
-                                          </Link>
-                                          <div className="border-t border-border my-2" />
-                                          {sub.componentTypes.map((ct) => (
-                                            <Link
-                                              key={ct.label}
-                                              to={ct.href}
-                                              className="dropdown-item"
-                                              onClick={() => setActiveDropdown(null)}
-                                            >
-                                              {ct.label}
-                                            </Link>
-                                          ))}
-                                        </div>
-                                      </div>
+                                        {ct.label}
+                                      </Link>
+                                    ))}
+                                    {sub.componentTypes.length > 6 && (
+                                      <Link
+                                        to={sub.href}
+                                        className="block text-xs text-primary/80 hover:text-primary font-medium py-0.5"
+                                        onClick={() => setActiveDropdown(null)}
+                                      >
+                                        +{sub.componentTypes.length - 6} more...
+                                      </Link>
                                     )}
+                                  </div>
                                 </div>
                               ))}
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </DropdownMenu>
+              )}
             </div>
 
             {/* Services Menu */}
