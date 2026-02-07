@@ -366,12 +366,19 @@ export const NotificationCenter = () => {
           case "buyer_access_request":
             navigate(`/dashboard`);
             break;
+          case "quotation":
+            // Navigate to buyer's quotations tab
+            navigate(`/dashboard?tab=quotations`);
+            break;
           default:
             navigate(`/dashboard`);
         }
       } else if (notification.notification_type === 'quote_request') {
         // Navigate to dashboard for quote requests
         navigate('/dashboard');
+      } else if (notification.notification_type === 'quote_received') {
+        // Navigate to buyer's quotations tab
+        navigate('/dashboard?tab=quotations');
       }
     } catch (error) {
       console.error("Error handling notification click:", error);
