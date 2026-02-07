@@ -642,7 +642,7 @@ const EnhancedHeader = () => {
               </DropdownMenu>
             </div>
 
-            {/* Spare Parts Menu - Mega Menu Style */}
+            {/* Spare Parts Menu - Professional Mega Menu */}
             <div
               className="relative flex-1 group"
               onMouseEnter={() => handleDropdownEnter("spares")}
@@ -665,75 +665,100 @@ const EnhancedHeader = () => {
                 />
               </button>
               
-              {/* Mega Menu Dropdown */}
+              {/* Professional Mega Menu Dropdown */}
               {activeDropdown === "spares" && (
                 <div 
-                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[1200px] z-[100] animate-in fade-in-0 zoom-in-95 duration-150"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[1400px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
-                  <div className="bg-popover border border-border rounded-xl shadow-2xl ring-1 ring-border/50 backdrop-blur-sm overflow-hidden">
-                    {/* Header */}
-                    <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Package className="h-5 w-5 text-primary" />
-                        <span className="font-semibold text-lg">Spare Parts Categories</span>
+                  <div className="bg-popover/98 backdrop-blur-xl border border-border/80 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                    {/* Professional Header */}
+                    <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                            <Package className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg text-foreground">Spare Parts Catalog</h3>
+                            <p className="text-xs text-muted-foreground">Browse all categories and components</p>
+                          </div>
+                        </div>
+                        <Link
+                          to="/parts"
+                          className="group/link flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary hover:text-primary-foreground rounded-lg transition-all duration-200"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          View All Parts
+                          <ChevronDown className="h-4 w-4 -rotate-90 group-hover/link:translate-x-0.5 transition-transform" />
+                        </Link>
                       </div>
-                      <Link
-                        to="/parts"
-                        className="text-sm text-primary hover:underline font-medium"
-                        onClick={() => setActiveDropdown(null)}
-                      >
-                        View All Spare Parts →
-                      </Link>
                     </div>
                     
-                    {/* Categories Grid */}
-                    <div className="p-4 grid grid-cols-4 gap-6 max-h-[60vh] overflow-y-auto">
+                    {/* Categories Grid - Professional Card Layout */}
+                    <div className="p-6 grid grid-cols-4 gap-5 max-h-[65vh] overflow-y-auto scrollbar-thin">
                       {NAVIGATION_CONFIG.spares.categories.map((category) => {
                         const IconComponent = menuIcons[category.label] || Package;
                         return (
-                          <div key={category.label} className="space-y-3">
-                            {/* Category Header */}
+                          <div 
+                            key={category.label} 
+                            className="group/card rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-200"
+                          >
+                            {/* Category Card Header */}
                             <Link
                               to={category.href}
-                              className="flex items-center gap-2 text-primary font-semibold hover:underline"
+                              className="flex items-center gap-3 p-4 border-b border-border/30 hover:bg-primary/5 transition-colors rounded-t-xl"
                               onClick={() => setActiveDropdown(null)}
                             >
-                              <IconComponent className="h-4 w-4" />
-                              {category.label}
+                              <div className="p-2 rounded-lg bg-primary/10 group-hover/card:bg-primary/20 transition-colors">
+                                <IconComponent className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm text-foreground group-hover/card:text-primary transition-colors truncate">
+                                  {category.label}
+                                </h4>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {category.subcategories.length} subcategories
+                                </p>
+                              </div>
+                              <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90 opacity-0 group-hover/card:opacity-100 transition-all" />
                             </Link>
                             
-                            {/* Subcategories */}
-                            <div className="space-y-1">
+                            {/* Subcategories List */}
+                            <div className="p-3 space-y-1 max-h-[280px] overflow-y-auto scrollbar-thin">
                               {category.subcategories.map((sub) => (
-                                <div key={sub.label} className="space-y-1">
+                                <div key={sub.label} className="group/sub">
                                   <Link
                                     to={sub.href}
-                                    className="block text-sm font-medium text-foreground hover:text-primary transition-colors py-1"
+                                    className="flex items-center justify-between px-3 py-2 text-sm text-foreground/90 hover:text-primary hover:bg-primary/5 rounded-lg transition-all duration-150"
                                     onClick={() => setActiveDropdown(null)}
                                   >
-                                    {sub.label}
+                                    <span className="font-medium truncate">{sub.label}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0 ml-2">
+                                      {sub.componentTypes.length}
+                                    </span>
                                   </Link>
-                                  {/* Component Types */}
-                                  <div className="pl-3 space-y-0.5 border-l-2 border-border/50">
-                                    {sub.componentTypes.slice(0, 6).map((ct) => (
+                                  
+                                  {/* Component Types - Compact Grid */}
+                                  <div className="mt-1 ml-3 pl-3 border-l border-border/40 space-y-0.5">
+                                    {sub.componentTypes.slice(0, 4).map((ct) => (
                                       <Link
                                         key={ct.label}
                                         to={ct.href}
-                                        className="block text-xs text-muted-foreground hover:text-primary transition-colors py-0.5"
+                                        className="block px-2 py-1 text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 rounded transition-colors truncate"
                                         onClick={() => setActiveDropdown(null)}
                                       >
                                         {ct.label}
                                       </Link>
                                     ))}
-                                    {sub.componentTypes.length > 6 && (
+                                    {sub.componentTypes.length > 4 && (
                                       <Link
                                         to={sub.href}
-                                        className="block text-xs text-primary/80 hover:text-primary font-medium py-0.5"
+                                        className="block px-2 py-1 text-xs text-primary/70 hover:text-primary font-medium rounded transition-colors"
                                         onClick={() => setActiveDropdown(null)}
                                       >
-                                        +{sub.componentTypes.length - 6} more...
+                                        +{sub.componentTypes.length - 4} more items
                                       </Link>
                                     )}
                                   </div>
@@ -743,6 +768,36 @@ const EnhancedHeader = () => {
                           </div>
                         );
                       })}
+                    </div>
+                    
+                    {/* Footer Quick Links */}
+                    <div className="px-6 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <Package className="h-3.5 w-3.5" />
+                          {NAVIGATION_CONFIG.spares.categories.reduce((acc, cat) => 
+                            acc + cat.subcategories.reduce((subAcc, sub) => subAcc + sub.componentTypes.length, 0), 0
+                          )}+ Components
+                        </span>
+                        <span className="w-px h-4 bg-border" />
+                        <span>{NAVIGATION_CONFIG.spares.categories.length} Categories</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Link
+                          to="/parts"
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          Browse by Brand
+                        </Link>
+                        <Link
+                          to="/parts"
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          New Arrivals
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
