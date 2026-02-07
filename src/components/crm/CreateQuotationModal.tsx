@@ -284,10 +284,22 @@ const CreateQuotationModal = ({
 
       // Create notification for buyer if they exist in the system
       if (buyerProfile?.user_id) {
-        await supabase.from("chat_notifications").insert({
+        // Get seller profile for notification message
+        const { data: sellerProfile } = await supabase
+          .from("profiles")
+          .select("full_name, company_name")
+          .eq("user_id", user.id)
+          .single();
+
+        const sellerName = sellerProfile?.company_name || sellerProfile?.full_name || "A seller";
+
+        await supabase.from("notifications").insert({
           user_id: buyerProfile.user_id,
-          conversation_id: quotation.id,
-          notification_type: "quotation_received",
+          title: "New Quotation Received",
+          message: `${sellerName} has sent you a quotation (${quotationNumber}) for ₹${totalAmount.toLocaleString()}`,
+          notification_type: "quote_received",
+          reference_id: quotation.id,
+          reference_type: "quotation",
           is_read: false,
         });
       }
