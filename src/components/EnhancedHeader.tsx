@@ -619,7 +619,7 @@ const EnhancedHeader = () => {
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
-                  <div className="bg-popover/98 backdrop-blur-xl border border-border/80 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <div className="bg-popover border border-border rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
                       <div className="flex items-center justify-between">
@@ -722,7 +722,7 @@ const EnhancedHeader = () => {
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
-                  <div className="bg-popover/98 backdrop-blur-xl border border-border/80 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <div className="bg-popover border border-border rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
                     {/* Professional Header */}
                     <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
                       <div className="flex items-center justify-between">
@@ -884,7 +884,7 @@ const EnhancedHeader = () => {
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
-                  <div className="bg-popover/98 backdrop-blur-xl border border-border/80 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <div className="bg-popover border border-border rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
                       <div className="flex items-center justify-between">
@@ -981,7 +981,7 @@ const EnhancedHeader = () => {
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
-                  <div className="bg-popover/98 backdrop-blur-xl border border-border/80 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <div className="bg-popover border border-border rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
                       <div className="flex items-center justify-between">
@@ -1078,7 +1078,7 @@ const EnhancedHeader = () => {
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
-                  <div className="bg-popover/98 backdrop-blur-xl border border-border/80 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <div className="bg-popover border border-border rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
                       <div className="flex items-center justify-between">
@@ -1175,7 +1175,7 @@ const EnhancedHeader = () => {
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
-                  <div className="bg-popover/98 backdrop-blur-xl border border-border/80 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+                  <div className="bg-popover border border-border rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-accent/5">
                       <div className="flex items-center justify-between">
