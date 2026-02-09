@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,8 +73,9 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
   const { toast } = useToast();
   
   // States
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -96,6 +98,11 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
   // Enhanced access check
   const userType = userProfile?.user_type || userProfile?.primary_user_type;
   const isBuyer = userType === 'buyer' || !userType; // Default to buyer if no type set
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) setActiveTab(tabParam);
+  }, [searchParams]);
 
   useEffect(() => {
     if (user) {
