@@ -236,12 +236,12 @@ const EnhancedHeader = () => {
   }, [activeDropdown]);
 
   const handleDropdownLeave = useCallback(() => {
-    // Add longer delay before closing to allow cursor to travel to mega menu
+    // Add delay before closing to allow cursor to move to submenu
     dropdownTimeoutRef.current = setTimeout(() => {
       setActiveDropdown(null);
       setActiveSubMenu(null);
       setActiveComponentMenu(null);
-    }, 300);
+    }, 150);
   }, []);
 
   const handleSubMenuEnter = useCallback((category: string) => {
@@ -615,7 +615,7 @@ const EnhancedHeader = () => {
               {/* Professional Mega Menu Dropdown */}
               {activeDropdown === "robots" && (
                 <div 
-                  className="fixed left-1/2 -translate-x-1/2 top-[96px] pt-4 w-[95vw] max-w-[900px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[900px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
@@ -718,7 +718,7 @@ const EnhancedHeader = () => {
               {/* Professional Mega Menu Dropdown */}
               {activeDropdown === "spares" && (
                 <div 
-                  className="fixed left-1/2 -translate-x-1/2 top-[96px] pt-4 w-[95vw] max-w-[1400px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[1400px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
@@ -880,7 +880,7 @@ const EnhancedHeader = () => {
               {/* Professional Mega Menu Dropdown */}
               {activeDropdown === "services" && (
                 <div 
-                  className="fixed left-1/2 -translate-x-1/2 top-[96px] pt-4 w-[95vw] max-w-[800px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[800px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
@@ -977,7 +977,7 @@ const EnhancedHeader = () => {
               {/* Professional Mega Menu Dropdown */}
               {activeDropdown === "logistics" && (
                 <div 
-                  className="fixed left-1/2 -translate-x-1/2 top-[96px] pt-4 w-[95vw] max-w-[800px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[800px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
@@ -1074,7 +1074,7 @@ const EnhancedHeader = () => {
               {/* Professional Mega Menu Dropdown */}
               {activeDropdown === "financing" && (
                 <div 
-                  className="fixed left-1/2 -translate-x-1/2 top-[96px] pt-4 w-[95vw] max-w-[800px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[800px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
@@ -1171,7 +1171,7 @@ const EnhancedHeader = () => {
               {/* Professional Mega Menu Dropdown */}
               {activeDropdown === "robobook" && (
                 <div 
-                  className="fixed left-1/2 -translate-x-1/2 top-[96px] pt-4 w-[95vw] max-w-[700px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                  className="fixed left-1/2 -translate-x-1/2 top-[120px] w-[95vw] max-w-[700px] z-[100] animate-in fade-in-0 slide-in-from-top-2 duration-200"
                   onMouseEnter={handleDropdownContentEnter}
                   onMouseLeave={handleDropdownLeave}
                 >
