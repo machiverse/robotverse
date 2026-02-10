@@ -440,7 +440,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<jsPD
   
   pdf.setFontSize(7);
   pdf.text(
-    'www.robotverse.com | India\'s Leading Industrial Robotics Marketplace',
+    'www.robotverse.in | India\'s Leading Industrial Robotics Marketplace',
     pageWidth / 2,
     footerY + 4,
     { align: 'center' }
