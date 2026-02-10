@@ -48,8 +48,12 @@ export interface QuotationPDFData {
 }
 
 const formatCurrency = (amount: number, currency: string = 'INR'): string => {
-  const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency;
-  return `${symbol}${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const symbol = currency === 'INR' ? 'Rs.' : currency === 'USD' ? '$' : currency;
+  const formatted = new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+  return `${symbol} ${formatted}`;
 };
 
 export const generateQuotationPDF = async (data: QuotationPDFData): Promise<jsPDF> => {
@@ -250,11 +254,11 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<jsPD
   // Table Header
   const tableStartY = yPos;
   const colWidths = {
-    sno: 15,
-    item: 75,
-    qty: 20,
-    price: 30,
-    total: 35,
+    sno: 12,
+    item: 65,
+    qty: 15,
+    price: 40,
+    total: 43,
   };
   
   pdf.setFillColor(...primaryColor);
