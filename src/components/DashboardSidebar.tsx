@@ -67,6 +67,7 @@ export function DashboardSidebar({ userProfile }: DashboardSidebarProps) {
   // Main navigation items
   const mainNavItems = [
     { title: "Dashboard", url: "/dashboard", icon: Home },
+    { title: "Received Quotes", url: "/dashboard/quotations", icon: FileText },
     { title: "Messages", url: "/dashboard/messages", icon: MessageCircle },
     { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
     { title: "Reports", url: "/dashboard/reports", icon: FileText },
