@@ -377,8 +377,8 @@ export const NotificationCenter = () => {
         // Navigate to dashboard for quote requests
         navigate('/dashboard');
       } else if (notification.notification_type === 'quote_received') {
-        // Navigate to buyer's quotations tab
-        navigate('/dashboard?tab=quotations');
+        // Navigate to buyer's received quotations page
+        navigate('/dashboard/quotations');
       }
     } catch (error) {
       console.error("Error handling notification click:", error);
