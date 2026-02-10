@@ -173,8 +173,40 @@ const BuyerQuotationsView = () => {
     }
   };
 
+  const notifySeller = async (quotation: ReceivedQuotation, action: "accepted" | "rejected") => {
+    try {
+      const buyerName = user?.user_metadata?.full_name || user?.email || "A buyer";
+      
+      // Send notification to seller via chat_notifications
+      await supabase.from("chat_notifications").insert({
+        user_id: quotation.seller_id,
+        conversation_id: quotation.id,
+        notification_type: `quote_${action}`,
+        is_read: false,
+      });
+
+      // Also insert into notifications table if available
+      try {
+        await supabase.from("notifications").insert({
+          user_id: quotation.seller_id,
+          title: `Quotation ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+          message: `${buyerName} has ${action} quotation ${quotation.quotation_number} (Rs. ${quotation.total_amount.toLocaleString('en-IN')})`,
+          notification_type: `quote_${action}`,
+          reference_id: quotation.id,
+          reference_type: "quotation",
+          is_read: false,
+        });
+      } catch {
+        // Silently fail if notifications table doesn't exist
+      }
+    } catch (err) {
+      console.error("Error notifying seller:", err);
+    }
+  };
+
   const handleAcceptQuotation = async (quotationId: string) => {
     try {
+      const quotation = quotations.find(q => q.id === quotationId);
       const { error } = await supabase
         .from("crm_quotations")
         .update({ status: "accepted", accepted_at: new Date().toISOString() })
@@ -188,6 +220,9 @@ const BuyerQuotationsView = () => {
           : q
       ));
 
+      // Notify the seller
+      if (quotation) await notifySeller(quotation, "accepted");
+
       toast({ title: "Quotation accepted successfully" });
       setDetailsOpen(false);
     } catch (error: any) {
@@ -197,6 +232,7 @@ const BuyerQuotationsView = () => {
 
   const handleRejectQuotation = async (quotationId: string) => {
     try {
+      const quotation = quotations.find(q => q.id === quotationId);
       const { error } = await supabase
         .from("crm_quotations")
         .update({ status: "rejected", rejected_at: new Date().toISOString() })
@@ -209,6 +245,9 @@ const BuyerQuotationsView = () => {
           ? { ...q, status: "rejected", rejected_at: new Date().toISOString() }
           : q
       ));
+
+      // Notify the seller
+      if (quotation) await notifySeller(quotation, "rejected");
 
       toast({ title: "Quotation rejected" });
       setDetailsOpen(false);
