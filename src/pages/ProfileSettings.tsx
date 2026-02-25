@@ -507,28 +507,33 @@ const ProfileSettings = () => {
                         )}
                       </div>
                       <div className="flex-1">
-                        <label className="cursor-pointer">
-                          <Button variant="outline" size="sm" className="w-full" disabled={logoLoading}>
-                            {logoLoading ? (
-                              <>
-                                <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-4 h-4 mr-2" />
-                                Upload Logo
-                              </>
-                            )}
-                          </Button>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleCompanyLogoUpload}
-                            className="hidden"
-                            disabled={logoLoading}
-                          />
-                        </label>
+                        <input
+                          type="file"
+                          id="company-logo-upload"
+                          accept="image/*"
+                          onChange={handleCompanyLogoUpload}
+                          className="hidden"
+                          disabled={logoLoading}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full" 
+                          disabled={logoLoading}
+                          onClick={() => document.getElementById('company-logo-upload')?.click()}
+                        >
+                          {logoLoading ? (
+                            <>
+                              <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload Logo
+                            </>
+                          )}
+                        </Button>
                         <p className="text-xs text-muted-foreground mt-1">Max 2MB, PNG/JPG</p>
                       </div>
                     </div>

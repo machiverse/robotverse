@@ -44,8 +44,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { SEOHead } from "@/components/SEOHead";
-import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seoSchemas";
+import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 
 const Robots = () => {
   const navigate = useNavigate();
@@ -570,7 +570,26 @@ const Robots = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title={pageSEO.title} description={pageSEO.description} jsonLd={pageSEO.jsonLd} />
+      <UniversalSEOHead
+        pageType="robots"
+        title="Used Industrial Robots for Sale India | Verified Sellers | RobotVerse"
+        description="Browse 500+ used industrial robots from verified sellers. FANUC, ABB, KUKA, Yaskawa robots with warranty. Compare prices, get quotes. Free buyer support."
+        keywords={[
+          'used industrial robots for sale',
+          'refurbished robots India',
+          'second hand robots',
+          'pre-owned industrial robots',
+          'FANUC robots for sale',
+          'ABB robots India',
+          'KUKA robots price',
+          'Yaskawa robots dealers',
+          'welding robots India',
+          'palletizing robots',
+          'material handling robots',
+          'robot automation equipment'
+        ]}
+        schemas={[pageSEO.jsonLd]}
+      />
       <EnhancedHeader />
 
       {/* Top title */}

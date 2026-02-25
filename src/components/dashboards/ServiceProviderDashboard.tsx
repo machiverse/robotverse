@@ -19,7 +19,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
 import WatchlistSection from '@/components/WatchlistSection';
-import { LeadsManager } from '@/components/crm';
+import { useReviews } from '@/hooks/useReviews';
+import { ReviewCard } from '@/components/reviews/ReviewCard';
+import { StarRating } from '@/components/reviews/StarRating';
+import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
 import { FileText } from 'lucide-react';
 
@@ -32,6 +35,43 @@ const INDIAN_STATES = [
 const SERVICE_TYPE_OPTIONS = [
   "Installation", "Maintenance", "Repair", "Inspection", "Calibration", "Training", "Upgrades", "Consulting",
 ];
+
+function ServiceProviderReviews({ userId }: { userId?: string }) {
+  const { reviews, loading, averageRating, totalReviews } = useReviews();
+  const myReviews = reviews.filter(r => r.reviewed_user_id === userId);
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-primary" />
+          My Reviews & Ratings
+        </CardTitle>
+        <CardDescription>
+          <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-2">
+              <StarRating rating={myReviews.length > 0 ? myReviews.reduce((s, r) => s + r.overall_rating, 0) / myReviews.length : 0} size="md" showValue />
+            </div>
+            <span className="text-sm">{myReviews.length} reviews received</span>
+          </div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        ) : myReviews.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No reviews received yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {myReviews.map(review => (
+              <ReviewCard key={review.id} review={review} showItemType />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
   const { user } = useAuth();
@@ -265,13 +305,33 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-7">
               <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
               <TabsTrigger value="leads">Lead Manager</TabsTrigger>
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
+              <TabsTrigger value="reviews">My Reviews</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
             </TabsList>
+
+            {/* Quote Requests Tab */}
+            <TabsContent value="quote-requests">
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Quote Requests
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage quote requests from buyers for your services. Unlock buyer details, start conversations, and convert to leads.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <QuoteRequestsSection sellerId={user!.id} itemType="service" />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             {/* Lead Manager Tab */}
             <TabsContent value="leads">
@@ -286,7 +346,7 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <LeadsManager sellerId={user?.id || ''} itemType="service" />
+                  <CRMLeadsView categoryFilter="service" />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -437,6 +497,11 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Reviews Tab */}
+            <TabsContent value="reviews">
+              <ServiceProviderReviews userId={user?.id} />
             </TabsContent>
 
             {/* Watchlist Tab */}

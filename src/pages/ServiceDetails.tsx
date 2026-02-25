@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import ServiceRequestModal from "@/components/ServiceRequestModal";
+import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -106,7 +107,8 @@ const ServiceDetails = () => {
         };
 
         setService(transformedData);
-        trackItemView("services", data.id, transformedData);
+        // Pass raw data (with provider_id) so trackItemView can extract seller_id correctly
+        trackItemView("services", data.id, data);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load service");
@@ -356,6 +358,24 @@ const ServiceDetails = () => {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+
+            {/* Reviews Section */}
+            <div className="mt-8">
+              <Card className="border-border bg-card">
+                <CardHeader>
+                  <CardTitle>Reviews & Ratings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ListingRatingSummary
+                    itemId={service.id}
+                    itemType="service"
+                    dealType="service"
+                    itemName={service.name}
+                    reviewedUserId={service.providerId}
+                  />
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

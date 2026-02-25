@@ -48,6 +48,12 @@ export interface Lead {
   lost_reason?: string | null;
   qualification_score?: number;
   lead_score?: number;
+  // Quotation tracking fields - enriched from crm_quotations
+  latest_quotation_number?: string | null;
+  latest_quotation_date?: string | null;
+  latest_quotation_amount?: number | null;
+  latest_quotation_status?: string | null;
+  quotation_count?: number;
 }
 
 export interface ProductView {
@@ -301,9 +307,47 @@ export const useSellerCRM = (itemType?: string) => {
         }
       }
       
-      // Enrich leads with product details
+      // Fetch quotation data for all leads
+      const leadIds = leadsData.map(l => l.id);
+      const quotationMap = new Map<string, { 
+        quotation_number: string; 
+        created_at: string; 
+        total_amount: number; 
+        status: string;
+        count: number;
+      }>();
+      
+      if (leadIds.length > 0) {
+        const { data: quotations } = await supabase
+          .from('crm_quotations')
+          .select('lead_id, quotation_number, created_at, total_amount, status')
+          .in('lead_id', leadIds)
+          .order('created_at', { ascending: false });
+        
+        if (quotations) {
+          // Group quotations by lead_id and get latest + count
+          quotations.forEach(q => {
+            if (!q.lead_id) return;
+            const existing = quotationMap.get(q.lead_id);
+            if (!existing) {
+              quotationMap.set(q.lead_id, {
+                quotation_number: q.quotation_number,
+                created_at: q.created_at,
+                total_amount: q.total_amount,
+                status: q.status || 'draft',
+                count: 1
+              });
+            } else {
+              existing.count += 1;
+            }
+          });
+        }
+      }
+      
+      // Enrich leads with product details and quotation info
       const enrichedLeads = leadsData.map(lead => {
         const productDetails = lead.item_id ? productDetailsMap.get(lead.item_id) : null;
+        const quotationInfo = quotationMap.get(lead.id);
         return {
           ...lead,
           product_price: productDetails?.price || lead.expected_value,
@@ -312,6 +356,12 @@ export const useSellerCRM = (itemType?: string) => {
           item_name: lead.item_name || productDetails?.name || null,
           item_image: productDetails?.image || null,
           viewed_at: lead.created_at, // Use created_at as viewed_at
+          // Quotation info
+          latest_quotation_number: quotationInfo?.quotation_number || null,
+          latest_quotation_date: quotationInfo?.created_at || null,
+          latest_quotation_amount: quotationInfo?.total_amount || null,
+          latest_quotation_status: quotationInfo?.status || null,
+          quotation_count: quotationInfo?.count || 0,
         };
       });
       
@@ -338,7 +388,13 @@ export const useSellerCRM = (itemType?: string) => {
       const { data, error } = await query;
       if (error) throw error;
       
-      const views = data || [];
+      // CRITICAL: Exclude self-views - seller should never see their own views as leads
+      // Filter out views where the viewer is the same as the seller
+      const views = (data || []).filter(view => {
+        // Exclude if user_id matches seller's id (logged-in seller viewing their own product)
+        if (view.user_id && view.user_id === user.id) return false;
+        return true;
+      });
       
       // Then fetch item names in background - handle both singular and plural item_type values
       const robotIds = [...new Set(views.filter(v => (v.item_type === 'robots' || v.item_type === 'robot') && v.item_id).map(v => v.item_id))];
@@ -349,13 +405,13 @@ export const useSellerCRM = (itemType?: string) => {
       const [robotsData, partsData, servicesData] = await Promise.all([
         robotIds.length > 0 ? supabase.from('robots').select('id, name, images').in('id', robotIds) : { data: [] },
         partIds.length > 0 ? supabase.from('spare_parts').select('id, name, images').in('id', partIds) : { data: [] },
-        serviceIds.length > 0 ? supabase.from('services').select('id, name, image_url').in('id', serviceIds) : { data: [] }
+        serviceIds.length > 0 ? supabase.from('services').select('id, name').in('id', serviceIds) : { data: [] }
       ]);
       
       // Create lookup maps for names and images
       const robotData = new Map((robotsData.data || []).map(r => [r.id, { name: r.name, image: r.images?.[0] || null }]));
       const partData = new Map((partsData.data || []).map(p => [p.id, { name: p.name, image: p.images?.[0] || null }]));
-      const serviceData = new Map((servicesData.data || []).map(s => [s.id, { name: s.name, image: s.image_url || null }]));
+      const serviceData = new Map((servicesData.data || []).map(s => [s.id, { name: s.name, image: null }]));
       
       // Update views with names and images - handle both singular and plural item_type values
       // ONLY include views where the item actually exists in the database
@@ -559,18 +615,32 @@ export const useSellerCRM = (itemType?: string) => {
     if (!user) return;
 
     try {
-      const { count, error } = await supabase
+      let query = supabase
         .from('user_requests')
         .select('*', { count: 'exact', head: true })
         .eq('seller_id', user.id)
         .eq('request_type', 'get_quote');
+
+      // Apply category filter if itemType is provided
+      if (itemType) {
+        // Handle both singular and plural variations
+        if (itemType === 'robot' || itemType === 'robots') {
+          query = query.or('item_type.eq.robot,item_type.eq.robots');
+        } else if (itemType === 'spare_part' || itemType === 'spare_parts') {
+          query = query.or('item_type.eq.spare_part,item_type.eq.spare_parts');
+        } else if (itemType === 'service' || itemType === 'services') {
+          query = query.or('item_type.eq.service,item_type.eq.services');
+        }
+      }
+
+      const { count, error } = await query;
 
       if (error) throw error;
       setQuoteRequestsCount(count || 0);
     } catch (error) {
       console.error('Error fetching quote requests count:', error);
     }
-  }, [user]);
+  }, [user, itemType]);
 
   const calculateStats = useCallback(() => {
     const newLeads = leads.filter(l => l.status === 'new').length;
@@ -622,6 +692,43 @@ export const useSellerCRM = (itemType?: string) => {
   const convertViewToLead = async (viewId: string): Promise<string | null> => {
     if (!user) return null;
 
+    // Find the view being converted
+    const viewToConvert = aggregatedViews.find(v => v.id === viewId || v.key === viewId);
+    
+    // VALIDATION: Check if viewer is the same as seller (should never happen after filtering, but double-check)
+    if (viewToConvert?._internal_user_id === user.id) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Convert",
+        description: "You cannot convert your own view into a lead."
+      });
+      return null;
+    }
+
+    // VALIDATION: Check credit balance before attempting conversion
+    if (creditsBalance < 10) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient Credits",
+        description: "You need at least 10 credits to convert a view to lead."
+      });
+      return null;
+    }
+
+    // Check if already converted to a lead
+    const existingLead = leads.find(l => 
+      l.buyer_id === viewToConvert?._internal_user_id ||
+      l.buyer_email === viewToConvert?._internal_user_email
+    );
+    
+    if (existingLead) {
+      toast({
+        title: "Already a Lead",
+        description: "This viewer has already been converted to a lead."
+      });
+      return existingLead.id;
+    }
+
     try {
       const { data, error } = await supabase.rpc('convert_view_to_lead', {
         p_view_id: viewId,
@@ -632,18 +739,23 @@ export const useSellerCRM = (itemType?: string) => {
 
       toast({
         title: "Lead Created",
-        description: "View converted to lead. 10 credits deducted."
+        description: "View converted to lead. Credits deducted."
       });
 
       // Refresh leads, product views, and credits balance
-      fetchLeads();
-      fetchProductViews();
-      fetchCreditsBalance();
+      await Promise.all([
+        fetchLeads(),
+        fetchProductViews(),
+        fetchCreditsBalance()
+      ]);
+      
       return data;
     } catch (error: any) {
       console.error('Error converting view to lead:', error);
       const errorMessage = error?.message?.includes('Insufficient credits') 
-        ? 'Insufficient credits. You need 10 credits to convert a view to lead.'
+        ? 'Insufficient credits. You need credits to convert a view to lead.'
+        : error?.message?.includes('already') 
+        ? 'This view has already been converted to a lead.'
         : 'Failed to convert view to lead';
       toast({
         variant: "destructive",

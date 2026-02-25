@@ -14,7 +14,8 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
-  Users
+  Users,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -87,6 +88,10 @@ const getNotificationIcon = (type: string) => {
     case "quote_received":
     case "quote_request":
       return <FileText className="h-4 w-4 text-indigo-500" />;
+    case "quote_accepted":
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    case "quote_rejected":
+      return <XCircle className="h-4 w-4 text-red-500" />;
     case "lead_new":
     case "lead_update":
       return <Users className="h-4 w-4 text-emerald-500" />;
@@ -366,12 +371,22 @@ export const NotificationCenter = () => {
           case "buyer_access_request":
             navigate(`/dashboard`);
             break;
+          case "quotation":
+            // Navigate to buyer's quotations tab
+            navigate(`/dashboard?tab=quotations`);
+            break;
           default:
             navigate(`/dashboard`);
         }
       } else if (notification.notification_type === 'quote_request') {
         // Navigate to dashboard for quote requests
         navigate('/dashboard');
+      } else if (notification.notification_type === 'quote_received') {
+        // Navigate to buyer's received quotations page
+        navigate('/dashboard/quotations');
+      } else if (notification.notification_type === 'quote_accepted' || notification.notification_type === 'quote_rejected') {
+        // Navigate to seller's CRM to see response
+        navigate('/crm');
       }
     } catch (error) {
       console.error("Error handling notification click:", error);

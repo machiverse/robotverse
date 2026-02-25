@@ -6,22 +6,57 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
-import SEOMetaTags from "@/components/SEOMetaTags";
+import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { generateOrganizationSchema, generateLocalBusinessSchema, generateFAQSchema } from "@/utils/seo/modernSchemas";
 
 const Contact = () => {
+  // Contact page FAQs for schema
+  const contactFAQs = [
+    {
+      question: "How do I list my robot for sale on RobotVerse?",
+      answer: "Sign up for a free seller account, complete your profile, and use our easy listing process to showcase your industrial robots. Upload photos, add specifications, and set your price."
+    },
+    {
+      question: "What payment methods does RobotVerse accept?",
+      answer: "We support various payment methods including bank transfer, UPI, and credit cards through our secure payment partners."
+    },
+    {
+      question: "Does RobotVerse provide shipping assistance?",
+      answer: "Yes, RobotVerse connects you with trusted logistics partners specializing in safe industrial robot transportation across India."
+    },
+    {
+      question: "How can I contact RobotVerse customer support?",
+      answer: "You can reach us at support@robotverse.in or call +91-8610925352. Our support team is available Monday-Friday 9AM-6PM and Saturday 10AM-4PM IST."
+    }
+  ];
+
+  const schemas = [
+    generateOrganizationSchema(),
+    generateLocalBusinessSchema(),
+    generateFAQSchema(contactFAQs)
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      <SEOMetaTags 
-        seoElements={{
-          urlSlug: "contact",
-          pageTitle: "Contact Us - RobotVerse",
-          metaDescription: "Get in touch with RobotVerse support team. We're here to help with your industrial robot marketplace needs.",
-          h1Heading: "Contact Us",
-          seoContentBlock: "Contact RobotVerse support team for industrial robot marketplace assistance",
-          imageAltText: "Contact RobotVerse support",
-          structuredData: {},
-          breadcrumbSchema: {}
-        }}
+      <UniversalSEOHead
+        pageType="contact"
+        title="Contact RobotVerse | Industrial Robot Marketplace Support India"
+        description="Contact RobotVerse for robot buying inquiries, seller support, or technical assistance. Call +91-8610925352 or email support@robotverse.in. Quick response guaranteed."
+        keywords={[
+          'contact RobotVerse',
+          'industrial robot marketplace support',
+          'robot inquiry India',
+          'robot marketplace contact',
+          'buy robot inquiry',
+          'sell robot support',
+          'robot quotation request',
+          'automation marketplace help',
+          'RobotVerse customer service',
+          'robot marketplace India contact'
+        ]}
+        ogTitle="Contact RobotVerse - Industrial Robot Marketplace Support"
+        ogDescription="Get in touch with India's largest industrial robot marketplace. Quick response for buying, selling, or technical inquiries."
+        schemas={schemas}
       />
       <EnhancedHeader />
       

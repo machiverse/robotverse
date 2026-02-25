@@ -37,8 +37,8 @@ import {
   getSubcategoryNameFromSlug,
   getComponentTypeNameFromSlug,
 } from "@/constants/sparePartsCategories";
-import { SEOHead } from "@/components/SEOHead";
-import { generateItemListSchema } from "@/utils/seoSchemas";
+import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 
 interface Part {
   id: string;
@@ -468,11 +468,25 @@ const Parts = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead
-        title="Genuine Robot Spare Parts & Accessories | RobotVerse"
-        description="Source authentic spare parts and accessories for industrial robots from verified suppliers. Get genuine FANUC, ABB, KUKA, Yaskawa robot parts delivered to your facility."
-        keywords="robot spare parts, industrial robot accessories, genuine robot parts, FANUC parts, ABB parts, KUKA parts, robot components, automation parts"
-        jsonLd={generateItemListSchema(parts.slice(0, 20), "Robot Spare Parts & Accessories")}
+      <UniversalSEOHead
+        pageType="parts"
+        title="Robot Spare Parts & Components India | Genuine Parts | RobotVerse"
+        description="Shop genuine robot spare parts from verified suppliers. Servo motors, cables, controllers, teach pendants for FANUC, ABB, KUKA, Yaskawa. Fast delivery across India."
+        keywords={[
+          'industrial robot spare parts India',
+          'robot components suppliers',
+          'genuine robot parts',
+          'robot replacement parts',
+          'FANUC spare parts India',
+          'ABB robot parts',
+          'KUKA spare parts',
+          'Yaskawa robot components',
+          'robot servo motor',
+          'robot cable harness',
+          'teach pendant spare',
+          'robot controller parts'
+        ]}
+        schemas={[generateItemListSchema(parts.slice(0, 20), "Robot Spare Parts & Accessories", "parts")]}
       />
       <EnhancedHeader />
 

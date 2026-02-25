@@ -2448,6 +2448,81 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          admin_notes: string | null
+          communication_rating: number | null
+          created_at: string
+          deal_type: string
+          delivery_rating: number | null
+          feedback_text: string | null
+          hidden_reason: string | null
+          id: string
+          is_featured: boolean | null
+          is_verified: boolean | null
+          item_id: string | null
+          item_type: string
+          overall_rating: number
+          reviewed_user_id: string | null
+          reviewer_avatar_url: string | null
+          reviewer_company: string | null
+          reviewer_id: string
+          reviewer_name: string | null
+          reviewer_role: string
+          service_quality_rating: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          communication_rating?: number | null
+          created_at?: string
+          deal_type: string
+          delivery_rating?: number | null
+          feedback_text?: string | null
+          hidden_reason?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          item_id?: string | null
+          item_type: string
+          overall_rating: number
+          reviewed_user_id?: string | null
+          reviewer_avatar_url?: string | null
+          reviewer_company?: string | null
+          reviewer_id: string
+          reviewer_name?: string | null
+          reviewer_role: string
+          service_quality_rating?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          communication_rating?: number | null
+          created_at?: string
+          deal_type?: string
+          delivery_rating?: number | null
+          feedback_text?: string | null
+          hidden_reason?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          item_id?: string | null
+          item_type?: string
+          overall_rating?: number
+          reviewed_user_id?: string | null
+          reviewer_avatar_url?: string | null
+          reviewer_company?: string | null
+          reviewer_id?: string
+          reviewer_name?: string | null
+          reviewer_role?: string
+          service_quality_rating?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       robot_ai_analysis: {
         Row: {
           analysis_data: Json
@@ -3466,6 +3541,8 @@ export type Database = {
           annual_price: number | null
           created_at: string
           features: Json | null
+          has_advanced_analytics: boolean | null
+          has_lead_manager_access: boolean | null
           id: string
           is_active: boolean | null
           monthly_credits: number
@@ -3473,12 +3550,18 @@ export type Database = {
           plan_name: string
           plan_type: string
           razorpay_plan_id: string | null
+          robot_limit: number | null
+          service_limit: number | null
+          spare_part_limit: number | null
+          support_level: string | null
           updated_at: string
         }
         Insert: {
           annual_price?: number | null
           created_at?: string
           features?: Json | null
+          has_advanced_analytics?: boolean | null
+          has_lead_manager_access?: boolean | null
           id?: string
           is_active?: boolean | null
           monthly_credits?: number
@@ -3486,12 +3569,18 @@ export type Database = {
           plan_name: string
           plan_type: string
           razorpay_plan_id?: string | null
+          robot_limit?: number | null
+          service_limit?: number | null
+          spare_part_limit?: number | null
+          support_level?: string | null
           updated_at?: string
         }
         Update: {
           annual_price?: number | null
           created_at?: string
           features?: Json | null
+          has_advanced_analytics?: boolean | null
+          has_lead_manager_access?: boolean | null
           id?: string
           is_active?: boolean | null
           monthly_credits?: number
@@ -3499,6 +3588,10 @@ export type Database = {
           plan_name?: string
           plan_type?: string
           razorpay_plan_id?: string | null
+          robot_limit?: number | null
+          service_limit?: number | null
+          spare_part_limit?: number | null
+          support_level?: string | null
           updated_at?: string
         }
         Relationships: []

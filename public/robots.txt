@@ -1,18 +1,79 @@
 User-agent: *
 Allow: /
+
+# Core pages
+Allow: /robots
+Allow: /robots/*
+Allow: /parts
+Allow: /parts/*
+Allow: /services
+Allow: /services/*
+Allow: /logistics
+Allow: /logistics/*
+Allow: /financing
+Allow: /financing/*
+Allow: /blogs
+Allow: /blogs/*
+Allow: /robobook
+Allow: /robobook/*
+Allow: /contact
+Allow: /about
+Allow: /pricing
+Allow: /buyer-guide
+Allow: /seller-guide
+Allow: /terms
+Allow: /privacy
+Allow: /sitemap
+
+# Disallow private/auth pages
 Disallow: /dashboard
+Disallow: /dashboard/*
 Disallow: /auth
 Disallow: /reset-password
+Disallow: /profile-settings
+Disallow: /crm
+Disallow: /crm/*
+Disallow: /chat
+Disallow: /chat/*
+
+# Disallow query parameters that create duplicate content
+Disallow: /*?*sortBy=
+Disallow: /*?*viewMode=
+Disallow: /*?*page=
 
 # Main Sitemap
 Sitemap: https://www.robotverse.in/sitemap.xml
 
-# Crawl-delay for bots
+# Crawl-delay for respectful crawling
 Crawl-delay: 1
 
-# Allow specific search engines
+# Googlebot specific rules
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 0
 
+# Bingbot specific rules
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 1
+
+# Yandex specific rules
+User-agent: Yandexbot
+Allow: /
+Crawl-delay: 2
+
+# Social media bots for rich previews
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+# Host directive
+Host: https://www.robotverse.in

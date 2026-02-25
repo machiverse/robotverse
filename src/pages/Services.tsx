@@ -26,8 +26,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { SEOHead } from "@/components/SEOHead";
-import { generateItemListSchema } from "@/utils/seoSchemas";
+import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 
 interface Service {
   id: string;
@@ -254,11 +254,24 @@ const Services = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead
-        title="Robot Repair & Maintenance Services | Industrial Robot Service Providers - RobotVerse"
-        description="Find certified robot service providers for installation, maintenance, repair, and programming. Expert technicians for FANUC, ABB, KUKA, Yaskawa robots across India."
-        keywords="robot repair, robot maintenance, robot service, robot installation, robot programming, industrial robot service, FANUC service, ABB service, KUKA service, robot technician india"
-        jsonLd={generateItemListSchema(services.slice(0, 20), "Robot Service Providers")}
+      <UniversalSEOHead
+        pageType="services"
+        title="Robot Repair & Maintenance Services India | Expert Technicians"
+        description="Find certified robot service providers for repair, maintenance, installation & programming. FANUC, ABB, KUKA, Yaskawa experts. 24x7 emergency support across India."
+        keywords={[
+          'robot repair maintenance services India',
+          'robot installation service',
+          'robot programming services',
+          'industrial robot technician',
+          'FANUC robot repair',
+          'ABB robot service India',
+          'KUKA robot maintenance',
+          'robot calibration service',
+          'emergency robot repair',
+          'robot preventive maintenance',
+          'robot training services India'
+        ]}
+        schemas={[generateItemListSchema(services.slice(0, 20), "Robot Service Providers", "services")]}
       />
       <EnhancedHeader />
 

@@ -3,6 +3,37 @@
  * Central export point for all SEO utilities
  */
 
+// Master SEO - Keyword Mapping & Meta Generation
+export {
+  PAGE_KEYWORD_MAP,
+  ROBOT_BRANDS_SEO,
+  ROBOT_APPLICATIONS_SEO,
+  INDIAN_CITIES_SEO,
+  INDUSTRIES_SEO,
+  generateOptimizedTitle,
+  generateOptimizedDescription,
+  getPageKeywords,
+  getLocationKeywords,
+  getBrandKeywords,
+  getApplicationKeywords
+} from './masterSEO';
+
+// Modern Schema Generators
+export {
+  generateOrganizationSchema,
+  generateWebSiteSchema,
+  generateProductSchema,
+  generateFAQSchema,
+  generateBreadcrumbSchema,
+  generateItemListSchema,
+  generateServiceSchema,
+  generateArticleSchema,
+  generateLocalBusinessSchema,
+  generateHowToSchema,
+  generateAggregateOfferSchema,
+  generatePageSchemas
+} from './modernSchemas';
+
 // Programmatic SEO Content Generation
 export {
   INDIAN_CITIES,
@@ -20,32 +51,6 @@ export {
   generatePriceRangeContent,
   extractLongTailKeywords
 } from './programmaticSEO';
-
-// Enhanced Schema Generators
-export {
-  generateOrganizationSchema,
-  generateWebSiteSchema,
-  generateEnhancedProductSchema,
-  generateFAQSchema,
-  generateBreadcrumbSchema,
-  generateArticleSchema,
-  generateVideoSchema,
-  generateItemListSchema,
-  generateServiceSchema,
-  generateLocalBusinessSchema,
-  generatePageSchemas
-} from './enhancedSchemas';
-
-// Internal Linking Engine
-export {
-  generateRobotInternalLinks,
-  generateSparePartInternalLinks,
-  generateServiceInternalLinks,
-  generateBlogInternalLinks,
-  generateListingInternalLinks,
-  generateHomepageInternalLinks,
-  renderInternalLinksHTML
-} from './internalLinking';
 
 // Technical SEO Utilities
 export {

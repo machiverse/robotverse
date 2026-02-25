@@ -78,6 +78,7 @@ import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { type RobotSEOData } from "@/utils/seo";
 import { useRobotSEO } from "@/hooks/useRobotSEO";
+import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import { SEOHead } from "@/components/SEOHead";
 import { generateProductSchema } from "@/utils/seoSchemas";
 import { useRobotComparison } from "@/contexts/RobotComparisonContext";
@@ -896,6 +897,10 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       <CreditCard className="w-4 h-4 mr-2" />
                       Financing
                     </TabsTrigger>
+                    <TabsTrigger value="reviews" className="hidden data-[state=active]:bg-muted px-4 py-2.5">
+                      <Star className="w-4 h-4 mr-2" />
+                      Reviews
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -1205,6 +1210,18 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     </div>
                   )}
                 </TabsContent>
+
+                {/* Reviews Tab */}
+                <TabsContent value="reviews" className="p-6">
+                  <h3 className="text-xl font-semibold mb-6">Reviews & Ratings</h3>
+                  <ListingRatingSummary
+                    itemId={robot.id}
+                    itemType="robot"
+                    dealType="robot"
+                    itemName={robot.name}
+                    reviewedUserId={robot.seller_id}
+                  />
+                </TabsContent>
               </Tabs>
             </Card>
           </div>
@@ -1308,6 +1325,29 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               </Card>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Reviews Section - Separate Card */}
+      <section className="container mx-auto px-4 pb-8">
+        <div className="max-w-5xl mx-auto">
+          <Card className="border shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-primary" />
+                Reviews & Ratings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ListingRatingSummary
+                itemId={robot.id}
+                itemType="robot"
+                dealType="robot"
+                itemName={robot.name}
+                reviewedUserId={robot.seller_id}
+              />
+            </CardContent>
+          </Card>
         </div>
       </section>
 
