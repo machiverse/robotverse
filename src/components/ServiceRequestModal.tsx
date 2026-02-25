@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog';
@@ -108,50 +109,106 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
     setLoading(true);
 
     try {
-      const quoteData = {
-        customerName: formData.customerName,
-        customerEmail: formData.customerEmail,
-        customerPhone: formData.customerPhone,
-        serviceProviderEmail: service.providerProfile?.email,
-        serviceProviderName: service.provider,
-        serviceName: service.name,
-        serviceType: service.category,
-        message: formData.message,
-        urgency: formData.urgency,
-        location: formData.projectLocation,
-        budget: formData.budget,
-        timeline: formData.timeline,
-        preferredContact: formData.preferredContact
-      };
-
-      const response = await fetch('https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/send-quote-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(quoteData)
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Service Request Sent Successfully!",
-          description: `Your detailed request has been sent to ${service.provider}. You'll receive a response within ${service.responseTime}.`,
+      // 1. Insert into user_requests table so it shows in provider dashboard
+      const { error: requestError } = await supabase
+        .from('user_requests')
+        .insert({
+          user_id: user.id,
+          user_name: formData.customerName,
+          company_name: '',
+          mobile_number: formData.customerPhone,
+          email_address: formData.customerEmail,
+          location: formData.projectLocation,
+          request_type: 'get_quote',
+          item_type: 'service',
+          item_id: service.id,
+          item_name: service.name,
+          seller_id: service.providerId,
+          status: 'pending',
+          urgency: formData.urgency,
+          requirements: formData.message,
+          additional_data: {
+            budget: formData.budget,
+            timeline: formData.timeline,
+            preferredContact: formData.preferredContact,
+            serviceCategory: service.category,
+            priceRange: service.priceRange
+          }
         });
-        onOpenChange(false);
 
-        // Reset form
-        setFormData({
-          customerName: user?.user_metadata?.full_name || '',
-          customerEmail: user?.email || '',
-          customerPhone: '',
-          projectLocation: '',
-          urgency: 'normal',
-          budget: '',
-          timeline: '',
-          message: '',
-          preferredContact: 'email'
-        });
-      } else {
-        throw new Error('Failed to send service request');
+      if (requestError) throw requestError;
+
+      // 2. Send notification to service provider
+      if (service.providerId) {
+        await supabase
+          .from('chat_notifications')
+          .insert({
+            user_id: service.providerId,
+            conversation_id: service.id,
+            notification_type: 'quote_request',
+            is_read: false,
+          });
+
+        // Also insert seller_notifications
+        try {
+          await supabase
+            .from('seller_notifications')
+            .insert({
+              seller_id: service.providerId,
+              title: 'New Service Quote Request',
+              message: `${formData.customerName} requested a quote for ${service.name}`,
+              notification_type: 'quote_request'
+            });
+        } catch {
+          // Silently fail if seller_notifications table doesn't exist
+        }
       }
+
+      // 3. Also try sending email (non-blocking)
+      try {
+        const quoteData = {
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          customerPhone: formData.customerPhone,
+          serviceProviderEmail: service.providerProfile?.email,
+          serviceProviderName: service.provider,
+          serviceName: service.name,
+          serviceType: service.category,
+          message: formData.message,
+          urgency: formData.urgency,
+          location: formData.projectLocation,
+          budget: formData.budget,
+          timeline: formData.timeline,
+          preferredContact: formData.preferredContact
+        };
+
+        await fetch('https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/send-quote-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(quoteData)
+        });
+      } catch {
+        // Email is non-blocking, don't fail the whole request
+      }
+
+      toast({
+        title: "Service Request Sent Successfully!",
+        description: `Your request has been sent to ${service.provider}. They will be notified in their dashboard.`,
+      });
+      onOpenChange(false);
+
+      // Reset form
+      setFormData({
+        customerName: user?.user_metadata?.full_name || '',
+        customerEmail: user?.email || '',
+        customerPhone: '',
+        projectLocation: '',
+        urgency: 'normal',
+        budget: '',
+        timeline: '',
+        message: '',
+        preferredContact: 'email'
+      });
     } catch (error) {
       console.error('Error sending service request:', error);
       toast({

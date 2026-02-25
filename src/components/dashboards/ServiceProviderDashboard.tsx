@@ -265,13 +265,32 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-5">
+            <TabsList className="grid grid-cols-6">
               <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
               <TabsTrigger value="leads">Lead Manager</TabsTrigger>
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
             </TabsList>
+
+            {/* Quote Requests Tab */}
+            <TabsContent value="quote-requests">
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Quote Requests
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage quote requests from buyers for your services. Unlock buyer details, start conversations, and convert to leads.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <QuoteRequestsSection sellerId={user!.id} itemType="service" />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             {/* Lead Manager Tab */}
             <TabsContent value="leads">
