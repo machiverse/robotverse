@@ -897,7 +897,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       <CreditCard className="w-4 h-4 mr-2" />
                       Financing
                     </TabsTrigger>
-                    <TabsTrigger value="reviews" className="data-[state=active]:bg-muted px-4 py-2.5">
+                    <TabsTrigger value="reviews" className="hidden data-[state=active]:bg-muted px-4 py-2.5">
                       <Star className="w-4 h-4 mr-2" />
                       Reviews
                     </TabsTrigger>
@@ -1325,6 +1325,29 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               </Card>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Reviews Section - Separate Card */}
+      <section className="container mx-auto px-4 pb-8">
+        <div className="max-w-5xl mx-auto">
+          <Card className="border shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-primary" />
+                Reviews & Ratings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ListingRatingSummary
+                itemId={robot.id}
+                itemType="robot"
+                dealType="robot"
+                itemName={robot.name}
+                reviewedUserId={robot.seller_id}
+              />
+            </CardContent>
+          </Card>
         </div>
       </section>
 
