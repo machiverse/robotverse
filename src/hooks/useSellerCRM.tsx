@@ -405,13 +405,13 @@ export const useSellerCRM = (itemType?: string) => {
       const [robotsData, partsData, servicesData] = await Promise.all([
         robotIds.length > 0 ? supabase.from('robots').select('id, name, images').in('id', robotIds) : { data: [] },
         partIds.length > 0 ? supabase.from('spare_parts').select('id, name, images').in('id', partIds) : { data: [] },
-        serviceIds.length > 0 ? supabase.from('services').select('id, name, image_url').in('id', serviceIds) : { data: [] }
+        serviceIds.length > 0 ? supabase.from('services').select('id, name').in('id', serviceIds) : { data: [] }
       ]);
       
       // Create lookup maps for names and images
       const robotData = new Map((robotsData.data || []).map(r => [r.id, { name: r.name, image: r.images?.[0] || null }]));
       const partData = new Map((partsData.data || []).map(p => [p.id, { name: p.name, image: p.images?.[0] || null }]));
-      const serviceData = new Map((servicesData.data || []).map(s => [s.id, { name: s.name, image: s.image_url || null }]));
+      const serviceData = new Map((servicesData.data || []).map(s => [s.id, { name: s.name, image: null }]));
       
       // Update views with names and images - handle both singular and plural item_type values
       // ONLY include views where the item actually exists in the database

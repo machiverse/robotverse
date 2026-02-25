@@ -104,7 +104,7 @@ const BuyLeadsTab = ({
       const partsResult = await supabase.from("spare_parts").select("id").eq("seller_id", user.id).limit(1);
 
       const servicesQuery = supabase.from("services" as any);
-      const servicesResult = await servicesQuery.select("id").eq("seller_id", user.id).limit(1);
+      const servicesResult = await servicesQuery.select("id").eq("provider_id", user.id).limit(1);
 
       const categories: string[] = [];
       if (robotsResult.data && robotsResult.data.length > 0) {
