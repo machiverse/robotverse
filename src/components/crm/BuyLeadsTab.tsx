@@ -193,10 +193,10 @@ const BuyLeadsTab = ({
         serviceIds.length > 0
           ? ((await supabase
               .from("services")
-              .select("id, name, image_url")
+              .select("id, name")
               .in("id", serviceIds as string[])) as any)
           : {
-              data: [] as { id: string; name: string; image_url: string | null }[],
+              data: [] as { id: string; name: string }[],
             };
 
       const itemMap = new Map<string, { name: string; image: string | null }>();
@@ -216,7 +216,7 @@ const BuyLeadsTab = ({
       (servicesData.data || []).forEach((s: any) =>
         itemMap.set(s.id, {
           name: s.name,
-          image: s.image_url || null,
+          image: null,
         }),
       );
 

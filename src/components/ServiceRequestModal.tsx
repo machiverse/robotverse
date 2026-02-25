@@ -151,28 +151,36 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
         });
       }
 
-      // 3. Create seller lead with locked buyer info (mirrors robot workflow)
+      // 3. Also record in button_interactions so it shows in Buy Leads tab
       try {
-        await supabase.from('seller_leads').insert({
-          seller_id: service.providerId,
-          buyer_id: user.id,
-          source: 'quote_request',
-          lead_source: 'quote_request',
-          item_type: 'service',
+        await supabase.from('button_interactions').insert({
+          user_id: user.id,
+          user_name: formData.customerName,
+          user_email: formData.customerEmail,
+          user_mobile: formData.customerPhone || null,
+          user_company: '',
+          user_location: formData.projectLocation || null,
+          button_name: 'Service Quote Request',
+          button_type: 'service_action',
+          page_url: window.location.href,
           item_id: service.id,
-          item_name: service.name,
-          buyer_name: formData.customerName,
-          buyer_email: formData.customerEmail,
-          buyer_phone: formData.customerPhone || '',
-          buyer_company: '',
-          buyer_location: formData.projectLocation || '',
-          notes: formData.message || `Quote request for service: ${service.name}`,
-          priority: formData.urgency === 'urgent' || formData.urgency === 'high' ? 'high' : 'medium',
-          status: 'new',
-          is_unlocked: false,
+          item_type: 'service',
+          seller_id: service.providerId,
+          seller_name: service.provider,
+          seller_email: service.providerProfile?.email || null,
+          seller_mobile: service.providerProfile?.phone || service.providerProfile?.mobile_number || null,
+          seller_company: service.providerProfile?.company_name || service.provider,
+          seller_location: service.location || null,
+          additional_data: {
+            serviceName: service.name,
+            serviceCategory: service.category,
+            priceRange: service.priceRange,
+            budget: formData.budget,
+            timeline: formData.timeline,
+          }
         });
       } catch {
-        // Silently fail if seller_leads upsert has issues
+        // Non-blocking
       }
 
       // 4. Also try sending email (non-blocking)
