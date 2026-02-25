@@ -106,7 +106,8 @@ const ServiceDetails = () => {
         };
 
         setService(transformedData);
-        trackItemView("services", data.id, transformedData);
+        // Pass raw data (with provider_id) so trackItemView can extract seller_id correctly
+        trackItemView("services", data.id, data);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load service");
