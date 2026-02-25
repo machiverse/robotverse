@@ -138,49 +138,44 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
 
       if (requestError) throw requestError;
 
-      // Get the inserted request ID for linking
-      const { data: insertedRequest } = await supabase
-        .from('user_requests')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('item_id', service.id)
-        .eq('seller_id', service.providerId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      // 2. Send notification to service provider
+      // 2. Create notification for service provider (mirrors robot workflow)
       if (service.providerId) {
-        // Use notifications table (no FK constraints)
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: service.providerId,
-            title: 'New Service Quote Request',
-            message: `${formData.customerName} requested a quote for "${service.name}"`,
-            notification_type: 'quote_request',
-            reference_id: insertedRequest?.id || null,
-            reference_type: 'service_quote_request',
-            is_read: false,
-          });
-
-        // Also insert seller_notifications with request_id link
-        try {
-          await supabase
-            .from('seller_notifications')
-            .insert({
-              seller_id: service.providerId,
-              title: 'New Service Quote Request',
-              message: `${formData.customerName} requested a quote for "${service.name}"`,
-              notification_type: 'quote_request',
-              request_id: insertedRequest?.id || null,
-            });
-        } catch {
-          // Silently fail if seller_notifications table doesn't exist
-        }
+        await supabase.from('notifications').insert({
+          user_id: service.providerId,
+          notification_type: 'quote_request',
+          title: 'New Quote Request - Use Credits to Unlock',
+          message: `A buyer requested a quote for "${service.name}". Use credits to unlock buyer contact details.`,
+          reference_id: service.id,
+          reference_type: 'service',
+          is_read: false,
+        });
       }
 
-      // 3. Also try sending email (non-blocking)
+      // 3. Create seller lead with locked buyer info (mirrors robot workflow)
+      try {
+        await supabase.from('seller_leads').insert({
+          seller_id: service.providerId,
+          buyer_id: user.id,
+          source: 'quote_request',
+          lead_source: 'quote_request',
+          item_type: 'service',
+          item_id: service.id,
+          item_name: service.name,
+          buyer_name: formData.customerName,
+          buyer_email: formData.customerEmail,
+          buyer_phone: formData.customerPhone || '',
+          buyer_company: '',
+          buyer_location: formData.projectLocation || '',
+          notes: formData.message || `Quote request for service: ${service.name}`,
+          priority: formData.urgency === 'urgent' || formData.urgency === 'high' ? 'high' : 'medium',
+          status: 'new',
+          is_unlocked: false,
+        });
+      } catch {
+        // Silently fail if seller_leads upsert has issues
+      }
+
+      // 4. Also try sending email (non-blocking)
       try {
         const quoteData = {
           customerName: formData.customerName,
