@@ -138,26 +138,42 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
 
       if (requestError) throw requestError;
 
+      // Get the inserted request ID for linking
+      const { data: insertedRequest } = await supabase
+        .from('user_requests')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('item_id', service.id)
+        .eq('seller_id', service.providerId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
       // 2. Send notification to service provider
       if (service.providerId) {
+        // Use notifications table (no FK constraints)
         await supabase
-          .from('chat_notifications')
+          .from('notifications')
           .insert({
             user_id: service.providerId,
-            conversation_id: service.id,
+            title: 'New Service Quote Request',
+            message: `${formData.customerName} requested a quote for "${service.name}"`,
             notification_type: 'quote_request',
+            reference_id: insertedRequest?.id || null,
+            reference_type: 'service_quote_request',
             is_read: false,
           });
 
-        // Also insert seller_notifications
+        // Also insert seller_notifications with request_id link
         try {
           await supabase
             .from('seller_notifications')
             .insert({
               seller_id: service.providerId,
               title: 'New Service Quote Request',
-              message: `${formData.customerName} requested a quote for ${service.name}`,
-              notification_type: 'quote_request'
+              message: `${formData.customerName} requested a quote for "${service.name}"`,
+              notification_type: 'quote_request',
+              request_id: insertedRequest?.id || null,
             });
         } catch {
           // Silently fail if seller_notifications table doesn't exist
