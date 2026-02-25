@@ -47,10 +47,10 @@ import { format, formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "list" | "pipeline";
-type LeadTab = "quotes" | "buy" | "leads";
+type LeadTab = "views" | "quotes" | "leads";
 
+const TAB_VIEWS: LeadTab = "views";
 const TAB_QUOTES: LeadTab = "quotes";
-const TAB_BUY: LeadTab = "buy";
 const TAB_LEADS: LeadTab = "leads";
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
@@ -157,7 +157,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     fetchLeads,
   } = useSellerCRM();
 
-  const [activeTab, setActiveTab] = useState<LeadTab>(TAB_QUOTES);
+  const [activeTab, setActiveTab] = useState<LeadTab>(TAB_VIEWS);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -335,24 +335,24 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-indigo-100 p-2 dark:bg-indigo-900/30">
-                <FileQuestion className="h-5 w-5 text-indigo-600" />
+              <div className="rounded-full bg-amber-100 p-2 dark:bg-amber-900/30">
+                <ShoppingCart className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase text-muted-foreground">Quote Requests</p>
-                <p className="text-xl font-semibold">{stats.quoteRequestsCount}</p>
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">Product Views</p>
+                <p className="text-xl font-semibold">{categoryFilteredViews.length}</p>
               </div>
             </div>
           </Card>
 
           <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-amber-100 p-2 dark:bg-amber-900/30">
-                <ShoppingCart className="h-5 w-5 text-amber-600" />
+              <div className="rounded-full bg-indigo-100 p-2 dark:bg-indigo-900/30">
+                <FileQuestion className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase text-muted-foreground">Buy Leads</p>
-                <p className="text-xl font-semibold">{categoryFilteredViews.length}</p>
+                <p className="text-[11px] font-medium uppercase text-muted-foreground">Quote Requests</p>
+                <p className="text-xl font-semibold">{stats.quoteRequestsCount}</p>
               </div>
             </div>
           </Card>
@@ -395,17 +395,17 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
             <div className="border-b p-4 pb-0">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <TabsList className="h-10">
+                  <TabsTrigger value={TAB_VIEWS} className="flex items-center gap-2 px-4">
+                    <ShoppingCart className="h-4 w-4" />
+                    <span>Product Views</span>
+                    <Badge className="ml-1 bg-amber-500">{categoryFilteredViews.length}</Badge>
+                  </TabsTrigger>
                   <TabsTrigger value={TAB_QUOTES} className="flex items-center gap-2 px-4">
                     <FileQuestion className="h-4 w-4" />
                     <span>Quote Requests</span>
                     <Badge variant="secondary" className="ml-1">
                       {stats.quoteRequestsCount}
                     </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value={TAB_BUY} className="flex items-center gap-2 px-4">
-                    <ShoppingCart className="h-4 w-4" />
-                    <span>Buy Leads</span>
-                    <Badge className="ml-1 bg-amber-500">{categoryFilteredViews.length}</Badge>
                   </TabsTrigger>
                   <TabsTrigger value={TAB_LEADS} className="flex items-center gap-2 px-4">
                     <User className="h-4 w-4" />
@@ -466,14 +466,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
 
             {/* Tab Contents */}
             <div className="flex-1 overflow-auto p-4">
-              <TabsContent value={TAB_QUOTES} className="mt-0 h-full">
-                <QuoteRequestsSection 
-                  sellerId={user?.id || ""} 
-                  itemType={categoryFilter === "robot" ? "robot" : categoryFilter === "spare_part" ? "spare_part" : categoryFilter === "service" ? "service" : undefined}
-                />
-              </TabsContent>
-
-              <TabsContent value={TAB_BUY} className="mt-0 h-full">
+              <TabsContent value={TAB_VIEWS} className="mt-0 h-full">
                 <BuyLeadsTab
                   sellerId={user?.id || ""}
                   creditsBalance={creditsBalance}
@@ -483,6 +476,13 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                   }}
                   onBuyCredits={() => navigate("/dashboard/credits")}
                   forcedCategoryFilter={categoryFilter}
+                />
+              </TabsContent>
+
+              <TabsContent value={TAB_QUOTES} className="mt-0 h-full">
+                <QuoteRequestsSection 
+                  sellerId={user?.id || ""} 
+                  itemType={categoryFilter === "robot" ? "robot" : categoryFilter === "spare_part" ? "spare_part" : categoryFilter === "service" ? "service" : undefined}
                 />
               </TabsContent>
 
