@@ -42,6 +42,7 @@ import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { SEOHead } from "@/components/SEOHead";
 import { useSparePartSEO } from "@/hooks/useSparePartSEO";
 import type { Json } from "@/integrations/supabase/types";
+import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import type { SparePartSEOData } from "@/utils/seo";
 
 interface SparePart {
@@ -484,7 +485,7 @@ const SparePartDetails = () => {
           {/* Professional Tabs Section - Only 4 tabs now */}
           <div className="mt-12">
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 h-14 p-1.5 bg-gradient-to-r from-muted to-muted/50 shadow-lg rounded-xl border border-border/50">
+              <TabsList className="grid w-full grid-cols-5 h-14 p-1.5 bg-gradient-to-r from-muted to-muted/50 shadow-lg rounded-xl border border-border/50">
                 <TabsTrigger
                   value="overview"
                   className="data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:border-primary/50 data-[state=active]:text-primary font-semibold rounded-lg transition-all duration-200"
@@ -508,6 +509,12 @@ const SparePartDetails = () => {
                   className="data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:border-primary/50 data-[state=active]:text-primary font-semibold rounded-lg transition-all duration-200"
                 >
                   Services
+                </TabsTrigger>
+                <TabsTrigger
+                  value="reviews"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:border-primary/50 data-[state=active]:text-primary font-semibold rounded-lg transition-all duration-200"
+                >
+                  Reviews
                 </TabsTrigger>
               </TabsList>
 
@@ -827,6 +834,17 @@ const SparePartDetails = () => {
                     </div>
                   )}
                 </div>
+              </TabsContent>
+              {/* Reviews Tab */}
+              <TabsContent value="reviews" className="p-8 pt-0">
+                <h3 className="text-2xl font-bold mb-6">Reviews & Ratings</h3>
+                <ListingRatingSummary
+                  itemId={sparePart.id}
+                  itemType="spare_part"
+                  dealType="spare_parts"
+                  itemName={sparePart.name}
+                  reviewedUserId={sparePart.seller_id}
+                />
               </TabsContent>
             </Tabs>
           </div>

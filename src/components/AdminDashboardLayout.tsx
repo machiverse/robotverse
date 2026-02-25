@@ -15,6 +15,7 @@ import AdminTracking from "./admin/AdminTracking";
 import AdminAnalytics from "./admin/AdminAnalytics";
 import AdminRobotAnalytics from "./admin/AdminRobotAnalytics";
 import WatchlistSection from "./WatchlistSection";
+import AdminReviews from "./admin/AdminReviews";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
@@ -81,6 +82,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminRobotAnalytics />;
       case "watchlist":
         return <WatchlistSection title="My Watchlist" showHeader={true} compact={false} showActions={true} />;
+      case "reviews":
+        return <AdminReviews />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
