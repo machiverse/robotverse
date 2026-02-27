@@ -68,7 +68,8 @@ const HomeRobotListings = () => {
         .from("robots")
         .select("id, name, robot_type, price, currency, images, brand")
         .eq("availability", "available")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       if (error) {
         // Retry up to 3 times on transient errors
