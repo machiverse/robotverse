@@ -280,13 +280,13 @@ const HomeRobotListings = () => {
                           onClick={() => navigate(`/robots/${robot.id}`)}
                         >
                           {/* Robot Image */}
-                          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                          <div className="relative aspect-square overflow-hidden bg-muted">
                             {robot.images && robot.images.length > 0 ? (
                               <img
                                 src={robot.images[0]}
                                 alt={robot.name}
                                 loading="lazy"
-                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
