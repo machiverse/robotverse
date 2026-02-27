@@ -64,26 +64,40 @@ const HomeRobotListings = () => {
 
   const fetchRobots = async (retryCount = 0) => {
     try {
-      const { data, error } = await supabase
-        .from("robots")
-        .select("id, name, robot_type, price, currency, images, brand")
-        .eq("availability", "available")
-        .order("created_at", { ascending: false })
-        .limit(100);
+      const allRobots: Robot[] = [];
+      let offset = 0;
+      const batchSize = 500;
+      let hasMore = true;
 
-      if (error) {
-        // Retry up to 3 times on transient errors
-        if (retryCount < 3) {
-          console.warn(`Retrying robot fetch (attempt ${retryCount + 1})...`, error.message);
-          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-          return fetchRobots(retryCount + 1);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("robots")
+          .select("id, name, robot_type, price, currency, images, brand")
+          .eq("availability", "available")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + batchSize - 1);
+
+        if (error) {
+          if (retryCount < 3) {
+            console.warn(`Retrying robot fetch (attempt ${retryCount + 1})...`, error.message);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+            return fetchRobots(retryCount + 1);
+          }
+          throw error;
         }
-        throw error;
+
+        if (data && data.length > 0) {
+          allRobots.push(...(data as Robot[]));
+          offset += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
       }
-      setRobots((data || []) as Robot[]);
+
+      setRobots(allRobots);
     } catch (error) {
       console.error("Error fetching robots:", error);
-      // Only show toast after all retries exhausted
       if (retryCount >= 3) {
         toast({
           variant: "destructive",
