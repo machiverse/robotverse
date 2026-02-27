@@ -282,14 +282,11 @@ const HomeRobotListings = () => {
                           {/* Robot Image */}
                           <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                             {robot.images && robot.images.length > 0 ? (
-                              <ResponsiveImage
+                              <img
                                 src={robot.images[0]}
                                 alt={robot.name}
-                                aspectRatio="auto"
-                                objectFit="cover"
-                                hoverEffect={false}
-                                containerClassName="w-full h-full"
-                                className="transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
