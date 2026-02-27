@@ -12,34 +12,33 @@ const Terms = () => {
         keywords="robotverse terms, terms of service, robot marketplace policy, industrial robots terms, seller agreement, buyer terms india"
       />
       <EnhancedHeader />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
               Terms of Service
             </h1>
-            <p className="text-lg text-muted-foreground">
-              Last updated: {new Date().toLocaleDateString()}
-            </p>
+            <p className="text-lg text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
           </div>
 
           <Card>
             <CardContent className="prose prose-neutral dark:prose-invert max-w-none p-8">
               <h2>1. Acceptance of Terms</h2>
               <p>
-                By accessing and using RobotVerse, you accept and agree to be bound by the terms and provision of this agreement.
+                By accessing and using RobotVerse, you accept and agree to be bound by the terms and provision of this
+                agreement.
               </p>
 
               <h2>2. Platform Description</h2>
               <p>
-                RobotVerse is an online marketplace that connects buyers and sellers of industrial robots, spare parts, and related services. We facilitate transactions but are not party to the actual sale agreements between users.
+                RobotVerse is an online marketplace that connects buyers and sellers of industrial robots, spare parts,
+                and related services. We facilitate transactions but are not party to the actual sale agreements between
+                users.
               </p>
 
               <h2>3. User Accounts</h2>
-              <p>
-                To use certain features of our platform, you must create an account. You are responsible for:
-              </p>
+              <p>To use certain features of our platform, you must create an account. You are responsible for:</p>
               <ul>
                 <li>Maintaining the confidentiality of your account credentials</li>
                 <li>All activities that occur under your account</li>
@@ -48,9 +47,7 @@ const Terms = () => {
               </ul>
 
               <h2>4. Seller Obligations</h2>
-              <p>
-                Sellers using RobotVerse agree to:
-              </p>
+              <p>Sellers using RobotVerse agree to:</p>
               <ul>
                 <li>Provide accurate descriptions and images of listed items</li>
                 <li>Honor all sales commitments made through the platform</li>
@@ -60,9 +57,7 @@ const Terms = () => {
               </ul>
 
               <h2>5. Buyer Responsibilities</h2>
-              <p>
-                Buyers agree to:
-              </p>
+              <p>Buyers agree to:</p>
               <ul>
                 <li>Make purchases in good faith</li>
                 <li>Provide accurate shipping and payment information</li>
@@ -71,9 +66,7 @@ const Terms = () => {
               </ul>
 
               <h2>6. Prohibited Activities</h2>
-              <p>
-                Users may not:
-              </p>
+              <p>Users may not:</p>
               <ul>
                 <li>List illegal, stolen, or counterfeit items</li>
                 <li>Engage in fraudulent activities</li>
@@ -84,43 +77,49 @@ const Terms = () => {
 
               <h2>7. Payment and Fees</h2>
               <p>
-                RobotVerse charges fees for successful transactions. Current fee structures are available in your account dashboard. Payment processing is handled by our secure payment partners.
+                RobotVerse charges fees for successful transactions. Current fee structures are available in your
+                account dashboard. Payment processing is handled by our secure payment partners.
               </p>
 
               <h2>8. Intellectual Property</h2>
               <p>
-                All content on RobotVerse, including but not limited to text, graphics, logos, and software, is protected by intellectual property laws and remains the property of RobotVerse or its licensors.
+                All content on RobotVerse, including but not limited to text, graphics, logos, and software, is
+                protected by intellectual property laws and remains the property of RobotVerse or its licensors.
               </p>
 
               <h2>9. Limitation of Liability</h2>
               <p>
-                RobotVerse acts as a marketplace platform. We are not responsible for the quality, safety, or legality of items listed, the truth or accuracy of listings, or the ability of sellers to sell or buyers to pay.
+                RobotVerse acts as a marketplace platform. We are not responsible for the quality, safety, or legality
+                of items listed, the truth or accuracy of listings, or the ability of sellers to sell or buyers to pay.
               </p>
 
               <h2>10. Dispute Resolution</h2>
               <p>
-                Any disputes arising from the use of RobotVerse shall be resolved through arbitration in Chennai, Tamil Nadu, India, in accordance with Indian arbitration laws.
+                Any disputes arising from the use of RobotVerse shall be resolved through arbitration in Chennai, Tamil
+                Nadu, India, in accordance with Indian arbitration laws.
               </p>
 
               <h2>11. Modifications</h2>
               <p>
-                RobotVerse reserves the right to modify these terms at any time. Users will be notified of significant changes via email or platform notifications.
+                RobotVerse reserves the right to modify these terms at any time. Users will be notified of significant
+                changes via email or platform notifications.
               </p>
 
               <h2>12. Contact Information</h2>
+              <p>For questions about these Terms of Service, please contact us at:</p>
               <p>
-                For questions about these Terms of Service, please contact us at:
-              </p>
-              <p>
-                Email: support@robotverse.in<br />
-                Phone: +918610925352<br />
-                Address: SIPCOT IT Park, 5-B/9, 6th Cross St, Siruseri, Chennai, Tamil Nadu 603103
+                Email: support@robotverse.in
+                <br />
+                Phone: +918610925352
+                <br />
+                Address: No. 309A, ECR, Near PEC & PU,Pillaichavady, Vanur Taluk,Villupuram District,Tamil Nadu –
+                605014, India
               </p>
             </CardContent>
           </Card>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
