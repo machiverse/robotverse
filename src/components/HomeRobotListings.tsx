@@ -62,7 +62,7 @@ const HomeRobotListings = () => {
     groupRobotsByType();
   }, [robots]);
 
-  const fetchRobots = async () => {
+  const fetchRobots = async (retryCount = 0) => {
     try {
       const { data, error } = await supabase
         .from("robots")
@@ -70,15 +70,26 @@ const HomeRobotListings = () => {
         .eq("availability", "available")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Retry up to 3 times on transient errors
+        if (retryCount < 3) {
+          console.warn(`Retrying robot fetch (attempt ${retryCount + 1})...`, error.message);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return fetchRobots(retryCount + 1);
+        }
+        throw error;
+      }
       setRobots((data || []) as Robot[]);
     } catch (error) {
       console.error("Error fetching robots:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load robot listings",
-      });
+      // Only show toast after all retries exhausted
+      if (retryCount >= 3) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load robot listings. Please refresh the page.",
+        });
+      }
     } finally {
       setLoading(false);
     }
