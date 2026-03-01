@@ -608,6 +608,30 @@ export const useCRM = () => {
     }
   }, [user, fetchAccounts, fetchContacts, fetchOpportunities, fetchQuotations, fetchTasks, fetchActivityLogs]);
 
+  // Real-time subscription for quotation status changes (e.g. buyer accepts/rejects)
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('crm-quotation-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'crm_quotations',
+          filter: `seller_id=eq.${user.id}`,
+        },
+        () => {
+          fetchQuotations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchQuotations]);
+
   // Recalculate stats when data changes
   useEffect(() => {
     calculateStats();
