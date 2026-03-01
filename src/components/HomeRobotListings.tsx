@@ -286,7 +286,7 @@ const HomeRobotListings = () => {
                                 src={robot.images[0]}
                                 alt={robot.name}
                                 loading="lazy"
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
