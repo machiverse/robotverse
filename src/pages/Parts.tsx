@@ -25,6 +25,7 @@ import { ChatButton } from "@/components/chat/ChatButton";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
@@ -71,6 +72,7 @@ const Parts = () => {
   const { category: urlCategory, subcategory: urlSubcategory, componentType: urlComponentType } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isReady } = useAuthReady();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView, getItemViewCount } = useUniversalViewTracking();
 
@@ -159,6 +161,8 @@ const Parts = () => {
 
   // Fetch parts data
   useEffect(() => {
+    if (!isReady) return;
+
     const fetchParts = async () => {
       try {
         setLoading(true);
@@ -238,7 +242,7 @@ const Parts = () => {
     };
 
     fetchParts();
-  }, [getItemViewCount]);
+  }, [getItemViewCount, isReady]);
 
   // Handle category change - reset subcategory and component type
   const handleCategoryChange = (value: string) => {

@@ -8,10 +8,18 @@ export function useAuthReady() {
 
   useEffect(() => {
     // getSession restores from storage first
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsReady(true);
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Auth readiness initialization failed:", error);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    initializeAuth();
 
     // onAuthStateChange handles subsequent changes (sign in/out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
