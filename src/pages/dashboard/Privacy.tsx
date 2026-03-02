@@ -8,9 +8,7 @@ const Privacy = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
-          <p className="text-muted-foreground">
-            Understanding how we protect and use your information
-          </p>
+          <p className="text-muted-foreground">Understanding how we protect and use your information</p>
         </div>
       </div>
 
@@ -22,14 +20,13 @@ const Privacy = () => {
               <Shield className="h-5 w-5" />
               Privacy Overview
             </CardTitle>
-            <CardDescription>
-              Last updated: January 15, 2024
-            </CardDescription>
+            <CardDescription>Last updated: January 15, 2024</CardDescription>
           </CardHeader>
           <CardContent className="prose max-w-none">
             <p className="text-muted-foreground">
-              At RobotVerse, we are committed to protecting your privacy and ensuring the security of your personal information. 
-              This privacy policy explains how we collect, use, and safeguard your data when you use our platform.
+              At RobotVerse, we are committed to protecting your privacy and ensuring the security of your personal
+              information. This privacy policy explains how we collect, use, and safeguard your data when you use our
+              platform.
             </p>
           </CardContent>
         </Card>
@@ -203,8 +200,8 @@ const Privacy = () => {
             <div>
               <h4 className="font-medium mb-2">Data Sharing</h4>
               <p className="text-sm text-muted-foreground">
-                We do not sell your personal data to third parties. We only share information when necessary 
-                to provide our services, comply with legal requirements, or protect our users' safety and security.
+                We do not sell your personal data to third parties. We only share information when necessary to provide
+                our services, comply with legal requirements, or protect our users' safety and security.
               </p>
             </div>
           </CardContent>
@@ -214,15 +211,20 @@ const Privacy = () => {
         <Card>
           <CardHeader>
             <CardTitle>Contact Us</CardTitle>
-            <CardDescription>
-              Questions about this privacy policy or your data?
-            </CardDescription>
+            <CardDescription>Questions about this privacy policy or your data?</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm">
-              <p><strong>Email:</strong> support@robotverse.in</p>
-              <p><strong>Address:</strong>  SIPCOT IT Park, 5-B/9, 6th Cross St, Siruseri, Chennai, Tamil Nadu 603103</p>
-              <p><strong>Phone:</strong> +918610925352</p>
+              <p>
+                <strong>Email:</strong> support@robotverse.in
+              </p>
+              <p>
+                <strong>Address:</strong> No. 309A, ECR, Near PEC & PU,Pillaichavady, Vanur Taluk,Villupuram
+                District,Tamil Nadu – 605014, India
+              </p>
+              <p>
+                <strong>Phone:</strong> +918610925352
+              </p>
             </div>
           </CardContent>
         </Card>

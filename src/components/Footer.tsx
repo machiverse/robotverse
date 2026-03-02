@@ -25,9 +25,11 @@ const Footer = () => {
               sellers, and service providers worldwide.
             </p>
             <div className="flex space-x-3">
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                <Facebook className="h-4 w-4" />
-              </Button>
+              <a href="https://www.facebook.com/people/RobotVerse/61579279622501/" target="_blank" rel="noopener noreferrer">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                  <Facebook className="h-4 w-4" />
+                </Button>
+              </a>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
                 <Twitter className="h-4 w-4" />
               </Button>

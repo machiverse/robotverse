@@ -7,6 +7,7 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Bot, ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatPrice as formatCurrencyPrice, Currency } from "@/utils/currency";
 import Autoplay from "embla-carousel-autoplay";
 
@@ -41,6 +42,7 @@ const robotTypeConfig: Record<string, { label: string }> = {
 const HomeRobotListings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isReady } = useAuthReady();
 
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,30 +57,57 @@ const HomeRobotListings = () => {
     });
 
   useEffect(() => {
+    if (!isReady) return;
     fetchRobots();
-  }, []);
+  }, [isReady]);
 
   useEffect(() => {
     groupRobotsByType();
   }, [robots]);
 
-  const fetchRobots = async () => {
+  const fetchRobots = async (retryCount = 0) => {
     try {
-      const { data, error } = await supabase
-        .from("robots")
-        .select("id, name, robot_type, price, currency, images, brand")
-        .eq("availability", "available")
-        .order("created_at", { ascending: false });
+      const allRobots: Robot[] = [];
+      let offset = 0;
+      const batchSize = 500;
+      let hasMore = true;
 
-      if (error) throw error;
-      setRobots((data || []) as Robot[]);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("robots")
+          .select("id, name, robot_type, price, currency, images, brand")
+          .eq("availability", "available")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + batchSize - 1);
+
+        if (error) {
+          if (retryCount < 3) {
+            console.warn(`Retrying robot fetch (attempt ${retryCount + 1})...`, error.message);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+            return fetchRobots(retryCount + 1);
+          }
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          allRobots.push(...(data as Robot[]));
+          offset += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setRobots(allRobots);
     } catch (error) {
       console.error("Error fetching robots:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load robot listings",
-      });
+      if (retryCount >= 3) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load robot listings. Please refresh the page.",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -254,16 +283,13 @@ const HomeRobotListings = () => {
                           onClick={() => navigate(`/robots/${robot.id}`)}
                         >
                           {/* Robot Image */}
-                          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                          <div className="relative aspect-square overflow-hidden bg-muted">
                             {robot.images && robot.images.length > 0 ? (
-                              <ResponsiveImage
+                              <img
                                 src={robot.images[0]}
                                 alt={robot.name}
-                                aspectRatio="auto"
-                                objectFit="cover"
-                                hoverEffect={false}
-                                containerClassName="w-full h-full"
-                                className="transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">

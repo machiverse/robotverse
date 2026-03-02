@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,8 @@ const isCrawlerBot = () => {
 export const AutoSignInPopup = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAuthPage = location.pathname === "/auth" || location.pathname === "/reset-password";
   const [isOpen, setIsOpen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
@@ -45,14 +47,14 @@ export const AutoSignInPopup = () => {
     }
 
     // Don't show popup if user is logged in or if visitor is a bot/crawler
-    if (user || isCrawlerBot()) {
+    if (user || isAuthPage || isCrawlerBot()) {
       setIsOpen(false);
       return;
     }
 
     // Show popup after 30 seconds
     timerRef.current = setTimeout(() => {
-      if (isMountedRef.current && !user && !isCrawlerBot()) {
+      if (isMountedRef.current && !user && !isAuthPage && !isCrawlerBot()) {
         setIsOpen(true);
       }
     }, 30000); // 30 seconds
@@ -63,7 +65,7 @@ export const AutoSignInPopup = () => {
         timerRef.current = null;
       }
     };
-  }, [user]);
+  }, [user, isAuthPage]);
 
   const handleClose = () => {
     if (!isMountedRef.current || isCrawlerBot()) return;
@@ -78,7 +80,7 @@ export const AutoSignInPopup = () => {
     
     // Re-trigger after another 30 seconds if user closes without signing in
     timerRef.current = setTimeout(() => {
-      if (isMountedRef.current && !user && !isCrawlerBot()) {
+      if (isMountedRef.current && !user && !isAuthPage && !isCrawlerBot()) {
         setIsOpen(true);
       }
     }, 30000);
@@ -103,7 +105,7 @@ export const AutoSignInPopup = () => {
   };
 
   // Don't render anything if user is logged in or if visitor is a bot
-  if (user || isCrawlerBot()) return null;
+  if (user || isAuthPage || isCrawlerBot()) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

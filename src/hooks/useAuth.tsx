@@ -68,21 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     console.log('🚀 Initializing auth state...');
+    let initialSessionResolved = false;
     
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        console.error('❌ Error getting initial session:', error);
-      } else {
-        console.log('📊 Initial session state:', data.session ? 'Authenticated' : 'Not authenticated');
-      }
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
-
+    // IMPORTANT: Set up the listener FIRST, then get session
+    // This prevents missing auth events that fire between getSession and onAuthStateChange
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('🔄 Auth state change:', event, session ? 'User logged in' : 'User logged out');
+        
+        // Skip INITIAL_SESSION if getSession hasn't resolved yet
+        // getSession is the source of truth for initial state
+        if (event === 'INITIAL_SESSION' && !initialSessionResolved) {
+          console.log('⏳ Skipping INITIAL_SESSION, waiting for getSession...');
+          return;
+        }
         
         // Check if this is a password recovery flow by checking URL parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -92,18 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('🔄 Auth event details:', { event, isPasswordRecovery, pathname: window.location.pathname });
         
         if (isPasswordRecovery) {
-          // For password recovery, set session but don't auto-login the user
           console.log('🔐 Password recovery session detected');
           setSession(session);
-          setUser(null); // Don't set user as logged in during recovery
+          setUser(null);
           
-          // Only redirect if not already on reset password page
           if (window.location.pathname !== '/reset-password' && session) {
             console.log('🔄 Redirecting to reset password page...');
             window.location.href = `/reset-password${window.location.search}`;
           }
         } else {
-          // Normal auth flow - set both session and user
           setSession(session);
           setUser(session?.user ?? null);
         }
@@ -113,6 +109,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     );
+
+    // getSession restores session from localStorage - this is the source of truth
+    supabase.auth.getSession().then(({ data, error }) => {
+      initialSessionResolved = true;
+      if (error) {
+        console.error('❌ Error getting initial session:', error);
+      } else {
+        console.log('📊 Initial session state:', data.session ? 'Authenticated' : 'Not authenticated');
+      }
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
       console.log('🧹 Cleaning up auth subscription');

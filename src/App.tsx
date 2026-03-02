@@ -58,7 +58,15 @@ import CRM from "./pages/CRM";
 import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 // Global notification listener component
 const GlobalChatNotifications = () => {
