@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import {
   Search,
   Grid,
@@ -57,6 +58,7 @@ const Services = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isReady } = useAuthReady();
   const [searchParams, setSearchParams] = useSearchParams();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +79,8 @@ const Services = () => {
 
   // Fetch services from Supabase
   useEffect(() => {
+    if (!isReady) return;
+
     const fetchServices = async () => {
       try {
         setLoading(true);
@@ -141,7 +145,7 @@ const Services = () => {
     };
 
     fetchServices();
-  }, []);
+  }, [isReady]);
 
   // Dynamic category list
   const categoryFilterList = useMemo(() => [

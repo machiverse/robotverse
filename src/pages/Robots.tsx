@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useRobotComparison } from "@/contexts/RobotComparisonContext";
@@ -51,6 +52,7 @@ const Robots = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isReady } = useAuthReady();
   const { toast } = useToast();
   const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
@@ -180,6 +182,8 @@ const Robots = () => {
 
   // Fetch robots and filters
   useEffect(() => {
+    if (!isReady) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -291,7 +295,7 @@ const Robots = () => {
     };
 
     fetchData();
-  }, [getItemViewCount, user]);
+  }, [getItemViewCount, user, isReady]);
 
   const getLabelFromValue = (arr: { value: string; label: string }[], value: string): string => {
     return arr.find((i) => i.value === value)?.label?.toLowerCase() || value;

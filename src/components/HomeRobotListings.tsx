@@ -7,6 +7,7 @@ import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Bot, ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatPrice as formatCurrencyPrice, Currency } from "@/utils/currency";
 import Autoplay from "embla-carousel-autoplay";
 
@@ -41,6 +42,7 @@ const robotTypeConfig: Record<string, { label: string }> = {
 const HomeRobotListings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isReady } = useAuthReady();
 
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,8 +57,9 @@ const HomeRobotListings = () => {
     });
 
   useEffect(() => {
+    if (!isReady) return;
     fetchRobots();
-  }, []);
+  }, [isReady]);
 
   useEffect(() => {
     groupRobotsByType();
