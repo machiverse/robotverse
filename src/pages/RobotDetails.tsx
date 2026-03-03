@@ -626,7 +626,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     <img
                       src={robot.images[currentImageIndex]}
                       alt={`${robot.name} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-full object-contain cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
+                      className="w-full h-full object-fill cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
                       onClick={() => setShowFullscreen(true)}
                     />
                     <Button
