@@ -620,13 +620,13 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Image Section */}
             <div className="space-y-4">
-              <div className="relative w-full h-[480px] rounded-xl overflow-hidden bg-muted border shadow-lg">
+              <div className="relative aspect-square lg:aspect-[4/3] lg:h-[420px] rounded-xl overflow-hidden bg-muted/50 border shadow-lg flex items-center justify-center">
                 {robot?.images && robot.images.length > 0 ? (
                   <>
-                    <img
+                    <ResponsiveImage
                       src={robot.images[currentImageIndex]}
                       alt={`${robot.name} - Image ${currentImageIndex + 1}`}
-                      className="w-full h-full object-fill cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
+                      className="max-w-full max-h-full object-contain cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
                       onClick={() => setShowFullscreen(true)}
                     />
                     <Button
@@ -681,7 +681,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       }`}
                       onClick={() => setCurrentImageIndex(index)}
                     >
-                      <img src={image} alt={`${robot.name} ${index + 1}`} className="w-full h-full object-cover" />
+                      <img src={image} alt={`${robot.name} ${index + 1}`} className="max-w-full max-h-full object-contain" />
                     </button>
                   ))}
                 </div>
