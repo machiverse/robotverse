@@ -4,9 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+
+const ROLE_OPTIONS = [
+  { value: "buyer", label: "Buyer" },
+  { value: "robot_seller", label: "Robot Seller" },
+  { value: "spare_parts_seller", label: "Spare Parts Seller" },
+  { value: "service_provider", label: "Service Provider" },
+  { value: "logistics_provider", label: "Logistics Provider" },
+  { value: "finance_provider", label: "Finance Provider" },
+  { value: "admin", label: "Admin" },
+];
 
 interface AddUserModalProps {
   open: boolean;
@@ -25,6 +36,7 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
     company_name: "",
     user_type: "buyer",
     account_type: "buyer",
+    user_roles: ["buyer"] as string[],
     location: "",
     password: "",
     status: "active",
@@ -38,11 +50,22 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
       company_name: "",
       user_type: "buyer",
       account_type: "buyer",
+      user_roles: ["buyer"],
       location: "",
       password: "",
       status: "active",
     });
     setShowPassword(false);
+  };
+
+  const toggleRole = (role: string) => {
+    setFormData(prev => {
+      const roles = prev.user_roles.includes(role)
+        ? prev.user_roles.filter(r => r !== role)
+        : [...prev.user_roles, role];
+      const primaryRole = roles[0] || "buyer";
+      return { ...prev, user_roles: roles, user_type: primaryRole };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,20 +153,22 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="add_user_type">User Type / Role</Label>
-              <Select value={formData.user_type} onValueChange={(v) => setFormData({ ...formData, user_type: v })}>
-                <SelectTrigger id="add_user_type"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="buyer">Buyer</SelectItem>
-                  <SelectItem value="robot_seller">Robot Seller</SelectItem>
-                  <SelectItem value="spare_parts_seller">Spare Parts Seller</SelectItem>
-                  <SelectItem value="service_provider">Service Provider</SelectItem>
-                  <SelectItem value="logistics_provider">Logistics Provider</SelectItem>
-                  <SelectItem value="finance_provider">Finance Provider</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-2 col-span-2">
+              <Label>User Type / Roles (select multiple)</Label>
+              <div className="grid grid-cols-2 gap-2 p-3 border border-input rounded-md bg-background">
+                {ROLE_OPTIONS.map((role) => (
+                  <div key={role.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`role_${role.value}`}
+                      checked={formData.user_roles.includes(role.value)}
+                      onCheckedChange={() => toggleRole(role.value)}
+                    />
+                    <Label htmlFor={`role_${role.value}`} className="text-sm font-normal cursor-pointer">
+                      {role.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="space-y-2 col-span-2">
               <Label htmlFor="add_status">Status</Label>
