@@ -43,6 +43,8 @@ interface BuyLeadsTabProps {
   onBuyCredits: () => void;
   /** Force a specific category filter (robot, spare_part, service) */
   forcedCategoryFilter?: "robot" | "spare_part" | "service";
+  /** Commission sellers bypass credit checks */
+  isCommissionSeller?: boolean;
 }
 
 const USER_CREDIT_COSTS: Record<string, number> = {
@@ -81,6 +83,7 @@ const BuyLeadsTab = ({
   onLeadPurchased,
   onBuyCredits,
   forcedCategoryFilter,
+  isCommissionSeller,
 }: BuyLeadsTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -339,7 +342,7 @@ const BuyLeadsTab = ({
   const handleBuyLead = async (lead: BuyableLead) => {
     const creditsToDeduct = creditsPerUser;
 
-    if (creditsBalance < creditsToDeduct) {
+    if (!isCommissionSeller && creditsBalance < creditsToDeduct) {
       setSelectedLeadForPurchase(lead);
       setShowInsufficientCreditsModal(true);
       return;
@@ -348,16 +351,7 @@ const BuyLeadsTab = ({
     setPurchasingId(lead.buyer_id);
 
     try {
-      const { data: creditData } = await supabase
-        .from("seller_credits")
-        .select("current_balance, total_spent")
-        .eq("seller_id", user?.id)
-        .single();
-
-      if (!creditData) {
-        throw new Error("Could not fetch credit balance");
-      }
-
+      // Insert leads for all items
       for (const item of lead.items) {
         const { error: insertError } = await supabase.from("seller_leads").insert({
           seller_id: user?.id,
@@ -377,33 +371,48 @@ const BuyLeadsTab = ({
         }
       }
 
-      const newBalance = creditData.current_balance - creditsToDeduct;
+      // Only deduct credits for non-commission sellers
+      if (!isCommissionSeller) {
+        const { data: creditData } = await supabase
+          .from("seller_credits")
+          .select("current_balance, total_spent")
+          .eq("seller_id", user?.id)
+          .single();
 
-      await supabase
-        .from("seller_credits")
-        .update({
-          current_balance: newBalance,
-          total_spent: (creditData.total_spent || 0) + creditsToDeduct,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("seller_id", user?.id);
+        if (!creditData) {
+          throw new Error("Could not fetch credit balance");
+        }
 
-      await supabase.from("credit_transactions").insert({
-        seller_id: user?.id,
-        transaction_type: "lead_unlock",
-        credits_amount: -creditsToDeduct,
-        balance_before: creditData.current_balance,
-        balance_after: newBalance,
-        description: `Purchased lead for buyer ${lead.buyer_first_name} (${lead.items.length} item${
-          lead.items.length > 1 ? "s" : ""
-        })`,
-        reference_id: lead.buyer_id,
-        reference_type: sellerPrimaryCategory,
-      });
+        const newBalance = creditData.current_balance - creditsToDeduct;
+
+        await supabase
+          .from("seller_credits")
+          .update({
+            current_balance: newBalance,
+            total_spent: (creditData.total_spent || 0) + creditsToDeduct,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("seller_id", user?.id);
+
+        await supabase.from("credit_transactions").insert({
+          seller_id: user?.id,
+          transaction_type: "lead_unlock",
+          credits_amount: -creditsToDeduct,
+          balance_before: creditData.current_balance,
+          balance_after: newBalance,
+          description: `Purchased lead for buyer ${lead.buyer_first_name} (${lead.items.length} item${
+            lead.items.length > 1 ? "s" : ""
+          })`,
+          reference_id: lead.buyer_id,
+          reference_type: sellerPrimaryCategory,
+        });
+      }
 
       toast({
-        title: "Lead purchased",
-        description: `Successfully purchased lead for ${lead.buyer_first_name}. ${creditsToDeduct} credits deducted.`,
+        title: isCommissionSeller ? "Lead converted" : "Lead purchased",
+        description: isCommissionSeller
+          ? `Successfully converted lead for ${lead.buyer_first_name}. No credits deducted.`
+          : `Successfully purchased lead for ${lead.buyer_first_name}. ${creditsToDeduct} credits deducted.`,
       });
 
       onLeadPurchased();
@@ -462,11 +471,22 @@ const BuyLeadsTab = ({
         <CardContent className="flex items-start gap-3 p-4">
           <ShoppingCart className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div className="text-sm">
-            <p className="font-medium text-foreground">Buy leads – {creditsPerUser} credits per buyer</p>
-            <p className="mt-1 text-muted-foreground">
-              Purchase a lead to unlock full buyer contact information. All items viewed by the same buyer are included,
-              so you pay once per user, not per item.
-            </p>
+            {isCommissionSeller ? (
+              <>
+                <p className="font-medium text-foreground">Convert leads — Free for commission sellers</p>
+                <p className="mt-1 text-muted-foreground">
+                  As a commission-based seller, you can convert all leads for free. No credits are deducted.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium text-foreground">Buy leads – {creditsPerUser} credits per buyer</p>
+                <p className="mt-1 text-muted-foreground">
+                  Purchase a lead to unlock full buyer contact information. All items viewed by the same buyer are included,
+                  so you pay once per user, not per item.
+                </p>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -508,14 +528,14 @@ const BuyLeadsTab = ({
                       size="sm"
                       onClick={() => handleBuyLead(lead)}
                       disabled={purchasingId === lead.buyer_id}
-                      className="h-9 bg-amber-600 px-4 text-xs font-medium hover:bg-amber-700"
+                      className={`h-9 px-4 text-xs font-medium ${isCommissionSeller ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'}`}
                     >
                       {purchasingId === lead.buyer_id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
                         <ShoppingCart className="mr-2 h-4 w-4" />
                       )}
-                      Buy lead ({lead.total_credits_required} cr)
+                      {isCommissionSeller ? 'Convert lead (Free)' : `Buy lead (${lead.total_credits_required} cr)`}
                     </Button>
                   </div>
 
