@@ -56,7 +56,9 @@ interface QuoteRequest {
 
 interface QuoteRequestsSectionProps {
   sellerId: string;
-  itemType?: string; // Optional filter by item type
+  itemType?: string;
+  /** Commission sellers bypass credit checks */
+  isCommissionSeller?: boolean;
 }
 
 // Credit costs based on item type: Robots = 10, Spare Parts = 5, Services = 5
@@ -67,7 +69,7 @@ const getCreditsForItemType = (itemType: string): number => {
   return 10; // Default for other types
 };
 
-const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps) => {
+const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteRequestsSectionProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isContactUnlocked, userCredits, loading: creditsLoading, refreshCredits } = useContactUnlock();
@@ -232,6 +234,51 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
   };
 
   const handleUnlockBuyerContact = async (request: QuoteRequest) => {
+    if (isCommissionSeller) {
+      // Commission sellers: directly convert without credits
+      setUnlockingId(request.id);
+      try {
+        // Create lead directly without credit deduction
+        await supabase.from('seller_leads').insert({
+          seller_id: sellerId,
+          buyer_id: request.user_id,
+          buyer_name: request.user_name,
+          buyer_email: request.email_address,
+          buyer_phone: request.mobile_number,
+          buyer_company: request.company_name,
+          item_id: request.item_id,
+          item_type: request.item_type || 'quote_request',
+          item_name: request.item_name || 'Unknown Item',
+          source: 'quote_request',
+          status: 'new',
+          is_unlocked: true,
+        });
+
+        // Update quote request status
+        await supabase
+          .from('user_requests')
+          .update({ status: 'unlocked', updated_at: new Date().toISOString() })
+          .eq('id', request.id);
+
+        await fetchQuoteRequests();
+
+        toast({
+          title: "Lead Created Successfully",
+          description: "Quote request converted to lead. No credits deducted (Commission Model)."
+        });
+      } catch (error) {
+        console.error('Error unlocking buyer contact:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to unlock buyer details"
+        });
+      } finally {
+        setUnlockingId(null);
+      }
+      return;
+    }
+
     const creditsRequired = getCreditsForItemType(request.item_type);
     
     if (!userCredits || userCredits.current_balance < creditsRequired) {
@@ -245,8 +292,6 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
 
     setUnlockingId(request.id);
     try {
-      // Call the database function to convert quote request to lead
-      // This handles: credit deduction, transaction logging, unlock record, and lead creation
       const { data: leadId, error } = await supabase
         .rpc('convert_quote_to_lead', {
           p_request_id: request.id,
@@ -484,15 +529,15 @@ const QuoteRequestsSection = ({ sellerId, itemType }: QuoteRequestsSectionProps)
                           size="sm"
                           onClick={() => handleUnlockBuyerContact(request)}
                           disabled={unlockingId === request.id || creditsLoading}
-                          title={`Unlock for ${getCreditsForItemType(request.item_type)} credits`}
-                          className="bg-primary hover:bg-primary/90"
+                          title={isCommissionSeller ? 'Unlock (Free)' : `Unlock for ${getCreditsForItemType(request.item_type)} credits`}
+                          className={isCommissionSeller ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"}
                         >
                           {unlockingId === request.id ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           ) : (
                             <>
                               <Unlock className="w-4 h-4 mr-1" />
-                              {getCreditsForItemType(request.item_type)}
+                              {isCommissionSeller ? 'Free' : getCreditsForItemType(request.item_type)}
                             </>
                           )}
                         </Button>

@@ -6,6 +6,8 @@ import FullScreenLeadManager from "./FullScreenLeadManager";
 interface CRMLeadsViewProps {
   /** Force a specific category filter (robot, spare_part, service) */
   categoryFilter?: 'robot' | 'spare_part' | 'service';
+  /** Commission sellers bypass credit checks */
+  isCommissionSeller?: boolean;
 }
 
 /**
@@ -14,11 +16,11 @@ interface CRMLeadsViewProps {
  * When the user clicks "Open Lead Manager", the full-screen CRM interface opens.
  * Pass categoryFilter to restrict leads to a specific item type.
  */
-const CRMLeadsView = ({ categoryFilter }: CRMLeadsViewProps) => {
+const CRMLeadsView = ({ categoryFilter, isCommissionSeller }: CRMLeadsViewProps) => {
   const [showFullScreen, setShowFullScreen] = useState(false);
   
   if (showFullScreen) {
-    return <FullScreenLeadManager onClose={() => setShowFullScreen(false)} categoryFilter={categoryFilter} />;
+    return <FullScreenLeadManager onClose={() => setShowFullScreen(false)} categoryFilter={categoryFilter} isCommissionSeller={isCommissionSeller} />;
   }
   
   return (

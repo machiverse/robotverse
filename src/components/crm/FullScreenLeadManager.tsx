@@ -119,6 +119,8 @@ interface FullScreenLeadManagerProps {
   onClose: () => void;
   /** Force a specific category filter (robot, spare_part, service) */
   categoryFilter?: "robot" | "spare_part" | "service";
+  /** Commission sellers bypass credit checks */
+  isCommissionSeller?: boolean;
 }
 
 const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManagerProps["categoryFilter"]): boolean => {
@@ -137,7 +139,7 @@ const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManage
   return true;
 };
 
-const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManagerProps) => {
+const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: FullScreenLeadManagerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -186,11 +188,27 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
   });
 
   const handleUnlock = async (lead: Lead) => {
-    const creditsNeeded = getCreditsNeeded(lead.item_type);
-    if (creditsBalance < creditsNeeded) return;
+    if (!isCommissionSeller) {
+      const creditsNeeded = getCreditsNeeded(lead.item_type);
+      if (creditsBalance < creditsNeeded) return;
+    }
 
     setUnlocking(lead.id);
-    await unlockBuyerInfo(lead.id, lead.item_type);
+    if (isCommissionSeller) {
+      // Commission sellers: directly unlock without credits
+      try {
+        await supabase
+          .from('seller_leads')
+          .update({ is_unlocked: true })
+          .eq('id', lead.id);
+        fetchLeads();
+        toast({ title: "Lead unlocked", description: "Buyer details are now visible (no credits deducted)." });
+      } catch (error) {
+        console.error('Error unlocking lead:', error);
+      }
+    } else {
+      await unlockBuyerInfo(lead.id, lead.item_type);
+    }
     setUnlocking(null);
   };
 
@@ -320,10 +338,18 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
           <p className="text-xs text-muted-foreground">CRM workspace for managing leads and buyer inquiries</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs">
-            <CreditCard className="h-4 w-4 text-amber-600" />
-            <span className="font-medium">{creditsBalance} credits</span>
-          </div>
+          {!isCommissionSeller && (
+            <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs">
+              <CreditCard className="h-4 w-4 text-amber-600" />
+              <span className="font-medium">{creditsBalance} credits</span>
+            </div>
+          )}
+          {isCommissionSeller && (
+            <div className="flex items-center gap-2 rounded-lg bg-green-100 dark:bg-green-900/30 px-3 py-1.5 text-xs">
+              <Unlock className="h-4 w-4 text-green-600" />
+              <span className="font-medium text-green-700 dark:text-green-300">Commission Model — Free Access</span>
+            </div>
+          )}
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close lead manager" type="button">
             <X className="h-5 w-5" />
           </Button>
@@ -476,6 +502,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                   }}
                   onBuyCredits={() => navigate("/dashboard/credits")}
                   forcedCategoryFilter={categoryFilter}
+                  isCommissionSeller={isCommissionSeller}
                 />
               </TabsContent>
 
@@ -483,6 +510,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                 <QuoteRequestsSection 
                   sellerId={user?.id || ""} 
                   itemType={categoryFilter === "robot" ? "robot" : categoryFilter === "spare_part" ? "spare_part" : categoryFilter === "service" ? "service" : undefined}
+                  isCommissionSeller={isCommissionSeller}
                 />
               </TabsContent>
 
@@ -663,22 +691,22 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                   {!lead.is_unlocked ? (
                                     <Button
                                       size="sm"
-                                      variant={canUnlock ? "default" : "outline"}
+                                      variant={isCommissionSeller || canUnlock ? "default" : "outline"}
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (!canUnlock) return;
+                                        if (!isCommissionSeller && !canUnlock) return;
                                         handleUnlock(lead);
                                       }}
-                                      disabled={!canUnlock || unlocking === lead.id}
-                                      className="h-8 px-3 text-xs font-medium shadow-sm"
+                                      disabled={(!isCommissionSeller && !canUnlock) || unlocking === lead.id}
+                                      className={`h-8 px-3 text-xs font-medium shadow-sm ${isCommissionSeller ? 'bg-green-600 hover:bg-green-700' : ''}`}
                                     >
                                       {unlocking === lead.id ? (
                                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                                       ) : (
                                         <Unlock className="mr-1.5 h-3.5 w-3.5" />
                                       )}
-                                      Unlock ({creditsNeeded} cr)
+                                      {isCommissionSeller ? 'Unlock (Free)' : `Unlock (${creditsNeeded} cr)`}
                                     </Button>
                                   ) : (
                                     <div className="flex items-center gap-1.5">

@@ -298,7 +298,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <CRMLeadsView categoryFilter="robot" />
+              <CRMLeadsView categoryFilter="robot" isCommissionSeller={true} />
             </CardContent>
           </Card>
         </TabsContent>
