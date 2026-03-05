@@ -57,6 +57,7 @@ import CreateQuotationModal from "./CreateQuotationModal";
 interface LeadDetailViewProps {
   lead: Lead;
   activities: LeadActivity[];
+  isCommissionSeller?: boolean;
   onClose: () => void;
   onStatusChange: (leadId: string, status: Lead["status"]) => Promise<boolean | void>;
   onAddActivity: (
@@ -120,6 +121,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
 const LeadDetailView = ({
   lead,
   activities,
+  isCommissionSeller,
   onClose,
   onStatusChange,
   onAddActivity,
@@ -220,7 +222,17 @@ const LeadDetailView = ({
     }
   };
 
+  const PLATFORM_PHONE = "918610925352";
+  const PLATFORM_PHONE_DISPLAY = "+91 861 092 5352";
+
   const handleWhatsApp = () => {
+    if (isCommissionSeller) {
+      const message = encodeURIComponent(
+        `Hi Robotverse, I'm a commission seller and want to connect regarding the lead for ${lead.item_name}. Buyer: ${lead.buyer_name || "Unknown"}.`
+      );
+      window.open(`https://wa.me/${PLATFORM_PHONE}?text=${message}`, "_blank");
+      return;
+    }
     if (!lead.buyer_phone) return;
     const phone = lead.buyer_phone.replace(/\D/g, "");
     const message = encodeURIComponent(
@@ -230,6 +242,7 @@ const LeadDetailView = ({
   };
 
   const handleEmail = () => {
+    if (isCommissionSeller) return; // Commission sellers use platform only
     if (!lead.buyer_email) return;
     const subject = encodeURIComponent(`Regarding your inquiry – ${lead.item_name || "Product"}`);
     const body = encodeURIComponent(
@@ -239,6 +252,10 @@ const LeadDetailView = ({
   };
 
   const handleCall = () => {
+    if (isCommissionSeller) {
+      window.open(`tel:+${PLATFORM_PHONE}`, "_blank");
+      return;
+    }
     if (!lead.buyer_phone) return;
     window.open(`tel:${lead.buyer_phone}`, "_blank");
   };
@@ -322,7 +339,23 @@ const LeadDetailView = ({
               </Badge>
 
               {/* Action Buttons */}
-              {lead.is_unlocked ? (
+              {isCommissionSeller ? (
+                <div className="hidden items-center gap-2 lg:flex">
+                  <Button size="sm" variant="outline" onClick={handleCall}>
+                    <Phone className="mr-1.5 h-4 w-4" />
+                    Call Platform
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleWhatsApp}
+                    className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/50 dark:text-green-400"
+                  >
+                    <FaWhatsapp className="mr-1.5 h-4 w-4" />
+                    WhatsApp Platform
+                  </Button>
+                </div>
+              ) : lead.is_unlocked ? (
                 <div className="hidden items-center gap-2 lg:flex">
                   <Button size="sm" variant="outline" onClick={handleCall} disabled={!lead.buyer_phone}>
                     <Phone className="mr-1.5 h-4 w-4" />
@@ -706,7 +739,77 @@ const LeadDetailView = ({
                     Contact Information
                   </h3>
                   
-                  {lead.is_unlocked ? (
+                  {isCommissionSeller ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {getInitials(lead.buyer_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold">{lead.buyer_name || "Unknown"}</p>
+                          <p className="text-sm text-muted-foreground">{lead.buyer_company || "No Company"}</p>
+                        </div>
+                      </div>
+                      
+                      <Separator />
+
+                      {/* Hidden contact notice */}
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
+                        <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                          Contact details are hidden for commission accounts. All communication happens through the Robotverse platform.
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <button
+                          onClick={handleCall}
+                          className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                            <Phone className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{PLATFORM_PHONE_DISPLAY}</p>
+                            <p className="text-xs text-muted-foreground">Robotverse Platform</p>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                        
+                        <button
+                          onClick={handleWhatsApp}
+                          className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                            <FaWhatsapp className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{PLATFORM_PHONE_DISPLAY}</p>
+                            <p className="text-xs text-muted-foreground">WhatsApp Platform</p>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </div>
+
+                      {/* Mobile Action Buttons */}
+                      <div className="flex flex-col gap-2 pt-2 lg:hidden">
+                        <Button size="sm" variant="outline" onClick={handleCall} className="w-full">
+                          <Phone className="mr-1.5 h-4 w-4" />
+                          Call Platform
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleWhatsApp}
+                          className="w-full border-green-200 bg-green-50 text-green-700"
+                        >
+                          <FaWhatsapp className="mr-1.5 h-4 w-4" />
+                          WhatsApp Platform
+                        </Button>
+                      </div>
+                    </div>
+                  ) : lead.is_unlocked ? (
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">

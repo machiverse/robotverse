@@ -280,7 +280,18 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
     }
   };
 
+  const PLATFORM_PHONE = "918610925352";
+  const PLATFORM_PHONE_DISPLAY = "+91 861 092 5352";
+
   const handleWhatsApp = (lead: Lead) => {
+    if (isCommissionSeller) {
+      const message = encodeURIComponent(
+        `Hi Robotverse, I'm a commission seller and want to connect regarding the lead for ${lead.item_name}. Buyer: ${lead.buyer_name || "Unknown"}.`,
+      );
+      window.open(`https://wa.me/${PLATFORM_PHONE}?text=${message}`, "_blank");
+      addActivity(lead.id, "call", "WhatsApp via Platform", "Contacted Robotverse platform for buyer connection");
+      return;
+    }
     if (!lead.is_unlocked || !lead.buyer_phone) return;
     const phone = lead.buyer_phone.replace(/\D/g, "");
     const message = encodeURIComponent(
@@ -291,6 +302,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
   };
 
   const handleEmail = (lead: Lead) => {
+    if (isCommissionSeller) return; // Commission sellers use platform only
     if (!lead.is_unlocked || !lead.buyer_email) return;
     const subject = encodeURIComponent(`Regarding your inquiry: ${lead.item_name}`);
     const body = encodeURIComponent(
@@ -301,6 +313,11 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
   };
 
   const handleCall = (lead: Lead) => {
+    if (isCommissionSeller) {
+      window.open(`tel:+${PLATFORM_PHONE}`, "_blank");
+      addActivity(lead.id, "call", "Called Platform", "Called Robotverse platform number");
+      return;
+    }
     if (!lead.is_unlocked || !lead.buyer_phone) return;
     window.open(`tel:${lead.buyer_phone}`, "_blank");
     addActivity(lead.id, "call", "Phone Call Made", `Called ${lead.buyer_phone}`);
@@ -606,7 +623,18 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
 
                               {/* Contact info */}
                               <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
-                                {lead.is_unlocked ? (
+                                {isCommissionSeller ? (
+                                  <div className="flex gap-4 text-xs text-muted-foreground">
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Phone className="h-3.5 w-3.5" />
+                                      Hidden — Use Platform
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Mail className="h-3.5 w-3.5" />
+                                      Hidden — Use Platform
+                                    </span>
+                                  </div>
+                                ) : lead.is_unlocked ? (
                                   <Fragment>
                                     {lead.buyer_phone && (
                                       <button
@@ -708,6 +736,48 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
                                       )}
                                       {isCommissionSeller ? 'Unlock (Free)' : `Unlock (${creditsNeeded} cr)`}
                                     </Button>
+                                  ) : isCommissionSeller ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCall(lead);
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium"
+                                      >
+                                        <Phone className="mr-1.5 h-3.5 w-3.5" />
+                                        Call Platform
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleWhatsApp(lead);
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                      >
+                                        <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+                                        WhatsApp Platform
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openQuotation(lead);
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium"
+                                      >
+                                        <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+                                        Quote
+                                      </Button>
+                                    </div>
                                   ) : (
                                     <div className="flex items-center gap-1.5">
                                       <Button
@@ -770,6 +840,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
         <LeadDetailView
           lead={selectedLead}
           activities={leadActivities}
+          isCommissionSeller={isCommissionSeller}
           onClose={() => {
             setShowDetailView(false);
             setSelectedLead(null);
