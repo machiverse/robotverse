@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Store, Wrench, Settings, Truck, CreditCard } from "lucide-react";
+import { ShoppingCart, Store, Wrench, Settings, Truck, CreditCard, Handshake } from "lucide-react";
 import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
 import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
+import CommissionSellerDashboard from "@/components/dashboards/CommissionSellerDashboard";
 import SparePartsDashboard from "@/pages/SparePartsSellerDashboard";
 import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
@@ -17,6 +18,7 @@ interface MultiRoleDashboardProps {
 
 const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
   const userRoles = userProfile?.user_roles || [];
+  const isCommissionSeller = userProfile?.seller_model_type === 'commission';
   
   // If user only has one role, default to that role's dashboard
   const [activeTab, setActiveTab] = useState(userRoles[0] || 'buyer');
@@ -29,10 +31,10 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
       description: 'Browse and purchase robots'
     },
     robot_seller: {
-      label: 'Robot Seller',
-      icon: Store,
-      component: RobotSellerDashboard,
-      description: 'Manage robot listings'
+      label: isCommissionSeller ? 'Robot Seller (Commission)' : 'Robot Seller',
+      icon: isCommissionSeller ? Handshake : Store,
+      component: isCommissionSeller ? CommissionSellerDashboard : RobotSellerDashboard,
+      description: isCommissionSeller ? 'Manage deals & commission' : 'Manage robot listings'
     },
     spare_parts_seller: {
       label: 'Parts Seller',

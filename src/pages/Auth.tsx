@@ -33,6 +33,7 @@ const Auth = () => {
   
   // Seller state
   const [sellerRoles, setSellerRoles] = useState<string[]>([]);
+  const [sellerModelType, setSellerModelType] = useState<'subscription' | 'commission'>('subscription');
   
   // Logistics state
   const [logisticsType, setLogisticsType] = useState('');
@@ -227,6 +228,15 @@ const Auth = () => {
       });
       
       // Verify what was actually stored in the database
+      // After profile creation, update seller_model_type if seller
+      if (accountType === 'seller') {
+        await supabase
+          .from('profiles')
+          .update({ seller_model_type: sellerModelType } as any)
+          .eq('user_id', user.id);
+        console.log('✅ Seller model type set to:', sellerModelType);
+      }
+      
       const { data: verifyProfile, error: verifyError } = await supabase
         .from('profiles')
         .select('user_id, account_type, user_type, primary_user_type, user_roles, seller_roles, primary_role, registration_complete')
@@ -320,6 +330,7 @@ const Auth = () => {
       location,
       accountType,
       sellerRoles,
+      sellerModelType,
       logisticsType,
       logisticsRegion,
       transportModes,
@@ -1447,6 +1458,63 @@ const Auth = () => {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Seller Business Model Selection */}
+              {isSignUp && accountType === 'seller' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Business Model</h3>
+                  </div>
+                  <Label>How would you like to sell on RobotVerse? *</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        sellerModelType === 'subscription'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                      onClick={() => setSellerModelType('subscription')}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          sellerModelType === 'subscription' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {sellerModelType === 'subscription' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="font-semibold">Subscription + Credits</span>
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-1 ml-6">
+                        <li>• Purchase subscription plans</li>
+                        <li>• Buy credits for leads & quotes</li>
+                        <li>• Listing limits based on plan</li>
+                      </ul>
+                    </div>
+                    <div
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        sellerModelType === 'commission'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                      onClick={() => setSellerModelType('commission')}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          sellerModelType === 'commission' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {sellerModelType === 'commission' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="font-semibold">Commission-Based</span>
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-1 ml-6">
+                        <li>• Unlimited listings, no subscription</li>
+                        <li>• No credit purchase needed</li>
+                        <li>• 5% commission on completed deals</li>
+                      </ul>
                     </div>
                   </div>
                 </div>

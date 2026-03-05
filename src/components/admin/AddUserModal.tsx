@@ -40,6 +40,7 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
     location: "",
     password: "",
     status: "active",
+    seller_model_type: "subscription" as "subscription" | "commission",
   });
 
   const resetForm = () => {
@@ -54,6 +55,7 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
       location: "",
       password: "",
       status: "active",
+      seller_model_type: "subscription",
     });
     setShowPassword(false);
   };
@@ -170,6 +172,18 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
                 ))}
               </div>
             </div>
+            {(formData.account_type === 'seller' || formData.user_roles.some(r => ['robot_seller', 'spare_parts_seller', 'service_provider'].includes(r))) && (
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="add_seller_model">Seller Business Model</Label>
+                <Select value={formData.seller_model_type} onValueChange={(v: "subscription" | "commission") => setFormData({ ...formData, seller_model_type: v })}>
+                  <SelectTrigger id="add_seller_model"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="subscription">Subscription + Credits</SelectItem>
+                    <SelectItem value="commission">Commission-Based (5%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2 col-span-2">
               <Label htmlFor="add_status">Status</Label>
               <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>

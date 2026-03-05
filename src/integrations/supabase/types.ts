@@ -581,6 +581,62 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_invoices: {
+        Row: {
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          deal_id: string
+          deal_value: number
+          due_date: string | null
+          id: string
+          invoice_number: string
+          notes: string | null
+          paid_at: string | null
+          seller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission_amount: number
+          commission_rate?: number
+          created_at?: string
+          deal_id: string
+          deal_value: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          seller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          deal_id?: string
+          deal_value?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          seller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_invoices_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_posts: {
         Row: {
           author_id: string
@@ -1511,6 +1567,87 @@ export type Database = {
           },
         ]
       }
+      deals: {
+        Row: {
+          admin_notes: string | null
+          admin_verified: boolean | null
+          admin_verified_at: string | null
+          admin_verified_by: string | null
+          attachments: Json | null
+          buyer_company: string | null
+          buyer_email: string | null
+          buyer_id: string | null
+          buyer_name: string
+          buyer_phone: string | null
+          closing_date: string | null
+          commission_amount: number | null
+          commission_rate: number
+          created_at: string
+          deal_number: string
+          deal_status: string
+          id: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          product_type: string | null
+          quote_value: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          admin_verified?: boolean | null
+          admin_verified_at?: string | null
+          admin_verified_by?: string | null
+          attachments?: Json | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name: string
+          buyer_phone?: string | null
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          deal_number?: string
+          deal_status?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          product_type?: string | null
+          quote_value?: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          admin_verified?: boolean | null
+          admin_verified_at?: string | null
+          admin_verified_by?: string | null
+          attachments?: Json | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string
+          buyer_phone?: string | null
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          deal_number?: string
+          deal_status?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          product_type?: string | null
+          quote_value?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_uploads: {
         Row: {
           document_type: string
@@ -2277,6 +2414,7 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           registration_complete: boolean | null
+          seller_model_type: string | null
           seller_roles: string[] | null
           service_categories: string[] | null
           target_audience: string[] | null
@@ -2312,6 +2450,7 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           registration_complete?: boolean | null
+          seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
@@ -2347,6 +2486,7 @@ export type Database = {
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           registration_complete?: boolean | null
+          seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
