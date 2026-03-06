@@ -33,6 +33,8 @@ interface CreateQuotationModalProps {
     productModel?: string;
   };
   existingQuotation?: CRMQuotation;
+  /** Commission sellers: auto-create a deal when quote is sent */
+  isCommissionSeller?: boolean;
 }
 
 interface SellerProfile {
@@ -57,6 +59,7 @@ const CreateQuotationModal = ({
   onSuccess,
   leadData,
   existingQuotation,
+  isCommissionSeller,
 }: CreateQuotationModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -306,6 +309,25 @@ const CreateQuotationModal = ({
 
       // In-app notification only (no email)
 
+      // Auto-create deal in Deal Tracker for commission sellers
+      if (isCommissionSeller) {
+        try {
+          await supabase.from("deals" as any).insert({
+            seller_id: user.id,
+            buyer_name: buyerName,
+            buyer_email: buyerEmail,
+            buyer_phone: buyerPhone,
+            buyer_company: buyerCompany,
+            product_name: items.map(i => i.name).join(", "),
+            product_type: "robot",
+            quote_value: totalAmount,
+            deal_status: "quote_sent",
+            notes: `Quotation ${quotationNumber} sent. Items: ${items.map(i => i.name).join(", ")}`,
+          } as any);
+        } catch (dealErr) {
+          console.error("Error auto-creating deal:", dealErr);
+        }
+      }
       // Download the PDF for the seller
       await downloadQuotationPDF(getPDFData(quotationNumber));
 

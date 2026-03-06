@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Plus, CheckCircle, Clock, Loader2,
-  Target, Handshake
+  Target, Handshake, FileText
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -45,7 +45,7 @@ const CommissionDealsSection = () => {
 
   const [newDeal, setNewDeal] = useState({
     buyer_name: "", buyer_email: "", buyer_phone: "", buyer_company: "",
-    product_name: "", product_type: "robot", quote_value: "", notes: "",
+    product_name: "", product_type: "robot", notes: "",
   });
 
   useEffect(() => {
@@ -62,7 +62,7 @@ const CommissionDealsSection = () => {
   };
 
   const handleCreateDeal = async () => {
-    if (!user || !newDeal.buyer_name || !newDeal.product_name || !newDeal.quote_value) {
+    if (!user || !newDeal.buyer_name || !newDeal.product_name) {
       toast({ variant: "destructive", title: "Error", description: "Fill all required fields" });
       return;
     }
@@ -72,13 +72,13 @@ const CommissionDealsSection = () => {
         seller_id: user.id, buyer_name: newDeal.buyer_name,
         buyer_email: newDeal.buyer_email, buyer_phone: newDeal.buyer_phone,
         buyer_company: newDeal.buyer_company, product_name: newDeal.product_name,
-        product_type: newDeal.product_type, quote_value: parseFloat(newDeal.quote_value),
+        product_type: newDeal.product_type,
         notes: newDeal.notes,
       } as any);
       if (error) throw error;
       toast({ title: "Deal Created", description: "New deal added" });
       setShowCreateDeal(false);
-      setNewDeal({ buyer_name: "", buyer_email: "", buyer_phone: "", buyer_company: "", product_name: "", product_type: "robot", quote_value: "", notes: "" });
+      setNewDeal({ buyer_name: "", buyer_email: "", buyer_phone: "", buyer_company: "", product_name: "", product_type: "robot", notes: "" });
       fetchDeals();
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -108,6 +108,16 @@ const CommissionDealsSection = () => {
     negotiation: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
     deal_won: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
     deal_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  };
+
+  // Parse notes to extract quotation info
+  const getQuotationInfo = (deal: Deal) => {
+    const notes = deal.notes || "";
+    const qtMatch = notes.match(/Quotation (QT-[A-Z0-9]+)/);
+    return {
+      quotationNumber: qtMatch ? qtMatch[1] : null,
+      isFromQuote: notes.startsWith("Quotation QT-"),
+    };
   };
 
   if (loading) {
@@ -145,7 +155,7 @@ const CommissionDealsSection = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Deal Tracker</CardTitle>
-            <CardDescription>Track deal status and progress</CardDescription>
+            <CardDescription>Quotes sent from Lead Manager appear here automatically</CardDescription>
           </div>
           <Button onClick={() => setShowCreateDeal(true)} size="sm"><Plus className="h-4 w-4 mr-2" /> New Deal</Button>
         </CardHeader>
@@ -158,6 +168,7 @@ const CommissionDealsSection = () => {
                   <TableHead>Buyer</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Verified</TableHead>
                   <TableHead>Date</TableHead>
@@ -167,52 +178,65 @@ const CommissionDealsSection = () => {
               <TableBody>
                 {deals.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      No deals yet. Click "New Deal" to create one.
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      No deals yet. Send a quotation from Lead Manager or click "New Deal" to create one.
                     </TableCell>
                   </TableRow>
-                ) : deals.map((deal) => (
-                  <TableRow key={deal.id}>
-                    <TableCell className="font-mono text-sm">{deal.deal_number}</TableCell>
-                    <TableCell>
-                      <div>{deal.buyer_name}</div>
-                      <div className="text-xs text-muted-foreground">{deal.buyer_company}</div>
-                    </TableCell>
-                    <TableCell>{deal.product_name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize">{(deal.product_type || "").replace(/_/g, " ")}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[deal.deal_status] || ""}>{deal.deal_status.replace(/_/g, " ")}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {deal.admin_verified ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(deal.created_at), "dd MMM yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      {deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
-                        <Select value="" onValueChange={(v) => updateDealStatus(deal.id, v)}>
-                          <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Update" /></SelectTrigger>
-                          <SelectContent>
-                            {deal.deal_status === "lead_generated" && <SelectItem value="quote_sent">Quote Sent</SelectItem>}
-                            {["lead_generated", "quote_sent"].includes(deal.deal_status) && <SelectItem value="negotiation">Negotiation</SelectItem>}
-                            <SelectItem value="deal_won">Deal Won</SelectItem>
-                            <SelectItem value="deal_lost">Deal Lost</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                ) : deals.map((deal) => {
+                  const qtInfo = getQuotationInfo(deal);
+                  return (
+                    <TableRow key={deal.id}>
+                      <TableCell className="font-mono text-sm">{deal.deal_number}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{deal.buyer_name}</div>
+                        {deal.buyer_company && <div className="text-xs text-muted-foreground">{deal.buyer_company}</div>}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">{deal.product_name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs capitalize">{(deal.product_type || "").replace(/_/g, " ")}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {qtInfo.isFromQuote ? (
+                          <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs">
+                            <FileText className="h-3 w-3 mr-1" />
+                            {qtInfo.quotationNumber}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">Manual</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[deal.deal_status] || ""}>{deal.deal_status.replace(/_/g, " ")}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {deal.admin_verified ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(deal.created_at), "dd MMM yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        {deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
+                          <Select value="" onValueChange={(v) => updateDealStatus(deal.id, v)}>
+                            <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Update" /></SelectTrigger>
+                            <SelectContent>
+                              {deal.deal_status === "lead_generated" && <SelectItem value="quote_sent">Quote Sent</SelectItem>}
+                              {["lead_generated", "quote_sent"].includes(deal.deal_status) && <SelectItem value="negotiation">Negotiation</SelectItem>}
+                              <SelectItem value="deal_won">Deal Won</SelectItem>
+                              <SelectItem value="deal_lost">Deal Lost</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Create Deal Modal - no quote value or commission visible */}
+      {/* Create Deal Modal */}
       <Dialog open={showCreateDeal} onOpenChange={setShowCreateDeal}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Create New Deal</DialogTitle></DialogHeader>

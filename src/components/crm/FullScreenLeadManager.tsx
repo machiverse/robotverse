@@ -937,6 +937,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
             fetchLeads();
             setShowQuotationModal(false);
           }}
+          isCommissionSeller={isCommissionSeller}
           leadData={{
             leadId: selectedLead.id,
             buyerName: selectedLead.buyer_name || "",
