@@ -12,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Plus, CheckCircle, Clock, Loader2,
-  Target, Handshake, FileText
+  Target, Handshake, FileText, ChevronDown, ChevronUp,
+  Package, Calendar, FileCheck
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -35,6 +36,17 @@ interface Deal {
   created_at: string;
 }
 
+interface QuotationDetails {
+  quotation_number: string;
+  items: any[];
+  valid_until: string | null;
+  terms_conditions: string | null;
+  notes: string | null;
+  status: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
 const CommissionDealsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -42,6 +54,9 @@ const CommissionDealsSection = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateDeal, setShowCreateDeal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [expandedDeal, setExpandedDeal] = useState<string | null>(null);
+  const [quotationDetails, setQuotationDetails] = useState<Record<string, QuotationDetails | null>>({});
+  const [loadingQuotation, setLoadingQuotation] = useState<string | null>(null);
 
   const [newDeal, setNewDeal] = useState({
     buyer_name: "", buyer_email: "", buyer_phone: "", buyer_company: "",
@@ -59,6 +74,51 @@ const CommissionDealsSection = () => {
       .eq("seller_id", user.id).order("created_at", { ascending: false });
     if (data) setDeals(data as any);
     setLoading(false);
+  };
+
+  const fetchQuotationDetails = async (deal: Deal) => {
+    const qtInfo = getQuotationInfo(deal);
+    if (!qtInfo.quotationNumber || quotationDetails[deal.id]) return;
+
+    setLoadingQuotation(deal.id);
+    try {
+      const { data } = await supabase
+        .from("crm_quotations")
+        .select("quotation_number, items, valid_until, terms_conditions, notes, status, sent_at, created_at")
+        .eq("seller_id", user?.id)
+        .eq("quotation_number", qtInfo.quotationNumber)
+        .single();
+
+      if (data) {
+        // Parse items if it's a string
+        let parsedItems = data.items;
+        if (typeof parsedItems === "string") {
+          try { parsedItems = JSON.parse(parsedItems); } catch { parsedItems = []; }
+        }
+        setQuotationDetails(prev => ({
+          ...prev,
+          [deal.id]: { ...data, items: Array.isArray(parsedItems) ? parsedItems : [] } as QuotationDetails,
+        }));
+      } else {
+        setQuotationDetails(prev => ({ ...prev, [deal.id]: null }));
+      }
+    } catch (err) {
+      console.error("Error fetching quotation:", err);
+    } finally {
+      setLoadingQuotation(null);
+    }
+  };
+
+  const handleExpandDeal = (deal: Deal) => {
+    if (expandedDeal === deal.id) {
+      setExpandedDeal(null);
+    } else {
+      setExpandedDeal(deal.id);
+      const qtInfo = getQuotationInfo(deal);
+      if (qtInfo.isFromQuote && !quotationDetails[deal.id]) {
+        fetchQuotationDetails(deal);
+      }
+    }
   };
 
   const handleCreateDeal = async () => {
@@ -110,7 +170,6 @@ const CommissionDealsSection = () => {
     deal_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
-  // Parse notes to extract quotation info
   const getQuotationInfo = (deal: Deal) => {
     const notes = deal.notes || "";
     const qtMatch = notes.match(/Quotation (QT-[A-Z0-9]+)/);
@@ -155,7 +214,7 @@ const CommissionDealsSection = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Deal Tracker</CardTitle>
-            <CardDescription>Quotes sent from Lead Manager appear here automatically</CardDescription>
+            <CardDescription>Quotes sent from Lead Manager appear here automatically — click a row to view quote details</CardDescription>
           </div>
           <Button onClick={() => setShowCreateDeal(true)} size="sm"><Plus className="h-4 w-4 mr-2" /> New Deal</Button>
         </CardHeader>
@@ -164,10 +223,10 @@ const CommissionDealsSection = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead>Deal #</TableHead>
                   <TableHead>Buyer</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Verified</TableHead>
@@ -184,50 +243,144 @@ const CommissionDealsSection = () => {
                   </TableRow>
                 ) : deals.map((deal) => {
                   const qtInfo = getQuotationInfo(deal);
+                  const isExpanded = expandedDeal === deal.id;
+                  const qtDetails = quotationDetails[deal.id];
+
                   return (
-                    <TableRow key={deal.id}>
-                      <TableCell className="font-mono text-sm">{deal.deal_number}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{deal.buyer_name}</div>
-                        {deal.buyer_company && <div className="text-xs text-muted-foreground">{deal.buyer_company}</div>}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">{deal.product_name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs capitalize">{(deal.product_type || "").replace(/_/g, " ")}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {qtInfo.isFromQuote ? (
-                          <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs">
-                            <FileText className="h-3 w-3 mr-1" />
-                            {qtInfo.quotationNumber}
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">Manual</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[deal.deal_status] || ""}>{deal.deal_status.replace(/_/g, " ")}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {deal.admin_verified ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(deal.created_at), "dd MMM yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
-                          <Select value="" onValueChange={(v) => updateDealStatus(deal.id, v)}>
-                            <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Update" /></SelectTrigger>
-                            <SelectContent>
-                              {deal.deal_status === "lead_generated" && <SelectItem value="quote_sent">Quote Sent</SelectItem>}
-                              {["lead_generated", "quote_sent"].includes(deal.deal_status) && <SelectItem value="negotiation">Negotiation</SelectItem>}
-                              <SelectItem value="deal_won">Deal Won</SelectItem>
-                              <SelectItem value="deal_lost">Deal Lost</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow
+                        key={deal.id}
+                        className={`cursor-pointer transition-colors ${isExpanded ? "bg-muted/40" : ""}`}
+                        onClick={() => handleExpandDeal(deal)}
+                      >
+                        <TableCell className="w-8 px-2">
+                          {qtInfo.isFromQuote && (
+                            isExpanded
+                              ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                              : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{deal.deal_number}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{deal.buyer_name}</div>
+                          {deal.buyer_company && <div className="text-xs text-muted-foreground">{deal.buyer_company}</div>}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">{deal.product_name}</TableCell>
+                        <TableCell>
+                          {qtInfo.isFromQuote ? (
+                            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs">
+                              <FileText className="h-3 w-3 mr-1" />
+                              {qtInfo.quotationNumber}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">Manual</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusColors[deal.deal_status] || ""}>{deal.deal_status.replace(/_/g, " ")}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {deal.admin_verified ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(deal.created_at), "dd MMM yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          {deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
+                            <Select value="" onValueChange={(v) => updateDealStatus(deal.id, v)}>
+                              <SelectTrigger className="w-[130px] h-8 text-xs" onClick={(e) => e.stopPropagation()}><SelectValue placeholder="Update" /></SelectTrigger>
+                              <SelectContent>
+                                {deal.deal_status === "lead_generated" && <SelectItem value="quote_sent">Quote Sent</SelectItem>}
+                                {["lead_generated", "quote_sent"].includes(deal.deal_status) && <SelectItem value="negotiation">Negotiation</SelectItem>}
+                                <SelectItem value="deal_won">Deal Won</SelectItem>
+                                <SelectItem value="deal_lost">Deal Lost</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Expanded Quotation Details Row */}
+                      {isExpanded && qtInfo.isFromQuote && (
+                        <TableRow key={`${deal.id}-details`} className="bg-muted/20 hover:bg-muted/30">
+                          <TableCell colSpan={9} className="p-0">
+                            <div className="px-6 py-4 space-y-4">
+                              {loadingQuotation === deal.id ? (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                                  <Loader2 className="h-4 w-4 animate-spin" /> Loading quotation details...
+                                </div>
+                              ) : qtDetails ? (
+                                <>
+                                  {/* Quotation Header */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FileCheck className="h-5 w-5 text-indigo-600" />
+                                      <h4 className="font-semibold text-sm">Quotation: {qtDetails.quotation_number}</h4>
+                                      <Badge variant="outline" className="text-xs capitalize">{qtDetails.status}</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                      {qtDetails.sent_at && (
+                                        <span className="flex items-center gap-1">
+                                          <Calendar className="h-3.5 w-3.5" />
+                                          Sent: {format(new Date(qtDetails.sent_at), "dd MMM yyyy")}
+                                        </span>
+                                      )}
+                                      {qtDetails.valid_until && (
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="h-3.5 w-3.5" />
+                                          Valid until: {format(new Date(qtDetails.valid_until), "dd MMM yyyy")}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Quoted Items */}
+                                  {qtDetails.items && qtDetails.items.length > 0 && (
+                                    <div className="rounded-lg border border-border/60 overflow-hidden">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow className="bg-muted/50">
+                                            <TableHead className="text-xs py-2">Item</TableHead>
+                                            <TableHead className="text-xs py-2">Description</TableHead>
+                                            <TableHead className="text-xs py-2 text-center">Qty</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {qtDetails.items.map((item: any, idx: number) => (
+                                            <TableRow key={idx} className="text-sm">
+                                              <TableCell className="py-2">
+                                                <div className="flex items-center gap-2">
+                                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                                                  <span className="font-medium">{item.name || "—"}</span>
+                                                </div>
+                                              </TableCell>
+                                              <TableCell className="py-2 text-muted-foreground text-xs">
+                                                {item.description || "—"}
+                                              </TableCell>
+                                              <TableCell className="py-2 text-center">{item.quantity || 1}</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  )}
+
+                                  {/* Notes & Terms */}
+                                  {qtDetails.notes && (
+                                    <div className="text-sm">
+                                      <span className="font-medium text-muted-foreground">Notes: </span>
+                                      <span>{qtDetails.notes}</span>
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <p className="text-sm text-muted-foreground py-2">Quotation details not found.</p>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   );
                 })}
               </TableBody>
