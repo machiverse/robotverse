@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,21 @@ interface Deal {
   closing_date: string | null;
   notes: string;
   created_at: string;
+  is_virtual_quote?: boolean;
+}
+
+interface CRMQuotationRow {
+  id: string;
+  quotation_number: string;
+  buyer_name: string;
+  buyer_email: string | null;
+  buyer_phone: string | null;
+  buyer_company: string | null;
+  items: any;
+  status: string | null;
+  total_amount: number | null;
+  created_at: string;
+  notes: string | null;
 }
 
 interface QuotationDetails {
@@ -78,12 +93,90 @@ const CommissionDealsSection = () => {
     if (user) { fetchDeals(); }
   }, [user]);
 
+  const extractQuotationNumber = (value?: string | null) => {
+    if (!value) return null;
+    const match = value.match(/QT-[A-Z0-9]+/i);
+    return match ? match[0].toUpperCase() : null;
+  };
+
+  const mapQuotationStatusToDealStatus = (status?: string | null): Deal["deal_status"] => {
+    const normalized = (status || "").toLowerCase();
+    if (normalized === "sent" || normalized === "draft") return "quote_sent";
+    if (normalized === "accepted") return "deal_won";
+    if (normalized === "rejected") return "deal_lost";
+    return "negotiation";
+  };
+
+  const getItemsList = (items: unknown): any[] => {
+    if (Array.isArray(items)) return items;
+    if (typeof items === "string") {
+      try {
+        const parsed = JSON.parse(items);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const fetchDeals = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("deals" as any).select("*")
-      .eq("seller_id", user.id).order("created_at", { ascending: false });
-    if (data) setDeals(data as any);
+
+    const [{ data: dealsData }, { data: quotationsData }] = await Promise.all([
+      supabase
+        .from("deals" as any)
+        .select("*")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("crm_quotations")
+        .select("id, quotation_number, buyer_name, buyer_email, buyer_phone, buyer_company, items, status, total_amount, created_at, notes")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const realDeals = ((dealsData || []) as unknown) as Deal[];
+    const usedQuotationNumbers = new Set(
+      realDeals
+        .map((deal) => extractQuotationNumber(`${deal.notes || ""} ${deal.deal_number || ""}`))
+        .filter((value): value is string => Boolean(value))
+    );
+
+    const virtualDeals = (((quotationsData || []) as unknown) as CRMQuotationRow[])
+      .filter((quote) => !usedQuotationNumbers.has((quote.quotation_number || "").toUpperCase()))
+      .map((quote) => {
+        const items = getItemsList(quote.items);
+        const productName = items.length
+          ? items.map((item: any) => item?.name).filter(Boolean).join(", ")
+          : "Quotation Item";
+
+        return {
+          id: `quotation-${quote.id}`,
+          deal_number: quote.quotation_number,
+          buyer_name: quote.buyer_name,
+          buyer_email: quote.buyer_email || "",
+          buyer_phone: quote.buyer_phone || "",
+          buyer_company: quote.buyer_company || "",
+          product_name: productName,
+          product_type: "robot",
+          quote_value: Number(quote.total_amount || 0),
+          deal_status: mapQuotationStatusToDealStatus(quote.status),
+          commission_rate: 5,
+          commission_amount: 0,
+          admin_verified: false,
+          closing_date: null,
+          notes: `Quotation ${quote.quotation_number} sent${quote.notes ? `. ${quote.notes}` : ""}`,
+          created_at: quote.created_at,
+          is_virtual_quote: true,
+        } as Deal;
+      });
+
+    const mergedDeals = [...realDeals, ...virtualDeals].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    setDeals(mergedDeals);
     setLoading(false);
   };
 
@@ -98,7 +191,7 @@ const CommissionDealsSection = () => {
         .select("quotation_number, items, valid_until, terms_conditions, notes, status, sent_at, created_at, subtotal, total_amount, tax_rate, tax_amount, discount_amount, shipping_amount, currency, buyer_name, buyer_company, buyer_email, buyer_phone")
         .eq("seller_id", user?.id)
         .eq("quotation_number", qtInfo.quotationNumber)
-        .single();
+        .maybeSingle();
 
       if (data) {
         // Parse items if it's a string
@@ -182,11 +275,14 @@ const CommissionDealsSection = () => {
   };
 
   const getQuotationInfo = (deal: Deal) => {
-    const notes = deal.notes || "";
-    const qtMatch = notes.match(/Quotation (QT-[A-Z0-9]+)/);
+    const quotationNumber =
+      extractQuotationNumber(deal.deal_number) ||
+      extractQuotationNumber(deal.notes) ||
+      null;
+
     return {
-      quotationNumber: qtMatch ? qtMatch[1] : null,
-      isFromQuote: notes.startsWith("Quotation QT-"),
+      quotationNumber,
+      isFromQuote: Boolean(quotationNumber),
     };
   };
 
@@ -258,11 +354,11 @@ const CommissionDealsSection = () => {
                   const qtDetails = quotationDetails[deal.id];
 
                   return (
-                    <>
+                    <Fragment key={deal.id}>
                       <TableRow
                         key={deal.id}
-                        className={`cursor-pointer transition-colors ${isExpanded ? "bg-muted/40" : ""}`}
-                        onClick={() => handleExpandDeal(deal)}
+                        className={`${qtInfo.isFromQuote ? "cursor-pointer" : ""} transition-colors ${isExpanded ? "bg-muted/40" : ""}`}
+                        onClick={() => qtInfo.isFromQuote && handleExpandDeal(deal)}
                       >
                         <TableCell className="w-8 px-2">
                           {qtInfo.isFromQuote && (
@@ -297,7 +393,7 @@ const CommissionDealsSection = () => {
                           {format(new Date(deal.created_at), "dd MMM yyyy")}
                         </TableCell>
                         <TableCell>
-                          {deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
+                          {!deal.is_virtual_quote && deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
                             <Select value="" onValueChange={(v) => updateDealStatus(deal.id, v)}>
                               <SelectTrigger className="w-[130px] h-8 text-xs" onClick={(e) => e.stopPropagation()}><SelectValue placeholder="Update" /></SelectTrigger>
                               <SelectContent>
@@ -435,7 +531,7 @@ const CommissionDealsSection = () => {
                                        <span className="text-xs text-muted-foreground whitespace-pre-line">{qtDetails.terms_conditions}</span>
                                      </div>
                                    )}
-                                </>
+                    </>
                               ) : (
                                 <p className="text-sm text-muted-foreground py-2">Quotation details not found.</p>
                               )}
@@ -443,7 +539,7 @@ const CommissionDealsSection = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
