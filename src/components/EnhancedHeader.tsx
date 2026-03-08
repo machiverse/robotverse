@@ -357,6 +357,17 @@ const EnhancedHeader = () => {
 
         {/* Right Actions - Icons */}
         <div className="flex items-center space-x-1">
+          {/* Submit Request */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowRequestModal(true)}
+            className="hidden sm:flex items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden lg:inline">Submit Request</span>
+          </Button>
+
           {/* Wishlist */}
           <Link to="/watchlist" className="hidden sm:flex">
             <Button
