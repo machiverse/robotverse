@@ -136,14 +136,14 @@ const CommissionDealsSection = () => {
         .order("created_at", { ascending: false }),
     ]);
 
-    const realDeals = (dealsData || []) as Deal[];
+    const realDeals = ((dealsData || []) as unknown) as Deal[];
     const usedQuotationNumbers = new Set(
       realDeals
         .map((deal) => extractQuotationNumber(`${deal.notes || ""} ${deal.deal_number || ""}`))
         .filter((value): value is string => Boolean(value))
     );
 
-    const virtualDeals = ((quotationsData || []) as CRMQuotationRow[])
+    const virtualDeals = (((quotationsData || []) as unknown) as CRMQuotationRow[])
       .filter((quote) => !usedQuotationNumbers.has((quote.quotation_number || "").toUpperCase()))
       .map((quote) => {
         const items = getItemsList(quote.items);
