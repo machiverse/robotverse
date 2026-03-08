@@ -393,7 +393,7 @@ const CommissionDealsSection = () => {
                           {format(new Date(deal.created_at), "dd MMM yyyy")}
                         </TableCell>
                         <TableCell>
-                          {deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
+                          {!deal.is_virtual_quote && deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
                             <Select value="" onValueChange={(v) => updateDealStatus(deal.id, v)}>
                               <SelectTrigger className="w-[130px] h-8 text-xs" onClick={(e) => e.stopPropagation()}><SelectValue placeholder="Update" /></SelectTrigger>
                               <SelectContent>
