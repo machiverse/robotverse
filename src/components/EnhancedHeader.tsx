@@ -107,6 +107,7 @@ const EnhancedHeader = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [compareDropdownOpen, setCompareDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const [userProfile, setUserProfile] = useState<{ full_name?: string; avatar_url?: string } | null>(null);
   const compareDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
