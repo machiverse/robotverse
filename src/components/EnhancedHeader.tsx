@@ -315,6 +315,7 @@ const EnhancedHeader = () => {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-[hsl(var(--header-bg))] shadow-[var(--shadow-header)] backdrop-blur-md">
       {/* Top Header - Logo, Search, Icons */}
       <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-6">
