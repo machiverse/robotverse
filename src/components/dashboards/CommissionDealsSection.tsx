@@ -357,8 +357,8 @@ const CommissionDealsSection = () => {
                     <>
                       <TableRow
                         key={deal.id}
-                        className={`cursor-pointer transition-colors ${isExpanded ? "bg-muted/40" : ""}`}
-                        onClick={() => handleExpandDeal(deal)}
+                        className={`${qtInfo.isFromQuote ? "cursor-pointer" : ""} transition-colors ${isExpanded ? "bg-muted/40" : ""}`}
+                        onClick={() => qtInfo.isFromQuote && handleExpandDeal(deal)}
                       >
                         <TableCell className="w-8 px-2">
                           {qtInfo.isFromQuote && (
