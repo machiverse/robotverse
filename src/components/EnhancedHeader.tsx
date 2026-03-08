@@ -1654,6 +1654,8 @@ const EnhancedHeader = () => {
         </div>
       )}
     </header>
+    <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} />
+    </>
   );
 };
 
