@@ -34,6 +34,21 @@ interface Deal {
   closing_date: string | null;
   notes: string;
   created_at: string;
+  is_virtual_quote?: boolean;
+}
+
+interface CRMQuotationRow {
+  id: string;
+  quotation_number: string;
+  buyer_name: string;
+  buyer_email: string | null;
+  buyer_phone: string | null;
+  buyer_company: string | null;
+  items: any;
+  status: string | null;
+  total_amount: number | null;
+  created_at: string;
+  notes: string | null;
 }
 
 interface QuotationDetails {
