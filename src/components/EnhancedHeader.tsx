@@ -35,6 +35,7 @@ import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import UserProductRequestModal from "@/components/UserProductRequestModal";
 
 const menuIcons: Record<string, React.ElementType> = {
   "Robot Parts": Cpu,
