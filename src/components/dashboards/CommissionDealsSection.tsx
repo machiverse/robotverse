@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -354,7 +354,7 @@ const CommissionDealsSection = () => {
                   const qtDetails = quotationDetails[deal.id];
 
                   return (
-                    <>
+                    <Fragment key={deal.id}>
                       <TableRow
                         key={deal.id}
                         className={`${qtInfo.isFromQuote ? "cursor-pointer" : ""} transition-colors ${isExpanded ? "bg-muted/40" : ""}`}
@@ -531,7 +531,7 @@ const CommissionDealsSection = () => {
                                        <span className="text-xs text-muted-foreground whitespace-pre-line">{qtDetails.terms_conditions}</span>
                                      </div>
                                    )}
-                                </>
+                    </Fragment>
                               ) : (
                                 <p className="text-sm text-muted-foreground py-2">Quotation details not found.</p>
                               )}
