@@ -93,12 +93,90 @@ const CommissionDealsSection = () => {
     if (user) { fetchDeals(); }
   }, [user]);
 
+  const extractQuotationNumber = (value?: string | null) => {
+    if (!value) return null;
+    const match = value.match(/QT-[A-Z0-9]+/i);
+    return match ? match[0].toUpperCase() : null;
+  };
+
+  const mapQuotationStatusToDealStatus = (status?: string | null): Deal["deal_status"] => {
+    const normalized = (status || "").toLowerCase();
+    if (normalized === "sent" || normalized === "draft") return "quote_sent";
+    if (normalized === "accepted") return "deal_won";
+    if (normalized === "rejected") return "deal_lost";
+    return "negotiation";
+  };
+
+  const getItemsList = (items: unknown): any[] => {
+    if (Array.isArray(items)) return items;
+    if (typeof items === "string") {
+      try {
+        const parsed = JSON.parse(items);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const fetchDeals = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("deals" as any).select("*")
-      .eq("seller_id", user.id).order("created_at", { ascending: false });
-    if (data) setDeals(data as any);
+
+    const [{ data: dealsData }, { data: quotationsData }] = await Promise.all([
+      supabase
+        .from("deals" as any)
+        .select("*")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("crm_quotations")
+        .select("id, quotation_number, buyer_name, buyer_email, buyer_phone, buyer_company, items, status, total_amount, created_at, notes")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const realDeals = (dealsData || []) as Deal[];
+    const usedQuotationNumbers = new Set(
+      realDeals
+        .map((deal) => extractQuotationNumber(`${deal.notes || ""} ${deal.deal_number || ""}`))
+        .filter((value): value is string => Boolean(value))
+    );
+
+    const virtualDeals = ((quotationsData || []) as CRMQuotationRow[])
+      .filter((quote) => !usedQuotationNumbers.has((quote.quotation_number || "").toUpperCase()))
+      .map((quote) => {
+        const items = getItemsList(quote.items);
+        const productName = items.length
+          ? items.map((item: any) => item?.name).filter(Boolean).join(", ")
+          : "Quotation Item";
+
+        return {
+          id: `quotation-${quote.id}`,
+          deal_number: quote.quotation_number,
+          buyer_name: quote.buyer_name,
+          buyer_email: quote.buyer_email || "",
+          buyer_phone: quote.buyer_phone || "",
+          buyer_company: quote.buyer_company || "",
+          product_name: productName,
+          product_type: "robot",
+          quote_value: Number(quote.total_amount || 0),
+          deal_status: mapQuotationStatusToDealStatus(quote.status),
+          commission_rate: 5,
+          commission_amount: 0,
+          admin_verified: false,
+          closing_date: null,
+          notes: `Quotation ${quote.quotation_number} sent${quote.notes ? `. ${quote.notes}` : ""}`,
+          created_at: quote.created_at,
+          is_virtual_quote: true,
+        } as Deal;
+      });
+
+    const mergedDeals = [...realDeals, ...virtualDeals].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    setDeals(mergedDeals);
     setLoading(false);
   };
 
