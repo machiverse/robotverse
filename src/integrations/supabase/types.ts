@@ -2588,6 +2588,59 @@ export type Database = {
         }
         Relationships: []
       }
+      request_assignments: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          id: string
+          product_details: string | null
+          quotation_amount: number | null
+          quotation_details: string | null
+          request_id: string
+          response_at: string | null
+          seller_id: string
+          seller_notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          product_details?: string | null
+          quotation_amount?: number | null
+          quotation_details?: string | null
+          request_id: string
+          response_at?: string | null
+          seller_id: string
+          seller_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          product_details?: string | null
+          quotation_amount?: number | null
+          quotation_details?: string | null
+          request_id?: string
+          response_at?: string | null
+          seller_id?: string
+          seller_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_assignments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "user_product_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           admin_notes: string | null
@@ -3925,6 +3978,63 @@ export type Database = {
           interaction_type?: string
           target_id?: string
           target_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_product_requests: {
+        Row: {
+          admin_notes: string | null
+          brand: string | null
+          budget: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          location: string | null
+          product_name: string
+          product_type: string
+          quantity: number | null
+          specifications: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          brand?: string | null
+          budget?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          product_name: string
+          product_type: string
+          quantity?: number | null
+          specifications?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          brand?: string | null
+          budget?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          product_name?: string
+          product_type?: string
+          quantity?: number | null
+          specifications?: string | null
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

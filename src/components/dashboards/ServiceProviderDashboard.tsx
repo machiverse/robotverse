@@ -24,7 +24,8 @@ import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { StarRating } from '@/components/reviews/StarRating';
 import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
-import { FileText } from 'lucide-react';
+import SellerAssignedRequests from '@/components/SellerAssignedRequests';
+import { FileText, FileQuestion } from 'lucide-react';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
@@ -305,15 +306,34 @@ const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-7">
+            <TabsList className="grid grid-cols-8">
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
               <TabsTrigger value="leads">Lead Manager</TabsTrigger>
+              <TabsTrigger value="user-requests">User Requests</TabsTrigger>
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
               <TabsTrigger value="reviews">My Reviews</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
             </TabsList>
+
+            {/* User Requests Tab */}
+            <TabsContent value="user-requests">
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileQuestion className="w-5 h-5" />
+                    Assigned User Requests
+                  </CardTitle>
+                  <CardDescription>
+                    User requests assigned to you. Submit quotations and solutions.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SellerAssignedRequests categoryFilter="service" />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             {/* Quote Requests Tab */}
             <TabsContent value="quote-requests">

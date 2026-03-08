@@ -35,6 +35,7 @@ import { NAVIGATION_CONFIG } from "@/constants/navigationMenus";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import UserProductRequestModal from "@/components/UserProductRequestModal";
 
 const menuIcons: Record<string, React.ElementType> = {
   "Robot Parts": Cpu,
@@ -106,6 +107,7 @@ const EnhancedHeader = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [compareDropdownOpen, setCompareDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const [userProfile, setUserProfile] = useState<{ full_name?: string; avatar_url?: string } | null>(null);
   const compareDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
@@ -313,6 +315,7 @@ const EnhancedHeader = () => {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-[hsl(var(--header-bg))] shadow-[var(--shadow-header)] backdrop-blur-md">
       {/* Top Header - Logo, Search, Icons */}
       <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-6">
@@ -355,6 +358,17 @@ const EnhancedHeader = () => {
 
         {/* Right Actions - Icons */}
         <div className="flex items-center space-x-1">
+          {/* Submit Request */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowRequestModal(true)}
+            className="hidden sm:flex items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden lg:inline">Submit Request</span>
+          </Button>
+
           {/* Wishlist */}
           <Link to="/watchlist" className="hidden sm:flex">
             <Button
@@ -1641,6 +1655,8 @@ const EnhancedHeader = () => {
         </div>
       )}
     </header>
+    <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} />
+    </>
   );
 };
 
