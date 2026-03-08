@@ -45,6 +45,17 @@ interface QuotationDetails {
   status: string | null;
   sent_at: string | null;
   created_at: string;
+  subtotal: number;
+  total_amount: number;
+  tax_rate: number | null;
+  tax_amount: number | null;
+  discount_amount: number | null;
+  shipping_amount: number | null;
+  currency: string | null;
+  buyer_name: string;
+  buyer_company: string | null;
+  buyer_email: string | null;
+  buyer_phone: string | null;
 }
 
 const CommissionDealsSection = () => {
@@ -84,7 +95,7 @@ const CommissionDealsSection = () => {
     try {
       const { data } = await supabase
         .from("crm_quotations")
-        .select("quotation_number, items, valid_until, terms_conditions, notes, status, sent_at, created_at")
+        .select("quotation_number, items, valid_until, terms_conditions, notes, status, sent_at, created_at, subtotal, total_amount, tax_rate, tax_amount, discount_amount, shipping_amount, currency, buyer_name, buyer_company, buyer_email, buyer_phone")
         .eq("seller_id", user?.id)
         .eq("quotation_number", qtInfo.quotationNumber)
         .single();
