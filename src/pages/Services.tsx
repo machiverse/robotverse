@@ -29,6 +29,7 @@ import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
+import UserProductRequestModal from "@/components/UserProductRequestModal";
 
 interface Service {
   id: string;
