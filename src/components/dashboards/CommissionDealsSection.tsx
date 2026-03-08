@@ -531,7 +531,7 @@ const CommissionDealsSection = () => {
                                        <span className="text-xs text-muted-foreground whitespace-pre-line">{qtDetails.terms_conditions}</span>
                                      </div>
                                    )}
-                    </Fragment>
+                    </>
                               ) : (
                                 <p className="text-sm text-muted-foreground py-2">Quotation details not found.</p>
                               )}
@@ -539,7 +539,7 @@ const CommissionDealsSection = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
