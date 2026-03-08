@@ -346,43 +346,95 @@ const CommissionDealsSection = () => {
                                   </div>
 
                                   {/* Quoted Items */}
-                                  {qtDetails.items && qtDetails.items.length > 0 && (
-                                    <div className="rounded-lg border border-border/60 overflow-hidden">
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow className="bg-muted/50">
-                                            <TableHead className="text-xs py-2">Item</TableHead>
-                                            <TableHead className="text-xs py-2">Description</TableHead>
-                                            <TableHead className="text-xs py-2 text-center">Qty</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {qtDetails.items.map((item: any, idx: number) => (
-                                            <TableRow key={idx} className="text-sm">
-                                              <TableCell className="py-2">
-                                                <div className="flex items-center gap-2">
-                                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                                                  <span className="font-medium">{item.name || "—"}</span>
-                                                </div>
-                                              </TableCell>
-                                              <TableCell className="py-2 text-muted-foreground text-xs">
-                                                {item.description || "—"}
-                                              </TableCell>
-                                              <TableCell className="py-2 text-center">{item.quantity || 1}</TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                  )}
+                                 {qtDetails.items && qtDetails.items.length > 0 && (
+                                     <div className="rounded-lg border border-border/60 overflow-hidden">
+                                       <Table>
+                                         <TableHeader>
+                                           <TableRow className="bg-muted/50">
+                                             <TableHead className="text-xs py-2">Item</TableHead>
+                                             <TableHead className="text-xs py-2">Description</TableHead>
+                                             <TableHead className="text-xs py-2 text-center">Qty</TableHead>
+                                             <TableHead className="text-xs py-2 text-right">Unit Price</TableHead>
+                                             <TableHead className="text-xs py-2 text-right">Total</TableHead>
+                                           </TableRow>
+                                         </TableHeader>
+                                         <TableBody>
+                                           {qtDetails.items.map((item: any, idx: number) => (
+                                             <TableRow key={idx} className="text-sm">
+                                               <TableCell className="py-2">
+                                                 <div className="flex items-center gap-2">
+                                                   <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                                                   <span className="font-medium">{item.name || "—"}</span>
+                                                 </div>
+                                               </TableCell>
+                                               <TableCell className="py-2 text-muted-foreground text-xs">
+                                                 {item.description || "—"}
+                                               </TableCell>
+                                               <TableCell className="py-2 text-center">{item.quantity || 1}</TableCell>
+                                               <TableCell className="py-2 text-right font-mono text-xs">
+                                                 {item.unitPrice != null || item.unit_price != null
+                                                   ? `₹${Number(item.unitPrice || item.unit_price || 0).toLocaleString()}`
+                                                   : "—"}
+                                               </TableCell>
+                                               <TableCell className="py-2 text-right font-mono text-xs font-medium">
+                                                 {item.total != null
+                                                   ? `₹${Number(item.total).toLocaleString()}`
+                                                   : item.unitPrice || item.unit_price
+                                                     ? `₹${(Number(item.unitPrice || item.unit_price || 0) * Number(item.quantity || 1)).toLocaleString()}`
+                                                     : "—"}
+                                               </TableCell>
+                                             </TableRow>
+                                           ))}
+                                         </TableBody>
+                                       </Table>
+                                     </div>
+                                   )}
 
-                                  {/* Notes & Terms */}
-                                  {qtDetails.notes && (
-                                    <div className="text-sm">
-                                      <span className="font-medium text-muted-foreground">Notes: </span>
-                                      <span>{qtDetails.notes}</span>
-                                    </div>
-                                  )}
+                                   {/* Financial Summary */}
+                                   <div className="flex justify-end">
+                                     <div className="w-72 space-y-1.5 text-sm rounded-lg border border-border/60 p-3">
+                                       <div className="flex justify-between text-muted-foreground">
+                                         <span>Subtotal</span>
+                                         <span className="font-mono">₹{Number(qtDetails.subtotal || 0).toLocaleString()}</span>
+                                       </div>
+                                       {(qtDetails.discount_amount ?? 0) > 0 && (
+                                         <div className="flex justify-between text-muted-foreground">
+                                           <span>Discount</span>
+                                           <span className="font-mono text-green-600">-₹{Number(qtDetails.discount_amount).toLocaleString()}</span>
+                                         </div>
+                                       )}
+                                       {(qtDetails.tax_amount ?? 0) > 0 && (
+                                         <div className="flex justify-between text-muted-foreground">
+                                           <span>Tax {qtDetails.tax_rate ? `(${qtDetails.tax_rate}%)` : ""}</span>
+                                           <span className="font-mono">₹{Number(qtDetails.tax_amount).toLocaleString()}</span>
+                                         </div>
+                                       )}
+                                       {(qtDetails.shipping_amount ?? 0) > 0 && (
+                                         <div className="flex justify-between text-muted-foreground">
+                                           <span>Shipping</span>
+                                           <span className="font-mono">₹{Number(qtDetails.shipping_amount).toLocaleString()}</span>
+                                         </div>
+                                       )}
+                                       <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
+                                         <span>Total</span>
+                                         <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
+                                       </div>
+                                     </div>
+                                   </div>
+
+                                   {/* Notes & Terms */}
+                                   {qtDetails.notes && (
+                                     <div className="text-sm">
+                                       <span className="font-medium text-muted-foreground">Notes: </span>
+                                       <span>{qtDetails.notes}</span>
+                                     </div>
+                                   )}
+                                   {qtDetails.terms_conditions && (
+                                     <div className="text-sm">
+                                       <span className="font-medium text-muted-foreground">Terms & Conditions: </span>
+                                       <span className="text-xs text-muted-foreground whitespace-pre-line">{qtDetails.terms_conditions}</span>
+                                     </div>
+                                   )}
                                 </>
                               ) : (
                                 <p className="text-sm text-muted-foreground py-2">Quotation details not found.</p>
