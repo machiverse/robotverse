@@ -191,7 +191,7 @@ const CommissionDealsSection = () => {
         .select("quotation_number, items, valid_until, terms_conditions, notes, status, sent_at, created_at, subtotal, total_amount, tax_rate, tax_amount, discount_amount, shipping_amount, currency, buyer_name, buyer_company, buyer_email, buyer_phone")
         .eq("seller_id", user?.id)
         .eq("quotation_number", qtInfo.quotationNumber)
-        .single();
+        .maybeSingle();
 
       if (data) {
         // Parse items if it's a string
