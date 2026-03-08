@@ -275,11 +275,14 @@ const CommissionDealsSection = () => {
   };
 
   const getQuotationInfo = (deal: Deal) => {
-    const notes = deal.notes || "";
-    const qtMatch = notes.match(/Quotation (QT-[A-Z0-9]+)/);
+    const quotationNumber =
+      extractQuotationNumber(deal.deal_number) ||
+      extractQuotationNumber(deal.notes) ||
+      null;
+
     return {
-      quotationNumber: qtMatch ? qtMatch[1] : null,
-      isFromQuote: notes.startsWith("Quotation QT-"),
+      quotationNumber,
+      isFromQuote: Boolean(quotationNumber),
     };
   };
 
