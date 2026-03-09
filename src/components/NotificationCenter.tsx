@@ -52,6 +52,54 @@ interface GeneralNotification {
   created_at: string;
 }
 
+const getNotificationLabel = (type: string): string => {
+  switch (type) {
+    case "robot_view": case "robots_view": return "Robot View";
+    case "robot_inquiry": return "Robot Inquiry";
+    case "robot_quote": return "Robot Quote";
+    case "spare_part_view": case "spare_parts_view": return "Spare Part View";
+    case "spare_part_inquiry": return "Parts Inquiry";
+    case "spare_part_quote": return "Parts Quote";
+    case "service_view": case "services_view": return "Service View";
+    case "service_inquiry": return "Service Inquiry";
+    case "service_quote": return "Service Quote";
+    case "logistics_view": return "Logistics View";
+    case "logistics_inquiry": return "Logistics Inquiry";
+    case "logistics_quote": return "Logistics Quote";
+    case "financing_view": return "Finance View";
+    case "finance_inquiry": return "Finance Inquiry";
+    case "finance_application": return "Finance Application";
+    case "robobook_like": case "post_like": return "Like";
+    case "robobook_comment": case "post_comment": return "Comment";
+    case "product_view": return "Product View";
+    case "quote_received": return "Quote Received";
+    case "quote_request": return "Quote Request";
+    case "quote_accepted": return "Quote Accepted";
+    case "quote_rejected": return "Quote Rejected";
+    case "lead_new": return "New Lead";
+    case "lead_update": return "Lead Update";
+    case "buyer_access_request": return "Access Request";
+    case "buyer_access_approved": return "Access Approved";
+    case "user_request": return "User Request";
+    default: return "Notification";
+  }
+};
+
+const getNotificationLabelColor = (type: string): string => {
+  if (type.includes("robot")) return "bg-blue-500/10 text-blue-600";
+  if (type.includes("spare") || type.includes("part")) return "bg-orange-500/10 text-orange-600";
+  if (type.includes("service")) return "bg-purple-500/10 text-purple-600";
+  if (type.includes("logistics")) return "bg-green-500/10 text-green-600";
+  if (type.includes("financ")) return "bg-yellow-500/10 text-yellow-700";
+  if (type.includes("like")) return "bg-red-500/10 text-red-600";
+  if (type.includes("comment")) return "bg-cyan-500/10 text-cyan-600";
+  if (type.includes("quote_accepted")) return "bg-green-500/10 text-green-600";
+  if (type.includes("quote_rejected")) return "bg-red-500/10 text-red-600";
+  if (type.includes("quote")) return "bg-indigo-500/10 text-indigo-600";
+  if (type.includes("lead")) return "bg-emerald-500/10 text-emerald-600";
+  return "bg-muted text-muted-foreground";
+};
+
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case "robot_view":
