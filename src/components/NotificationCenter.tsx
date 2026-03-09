@@ -709,7 +709,7 @@ export const NotificationCenter = () => {
                     <div
                       key={notification.id}
                       onClick={() => handleGeneralNotificationClick(notification)}
-                      className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                      className={`p-4 cursor-pointer hover:bg-accent transition-colors group ${
                         !notification.is_read ? "bg-primary/5" : ""
                       }`}
                     >
@@ -727,9 +727,19 @@ export const NotificationCenter = () => {
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{notification.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(notification.created_at), "MMM dd, HH:mm")}
-                          </p>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${getNotificationLabelColor(notification.notification_type)}`}>
+                                {getNotificationLabel(notification.notification_type)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(notification.created_at), "MMM dd, HH:mm")}
+                              </span>
+                            </div>
+                            <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                              View →
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
