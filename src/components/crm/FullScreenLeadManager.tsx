@@ -48,11 +48,12 @@ import SellerAssignedRequests from "@/components/SellerAssignedRequests";
 import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "list" | "pipeline";
-type LeadTab = "views" | "quotes" | "leads";
+type LeadTab = "views" | "quotes" | "leads" | "user_requests";
 
 const TAB_VIEWS: LeadTab = "views";
 const TAB_QUOTES: LeadTab = "quotes";
 const TAB_LEADS: LeadTab = "leads";
+const TAB_USER_REQUESTS: LeadTab = "user_requests";
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
   new: {
