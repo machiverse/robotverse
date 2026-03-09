@@ -459,6 +459,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
                       {categoryFilteredLeads.length}
                     </Badge>
                   </TabsTrigger>
+                  <TabsTrigger value={TAB_USER_REQUESTS} className="flex items-center gap-2 px-4">
+                    <FileQuestion className="h-4 w-4" />
+                    <span>User Requests</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 {activeTab === TAB_LEADS && (
