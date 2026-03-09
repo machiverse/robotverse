@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileQuestion,
@@ -44,14 +44,16 @@ import LeadDetailView from "./LeadDetailView";
 import CreateQuotationModal from "./CreateQuotationModal";
 
 import { format, formatDistanceToNow } from "date-fns";
+import SellerAssignedRequests from "@/components/SellerAssignedRequests";
 import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "list" | "pipeline";
-type LeadTab = "views" | "quotes" | "leads";
+type LeadTab = "views" | "quotes" | "leads" | "user_requests";
 
 const TAB_VIEWS: LeadTab = "views";
 const TAB_QUOTES: LeadTab = "quotes";
 const TAB_LEADS: LeadTab = "leads";
+const TAB_USER_REQUESTS: LeadTab = "user_requests";
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
   new: {
@@ -457,6 +459,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
                       {categoryFilteredLeads.length}
                     </Badge>
                   </TabsTrigger>
+                  <TabsTrigger value={TAB_USER_REQUESTS} className="flex items-center gap-2 px-4">
+                    <FileQuestion className="h-4 w-4" />
+                    <span>User Requests</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 {activeTab === TAB_LEADS && (
@@ -529,6 +535,18 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
                   itemType={categoryFilter === "robot" ? "robot" : categoryFilter === "spare_part" ? "spare_part" : categoryFilter === "service" ? "service" : undefined}
                   isCommissionSeller={isCommissionSeller}
                 />
+              </TabsContent>
+
+              <TabsContent value={TAB_USER_REQUESTS} className="mt-0 h-full">
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-muted bg-muted/30 p-4">
+                    <h3 className="text-sm font-medium mb-1">Assigned User Requests</h3>
+                    <p className="text-xs text-muted-foreground">
+                      User requests assigned to you by the admin. Review details and submit quotations or solutions.
+                    </p>
+                  </div>
+                  <SellerAssignedRequests categoryFilter={categoryFilter} />
+                </div>
               </TabsContent>
 
               <TabsContent value={TAB_LEADS} className="mt-0 h-full">

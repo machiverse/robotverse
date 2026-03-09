@@ -27,6 +27,8 @@ import WatchlistSection from "@/components/WatchlistSection";
 import CRMLeadsView from "@/components/crm/CRMLeadsView";
 import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
 import CommissionDealsSection from "@/components/dashboards/CommissionDealsSection";
+import SellerAssignedRequests from "@/components/SellerAssignedRequests";
+import { FileQuestion } from "lucide-react";
 
 interface CommissionSellerDashboardProps {
   userProfile?: any;
@@ -183,12 +185,15 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 h-12">
+        <TabsList className="grid w-full grid-cols-7 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" /> Inventory
           </TabsTrigger>
           <TabsTrigger value="leads" className="flex items-center gap-2">
             <Users className="w-4 h-4" /> Lead Manager
+          </TabsTrigger>
+          <TabsTrigger value="user-requests" className="flex items-center gap-2">
+            <FileQuestion className="w-4 h-4" /> User Requests
           </TabsTrigger>
           <TabsTrigger value="deals" className="flex items-center gap-2">
             <Handshake className="w-4 h-4" /> Deals
@@ -299,6 +304,23 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
             </CardHeader>
             <CardContent className="p-0">
               <CRMLeadsView categoryFilter="robot" isCommissionSeller={true} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* User Requests Tab */}
+        <TabsContent value="user-requests" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileQuestion className="w-5 h-5" /> Assigned User Requests
+              </CardTitle>
+              <CardDescription>
+                User requests assigned to you by the admin. Submit quotations and solutions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SellerAssignedRequests categoryFilter="robot" />
             </CardContent>
           </Card>
         </TabsContent>
