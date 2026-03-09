@@ -27,6 +27,8 @@ import WatchlistSection from "@/components/WatchlistSection";
 import CRMLeadsView from "@/components/crm/CRMLeadsView";
 import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
 import CommissionDealsSection from "@/components/dashboards/CommissionDealsSection";
+import SellerAssignedRequests from "@/components/SellerAssignedRequests";
+import { FileQuestion } from "lucide-react";
 
 interface CommissionSellerDashboardProps {
   userProfile?: any;
