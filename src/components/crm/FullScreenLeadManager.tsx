@@ -44,6 +44,7 @@ import LeadDetailView from "./LeadDetailView";
 import CreateQuotationModal from "./CreateQuotationModal";
 
 import { format, formatDistanceToNow } from "date-fns";
+import SellerAssignedRequests from "@/components/SellerAssignedRequests";
 import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "list" | "pipeline";
