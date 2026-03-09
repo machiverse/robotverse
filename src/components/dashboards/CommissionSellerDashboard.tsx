@@ -308,6 +308,23 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           </Card>
         </TabsContent>
 
+        {/* User Requests Tab */}
+        <TabsContent value="user-requests" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileQuestion className="w-5 h-5" /> Assigned User Requests
+              </CardTitle>
+              <CardDescription>
+                User requests assigned to you by the admin. Submit quotations and solutions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SellerAssignedRequests categoryFilter="robot" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Deals Tab */}
         <TabsContent value="deals" className="mt-6">
           <CommissionDealsSection />
