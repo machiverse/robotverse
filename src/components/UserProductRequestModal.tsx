@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProductRequests } from '@/hooks/useUserProductRequests';
+import { supabase } from '@/integrations/supabase/client';
 import { Bot, Package, Wrench, Send, Loader2, Search, AlertCircle } from 'lucide-react';
 
 interface UserProductRequestModalProps {
@@ -36,10 +37,32 @@ const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: Use
     quantity: '1',
     budget: '',
     location: '',
-    contact_name: user?.user_metadata?.full_name || '',
-    contact_email: user?.email || '',
+    contact_name: '',
+    contact_email: '',
     contact_phone: '',
   });
+
+  // Auto-fill from logged-in user's profile when modal opens
+  useEffect(() => {
+    if (open && user) {
+      const fetchProfile = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('full_name, email, mobile_number, phone, location, company_name')
+          .eq('user_id', user.id)
+          .single();
+
+        setForm(prev => ({
+          ...prev,
+          contact_name: data?.full_name || user.user_metadata?.full_name || prev.contact_name || '',
+          contact_email: data?.email || user.email || prev.contact_email || '',
+          contact_phone: data?.mobile_number || data?.phone || prev.contact_phone || '',
+          location: data?.location || prev.location || '',
+        }));
+      };
+      fetchProfile();
+    }
+  }, [open, user]);
 
   const handleChange = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -58,18 +81,16 @@ const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: Use
     
     if (result) {
       onOpenChange(false);
-      setForm({
+      // Reset product fields but keep contact details (auto-filled)
+      setForm(prev => ({
+        ...prev,
         product_type: defaultProductType || '',
         product_name: '',
         brand: '',
         specifications: '',
         quantity: '1',
         budget: '',
-        location: '',
-        contact_name: user?.user_metadata?.full_name || '',
-        contact_email: user?.email || '',
-        contact_phone: '',
-      });
+      }));
     }
   };
 
