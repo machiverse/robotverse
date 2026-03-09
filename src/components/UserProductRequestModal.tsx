@@ -81,18 +81,16 @@ const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: Use
     
     if (result) {
       onOpenChange(false);
-      setForm({
+      // Reset product fields but keep contact details (auto-filled)
+      setForm(prev => ({
+        ...prev,
         product_type: defaultProductType || '',
         product_name: '',
         brand: '',
         specifications: '',
         quantity: '1',
         budget: '',
-        location: '',
-        contact_name: user?.user_metadata?.full_name || '',
-        contact_email: user?.email || '',
-        contact_phone: '',
-      });
+      }));
     }
   };
 
