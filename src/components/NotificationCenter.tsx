@@ -391,50 +391,94 @@ export const NotificationCenter = () => {
 
       setOpen(false);
 
-      // Navigate based on notification type
-      if (notification.reference_type && notification.reference_id) {
-        switch (notification.reference_type) {
+      // Navigate based on notification type and reference
+      const navType = notification.reference_type || notification.notification_type;
+      const refId = notification.reference_id;
+
+      if (refId) {
+        switch (navType) {
           case "robot":
-            navigate(`/robots/${notification.reference_id}`);
+          case "robot_view":
+          case "robot_inquiry":
+          case "robot_quote":
+            navigate(`/robots/${refId}`);
             break;
           case "spare_part":
-            navigate(`/spare-parts/${notification.reference_id}`);
+          case "spare_part_view":
+          case "spare_part_inquiry":
+          case "spare_part_quote":
+            navigate(`/parts/${refId}`);
             break;
           case "service":
-            navigate(`/services/${notification.reference_id}`);
+          case "service_view":
+          case "service_inquiry":
+          case "service_quote":
+            navigate(`/services/${refId}`);
             break;
           case "logistics":
-            navigate(`/logistics/${notification.reference_id}`);
+          case "logistics_view":
+          case "logistics_inquiry":
+          case "logistics_quote":
+            navigate(`/logistics/${refId}`);
             break;
           case "financing":
-            navigate(`/financing/${notification.reference_id}`);
+          case "financing_view":
+          case "finance_inquiry":
+          case "finance_application":
+            navigate(`/financing/${refId}`);
             break;
           case "community_post":
           case "robobook":
-            navigate(`/robobook/${notification.reference_id}`);
+          case "robobook_like":
+          case "robobook_comment":
+          case "post_like":
+          case "post_comment":
+            navigate(`/robobook/${refId}`);
             break;
           case "lead":
+          case "lead_new":
+          case "lead_update":
             navigate(`/crm`);
             break;
           case "buyer_access_request":
+          case "buyer_access_approved":
             navigate(`/dashboard`);
             break;
           case "quotation":
-            // Navigate to buyer's quotations tab
-            navigate(`/dashboard?tab=quotations`);
+          case "quote_received":
+            navigate(`/dashboard/quotations`);
+            break;
+          case "user_request":
+            navigate(`/crm`);
             break;
           default:
             navigate(`/dashboard`);
         }
-      } else if (notification.notification_type === 'quote_request') {
-        // Navigate to dashboard for quote requests
-        navigate('/dashboard');
-      } else if (notification.notification_type === 'quote_received') {
-        // Navigate to buyer's received quotations page
-        navigate('/dashboard/quotations');
-      } else if (notification.notification_type === 'quote_accepted' || notification.notification_type === 'quote_rejected') {
-        // Navigate to seller's CRM to see response
-        navigate('/crm');
+      } else {
+        // Fallback navigation based on notification_type only
+        switch (notification.notification_type) {
+          case "quote_request":
+            navigate("/dashboard");
+            break;
+          case "quote_received":
+            navigate("/dashboard/quotations");
+            break;
+          case "quote_accepted":
+          case "quote_rejected":
+            navigate("/crm");
+            break;
+          case "lead_new":
+          case "lead_update":
+          case "user_request":
+            navigate("/crm");
+            break;
+          case "buyer_access_request":
+          case "buyer_access_approved":
+            navigate("/dashboard");
+            break;
+          default:
+            navigate("/dashboard");
+        }
       }
     } catch (error) {
       console.error("Error handling notification click:", error);
