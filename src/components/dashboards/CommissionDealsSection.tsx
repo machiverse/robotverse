@@ -265,6 +265,9 @@ const CommissionDealsSection = () => {
   const totalDeals = deals.length;
   const dealsWon = deals.filter(d => d.deal_status === "deal_won").length;
   const activeQuotes = deals.filter(d => ["quote_sent", "negotiation"].includes(d.deal_status)).length;
+  const totalPlatformCommission = deals
+    .filter(d => d.deal_status === "deal_won")
+    .reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
 
   const statusColors: Record<string, string> = {
     lead_generated: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -298,7 +301,7 @@ const CommissionDealsSection = () => {
           { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
           { title: "Active Quotes", value: activeQuotes, icon: Target, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
           { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" },
-          { title: "Deals Lost", value: deals.filter(d => d.deal_status === "deal_lost").length, icon: Clock, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
+          { title: "Platform Commission (5%)", value: `₹${totalPlatformCommission.toLocaleString("en-IN")}`, icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
         ].map((stat) => (
           <Card key={stat.title} className="border-muted/60 shadow-sm">
             <CardContent className="p-4">
@@ -334,17 +337,19 @@ const CommissionDealsSection = () => {
                   <TableHead>Deal #</TableHead>
                   <TableHead>Buyer</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
+                   <TableHead className="text-right">Deal Value</TableHead>
+                   <TableHead className="text-right">Commission (5%)</TableHead>
+                   <TableHead>Source</TableHead>
+                   <TableHead>Status</TableHead>
+                   <TableHead>Verified</TableHead>
+                   <TableHead>Date</TableHead>
+                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {deals.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       No deals yet. Send a quotation from Lead Manager or click "New Deal" to create one.
                     </TableCell>
                   </TableRow>
@@ -373,6 +378,12 @@ const CommissionDealsSection = () => {
                           {deal.buyer_company && <div className="text-xs text-muted-foreground">{deal.buyer_company}</div>}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">{deal.product_name}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">
+                          {deal.quote_value > 0 ? `₹${Number(deal.quote_value).toLocaleString("en-IN")}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm text-emerald-600 font-medium">
+                          {deal.quote_value > 0 ? `₹${(deal.quote_value * 0.05).toLocaleString("en-IN")}` : "—"}
+                        </TableCell>
                         <TableCell>
                           {qtInfo.isFromQuote ? (
                             <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs">
@@ -410,7 +421,7 @@ const CommissionDealsSection = () => {
                       {/* Expanded Quotation Details Row */}
                       {isExpanded && qtInfo.isFromQuote && (
                         <TableRow key={`${deal.id}-details`} className="bg-muted/20 hover:bg-muted/30">
-                          <TableCell colSpan={9} className="p-0">
+                          <TableCell colSpan={11} className="p-0">
                             <div className="px-6 py-4 space-y-4">
                               {loadingQuotation === deal.id ? (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
@@ -511,10 +522,14 @@ const CommissionDealsSection = () => {
                                            <span className="font-mono">₹{Number(qtDetails.shipping_amount).toLocaleString()}</span>
                                          </div>
                                        )}
-                                       <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
-                                         <span>Total</span>
-                                         <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
-                                       </div>
+                                        <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
+                                          <span>Total</span>
+                                          <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-emerald-600 font-medium border-t border-border/60 pt-1.5">
+                                          <span>Platform Commission (5%)</span>
+                                          <span className="font-mono">₹{(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()}</span>
+                                        </div>
                                      </div>
                                    </div>
 
