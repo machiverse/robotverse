@@ -403,18 +403,58 @@ const CommissionDealsSection = () => {
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(deal.created_at), "dd MMM yyyy")}
                         </TableCell>
-                        <TableCell>
-                          {!deal.is_virtual_quote && deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
-                            <Select value="" onValueChange={(v) => updateDealStatus(deal.id, v)}>
-                              <SelectTrigger className="w-[130px] h-8 text-xs" onClick={(e) => e.stopPropagation()}><SelectValue placeholder="Update" /></SelectTrigger>
-                              <SelectContent>
-                                {deal.deal_status === "lead_generated" && <SelectItem value="quote_sent">Quote Sent</SelectItem>}
-                                {["lead_generated", "quote_sent"].includes(deal.deal_status) && <SelectItem value="negotiation">Negotiation</SelectItem>}
-                                <SelectItem value="deal_won">Deal Won</SelectItem>
-                                <SelectItem value="deal_lost">Deal Lost</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-2">
+                            {/* Status update for active deals */}
+                            {deal.deal_status !== "deal_won" && deal.deal_status !== "deal_lost" && (
+                              <Select value="" onValueChange={(v) => {
+                                if (deal.is_virtual_quote) {
+                                  toast({ title: "Info", description: "Update the quotation status in Lead Manager to change this deal." });
+                                } else {
+                                  updateDealStatus(deal.id, v);
+                                }
+                              }}>
+                                <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Update Status" /></SelectTrigger>
+                                <SelectContent>
+                                  {deal.deal_status === "lead_generated" && <SelectItem value="quote_sent">Quote Sent</SelectItem>}
+                                  {["lead_generated", "quote_sent"].includes(deal.deal_status) && <SelectItem value="negotiation">Negotiation</SelectItem>}
+                                  <SelectItem value="deal_won">Deal Won</SelectItem>
+                                  <SelectItem value="deal_lost">Deal Lost</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+
+                            {/* Pay Commission button for won deals */}
+                            {deal.deal_status === "deal_won" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                                onClick={() => {
+                                  const commission = deal.quote_value > 0 ? (deal.quote_value * 0.05) : 0;
+                                  toast({
+                                    title: "Pay Commission",
+                                    description: `Commission of ₹${commission.toLocaleString("en-IN")} for Deal ${deal.deal_number} will be processed via Razorpay.`,
+                                  });
+                                }}
+                              >
+                                <CreditCard className="h-3.5 w-3.5" />
+                                Pay ₹{(deal.quote_value * 0.05).toLocaleString("en-IN")}
+                              </Button>
+                            )}
+
+                            {/* Reopen for lost deals */}
+                            {deal.deal_status === "deal_lost" && !deal.is_virtual_quote && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1 text-xs"
+                                onClick={() => updateDealStatus(deal.id, "negotiation")}
+                              >
+                                Reopen
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
 
