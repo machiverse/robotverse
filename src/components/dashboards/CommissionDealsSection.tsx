@@ -337,11 +337,13 @@ const CommissionDealsSection = () => {
                   <TableHead>Deal #</TableHead>
                   <TableHead>Buyer</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
+                   <TableHead className="text-right">Deal Value</TableHead>
+                   <TableHead className="text-right">Commission (5%)</TableHead>
+                   <TableHead>Source</TableHead>
+                   <TableHead>Status</TableHead>
+                   <TableHead>Verified</TableHead>
+                   <TableHead>Date</TableHead>
+                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
