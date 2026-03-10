@@ -421,7 +421,7 @@ const CommissionDealsSection = () => {
                       {/* Expanded Quotation Details Row */}
                       {isExpanded && qtInfo.isFromQuote && (
                         <TableRow key={`${deal.id}-details`} className="bg-muted/20 hover:bg-muted/30">
-                          <TableCell colSpan={9} className="p-0">
+                          <TableCell colSpan={11} className="p-0">
                             <div className="px-6 py-4 space-y-4">
                               {loadingQuotation === deal.id ? (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
