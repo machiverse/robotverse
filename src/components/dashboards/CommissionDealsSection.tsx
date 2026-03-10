@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Plus, CheckCircle, Clock, Loader2,
   Target, Handshake, FileText, ChevronDown, ChevronUp,
-  Package, Calendar, FileCheck
+  Package, Calendar, FileCheck, IndianRupee, CreditCard
 } from "lucide-react";
 import { format } from "date-fns";
 
