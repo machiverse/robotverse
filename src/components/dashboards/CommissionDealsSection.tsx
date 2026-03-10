@@ -349,7 +349,7 @@ const CommissionDealsSection = () => {
               <TableBody>
                 {deals.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       No deals yet. Send a quotation from Lead Manager or click "New Deal" to create one.
                     </TableCell>
                   </TableRow>
