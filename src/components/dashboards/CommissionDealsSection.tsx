@@ -301,7 +301,7 @@ const CommissionDealsSection = () => {
           { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
           { title: "Active Quotes", value: activeQuotes, icon: Target, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
           { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" },
-          { title: "Deals Lost", value: deals.filter(d => d.deal_status === "deal_lost").length, icon: Clock, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
+          { title: "Platform Commission (5%)", value: `₹${totalPlatformCommission.toLocaleString("en-IN")}`, icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
         ].map((stat) => (
           <Card key={stat.title} className="border-muted/60 shadow-sm">
             <CardContent className="p-4">
