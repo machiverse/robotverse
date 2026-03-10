@@ -497,9 +497,9 @@ const CommissionDealsSection = () => {
                                      </div>
                                    )}
 
-                                   {/* Financial Summary */}
-                                   <div className="flex justify-end">
-                                     <div className="w-72 space-y-1.5 text-sm rounded-lg border border-border/60 p-3">
+                                   {/* Financial Summary & Commission */}
+                                   <div className="flex flex-col md:flex-row justify-end gap-4">
+                                     <div className="w-full md:w-80 space-y-1.5 text-sm rounded-lg border border-border/60 p-3">
                                        <div className="flex justify-between text-muted-foreground">
                                          <span>Subtotal</span>
                                          <span className="font-mono">₹{Number(qtDetails.subtotal || 0).toLocaleString()}</span>
@@ -522,14 +522,55 @@ const CommissionDealsSection = () => {
                                            <span className="font-mono">₹{Number(qtDetails.shipping_amount).toLocaleString()}</span>
                                          </div>
                                        )}
-                                        <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
-                                          <span>Total</span>
-                                          <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between text-emerald-600 font-medium border-t border-border/60 pt-1.5">
-                                          <span>Platform Commission (5%)</span>
-                                          <span className="font-mono">₹{(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()}</span>
-                                        </div>
+                                       <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
+                                         <span>Deal Amount</span>
+                                         <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
+                                       </div>
+                                     </div>
+
+                                     {/* RobotVerse Commission Card */}
+                                     <div className="w-full md:w-80 rounded-lg border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 space-y-3">
+                                       <div className="flex items-center gap-2">
+                                         <IndianRupee className="h-4 w-4 text-emerald-600" />
+                                         <h5 className="font-semibold text-sm text-emerald-800 dark:text-emerald-300">RobotVerse Platform Commission</h5>
+                                       </div>
+                                       <div className="space-y-1.5 text-sm">
+                                         <div className="flex justify-between text-muted-foreground">
+                                           <span>Deal ID</span>
+                                           <span className="font-mono text-xs">{deal.deal_number}</span>
+                                         </div>
+                                         <div className="flex justify-between text-muted-foreground">
+                                           <span>Deal Amount</span>
+                                           <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
+                                         </div>
+                                         <div className="flex justify-between text-muted-foreground">
+                                           <span>Commission Rate</span>
+                                           <span className="font-mono">5%</span>
+                                         </div>
+                                         <div className="flex justify-between font-bold text-emerald-700 dark:text-emerald-400 border-t border-emerald-200 dark:border-emerald-800 pt-1.5">
+                                           <span>Commission Amount</span>
+                                           <span className="font-mono">₹{(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()}</span>
+                                         </div>
+                                       </div>
+                                       {deal.deal_status === "deal_won" && (
+                                         <Button
+                                           size="sm"
+                                           className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             toast({
+                                               title: "Payment Initiated",
+                                               description: `Commission payment of ₹${(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()} for Deal ${deal.deal_number} will be processed via Razorpay.`,
+                                             });
+                                           }}
+                                         >
+                                           <CreditCard className="h-4 w-4" />
+                                           Pay ₹{(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()} Commission
+                                         </Button>
+                                       )}
+                                       {deal.deal_status !== "deal_won" && (
+                                         <p className="text-xs text-muted-foreground italic">Commission payable when deal is marked as Won.</p>
+                                       )}
                                      </div>
                                    </div>
 
