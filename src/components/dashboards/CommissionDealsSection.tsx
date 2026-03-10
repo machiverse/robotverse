@@ -522,10 +522,14 @@ const CommissionDealsSection = () => {
                                            <span className="font-mono">₹{Number(qtDetails.shipping_amount).toLocaleString()}</span>
                                          </div>
                                        )}
-                                       <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
-                                         <span>Total</span>
-                                         <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
-                                       </div>
+                                        <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
+                                          <span>Total</span>
+                                          <span className="font-mono">₹{Number(qtDetails.total_amount || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-emerald-600 font-medium border-t border-border/60 pt-1.5">
+                                          <span>Platform Commission (5%)</span>
+                                          <span className="font-mono">₹{(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()}</span>
+                                        </div>
                                      </div>
                                    </div>
 
