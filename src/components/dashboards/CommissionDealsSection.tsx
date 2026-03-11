@@ -305,26 +305,26 @@ const CommissionDealsSection = () => {
   return (
     <div className="space-y-6">
       {/* Stats Row */}
-       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {[
-          { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", sub: `${activeQuotes} active` },
-          { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30", sub: "Completed" },
-          { title: "All Deals Value", value: `₹${allDealsValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", sub: "Total pipeline" },
-          { title: "Won Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30", sub: "Confirmed revenue" },
-          { title: "Commission (5%)", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: CreditCard, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30", sub: "On won deals" },
-          { title: "Expected Commission", value: `₹${expectedCommission.toLocaleString("en-IN")}`, icon: Target, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", sub: "If all active close" },
-          { title: "Net Payout", value: `₹${netPayout.toLocaleString("en-IN")}`, icon: FileCheck, color: "text-emerald-700", bg: "bg-emerald-50 dark:bg-emerald-950/30", sub: "After commission" },
+          { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50", sub: `${activeQuotes} active` },
+          { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", sub: "Completed" },
+          { title: "All Deals Value", value: `₹${allDealsValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-blue-600", bg: "bg-blue-50", sub: "Total pipeline" },
+          { title: "Won Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50", sub: "Confirmed revenue" },
+          { title: "Commission 5%", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: CreditCard, color: "text-amber-600", bg: "bg-amber-50", sub: "On won deals" },
+          { title: "Expected Comm.", value: `₹${expectedCommission.toLocaleString("en-IN")}`, icon: Target, color: "text-blue-600", bg: "bg-blue-50", sub: "If all close" },
+          { title: "Net Payout", value: `₹${netPayout.toLocaleString("en-IN")}`, icon: FileCheck, color: "text-emerald-700", bg: "bg-emerald-100", sub: "After commission" },
         ].map((stat) => (
-          <Card key={stat.title} className="border-muted/60 shadow-sm">
-            <CardContent className="p-4">
+          <Card key={stat.title} className="border-border/60 shadow-sm">
+            <CardContent className="p-3">
               <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase text-muted-foreground">{stat.title}</p>
-                  <p className="text-xl font-semibold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.sub}</p>
+                <div className="space-y-0.5 min-w-0">
+                  <p className="text-[10px] font-medium uppercase text-muted-foreground tracking-wide truncate">{stat.title}</p>
+                  <p className="text-lg font-semibold truncate">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{stat.sub}</p>
                 </div>
-                <div className={`rounded-lg p-2 ${stat.bg}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <div className={`rounded-md p-1.5 shrink-0 ${stat.bg}`}>
+                  <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
                 </div>
               </div>
             </CardContent>
