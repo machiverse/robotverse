@@ -299,12 +299,13 @@ const CommissionDealsSection = () => {
   return (
     <div className="space-y-6">
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
           { title: "Active Quotes", value: activeQuotes, icon: Target, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
           { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" },
-          { title: "Platform Commission (5%)", value: `₹${totalPlatformCommission.toLocaleString("en-IN")}`, icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { title: "Total Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { title: "Platform Commission", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: FileText, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30" },
         ].map((stat) => (
           <Card key={stat.title} className="border-muted/60 shadow-sm">
             <CardContent className="p-4">
