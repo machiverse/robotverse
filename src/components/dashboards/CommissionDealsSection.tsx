@@ -272,6 +272,12 @@ const CommissionDealsSection = () => {
   const totalCommission = wonDeals.reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
   const netPayout = totalDealValue - totalCommission;
 
+  // Expected commission from all active/pending deals
+  const allDealsValue = deals.reduce((sum, d) => sum + d.quote_value, 0);
+  const expectedCommission = deals
+    .filter(d => !["deal_lost"].includes(d.deal_status))
+    .reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
+
   const statusColors: Record<string, string> = {
     lead_generated: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     quote_sent: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
