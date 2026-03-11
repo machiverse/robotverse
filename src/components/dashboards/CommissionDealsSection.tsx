@@ -323,6 +323,27 @@ const CommissionDealsSection = () => {
         ))}
       </div>
 
+      {/* Net Payout Card - Prominent */}
+      <Card className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 dark:border-emerald-800 dark:from-emerald-950/30 dark:to-teal-950/20">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-emerald-100 dark:bg-emerald-900/40 p-3">
+                <IndianRupee className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium uppercase tracking-wide">Your Net Payout (After 5% Commission)</p>
+                <p className="text-4xl font-bold text-emerald-800 dark:text-emerald-200 mt-1">₹{netPayout.toLocaleString("en-IN")}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Commission deducted</p>
+              <p className="text-lg font-medium text-rose-600 dark:text-rose-400">- ₹{totalCommission.toLocaleString("en-IN")}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Deals Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
