@@ -333,46 +333,74 @@ const CommissionDealsSection = () => {
       </div>
 
       {/* Commission Summary Card */}
-      <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 dark:border-amber-800 dark:from-amber-950/30 dark:to-orange-950/20">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-emerald-100 dark:bg-emerald-900/40 p-3">
-                <IndianRupee className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Won Deal Value</p>
-                <p className="text-2xl font-bold">₹{totalDealValue.toLocaleString("en-IN")}</p>
-              </div>
+      <Card className="border-border bg-card overflow-hidden">
+        <CardHeader className="bg-muted/50 border-b pb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <IndianRupee className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-rose-100 dark:bg-rose-900/40 p-3">
-                <CreditCard className="h-7 w-7 text-rose-600 dark:text-rose-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Commission to Pay (5%)</p>
-                <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">₹{totalCommission.toLocaleString("en-IN")}</p>
-              </div>
+            <div>
+              <CardTitle className="text-lg">Financial Summary</CardTitle>
+              <CardDescription>Commission breakdown and earnings</CardDescription>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-amber-100 dark:bg-amber-900/40 p-3">
-                <Target className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border">
+            {/* Won Deal Value */}
+            <div className="p-6 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-md">
+                  <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Won Deal Value</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Expected Commission</p>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">₹{expectedCommission.toLocaleString("en-IN")}</p>
-                <p className="text-xs text-muted-foreground">If active deals close</p>
-              </div>
+              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                ₹{totalDealValue.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{dealsWon} deals completed</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-emerald-100 dark:bg-emerald-900/40 p-3">
-                <FileCheck className="h-7 w-7 text-emerald-700 dark:text-emerald-300" />
+
+            {/* Commission to Pay */}
+            <div className="p-6 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-md">
+                  <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Commission (5%)</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Your Net Payout</p>
-                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">₹{netPayout.toLocaleString("en-IN")}</p>
-                <p className="text-xs text-muted-foreground">After 5% deduction</p>
+              <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                ₹{totalCommission.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Due on won deals</p>
+            </div>
+
+            {/* Expected Commission */}
+            <div className="p-6 flex flex-col justify-between">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+                  <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Expected Commission</p>
               </div>
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                ₹{expectedCommission.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">If all active deals close</p>
+            </div>
+
+            {/* Net Payout */}
+            <div className="p-6 flex flex-col justify-between bg-emerald-50/50 dark:bg-emerald-950/20">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-md">
+                  <FileCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+                </div>
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">Net Payout</p>
+              </div>
+              <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+                ₹{netPayout.toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">After 5% deduction</p>
             </div>
           </div>
         </CardContent>
