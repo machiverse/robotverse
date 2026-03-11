@@ -465,11 +465,15 @@ const CommissionDealsSection = () => {
                           {deal.buyer_company && <div className="text-xs text-muted-foreground">{deal.buyer_company}</div>}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">{deal.product_name}</TableCell>
-                        <TableCell className="text-right font-mono text-sm">
+                        <TableCell className="text-right font-mono text-sm font-medium">
                           {deal.quote_value > 0 ? `₹${Number(deal.quote_value).toLocaleString("en-IN")}` : "—"}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-emerald-600 font-medium">
-                          {deal.quote_value > 0 ? `₹${(deal.quote_value * 0.05).toLocaleString("en-IN")}` : "—"}
+                        <TableCell className="text-right font-mono text-sm">
+                          {deal.quote_value > 0 ? (
+                            <span className="text-amber-600 dark:text-amber-400">
+                              ₹{(deal.quote_value * 0.05).toLocaleString("en-IN")}
+                            </span>
+                          ) : "—"}
                         </TableCell>
                         <TableCell>
                           {qtInfo.isFromQuote ? (
