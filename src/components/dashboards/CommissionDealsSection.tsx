@@ -272,6 +272,12 @@ const CommissionDealsSection = () => {
   const totalCommission = wonDeals.reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
   const netPayout = totalDealValue - totalCommission;
 
+  // Expected commission from all active/pending deals
+  const allDealsValue = deals.reduce((sum, d) => sum + d.quote_value, 0);
+  const expectedCommission = deals
+    .filter(d => !["deal_lost"].includes(d.deal_status))
+    .reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
+
   const statusColors: Record<string, string> = {
     lead_generated: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     quote_sent: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
@@ -299,23 +305,26 @@ const CommissionDealsSection = () => {
   return (
     <div className="space-y-6">
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         {[
-          { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
-          { title: "Active Quotes", value: activeQuotes, icon: Target, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
-          { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" },
-          { title: "Total Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-          { title: "Platform Commission", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: FileText, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30" },
+          { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", sub: `${activeQuotes} active` },
+          { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30", sub: "Completed" },
+          { title: "All Deals Value", value: `₹${allDealsValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", sub: "Total pipeline" },
+          { title: "Won Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30", sub: "Confirmed revenue" },
+          { title: "Commission (5%)", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: CreditCard, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30", sub: "On won deals" },
+          { title: "Expected Commission", value: `₹${expectedCommission.toLocaleString("en-IN")}`, icon: Target, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", sub: "If all active close" },
+          { title: "Net Payout", value: `₹${netPayout.toLocaleString("en-IN")}`, icon: FileCheck, color: "text-emerald-700", bg: "bg-emerald-50 dark:bg-emerald-950/30", sub: "After commission" },
         ].map((stat) => (
           <Card key={stat.title} className="border-muted/60 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
                   <p className="text-xs font-medium uppercase text-muted-foreground">{stat.title}</p>
-                  <p className="text-2xl font-semibold">{stat.value}</p>
+                  <p className="text-xl font-semibold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.sub}</p>
                 </div>
                 <div className={`rounded-lg p-2 ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
               </div>
             </CardContent>
@@ -323,22 +332,47 @@ const CommissionDealsSection = () => {
         ))}
       </div>
 
-      {/* Net Payout Card - Prominent */}
-      <Card className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 dark:border-emerald-800 dark:from-emerald-950/30 dark:to-teal-950/20">
+      {/* Commission Summary Card */}
+      <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 dark:border-amber-800 dark:from-amber-950/30 dark:to-orange-950/20">
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+            <div className="flex items-center gap-3">
               <div className="rounded-xl bg-emerald-100 dark:bg-emerald-900/40 p-3">
-                <IndianRupee className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                <IndianRupee className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium uppercase tracking-wide">Your Net Payout (After 5% Commission)</p>
-                <p className="text-4xl font-bold text-emerald-800 dark:text-emerald-200 mt-1">₹{netPayout.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Won Deal Value</p>
+                <p className="text-2xl font-bold">₹{totalDealValue.toLocaleString("en-IN")}</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Commission deducted</p>
-              <p className="text-lg font-medium text-rose-600 dark:text-rose-400">- ₹{totalCommission.toLocaleString("en-IN")}</p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-rose-100 dark:bg-rose-900/40 p-3">
+                <CreditCard className="h-7 w-7 text-rose-600 dark:text-rose-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Commission to Pay (5%)</p>
+                <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">₹{totalCommission.toLocaleString("en-IN")}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-amber-100 dark:bg-amber-900/40 p-3">
+                <Target className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Expected Commission</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">₹{expectedCommission.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-muted-foreground">If active deals close</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-emerald-100 dark:bg-emerald-900/40 p-3">
+                <FileCheck className="h-7 w-7 text-emerald-700 dark:text-emerald-300" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Your Net Payout</p>
+                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">₹{netPayout.toLocaleString("en-IN")}</p>
+                <p className="text-xs text-muted-foreground">After 5% deduction</p>
+              </div>
             </div>
           </div>
         </CardContent>
