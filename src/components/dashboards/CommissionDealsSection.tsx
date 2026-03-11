@@ -265,9 +265,12 @@ const CommissionDealsSection = () => {
   const totalDeals = deals.length;
   const dealsWon = deals.filter(d => d.deal_status === "deal_won").length;
   const activeQuotes = deals.filter(d => ["quote_sent", "negotiation"].includes(d.deal_status)).length;
-  const totalPlatformCommission = deals
-    .filter(d => d.deal_status === "deal_won")
-    .reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
+  
+  // Financial calculations
+  const wonDeals = deals.filter(d => d.deal_status === "deal_won");
+  const totalDealValue = wonDeals.reduce((sum, d) => sum + d.quote_value, 0);
+  const totalCommission = wonDeals.reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
+  const netPayout = totalDealValue - totalCommission;
 
   const statusColors: Record<string, string> = {
     lead_generated: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
