@@ -970,15 +970,24 @@ const Auth = () => {
           return;
         }
 
-        // Immediately create complete profile - don't wait for email confirmation
-        console.log('📝 Creating profile immediately at signup...');
+        // Wait for auth user to be fully committed before creating profile
+        console.log('📝 Waiting for auth user to be ready before creating profile...');
+        
+        // Small delay to ensure auth.users INSERT is committed and handle_new_user trigger has run
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Save data to storage as backup for email confirmation flow
+        saveUserDataToStorage(newUser);
+        
         try {
+          // Verify user exists in auth before attempting profile creation
+          const { data: sessionData } = await supabase.auth.getSession();
+          const userId = sessionData?.session?.user?.id || newUser.id;
+          
+          console.log('📝 Creating profile for user:', userId);
           await createCompleteUserProfile(newUser);
           
           console.log('✅ Profile created successfully');
-          
-          // Also save to storage as backup for email confirmation flow
-          saveUserDataToStorage(newUser);
           
           // Check if email is already confirmed (email confirmation disabled)
           if (newUser.email_confirmed_at) {
@@ -988,7 +997,7 @@ const Auth = () => {
             });
             
             setTimeout(() => navigate('/dashboard'), 1000);
-            return; // Exit early, user can log in immediately
+            return;
           }
           
           // Email confirmation required - show modal
@@ -997,13 +1006,26 @@ const Auth = () => {
           
         } catch (profileError: any) {
           console.error('❌ Failed to create profile:', profileError);
-          // Save data to storage so profile can be created after email confirmation
-          saveUserDataToStorage(newUser);
           
-          // Don't show error for FK violations - just proceed with email confirmation flow
+          // Profile might already exist via handle_new_user trigger - try updating instead
           if (profileError.message?.includes('foreign key') || profileError.message?.includes('profiles_user_id_fkey')) {
-            console.log('⚠️ Profile creation deferred - will complete after email confirmation');
+            console.log('⚠️ FK error - profile creation deferred to email confirmation');
             setShowEmailConfirmationModal(true);
+          } else if (profileError.message?.includes('duplicate') || profileError.message?.includes('unique')) {
+            // Profile already created by trigger, just update it
+            console.log('⚠️ Profile already exists, attempting update...');
+            try {
+              await createCompleteUserProfile(newUser);
+              console.log('✅ Profile updated successfully');
+            } catch (updateErr) {
+              console.error('❌ Profile update also failed:', updateErr);
+            }
+            
+            if (newUser.email_confirmed_at) {
+              setTimeout(() => navigate('/dashboard'), 1000);
+            } else {
+              setShowEmailConfirmationModal(true);
+            }
           } else {
             toast({
               variant: "destructive",
