@@ -998,69 +998,46 @@ const Auth = () => {
           return;
         }
 
-        // Wait for auth user to be fully committed before creating profile
-        console.log('📝 Waiting for auth user to be ready before creating profile...');
-        
-        // Small delay to ensure auth.users INSERT is committed and handle_new_user trigger has run
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
         // Save data to storage as backup for email confirmation flow
         saveUserDataToStorage(newUser);
-        
+
         try {
-          // Verify user exists in auth before attempting profile creation
-          const { data: sessionData } = await supabase.auth.getSession();
-          const userId = sessionData?.session?.user?.id || newUser.id;
-          
-          console.log('📝 Creating profile for user:', userId);
-          await createCompleteUserProfile(newUser);
-          
+          console.log('📝 Creating profile with retry-safe flow...');
+          await createCompleteUserProfileWithRetry(newUser);
           console.log('✅ Profile created successfully');
-          
-          // Check if email is already confirmed (email confirmation disabled)
+
           if (newUser.email_confirmed_at) {
             toast({
               title: "Account Created Successfully!",
               description: "Welcome to RobotVerse! Your account is ready to use.",
             });
-            
             setTimeout(() => navigate('/dashboard'), 1000);
             return;
           }
-          
-          // Email confirmation required - show modal
+
           console.log('📧 Email confirmation required for login');
           setShowEmailConfirmationModal(true);
-          
         } catch (profileError: any) {
-          console.error('❌ Failed to create profile:', profileError);
-          
-          // Profile might already exist via handle_new_user trigger - try updating instead
-          if (profileError.message?.includes('foreign key') || profileError.message?.includes('profiles_user_id_fkey')) {
-            console.log('⚠️ FK error - profile creation deferred to email confirmation');
+          console.error('❌ Failed to create profile after retries:', profileError);
+
+          const message = String(profileError?.message || '');
+          const recoverableError =
+            message.includes('profiles_user_id_fkey') ||
+            message.includes('foreign key') ||
+            message.includes('does not exist in auth.users yet') ||
+            message.includes('Profile setup in progress');
+
+          if (recoverableError) {
+            console.log('⚠️ Recoverable profile setup delay detected, continuing with confirmation flow');
             setShowEmailConfirmationModal(true);
-          } else if (profileError.message?.includes('duplicate') || profileError.message?.includes('unique')) {
-            // Profile already created by trigger, just update it
-            console.log('⚠️ Profile already exists, attempting update...');
-            try {
-              await createCompleteUserProfile(newUser);
-              console.log('✅ Profile updated successfully');
-            } catch (updateErr) {
-              console.error('❌ Profile update also failed:', updateErr);
-            }
-            
-            if (newUser.email_confirmed_at) {
-              setTimeout(() => navigate('/dashboard'), 1000);
-            } else {
-              setShowEmailConfirmationModal(true);
-            }
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Registration Error",
-              description: profileError.message || "Failed to create your profile. Please try again.",
-            });
+            return;
           }
+
+          toast({
+            variant: "destructive",
+            title: "Registration Error",
+            description: message || "Failed to create your profile. Please try again.",
+          });
         }
 
       } else {
