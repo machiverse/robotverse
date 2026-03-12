@@ -274,6 +274,34 @@ const Auth = () => {
     }
   };
 
+  const createCompleteUserProfileWithRetry = async (user: SupabaseUser, maxAttempts = 5) => {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        console.log(`🔁 Profile creation attempt ${attempt}/${maxAttempts} for user:`, user.id);
+        return await createCompleteUserProfile(user);
+      } catch (error: any) {
+        const message = String(error?.message || '');
+        const retryableError =
+          message.includes('profiles_user_id_fkey') ||
+          message.includes('foreign key') ||
+          message.includes('does not exist in auth.users yet') ||
+          message.includes('Profile setup in progress');
+
+        if (!retryableError || attempt === maxAttempts) {
+          lastError = error instanceof Error ? error : new Error(message || 'Profile creation failed');
+          break;
+        }
+
+        console.log(`⏳ Retryable profile creation error, waiting before retry: ${message}`);
+        await new Promise((resolve) => setTimeout(resolve, 900));
+      }
+    }
+
+    throw lastError ?? new Error('Profile creation failed');
+  };
+
   const handleSellerRoleChange = (role: string, checked: boolean) => {
     console.log(`🔄 Seller role change: ${role} = ${checked}`);
     console.log('📋 Current seller roles before change:', sellerRoles);
