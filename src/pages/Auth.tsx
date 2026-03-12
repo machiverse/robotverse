@@ -954,12 +954,31 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
+        // Check if this is a repeated signup (user already exists)
+        // Supabase returns empty identities array for repeated signups
+        const isRepeatedSignup = !newUser.identities || newUser.identities.length === 0;
+        
+        if (isRepeatedSignup) {
+          console.log('⚠️ Repeated signup detected - user already exists with this email');
+          // Save data to storage in case they need to complete profile after confirmation
+          saveUserDataToStorage(newUser);
+          toast({
+            title: "Account Already Exists",
+            description: "An account with this email already exists. Please check your email for confirmation or try signing in.",
+          });
+          setIsSignUp(false); // Switch to sign-in view
+          return;
+        }
+
         // Immediately create complete profile - don't wait for email confirmation
         console.log('📝 Creating profile immediately at signup...');
         try {
           await createCompleteUserProfile(newUser);
           
           console.log('✅ Profile created successfully');
+          
+          // Also save to storage as backup for email confirmation flow
+          saveUserDataToStorage(newUser);
           
           // Check if email is already confirmed (email confirmation disabled)
           if (newUser.email_confirmed_at) {
@@ -978,11 +997,20 @@ const Auth = () => {
           
         } catch (profileError: any) {
           console.error('❌ Failed to create profile:', profileError);
-          toast({
-            variant: "destructive",
-            title: "Registration Error",
-            description: profileError.message || "Failed to create your profile. Please try again.",
-          });
+          // Save data to storage so profile can be created after email confirmation
+          saveUserDataToStorage(newUser);
+          
+          // Don't show error for FK violations - just proceed with email confirmation flow
+          if (profileError.message?.includes('foreign key') || profileError.message?.includes('profiles_user_id_fkey')) {
+            console.log('⚠️ Profile creation deferred - will complete after email confirmation');
+            setShowEmailConfirmationModal(true);
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Registration Error",
+              description: profileError.message || "Failed to create your profile. Please try again.",
+            });
+          }
         }
 
       } else {
