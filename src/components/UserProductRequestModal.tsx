@@ -27,6 +27,7 @@ const PRODUCT_TYPES = [
 
 const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: UserProductRequestModalProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { submitRequest } = useUserProductRequests();
   const [submitting, setSubmitting] = useState(false);
 
