@@ -96,6 +96,39 @@ const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: Use
     }
   };
 
+  // If not logged in, show login prompt
+  if (!user) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <LogIn className="w-5 h-5 text-primary" />
+              Login Required
+            </DialogTitle>
+            <DialogDescription>
+              You need to be logged in to submit a product request. Please sign in or create an account first.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center py-6 gap-4">
+            <div className="rounded-full bg-primary/10 p-4">
+              <AlertCircle className="w-8 h-8 text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Sign in to submit your requirement and get connected with the best sellers and service providers.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={() => { onOpenChange(false); navigate('/auth'); }}>
+              <LogIn className="w-4 h-4 mr-2" /> Sign In / Register
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -180,16 +213,9 @@ const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: Use
             </div>
           </div>
 
-          {!user && (
-            <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-md">
-              <AlertCircle className="w-4 h-4 text-destructive" />
-              <span className="text-sm text-destructive">Please log in to submit a request.</span>
-            </div>
-          )}
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={submitting || !user || !form.product_type || !form.product_name}>
+            <Button type="submit" disabled={submitting || !form.product_type || !form.product_name}>
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : <><Send className="w-4 h-4 mr-2" /> Submit Request</>}
             </Button>
           </DialogFooter>
