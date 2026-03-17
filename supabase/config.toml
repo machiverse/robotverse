@@ -46,6 +46,9 @@ verify_jwt = false
 [functions.admin-manage-users]
 verify_jwt = false
 
+[functions.robotverse-ai-assistant]
+verify_jwt = false
+
 [db]
 enabled = true
 port = 54322
