@@ -7,7 +7,7 @@ const AIAssistant = () => {
   return (
     <div className="min-h-screen bg-background">
       <UniversalSEOHead
-        pageType="other"
+        pageType="home"
         title="AI Robot Assistant | RobotVerse - Find Industrial Robots"
         description="Use RobotVerse AI to find the perfect industrial robot, spare parts, and system integrators for your needs. Powered by intelligent search across our marketplace."
         keywords={['robot assistant', 'find industrial robots', 'robot recommendation', 'AI robot search']}
