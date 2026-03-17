@@ -57,6 +57,8 @@ import Chat from "./pages/Chat";
 import CRM from "./pages/CRM";
 import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
+import AIAssistant from "./pages/AIAssistant";
+import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
 
 const queryClient = new QueryClient({
   defaultOptions: {
