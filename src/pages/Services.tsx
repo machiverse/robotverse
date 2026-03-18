@@ -523,6 +523,11 @@ const Services = () => {
                       {service.category}
                     </Badge>
 
+                    {/* Description Preview */}
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {service.description}
+                    </p>
+
                     {/* Price */}
                     <div className="text-lg font-bold text-primary">
                       {service.priceRange}
