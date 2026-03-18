@@ -212,11 +212,6 @@ DATABASE RESULTS:${dbContext}`;
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-    // Stream the response
-    return new Response(response.body, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
-    });
-
   } catch (error: unknown) {
     console.error('AI Assistant error:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
