@@ -14,12 +14,10 @@ const supabaseAdmin = createClient(
 
 // Search robots matching user criteria
 async function searchRobots(query: string) {
-  const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-  
   let dbQuery = supabaseAdmin
     .from('robots')
-    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, profiles!robots_seller_id_fkey(company_name, location)')
-    .eq('status', 'available')
+    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state')
+    .eq('availability', 'available')
     .limit(10);
 
   // Try to filter by brand/type if mentioned
@@ -48,8 +46,8 @@ async function searchRobots(query: string) {
 async function searchSpareParts(query: string) {
   const { data, error } = await supabaseAdmin
     .from('spare_parts')
-    .select('id, name, part_number, brand, price, currency, condition, category, compatible_robots, profiles!spare_parts_seller_id_fkey(company_name, location)')
-    .or(`name.ilike.%${query}%,brand.ilike.%${query}%,category.ilike.%${query}%`)
+    .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state')
+    .or(`name.ilike.%${query}%,brand.ilike.%${query}%,category.ilike.%${query}%,main_category.ilike.%${query}%`)
     .limit(5);
 
   if (error) {
@@ -63,11 +61,11 @@ async function searchSpareParts(query: string) {
 async function searchServices(query: string, location?: string) {
   let dbQuery = supabaseAdmin
     .from('services')
-    .select('id, title, service_type, specializations, price_range, profiles!services_provider_id_fkey(company_name, location)')
+    .select('id, name, service_type, specializations, price_range, location, coverage')
     .limit(5);
 
   if (location) {
-    dbQuery = dbQuery.ilike('profiles.location', `%${location}%`);
+    dbQuery = dbQuery.ilike('location', `%${location}%`);
   }
 
   const { data, error } = await dbQuery;
@@ -85,21 +83,21 @@ function buildDatabaseContext(robots: any[], parts: any[], services: any[]): str
   if (robots.length > 0) {
     context += '\n\nAVAILABLE ROBOTS IN DATABASE:\n';
     robots.forEach((r, i) => {
-      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `${r.currency || 'INR'} ${r.price}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Seller: ${r.profiles?.company_name || 'N/A'} (${r.profiles?.location || 'India'})\n`;
+      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `${r.currency || 'INR'} ${r.price}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Location: ${r.location || r.state || 'India'}\n`;
     });
   }
   
   if (parts.length > 0) {
     context += '\n\nAVAILABLE SPARE PARTS IN DATABASE:\n';
     parts.forEach((p, i) => {
-      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.category || 'N/A'} | Price: ${p.price ? `${p.currency || 'INR'} ${p.price}` : 'Contact for price'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | Seller: ${p.profiles?.company_name || 'N/A'} (${p.profiles?.location || 'India'})\n`;
+      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.category || p.main_category || 'N/A'} | Price: ${p.price ? `${p.currency || 'INR'} ${p.price}` : 'Contact for price'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | Location: ${p.location || p.state || 'India'}\n`;
     });
   }
   
   if (services.length > 0) {
     context += '\n\nAVAILABLE SERVICE PROVIDERS / INTEGRATORS:\n';
     services.forEach((s, i) => {
-      context += `${i + 1}. ${s.title || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | Provider: ${s.profiles?.company_name || 'N/A'} (${s.profiles?.location || 'India'})\n`;
+      context += `${i + 1}. ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | Location: ${s.location || 'India'}\n`;
     });
   }
   
