@@ -83,21 +83,21 @@ function buildDatabaseContext(robots: any[], parts: any[], services: any[]): str
   if (robots.length > 0) {
     context += '\n\nAVAILABLE ROBOTS IN DATABASE:\n';
     robots.forEach((r, i) => {
-      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `${r.currency || 'INR'} ${r.price}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Seller: ${r.profiles?.company_name || 'N/A'} (${r.profiles?.location || 'India'})\n`;
+      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `${r.currency || 'INR'} ${r.price}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Location: ${r.location || r.state || 'India'}\n`;
     });
   }
   
   if (parts.length > 0) {
     context += '\n\nAVAILABLE SPARE PARTS IN DATABASE:\n';
     parts.forEach((p, i) => {
-      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.category || 'N/A'} | Price: ${p.price ? `${p.currency || 'INR'} ${p.price}` : 'Contact for price'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | Seller: ${p.profiles?.company_name || 'N/A'} (${p.profiles?.location || 'India'})\n`;
+      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.category || p.main_category || 'N/A'} | Price: ${p.price ? `${p.currency || 'INR'} ${p.price}` : 'Contact for price'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | Location: ${p.location || p.state || 'India'}\n`;
     });
   }
   
   if (services.length > 0) {
     context += '\n\nAVAILABLE SERVICE PROVIDERS / INTEGRATORS:\n';
     services.forEach((s, i) => {
-      context += `${i + 1}. ${s.title || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | Provider: ${s.profiles?.company_name || 'N/A'} (${s.profiles?.location || 'India'})\n`;
+      context += `${i + 1}. ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | Location: ${s.location || 'India'}\n`;
     });
   }
   
