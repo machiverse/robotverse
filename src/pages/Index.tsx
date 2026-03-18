@@ -54,6 +54,7 @@ const Index = () => {
       <HomeRobotListings />
       <MarketplaceCategories />
       <ProfessionalCategories />
+      <CitiesCoveredMap />
       <WhyChooseRobotVerse />
       <HomepageTestimonials />
       <Footer />
