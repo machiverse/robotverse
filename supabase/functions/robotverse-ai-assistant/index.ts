@@ -155,59 +155,57 @@ Only include sections that have data. Skip empty sections.
 
 DATABASE RESULTS:${dbContext}`;
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    // Build Gemini request with chat history
-    const geminiContents = [];
-    
-    // Add system instruction as first user message context
-    geminiContents.push({
-      role: 'user',
-      parts: [{ text: systemPrompt }]
+    // Build messages for Lovable AI Gateway (OpenAI-compatible)
+    const aiMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages.slice(-6).map((msg: any) => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      })),
+    ];
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: aiMessages,
+        temperature: 0.5,
+        max_tokens: 800,
+      }),
     });
-    geminiContents.push({
-      role: 'model', 
-      parts: [{ text: 'Understood. I will follow these rules and respond using the database results provided.' }]
-    });
-
-    // Add conversation history
-    for (const msg of messages.slice(-6)) {
-      geminiContents.push({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }]
-      });
-    }
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: geminiContents,
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 800,
-          },
-        }),
-      }
-    );
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Gemini API error:', response.status, errText);
+      console.error('AI Gateway error:', response.status, errText);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add funds.' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       throw new Error(`AI service error (${response.status})`);
     }
 
-    const geminiData = await response.json();
-    const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    const data = await response.json();
+    const textContent = data.choices?.[0]?.message?.content;
 
     if (!textContent) {
       throw new Error('No response generated from AI');
     }
 
-    // Return as JSON (non-streaming) since Gemini generateContent is not streaming
     return new Response(JSON.stringify({ content: textContent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
