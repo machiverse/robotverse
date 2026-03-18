@@ -4,6 +4,7 @@ import HomeRobotListings from "@/components/HomeRobotListings";
 import MarketplaceCategories from "@/components/MarketplaceCategories";
 import WhyChooseRobotVerse from "@/components/WhyChooseRobotVerse";
 import ProfessionalCategories from "@/components/ProfessionalCategories";
+import CitiesCoveredMap from "@/components/CitiesCoveredMap";
 import Footer from "@/components/Footer";
 import { HomepageTestimonials } from "@/components/reviews/HomepageTestimonials";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
