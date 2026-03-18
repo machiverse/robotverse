@@ -14,12 +14,10 @@ const supabaseAdmin = createClient(
 
 // Search robots matching user criteria
 async function searchRobots(query: string) {
-  const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-  
   let dbQuery = supabaseAdmin
     .from('robots')
-    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, profiles!robots_seller_id_fkey(company_name, location)')
-    .eq('status', 'available')
+    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state')
+    .eq('availability', 'available')
     .limit(10);
 
   // Try to filter by brand/type if mentioned
