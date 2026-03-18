@@ -155,36 +155,61 @@ Only include sections that have data. Skip empty sections.
 
 DATABASE RESULTS:${dbContext}`;
 
-    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
-    if (!DEEPSEEK_API_KEY) throw new Error('DEEPSEEK_API_KEY is not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not configured');
 
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages.slice(-6), // Last 6 messages for context
-        ],
-        temperature: 0.5,
-        max_tokens: 800,
-        stream: true,
-      }),
+    // Build Gemini request with chat history
+    const geminiContents = [];
+    
+    // Add system instruction as first user message context
+    geminiContents.push({
+      role: 'user',
+      parts: [{ text: systemPrompt }]
     });
+    geminiContents.push({
+      role: 'model', 
+      parts: [{ text: 'Understood. I will follow these rules and respond using the database results provided.' }]
+    });
+
+    // Add conversation history
+    for (const msg of messages.slice(-6)) {
+      geminiContents.push({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      });
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: geminiContents,
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 800,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('DeepSeek error:', response.status, errText);
+      console.error('Gemini API error:', response.status, errText);
       throw new Error(`AI service error (${response.status})`);
     }
 
-    // Stream the response
-    return new Response(response.body, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+    const geminiData = await response.json();
+    const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!textContent) {
+      throw new Error('No response generated from AI');
+    }
+
+    // Return as JSON (non-streaming) since Gemini generateContent is not streaming
+    return new Response(JSON.stringify({ content: textContent }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: unknown) {
