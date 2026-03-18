@@ -46,8 +46,8 @@ async function searchRobots(query: string) {
 async function searchSpareParts(query: string) {
   const { data, error } = await supabaseAdmin
     .from('spare_parts')
-    .select('id, name, part_number, brand, price, currency, condition, category, compatible_robots, profiles!spare_parts_seller_id_fkey(company_name, location)')
-    .or(`name.ilike.%${query}%,brand.ilike.%${query}%,category.ilike.%${query}%`)
+    .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state')
+    .or(`name.ilike.%${query}%,brand.ilike.%${query}%,category.ilike.%${query}%,main_category.ilike.%${query}%`)
     .limit(5);
 
   if (error) {
@@ -61,11 +61,11 @@ async function searchSpareParts(query: string) {
 async function searchServices(query: string, location?: string) {
   let dbQuery = supabaseAdmin
     .from('services')
-    .select('id, title, service_type, specializations, price_range, profiles!services_provider_id_fkey(company_name, location)')
+    .select('id, name, service_type, specializations, price_range, location, coverage')
     .limit(5);
 
   if (location) {
-    dbQuery = dbQuery.ilike('profiles.location', `%${location}%`);
+    dbQuery = dbQuery.ilike('location', `%${location}%`);
   }
 
   const { data, error } = await dbQuery;
