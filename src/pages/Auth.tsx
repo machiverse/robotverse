@@ -1359,7 +1359,7 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="fullAddress">Full Address *</Label>
                       <div className="relative">
@@ -1377,7 +1377,24 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="location">Location / Region</Label>
+                      <Label htmlFor="pincode">Pin Code *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="pincode"
+                          type="text"
+                          value={pincode}
+                          onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="pl-10"
+                          placeholder="e.g. 600001"
+                          required={isSignUp}
+                          maxLength={6}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">State / Region</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
