@@ -770,100 +770,100 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               {/* View Count */}
               <ViewCountDisplay targetType="robots" targetId={robot.id} />
 
-              {/* Primary CTA Buttons */}
-              <div className="pt-2">
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Start Chat */}
+              {/* Primary CTA Buttons - Only visible for logged-in users */}
+              {user && user.id !== robot.seller_id && (
+                <div className="pt-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Start Chat */}
+                    <Button
+                      variant="default"
+                      className="h-10"
+                      size="default"
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          other_user: robot.seller_id,
+                          item: robot.id,
+                          type: 'robot',
+                          name: robot.name,
+                        });
+                        navigate(`/chat?${params.toString()}`);
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1.5" />
+                      Start Chat
+                    </Button>
+
+                    {/* Get Quote */}
+                    <Button
+                      variant="outline"
+                      className="h-10 border-primary/50 text-primary hover:bg-primary/10"
+                      size="default"
+                      onClick={() => setShowQuoteModal(true)}
+                    >
+                      <FileText className="h-4 w-4 mr-1.5" />
+                      Get Quote
+                    </Button>
+
+                    {/* Compare */}
+                    <Button
+                      onClick={() => {
+                        if (robot) {
+                          addRobot({
+                            id: robot.id,
+                            name: robot.name,
+                            model: robot.model,
+                            brand: robot.brand,
+                            robot_type: robot.robot_type,
+                            price: robot.price,
+                            currency: robot.currency,
+                            payload_capacity: robot.payload_capacity,
+                            reach: robot.reach,
+                            repeatability: robot.repeatability,
+                            images: robot.images,
+                            applications: robot.applications,
+                            technical_specifications: robot.technical_specifications,
+                            condition: robot.condition,
+                            location: robot.location,
+                            profiles: robot.profiles,
+                          });
+                        }
+                      }}
+                      variant="outline"
+                      className="h-10"
+                      size="default"
+                    >
+                      <Scale className="h-4 w-4 mr-1.5" />
+                      Compare
+                    </Button>
+
+                    {/* Watchlist */}
+                    <Button
+                      onClick={handleAddToWatchlist}
+                      variant="outline"
+                      disabled={addingToWatchlist}
+                      className="h-10"
+                      size="default"
+                    >
+                      <Heart className={`h-4 w-4 mr-1.5 ${isInWatchlist ? "fill-current text-red-500" : ""}`} />
+                      Watchlist
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Login prompt for non-logged-in users */}
+              {!user && (
+                <div className="pt-2">
                   <Button
                     variant="default"
-                    className="h-10"
+                    className="w-full h-10"
                     size="default"
-                    onClick={() => {
-                      if (!user) {
-                        toast({
-                          title: "Login Required",
-                          description: "Please log in to start a chat.",
-                          variant: "destructive"
-                        });
-                        navigate('/auth');
-                        return;
-                      }
-                      if (user.id === robot.seller_id) {
-                        toast({
-                          title: "Cannot Chat",
-                          description: "You cannot chat with yourself.",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-                      const params = new URLSearchParams({
-                        other_user: robot.seller_id,
-                        item: robot.id,
-                        type: 'robot',
-                        name: robot.name,
-                      });
-                      navigate(`/chat?${params.toString()}`);
-                    }}
+                    onClick={() => navigate('/auth')}
                   >
-                    <MessageCircle className="h-4 w-4 mr-1.5" />
-                    Start Chat
-                  </Button>
-
-                  {/* Get Quote */}
-                  <Button
-                    variant="outline"
-                    className="h-10 border-primary/50 text-primary hover:bg-primary/10"
-                    size="default"
-                    onClick={() => setShowQuoteModal(true)}
-                  >
-                    <FileText className="h-4 w-4 mr-1.5" />
-                    Get Quote
-                  </Button>
-
-                  {/* Compare */}
-                  <Button
-                    onClick={() => {
-                      if (robot) {
-                        addRobot({
-                          id: robot.id,
-                          name: robot.name,
-                          model: robot.model,
-                          brand: robot.brand,
-                          robot_type: robot.robot_type,
-                          price: robot.price,
-                          currency: robot.currency,
-                          payload_capacity: robot.payload_capacity,
-                          reach: robot.reach,
-                          repeatability: robot.repeatability,
-                          images: robot.images,
-                          applications: robot.applications,
-                          technical_specifications: robot.technical_specifications,
-                          condition: robot.condition,
-                          location: robot.location,
-                          profiles: robot.profiles,
-                        });
-                      }
-                    }}
-                    variant="outline"
-                    className="h-10"
-                    size="default"
-                  >
-                    <Scale className="h-4 w-4 mr-1.5" />
-                    Compare
-                  </Button>
-
-                  {/* Get Report */}
-                  <Button
-                    onClick={() => setShowReportModal(true)}
-                    variant="outline"
-                    className="h-10"
-                    size="default"
-                  >
-                    <Brain className="h-4 w-4 mr-1.5" />
-                    Get Report
+                    Login to View Actions
                   </Button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
