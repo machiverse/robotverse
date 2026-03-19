@@ -13,7 +13,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-const createPinIcon = () => {
+interface SellerLocation {
+  id: string;
+  city: string;
+  country: string;
+  lat: number;
+  lng: number;
+}
+
   return L.divIcon({
     className: "custom-pin-marker",
     html: `<div style="position: relative; width: 24px; height: 34px;">
