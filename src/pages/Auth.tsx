@@ -892,11 +892,20 @@ const Auth = () => {
           return;
         }
 
-        if (!location.trim()) {
+        if (!city.trim()) {
           toast({
             variant: "destructive",
-            title: "Location Required",
-            description: "Please enter your location.",
+            title: "City Required",
+            description: "Please enter your city name.",
+          });
+          return;
+        }
+
+        if (!fullAddress.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Full Address Required",
+            description: "Please enter your full address.",
           });
           return;
         }
