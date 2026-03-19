@@ -48,6 +48,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
+import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
 
 const Robots = () => {
   const navigate = useNavigate();
@@ -92,6 +93,7 @@ const Robots = () => {
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
   const [aiDialogData, setAiDialogData] = useState<any | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [quoteRobot, setQuoteRobot] = useState<any>(null);
 
   // Fixed filter options - Business-logical structure
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([
@@ -1088,7 +1090,7 @@ const Robots = () => {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/robots/${robot.id}?quote=true`);
+                                    setQuoteRobot(robot);
                                   }}
                                 >
                                   <FileText className="w-3 h-3 mr-1" />
@@ -1199,7 +1201,7 @@ const Robots = () => {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/robots/${robot.id}?quote=true`);
+                                    setQuoteRobot(robot);
                                   }}
                                 >
                                   <FileText className="w-3 h-3 mr-1" />
@@ -1238,6 +1240,13 @@ const Robots = () => {
       </div>
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="robot" />
+      {quoteRobot && (
+        <RobotQuoteModal
+          isOpen={!!quoteRobot}
+          onClose={() => setQuoteRobot(null)}
+          robot={quoteRobot}
+        />
+      )}
     </div>
   );
 };
