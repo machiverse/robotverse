@@ -191,7 +191,8 @@ const Auth = () => {
         p_target_audience: Array.isArray(targetAudience) && targetAudience.length > 0 ? targetAudience : [],
         p_government_scheme_support: governmentSchemeSupport || false,
         p_city: city?.trim() || null,
-        p_full_address: fullAddress?.trim() || null
+        p_full_address: fullAddress?.trim() || null,
+        p_pincode: pincode?.trim() || null
       };
 
       console.log('📝 Profile data being sent:', {
