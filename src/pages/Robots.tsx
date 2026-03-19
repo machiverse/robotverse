@@ -785,6 +785,17 @@ const Robots = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Can't Find CTA - compact in sidebar */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm font-semibold mb-1">Can't find the robot you need?</p>
+                <p className="text-xs text-muted-foreground mb-3">Submit your requirement and we'll connect you with sellers.</p>
+                <Button size="sm" className="w-full" onClick={() => setShowRequestModal(true)}>
+                  <Search className="w-3 h-3 mr-1" /> Submit Request
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </aside>
 
@@ -1218,14 +1229,6 @@ const Robots = () => {
           )}
         </main>
 
-        {/* Can't Find CTA */}
-        <div className="mt-8 p-6 bg-muted rounded-xl text-center">
-          <h3 className="text-lg font-semibold mb-2">Can't find the robot you need?</h3>
-          <p className="text-muted-foreground mb-4">Submit your requirement and we'll connect you with the right sellers.</p>
-          <Button onClick={() => setShowRequestModal(true)} size="lg">
-            <Search className="w-4 h-4 mr-2" /> Submit a Request
-          </Button>
-        </div>
       </div>
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="robot" />
