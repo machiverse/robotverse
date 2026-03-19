@@ -38,6 +38,8 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
     account_type: "buyer",
     user_roles: ["buyer"] as string[],
     location: "",
+    city: "",
+    full_address: "",
     password: "",
     status: "active",
     seller_model_type: "subscription" as "subscription" | "commission",
@@ -53,6 +55,8 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
       account_type: "buyer",
       user_roles: ["buyer"],
       location: "",
+      city: "",
+      full_address: "",
       password: "",
       status: "active",
       seller_model_type: "subscription",
@@ -130,8 +134,16 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
               <Input id="add_company" value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} placeholder="Enter company name" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add_location">Location</Label>
-              <Input id="add_location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Enter location" />
+              <Label htmlFor="add_city">City *</Label>
+              <Input id="add_city" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} placeholder="Enter city" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add_full_address">Full Address</Label>
+              <Input id="add_full_address" value={formData.full_address} onChange={(e) => setFormData({ ...formData, full_address: e.target.value })} placeholder="Enter full address" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add_location">Location / Region</Label>
+              <Input id="add_location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="State or region (optional)" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="add_password">Password *</Label>

@@ -159,33 +159,41 @@ const CitiesCoveredMap = () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("user_id, location")
-          .eq("registration_complete", true)
-          .not("location", "is", null);
+          .select("user_id, location, city")
+          .eq("registration_complete", true);
 
         if (error) throw error;
 
         const cityMap = new Map<string, { count: number; ids: string[] }>();
         for (const row of data || []) {
-          if (!row.location) continue;
-          const city = resolveCity(row.location);
-          if (!city) continue;
-          const existing = cityMap.get(city);
+          // Prefer the normalized city column; fall back to resolveCity from location
+          let cityKey: string | null = null;
+          if (row.city && row.city.trim()) {
+            cityKey = row.city.trim().toLowerCase();
+          } else if (row.location) {
+            cityKey = resolveCity(row.location);
+          }
+          if (!cityKey) continue;
+
+          const existing = cityMap.get(cityKey);
           if (existing) {
             existing.count++;
             existing.ids.push(row.user_id);
           } else {
-            cityMap.set(city, { count: 1, ids: [row.user_id] });
+            cityMap.set(cityKey, { count: 1, ids: [row.user_id] });
           }
         }
 
         const cleaned: SellerLocation[] = [];
-        for (const [city, info] of cityMap) {
-          const coords = CITY_COORDS[city];
+        for (const [rawCity, info] of cityMap) {
+          // Resolve aliases for coord lookup
+          const coordKey = LOCATION_ALIASES[rawCity] || rawCity;
+          const coords = CITY_COORDS[coordKey];
           if (!coords) continue;
+          const displayName = coordKey.charAt(0).toUpperCase() + coordKey.slice(1);
           cleaned.push({
             id: info.ids[0],
-            city: city.charAt(0).toUpperCase() + city.slice(1),
+            city: displayName,
             country: coords.country,
             lat: coords.lat,
             lng: coords.lng,

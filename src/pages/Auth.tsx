@@ -28,6 +28,8 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [city, setCity] = useState('');
+  const [fullAddress, setFullAddress] = useState('');
   const [location, setLocation] = useState('');
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
   
@@ -159,8 +161,11 @@ const Auth = () => {
       if (!mobileNumber.trim()) {
         throw new Error('Mobile number is required');
       }
-      if (!location.trim()) {
-        throw new Error('Location is required');
+      if (!city.trim()) {
+        throw new Error('City is required');
+      }
+      if (!fullAddress.trim()) {
+        throw new Error('Full address is required');
       }
       
       // Prepare data - ensure empty strings become null for proper database storage
@@ -183,7 +188,9 @@ const Auth = () => {
         p_finance_type: Array.isArray(financeType) && financeType.length > 0 ? financeType : [],
         p_financing_for: Array.isArray(financingFor) && financingFor.length > 0 ? financingFor : [],
         p_target_audience: Array.isArray(targetAudience) && targetAudience.length > 0 ? targetAudience : [],
-        p_government_scheme_support: governmentSchemeSupport || false
+        p_government_scheme_support: governmentSchemeSupport || false,
+        p_city: city?.trim() || null,
+        p_full_address: fullAddress?.trim() || null
       };
 
       console.log('📝 Profile data being sent:', {
@@ -356,6 +363,8 @@ const Auth = () => {
       companyName,
       mobileNumber,
       location,
+      city,
+      fullAddress,
       accountType,
       sellerRoles,
       sellerModelType,
@@ -584,7 +593,9 @@ const Auth = () => {
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
+        p_government_scheme_support: savedData.governmentSchemeSupport || false,
+        p_city: savedData.city?.trim() || null,
+        p_full_address: savedData.fullAddress?.trim() || null
       };
       
       // Use the database function to update the complete profile - returns table
@@ -696,7 +707,9 @@ const Auth = () => {
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
+        p_government_scheme_support: savedData.governmentSchemeSupport || false,
+        p_city: savedData.city?.trim() || null,
+        p_full_address: savedData.fullAddress?.trim() || null
       };
       
       // Use the database function to create the complete profile - returns table
@@ -882,11 +895,20 @@ const Auth = () => {
           return;
         }
 
-        if (!location.trim()) {
+        if (!city.trim()) {
           toast({
             variant: "destructive",
-            title: "Location Required",
-            description: "Please enter your location.",
+            title: "City Required",
+            description: "Please enter your city name.",
+          });
+          return;
+        }
+
+        if (!fullAddress.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Full Address Required",
+            description: "Please enter your full address.",
           });
           return;
         }
@@ -1320,7 +1342,41 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="location">Location *</Label>
+                      <Label htmlFor="city">City *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="city"
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your city (e.g. Chennai, Mumbai)"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullAddress">Full Address *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="fullAddress"
+                          type="text"
+                          value={fullAddress}
+                          onChange={(e) => setFullAddress(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your full address"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location / Region</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -1329,8 +1385,7 @@ const Auth = () => {
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
                           className="pl-10"
-                          placeholder="Enter your location"
-                          required={isSignUp}
+                          placeholder="State or region (optional)"
                         />
                       </div>
                     </div>
