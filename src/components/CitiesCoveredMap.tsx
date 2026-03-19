@@ -21,11 +21,12 @@ interface SellerLocation {
   lng: number;
 }
 
-  return L.divIcon({
+const createPinIcon = () =>
+  L.divIcon({
     className: "custom-pin-marker",
-    html: `<div style="position: relative; width: 24px; height: 34px;">
+    html: `<div style="position:relative;width:24px;height:34px">
       <svg width="24" height="34" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="hsl(221, 83%, 53%)"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="hsl(221,83%,53%)"/>
         <circle cx="12" cy="12" r="5" fill="white"/>
       </svg>
     </div>`,
@@ -33,22 +34,20 @@ interface SellerLocation {
     iconAnchor: [12, 34],
     popupAnchor: [0, -34],
   });
-};
 
 const FitBoundsToMarkers = ({ locations }: { locations: SellerLocation[] }) => {
   const map = useMap();
   useEffect(() => {
     if (!locations.length) return;
-    const bounds = L.latLngBounds(locations.map((loc) => [loc.lat, loc.lng] as [number, number]));
+    const bounds = L.latLngBounds(locations.map((l) => [l.lat, l.lng] as [number, number]));
     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 6 });
   }, [locations, map]);
   return null;
 };
 
-
+// ── City coordinates & aliases ──────────────────────────────────────────────
 
 const CITY_COORDS: Record<string, { lat: number; lng: number; country: string }> = {
-  // India
   bangalore: { lat: 12.9716, lng: 77.5946, country: "India" },
   chennai: { lat: 13.0827, lng: 80.2707, country: "India" },
   mumbai: { lat: 19.076, lng: 72.8777, country: "India" },
@@ -125,83 +124,82 @@ const LOCATION_ALIASES: Record<string, string> = {
 
 const resolveCity = (location: string): string | null => {
   const loc = location.toLowerCase().trim();
-
-  // Direct match
   if (CITY_COORDS[loc]) return loc;
-
-  // Alias match
   if (LOCATION_ALIASES[loc]) return LOCATION_ALIASES[loc];
-
-  // Substring match against known cities
-  const cities = Object.keys(CITY_COORDS);
-  for (const city of cities) {
+  for (const city of Object.keys(CITY_COORDS)) {
     if (loc.includes(city)) return city;
   }
-
-  // Substring match against aliases
   for (const [alias, canonical] of Object.entries(LOCATION_ALIASES)) {
     if (loc.includes(alias)) return canonical;
   }
-
   return null;
 };
+
+// ── Component ───────────────────────────────────────────────────────────────
 
 const CitiesCoveredMap = () => {
   const [locations, setLocations] = useState<SellerLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSellerLocations();
-  }, []);
-
-  const fetchSellerLocations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, location")
-        .eq("registration_complete", true)
-        .not("location", "is", null);
-
-      if (error) throw error;
-
-      const cityMap = new Map<string, { count: number; ids: string[] }>();
-
-      for (const row of data || []) {
-        if (!row.location) continue;
-        const city = resolveCity(row.location);
-        if (!city) continue;
-
-        const existing = cityMap.get(city);
-        if (existing) {
-          existing.count++;
-          existing.ids.push(row.user_id);
-        } else {
-          cityMap.set(city, { count: 1, ids: [row.user_id] });
-        }
-      }
-
-      const cleaned: SellerLocation[] = [];
-      for (const [city, info] of cityMap) {
-        const coords = CITY_COORDS[city];
-        if (!coords) continue;
-        cleaned.push({
-          id: info.ids[0],
-          city: city.charAt(0).toUpperCase() + city.slice(1),
-          country: coords.country,
-          lat: coords.lat,
-          lng: coords.lng,
-        });
-      }
-
-      setLocations(cleaned);
-    } catch (err) {
-      console.error("Error fetching seller locations:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
   const totalSellers = useMemo(() => locations.length, [locations]);
   const pinIcon = useMemo(() => createPinIcon(), []);
+  const cityCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const loc of locations) {
+      const key = `${loc.city}, ${loc.country}`;
+      m.set(key, (m.get(key) || 0) + 1);
+    }
+    return Array.from(m.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [locations]);
+
+  useEffect(() => {
+    const fetchSellerLocations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("user_id, location")
+          .eq("registration_complete", true)
+          .not("location", "is", null);
+
+        if (error) throw error;
+
+        const cityMap = new Map<string, { count: number; ids: string[] }>();
+        for (const row of data || []) {
+          if (!row.location) continue;
+          const city = resolveCity(row.location);
+          if (!city) continue;
+          const existing = cityMap.get(city);
+          if (existing) {
+            existing.count++;
+            existing.ids.push(row.user_id);
+          } else {
+            cityMap.set(city, { count: 1, ids: [row.user_id] });
+          }
+        }
+
+        const cleaned: SellerLocation[] = [];
+        for (const [city, info] of cityMap) {
+          const coords = CITY_COORDS[city];
+          if (!coords) continue;
+          cleaned.push({
+            id: info.ids[0],
+            city: city.charAt(0).toUpperCase() + city.slice(1),
+            country: coords.country,
+            lat: coords.lat,
+            lng: coords.lng,
+          });
+        }
+        setLocations(cleaned);
+      } catch (err) {
+        console.error("Error fetching seller locations:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSellerLocations();
+  }, []);
 
   if (loading) {
     return (
@@ -216,32 +214,14 @@ const CitiesCoveredMap = () => {
 
   if (!locations.length) return null;
 
-  // For the city tags, we can aggregate by city + country
-  const cityCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const loc of locations) {
-      const cityLabel = loc.city?.trim();
-      const countryLabel = loc.country?.trim();
-      const key = cityLabel && countryLabel ? `${cityLabel}, ${countryLabel}` : cityLabel || countryLabel || "Unknown";
-
-      map.set(key, (map.get(key) || 0) + 1);
-    }
-
-    return Array.from(map.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [locations]);
-
   return (
     <section className="py-20 bg-muted/20 relative overflow-hidden">
-      {/* Subtle background decoration */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold mb-5 tracking-wide uppercase">
             <MapPin className="w-4 h-4" />
@@ -258,7 +238,6 @@ const CitiesCoveredMap = () => {
           </p>
         </div>
 
-        {/* Stats Row */}
         <div className="flex flex-wrap items-center justify-center gap-8 mb-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -281,28 +260,19 @@ const CitiesCoveredMap = () => {
           </div>
         </div>
 
-        {/* Map */}
         <div className="rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
-          <MapContainer
-            center={[20, 0]} // fallback world view; FitBoundsToMarkers will override
-            zoom={2}
-            scrollWheelZoom={false}
-            style={{ height: "100%", width: "100%" }}
-            className="z-0"
-          >
+          <MapContainer center={[20, 0]} zoom={2} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }} className="z-0">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-
             <FitBoundsToMarkers locations={locations} />
-
             {locations.map((loc) => (
               <Marker key={loc.id} position={[loc.lat, loc.lng]} icon={pinIcon}>
                 <Popup>
                   <div className="text-center px-1 py-0.5">
-                    <p className="font-bold text-sm text-foreground">{loc.city || "Seller Location"}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{loc.country || "Country not specified"}</p>
+                    <p className="font-bold text-sm text-foreground">{loc.city}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{loc.country}</p>
                   </div>
                 </Popup>
               </Marker>
@@ -310,7 +280,6 @@ const CitiesCoveredMap = () => {
           </MapContainer>
         </div>
 
-        {/* Top city tags */}
         <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
           {cityCounts.slice(0, 14).map((city) => (
             <span
