@@ -93,6 +93,7 @@ const Robots = () => {
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
   const [aiDialogData, setAiDialogData] = useState<any | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [quoteRobot, setQuoteRobot] = useState<any>(null);
 
   // Fixed filter options - Business-logical structure
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([
