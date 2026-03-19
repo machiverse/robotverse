@@ -104,12 +104,14 @@ const CitiesCoveredMap = () => {
       if (error) throw error;
 
       const locationMap: Record<string, number> = {};
+      const allKeys = [...Object.keys(CITY_COORDS), ...Object.keys(CITY_ALIASES)];
       (data || []).forEach((p) => {
         if (!p.location) return;
         const loc = p.location.trim().toLowerCase();
-        for (const city of Object.keys(CITY_COORDS)) {
-          if (loc.includes(city)) {
-            locationMap[city] = (locationMap[city] || 0) + 1;
+        for (const key of allKeys) {
+          if (loc.includes(key)) {
+            const canonical = CITY_ALIASES[key] || key;
+            locationMap[canonical] = (locationMap[canonical] || 0) + 1;
             return;
           }
         }
