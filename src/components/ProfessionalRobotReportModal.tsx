@@ -56,17 +56,28 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
     setLoading(true);
     setError(null);
     try {
-      const res = await supabase.functions.invoke('roboverse-robot-report', { 
+      const res = await supabase.functions.invoke('roboverse-robot-report', {
         body: { robotId: robotData.id }
       });
-      
+
       if (res.error) {
         console.error('Report fetch error:', res.error);
+
+        const responseContext = (res.error as { context?: Response })?.context;
+        if (responseContext) {
+          try {
+            const errorBody = await responseContext.json();
+            throw new Error(errorBody?.error || res.error.message || 'Failed to fetch report');
+          } catch {
+            throw new Error(res.error.message || 'Failed to fetch report');
+          }
+        }
+
         throw new Error(res.error.message || 'Failed to fetch report');
       }
-      
+
       setReportData(res.data);
-      
+
       if (res.data?.cached) {
         toast({
           title: "Report Loaded",
