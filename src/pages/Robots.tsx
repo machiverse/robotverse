@@ -1201,7 +1201,7 @@ const Robots = () => {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/robots/${robot.id}?quote=true`);
+                                    setQuoteRobot(robot);
                                   }}
                                 >
                                   <FileText className="w-3 h-3 mr-1" />
