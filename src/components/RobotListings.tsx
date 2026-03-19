@@ -30,6 +30,7 @@ import {
   CheckCircle,
   Search,
   Loader2,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
