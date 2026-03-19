@@ -38,12 +38,7 @@ const FitBoundsToMarkers = ({ locations }: { locations: SellerLocation[] }) => {
   return null;
 };
 
-  id: string;
-  city: string;
-  country: string;
-  lat: number;
-  lng: number;
-}
+
 
 const CITY_COORDS: Record<string, { lat: number; lng: number; country: string }> = {
   // India
