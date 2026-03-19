@@ -1194,14 +1194,17 @@ const Robots = () => {
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
                                 </Button>
-                                <ChatButton
-                                  otherUserId={robot.seller_id}
-                                  itemId={robot.id}
-                                  itemType="robot"
-                                  itemName={robot.name}
+                                <Button
                                   variant="outline"
                                   size="sm"
-                                />
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/robots/${robot.id}?quote=true`);
+                                  }}
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Get Quote
+                                </Button>
                               </div>
                               <Button
                                 variant="outline"
