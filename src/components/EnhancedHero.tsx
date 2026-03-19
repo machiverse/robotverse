@@ -41,7 +41,7 @@ const EnhancedHero = () => {
       try {
         setLoading(true);
 
-        // Fetch robot_type and location fields for all robots (add .limit() if dataset is very large)
+        // Fetch robot_type and location fields for all robots
         const { data: robotsData, error } = await supabase
           .from("robots")
           .select("robot_type, location")
@@ -55,16 +55,36 @@ const EnhancedHero = () => {
           new Set(robotsData?.map((r) => r.robot_type).filter(Boolean))
         );
 
-        // Extract unique locations (only take first segment before comma, trimmed)
-        const uniqueLocationsSet = new Set<string>();
+        // Fetch unique cities from profiles (normalized, case-insensitive)
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("city")
+          .eq("registration_complete", true)
+          .not("city", "is", null);
+
+        const citySet = new Set<string>();
+        if (!profilesError && profilesData) {
+          profilesData.forEach((p) => {
+            if (p.city && p.city.trim()) {
+              // Normalize: title case
+              const normalized = p.city.trim().toLowerCase();
+              const titleCase = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+              citySet.add(titleCase);
+            }
+          });
+        }
+
+        // Also extract from robot locations as fallback
         robotsData?.forEach((r) => {
           if (r.location) {
-            uniqueLocationsSet.add(r.location.split(",")[0].trim());
+            const normalized = r.location.split(",")[0].trim().toLowerCase();
+            const titleCase = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+            citySet.add(titleCase);
           }
         });
 
         setCategories(["All Categories", ...uniqueTypes]);
-        setLocations(["All Locations", ...Array.from(uniqueLocationsSet)]);
+        setLocations(["All Locations", ...Array.from(citySet).sort()]);
       } catch (error) {
         console.error("Failed to fetch filter data:", error);
         // fallback to static defaults on error
