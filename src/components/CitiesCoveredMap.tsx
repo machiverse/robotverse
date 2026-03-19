@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MapPin } from "lucide-react";
+import { Loader2, MapPin, Building2, Users } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 // Fix default marker icon issue with bundlers
@@ -13,7 +13,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-// Known Indian city coordinates
 const CITY_COORDS: Record<string, [number, number]> = {
   chennai: [13.0827, 80.2707],
   coimbatore: [11.0168, 76.9558],
@@ -61,26 +60,22 @@ interface CityData {
   sellerCount: number;
 }
 
-const createCustomIcon = (count: number) => {
-  const size = count >= 10 ? 40 : count >= 5 ? 34 : 28;
+const createPinIcon = () => {
   return L.divIcon({
-    className: "custom-marker",
+    className: "custom-pin-marker",
     html: `<div style="
-      background: linear-gradient(135deg, hsl(221, 83%, 53%), hsl(221, 83%, 40%));
-      color: white;
-      border-radius: 50%;
-      width: ${size}px;
-      height: ${size}px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: ${count >= 10 ? 13 : 11}px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      border: 2px solid white;
-    ">${count}</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+      position: relative;
+      width: 24px;
+      height: 34px;
+    ">
+      <svg width="24" height="34" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="hsl(221, 83%, 53%)"/>
+        <circle cx="12" cy="12" r="5" fill="white"/>
+      </svg>
+    </div>`,
+    iconSize: [24, 34],
+    iconAnchor: [12, 34],
+    popupAnchor: [0, -34],
   });
 };
 
@@ -102,12 +97,10 @@ const CitiesCoveredMap = () => {
 
       if (error) throw error;
 
-      // Normalize and group locations
       const locationMap: Record<string, number> = {};
       (data || []).forEach((p) => {
         if (!p.location) return;
         const loc = p.location.trim().toLowerCase();
-        // Try to match to a known city
         for (const city of Object.keys(CITY_COORDS)) {
           if (loc.includes(city)) {
             locationMap[city] = (locationMap[city] || 0) + 1;
@@ -131,13 +124,14 @@ const CitiesCoveredMap = () => {
   };
 
   const totalSellers = useMemo(() => cityData.reduce((s, c) => s + c.sellerCount, 0), [cityData]);
+  const pinIcon = useMemo(() => createPinIcon(), []);
 
   if (loading) {
     return (
-      <section className="py-16 bg-muted/30">
+      <section className="py-20 bg-muted/20">
         <div className="container mx-auto px-4 flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="ml-2 text-muted-foreground">Loading map...</span>
+          <span className="ml-3 text-muted-foreground font-medium">Loading coverage map...</span>
         </div>
       </section>
     );
@@ -146,24 +140,56 @@ const CitiesCoveredMap = () => {
   if (cityData.length === 0) return null;
 
   return (
-    <section className="py-16 bg-muted/30">
-      <div className="container mx-auto px-4">
+    <section className="py-20 bg-muted/20 relative overflow-hidden">
+      {/* Subtle background decoration */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold mb-5 tracking-wide uppercase">
             <MapPin className="w-4 h-4" />
-            Cities Covered
+            Pan-India Coverage
           </div>
-          <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            We're Across India
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
+            Serving Across{" "}
+            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              India
+            </span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            {totalSellers}+ verified sellers across {cityData.length} cities
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+            Connecting buyers and sellers of industrial robots in major industrial hubs across the nation
           </p>
         </div>
 
+        {/* Stats Row */}
+        <div className="flex flex-wrap items-center justify-center gap-8 mb-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{cityData.length}+</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Cities</p>
+            </div>
+          </div>
+          <div className="w-px h-10 bg-border hidden sm:block" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{totalSellers}+</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Verified Sellers</p>
+            </div>
+          </div>
+        </div>
+
         {/* Map */}
-        <div className="rounded-2xl overflow-hidden border border-border shadow-lg" style={{ height: 480 }}>
+        <div className="rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
           <MapContainer
             center={[20.5937, 78.9629]}
             zoom={5}
@@ -176,11 +202,13 @@ const CitiesCoveredMap = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {cityData.map((city) => (
-              <Marker key={city.name} position={city.coords} icon={createCustomIcon(city.sellerCount)}>
+              <Marker key={city.name} position={city.coords} icon={pinIcon}>
                 <Popup>
-                  <div className="text-center p-1">
-                    <p className="font-bold text-sm">{city.name}</p>
-                    <p className="text-xs text-gray-600">{city.sellerCount} seller{city.sellerCount > 1 ? "s" : ""}</p>
+                  <div className="text-center px-1 py-0.5">
+                    <p className="font-bold text-sm text-foreground">{city.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {city.sellerCount} verified seller{city.sellerCount > 1 ? "s" : ""}
+                    </p>
                   </div>
                 </Popup>
               </Marker>
@@ -188,14 +216,15 @@ const CitiesCoveredMap = () => {
           </MapContainer>
         </div>
 
-        {/* City chips */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
-          {cityData.slice(0, 12).map((city) => (
+        {/* City tags */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
+          {cityData.slice(0, 14).map((city) => (
             <span
               key={city.name}
-              className="px-3 py-1.5 rounded-full bg-card border border-border text-sm font-medium text-foreground"
+              className="px-4 py-2 rounded-full bg-card border border-border text-sm font-medium text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors cursor-default"
             >
-              {city.name} ({city.sellerCount})
+              <MapPin className="w-3 h-3 inline-block mr-1.5 text-primary -mt-0.5" />
+              {city.name}
             </span>
           ))}
         </div>
