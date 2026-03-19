@@ -38,6 +38,8 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
     account_type: "buyer",
     user_roles: ["buyer"] as string[],
     location: "",
+    city: "",
+    full_address: "",
     password: "",
     status: "active",
     seller_model_type: "subscription" as "subscription" | "commission",
