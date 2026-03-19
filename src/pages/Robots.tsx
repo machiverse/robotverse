@@ -16,7 +16,7 @@ import {
   TrendingUp,
   Eye,
   Share2,
-  MessageCircle,
+  FileText,
   Brain,
   MapPin,
   Building,
@@ -30,7 +30,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1083,14 +1083,17 @@ const Robots = () => {
                                   )}
                                   {isSelected(robot.id) ? "Selected" : "Compare"}
                                 </Button>
-                                <ChatButton
-                                  otherUserId={robot.seller_id}
-                                  itemId={robot.id}
-                                  itemType="robot"
-                                  itemName={robot.name}
+                                <Button
                                   variant="outline"
                                   size="sm"
-                                />
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/robots/${robot.id}?quote=true`);
+                                  }}
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Get Quote
+                                </Button>
                               </div>
                               <Button
                                 variant="outline"
@@ -1191,14 +1194,17 @@ const Robots = () => {
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
                                 </Button>
-                                <ChatButton
-                                  otherUserId={robot.seller_id}
-                                  itemId={robot.id}
-                                  itemType="robot"
-                                  itemName={robot.name}
+                                <Button
                                   variant="outline"
                                   size="sm"
-                                />
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/robots/${robot.id}?quote=true`);
+                                  }}
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Get Quote
+                                </Button>
                               </div>
                               <Button
                                 variant="outline"
