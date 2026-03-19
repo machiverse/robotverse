@@ -30,6 +30,7 @@ const Auth = () => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [city, setCity] = useState('');
   const [fullAddress, setFullAddress] = useState('');
+  const [pincode, setPincode] = useState('');
   const [location, setLocation] = useState('');
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
   
