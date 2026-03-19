@@ -16,7 +16,7 @@ import {
   TrendingUp,
   Eye,
   Share2,
-  MessageCircle,
+  FileText,
   Brain,
   MapPin,
   Building,
