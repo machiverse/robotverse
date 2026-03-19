@@ -70,7 +70,7 @@ import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
