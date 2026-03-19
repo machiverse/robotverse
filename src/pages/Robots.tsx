@@ -1240,6 +1240,13 @@ const Robots = () => {
       </div>
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="robot" />
+      {quoteRobot && (
+        <RobotQuoteModal
+          isOpen={!!quoteRobot}
+          onClose={() => setQuoteRobot(null)}
+          robot={quoteRobot}
+        />
+      )}
     </div>
   );
 };
