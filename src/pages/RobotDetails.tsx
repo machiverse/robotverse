@@ -778,15 +778,15 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     You are the Seller
                   </Button>
                 ) : (
-                  <ChatButton
-                    otherUserId={robot.seller_id}
-                    itemId={robot.id}
-                    itemType="robot"
-                    itemName={robot.name}
+                  <Button
                     variant="default"
                     className="w-full h-10 bg-primary hover:bg-primary/90 shadow-md"
                     size="default"
-                  />
+                    onClick={() => setShowQuoteModal(true)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Get Quote
+                  </Button>
                 )}
 
                 <div className="grid grid-cols-3 gap-2">
