@@ -203,6 +203,7 @@ const RobotDetails = () => {
 
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMarketAnalysis, setShowMarketAnalysis] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
 const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showRobotQuoteModal, setShowRobotQuoteModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
