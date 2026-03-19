@@ -1070,7 +1070,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                             <h4 className="font-semibold mb-1">{part.name || part.part_name}</h4>
                             <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{part.description || "No description"}</p>
                             {part.price && <p className="text-lg font-bold text-primary mb-3">{part.currency === "USD" ? "$" : "₹"}{part.price.toLocaleString()}</p>}
-                            <ChatButton otherUserId={part.seller_id} itemId={part.id} itemType="spare_part" itemName={part.name || part.part_name} variant="outline" className="w-full" size="sm" />
+                            <Button variant="outline" className="w-full" size="sm" onClick={() => navigate(`/parts/${part.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
                       ))}
