@@ -16,6 +16,7 @@ L.Icon.Default.mergeOptions({
 // Canonical city entries — each unique city appears once.
 // CITY_ALIASES maps alternate spellings to the canonical name.
 const CITY_COORDS: Record<string, [number, number]> = {
+  // India
   chennai: [13.0827, 80.2707],
   coimbatore: [11.0168, 76.9558],
   pune: [18.5204, 73.8567],
@@ -49,15 +50,38 @@ const CITY_COORDS: Record<string, [number, number]> = {
   visakhapatnam: [17.6868, 83.2185],
   madurai: [9.9252, 78.1198],
   trichy: [10.7905, 78.7047],
+  // Germany
+  berlin: [52.52, 13.405],
+  munich: [48.1351, 11.582],
+  frankfurt: [50.1109, 8.6821],
+  hamburg: [53.5511, 9.9937],
+  stuttgart: [48.7758, 9.1829],
+  dusseldorf: [51.2277, 6.7735],
+  cologne: [50.9375, 6.9603],
+  nuremberg: [49.4521, 11.0767],
+  // China
+  shanghai: [31.2304, 121.4737],
+  beijing: [39.9042, 116.4074],
+  shenzhen: [22.5431, 114.0579],
+  guangzhou: [23.1291, 113.2644],
+  dongguan: [23.0489, 113.7447],
+  suzhou: [31.2989, 120.5853],
+  hangzhou: [30.2741, 120.1551],
+  chengdu: [30.5728, 104.0668],
+  tianjin: [39.3434, 117.3616],
+  wuhan: [30.5928, 114.3055],
 };
 
-// Aliases that map to a canonical city above
 const CITY_ALIASES: Record<string, string> = {
   bengaluru: "bangalore",
   "delhi ncr": "delhi",
   gujarat: "ahmedabad",
   "gurgaon & china": "gurgaon",
   "uttar pradesh": "lucknow",
+  köln: "cologne",
+  münchen: "munich",
+  nürnberg: "nuremberg",
+  "guangdong": "guangzhou",
 };
 
 interface CityData {
@@ -160,16 +184,16 @@ const CitiesCoveredMap = () => {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold mb-5 tracking-wide uppercase">
             <MapPin className="w-4 h-4" />
-            Pan-India Coverage
+            Global Coverage
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
             Serving Across{" "}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              India
+              India, Germany & China
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Connecting buyers and sellers of industrial robots in major industrial hubs across the nation
+            Connecting buyers and sellers of industrial robots in major industrial hubs worldwide
           </p>
         </div>
 
@@ -199,8 +223,8 @@ const CitiesCoveredMap = () => {
         {/* Map */}
         <div className="rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
           <MapContainer
-            center={[20.5937, 78.9629]}
-            zoom={5}
+            center={[30, 78]}
+            zoom={3}
             scrollWheelZoom={false}
             style={{ height: "100%", width: "100%" }}
             className="z-0"
