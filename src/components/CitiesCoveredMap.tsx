@@ -223,8 +223,8 @@ const CitiesCoveredMap = () => {
         {/* Map */}
         <div className="rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
           <MapContainer
-            center={[20.5937, 78.9629]}
-            zoom={5}
+            center={[30, 78]}
+            zoom={3}
             scrollWheelZoom={false}
             style={{ height: "100%", width: "100%" }}
             className="z-0"
