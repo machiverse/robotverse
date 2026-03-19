@@ -1330,7 +1330,41 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="location">Location *</Label>
+                      <Label htmlFor="city">City *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="city"
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your city (e.g. Chennai, Mumbai)"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullAddress">Full Address *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="fullAddress"
+                          type="text"
+                          value={fullAddress}
+                          onChange={(e) => setFullAddress(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter your full address"
+                          required={isSignUp}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location / Region</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -1339,8 +1373,7 @@ const Auth = () => {
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
                           className="pl-10"
-                          placeholder="Enter your location"
-                          required={isSignUp}
+                          placeholder="State or region (optional)"
                         />
                       </div>
                     </div>
