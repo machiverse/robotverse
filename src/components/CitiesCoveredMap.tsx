@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, MapPin, Building2, Users } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import "leaflet/dist/leaflet.css";
 
 // Fix default marker icon issue with bundlers
@@ -13,10 +14,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-interface SellerLocation {
-  id: string;
+interface CityData {
   city: string;
-  country: string;
+  count: number;
   lat: number;
   lng: number;
 }
@@ -35,7 +35,7 @@ const createPinIcon = () =>
     popupAnchor: [0, -34],
   });
 
-const FitBoundsToMarkers = ({ locations }: { locations: SellerLocation[] }) => {
+const FitBoundsToMarkers = ({ locations }: { locations: CityData[] }) => {
   const map = useMap();
   useEffect(() => {
     if (!locations.length) return;
@@ -45,53 +45,55 @@ const FitBoundsToMarkers = ({ locations }: { locations: SellerLocation[] }) => {
   return null;
 };
 
-// ── City coordinates & aliases ──────────────────────────────────────────────
-
-const CITY_COORDS: Record<string, { lat: number; lng: number; country: string }> = {
-  bangalore: { lat: 12.9716, lng: 77.5946, country: "India" },
-  chennai: { lat: 13.0827, lng: 80.2707, country: "India" },
-  mumbai: { lat: 19.076, lng: 72.8777, country: "India" },
-  delhi: { lat: 28.6139, lng: 77.209, country: "India" },
-  pune: { lat: 18.5204, lng: 73.8567, country: "India" },
-  hyderabad: { lat: 17.385, lng: 78.4867, country: "India" },
-  ahmedabad: { lat: 23.0225, lng: 72.5714, country: "India" },
-  coimbatore: { lat: 11.0168, lng: 76.9558, country: "India" },
-  kolkata: { lat: 22.5726, lng: 88.3639, country: "India" },
-  jaipur: { lat: 26.9124, lng: 75.7873, country: "India" },
-  lucknow: { lat: 26.8467, lng: 80.9462, country: "India" },
-  chandigarh: { lat: 30.7333, lng: 76.7794, country: "India" },
-  noida: { lat: 28.5355, lng: 77.391, country: "India" },
-  gurgaon: { lat: 28.4595, lng: 77.0266, country: "India" },
-  ghaziabad: { lat: 28.6692, lng: 77.4538, country: "India" },
-  indore: { lat: 22.7196, lng: 75.8577, country: "India" },
-  nagpur: { lat: 21.1458, lng: 79.0882, country: "India" },
-  rajkot: { lat: 22.3039, lng: 70.8022, country: "India" },
-  vadodara: { lat: 22.3072, lng: 73.1812, country: "India" },
-  surat: { lat: 21.1702, lng: 72.8311, country: "India" },
-  nashik: { lat: 19.9975, lng: 73.7898, country: "India" },
-  madurai: { lat: 9.9252, lng: 78.1198, country: "India" },
-  salem: { lat: 11.6643, lng: 78.146, country: "India" },
-  pondicherry: { lat: 11.9416, lng: 79.8083, country: "India" },
-  mohali: { lat: 30.7046, lng: 76.7179, country: "India" },
-  jalandhar: { lat: 31.326, lng: 75.5762, country: "India" },
-  dharwad: { lat: 15.4589, lng: 75.0078, country: "India" },
-  krishnagiri: { lat: 12.5186, lng: 78.213, country: "India" },
-  kumbakonam: { lat: 10.9617, lng: 79.3881, country: "India" },
-  mayiladuthurai: { lat: 11.1018, lng: 79.6491, country: "India" },
-  bhavnagar: { lat: 21.7645, lng: 72.1519, country: "India" },
-  burdwan: { lat: 23.2324, lng: 87.8615, country: "India" },
-  auroville: { lat: 12.0053, lng: 79.8094, country: "India" },
-  // Germany
-  berlin: { lat: 52.52, lng: 13.405, country: "Germany" },
-  munich: { lat: 48.1351, lng: 11.582, country: "Germany" },
-  frankfurt: { lat: 50.1109, lng: 8.6821, country: "Germany" },
-  stuttgart: { lat: 48.7758, lng: 9.1829, country: "Germany" },
-  // China
-  shanghai: { lat: 31.2304, lng: 121.4737, country: "China" },
-  beijing: { lat: 39.9042, lng: 116.4074, country: "China" },
-  shenzhen: { lat: 22.5431, lng: 114.0579, country: "China" },
-  // Romania
-  bucharest: { lat: 44.4268, lng: 26.1025, country: "Romania" },
+// India-only city coordinates
+const INDIA_CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  bangalore: { lat: 12.9716, lng: 77.5946 },
+  chennai: { lat: 13.0827, lng: 80.2707 },
+  mumbai: { lat: 19.076, lng: 72.8777 },
+  delhi: { lat: 28.6139, lng: 77.209 },
+  pune: { lat: 18.5204, lng: 73.8567 },
+  hyderabad: { lat: 17.385, lng: 78.4867 },
+  ahmedabad: { lat: 23.0225, lng: 72.5714 },
+  coimbatore: { lat: 11.0168, lng: 76.9558 },
+  kolkata: { lat: 22.5726, lng: 88.3639 },
+  jaipur: { lat: 26.9124, lng: 75.7873 },
+  lucknow: { lat: 26.8467, lng: 80.9462 },
+  chandigarh: { lat: 30.7333, lng: 76.7794 },
+  noida: { lat: 28.5355, lng: 77.391 },
+  gurgaon: { lat: 28.4595, lng: 77.0266 },
+  ghaziabad: { lat: 28.6692, lng: 77.4538 },
+  indore: { lat: 22.7196, lng: 75.8577 },
+  nagpur: { lat: 21.1458, lng: 79.0882 },
+  rajkot: { lat: 22.3039, lng: 70.8022 },
+  vadodara: { lat: 22.3072, lng: 73.1812 },
+  surat: { lat: 21.1702, lng: 72.8311 },
+  nashik: { lat: 19.9975, lng: 73.7898 },
+  madurai: { lat: 9.9252, lng: 78.1198 },
+  salem: { lat: 11.6643, lng: 78.146 },
+  pondicherry: { lat: 11.9416, lng: 79.8083 },
+  mohali: { lat: 30.7046, lng: 76.7179 },
+  jalandhar: { lat: 31.326, lng: 75.5762 },
+  dharwad: { lat: 15.4589, lng: 75.0078 },
+  krishnagiri: { lat: 12.5186, lng: 78.213 },
+  kumbakonam: { lat: 10.9617, lng: 79.3881 },
+  mayiladuthurai: { lat: 11.1018, lng: 79.6491 },
+  bhavnagar: { lat: 21.7645, lng: 72.1519 },
+  burdwan: { lat: 23.2324, lng: 87.8615 },
+  auroville: { lat: 12.0053, lng: 79.8094 },
+  visakhapatnam: { lat: 17.6868, lng: 83.2185 },
+  thiruvananthapuram: { lat: 8.5241, lng: 76.9366 },
+  kochi: { lat: 9.9312, lng: 76.2673 },
+  bhopal: { lat: 23.2599, lng: 77.4126 },
+  patna: { lat: 25.6093, lng: 85.1376 },
+  ranchi: { lat: 23.3441, lng: 85.3096 },
+  ludhiana: { lat: 30.901, lng: 75.8573 },
+  agra: { lat: 27.1767, lng: 78.0081 },
+  varanasi: { lat: 25.3176, lng: 82.9739 },
+  mangalore: { lat: 12.9141, lng: 74.856 },
+  mysore: { lat: 12.2958, lng: 76.6394 },
+  tiruchirappalli: { lat: 10.7905, lng: 78.7047 },
+  erode: { lat: 11.341, lng: 77.7172 },
+  hosur: { lat: 12.7409, lng: 77.8253 },
 };
 
 const LOCATION_ALIASES: Record<string, string> = {
@@ -114,19 +116,18 @@ const LOCATION_ALIASES: Record<string, string> = {
   "uttar pradesh": "noida",
   "madhya pradesh": "indore",
   haryana: "gurgaon",
-  kerala: "bangalore",
+  kerala: "kochi",
   "gurgaon & china": "gurgaon",
-  "europe romania bucharest": "bucharest",
-  germany: "berlin",
   india: "delhi",
   "malegaon, nashik, maharashtra, ind": "nashik",
+  trichy: "tiruchirappalli",
 };
 
 const resolveCity = (location: string): string | null => {
   const loc = location.toLowerCase().trim();
-  if (CITY_COORDS[loc]) return loc;
+  if (INDIA_CITY_COORDS[loc]) return loc;
   if (LOCATION_ALIASES[loc]) return LOCATION_ALIASES[loc];
-  for (const city of Object.keys(CITY_COORDS)) {
+  for (const city of Object.keys(INDIA_CITY_COORDS)) {
     if (loc.includes(city)) return city;
   }
   for (const [alias, canonical] of Object.entries(LOCATION_ALIASES)) {
@@ -135,27 +136,15 @@ const resolveCity = (location: string): string | null => {
   return null;
 };
 
-// ── Component ───────────────────────────────────────────────────────────────
-
 const CitiesCoveredMap = () => {
-  const [locations, setLocations] = useState<SellerLocation[]>([]);
+  const [cityData, setCityData] = useState<CityData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const totalSellers = useMemo(() => locations.length, [locations]);
   const pinIcon = useMemo(() => createPinIcon(), []);
-  const cityCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const loc of locations) {
-      const key = `${loc.city}, ${loc.country}`;
-      m.set(key, (m.get(key) || 0) + 1);
-    }
-    return Array.from(m.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [locations]);
+  const totalSellers = useMemo(() => cityData.reduce((sum, c) => sum + c.count, 0), [cityData]);
 
   useEffect(() => {
-    const fetchSellerLocations = async () => {
+    const fetchCities = async () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
@@ -164,9 +153,8 @@ const CitiesCoveredMap = () => {
 
         if (error) throw error;
 
-        const cityMap = new Map<string, { count: number; ids: string[] }>();
+        const cityMap = new Map<string, number>();
         for (const row of data || []) {
-          // Prefer the normalized city column; fall back to resolveCity from location
           let cityKey: string | null = null;
           if (row.city && row.city.trim()) {
             cityKey = row.city.trim().toLowerCase();
@@ -174,39 +162,31 @@ const CitiesCoveredMap = () => {
             cityKey = resolveCity(row.location);
           }
           if (!cityKey) continue;
-
-          const existing = cityMap.get(cityKey);
-          if (existing) {
-            existing.count++;
-            existing.ids.push(row.user_id);
-          } else {
-            cityMap.set(cityKey, { count: 1, ids: [row.user_id] });
-          }
+          // Resolve aliases
+          const canonical = LOCATION_ALIASES[cityKey] || cityKey;
+          if (!INDIA_CITY_COORDS[canonical]) continue; // India only
+          cityMap.set(canonical, (cityMap.get(canonical) || 0) + 1);
         }
 
-        const cleaned: SellerLocation[] = [];
-        for (const [rawCity, info] of cityMap) {
-          // Resolve aliases for coord lookup
-          const coordKey = LOCATION_ALIASES[rawCity] || rawCity;
-          const coords = CITY_COORDS[coordKey];
-          if (!coords) continue;
-          const displayName = coordKey.charAt(0).toUpperCase() + coordKey.slice(1);
-          cleaned.push({
-            id: info.ids[0],
-            city: displayName,
-            country: coords.country,
+        const result: CityData[] = [];
+        for (const [key, count] of cityMap) {
+          const coords = INDIA_CITY_COORDS[key];
+          result.push({
+            city: key.charAt(0).toUpperCase() + key.slice(1),
+            count,
             lat: coords.lat,
             lng: coords.lng,
           });
         }
-        setLocations(cleaned);
+        result.sort((a, b) => b.count - a.count);
+        setCityData(result);
       } catch (err) {
         console.error("Error fetching seller locations:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchSellerLocations();
+    fetchCities();
   }, []);
 
   if (loading) {
@@ -220,7 +200,7 @@ const CitiesCoveredMap = () => {
     );
   }
 
-  if (!locations.length) return null;
+  if (!cityData.length) return null;
 
   return (
     <section className="py-20 bg-muted/20 relative overflow-hidden">
@@ -233,26 +213,27 @@ const CitiesCoveredMap = () => {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold mb-5 tracking-wide uppercase">
             <MapPin className="w-4 h-4" />
-            Global Coverage
+            India Coverage
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
             Serving Industrial Hubs{" "}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Across the Globe
+              Across India
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Connecting buyers and sellers of industrial robots in key manufacturing regions worldwide
+            Connecting buyers and sellers of industrial robots in key manufacturing cities across India
           </p>
         </div>
 
+        {/* Stats */}
         <div className="flex flex-wrap items-center justify-center gap-8 mb-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Building2 className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{cityCounts.length}+</p>
+              <p className="text-2xl font-bold text-foreground">{cityData.length}+</p>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Cities</p>
             </div>
           </div>
@@ -268,36 +249,75 @@ const CitiesCoveredMap = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
-          <MapContainer center={[20, 0]} zoom={2} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }} className="z-0">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <FitBoundsToMarkers locations={locations} />
-            {locations.map((loc) => (
-              <Marker key={loc.id} position={[loc.lat, loc.lng]} icon={pinIcon}>
-                <Popup>
-                  <div className="text-center px-1 py-0.5">
-                    <p className="font-bold text-sm text-foreground">{loc.city}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{loc.country}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
-          {cityCounts.slice(0, 14).map((city) => (
-            <span
-              key={city.name}
-              className="px-4 py-2 rounded-full bg-card border border-border text-sm font-medium text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors cursor-default"
+        {/* Map + Table side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Map - 3 columns */}
+          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
+            <MapContainer
+              center={[22.5, 78.9]}
+              zoom={5}
+              scrollWheelZoom={false}
+              style={{ height: "100%", width: "100%" }}
+              className="z-0"
+              maxBounds={[[6, 68], [37, 98]]}
+              minZoom={4}
             >
-              <MapPin className="w-3 h-3 inline-block mr-1.5 text-primary -mt-0.5" />
-              {city.name} • {city.count}
-            </span>
-          ))}
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <FitBoundsToMarkers locations={cityData} />
+              {cityData.map((loc) => (
+                <Marker key={loc.city} position={[loc.lat, loc.lng]} icon={pinIcon}>
+                  <Popup>
+                    <div className="text-center px-1 py-0.5">
+                      <p className="font-bold text-sm">{loc.city}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{loc.count} seller{loc.count > 1 ? 's' : ''}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          </div>
+
+          {/* Cities Table - 2 columns */}
+          <div className="lg:col-span-2 rounded-2xl border border-border shadow-xl bg-card overflow-hidden" style={{ height: 500 }}>
+            <div className="p-4 border-b border-border bg-primary/5">
+              <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary" />
+                Cities Covered ({cityData.length})
+              </h3>
+            </div>
+            <div className="overflow-auto" style={{ height: 'calc(500px - 60px)' }}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide">#</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide">City</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-right">Sellers</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cityData.map((city, index) => (
+                    <TableRow key={city.city} className="hover:bg-primary/5">
+                      <TableCell className="text-muted-foreground text-sm font-mono">{index + 1}</TableCell>
+                      <TableCell className="font-medium text-foreground text-sm">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          {city.city}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                          {city.count}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
       </div>
     </section>

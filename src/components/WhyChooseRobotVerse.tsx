@@ -83,17 +83,20 @@ const WhyChooseRobotVerse = () => {
       const robotCategories = robotTypes.size;
       const serviceProviders = profiles.filter(p => p.user_type === 'service_provider').length + services.length;
       
-      const allLocations = [
-        ...robots.map(r => r.location),
-        ...services.map(s => s.location)
-      ].filter(Boolean);
+      // Fetch unique cities from profiles table (same source as CitiesCoveredMap)
+      const { data: profileCities } = await supabase
+        .from('profiles')
+        .select('city')
+        .eq('registration_complete', true)
+        .not('city', 'is', null);
       
-      const uniqueCities = new Set(
-        allLocations
-          .map(loc => typeof loc === 'string' ? loc.split(',')[0].trim() : '')
-          .filter(Boolean)
-      );
-      const citiesCovered = uniqueCities.size;
+      const citySet = new Set<string>();
+      for (const row of profileCities || []) {
+        if (row.city && row.city.trim()) {
+          citySet.add(row.city.trim().toLowerCase());
+        }
+      }
+      const citiesCovered = citySet.size;
       const customerSatisfaction = totalUsers > 0 ? Math.round((verifiedUsers / totalUsers) * 100) : 0;
 
       setRealStats({
