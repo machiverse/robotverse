@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { Loader2, Grid, List, Search, MapPin, Building, Heart, ChevronRight, Home } from "lucide-react";
+import { Loader2, Grid, List, Search, MapPin, Building, Heart, ChevronRight, Home, FileText } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
