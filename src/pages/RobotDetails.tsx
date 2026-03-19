@@ -439,7 +439,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
         setIsInWatchlist(false);
         toast({ title: "Removed from Watchlist", description: `${robot.name} has been removed from your watchlist.` });
       } else {
-        const { error } = await supabase.from("watchlists").insert([{ user_id: user.id, item_type: "robot", item_id: robot.id, item_data: { name: robot.name, model: robot.model, price: robot.price, currency: robot.currency, image: robot.images?.[0] || null } }]);
+        const { error } = await supabase.from("watchlists").insert([{ user_id: user.id, item_type: "robot", item_id: robot.id }]);
         if (error) throw error;
         setIsInWatchlist(true);
         toast({ title: "Added to Watchlist", description: `${robot.name} has been added to your watchlist.` });
@@ -801,7 +801,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                         variant="outline"
                         className="h-10 border-primary/50 text-primary hover:bg-primary/10"
                         size="default"
-                        onClick={() => setShowQuoteModal(true)}
+                        onClick={() => setShowRobotQuoteModal(true)}
                       >
                         <FileText className="h-4 w-4 mr-1.5" />
                         Get Quote
