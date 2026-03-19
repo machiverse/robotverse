@@ -13,7 +13,31 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-interface SellerLocation {
+const createPinIcon = () => {
+  return L.divIcon({
+    className: "custom-pin-marker",
+    html: `<div style="position: relative; width: 24px; height: 34px;">
+      <svg width="24" height="34" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="hsl(221, 83%, 53%)"/>
+        <circle cx="12" cy="12" r="5" fill="white"/>
+      </svg>
+    </div>`,
+    iconSize: [24, 34],
+    iconAnchor: [12, 34],
+    popupAnchor: [0, -34],
+  });
+};
+
+const FitBoundsToMarkers = ({ locations }: { locations: SellerLocation[] }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!locations.length) return;
+    const bounds = L.latLngBounds(locations.map((loc) => [loc.lat, loc.lng] as [number, number]));
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 6 });
+  }, [locations, map]);
+  return null;
+};
+
   id: string;
   city: string;
   country: string;
