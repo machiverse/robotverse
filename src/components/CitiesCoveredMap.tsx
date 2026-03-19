@@ -13,21 +13,19 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
+// Canonical city entries — each unique city appears once.
+// CITY_ALIASES maps alternate spellings to the canonical name.
 const CITY_COORDS: Record<string, [number, number]> = {
   chennai: [13.0827, 80.2707],
   coimbatore: [11.0168, 76.9558],
   pune: [18.5204, 73.8567],
   mumbai: [19.076, 72.8777],
   delhi: [28.6139, 77.209],
-  "delhi ncr": [28.6139, 77.209],
   bangalore: [12.9716, 77.5946],
-  bengaluru: [12.9716, 77.5946],
   hyderabad: [17.385, 78.4867],
   ahmedabad: [23.0225, 72.5714],
-  gujarat: [23.0225, 72.5714],
   kolkata: [22.5726, 88.3639],
   gurgaon: [28.4595, 77.0266],
-  "gurgaon & china": [28.4595, 77.0266],
   noida: [28.5355, 77.391],
   jaipur: [26.9124, 75.7873],
   lucknow: [26.8467, 80.9462],
@@ -38,7 +36,6 @@ const CITY_COORDS: Record<string, [number, number]> = {
   kerala: [10.8505, 76.2711],
   haryana: [29.0588, 76.0856],
   maharashtra: [19.7515, 75.7139],
-  "uttar pradesh": [26.8467, 80.9462],
   bhavnagar: [21.7645, 72.1519],
   burdwan: [23.2324, 87.8615],
   dharwad: [15.4589, 75.0078],
@@ -52,6 +49,15 @@ const CITY_COORDS: Record<string, [number, number]> = {
   visakhapatnam: [17.6868, 83.2185],
   madurai: [9.9252, 78.1198],
   trichy: [10.7905, 78.7047],
+};
+
+// Aliases that map to a canonical city above
+const CITY_ALIASES: Record<string, string> = {
+  bengaluru: "bangalore",
+  "delhi ncr": "delhi",
+  gujarat: "ahmedabad",
+  "gurgaon & china": "gurgaon",
+  "uttar pradesh": "lucknow",
 };
 
 interface CityData {
@@ -98,12 +104,14 @@ const CitiesCoveredMap = () => {
       if (error) throw error;
 
       const locationMap: Record<string, number> = {};
+      const allKeys = [...Object.keys(CITY_COORDS), ...Object.keys(CITY_ALIASES)];
       (data || []).forEach((p) => {
         if (!p.location) return;
         const loc = p.location.trim().toLowerCase();
-        for (const city of Object.keys(CITY_COORDS)) {
-          if (loc.includes(city)) {
-            locationMap[city] = (locationMap[city] || 0) + 1;
+        for (const key of allKeys) {
+          if (loc.includes(key)) {
+            const canonical = CITY_ALIASES[key] || key;
+            locationMap[canonical] = (locationMap[canonical] || 0) + 1;
             return;
           }
         }
