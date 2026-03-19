@@ -785,6 +785,17 @@ const Robots = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Can't Find CTA - compact in sidebar */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm font-semibold mb-1">Can't find the robot you need?</p>
+                <p className="text-xs text-muted-foreground mb-3">Submit your requirement and we'll connect you with sellers.</p>
+                <Button size="sm" className="w-full" onClick={() => setShowRequestModal(true)}>
+                  <Search className="w-3 h-3 mr-1" /> Submit Request
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </aside>
 
