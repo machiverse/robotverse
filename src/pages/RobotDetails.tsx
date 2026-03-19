@@ -70,7 +70,7 @@ import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -778,15 +778,15 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     You are the Seller
                   </Button>
                 ) : (
-                  <ChatButton
-                    otherUserId={robot.seller_id}
-                    itemId={robot.id}
-                    itemType="robot"
-                    itemName={robot.name}
+                  <Button
                     variant="default"
                     className="w-full h-10 bg-primary hover:bg-primary/90 shadow-md"
                     size="default"
-                  />
+                    onClick={() => setShowQuoteModal(true)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Get Quote
+                  </Button>
                 )}
 
                 <div className="grid grid-cols-3 gap-2">
@@ -1070,7 +1070,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                             <h4 className="font-semibold mb-1">{part.name || part.part_name}</h4>
                             <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{part.description || "No description"}</p>
                             {part.price && <p className="text-lg font-bold text-primary mb-3">{part.currency === "USD" ? "$" : "₹"}{part.price.toLocaleString()}</p>}
-                            <ChatButton otherUserId={part.seller_id} itemId={part.id} itemType="spare_part" itemName={part.name || part.part_name} variant="outline" className="w-full" size="sm" />
+                            <Button variant="outline" className="w-full" size="sm" onClick={() => navigate(`/parts/${part.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
                       ))}
@@ -1104,7 +1104,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                               {service.service_type && <Badge variant="secondary">{service.service_type}</Badge>}
                             </div>
                             <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{service.description || "No description"}</p>
-                            <ChatButton otherUserId={service.provider_id} itemId={service.id} itemType="service" itemName={service.name} variant="default" className="w-full" size="sm" />
+                            <Button variant="default" className="w-full" size="sm" onClick={() => navigate(`/services/${service.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
                       ))}

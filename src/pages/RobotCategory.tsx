@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
-import { Loader2, Grid, List, Search, MapPin, Building, Heart, ChevronRight, Home } from "lucide-react";
+import { Loader2, Grid, List, Search, MapPin, Building, Heart, ChevronRight, Home, FileText } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -392,15 +392,15 @@ const RobotCategory = () => {
                   </div>
 
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <ChatButton
-                      otherUserId={robot.seller_id}
-                      itemId={robot.id}
-                      itemType="robot"
-                      itemName={robot.name}
+                    <Button
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                    />
+                      onClick={() => navigate(`/robots/${robot.id}?quote=true`)}
+                    >
+                      <FileText className="w-3 h-3 mr-1" />
+                      Get Quote
+                    </Button>
                     <Button size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
                       View Details
                     </Button>
