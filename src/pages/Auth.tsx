@@ -28,6 +28,8 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [city, setCity] = useState('');
+  const [fullAddress, setFullAddress] = useState('');
   const [location, setLocation] = useState('');
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
   
