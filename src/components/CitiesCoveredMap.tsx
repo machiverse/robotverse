@@ -184,16 +184,16 @@ const CitiesCoveredMap = () => {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold mb-5 tracking-wide uppercase">
             <MapPin className="w-4 h-4" />
-            Pan-India Coverage
+            Global Coverage
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
             Serving Across{" "}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              India
+              India, Germany & China
             </span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            Connecting buyers and sellers of industrial robots in major industrial hubs across the nation
+            Connecting buyers and sellers of industrial robots in major industrial hubs worldwide
           </p>
         </div>
 
