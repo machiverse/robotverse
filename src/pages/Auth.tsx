@@ -161,8 +161,11 @@ const Auth = () => {
       if (!mobileNumber.trim()) {
         throw new Error('Mobile number is required');
       }
-      if (!location.trim()) {
-        throw new Error('Location is required');
+      if (!city.trim()) {
+        throw new Error('City is required');
+      }
+      if (!fullAddress.trim()) {
+        throw new Error('Full address is required');
       }
       
       // Prepare data - ensure empty strings become null for proper database storage
