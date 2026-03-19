@@ -367,6 +367,7 @@ const Auth = () => {
       location,
       city,
       fullAddress,
+      pincode,
       accountType,
       sellerRoles,
       sellerModelType,
