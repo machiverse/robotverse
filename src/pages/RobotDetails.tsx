@@ -771,27 +771,29 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               <ViewCountDisplay targetType="robots" targetId={robot.id} />
 
               {/* Primary CTA Buttons - Only visible for logged-in users */}
-              {user && user.id !== robot.seller_id && (
+              {user && (
                 <div className="pt-2">
                   <div className="grid grid-cols-2 gap-2">
-                    {/* Start Chat */}
-                    <Button
-                      variant="default"
-                      className="h-10"
-                      size="default"
-                      onClick={() => {
-                        const params = new URLSearchParams({
-                          other_user: robot.seller_id,
-                          item: robot.id,
-                          type: 'robot',
-                          name: robot.name,
-                        });
-                        navigate(`/chat?${params.toString()}`);
-                      }}
-                    >
-                      <MessageCircle className="h-4 w-4 mr-1.5" />
-                      Start Chat
-                    </Button>
+                    {/* Start Chat - hidden for own listings */}
+                    {user.id !== robot.seller_id && (
+                      <Button
+                        variant="default"
+                        className="h-10"
+                        size="default"
+                        onClick={() => {
+                          const params = new URLSearchParams({
+                            other_user: robot.seller_id,
+                            item: robot.id,
+                            type: 'robot',
+                            name: robot.name,
+                          });
+                          navigate(`/chat?${params.toString()}`);
+                        }}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1.5" />
+                        Start Chat
+                      </Button>
+                    )}
 
                     {/* Get Quote */}
                     <Button
@@ -845,7 +847,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       size="default"
                     >
                       <Heart className={`h-4 w-4 mr-1.5 ${isInWatchlist ? "fill-current text-red-500" : ""}`} />
-                      Watchlist
+                      Add Watchlist
                     </Button>
                   </div>
                 </div>
