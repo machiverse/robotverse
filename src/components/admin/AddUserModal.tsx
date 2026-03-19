@@ -40,6 +40,7 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
     location: "",
     city: "",
     full_address: "",
+    pincode: "",
     password: "",
     status: "active",
     seller_model_type: "subscription" as "subscription" | "commission",
@@ -57,6 +58,7 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
       location: "",
       city: "",
       full_address: "",
+      pincode: "",
       password: "",
       status: "active",
       seller_model_type: "subscription",
@@ -140,6 +142,10 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
             <div className="space-y-2">
               <Label htmlFor="add_full_address">Full Address</Label>
               <Input id="add_full_address" value={formData.full_address} onChange={(e) => setFormData({ ...formData, full_address: e.target.value })} placeholder="Enter full address" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add_pincode">Pin Code</Label>
+              <Input id="add_pincode" value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })} placeholder="e.g. 600001" maxLength={6} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="add_location">Location / Region</Label>

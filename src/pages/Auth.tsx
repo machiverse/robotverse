@@ -30,6 +30,7 @@ const Auth = () => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [city, setCity] = useState('');
   const [fullAddress, setFullAddress] = useState('');
+  const [pincode, setPincode] = useState('');
   const [location, setLocation] = useState('');
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
   
@@ -190,7 +191,8 @@ const Auth = () => {
         p_target_audience: Array.isArray(targetAudience) && targetAudience.length > 0 ? targetAudience : [],
         p_government_scheme_support: governmentSchemeSupport || false,
         p_city: city?.trim() || null,
-        p_full_address: fullAddress?.trim() || null
+        p_full_address: fullAddress?.trim() || null,
+        p_pincode: pincode?.trim() || null
       };
 
       console.log('📝 Profile data being sent:', {
@@ -365,6 +367,7 @@ const Auth = () => {
       location,
       city,
       fullAddress,
+      pincode,
       accountType,
       sellerRoles,
       sellerModelType,
@@ -595,7 +598,8 @@ const Auth = () => {
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
         p_government_scheme_support: savedData.governmentSchemeSupport || false,
         p_city: savedData.city?.trim() || null,
-        p_full_address: savedData.fullAddress?.trim() || null
+        p_full_address: savedData.fullAddress?.trim() || null,
+        p_pincode: savedData.pincode?.trim() || null
       };
       
       // Use the database function to update the complete profile - returns table
@@ -709,7 +713,8 @@ const Auth = () => {
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
         p_government_scheme_support: savedData.governmentSchemeSupport || false,
         p_city: savedData.city?.trim() || null,
-        p_full_address: savedData.fullAddress?.trim() || null
+        p_full_address: savedData.fullAddress?.trim() || null,
+        p_pincode: savedData.pincode?.trim() || null
       };
       
       // Use the database function to create the complete profile - returns table
@@ -1358,7 +1363,7 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="fullAddress">Full Address *</Label>
                       <div className="relative">
@@ -1376,7 +1381,24 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="location">Location / Region</Label>
+                      <Label htmlFor="pincode">Pin Code *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="pincode"
+                          type="text"
+                          value={pincode}
+                          onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="pl-10"
+                          placeholder="e.g. 600001"
+                          required={isSignUp}
+                          maxLength={6}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">State / Region</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
