@@ -8,7 +8,7 @@ import { Loader2, Grid, List, Search, MapPin, Building, Heart, ChevronRight, Hom
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
