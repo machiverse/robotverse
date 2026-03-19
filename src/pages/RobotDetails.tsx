@@ -1104,7 +1104,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                               {service.service_type && <Badge variant="secondary">{service.service_type}</Badge>}
                             </div>
                             <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{service.description || "No description"}</p>
-                            <ChatButton otherUserId={service.provider_id} itemId={service.id} itemType="service" itemName={service.name} variant="default" className="w-full" size="sm" />
+                            <Button variant="default" className="w-full" size="sm" onClick={() => navigate(`/services/${service.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
                       ))}

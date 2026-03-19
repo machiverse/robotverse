@@ -392,15 +392,15 @@ const RobotCategory = () => {
                   </div>
 
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <ChatButton
-                      otherUserId={robot.seller_id}
-                      itemId={robot.id}
-                      itemType="robot"
-                      itemName={robot.name}
+                    <Button
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                    />
+                      onClick={() => navigate(`/robots/${robot.id}?quote=true`)}
+                    >
+                      <FileText className="w-3 h-3 mr-1" />
+                      Get Quote
+                    </Button>
                     <Button size="sm" className="flex-1" onClick={() => navigate(`/robots/${robot.id}`)}>
                       View Details
                     </Button>
