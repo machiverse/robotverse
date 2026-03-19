@@ -360,6 +360,8 @@ const Auth = () => {
       companyName,
       mobileNumber,
       location,
+      city,
+      fullAddress,
       accountType,
       sellerRoles,
       sellerModelType,
