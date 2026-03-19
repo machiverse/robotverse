@@ -83,20 +83,52 @@ const WhyChooseRobotVerse = () => {
       const robotCategories = robotTypes.size;
       const serviceProviders = profiles.filter(p => p.user_type === 'service_provider').length + services.length;
       
-      // Fetch unique cities from profiles table (same source as CitiesCoveredMap)
+      // Fetch unique cities from profiles table - apply same logic as CitiesCoveredMap
+      // Only count cities that resolve to known India coordinates
+      const KNOWN_CITIES = new Set([
+        'bangalore','chennai','mumbai','delhi','pune','hyderabad','ahmedabad','coimbatore',
+        'kolkata','jaipur','lucknow','chandigarh','noida','gurgaon','ghaziabad','indore',
+        'nagpur','rajkot','vadodara','surat','nashik','madurai','salem','pondicherry',
+        'mohali','jalandhar','dharwad','krishnagiri','kumbakonam','mayiladuthurai',
+        'bhavnagar','burdwan','auroville','visakhapatnam','thiruvananthapuram','kochi',
+        'bhopal','patna','ranchi','ludhiana','agra','varanasi','mangalore','mysore',
+        'tiruchirappalli','erode','hosur'
+      ]);
+      const ALIASES: Record<string, string> = {
+        bengaluru:'bangalore','delhi ncr':'delhi','new delhi':'delhi',gujarat:'ahmedabad',
+        maharashtra:'mumbai','pune india':'pune',peenya:'bangalore','j.p. nagar':'bangalore',
+        pomdy:'pondicherry',pondy:'pondicherry',puducherry:'pondicherry',pudicherry:'pondicherry',
+        'kurali, punjab':'mohali','jalandhar punjab':'jalandhar','rajkot , gujarat':'rajkot',
+        'chengalpattu dist':'chennai','uttar pradesh':'noida','madhya pradesh':'indore',
+        haryana:'gurgaon',kerala:'kochi','gurgaon & china':'gurgaon',india:'delhi',
+        'malegaon, nashik, maharashtra, ind':'nashik',trichy:'tiruchirappalli'
+      };
       const { data: profileCities } = await supabase
         .from('profiles')
-        .select('city')
-        .eq('registration_complete', true)
-        .not('city', 'is', null);
+        .select('city, location')
+        .eq('registration_complete', true);
       
-      const citySet = new Set<string>();
+      const resolvedCities = new Set<string>();
       for (const row of profileCities || []) {
+        let key: string | null = null;
         if (row.city && row.city.trim()) {
-          citySet.add(row.city.trim().toLowerCase());
+          key = row.city.trim().toLowerCase();
+        } else if (row.location) {
+          key = row.location.trim().toLowerCase();
+        }
+        if (!key) continue;
+        // resolve alias
+        const canonical = ALIASES[key] || key;
+        if (KNOWN_CITIES.has(canonical)) {
+          resolvedCities.add(canonical);
+        } else {
+          // substring match
+          for (const city of KNOWN_CITIES) {
+            if (key.includes(city)) { resolvedCities.add(city); break; }
+          }
         }
       }
-      const citiesCovered = citySet.size;
+      const citiesCovered = resolvedCities.size;
       const customerSatisfaction = totalUsers > 0 ? Math.round((verifiedUsers / totalUsers) * 100) : 0;
 
       setRealStats({
