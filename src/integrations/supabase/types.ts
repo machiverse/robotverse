@@ -2392,6 +2392,7 @@ export type Database = {
         Row: {
           account_type: string | null
           avatar_url: string | null
+          city: string | null
           company_logo_url: string | null
           company_name: string | null
           created_at: string
@@ -2399,6 +2400,7 @@ export type Database = {
           email: string | null
           finance_type: string[] | null
           financing_for: string[] | null
+          full_address: string | null
           full_name: string | null
           government_scheme_support: boolean | null
           id: string
@@ -2428,6 +2430,7 @@ export type Database = {
         Insert: {
           account_type?: string | null
           avatar_url?: string | null
+          city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -2435,6 +2438,7 @@ export type Database = {
           email?: string | null
           finance_type?: string[] | null
           financing_for?: string[] | null
+          full_address?: string | null
           full_name?: string | null
           government_scheme_support?: boolean | null
           id?: string
@@ -2464,6 +2468,7 @@ export type Database = {
         Update: {
           account_type?: string | null
           avatar_url?: string | null
+          city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -2471,6 +2476,7 @@ export type Database = {
           email?: string | null
           finance_type?: string[] | null
           financing_for?: string[] | null
+          full_address?: string | null
           full_name?: string | null
           government_scheme_support?: boolean | null
           id?: string
@@ -4140,41 +4146,79 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      complete_user_profile: {
-        Args: {
-          p_account_type?: string
-          p_company_name?: string
-          p_email: string
-          p_finance_type?: string[]
-          p_financing_for?: string[]
-          p_full_name?: string
-          p_government_scheme_support?: boolean
-          p_location?: string
-          p_logistics_region?: string
-          p_logistics_type?: string
-          p_mobile_number?: string
-          p_seller_roles?: string[]
-          p_target_audience?: string[]
-          p_transport_modes?: string[]
-          p_user_id: string
-          p_user_type?: string
-          p_warehouse_storage?: boolean
-        }
-        Returns: {
-          account_type: string
-          company_name: string
-          created_at: string
-          email: string
-          full_name: string
-          location: string
-          mobile_number: string
-          profile_id: string
-          registration_complete: boolean
-          updated_at: string
-          user_id: string
-          user_roles: string[]
-        }[]
-      }
+      complete_user_profile:
+        | {
+            Args: {
+              p_account_type?: string
+              p_company_name?: string
+              p_email: string
+              p_finance_type?: string[]
+              p_financing_for?: string[]
+              p_full_name?: string
+              p_government_scheme_support?: boolean
+              p_location?: string
+              p_logistics_region?: string
+              p_logistics_type?: string
+              p_mobile_number?: string
+              p_seller_roles?: string[]
+              p_target_audience?: string[]
+              p_transport_modes?: string[]
+              p_user_id: string
+              p_user_type?: string
+              p_warehouse_storage?: boolean
+            }
+            Returns: {
+              account_type: string
+              company_name: string
+              created_at: string
+              email: string
+              full_name: string
+              location: string
+              mobile_number: string
+              profile_id: string
+              registration_complete: boolean
+              updated_at: string
+              user_id: string
+              user_roles: string[]
+            }[]
+          }
+        | {
+            Args: {
+              p_account_type?: string
+              p_city?: string
+              p_company_name?: string
+              p_email: string
+              p_finance_type?: string[]
+              p_financing_for?: string[]
+              p_full_address?: string
+              p_full_name?: string
+              p_government_scheme_support?: boolean
+              p_location?: string
+              p_logistics_region?: string
+              p_logistics_type?: string
+              p_mobile_number?: string
+              p_seller_roles?: string[]
+              p_target_audience?: string[]
+              p_transport_modes?: string[]
+              p_user_id: string
+              p_user_type?: string
+              p_warehouse_storage?: boolean
+            }
+            Returns: {
+              account_type: string
+              company_name: string
+              created_at: string
+              email: string
+              full_name: string
+              location: string
+              mobile_number: string
+              profile_id: string
+              registration_complete: boolean
+              updated_at: string
+              user_id: string
+              user_roles: string[]
+            }[]
+          }
       convert_quote_to_lead: {
         Args: { p_request_id: string; p_seller_id: string }
         Returns: string
