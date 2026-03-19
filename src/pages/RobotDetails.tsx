@@ -771,37 +771,56 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               <ViewCountDisplay targetType="robots" targetId={robot.id} />
 
               {/* Primary CTA Buttons */}
-              <div className="space-y-3 pt-2">
-                {user && user.id === robot.seller_id ? (
-                  <Button disabled variant="outline" className="w-full h-10" size="default">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    You are the Seller
-                  </Button>
-                ) : (
+              <div className="pt-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Start Chat */}
                   <Button
                     variant="default"
-                    className="w-full h-10 bg-primary hover:bg-primary/90 shadow-md"
+                    className="h-10"
+                    size="default"
+                    onClick={() => {
+                      if (!user) {
+                        toast({
+                          title: "Login Required",
+                          description: "Please log in to start a chat.",
+                          variant: "destructive"
+                        });
+                        navigate('/auth');
+                        return;
+                      }
+                      if (user.id === robot.seller_id) {
+                        toast({
+                          title: "Cannot Chat",
+                          description: "You cannot chat with yourself.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      const params = new URLSearchParams({
+                        other_user: robot.seller_id,
+                        item: robot.id,
+                        type: 'robot',
+                        name: robot.name,
+                      });
+                      navigate(`/chat?${params.toString()}`);
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1.5" />
+                    Start Chat
+                  </Button>
+
+                  {/* Get Quote */}
+                  <Button
+                    variant="outline"
+                    className="h-10 border-primary/50 text-primary hover:bg-primary/10"
                     size="default"
                     onClick={() => setShowQuoteModal(true)}
                   >
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className="h-4 w-4 mr-1.5" />
                     Get Quote
                   </Button>
-                )}
 
-                <div className="grid grid-cols-3 gap-2">
-                  {user && user.id !== robot.seller_id && (
-                    <Button
-                      onClick={handleAddToWatchlist}
-                      variant="outline"
-                      disabled={addingToWatchlist}
-                      className="h-9"
-                      size="sm"
-                    >
-                      <Heart className={`h-4 w-4 mr-1.5 ${isInWatchlist ? "fill-current text-red-500" : ""}`} />
-                      Watchlist
-                    </Button>
-                  )}
+                  {/* Compare */}
                   <Button
                     onClick={() => {
                       if (robot) {
@@ -826,36 +845,22 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       }
                     }}
                     variant="outline"
-                    className="h-9"
-                    size="sm"
+                    className="h-10"
+                    size="default"
                   >
                     <Scale className="h-4 w-4 mr-1.5" />
                     Compare
                   </Button>
+
+                  {/* Get Report */}
                   <Button
-                    onClick={() => {
-                      if (!user) {
-                        toast({
-                          title: "Login Required",
-                          description: "Please log in to request a quote.",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-                      trackButtonClick({
-                        buttonName: "get_quote",
-                        buttonType: "cta",
-                        itemId: robot.id,
-                        itemType: "robot"
-                      });
-                      setShowRobotQuoteModal(true);
-                    }}
+                    onClick={() => setShowReportModal(true)}
                     variant="outline"
-                    className="h-9 border-primary/50 text-primary hover:bg-primary/10"
-                    size="sm"
+                    className="h-10"
+                    size="default"
                   >
-                    <FileText className="h-4 w-4 mr-1.5" />
-                    Get Quote
+                    <Brain className="h-4 w-4 mr-1.5" />
+                    Get Report
                   </Button>
                 </div>
               </div>
