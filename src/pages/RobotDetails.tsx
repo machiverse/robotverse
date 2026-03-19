@@ -801,7 +801,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                         variant="outline"
                         className="h-10 border-primary/50 text-primary hover:bg-primary/10"
                         size="default"
-                        onClick={() => setShowQuoteModal(true)}
+                        onClick={() => setShowRobotQuoteModal(true)}
                       >
                         <FileText className="h-4 w-4 mr-1.5" />
                         Get Quote
