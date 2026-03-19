@@ -2411,6 +2411,7 @@ export type Database = {
           mou_agreed: boolean | null
           mou_agreed_at: string | null
           phone: string | null
+          pincode: string | null
           primary_role: string | null
           primary_user_type:
             | Database["public"]["Enums"]["user_type_enum"]
@@ -2449,6 +2450,7 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          pincode?: string | null
           primary_role?: string | null
           primary_user_type?:
             | Database["public"]["Enums"]["user_type_enum"]
@@ -2487,6 +2489,7 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          pincode?: string | null
           primary_role?: string | null
           primary_user_type?:
             | Database["public"]["Enums"]["user_type_enum"]
@@ -4197,6 +4200,44 @@ export type Database = {
               p_logistics_region?: string
               p_logistics_type?: string
               p_mobile_number?: string
+              p_seller_roles?: string[]
+              p_target_audience?: string[]
+              p_transport_modes?: string[]
+              p_user_id: string
+              p_user_type?: string
+              p_warehouse_storage?: boolean
+            }
+            Returns: {
+              account_type: string
+              company_name: string
+              created_at: string
+              email: string
+              full_name: string
+              location: string
+              mobile_number: string
+              profile_id: string
+              registration_complete: boolean
+              updated_at: string
+              user_id: string
+              user_roles: string[]
+            }[]
+          }
+        | {
+            Args: {
+              p_account_type?: string
+              p_city?: string
+              p_company_name?: string
+              p_email: string
+              p_finance_type?: string[]
+              p_financing_for?: string[]
+              p_full_address?: string
+              p_full_name?: string
+              p_government_scheme_support?: boolean
+              p_location?: string
+              p_logistics_region?: string
+              p_logistics_type?: string
+              p_mobile_number?: string
+              p_pincode?: string
               p_seller_roles?: string[]
               p_target_audience?: string[]
               p_transport_modes?: string[]
