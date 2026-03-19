@@ -590,7 +590,9 @@ const Auth = () => {
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
+        p_government_scheme_support: savedData.governmentSchemeSupport || false,
+        p_city: savedData.city?.trim() || null,
+        p_full_address: savedData.fullAddress?.trim() || null
       };
       
       // Use the database function to update the complete profile - returns table
