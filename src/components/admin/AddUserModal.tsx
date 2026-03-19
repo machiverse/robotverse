@@ -40,6 +40,7 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
     location: "",
     city: "",
     full_address: "",
+    pincode: "",
     password: "",
     status: "active",
     seller_model_type: "subscription" as "subscription" | "commission",
