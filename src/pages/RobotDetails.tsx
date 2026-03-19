@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -203,6 +204,7 @@ const RobotDetails = () => {
 
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMarketAnalysis, setShowMarketAnalysis] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
 const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showRobotQuoteModal, setShowRobotQuoteModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
@@ -1246,17 +1248,29 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {!aiAnalysis ? (
-                  <div className="text-center py-4 space-y-4">
-                    <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                      <Brain className="w-7 h-7 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-1">Get Smart Analysis</h4>
-                      <p className="text-sm text-muted-foreground">AI-powered insights for this robot</p>
-                    </div>
+                <div className="text-center py-4 space-y-4">
+                  <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                    <Brain className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Get Smart Analysis</h4>
+                    <p className="text-sm text-muted-foreground">AI-powered insights for this robot</p>
+                  </div>
+                  {aiAnalysis ? (
                     <Button
-                      onClick={handleAIAnalysis}
+                      onClick={() => setShowAnalysisModal(true)}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      View Analysis
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={async () => {
+                        await handleAIAnalysis();
+                        setShowAnalysisModal(true);
+                      }}
                       disabled={analysisLoading || !user}
                       className="w-full"
                       size="sm"
@@ -1273,17 +1287,35 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                         </>
                       )}
                     </Button>
-                    {!user && <p className="text-xs text-muted-foreground">Sign in to use AI analysis</p>}
-                  </div>
-                ) : (
-                  <AIAnalysisResult
-                    analysis={aiAnalysis.analysis}
-                    cached={aiAnalysis.cached || false}
-                    currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
-                  />
-                )}
+                  )}
+                  {!user && <p className="text-xs text-muted-foreground">Sign in to use AI analysis</p>}
+                </div>
               </CardContent>
             </Card>
+
+            {/* AI Analysis Modal */}
+            <Dialog open={showAnalysisModal && !!aiAnalysis} onOpenChange={setShowAnalysisModal}>
+              <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+                <DialogHeader className="px-6 pt-6 pb-0">
+                  <DialogTitle className="flex items-center gap-2 text-xl">
+                    <Brain className="w-5 h-5 text-primary" />
+                    AI Market Insights
+                    {aiAnalysis?.cached && (
+                      <Badge variant="outline" className="ml-2 text-xs">Cached</Badge>
+                    )}
+                  </DialogTitle>
+                </DialogHeader>
+                <ScrollArea className="max-h-[75vh] px-6 pb-6">
+                  {aiAnalysis && (
+                    <AIAnalysisResult
+                      analysis={aiAnalysis.analysis}
+                      cached={aiAnalysis.cached || false}
+                      currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
+                    />
+                  )}
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
 
             {/* Quick Stats Card */}
             <Card className="border shadow-sm">
