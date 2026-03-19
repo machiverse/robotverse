@@ -795,16 +795,18 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       </Button>
                     )}
 
-                    {/* Get Quote */}
-                    <Button
-                      variant="outline"
-                      className="h-10 border-primary/50 text-primary hover:bg-primary/10"
-                      size="default"
-                      onClick={() => setShowQuoteModal(true)}
-                    >
-                      <FileText className="h-4 w-4 mr-1.5" />
-                      Get Quote
-                    </Button>
+                    {/* Get Quote - hidden for own listings */}
+                    {user.id !== robot.seller_id && (
+                      <Button
+                        variant="outline"
+                        className="h-10 border-primary/50 text-primary hover:bg-primary/10"
+                        size="default"
+                        onClick={() => setShowQuoteModal(true)}
+                      >
+                        <FileText className="h-4 w-4 mr-1.5" />
+                        Get Quote
+                      </Button>
+                    )}
 
                     {/* Compare */}
                     <Button
