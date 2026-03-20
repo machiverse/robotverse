@@ -12,99 +12,120 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Search robots matching user criteria
+// Keyword-to-category mapping for semantic understanding
+const INTENT_MAP: Record<string, string[]> = {
+  welding: ['welding', 'arc welding', 'mig', 'tig', 'spot welding'],
+  palletizing: ['palletizing', 'palletizer', 'pallet'],
+  'pick and place': ['pick and place', 'pick & place', 'pick-and-place', 'delta', 'scara'],
+  painting: ['painting', 'spray', 'coating', 'paint'],
+  assembly: ['assembly', 'screw', 'fastening', 'collaborative', 'cobot'],
+  'machine tending': ['machine tending', 'cnc', 'loading', 'unloading'],
+  maintenance: ['maintenance', 'repair', 'service', 'engineer', 'amc', 'breakdown'],
+  inspection: ['inspection', 'vision', 'quality', 'testing'],
+  packaging: ['packaging', 'packing', 'carton', 'box'],
+  grinding: ['grinding', 'polishing', 'deburring', 'finishing'],
+};
+
+function identifyIntent(query: string): { intent: string; keywords: string[] } {
+  const q = query.toLowerCase();
+  for (const [intent, keywords] of Object.entries(INTENT_MAP)) {
+    for (const kw of keywords) {
+      if (q.includes(kw)) return { intent, keywords };
+    }
+  }
+  return { intent: 'general', keywords: [q] };
+}
+
 async function searchRobots(query: string) {
+  const q = query.toLowerCase();
+  const brands = ['fanuc', 'abb', 'kuka', 'yaskawa', 'universal robots', 'ur', 'mitsubishi', 'epson', 'staubli', 'kawasaki', 'doosan', 'omron', 'nachi', 'comau', 'denso'];
+  const types = ['welding', 'palletizing', 'pick and place', 'pick & place', 'painting', 'assembly', 'machine tending', 'scara', 'delta', 'collaborative', 'cobot', 'articulated', '6-axis', '4-axis', 'cartesian', 'gantry', 'mobile'];
+
   let dbQuery = supabaseAdmin
     .from('robots')
-    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state')
+    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability')
     .eq('availability', 'available')
     .limit(10);
 
-  // Try to filter by brand/type if mentioned
-  const brands = ['fanuc', 'abb', 'kuka', 'yaskawa', 'universal robots', 'ur', 'mitsubishi', 'epson', 'staubli', 'kawasaki', 'doosan', 'omron'];
-  const types = ['welding', 'palletizing', 'pick and place', 'pick & place', 'painting', 'assembly', 'machine tending', 'scara', 'delta', 'collaborative', 'cobot', 'articulated', '6-axis', '4-axis'];
-  
-  const matchedBrand = brands.find(b => query.toLowerCase().includes(b));
-  const matchedType = types.find(t => query.toLowerCase().includes(t));
-  
-  if (matchedBrand) {
-    dbQuery = dbQuery.ilike('brand', `%${matchedBrand}%`);
+  const matchedBrand = brands.find(b => q.includes(b));
+  const matchedType = types.find(t => q.includes(t));
+
+  if (matchedBrand) dbQuery = dbQuery.ilike('brand', `%${matchedBrand}%`);
+  if (matchedType) dbQuery = dbQuery.or(`robot_type.ilike.%${matchedType}%,description.ilike.%${matchedType}%,name.ilike.%${matchedType}%`);
+
+  // Extract payload from query (e.g. "under 20kg", "50 kg payload")
+  const payloadMatch = q.match(/(\d+)\s*kg/);
+  if (payloadMatch) {
+    const payload = parseInt(payloadMatch[1]);
+    dbQuery = dbQuery.lte('payload_capacity', payload + 10).gte('payload_capacity', Math.max(0, payload - 10));
   }
-  if (matchedType) {
-    dbQuery = dbQuery.or(`robot_type.ilike.%${matchedType}%,description.ilike.%${matchedType}%,name.ilike.%${matchedType}%`);
+
+  // Extract price budget (e.g. "under 20 lakh", "budget 15 lakh")
+  const priceMatch = q.match(/(\d+)\s*lakh/);
+  if (priceMatch) {
+    const budget = parseInt(priceMatch[1]) * 100000;
+    dbQuery = dbQuery.lte('price', budget);
   }
 
   const { data, error } = await dbQuery;
-  if (error) {
-    console.error('Robot search error:', error.message);
-    return [];
-  }
+  if (error) { console.error('Robot search error:', error.message); return []; }
   return data || [];
 }
 
-// Search spare parts
 async function searchSpareParts(query: string) {
+  const q = query.toLowerCase();
   const { data, error } = await supabaseAdmin
     .from('spare_parts')
     .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state')
-    .or(`name.ilike.%${query}%,brand.ilike.%${query}%,category.ilike.%${query}%,main_category.ilike.%${query}%`)
+    .or(`name.ilike.%${q}%,brand.ilike.%${q}%,category.ilike.%${q}%,main_category.ilike.%${q}%,sub_category.ilike.%${q}%`)
     .limit(5);
-
-  if (error) {
-    console.error('Spare parts search error:', error.message);
-    return [];
-  }
+  if (error) { console.error('Spare parts search error:', error.message); return []; }
   return data || [];
 }
 
-// Search services/integrators
-async function searchServices(query: string, location?: string) {
+async function searchServices(query: string) {
+  const q = query.toLowerCase();
+  // Extract location hints
+  const indianCities = ['chennai', 'bangalore', 'mumbai', 'pune', 'delhi', 'hyderabad', 'ahmedabad', 'coimbatore', 'noida', 'gurgaon', 'kolkata', 'jaipur', 'lucknow', 'surat'];
+  const locationHint = indianCities.find(c => q.includes(c));
+
   let dbQuery = supabaseAdmin
     .from('services')
-    .select('id, name, service_type, specializations, price_range, location, coverage')
+    .select('id, name, service_type, specializations, price_range, location, coverage, description')
     .limit(5);
 
-  if (location) {
-    dbQuery = dbQuery.ilike('location', `%${location}%`);
-  }
+  if (locationHint) dbQuery = dbQuery.ilike('location', `%${locationHint}%`);
 
   const { data, error } = await dbQuery;
-  if (error) {
-    console.error('Services search error:', error.message);
-    return [];
-  }
+  if (error) { console.error('Services search error:', error.message); return []; }
   return data || [];
 }
 
-// Build context from DB results
 function buildDatabaseContext(robots: any[], parts: any[], services: any[]): string {
   let context = '';
-  
+
   if (robots.length > 0) {
-    context += '\n\nAVAILABLE ROBOTS IN DATABASE:\n';
+    context += '\n\nAVAILABLE ROBOTS:\n';
     robots.forEach((r, i) => {
-      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `${r.currency || 'INR'} ${r.price}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Location: ${r.location || r.state || 'India'}\n`;
+      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Location: ${r.location || r.state || 'India'}\n`;
     });
   }
-  
+
   if (parts.length > 0) {
-    context += '\n\nAVAILABLE SPARE PARTS IN DATABASE:\n';
+    context += '\n\nAVAILABLE SPARE PARTS / EOAT:\n';
     parts.forEach((p, i) => {
-      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.category || p.main_category || 'N/A'} | Price: ${p.price ? `${p.currency || 'INR'} ${p.price}` : 'Contact for price'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | Location: ${p.location || p.state || 'India'}\n`;
+      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.category || p.main_category || 'N/A'} | Price: ${p.price ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Contact for price'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | Location: ${p.location || p.state || 'India'}\n`;
     });
   }
-  
+
   if (services.length > 0) {
-    context += '\n\nAVAILABLE SERVICE PROVIDERS / INTEGRATORS:\n';
+    context += '\n\nSYSTEM INTEGRATORS / SERVICE PROVIDERS:\n';
     services.forEach((s, i) => {
-      context += `${i + 1}. ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | Location: ${s.location || 'India'}\n`;
+      context += `${i + 1}. ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | Location: ${s.location || 'India'} | Coverage: ${s.coverage || 'N/A'}\n`;
     });
   }
-  
-  if (!context) {
-    context = '\n\nNO MATCHING RESULTS FOUND IN DATABASE.';
-  }
-  
+
+  if (!context) context = '\n\nNO EXACT MATCHES FOUND IN DATABASE. Suggest closest alternatives.';
   return context;
 }
 
@@ -116,8 +137,8 @@ serve(async (req) => {
     if (!messages || !Array.isArray(messages)) throw new Error('Messages array required');
 
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
+    const { intent } = identifyIntent(latestQuery);
 
-    // Search database in parallel
     const [robots, parts, services] = await Promise.all([
       searchRobots(latestQuery),
       searchSpareParts(latestQuery),
@@ -126,39 +147,56 @@ serve(async (req) => {
 
     const dbContext = buildDatabaseContext(robots, parts, services);
 
-    const systemPrompt = `You are the RobotVerse AI Assistant — a specialist in industrial robots, end-of-arm tools (EOAT), spare parts, and system integrators for the Indian market.
+    const systemPrompt = `You are the RobotVerse AI Assistant — a smart industrial automation consultant and marketplace search engine for www.robotverse.in, India's industrial robotics marketplace.
 
-RULES:
-- ONLY use the database results provided below. Do NOT make up data.
-- Keep responses SHORT (6-8 lines max), visual, and easy to scan.
-- Use emoji bullets (🔹) for sections.
-- If no exact match found, say "No exact match found. Here are closest options:" and suggest alternatives from the data.
-- If no data at all, say you couldn't find matches and suggest the user try different keywords or browse the marketplace.
-- Always mention seller location when available.
-- Prices in INR unless specified otherwise.
-- For EOAT suggestions, you can recommend general tool types (grippers, welding torches, etc.) based on the application.
+IDENTIFIED INTENT: ${intent}
 
-RESPONSE FORMAT:
-🔹 **Recommended Robots**
-- Model: [Name] | Payload: XX kg | Reach: XXX mm | Price: ₹XX
+YOUR ROLE:
+- Understand user queries about robots, EOAT, system integrators, and service engineers
+- Return highly relevant, structured results from the database
+- Act as an expert industrial automation consultant
 
-🔹 **Suggested EOAT** (if relevant)
-- [Tool type recommendation]
+RESPONSE RULES:
+1. ONLY use the database results provided below. Do NOT fabricate listings.
+2. Structure responses in clear sections using this format:
 
-🔹 **Spare Parts** (if relevant)
-- [Part Name] | [Price]
+🤖 **Robots** (top 3-5 matches)
+- [Name] | Brand: [X] | Payload: XX kg | Reach: XXX mm | Price: ₹XX | Condition: [X] | 📍 [Location]
 
-🔹 **System Integrators** (if found)
-- [Company Name] – [Location]
+🛠 **EOAT / Spare Parts** (if relevant)
+- [Part Name] | Brand: [X] | Price: ₹XX | Compatible: [Robots]
 
-Only include sections that have data. Skip empty sections.
+🏭 **System Integrators** (if found)
+- [Company] | Specialization: [X] | 📍 [Location] | Coverage: [X]
+
+👨‍🔧 **Service Providers** (if found)
+- [Provider] | Type: [X] | 📍 [Location]
+
+3. Only include sections that have data. Skip empty sections entirely.
+4. If no exact match → say "No exact match found" and suggest closest alternatives from the data.
+5. If query is vague → ask a clarification question (e.g. "Do you need industrial welding robots or cobots?")
+6. If user asks for comparison → compare specs side by side
+7. If user asks for "best" → rank by relevance and mention why
+8. If user asks price → show available listings with prices or give estimated range
+9. Prioritize Indian suppliers. Prices in ₹ (INR).
+10. Keep responses concise but comprehensive — max 12-15 lines.
+11. For EOAT suggestions based on application, recommend general tool types even if not in database (grippers, welding torches, vision systems, etc.)
+12. Never return completely empty — always provide something useful.
+
+KEYWORD-TO-CATEGORY MAPPING:
+- welding → Arc welding robots, welding torches (EOAT), welding integrators
+- palletizing → Palletizing robots, grippers, pallet integrators
+- pick and place → Delta/SCARA robots, vacuum grippers
+- painting → Painting robots, spray systems
+- assembly → Cobots, screwdriving EOAT
+- machine tending → CNC loading robots
+- maintenance → Service engineers, AMC providers
 
 DATABASE RESULTS:${dbContext}`;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    // Build messages for Lovable AI Gateway (OpenAI-compatible)
     const aiMessages = [
       { role: 'system', content: systemPrompt },
       ...messages.slice(-6).map((msg: any) => ({
@@ -176,8 +214,8 @@ DATABASE RESULTS:${dbContext}`;
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: aiMessages,
-        temperature: 0.5,
-        max_tokens: 800,
+        temperature: 0.4,
+        max_tokens: 1200,
       }),
     });
 
@@ -186,14 +224,12 @@ DATABASE RESULTS:${dbContext}`;
       console.error('AI Gateway error:', response.status, errText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add funds.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       throw new Error(`AI service error (${response.status})`);
@@ -201,12 +237,9 @@ DATABASE RESULTS:${dbContext}`;
 
     const data = await response.json();
     const textContent = data.choices?.[0]?.message?.content;
+    if (!textContent) throw new Error('No response generated from AI');
 
-    if (!textContent) {
-      throw new Error('No response generated from AI');
-    }
-
-    return new Response(JSON.stringify({ content: textContent }), {
+    return new Response(JSON.stringify({ content: textContent, intent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
@@ -214,8 +247,7 @@ DATABASE RESULTS:${dbContext}`;
     console.error('AI Assistant error:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
