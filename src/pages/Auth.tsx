@@ -1329,23 +1329,39 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mobileNumber">Mobile Number *</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="mobileNumber"
-                          type="tel"
-                          value={mobileNumber}
-                          onChange={(e) => setMobileNumber(e.target.value)}
-                          className="pl-10"
-                          placeholder="Enter your mobile number"
-                          required={isSignUp}
-                        />
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mobileNumber">Mobile Number *</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="mobileNumber"
+                        type="tel"
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value)}
+                        className="pl-10"
+                        placeholder="Enter your mobile number"
+                        required={isSignUp}
+                      />
                     </div>
+                  </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="fullAddress">Full Address *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="fullAddress"
+                        type="text"
+                        value={fullAddress}
+                        onChange={(e) => setFullAddress(e.target.value)}
+                        className="pl-10"
+                        placeholder="Enter your full address"
+                        required={isSignUp}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="city">City *</Label>
                       <div className="relative">
@@ -1361,21 +1377,18 @@ const Auth = () => {
                         />
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="fullAddress">Full Address *</Label>
+                      <Label htmlFor="location">State / Region</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                          id="fullAddress"
+                          id="location"
                           type="text"
-                          value={fullAddress}
-                          onChange={(e) => setFullAddress(e.target.value)}
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
                           className="pl-10"
-                          placeholder="Enter your full address"
-                          required={isSignUp}
+                          placeholder="State or region (optional)"
                         />
                       </div>
                     </div>
@@ -1393,21 +1406,6 @@ const Auth = () => {
                           placeholder="e.g. 600001"
                           required={isSignUp}
                           maxLength={6}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="location">State / Region</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="location"
-                          type="text"
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          className="pl-10"
-                          placeholder="State or region (optional)"
                         />
                       </div>
                     </div>
