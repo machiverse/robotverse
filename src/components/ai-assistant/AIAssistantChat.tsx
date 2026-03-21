@@ -174,15 +174,30 @@ const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
         </div>
       )}
       <div className={cn(
-        'max-w-[85%] rounded-lg px-3 py-2 text-sm',
+        'max-w-[90%] rounded-lg px-3 py-2 text-sm',
         isUser
           ? 'bg-primary text-primary-foreground'
-          : 'bg-muted text-foreground'
+          : 'bg-muted/60 border border-border text-foreground'
       )}>
         {isUser ? (
           <p>{message.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none [&>*]:my-1 [&_ul]:pl-4 [&_li]:my-0.5 text-xs leading-relaxed">
+          <div className="prose prose-sm dark:prose-invert max-w-none
+            text-xs leading-relaxed
+            [&>h3]:text-sm [&>h3]:font-bold [&>h3]:mt-3 [&>h3]:mb-1.5 [&>h3]:text-foreground [&>h3]:border-b [&>h3]:border-border/50 [&>h3]:pb-1
+            [&>h2]:text-sm [&>h2]:font-bold [&>h2]:mt-3 [&>h2]:mb-1.5
+            [&>p]:my-1 [&>p]:text-muted-foreground
+            [&>p>strong]:text-foreground
+            [&>ul]:pl-4 [&>ul]:my-1.5 [&>ul]:space-y-1
+            [&_li]:my-0 [&_li]:text-muted-foreground
+            [&_li>strong]:text-foreground [&_li>strong]:font-semibold
+            [&>hr]:my-2 [&>hr]:border-border/40
+            [&_table]:text-[11px] [&_table]:w-full [&_table]:my-2
+            [&_th]:bg-primary/10 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground [&_th]:border [&_th]:border-border/30
+            [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border/20 [&_td]:text-muted-foreground
+            [&_tr:hover]:bg-accent/30
+            [&>blockquote]:border-l-2 [&>blockquote]:border-primary/40 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-muted-foreground
+          ">
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
         )}
