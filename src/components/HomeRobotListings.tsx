@@ -125,33 +125,27 @@ const HomeRobotListings = () => {
 
   // Calculate overall statistics for all robots
   const getOverallStats = () => {
-    const prices = robots.filter((r) => r.price && r.price > 0).map((r) => r.price);
+    const prices = robots
+      .filter((r) => r.price && r.price > 0)
+      .map((r) => {
+        if (r.currency && r.currency !== 'INR') {
+          const rate = r.currency === 'USD' ? 1 / 0.012 : r.currency === 'EUR' ? 1 / 0.011 : 1;
+          return Math.round(r.price * rate);
+        }
+        return r.price;
+      });
     const brands = new Set(robots.map((r) => r.brand).filter(Boolean));
     const typeCount = Object.keys(robotsByType).length;
 
     if (prices.length === 0) {
-      return {
-        minPrice: 0,
-        maxPrice: 0,
-        avgPrice: 0,
-        brandCount: brands.size,
-        count: robots.length,
-        typeCount,
-      };
+      return { minPrice: 0, maxPrice: 0, avgPrice: 0, brandCount: brands.size, count: robots.length, typeCount };
     }
 
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
 
-    return {
-      minPrice,
-      maxPrice,
-      avgPrice,
-      brandCount: brands.size,
-      count: robots.length,
-      typeCount,
-    };
+    return { minPrice, maxPrice, avgPrice, brandCount: brands.size, count: robots.length, typeCount };
   };
 
   const formatPrice = (price: number, currency: Currency) => {
@@ -223,13 +217,13 @@ const HomeRobotListings = () => {
             {overallStats.minPrice > 0 && (
               <>
                 <span className="px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 font-medium">
-                  Min: {formatPrice(overallStats.minPrice, "INR")}
+                  Min: ₹{overallStats.minPrice.toLocaleString('en-IN')}
                 </span>
                 <span className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-                  Avg: {formatPrice(overallStats.avgPrice, "INR")}
+                  Avg: ₹{overallStats.avgPrice.toLocaleString('en-IN')}
                 </span>
                 <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium">
-                  Max: {formatPrice(overallStats.maxPrice, "INR")}
+                  Max: ₹{overallStats.maxPrice.toLocaleString('en-IN')}
                 </span>
               </>
             )}
