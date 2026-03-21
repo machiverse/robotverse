@@ -568,14 +568,6 @@ const Services = () => {
           )}
         </main>
 
-        {/* Can't Find CTA */}
-        <div className="mt-8 p-6 bg-muted rounded-xl text-center">
-          <h3 className="text-lg font-semibold mb-2">Can't find the service you need?</h3>
-          <p className="text-muted-foreground mb-4">Submit your requirement and we'll connect you with service providers.</p>
-          <Button onClick={() => setShowRequestModal(true)} size="lg">
-            <Search className="w-4 h-4 mr-2" /> Submit a Request
-          </Button>
-        </div>
       </div>
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="service" />
