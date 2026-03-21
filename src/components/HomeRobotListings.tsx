@@ -217,13 +217,13 @@ const HomeRobotListings = () => {
             {overallStats.minPrice > 0 && (
               <>
                 <span className="px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 font-medium">
-                  Min: {formatPrice(overallStats.minPrice, "INR")}
+                  Min: ₹{overallStats.minPrice.toLocaleString('en-IN')}
                 </span>
                 <span className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-                  Avg: {formatPrice(overallStats.avgPrice, "INR")}
+                  Avg: ₹{overallStats.avgPrice.toLocaleString('en-IN')}
                 </span>
                 <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium">
-                  Max: {formatPrice(overallStats.maxPrice, "INR")}
+                  Max: ₹{overallStats.maxPrice.toLocaleString('en-IN')}
                 </span>
               </>
             )}
