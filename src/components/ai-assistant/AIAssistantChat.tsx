@@ -170,7 +170,7 @@ const EmptyState: React.FC<{ onPromptClick: (query: string) => void; fullPage?: 
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20">
         <Sparkles className="w-8 h-8 text-primary" />
       </div>
-      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-card flex items-center justify-center">
+      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary border-2 border-card flex items-center justify-center">
         <MessageSquare className="w-2.5 h-2.5 text-white" />
       </div>
     </div>
