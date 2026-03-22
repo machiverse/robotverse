@@ -85,6 +85,11 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
           )}
+          {fullPage && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted" onClick={() => navigate(-1)} title="Go back">
+              <X className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
 
