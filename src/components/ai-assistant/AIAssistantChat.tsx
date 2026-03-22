@@ -64,7 +64,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
               <Bot className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-primary rounded-full border-2 border-card" />
           </div>
           <div>
             <h3 className="font-bold text-sm text-foreground tracking-tight">RobotVerse AI</h3>
