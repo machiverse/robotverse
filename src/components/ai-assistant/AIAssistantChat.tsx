@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, Clock, MessageSquare } from 'lucide-react';
+import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, Clock, MessageSquare, Minimize2, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +83,11 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           {messages.length > 0 && (
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive" onClick={clearChat} title="Clear chat">
               <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {fullPage && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted" onClick={() => navigate(-1)} title="Go back">
+              <X className="w-4 h-4" />
             </Button>
           )}
         </div>
