@@ -167,44 +167,48 @@ const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
   const isUser = message.role === 'user';
 
   return (
-    <div className={cn('flex gap-2', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
-        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-          <Bot className="w-3 h-3 text-primary" />
+        <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-1 ring-2 ring-primary/10">
+          <Bot className="w-4 h-4 text-primary" />
         </div>
       )}
       <div className={cn(
-        'max-w-[90%] rounded-lg px-3 py-2 text-sm',
+        'rounded-xl shadow-sm',
         isUser
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-muted/60 border border-border text-foreground'
+          ? 'max-w-[75%] bg-primary text-primary-foreground px-4 py-2.5 text-sm'
+          : 'max-w-[92%] bg-card border border-border/60 text-foreground px-5 py-4'
       )}>
         {isUser ? (
           <p>{message.content}</p>
         ) : (
           <div className="prose prose-sm dark:prose-invert max-w-none
-            text-xs leading-relaxed
-            [&>h3]:text-sm [&>h3]:font-bold [&>h3]:mt-3 [&>h3]:mb-1.5 [&>h3]:text-foreground [&>h3]:border-b [&>h3]:border-border/50 [&>h3]:pb-1
-            [&>h2]:text-sm [&>h2]:font-bold [&>h2]:mt-3 [&>h2]:mb-1.5
-            [&>p]:my-1 [&>p]:text-muted-foreground
-            [&>p>strong]:text-foreground
-            [&>ul]:pl-4 [&>ul]:my-1.5 [&>ul]:space-y-1
-            [&_li]:my-0 [&_li]:text-muted-foreground
+            text-[13px] leading-relaxed
+            [&>h3]:text-[15px] [&>h3]:font-bold [&>h3]:mt-4 [&>h3]:mb-2 [&>h3]:text-foreground [&>h3]:border-b [&>h3]:border-border/40 [&>h3]:pb-1.5
+            [&>h2]:text-base [&>h2]:font-bold [&>h2]:mt-4 [&>h2]:mb-2
+            [&>p]:my-1.5 [&>p]:text-muted-foreground
+            [&>p>strong]:text-foreground [&>p>strong]:font-semibold
+            [&>ul]:pl-5 [&>ul]:my-2 [&>ul]:space-y-1.5
+            [&>ol]:pl-5 [&>ol]:my-2 [&>ol]:space-y-1.5
+            [&_li]:my-0 [&_li]:text-muted-foreground [&_li]:leading-relaxed
             [&_li>strong]:text-foreground [&_li>strong]:font-semibold
-            [&>hr]:my-2 [&>hr]:border-border/40
-            [&_table]:text-[11px] [&_table]:w-full [&_table]:my-2
-            [&_th]:bg-primary/10 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground [&_th]:border [&_th]:border-border/30
-            [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border/20 [&_td]:text-muted-foreground
-            [&_tr:hover]:bg-accent/30
-            [&>blockquote]:border-l-2 [&>blockquote]:border-primary/40 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:text-muted-foreground
+            [&>hr]:my-3 [&>hr]:border-border/30
+            [&_table]:text-xs [&_table]:w-full [&_table]:my-3 [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:border [&_table]:border-border/30
+            [&_thead]:bg-primary/8
+            [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground [&_th]:border-b [&_th]:border-border/30 [&_th]:text-xs
+            [&_td]:px-3 [&_td]:py-2 [&_td]:border-b [&_td]:border-border/15 [&_td]:text-muted-foreground [&_td]:text-xs
+            [&_tr:hover]:bg-accent/20 [&_tr]:transition-colors
+            [&_tr:last-child_td]:border-b-0
+            [&>blockquote]:border-l-3 [&>blockquote]:border-primary/50 [&>blockquote]:pl-4 [&>blockquote]:py-1 [&>blockquote]:italic [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/5 [&>blockquote]:rounded-r-lg
+            [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono
           ">
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
         )}
       </div>
       {isUser && (
-        <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-0.5">
-          <User className="w-3 h-3 text-secondary-foreground" />
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+          <User className="w-4 h-4 text-primary" />
         </div>
       )}
     </div>
