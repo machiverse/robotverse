@@ -79,7 +79,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 px-3 py-3" ref={scrollRef}>
+      <ScrollArea className={cn("flex-1 px-3 py-3", fullPage && "px-6 py-4")} ref={scrollRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 py-8">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
