@@ -69,7 +69,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           <div>
             <h3 className="font-bold text-sm text-foreground tracking-tight">RobotVerse AI</h3>
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
               Online • Industrial Robot Expert
             </p>
           </div>
