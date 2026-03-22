@@ -29,8 +29,12 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const scrollEl = scrollRef.current;
+    if (scrollEl) {
+      const viewport = scrollEl.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
     }
   }, [messages, isLoading]);
 
