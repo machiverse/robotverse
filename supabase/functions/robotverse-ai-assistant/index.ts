@@ -64,7 +64,7 @@ async function searchRobots(query: string, location: string | null) {
 
   let dbQuery = supabaseAdmin
     .from('robots')
-    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, industry, year_of_manufacture, seller_id')
+    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, year_of_manufacture, seller_id')
     .eq('availability', 'available')
     .limit(10);
 
