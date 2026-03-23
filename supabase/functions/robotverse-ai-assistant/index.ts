@@ -12,7 +12,6 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Intent mapping for semantic understanding
 const INTENT_MAP: Record<string, string[]> = {
   welding: ['welding', 'arc welding', 'mig', 'tig', 'spot welding', 'weld'],
   palletizing: ['palletizing', 'palletizer', 'pallet', 'stacking'],
@@ -46,7 +45,7 @@ function identifyIntent(query: string): { intents: string[]; keywords: string[];
     }
   }
 
-  const location = INDIAN_CITIES.find(c => q.includes(c)) || null;
+  const location = INDIAN_CITIES.find((c) => q.includes(c)) || null;
 
   return {
     intents: matchedIntents.length > 0 ? matchedIntents : ['general'],
@@ -55,8 +54,6 @@ function identifyIntent(query: string): { intents: string[]; keywords: string[];
   };
 }
 
-// ─── SEARCH FUNCTIONS ───────────────────────────────────────────
-
 async function searchRobots(query: string, location: string | null) {
   const q = query.toLowerCase();
   const brands = ['fanuc', 'abb', 'kuka', 'yaskawa', 'universal robots', 'ur', 'mitsubishi', 'epson', 'staubli', 'kawasaki', 'doosan', 'omron', 'nachi', 'comau', 'denso', 'techman', 'franka', 'igus'];
@@ -64,25 +61,23 @@ async function searchRobots(query: string, location: string | null) {
 
   let dbQuery = supabaseAdmin
     .from('robots')
-    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, year_of_manufacture, seller_id')
+    .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, seller_id')
     .eq('availability', 'available')
     .limit(10);
 
-  const matchedBrand = brands.find(b => q.includes(b));
-  const matchedType = types.find(t => q.includes(t));
+  const matchedBrand = brands.find((b) => q.includes(b));
+  const matchedType = types.find((t) => q.includes(t));
 
   if (matchedBrand) dbQuery = dbQuery.ilike('brand', `%${matchedBrand}%`);
   if (matchedType) dbQuery = dbQuery.or(`robot_type.ilike.%${matchedType}%,description.ilike.%${matchedType}%,name.ilike.%${matchedType}%`);
   if (location) dbQuery = dbQuery.or(`location.ilike.%${location}%,state.ilike.%${location}%`);
 
-  // Payload filter
   const payloadMatch = q.match(/(\d+)\s*kg/);
   if (payloadMatch) {
     const payload = parseInt(payloadMatch[1]);
     dbQuery = dbQuery.lte('payload_capacity', payload + 15).gte('payload_capacity', Math.max(0, payload - 10));
   }
 
-  // Budget filter
   const priceMatch = q.match(/(\d+)\s*lakh/);
   if (priceMatch) {
     const budget = parseInt(priceMatch[1]) * 100000;
@@ -90,34 +85,42 @@ async function searchRobots(query: string, location: string | null) {
   }
 
   const { data, error } = await dbQuery;
-  if (error) { console.error('Robot search error:', error.message); return []; }
+  if (error) {
+    console.error('Robot search error:', error.message);
+    return [];
+  }
+
   return data || [];
 }
 
 async function searchSpareParts(query: string, location: string | null) {
   const q = query.toLowerCase();
-  const searchTerms = q.split(/\s+/).filter(t => t.length > 2);
+  const searchTerms = q.split(/\s+/).filter((t) => t.length > 2);
 
   let dbQuery = supabaseAdmin
     .from('spare_parts')
     .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state, description, seller_id')
     .limit(8);
 
-  // Build OR filter across multiple columns
-  const orFilters = searchTerms.map(term =>
-    `name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,main_category.ilike.%${term}%,sub_category.ilike.%${term}%,description.ilike.%${term}%`
-  ).join(',');
+  const orFilters = searchTerms
+    .map((term) => `name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,main_category.ilike.%${term}%,sub_category.ilike.%${term}%,description.ilike.%${term}%`)
+    .join(',');
+
   if (orFilters) dbQuery = dbQuery.or(orFilters);
   if (location) dbQuery = dbQuery.or(`location.ilike.%${location}%,state.ilike.%${location}%`);
 
   const { data, error } = await dbQuery;
-  if (error) { console.error('Spare parts search error:', error.message); return []; }
+  if (error) {
+    console.error('Spare parts search error:', error.message);
+    return [];
+  }
+
   return data || [];
 }
 
 async function searchServices(query: string, location: string | null) {
   const q = query.toLowerCase();
-  const searchTerms = q.split(/\s+/).filter(t => t.length > 2);
+  const searchTerms = q.split(/\s+/).filter((t) => t.length > 2);
 
   let dbQuery = supabaseAdmin
     .from('services')
@@ -125,42 +128,45 @@ async function searchServices(query: string, location: string | null) {
     .limit(8);
 
   if (searchTerms.length > 0) {
-    const orFilters = searchTerms.map(term =>
-      `name.ilike.%${term}%,service_type.ilike.%${term}%,description.ilike.%${term}%`
-    ).join(',');
+    const orFilters = searchTerms
+      .map((term) => `name.ilike.%${term}%,service_type.ilike.%${term}%,description.ilike.%${term}%`)
+      .join(',');
     dbQuery = dbQuery.or(orFilters);
   }
+
   if (location) dbQuery = dbQuery.ilike('location', `%${location}%`);
 
   const { data, error } = await dbQuery;
-  if (error) { console.error('Services search error:', error.message); return []; }
+  if (error) {
+    console.error('Services search error:', error.message);
+    return [];
+  }
+
   return data || [];
 }
 
-async function searchLogistics(query: string, location: string | null) {
-  const q = query.toLowerCase();
-  let dbQuery = supabaseAdmin
+async function searchLogistics(_query: string, _location: string | null) {
+  const { data, error } = await supabaseAdmin
     .from('logistics_services')
     .select('id, provider_id, service_name, service_type, description, coverage_areas, base_price, max_weight_kg, delivery_time_hours, transport_modes, special_handling, insurance_included, tracking_available, is_active')
     .eq('is_active', true)
     .limit(5);
 
-  const { data, error } = await dbQuery;
-  if (error) { console.error('Logistics search error:', error.message); return []; }
+  if (error) {
+    console.error('Logistics search error:', error.message);
+    return [];
+  }
+
   return data || [];
 }
 
-async function searchFinance(query: string) {
-  const q = query.toLowerCase();
-
-  // Search loan products
+async function searchFinance(_query: string) {
   const { data: loanProducts, error: lpErr } = await supabaseAdmin
     .from('loan_products')
     .select('id, provider_id, product_name, loan_type, description, min_amount, max_amount, min_interest_rate, max_interest_rate, min_tenure_months, max_tenure_months, processing_fee_percentage, collateral_required, quick_approval, is_active')
     .eq('is_active', true)
     .limit(5);
 
-  // Search loan schemes
   const { data: loanSchemes, error: lsErr } = await supabaseAdmin
     .from('loan_schemes')
     .select('id, provider_id, scheme_name, scheme_type, description, interest_rate_min, interest_rate_max, max_amount, features, is_government_scheme, is_active')
@@ -176,8 +182,7 @@ async function searchFinance(query: string) {
   };
 }
 
-async function searchSellers(query: string, location: string | null) {
-  const q = query.toLowerCase();
+async function searchSellers(_query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('profiles')
     .select('user_id, full_name, company_name, location, city, user_type, account_type, user_roles, service_categories')
@@ -188,16 +193,20 @@ async function searchSellers(query: string, location: string | null) {
   if (location) dbQuery = dbQuery.or(`location.ilike.%${location}%,city.ilike.%${location}%`);
 
   const { data, error } = await dbQuery;
-  if (error) { console.error('Sellers search error:', error.message); return []; }
+  if (error) {
+    console.error('Sellers search error:', error.message);
+    return [];
+  }
+
   return data || [];
 }
 
 async function searchBlogs(query: string) {
   const q = query.toLowerCase();
-  const searchTerms = q.split(/\s+/).filter(t => t.length > 3);
+  const searchTerms = q.split(/\s+/).filter((t) => t.length > 3);
   if (searchTerms.length === 0) return [];
 
-  const orFilters = searchTerms.map(t => `title.ilike.%${t}%,content.ilike.%${t}%`).join(',');
+  const orFilters = searchTerms.map((t) => `title.ilike.%${t}%,content.ilike.%${t}%`).join(',');
   const { data, error } = await supabaseAdmin
     .from('blogs')
     .select('id, title, excerpt, tags, created_at')
@@ -205,7 +214,11 @@ async function searchBlogs(query: string) {
     .or(orFilters)
     .limit(3);
 
-  if (error) { console.error('Blogs search error:', error.message); return []; }
+  if (error) {
+    console.error('Blogs search error:', error.message);
+    return [];
+  }
+
   return data || [];
 }
 
@@ -216,6 +229,7 @@ async function getMarketStats() {
     supabaseAdmin.from('services').select('id', { count: 'exact', head: true }),
     supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }).eq('registration_complete', true),
   ]);
+
   return {
     totalRobots: robotsRes.count || 0,
     totalParts: partsRes.count || 0,
@@ -224,19 +238,22 @@ async function getMarketStats() {
   };
 }
 
-// ─── BUILD CONTEXT ──────────────────────────────────────────────
-
 function buildDatabaseContext(
-  robots: any[], parts: any[], services: any[],
-  logistics: any[], finance: { loanProducts: any[]; loanSchemes: any[] },
-  sellers: any[], blogs: any[], stats: any
+  robots: any[],
+  parts: any[],
+  services: any[],
+  logistics: any[],
+  finance: { loanProducts: any[]; loanSchemes: any[] },
+  sellers: any[],
+  blogs: any[],
+  stats: any,
 ): string {
   let context = `\n\nMARKETPLACE STATS: ${stats.totalRobots} robots, ${stats.totalParts} spare parts, ${stats.totalServices} services, ${stats.totalSellers} registered sellers/providers\n`;
 
   if (robots.length > 0) {
     context += '\n📦 AVAILABLE ROBOTS:\n';
     robots.forEach((r, i) => {
-      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Year: ${r.year_of_manufacture || 'N/A'} | Applications: ${r.applications || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
+      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Applications: ${r.applications || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
     });
   }
 
@@ -293,8 +310,6 @@ function buildDatabaseContext(
   return context;
 }
 
-// ─── MAIN HANDLER ───────────────────────────────────────────────
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -305,11 +320,9 @@ serve(async (req) => {
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
 
-    // Determine which tables to search based on intent
     const searchLogisticsFlag = intents.includes('logistics') || intents.includes('general');
     const searchFinanceFlag = intents.includes('finance') || intents.includes('general');
 
-    // Run all searches in parallel across ALL tables
     const [robots, parts, services, logistics, finance, sellers, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
       searchSpareParts(latestQuery, location),
@@ -423,12 +436,14 @@ DATABASE RESULTS:${dbContext}`;
       console.error('AI Gateway error:', response.status, errText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add funds.' }), {
-          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       throw new Error(`AI service error (${response.status})`);
@@ -455,12 +470,12 @@ DATABASE RESULTS:${dbContext}`;
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error: unknown) {
     console.error('AI Assistant error:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: msg }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
