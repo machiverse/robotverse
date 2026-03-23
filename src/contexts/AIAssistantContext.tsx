@@ -153,6 +153,20 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
 export function useAIAssistantContext() {
   const ctx = useContext(AIAssistantContext);
-  if (!ctx) throw new Error('useAIAssistantContext must be used within AIAssistantProvider');
+  if (!ctx) {
+    // During HMR or edge cases, return a safe fallback instead of crashing
+    console.warn('useAIAssistantContext called outside AIAssistantProvider, returning defaults');
+    return {
+      messages: [] as AIMessage[],
+      isLoading: false,
+      error: null,
+      sendMessage: async () => {},
+      clearChat: () => {},
+      stopGeneration: () => {},
+      canQuery: false,
+      remainingFree: 0,
+      isLoggedIn: false,
+    } as AIAssistantContextType;
+  }
   return ctx;
 }
