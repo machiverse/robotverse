@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAIAssistant, AIMessage } from '@/hooks/useAIAssistant';
+import { useAIAssistantContext, AIMessage } from '@/contexts/AIAssistantContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +22,7 @@ const QUICK_PROMPTS = [
 ];
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, className }) => {
-  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn } = useAIAssistant();
+  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn } = useAIAssistantContext();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

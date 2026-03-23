@@ -59,6 +59,7 @@ import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
 import AIAssistant from "./pages/AIAssistant";
 import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
+import { AIAssistantProvider } from "./contexts/AIAssistantContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -85,6 +86,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AIAssistantProvider>
             <AutoSignInPopup />
             <Routes>
               <Route path="/" element={<Index />} />
@@ -150,6 +152,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AIAssistantWidget />
+            </AIAssistantProvider>
           </BrowserRouter>
         </TooltipProvider>
       </RobotComparisonProvider>
