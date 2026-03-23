@@ -59,6 +59,7 @@ import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
 import AIAssistant from "./pages/AIAssistant";
 import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
+import { AIAssistantProvider } from "./contexts/AIAssistantContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
