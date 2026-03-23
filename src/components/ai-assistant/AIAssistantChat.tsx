@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAIAssistant, AIMessage } from '@/hooks/useAIAssistant';
+import { useAIAssistantContext, AIMessage } from '@/contexts/AIAssistantContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
