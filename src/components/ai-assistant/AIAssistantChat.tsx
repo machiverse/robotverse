@@ -235,19 +235,22 @@ const MessageBubble: React.FC<{ message: AIMessage; index: number; fullPage?: bo
             [&_li>strong]:text-foreground [&_li>strong]:font-semibold
             [&_li::marker]:text-primary
 
-            [&>hr]:my-4 [&>hr]:border-border/20
+            [&>hr]:my-4 [&>hr]:border-border/30
 
             [&_table]:text-xs [&_table]:w-full [&_table]:my-4 [&_table]:rounded-xl [&_table]:overflow-hidden
-            [&_table]:border [&_table]:border-border/30 [&_table]:shadow-sm
-            [&_thead]:bg-primary/10
-            [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground
-            [&_th]:border-b [&_th]:border-border/30 [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider
-            [&_td]:px-3 [&_td]:py-2.5 [&_td]:border-b [&_td]:border-border/10 [&_td]:text-muted-foreground [&_td]:text-xs
-            [&_tr:hover]:bg-accent/30 [&_tr]:transition-colors [&_tr:last-child_td]:border-b-0
-            [&_tbody_tr:nth-child(even)]:bg-muted/20
+            [&_table]:border [&_table]:border-primary/20 [&_table]:shadow-md
+            [&_thead]:bg-gradient-to-r [&_thead]:from-primary/15 [&_thead]:to-primary/5
+            [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-foreground
+            [&_th]:border-b-2 [&_th]:border-primary/30 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-wider [&_th]:whitespace-nowrap
+            [&_td]:px-3 [&_td]:py-2.5 [&_td]:border-b [&_td]:border-border/20 [&_td]:text-muted-foreground [&_td]:text-xs
+            [&_td>strong]:text-foreground [&_td>strong]:font-semibold
+            [&_tr:hover]:bg-primary/5 [&_tr]:transition-colors [&_tr:last-child_td]:border-b-0
+            [&_tbody_tr:nth-child(even)]:bg-muted/30
+            [&_tbody_tr:nth-child(odd)]:bg-background/50
 
-            [&>blockquote]:border-l-[3px] [&>blockquote]:border-primary/50 [&>blockquote]:pl-4 [&>blockquote]:py-2 [&>blockquote]:my-3
-            [&>blockquote]:italic [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/5 [&>blockquote]:rounded-r-xl
+            [&>blockquote]:border-l-[3px] [&>blockquote]:border-primary/50 [&>blockquote]:pl-4 [&>blockquote]:py-2.5 [&>blockquote]:my-3
+            [&>blockquote]:text-muted-foreground [&>blockquote]:bg-primary/5 [&>blockquote]:rounded-r-xl
+            [&>blockquote>p]:my-0.5 [&>blockquote>p>strong]:text-foreground
 
             [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs [&_code]:font-mono [&_code]:text-primary
 
