@@ -152,6 +152,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AIAssistantWidget />
+            </AIAssistantProvider>
           </BrowserRouter>
         </TooltipProvider>
       </RobotComparisonProvider>
