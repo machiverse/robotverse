@@ -236,7 +236,7 @@ function buildDatabaseContext(
   if (robots.length > 0) {
     context += '\n📦 AVAILABLE ROBOTS:\n';
     robots.forEach((r, i) => {
-      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Year: ${r.year_of_manufacture || 'N/A'} | Applications: ${r.applications || 'N/A'} | Industry: ${r.industry || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
+      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Year: ${r.year_of_manufacture || 'N/A'} | Applications: ${r.applications || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
     });
   }
 
