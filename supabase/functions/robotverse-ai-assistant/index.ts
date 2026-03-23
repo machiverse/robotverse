@@ -427,7 +427,7 @@ DATABASE RESULTS:${dbContext}`;
         model: 'google/gemini-2.5-flash',
         messages: aiMessages,
         temperature: 0.4,
-        max_tokens: 1500,
+        max_tokens: 2500,
       }),
     });
 
