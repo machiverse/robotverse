@@ -86,6 +86,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AIAssistantProvider>
             <AutoSignInPopup />
             <Routes>
               <Route path="/" element={<Index />} />
