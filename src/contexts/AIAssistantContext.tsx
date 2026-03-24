@@ -81,6 +81,8 @@ interface AIAssistantContextType {
   canQuery: boolean;
   remainingFree: number;
   isLoggedIn: boolean;
+  lastResultCounts: ResultCounts | null;
+  lastUserQuery: string;
   // Chat history
   sessions: ChatSession[];
   activeSessionId: string | null;
