@@ -295,6 +295,8 @@ export function useAIAssistantContext() {
       canQuery: false,
       remainingFree: 0,
       isLoggedIn: false,
+      lastResultCounts: null,
+      lastUserQuery: '',
       sessions: [] as ChatSession[],
       activeSessionId: null,
       startNewChat: () => {},
