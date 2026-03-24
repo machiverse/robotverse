@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, X, Copy, Check } from "lucide-react";
+import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
