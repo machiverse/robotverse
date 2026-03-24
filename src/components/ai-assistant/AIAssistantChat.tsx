@@ -79,13 +79,13 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-              <Bot className="w-5 h-5 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+              <Bot className="w-4.5 h-4.5 text-primary-foreground" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-primary rounded-full border-2 border-card" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-card" />
           </div>
           <div>
             <h3 className="font-bold text-sm text-foreground tracking-tight">RobotVerse AI</h3>
@@ -95,7 +95,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {!isLoggedIn && (
             <Badge
               variant="outline"
@@ -108,22 +108,11 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive"
+              className="h-7 w-7 rounded-lg hover:bg-destructive/10 hover:text-destructive"
               onClick={clearChat}
               title="Clear chat"
             >
               <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          )}
-          {fullPage && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-muted"
-              onClick={() => window.history.back()}
-              title="Close"
-            >
-              <X className="w-4 h-4" />
             </Button>
           )}
         </div>
