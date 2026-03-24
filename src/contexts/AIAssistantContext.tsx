@@ -193,6 +193,8 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     setIsLoading(true);
     setError(null);
+    setLastUserQuery(input);
+    setLastResultCounts(null);
     if (!user) incrementQueryCount();
 
     try {
