@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, Copy, Check } from "lucide-react";
+import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, Copy, Check, FileSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAIAssistantContext, AIMessage } from "@/contexts/AIAssistantContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import UserProductRequestModal from "@/components/UserProductRequestModal";
 
 interface AIAssistantChatProps {
   fullPage?: boolean;
@@ -38,12 +39,25 @@ const QUICK_PROMPTS = [
 ];
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, className }) => {
-  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn } =
+  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery } =
     useAIAssistantContext();
 
   const [input, setInput] = useState("");
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Determine if we should show "Submit Request" - when key categories have 0 results
+  const hasLowResults = lastResultCounts && !isLoading && messages.length > 0 &&
+    (lastResultCounts.robots + lastResultCounts.spareParts + lastResultCounts.services) === 0;
+
+  // Detect product type from query for pre-filling the modal
+  const detectProductType = (): 'robot' | 'spare_part' | 'service' | undefined => {
+    const q = lastUserQuery.toLowerCase();
+    if (q.match(/spare|part|eoat|gripper|sensor|controller|component|pendant/)) return 'spare_part';
+    if (q.match(/service|maintenance|repair|integrat|program/)) return 'service';
+    return 'robot';
+  };
 
   const lastMessageRole = messages[messages.length - 1]?.role;
 
@@ -139,6 +153,31 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           </div>
         )}
 
+        {/* Submit Request CTA when no results found */}
+        {hasLowResults && (
+          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <FileSearch className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">Can't find what you need?</p>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+                  Submit a request and our team will connect you with the right sellers and providers.
+                </p>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs rounded-lg px-4 shadow-sm"
+                  onClick={() => setShowRequestModal(true)}
+                >
+                  <FileSearch className="w-3.5 h-3.5 mr-1.5" />
+                  Submit a Request
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error / Login prompt */}
         {error === "login_required" && <LoginRequiredBanner remainingFree={remainingFree} />}
         {error && error !== "login_required" && (
@@ -147,6 +186,13 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           </div>
         )}
       </ScrollArea>
+
+      {/* Product Request Modal */}
+      <UserProductRequestModal
+        open={showRequestModal}
+        onOpenChange={setShowRequestModal}
+        defaultProductType={detectProductType()}
+      />
 
       {/* Input */}
       <div className="p-3 border-t border-border/40 bg-background/80 backdrop-blur-sm">

@@ -3,6 +3,17 @@ import { useAuth } from '@/hooks/useAuth';
 
 export type AIMessage = { role: 'user' | 'assistant'; content: string; timestamp?: number };
 
+export type ResultCounts = {
+  robots: number;
+  spareParts: number;
+  services: number;
+  logistics: number;
+  loanProducts: number;
+  loanSchemes: number;
+  sellers: number;
+  blogs: number;
+};
+
 export type ChatSession = {
   id: string;
   title: string;
@@ -70,6 +81,8 @@ interface AIAssistantContextType {
   canQuery: boolean;
   remainingFree: number;
   isLoggedIn: boolean;
+  lastResultCounts: ResultCounts | null;
+  lastUserQuery: string;
   // Chat history
   sessions: ChatSession[];
   activeSessionId: string | null;
@@ -86,6 +99,8 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => loadActiveSessionId());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastResultCounts, setLastResultCounts] = useState<ResultCounts | null>(null);
+  const [lastUserQuery, setLastUserQuery] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
   const queriesUsed = getQueryCount();
@@ -178,6 +193,8 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     setIsLoading(true);
     setError(null);
+    setLastUserQuery(input);
+    setLastResultCounts(null);
     if (!user) incrementQueryCount();
 
     try {
@@ -207,6 +224,11 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const data = await resp.json();
       const content = data.content || data.error || 'No response received';
       const assistantMsg: AIMessage = { role: 'assistant', content, timestamp: Date.now() };
+
+      // Store result counts for "submit request" feature
+      if (data.resultCounts) {
+        setLastResultCounts(data.resultCounts as ResultCounts);
+      }
 
       updateSession(currentSessionId, s => ({
         ...s,
@@ -246,6 +268,8 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       canQuery,
       remainingFree,
       isLoggedIn: !!user,
+      lastResultCounts,
+      lastUserQuery,
       sessions,
       activeSessionId,
       startNewChat,
@@ -271,6 +295,8 @@ export function useAIAssistantContext() {
       canQuery: false,
       remainingFree: 0,
       isLoggedIn: false,
+      lastResultCounts: null,
+      lastUserQuery: '',
       sessions: [] as ChatSession[],
       activeSessionId: null,
       startNewChat: () => {},
