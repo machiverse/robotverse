@@ -268,6 +268,8 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       canQuery,
       remainingFree,
       isLoggedIn: !!user,
+      lastResultCounts,
+      lastUserQuery,
       sessions,
       activeSessionId,
       startNewChat,
