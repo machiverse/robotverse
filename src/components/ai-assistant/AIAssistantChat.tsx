@@ -153,6 +153,31 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           </div>
         )}
 
+        {/* Submit Request CTA when no results found */}
+        {hasLowResults && (
+          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <FileSearch className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">Can't find what you need?</p>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+                  Submit a request and our team will connect you with the right sellers and providers.
+                </p>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs rounded-lg px-4 shadow-sm"
+                  onClick={() => setShowRequestModal(true)}
+                >
+                  <FileSearch className="w-3.5 h-3.5 mr-1.5" />
+                  Submit a Request
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error / Login prompt */}
         {error === "login_required" && <LoginRequiredBanner remainingFree={remainingFree} />}
         {error && error !== "login_required" && (
@@ -161,6 +186,13 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           </div>
         )}
       </ScrollArea>
+
+      {/* Product Request Modal */}
+      <UserProductRequestModal
+        open={showRequestModal}
+        onOpenChange={setShowRequestModal}
+        defaultProductType={detectProductType()}
+      />
 
       {/* Input */}
       <div className="p-3 border-t border-border/40 bg-background/80 backdrop-blur-sm">
