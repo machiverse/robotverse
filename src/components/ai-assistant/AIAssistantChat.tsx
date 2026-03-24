@@ -48,8 +48,16 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Determine if we should show "Submit Request" - when key categories have 0 results
-  const hasLowResults = lastResultCounts && !isLoading && messages.length > 0 &&
-    (lastResultCounts.robots + lastResultCounts.spareParts + lastResultCounts.services) === 0;
+  // Check both API result counts AND AI response content for "not found" patterns
+  const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant')?.content?.toLowerCase() || '';
+  const aiSaysNotFound = lastAssistantMsg.match(/no\s+(exact\s+)?match|not\s+(available|found)|cannot\s+find|don'?t\s+have|couldn'?t\s+find|no\s+\w+\s+(robots?|parts?|spare|eoat|services?)\s+(found|available|listed|in)/i);
+  
+  const hasLowResults = !isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
+    // API says zero core results
+    (lastResultCounts && (lastResultCounts.robots + lastResultCounts.spareParts + lastResultCounts.services) === 0) ||
+    // OR the AI response itself says nothing was found
+    !!aiSaysNotFound
+  );
 
   // Detect product type from query for pre-filling the modal
   const detectProductType = (): 'robot' | 'spare_part' | 'service' | undefined => {
