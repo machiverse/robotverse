@@ -39,12 +39,25 @@ const QUICK_PROMPTS = [
 ];
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, className }) => {
-  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn } =
+  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery } =
     useAIAssistantContext();
 
   const [input, setInput] = useState("");
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Determine if we should show "Submit Request" - when key categories have 0 results
+  const hasLowResults = lastResultCounts && !isLoading && messages.length > 0 &&
+    (lastResultCounts.robots + lastResultCounts.spareParts + lastResultCounts.services) === 0;
+
+  // Detect product type from query for pre-filling the modal
+  const detectProductType = (): 'robot' | 'spare_part' | 'service' | undefined => {
+    const q = lastUserQuery.toLowerCase();
+    if (q.match(/spare|part|eoat|gripper|sensor|controller|component|pendant/)) return 'spare_part';
+    if (q.match(/service|maintenance|repair|integrat|program/)) return 'service';
+    return 'robot';
+  };
 
   const lastMessageRole = messages[messages.length - 1]?.role;
 
