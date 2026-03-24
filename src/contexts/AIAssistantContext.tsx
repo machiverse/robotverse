@@ -3,6 +3,17 @@ import { useAuth } from '@/hooks/useAuth';
 
 export type AIMessage = { role: 'user' | 'assistant'; content: string; timestamp?: number };
 
+export type ResultCounts = {
+  robots: number;
+  spareParts: number;
+  services: number;
+  logistics: number;
+  loanProducts: number;
+  loanSchemes: number;
+  sellers: number;
+  blogs: number;
+};
+
 export type ChatSession = {
   id: string;
   title: string;
