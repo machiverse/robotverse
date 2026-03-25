@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useContactUnlock } from '@/hooks/useContactUnlock';
+import CreateQuotationModal from '@/components/crm/CreateQuotationModal';
 
 interface QuoteRequest {
   id: string;
@@ -82,6 +83,8 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
   const [selectedRequest, setSelectedRequest] = useState<QuoteRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  const [showQuotationModal, setShowQuotationModal] = useState(false);
+  const [quotationLeadData, setQuotationLeadData] = useState<any>(null);
 
   useEffect(() => {
     fetchQuoteRequests();
@@ -467,127 +470,82 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
-          <Table>
+           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Customer</TableHead>
+                <TableHead>Company</TableHead>
                 <TableHead>Item</TableHead>
-                <TableHead>Urgency</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRequests.map((request) => {
-                const isUnlocked = isBuyerContactUnlocked(request);
-                return (
+              {filteredRequests.map((request) => (
                 <TableRow key={request.id} className="hover:bg-muted/50">
                   <TableCell>
-                    <div className="flex flex-col">
-                      {isUnlocked ? (
-                        <>
-                          <span className="font-medium">{request.user_name}</span>
-                          {request.company_name && (
-                            <span className="text-sm text-muted-foreground">{request.company_name}</span>
-                          )}
-                          <span className="text-xs text-muted-foreground">{request.email_address}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="font-medium flex items-center gap-1">
-                            <Lock className="w-3 h-3" />
-                            {getMaskedValue(request.user_name, 'name')}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{getMaskedValue(request.email_address, 'email')}</span>
-                        </>
-                      )}
-                    </div>
+                    <span className="font-medium flex items-center gap-1">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      {request.user_name || 'N/A'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm flex items-center gap-1">
+                      <Building className="w-4 h-4 text-muted-foreground" />
+                      {request.company_name || 'N/A'}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      <span className="font-medium">{request.item_name || 'N/A'}</span>
+                      <span className="font-medium text-sm">{request.item_name || 'N/A'}</span>
                       {getItemTypeBadge(request.item_type)}
                     </div>
                   </TableCell>
-                  <TableCell>{getUrgencyBadge(request.urgency)}</TableCell>
-                  <TableCell>{getStatusBadge(request.status)}</TableCell>
                   <TableCell>
                     <span className="text-sm">
                       {format(new Date(request.created_at), 'MMM dd, yyyy')}
                     </span>
-                    <br />
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(request.created_at), 'HH:mm')}
-                    </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {!isUnlocked ? (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleUnlockBuyerContact(request)}
-                          disabled={unlockingId === request.id || creditsLoading}
-                          title={isCommissionSeller ? 'Unlock (Free)' : `Unlock for ${getCreditsForItemType(request.item_type)} credits`}
-                          className={isCommissionSeller ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"}
-                        >
-                          {unlockingId === request.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Unlock className="w-4 h-4 mr-1" />
-                              {isCommissionSeller ? 'Free' : getCreditsForItemType(request.item_type)}
-                            </>
-                          )}
-                        </Button>
-                      ) : (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => viewRequestDetails(request)}
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleStartChat(request)}
-                            title="Start Chat"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </Button>
-                          {request.mobile_number && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(`tel:${request.mobile_number}`)}
-                              title="Call"
-                            >
-                              <Phone className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(`mailto:${request.email_address}`)}
-                            title="Email"
-                          >
-                            <Mail className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setQuotationLeadData({
+                          leadId: request.id,
+                          buyerName: request.user_name,
+                          buyerEmail: request.email_address,
+                          buyerPhone: request.mobile_number || '',
+                          buyerCompany: request.company_name || '',
+                          productName: request.item_name || '',
+                          productPrice: request.additional_data?.item_price || 0,
+                          productBrand: request.additional_data?.item_brand || '',
+                          productModel: request.additional_data?.item_model || '',
+                        });
+                        setShowQuotationModal(true);
+                      }}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      Submit Quote
+                    </Button>
                   </TableCell>
                 </TableRow>
-                );
-              })}
+              ))}
             </TableBody>
           </Table>
         </div>
       )}
+
+      {/* Quotation Modal */}
+      <CreateQuotationModal
+        open={showQuotationModal}
+        onOpenChange={setShowQuotationModal}
+        onSuccess={() => {
+          fetchQuoteRequests();
+          setShowQuotationModal(false);
+        }}
+        leadData={quotationLeadData}
+        isCommissionSeller={isCommissionSeller}
+      />
 
       {/* Detail Modal */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
