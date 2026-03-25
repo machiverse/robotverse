@@ -131,8 +131,29 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
       setLoading(false);
     }
   };
+  const fetchItemImages = async () => {
+    const images: Record<string, string> = {};
+    const robotIds = quoteRequests.filter(r => r.item_id && (r.item_type === 'robot' || r.item_type === 'robots')).map(r => r.item_id!);
+    const spareIds = quoteRequests.filter(r => r.item_id && (r.item_type === 'spare_part' || r.item_type === 'spare_parts')).map(r => r.item_id!);
 
-  const filterRequests = () => {
+    if (robotIds.length > 0) {
+      const { data } = await supabase.from('robots').select('id, images').in('id', robotIds);
+      data?.forEach(r => {
+        const imgs = r.images as string[] | null;
+        if (imgs && imgs.length > 0) images[r.id] = imgs[0];
+      });
+    }
+    if (spareIds.length > 0) {
+      const { data } = await supabase.from('spare_parts').select('id, images').in('id', spareIds);
+      data?.forEach(r => {
+        const imgs = r.images as string[] | null;
+        if (imgs && imgs.length > 0) images[r.id] = imgs[0];
+      });
+    }
+    setItemImages(images);
+  };
+
+
     let filtered = [...quoteRequests];
 
     if (searchQuery) {
