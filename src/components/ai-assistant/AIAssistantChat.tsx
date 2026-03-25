@@ -67,6 +67,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
     return 'robot';
   };
 
+  const requestQuery = lastUserQuery.trim() || messages.filter(m => m.role === 'user').at(-1)?.content || '';
+
   const lastMessageRole = messages[messages.length - 1]?.role;
 
   useEffect(() => {
@@ -200,6 +202,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
         open={showRequestModal}
         onOpenChange={setShowRequestModal}
         defaultProductType={detectProductType()}
+        initialQuery={requestQuery}
       />
 
       {/* Input */}
