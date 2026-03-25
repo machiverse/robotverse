@@ -145,16 +145,16 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
       } else if (productType === 'service') {
         const { data } = await supabase
           .from('services')
-          .select('id, title, service_type, price')
+          .select('id, name, service_type, price_range')
           .eq('provider_id', user.id)
           .order('created_at', { ascending: false });
-        products = (data || []).map(p => ({
+        products = (data || []).map((p: any) => ({
           id: p.id,
-          name: p.title,
+          name: p.name,
           brand: p.service_type,
-          price: p.price,
+          price: null,
           type: 'service',
-          label: `${p.title}${p.service_type ? ` (${p.service_type})` : ''}${p.price ? ` - ₹${Number(p.price).toLocaleString()}` : ''}`,
+          label: `${p.name}${p.service_type ? ` (${p.service_type})` : ''}${p.price_range ? ` - ${p.price_range}` : ''}`,
         }));
       }
       setSellerProducts(products);
