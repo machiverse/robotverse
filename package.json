@@ -49,6 +49,7 @@
     "@tiptap/extension-text-align": "^2.26.1",
     "@tiptap/react": "^2.26.1",
     "@tiptap/starter-kit": "^2.26.1",
+    "@types/geojson": "^7946.0.16",
     "@types/leaflet": "1.9.12",
     "@types/papaparse": "^5.3.16",
     "@vitejs/plugin-react": "^4.3.0",
