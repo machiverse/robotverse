@@ -13,12 +13,12 @@ const AIAssistant = () => {
         keywords={['robot assistant', 'find industrial robots', 'robot recommendation', 'AI robot search']}
       />
       <EnhancedHeader />
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="text-center mb-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
             RobotVerse AI Assistant
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
+          <p className="text-muted-foreground mt-1 text-xs sm:text-sm max-w-2xl mx-auto">
             Describe your requirements — application, payload, budget — and get instant recommendations
           </p>
         </div>
