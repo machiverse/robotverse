@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAIAssistantContext, AIMessage } from "@/contexts/AIAssistantContext";
+import { useAIAssistantContext, AIMessage, ResultCounts } from "@/contexts/AIAssistantContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
@@ -339,7 +339,7 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
 
 /* ─── Message Bubble ─── */
 
-const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
+const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean }> = ({ message, resultCounts, isLastAssistant }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
 
