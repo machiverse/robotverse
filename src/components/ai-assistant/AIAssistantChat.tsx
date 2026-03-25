@@ -67,7 +67,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
     return 'robot';
   };
 
-  const requestQuery = lastUserQuery.trim() || messages.filter(m => m.role === 'user').at(-1)?.content || '';
+  const latestUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  const requestQuery = lastUserQuery.trim() || latestUserMessage;
 
   const lastMessageRole = messages[messages.length - 1]?.role;
 
