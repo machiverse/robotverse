@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import SEOMetaTags from "@/components/SEOMetaTags";
+import { ROBOT_TYPES, SERVICE_TYPES, LOGISTICS_TYPES, FINANCE_TYPES, ROBOBOOK_CATEGORIES, ROBOBOOK_CATEGORY_LABELS } from "@/constants/navigationMenus";
 
 const Sitemap = () => {
   const sitePages = {
@@ -13,55 +14,68 @@ const Sitemap = () => {
       { name: "Services", path: "/services" },
       { name: "Logistics", path: "/logistics" },
       { name: "Financing", path: "/financing" },
-      { name: "RoboBook", path: "/robobook" }
+      { name: "RoboBook", path: "/robobook" },
+      { name: "Blogs", path: "/blogs" },
+      { name: "Pricing", path: "/pricing" },
     ],
+    "Robot Types": ROBOT_TYPES.map(type => ({
+      name: type,
+      path: `/robots?type=${encodeURIComponent(type)}`,
+    })),
+    "Services Categories": SERVICE_TYPES.map(type => ({
+      name: type,
+      path: `/services?type=${encodeURIComponent(type)}`,
+    })),
+    "Logistics Categories": LOGISTICS_TYPES.map(type => ({
+      name: type,
+      path: `/logistics?type=${encodeURIComponent(type)}`,
+    })),
+    "Financing Categories": FINANCE_TYPES.map(type => ({
+      name: type,
+      path: `/financing?type=${encodeURIComponent(type)}`,
+    })),
+    "RoboBook Categories": ROBOBOOK_CATEGORIES.map(cat => ({
+      name: ROBOBOOK_CATEGORY_LABELS[cat] || cat,
+      path: `/robobook?category=${encodeURIComponent(cat)}`,
+    })),
     "User Account": [
       { name: "Sign In / Sign Up", path: "/auth" },
       { name: "Dashboard", path: "/dashboard" },
       { name: "My Robots", path: "/dashboard/robots" },
       { name: "Parts Management", path: "/dashboard/parts" },
       { name: "Services Management", path: "/dashboard/services" },
+      { name: "Messages", path: "/dashboard/messages" },
+      { name: "Quotations", path: "/dashboard/quotations" },
+      { name: "My Requests", path: "/dashboard/my-requests" },
       { name: "Analytics", path: "/dashboard/analytics" },
       { name: "Reports", path: "/dashboard/reports" },
+      { name: "Credits", path: "/dashboard/credits" },
       { name: "Finance", path: "/dashboard/finance" },
+      { name: "Logistics", path: "/dashboard/logistics" },
       { name: "Settings", path: "/dashboard/settings" },
       { name: "Profile Settings", path: "/profile-settings" },
-      { name: "Watchlist", path: "/watchlist" }
+      { name: "Watchlist", path: "/watchlist" },
     ],
-    "Support & Legal": [
+    "Guides & Support": [
+      { name: "Buyer Guide", path: "/buyer-guide" },
+      { name: "Seller Guide", path: "/seller-guide" },
       { name: "Contact Us", path: "/contact" },
       { name: "Help Center", path: "/dashboard/help" },
-      { name: "Seller Guide", path: "/seller-guide" },
-      { name: "Buyer Guide", path: "/buyer-guide" },
+    ],
+    "Legal": [
       { name: "Terms of Service", path: "/terms" },
-      { name: "Privacy Policy", path: "/dashboard/privacy" },
+      { name: "Privacy Policy", path: "/privacy" },
       { name: "Cookie Policy", path: "/cookies" },
-      { name: "Accessibility", path: "/accessibility" }
+      { name: "Accessibility", path: "/accessibility" },
     ],
-    "Marketplace Categories": [
-      { name: "Industrial Robots", path: "/robots?category=industrial" },
-      { name: "Collaborative Robots", path: "/robots?category=collaborative" },
-      { name: "Welding Robots", path: "/robots?category=welding" },
-      { name: "Painting Robots", path: "/robots?category=painting" },
-      { name: "Assembly Robots", path: "/robots?category=assembly" },
-      { name: "Material Handling", path: "/robots?category=material-handling" }
-    ],
-    "Services": [
-      { name: "Robot Installation", path: "/services?type=installation" },
-      { name: "Maintenance & Repair", path: "/services?type=maintenance" },
-      { name: "Training & Support", path: "/services?type=training" },
-      { name: "Programming Services", path: "/services?type=programming" },
-      { name: "System Integration", path: "/services?type=integration" }
-    ]
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* SEO handled by document title */}
       <EnhancedHeader />
       
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
               Sitemap
@@ -71,19 +85,20 @@ const Sitemap = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Object.entries(sitePages).map(([category, pages]) => (
-              <Card key={category}>
-                <CardHeader>
+              <Card key={category} className="h-fit">
+                <CardHeader className="pb-3">
                   <CardTitle className="text-lg">{category}</CardTitle>
+                  <p className="text-xs text-muted-foreground">{pages.length} pages</p>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {pages.map((page) => (
                       <li key={page.path}>
                         <Link 
                           to={page.path}
-                          className="text-sm text-muted-foreground hover:text-primary transition-colors block py-1"
+                          className="text-sm text-muted-foreground hover:text-primary transition-colors block py-0.5"
                         >
                           {page.name}
                         </Link>
@@ -95,7 +110,7 @@ const Sitemap = () => {
             ))}
           </div>
 
-          {/* Additional Information */}
+          {/* Summary & XML Sitemap Info */}
           <div className="mt-12">
             <Card>
               <CardHeader>
@@ -106,28 +121,30 @@ const Sitemap = () => {
                   <div>
                     <h3 className="font-medium mb-2">Dynamic Content</h3>
                     <p className="text-sm text-muted-foreground">
-                      This sitemap includes the main static pages of RobotVerse. Dynamic content such as individual robot listings, blog posts, and user-specific pages are generated based on database content.
+                      This sitemap includes all static pages and category filters. Individual robot listings, spare parts, blog posts, and service pages are dynamically generated from the database.
                     </p>
                   </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Updates</h3>
-                    <p className="text-sm text-muted-foreground">
-                      This sitemap is updated regularly as we add new features and pages to the platform. For the most current navigation, please use the main menu and search functionality.
-                    </p>
-                  </div>
-                  
                   <div>
                     <h3 className="font-medium mb-2">XML Sitemap</h3>
                     <p className="text-sm text-muted-foreground">
-                      For search engines and automated crawlers, an XML sitemap is available at <code>/sitemap.xml</code> which includes all public pages and content.
+                      For search engines and crawlers, an XML sitemap is available at{" "}
+                      <a href="/sitemap.xml" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                        /sitemap.xml
+                      </a>
+                      {" "}which includes all public pages and dynamic content URLs.
                     </p>
                   </div>
-                  
                   <div>
-                    <h3 className="font-medium mb-2">Help & Support</h3>
+                    <h3 className="font-medium mb-2">Total Pages</h3>
                     <p className="text-sm text-muted-foreground">
-                      If you can't find what you're looking for, please use our search function or <Link to="/contact" className="text-primary hover:underline">contact our support team</Link> for assistance.
+                      {Object.values(sitePages).reduce((sum, pages) => sum + pages.length, 0)} pages listed across {Object.keys(sitePages).length} categories, plus dynamic individual listing pages.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-2">Need Help?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Can't find what you're looking for?{" "}
+                      <Link to="/contact" className="text-primary hover:underline">Contact our support team</Link> for assistance.
                     </p>
                   </div>
                 </div>
