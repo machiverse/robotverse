@@ -92,6 +92,10 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
   }, [sellerId, itemType]);
 
   useEffect(() => {
+    if (quoteRequests.length > 0) fetchItemImages();
+  }, [quoteRequests]);
+
+  useEffect(() => {
     filterRequests();
   }, [quoteRequests, searchQuery, filterStatus, filterUrgency]);
 
