@@ -58,8 +58,8 @@ const AIAssistantWidget: React.FC = () => {
             className={cn(
               "fixed z-50 transition-all duration-300 ease-out",
               isMaximized
-                ? "inset-2 sm:inset-4 md:inset-6 lg:inset-10"
-                : "bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6"
+                ? "inset-4 md:inset-8 lg:inset-12"
+                : "bottom-6 right-6"
             )}
           >
             <div
@@ -68,8 +68,8 @@ const AIAssistantWidget: React.FC = () => {
                 isMaximized
                   ? "rounded-2xl w-full h-full"
                   : "rounded-2xl animate-in slide-in-from-bottom-4 fade-in duration-300",
-                !isMaximized && "h-[85vh] sm:h-[560px]",
-                !isMaximized && showSidebar ? "sm:w-[640px]" : !isMaximized ? "sm:w-[400px]" : "",
+                !isMaximized && "h-[520px]",
+                !isMaximized && showSidebar ? "w-[640px]" : !isMaximized ? "w-[400px]" : "",
               )}
             >
               {/* Chat History Sidebar */}
