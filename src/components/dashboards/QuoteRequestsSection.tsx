@@ -522,9 +522,22 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium text-sm">{request.item_name || 'N/A'}</span>
-                      {getItemTypeBadge(request.item_type)}
+                    <div className="flex items-center gap-3">
+                      {request.item_id && itemImages[request.item_id] ? (
+                        <img
+                          src={itemImages[request.item_id]}
+                          alt={request.item_name || 'Item'}
+                          className="w-10 h-10 rounded-md object-cover border border-border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                          <Package className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium text-sm">{request.item_name || 'N/A'}</span>
+                        {getItemTypeBadge(request.item_type)}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
