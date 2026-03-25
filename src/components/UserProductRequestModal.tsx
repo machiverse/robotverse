@@ -17,6 +17,7 @@ interface UserProductRequestModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultProductType?: 'robot' | 'spare_part' | 'service';
+  initialQuery?: string;
 }
 
 const PRODUCT_TYPES = [
@@ -25,7 +26,7 @@ const PRODUCT_TYPES = [
   { value: 'service', label: 'Service / Maintenance', icon: Wrench, color: 'bg-purple-100 text-purple-800' },
 ];
 
-const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: UserProductRequestModalProps) => {
+const UserProductRequestModal = ({ open, onOpenChange, defaultProductType, initialQuery }: UserProductRequestModalProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { submitRequest } = useUserProductRequests();
@@ -65,6 +66,22 @@ const UserProductRequestModal = ({ open, onOpenChange, defaultProductType }: Use
       fetchProfile();
     }
   }, [open, user]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const normalizedQuery = initialQuery?.trim() || '';
+    const aiSpecification = normalizedQuery
+      ? `AI assistant query: ${normalizedQuery}\nPlease help source the closest matching product, spare part, EOAT, or service option.`
+      : '';
+
+    setForm(prev => ({
+      ...prev,
+      product_type: defaultProductType || prev.product_type,
+      product_name: normalizedQuery || prev.product_name,
+      specifications: normalizedQuery ? aiSpecification : prev.specifications,
+    }));
+  }, [open, defaultProductType, initialQuery]);
 
   const handleChange = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
