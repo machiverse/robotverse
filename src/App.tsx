@@ -46,6 +46,7 @@ import Privacy from "./pages/dashboard/Privacy";
 import Messages from "./pages/dashboard/Messages";
 import Credits from "./pages/dashboard/Credits";
 import Quotations from "./pages/dashboard/Quotations";
+import MyRequests from "./pages/dashboard/MyRequests";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
