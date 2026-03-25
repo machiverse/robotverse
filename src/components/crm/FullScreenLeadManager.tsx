@@ -45,6 +45,7 @@ import CreateQuotationModal from "./CreateQuotationModal";
 
 import { format, formatDistanceToNow } from "date-fns";
 import SellerAssignedRequests from "@/components/SellerAssignedRequests";
+import UserRequestsMarketplace from "./UserRequestsMarketplace";
 import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "list" | "pipeline";
@@ -538,15 +539,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
               </TabsContent>
 
               <TabsContent value={TAB_USER_REQUESTS} className="mt-0 h-full">
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-muted bg-muted/30 p-4">
-                    <h3 className="text-sm font-medium mb-1">Assigned User Requests</h3>
-                    <p className="text-xs text-muted-foreground">
-                      User requests assigned to you by the admin. Review details and submit quotations or solutions.
-                    </p>
-                  </div>
-                  <SellerAssignedRequests categoryFilter={categoryFilter} />
-                </div>
+                <UserRequestsMarketplace categoryFilter={categoryFilter} isCommissionSeller={isCommissionSeller} />
               </TabsContent>
 
               <TabsContent value={TAB_LEADS} className="mt-0 h-full">
