@@ -99,12 +99,12 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
     <div
       className={cn(
         "flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-card to-background shadow-xl",
-        fullPage ? "h-[calc(100vh-12rem)] max-w-5xl mx-auto w-full" : "h-[480px] w-[380px]",
+        fullPage ? "h-[calc(100vh-12rem)] max-w-5xl mx-auto w-full" : "h-[480px] w-full max-w-[380px]",
         className,
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
+      <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
