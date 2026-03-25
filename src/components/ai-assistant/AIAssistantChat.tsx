@@ -368,8 +368,8 @@ const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
         className={cn(
           "rounded-2xl shadow-sm relative",
           isUser
-            ? "max-w-[75%] bg-gradient-to-br from-primary to-primary/85 text-primary-foreground px-4 py-3 rounded-tr-sm"
-            : "bg-card border border-border/40 text-foreground px-5 py-4 rounded-tl-sm max-w-[92%]",
+            ? "max-w-[85%] sm:max-w-[75%] bg-gradient-to-br from-primary to-primary/85 text-primary-foreground px-3 sm:px-4 py-3 rounded-tr-sm"
+            : "bg-card border border-border/40 text-foreground px-3 sm:px-5 py-3 sm:py-4 rounded-tl-sm max-w-[95%] sm:max-w-[92%]",
         )}
       >
         {/* Copy button only for assistant messages */}
