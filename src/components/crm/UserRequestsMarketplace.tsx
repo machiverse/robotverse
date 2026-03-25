@@ -131,10 +131,10 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
       } else if (productType === 'spare_part') {
         const { data } = await supabase
           .from('spare_parts')
-          .select('id, name, brand, price, category')
+          .select('id, name, brand, price')
           .eq('seller_id', user.id)
           .order('created_at', { ascending: false });
-        products = (data || []).map(p => ({
+        products = (data || []).map((p: any) => ({
           id: p.id,
           name: p.name,
           brand: p.brand,
