@@ -403,6 +403,8 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
 
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        ) : isLastAssistant && resultCounts ? (
+          <ResultTabsView content={message.content} resultCounts={resultCounts} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none
@@ -433,7 +435,6 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
             [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:text-primary/80
           "
           >
-            {/* Wrap markdown in a scroll container for wide tables */}
             <div className="w-full overflow-x-auto">
               <ReactMarkdown>{message.content}</ReactMarkdown>
             </div>
