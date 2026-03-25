@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,11 +47,14 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
   // Quote response modal
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [sellerProducts, setSellerProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [quoteForm, setQuoteForm] = useState({
     quotation_amount: '',
     quotation_details: '',
     product_details: '',
     seller_notes: '',
+    selected_product_id: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -103,6 +107,63 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
     fetchRequests();
     fetchCredits();
   }, [fetchRequests, fetchCredits]);
+
+  // Fetch seller's own products based on request product_type
+  const fetchSellerProducts = useCallback(async (productType: string) => {
+    if (!user) return;
+    setLoadingProducts(true);
+    try {
+      let products: any[] = [];
+      if (productType === 'robot') {
+        const { data } = await supabase
+          .from('robots')
+          .select('id, name, brand, price')
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false });
+        products = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          price: p.price,
+          type: 'robot',
+          label: `${p.name}${p.brand ? ` - ${p.brand}` : ''}${p.price ? ` (₹${Number(p.price).toLocaleString()})` : ''}`,
+        }));
+      } else if (productType === 'spare_part') {
+        const { data } = await supabase
+          .from('spare_parts')
+          .select('id, name, brand, price')
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false });
+        products = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          price: p.price,
+          type: 'spare_part',
+          label: `${p.name}${p.brand ? ` - ${p.brand}` : ''}${p.price ? ` (₹${Number(p.price).toLocaleString()})` : ''}`,
+        }));
+      } else if (productType === 'service') {
+        const { data } = await supabase
+          .from('services')
+          .select('id, name, service_type, price_range')
+          .eq('provider_id', user.id)
+          .order('created_at', { ascending: false });
+        products = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.service_type,
+          price: null,
+          type: 'service',
+          label: `${p.name}${p.service_type ? ` (${p.service_type})` : ''}${p.price_range ? ` - ${p.price_range}` : ''}`,
+        }));
+      }
+      setSellerProducts(products);
+    } catch (err) {
+      console.error('Error fetching seller products:', err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, [user]);
 
   const handleUnlock = async (request: any) => {
     if (!user) return;
@@ -181,8 +242,22 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
 
   const openQuoteModal = (request: any) => {
     setSelectedRequest(request);
-    setQuoteForm({ quotation_amount: '', quotation_details: '', product_details: '', seller_notes: '' });
+    setQuoteForm({ quotation_amount: '', quotation_details: '', product_details: '', seller_notes: '', selected_product_id: '' });
     setShowQuoteModal(true);
+    fetchSellerProducts(request.product_type);
+  };
+
+  const handleProductSelect = (productId: string) => {
+    setQuoteForm(prev => ({ ...prev, selected_product_id: productId }));
+    const product = sellerProducts.find(p => p.id === productId);
+    if (product) {
+      setQuoteForm(prev => ({
+        ...prev,
+        selected_product_id: productId,
+        product_details: `Product: ${product.name}${product.brand ? `\nBrand: ${product.brand}` : ''}${product.price ? `\nList Price: ₹${Number(product.price).toLocaleString()}` : ''}`,
+        quotation_amount: product.price ? String(product.price) : prev.quotation_amount,
+      }));
+    }
   };
 
   const handleSubmitQuote = async () => {
@@ -328,22 +403,20 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
                         )}
                       </div>
 
-                      {/* Details */}
+                      {/* Contact & Details */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <User className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{isUnlocked ? r.contact_name : '••••••'}</span>
+                          <span className="truncate">{isUnlocked ? (r.contact_name || 'Not provided') : '••••••'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Mail className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{isUnlocked ? r.contact_email : '••••••'}</span>
+                          <span className="truncate">{isUnlocked ? (r.contact_email || 'Not provided') : '••••••'}</span>
                         </div>
-                        {r.contact_phone && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Phone className="w-3.5 h-3.5 shrink-0" />
-                            <span>{isUnlocked ? r.contact_phone : '••••••'}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="w-3.5 h-3.5 shrink-0" />
+                          <span>{isUnlocked ? (r.contact_phone || 'Not provided') : '••••••'}</span>
+                        </div>
                         {r.location && (
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <MapPin className="w-3.5 h-3.5 shrink-0" />
@@ -383,7 +456,6 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
                           size="sm"
                           onClick={() => handleUnlock(r)}
                           disabled={unlocking === r.id || (!isCommissionSeller && creditsBalance < creditsNeeded)}
-                          className="bg-primary hover:bg-primary/90"
                         >
                           {unlocking === r.id ? (
                             <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
@@ -396,7 +468,7 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
                         </Button>
                       ) : (
                         <>
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                          <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-600">
                             <Unlock className="w-3 h-3 mr-1" /> Unlocked
                           </Badge>
                           <Button size="sm" onClick={() => openQuoteModal(r)}>
@@ -413,7 +485,7 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
         </div>
       )}
 
-      {/* Quote Response Modal */}
+      {/* Quote Response Modal with Product Selector */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -423,6 +495,38 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Product Selector */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                {selectedRequest?.product_type === 'robot' && <Bot className="w-4 h-4" />}
+                {selectedRequest?.product_type === 'spare_part' && <Package className="w-4 h-4" />}
+                {selectedRequest?.product_type === 'service' && <Wrench className="w-4 h-4" />}
+                Select Your {selectedRequest?.product_type === 'robot' ? 'Robot' : selectedRequest?.product_type === 'spare_part' ? 'Spare Part' : 'Service'}
+              </Label>
+              {loadingProducts ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading your listings...
+                </div>
+              ) : sellerProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
+                  No {selectedRequest?.product_type === 'robot' ? 'robots' : selectedRequest?.product_type === 'spare_part' ? 'spare parts' : 'services'} listed yet. You can still type product details manually below.
+                </p>
+              ) : (
+                <Select value={quoteForm.selected_product_id} onValueChange={handleProductSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Choose from your ${sellerProducts.length} listed ${selectedRequest?.product_type === 'robot' ? 'robots' : selectedRequest?.product_type === 'spare_part' ? 'spare parts' : 'services'}...`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sellerProducts.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Quotation Amount (₹)</Label>
               <Input
