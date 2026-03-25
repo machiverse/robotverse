@@ -71,7 +71,7 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
       let query = supabase
         .from('user_product_requests')
         .select('*')
-        .in('status', ['new_request', 'seller_assigned', 'in_review'])
+        .in('status', ['new_request', 'seller_assigned', 'in_review', 'quote_submitted', 'in_progress'])
         .neq('user_id', user.id)
         .order('created_at', { ascending: false });
 
