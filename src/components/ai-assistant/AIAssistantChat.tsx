@@ -156,9 +156,17 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           />
         ) : (
           <div className="space-y-5">
-            {messages.map((msg, i) => (
-              <MessageBubble key={i} message={msg} />
-            ))}
+            {messages.map((msg, i) => {
+              const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1;
+              return (
+                <MessageBubble
+                  key={i}
+                  message={msg}
+                  resultCounts={isLastAssistant ? lastResultCounts : null}
+                  isLastAssistant={isLastAssistant}
+                />
+              );
+            })}
 
             {/* Streaming / chain state indicator */}
             {isLoading && lastMessageRole !== "assistant" && <AssistantThinking />}
