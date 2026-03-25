@@ -46,6 +46,7 @@ import Privacy from "./pages/dashboard/Privacy";
 import Messages from "./pages/dashboard/Messages";
 import Credits from "./pages/dashboard/Credits";
 import Quotations from "./pages/dashboard/Quotations";
+import MyRequests from "./pages/dashboard/MyRequests";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -133,6 +134,7 @@ const App = () => (
             <Route path="/dashboard/privacy" element={<Privacy />} />
             <Route path="/dashboard/credits" element={<Credits />} />
             <Route path="/dashboard/quotations" element={<Quotations />} />
+            <Route path="/dashboard/my-requests" element={<MyRequests />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
             <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
