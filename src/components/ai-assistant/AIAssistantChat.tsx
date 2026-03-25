@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, Copy, Check, FileSearch } from "lucide-react";
+import ResultTabsView from "./ResultTabsView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAIAssistantContext, AIMessage } from "@/contexts/AIAssistantContext";
+import { useAIAssistantContext, AIMessage, ResultCounts } from "@/contexts/AIAssistantContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
@@ -155,9 +156,17 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           />
         ) : (
           <div className="space-y-5">
-            {messages.map((msg, i) => (
-              <MessageBubble key={i} message={msg} />
-            ))}
+            {messages.map((msg, i) => {
+              const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1;
+              return (
+                <MessageBubble
+                  key={i}
+                  message={msg}
+                  resultCounts={isLastAssistant ? lastResultCounts : null}
+                  isLastAssistant={isLastAssistant}
+                />
+              );
+            })}
 
             {/* Streaming / chain state indicator */}
             {isLoading && lastMessageRole !== "assistant" && <AssistantThinking />}
@@ -338,7 +347,7 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
 
 /* ─── Message Bubble ─── */
 
-const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
+const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean }> = ({ message, resultCounts, isLastAssistant }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
 
@@ -394,6 +403,8 @@ const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
 
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        ) : isLastAssistant && resultCounts ? (
+          <ResultTabsView content={message.content} resultCounts={resultCounts} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none
@@ -424,7 +435,6 @@ const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
             [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:text-primary/80
           "
           >
-            {/* Wrap markdown in a scroll container for wide tables */}
             <div className="w-full overflow-x-auto">
               <ReactMarkdown>{message.content}</ReactMarkdown>
             </div>
