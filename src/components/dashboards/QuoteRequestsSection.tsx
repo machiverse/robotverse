@@ -153,7 +153,7 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
     setItemImages(images);
   };
 
-
+  const filterRequests = () => {
     let filtered = [...quoteRequests];
 
     if (searchQuery) {
