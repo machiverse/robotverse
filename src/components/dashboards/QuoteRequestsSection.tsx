@@ -83,6 +83,8 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
   const [selectedRequest, setSelectedRequest] = useState<QuoteRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  const [showQuotationModal, setShowQuotationModal] = useState(false);
+  const [quotationLeadData, setQuotationLeadData] = useState<any>(null);
 
   useEffect(() => {
     fetchQuoteRequests();
