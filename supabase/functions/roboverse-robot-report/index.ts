@@ -8,13 +8,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client with service role for database access
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -29,7 +27,6 @@ serve(async (req) => {
       );
     }
 
-    // Fetch robot details with seller information
     const { data: robot, error: robotError } = await supabaseClient
       .from('robots')
       .select(`
@@ -53,13 +50,11 @@ serve(async (req) => {
       );
     }
 
-    // Fetch custom fields
     const { data: customFields } = await supabaseClient
       .from('robot_custom_fields')
       .select('field_name, field_value')
       .eq('robot_id', robotId);
 
-    // Check for existing cached report first
     const { data: existingReport } = await supabaseClient
       .from('robot_reports')
       .select('*')
@@ -68,20 +63,18 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    // If cached report exists and is recent (within 7 days), return it
-    if (existingReport && existingReport.report_content) {
+    if (existingReport?.report_content) {
       const reportAge = new Date().getTime() - new Date(existingReport.created_at).getTime();
       const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-      
+
       if (reportAge < sevenDaysInMs) {
-        console.log('Returning cached report for robot:', robotId);
         return new Response(
           JSON.stringify({
             success: true,
             report: existingReport.report_content,
             robotData: existingReport.robot_data,
             timestamp: existingReport.created_at,
-            cached: true
+            cached: true,
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -90,14 +83,12 @@ serve(async (req) => {
       }
     }
 
-    // Fetch AI analysis if available
     const { data: aiAnalysis } = await supabaseClient
       .from('robot_ai_analysis')
       .select('*')
       .eq('robot_id', robotId)
       .single();
 
-    // Build comprehensive robot data for the report
     const robotData = {
       name: robot.name,
       model: robot.model,
@@ -118,7 +109,7 @@ serve(async (req) => {
         powerConsumption: robot.power_consumption,
         operatingEnvironment: robot.operating_environment,
         controllerType: robot.controller_type,
-        ...robot.technical_specifications
+        ...robot.technical_specifications,
       },
       warranty: robot.warranty_info,
       certifications: robot.certification_standards as string[] | null,
@@ -131,18 +122,17 @@ serve(async (req) => {
         name: robot.profiles?.full_name,
         company: robot.profiles?.company_name,
         location: robot.profiles?.location,
-        contact: robot.profiles?.phone || robot.profiles?.mobile_number
+        contact: robot.profiles?.phone || robot.profiles?.mobile_number,
       },
       aiInsights: aiAnalysis ? {
         summary: aiAnalysis.summary,
         suitability: aiAnalysis.suitability_analysis,
         technicalInsights: aiAnalysis.technical_insights,
         governmentSchemes: aiAnalysis.government_schemes,
-        suggestedIndustries: aiAnalysis.suggested_industries
-      } : null
+        suggestedIndustries: aiAnalysis.suggested_industries,
+      } : null,
     };
 
-    // Build the Gemini prompt
     const prompt = `Generate a comprehensive analysis report for the following industrial robot:
 
 ROBOT DETAILS:
@@ -180,7 +170,6 @@ ${robotData.certifications.map((cert: string) => `- ${cert}`).join('\n')}
 ` : ''}
 
 ${robotData.warranty ? `WARRANTY: ${robotData.warranty}` : ''}
-
 ${robotData.brochureUrl ? `BROCHURE: ${robotData.brochureUrl}` : ''}
 ${robotData.videoUrl ? `VIDEO: ${robotData.videoUrl}` : ''}
 
@@ -231,54 +220,63 @@ Please generate a structured analysis report that includes:
 
 Please format the report in a professional, structured manner suitable for business decision-making.`;
 
-    // Call Gemini API
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) {
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
       return new Response(
-        JSON.stringify({ error: 'Gemini API key not configured' }),
+        JSON.stringify({ error: 'LOVABLE_API_KEY is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const geminiResponse = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': geminiApiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 4096,
-          }
-        }),
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a senior industrial automation analyst preparing procurement-grade robot evaluation reports. Be factual, structured, concise, and business-oriented. Use markdown headings and bullet points.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.5,
+        max_tokens: 2500,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('Lovable AI Gateway error:', aiResponse.status, errorText);
+
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'AI rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-    );
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', errorText);
+      if (aiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Lovable AI credits exhausted. Please add workspace funds and try again.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: 'Failed to generate report' }),
+        JSON.stringify({ error: `AI service error (${aiResponse.status})` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const geminiData = await geminiResponse.json();
-    const reportContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    const aiData = await aiResponse.json();
+    const reportContent = aiData.choices?.[0]?.message?.content;
 
     if (!reportContent) {
       return new Response(
@@ -287,48 +285,41 @@ Please format the report in a professional, structured manner suitable for busin
       );
     }
 
-    // Store the report in database for caching
     try {
-      // Delete any existing reports for this robot to keep only the latest
       await supabaseClient
         .from('robot_reports')
         .delete()
         .eq('robot_id', robotId);
 
-      // Insert the new report
       await supabaseClient
         .from('robot_reports')
         .insert({
           robot_id: robotId,
-          user_id: '00000000-0000-0000-0000-000000000000', // Default user since no auth
+          user_id: '00000000-0000-0000-0000-000000000000',
           report_content: reportContent,
           robot_data: robotData,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
-      
-      console.log('Report cached successfully for robot:', robotId);
     } catch (dbError) {
       console.error('Error saving report to database:', dbError);
-      // Continue anyway - the report was generated successfully
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         report: reportContent,
-        robotData: robotData,
+        robotData,
         timestamp: new Date().toISOString(),
-        cached: false
+        cached: false,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-
   } catch (error) {
     console.error('Error in robot report function:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

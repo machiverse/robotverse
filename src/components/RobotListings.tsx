@@ -30,6 +30,7 @@ import {
   CheckCircle,
   Search,
   Loader2,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
@@ -43,7 +44,7 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 
 interface Robot {
   id: string;
@@ -985,16 +986,18 @@ const RobotListings = () => {
                         <Eye className="w-3 h-3 mr-1" />
                         Details
                       </Button>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <ChatButton
-                          otherUserId={robot.seller_id}
-                          itemId={robot.id}
-                          itemType="robot"
-                            itemName={robot.name}
-                            variant="outline"
-                            className="w-full h-9 text-xs px-2"
-                          />
-                        </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-9 text-xs px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/robots/${robot.id}?quote=true`);
+                        }}
+                      >
+                        <FileText className="w-3 h-3 mr-1" />
+                        Get Quote
+                      </Button>
                       </div>
 
                     {/* AI Analysis Button */}

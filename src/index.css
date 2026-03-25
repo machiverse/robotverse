@@ -1,9 +1,8 @@
+@import './styles/responsive-images.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import responsive image utilities */
-@import './styles/responsive-images.css';
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.

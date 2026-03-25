@@ -32,6 +32,7 @@ import { useNavigate } from "react-router-dom";
 // Import dashboard components
 import BuyerDashboard from "@/components/dashboards/BuyerDashboard";
 import RobotSellerDashboard from "@/components/dashboards/RobotSellerDashboard";
+import CommissionSellerDashboard from "@/components/dashboards/CommissionSellerDashboard";
 import SparePartsDashboard from "@/pages/SparePartsSellerDashboard";
 import ServiceProviderDashboard from "@/components/dashboards/ServiceProviderDashboard";
 import LogisticsProviderDashboard from "@/components/dashboards/LogisticsProviderDashboard";
@@ -54,6 +55,7 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
 
   // Check if user is admin
   const isAdmin = user?.email === 'mark.it@keyleerkorb.com' || user?.email === 'mynameisrajan@gmail.com';
+  const isCommissionSeller = userProfile?.seller_model_type === 'commission';
   
   // If admin, add admin role
   const finalRoles = isAdmin ? ['admin', ...userRoles.filter(role => role !== 'admin')] : userRoles;
@@ -79,16 +81,16 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
       description: 'Browse and purchase robots'
     },
     robot_seller: {
-      label: 'Robot Seller',
+      label: isCommissionSeller ? 'Robot Seller (Commission)' : 'Robot Seller',
       icon: Store,
-      component: RobotSellerDashboard,
-      description: 'Manage robot listings'
+      component: isCommissionSeller ? CommissionSellerDashboard : RobotSellerDashboard,
+      description: isCommissionSeller ? 'Manage deals & commission' : 'Manage robot listings'
     },
     seller: {
-      label: 'Robot Seller',
+      label: isCommissionSeller ? 'Seller (Commission)' : 'Robot Seller',
       icon: Store,
-      component: RobotSellerDashboard,
-      description: 'Manage robot listings'
+      component: isCommissionSeller ? CommissionSellerDashboard : RobotSellerDashboard,
+      description: isCommissionSeller ? 'Manage deals & commission' : 'Manage robot listings'
     },
     spare_parts_seller: {
       label: 'Parts Seller',

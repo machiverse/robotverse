@@ -40,6 +40,7 @@ import {
 } from "@/constants/sparePartsCategories";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
+import UserProductRequestModal from "@/components/UserProductRequestModal";
 
 interface Part {
   id: string;
@@ -92,6 +93,7 @@ const Parts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
 
   // Dynamic filter options
@@ -978,6 +980,17 @@ const Parts = () => {
         userEmail={user?.email || ""}
         userName={user?.user_metadata?.full_name || ""}
       />
+
+      {/* Can't Find CTA */}
+      <div className="mt-8 mx-4 p-6 bg-muted rounded-xl text-center">
+        <h3 className="text-lg font-semibold mb-2">Can't find the spare part you need?</h3>
+        <p className="text-muted-foreground mb-4">Submit your requirement and we'll connect you with suppliers.</p>
+        <Button onClick={() => setShowRequestModal(true)} size="lg">
+          <Search className="w-4 h-4 mr-2" /> Submit a Request
+        </Button>
+      </div>
+
+      <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="spare_part" />
     </div>
   );
 };

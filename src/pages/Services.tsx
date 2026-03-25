@@ -29,6 +29,7 @@ import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
+import UserProductRequestModal from "@/components/UserProductRequestModal";
 
 interface Service {
   id: string;
@@ -68,6 +69,7 @@ const Services = () => {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"views" | "rating" | "newest" | "name">("views");
+  const [showRequestModal, setShowRequestModal] = useState(false);
 
   // Read filter from URL params
   useEffect(() => {
@@ -367,6 +369,17 @@ const Services = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Can't Find CTA - compact in sidebar */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm font-semibold mb-1">Can't find the service you need?</p>
+                <p className="text-xs text-muted-foreground mb-3">Submit your requirement and we'll connect you with service providers.</p>
+                <Button size="sm" className="w-full" onClick={() => setShowRequestModal(true)}>
+                  <Search className="w-3 h-3 mr-1" /> Submit Request
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </aside>
 
@@ -521,6 +534,11 @@ const Services = () => {
                       {service.category}
                     </Badge>
 
+                    {/* Description Preview */}
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {service.description}
+                    </p>
+
                     {/* Price */}
                     <div className="text-lg font-bold text-primary">
                       {service.priceRange}
@@ -549,7 +567,10 @@ const Services = () => {
             </div>
           )}
         </main>
+
       </div>
+
+      <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="service" />
     </div>
   );
 };

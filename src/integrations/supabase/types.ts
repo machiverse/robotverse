@@ -581,6 +581,62 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_invoices: {
+        Row: {
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          deal_id: string
+          deal_value: number
+          due_date: string | null
+          id: string
+          invoice_number: string
+          notes: string | null
+          paid_at: string | null
+          seller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission_amount: number
+          commission_rate?: number
+          created_at?: string
+          deal_id: string
+          deal_value: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          seller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          deal_id?: string
+          deal_value?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          seller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_invoices_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_posts: {
         Row: {
           author_id: string
@@ -1511,6 +1567,87 @@ export type Database = {
           },
         ]
       }
+      deals: {
+        Row: {
+          admin_notes: string | null
+          admin_verified: boolean | null
+          admin_verified_at: string | null
+          admin_verified_by: string | null
+          attachments: Json | null
+          buyer_company: string | null
+          buyer_email: string | null
+          buyer_id: string | null
+          buyer_name: string
+          buyer_phone: string | null
+          closing_date: string | null
+          commission_amount: number | null
+          commission_rate: number
+          created_at: string
+          deal_number: string
+          deal_status: string
+          id: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          product_type: string | null
+          quote_value: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          admin_verified?: boolean | null
+          admin_verified_at?: string | null
+          admin_verified_by?: string | null
+          attachments?: Json | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name: string
+          buyer_phone?: string | null
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          deal_number?: string
+          deal_status?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          product_type?: string | null
+          quote_value?: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          admin_verified?: boolean | null
+          admin_verified_at?: string | null
+          admin_verified_by?: string | null
+          attachments?: Json | null
+          buyer_company?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string
+          buyer_phone?: string | null
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          deal_number?: string
+          deal_status?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          product_type?: string | null
+          quote_value?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_uploads: {
         Row: {
           document_type: string
@@ -2255,6 +2392,7 @@ export type Database = {
         Row: {
           account_type: string | null
           avatar_url: string | null
+          city: string | null
           company_logo_url: string | null
           company_name: string | null
           created_at: string
@@ -2262,6 +2400,7 @@ export type Database = {
           email: string | null
           finance_type: string[] | null
           financing_for: string[] | null
+          full_address: string | null
           full_name: string | null
           government_scheme_support: boolean | null
           id: string
@@ -2272,11 +2411,13 @@ export type Database = {
           mou_agreed: boolean | null
           mou_agreed_at: string | null
           phone: string | null
+          pincode: string | null
           primary_role: string | null
           primary_user_type:
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           registration_complete: boolean | null
+          seller_model_type: string | null
           seller_roles: string[] | null
           service_categories: string[] | null
           target_audience: string[] | null
@@ -2290,6 +2431,7 @@ export type Database = {
         Insert: {
           account_type?: string | null
           avatar_url?: string | null
+          city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -2297,6 +2439,7 @@ export type Database = {
           email?: string | null
           finance_type?: string[] | null
           financing_for?: string[] | null
+          full_address?: string | null
           full_name?: string | null
           government_scheme_support?: boolean | null
           id?: string
@@ -2307,11 +2450,13 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          pincode?: string | null
           primary_role?: string | null
           primary_user_type?:
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           registration_complete?: boolean | null
+          seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
@@ -2325,6 +2470,7 @@ export type Database = {
         Update: {
           account_type?: string | null
           avatar_url?: string | null
+          city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -2332,6 +2478,7 @@ export type Database = {
           email?: string | null
           finance_type?: string[] | null
           financing_for?: string[] | null
+          full_address?: string | null
           full_name?: string | null
           government_scheme_support?: boolean | null
           id?: string
@@ -2342,11 +2489,13 @@ export type Database = {
           mou_agreed?: boolean | null
           mou_agreed_at?: string | null
           phone?: string | null
+          pincode?: string | null
           primary_role?: string | null
           primary_user_type?:
             | Database["public"]["Enums"]["user_type_enum"]
             | null
           registration_complete?: boolean | null
+          seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
@@ -2447,6 +2596,59 @@ export type Database = {
           processed_at?: string | null
         }
         Relationships: []
+      }
+      request_assignments: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          id: string
+          product_details: string | null
+          quotation_amount: number | null
+          quotation_details: string | null
+          request_id: string
+          response_at: string | null
+          seller_id: string
+          seller_notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          product_details?: string | null
+          quotation_amount?: number | null
+          quotation_details?: string | null
+          request_id: string
+          response_at?: string | null
+          seller_id: string
+          seller_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          product_details?: string | null
+          quotation_amount?: number | null
+          quotation_details?: string | null
+          request_id?: string
+          response_at?: string | null
+          seller_id?: string
+          seller_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_assignments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "user_product_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
@@ -3789,6 +3991,63 @@ export type Database = {
         }
         Relationships: []
       }
+      user_product_requests: {
+        Row: {
+          admin_notes: string | null
+          brand: string | null
+          budget: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          location: string | null
+          product_name: string
+          product_type: string
+          quantity: number | null
+          specifications: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          brand?: string | null
+          budget?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          product_name: string
+          product_type: string
+          quantity?: number | null
+          specifications?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          brand?: string | null
+          budget?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          product_name?: string
+          product_type?: string
+          quantity?: number | null
+          specifications?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_requests: {
         Row: {
           additional_data: Json | null
@@ -3890,41 +4149,117 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      complete_user_profile: {
-        Args: {
-          p_account_type?: string
-          p_company_name?: string
-          p_email: string
-          p_finance_type?: string[]
-          p_financing_for?: string[]
-          p_full_name?: string
-          p_government_scheme_support?: boolean
-          p_location?: string
-          p_logistics_region?: string
-          p_logistics_type?: string
-          p_mobile_number?: string
-          p_seller_roles?: string[]
-          p_target_audience?: string[]
-          p_transport_modes?: string[]
-          p_user_id: string
-          p_user_type?: string
-          p_warehouse_storage?: boolean
-        }
-        Returns: {
-          account_type: string
-          company_name: string
-          created_at: string
-          email: string
-          full_name: string
-          location: string
-          mobile_number: string
-          profile_id: string
-          registration_complete: boolean
-          updated_at: string
-          user_id: string
-          user_roles: string[]
-        }[]
-      }
+      complete_user_profile:
+        | {
+            Args: {
+              p_account_type?: string
+              p_company_name?: string
+              p_email: string
+              p_finance_type?: string[]
+              p_financing_for?: string[]
+              p_full_name?: string
+              p_government_scheme_support?: boolean
+              p_location?: string
+              p_logistics_region?: string
+              p_logistics_type?: string
+              p_mobile_number?: string
+              p_seller_roles?: string[]
+              p_target_audience?: string[]
+              p_transport_modes?: string[]
+              p_user_id: string
+              p_user_type?: string
+              p_warehouse_storage?: boolean
+            }
+            Returns: {
+              account_type: string
+              company_name: string
+              created_at: string
+              email: string
+              full_name: string
+              location: string
+              mobile_number: string
+              profile_id: string
+              registration_complete: boolean
+              updated_at: string
+              user_id: string
+              user_roles: string[]
+            }[]
+          }
+        | {
+            Args: {
+              p_account_type?: string
+              p_city?: string
+              p_company_name?: string
+              p_email: string
+              p_finance_type?: string[]
+              p_financing_for?: string[]
+              p_full_address?: string
+              p_full_name?: string
+              p_government_scheme_support?: boolean
+              p_location?: string
+              p_logistics_region?: string
+              p_logistics_type?: string
+              p_mobile_number?: string
+              p_seller_roles?: string[]
+              p_target_audience?: string[]
+              p_transport_modes?: string[]
+              p_user_id: string
+              p_user_type?: string
+              p_warehouse_storage?: boolean
+            }
+            Returns: {
+              account_type: string
+              company_name: string
+              created_at: string
+              email: string
+              full_name: string
+              location: string
+              mobile_number: string
+              profile_id: string
+              registration_complete: boolean
+              updated_at: string
+              user_id: string
+              user_roles: string[]
+            }[]
+          }
+        | {
+            Args: {
+              p_account_type?: string
+              p_city?: string
+              p_company_name?: string
+              p_email: string
+              p_finance_type?: string[]
+              p_financing_for?: string[]
+              p_full_address?: string
+              p_full_name?: string
+              p_government_scheme_support?: boolean
+              p_location?: string
+              p_logistics_region?: string
+              p_logistics_type?: string
+              p_mobile_number?: string
+              p_pincode?: string
+              p_seller_roles?: string[]
+              p_target_audience?: string[]
+              p_transport_modes?: string[]
+              p_user_id: string
+              p_user_type?: string
+              p_warehouse_storage?: boolean
+            }
+            Returns: {
+              account_type: string
+              company_name: string
+              created_at: string
+              email: string
+              full_name: string
+              location: string
+              mobile_number: string
+              profile_id: string
+              registration_complete: boolean
+              updated_at: string
+              user_id: string
+              user_roles: string[]
+            }[]
+          }
       convert_quote_to_lead: {
         Args: { p_request_id: string; p_seller_id: string }
         Returns: string

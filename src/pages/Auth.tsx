@@ -28,11 +28,15 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [city, setCity] = useState('');
+  const [fullAddress, setFullAddress] = useState('');
+  const [pincode, setPincode] = useState('');
   const [location, setLocation] = useState('');
   const [accountType, setAccountType] = useState<'buyer' | 'seller' | 'logistics' | 'finance' | ''>('');
   
   // Seller state
   const [sellerRoles, setSellerRoles] = useState<string[]>([]);
+  const [sellerModelType, setSellerModelType] = useState<'subscription' | 'commission'>('subscription');
   
   // Logistics state
   const [logisticsType, setLogisticsType] = useState('');
@@ -158,8 +162,11 @@ const Auth = () => {
       if (!mobileNumber.trim()) {
         throw new Error('Mobile number is required');
       }
-      if (!location.trim()) {
-        throw new Error('Location is required');
+      if (!city.trim()) {
+        throw new Error('City is required');
+      }
+      if (!fullAddress.trim()) {
+        throw new Error('Full address is required');
       }
       
       // Prepare data - ensure empty strings become null for proper database storage
@@ -182,7 +189,10 @@ const Auth = () => {
         p_finance_type: Array.isArray(financeType) && financeType.length > 0 ? financeType : [],
         p_financing_for: Array.isArray(financingFor) && financingFor.length > 0 ? financingFor : [],
         p_target_audience: Array.isArray(targetAudience) && targetAudience.length > 0 ? targetAudience : [],
-        p_government_scheme_support: governmentSchemeSupport || false
+        p_government_scheme_support: governmentSchemeSupport || false,
+        p_city: city?.trim() || null,
+        p_full_address: fullAddress?.trim() || null,
+        p_pincode: pincode?.trim() || null
       };
 
       console.log('📝 Profile data being sent:', {
@@ -227,6 +237,15 @@ const Auth = () => {
       });
       
       // Verify what was actually stored in the database
+      // After profile creation, update seller_model_type if seller
+      if (accountType === 'seller') {
+        await supabase
+          .from('profiles')
+          .update({ seller_model_type: sellerModelType } as any)
+          .eq('user_id', user.id);
+        console.log('✅ Seller model type set to:', sellerModelType);
+      }
+      
       const { data: verifyProfile, error: verifyError } = await supabase
         .from('profiles')
         .select('user_id, account_type, user_type, primary_user_type, user_roles, seller_roles, primary_role, registration_complete')
@@ -262,6 +281,34 @@ const Auth = () => {
       console.error('❌ Error creating complete profile:', error);
       throw error;
     }
+  };
+
+  const createCompleteUserProfileWithRetry = async (user: SupabaseUser, maxAttempts = 5) => {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        console.log(`🔁 Profile creation attempt ${attempt}/${maxAttempts} for user:`, user.id);
+        return await createCompleteUserProfile(user);
+      } catch (error: any) {
+        const message = String(error?.message || '');
+        const retryableError =
+          message.includes('profiles_user_id_fkey') ||
+          message.includes('foreign key') ||
+          message.includes('does not exist in auth.users yet') ||
+          message.includes('Profile setup in progress');
+
+        if (!retryableError || attempt === maxAttempts) {
+          lastError = error instanceof Error ? error : new Error(message || 'Profile creation failed');
+          break;
+        }
+
+        console.log(`⏳ Retryable profile creation error, waiting before retry: ${message}`);
+        await new Promise((resolve) => setTimeout(resolve, 900));
+      }
+    }
+
+    throw lastError ?? new Error('Profile creation failed');
   };
 
   const handleSellerRoleChange = (role: string, checked: boolean) => {
@@ -318,8 +365,12 @@ const Auth = () => {
       companyName,
       mobileNumber,
       location,
+      city,
+      fullAddress,
+      pincode,
       accountType,
       sellerRoles,
+      sellerModelType,
       logisticsType,
       logisticsRegion,
       transportModes,
@@ -545,7 +596,10 @@ const Auth = () => {
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
+        p_government_scheme_support: savedData.governmentSchemeSupport || false,
+        p_city: savedData.city?.trim() || null,
+        p_full_address: savedData.fullAddress?.trim() || null,
+        p_pincode: savedData.pincode?.trim() || null
       };
       
       // Use the database function to update the complete profile - returns table
@@ -657,7 +711,10 @@ const Auth = () => {
         p_finance_type: savedData.financeType?.length > 0 ? savedData.financeType : [],
         p_financing_for: savedData.financingFor?.length > 0 ? savedData.financingFor : [],
         p_target_audience: savedData.targetAudience?.length > 0 ? savedData.targetAudience : [],
-        p_government_scheme_support: savedData.governmentSchemeSupport || false
+        p_government_scheme_support: savedData.governmentSchemeSupport || false,
+        p_city: savedData.city?.trim() || null,
+        p_full_address: savedData.fullAddress?.trim() || null,
+        p_pincode: savedData.pincode?.trim() || null
       };
       
       // Use the database function to create the complete profile - returns table
@@ -843,11 +900,20 @@ const Auth = () => {
           return;
         }
 
-        if (!location.trim()) {
+        if (!city.trim()) {
           toast({
             variant: "destructive",
-            title: "Location Required",
-            description: "Please enter your location.",
+            title: "City Required",
+            description: "Please enter your city name.",
+          });
+          return;
+        }
+
+        if (!fullAddress.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Full Address Required",
+            description: "Please enter your full address.",
           });
           return;
         }
@@ -943,34 +1009,61 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // Immediately create complete profile - don't wait for email confirmation
-        console.log('📝 Creating profile immediately at signup...');
+        // Check if this is a repeated signup (user already exists)
+        // Supabase returns empty identities array for repeated signups
+        const isRepeatedSignup = !newUser.identities || newUser.identities.length === 0;
+        
+        if (isRepeatedSignup) {
+          console.log('⚠️ Repeated signup detected - user already exists with this email');
+          // Save data to storage in case they need to complete profile after confirmation
+          saveUserDataToStorage(newUser);
+          toast({
+            title: "Account Already Exists",
+            description: "An account with this email already exists. Please check your email for confirmation or try signing in.",
+          });
+          setIsSignUp(false); // Switch to sign-in view
+          return;
+        }
+
+        // Save data to storage as backup for email confirmation flow
+        saveUserDataToStorage(newUser);
+
         try {
-          await createCompleteUserProfile(newUser);
-          
+          console.log('📝 Creating profile with retry-safe flow...');
+          await createCompleteUserProfileWithRetry(newUser);
           console.log('✅ Profile created successfully');
-          
-          // Check if email is already confirmed (email confirmation disabled)
+
           if (newUser.email_confirmed_at) {
             toast({
               title: "Account Created Successfully!",
               description: "Welcome to RobotVerse! Your account is ready to use.",
             });
-            
             setTimeout(() => navigate('/dashboard'), 1000);
-            return; // Exit early, user can log in immediately
+            return;
           }
-          
-          // Email confirmation required - show modal
+
           console.log('📧 Email confirmation required for login');
           setShowEmailConfirmationModal(true);
-          
         } catch (profileError: any) {
-          console.error('❌ Failed to create profile:', profileError);
+          console.error('❌ Failed to create profile after retries:', profileError);
+
+          const message = String(profileError?.message || '');
+          const recoverableError =
+            message.includes('profiles_user_id_fkey') ||
+            message.includes('foreign key') ||
+            message.includes('does not exist in auth.users yet') ||
+            message.includes('Profile setup in progress');
+
+          if (recoverableError) {
+            console.log('⚠️ Recoverable profile setup delay detected, continuing with confirmation flow');
+            setShowEmailConfirmationModal(true);
+            return;
+          }
+
           toast({
             variant: "destructive",
             title: "Registration Error",
-            description: profileError.message || "Failed to create your profile. Please try again.",
+            description: message || "Failed to create your profile. Please try again.",
           });
         }
 
@@ -1236,25 +1329,57 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mobileNumber">Mobile Number *</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="mobileNumber"
+                        type="tel"
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value)}
+                        className="pl-10"
+                        placeholder="Enter your mobile number"
+                        required={isSignUp}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="fullAddress">Full Address *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="fullAddress"
+                        type="text"
+                        value={fullAddress}
+                        onChange={(e) => setFullAddress(e.target.value)}
+                        className="pl-10"
+                        placeholder="Enter your full address"
+                        required={isSignUp}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="mobileNumber">Mobile Number *</Label>
+                      <Label htmlFor="city">City *</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                          id="mobileNumber"
-                          type="tel"
-                          value={mobileNumber}
-                          onChange={(e) => setMobileNumber(e.target.value)}
+                          id="city"
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
                           className="pl-10"
-                          placeholder="Enter your mobile number"
+                          placeholder="Enter your city (e.g. Chennai, Mumbai)"
                           required={isSignUp}
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="location">Location *</Label>
+                      <Label htmlFor="location">State / Region</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -1263,8 +1388,24 @@ const Auth = () => {
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
                           className="pl-10"
-                          placeholder="Enter your location"
+                          placeholder="State or region (optional)"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="pincode">Pin Code *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="pincode"
+                          type="text"
+                          value={pincode}
+                          onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="pl-10"
+                          placeholder="e.g. 600001"
                           required={isSignUp}
+                          maxLength={6}
                         />
                       </div>
                     </div>
@@ -1447,6 +1588,63 @@ const Auth = () => {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Seller Business Model Selection */}
+              {isSignUp && accountType === 'seller' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Business Model</h3>
+                  </div>
+                  <Label>How would you like to sell on RobotVerse? *</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        sellerModelType === 'subscription'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                      onClick={() => setSellerModelType('subscription')}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          sellerModelType === 'subscription' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {sellerModelType === 'subscription' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="font-semibold">Subscription + Credits</span>
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-1 ml-6">
+                        <li>• Purchase subscription plans</li>
+                        <li>• Buy credits for leads & quotes</li>
+                        <li>• Listing limits based on plan</li>
+                      </ul>
+                    </div>
+                    <div
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        sellerModelType === 'commission'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                      onClick={() => setSellerModelType('commission')}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          sellerModelType === 'commission' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {sellerModelType === 'commission' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className="font-semibold">Commission-Based</span>
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-1 ml-6">
+                        <li>• Unlimited listings, no subscription</li>
+                        <li>• No credit purchase needed</li>
+                        <li>• 5% commission on completed deals</li>
+                      </ul>
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Users, Bot, Database, Activity, PieChart, MousePointer, LogOut, ChevronLeft, ChevronRight, Eye, Heart, MessageSquare, Shield, Globe, Star, Coins } from "lucide-react";
+import { Users, Bot, Database, Activity, PieChart, MousePointer, LogOut, ChevronLeft, ChevronRight, Eye, Heart, MessageSquare, Shield, Globe, Star, Coins, Handshake, FileQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,8 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
     { id: "watchlist", label: "Watchlist", icon: Heart },
     { id: "reviews", label: "Reviews", icon: Star },
     { id: "credits", label: "Credits", icon: Coins },
+    { id: "deals", label: "Deals & Commission", icon: Handshake },
+    { id: "user-requests", label: "User Requests", icon: FileQuestion },
   ], []);
 
   const handleToggleCollapse = useCallback(() => {

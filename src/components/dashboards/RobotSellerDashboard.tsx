@@ -60,6 +60,8 @@ import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDash
 import WatchlistSection from '@/components/WatchlistSection';
 import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
+import SellerAssignedRequests from '@/components/SellerAssignedRequests';
+import { FileQuestion } from 'lucide-react';
 
 interface RobotSellerDashboardProps {
   userProfile: any;
@@ -621,7 +623,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-12">
+        <TabsList className="grid w-full grid-cols-6 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" />
             Inventory ({filteredRobots.length})
@@ -629,6 +631,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           <TabsTrigger value="leads" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             Lead Manager
+          </TabsTrigger>
+          <TabsTrigger value="user-requests" className="flex items-center gap-2">
+            <FileQuestion className="w-4 h-4" />
+            User Requests
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
@@ -643,6 +649,24 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             Settings
           </TabsTrigger>
         </TabsList>
+
+        {/* User Requests Tab */}
+        <TabsContent value="user-requests" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileQuestion className="w-5 h-5" />
+                Assigned User Requests
+              </CardTitle>
+              <CardDescription>
+                User requests assigned to you by admin. Submit quotations and solutions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SellerAssignedRequests categoryFilter="robot" />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Lead Manager Tab */}
         <TabsContent value="leads" className="mt-6">

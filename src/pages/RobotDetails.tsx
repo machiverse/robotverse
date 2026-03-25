@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -70,7 +71,7 @@ import ViewCountDisplay from "@/components/ViewCountDisplay";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
@@ -203,6 +204,7 @@ const RobotDetails = () => {
 
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMarketAnalysis, setShowMarketAnalysis] = useState(false);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
 const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showRobotQuoteModal, setShowRobotQuoteModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
@@ -439,7 +441,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
         setIsInWatchlist(false);
         toast({ title: "Removed from Watchlist", description: `${robot.name} has been removed from your watchlist.` });
       } else {
-        const { error } = await supabase.from("watchlists").insert([{ user_id: user.id, item_type: "robot", item_id: robot.id, item_data: { name: robot.name, model: robot.model, price: robot.price, currency: robot.currency, image: robot.images?.[0] || null } }]);
+        const { error } = await supabase.from("watchlists").insert([{ user_id: user.id, item_type: "robot", item_id: robot.id }]);
         if (error) throw error;
         setIsInWatchlist(true);
         toast({ title: "Added to Watchlist", description: `${robot.name} has been added to your watchlist.` });
@@ -770,95 +772,104 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               {/* View Count */}
               <ViewCountDisplay targetType="robots" targetId={robot.id} />
 
-              {/* Primary CTA Buttons */}
-              <div className="space-y-3 pt-2">
-                {user && user.id === robot.seller_id ? (
-                  <Button disabled variant="outline" className="w-full h-10" size="default">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    You are the Seller
-                  </Button>
-                ) : (
-                  <ChatButton
-                    otherUserId={robot.seller_id}
-                    itemId={robot.id}
-                    itemType="robot"
-                    itemName={robot.name}
-                    variant="default"
-                    className="w-full h-10 bg-primary hover:bg-primary/90 shadow-md"
-                    size="default"
-                  />
-                )}
+              {/* Primary CTA Buttons - Only visible for logged-in users */}
+              {user && (
+                <div className="pt-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Start Chat - hidden for own listings */}
+                    {user.id !== robot.seller_id && (
+                      <Button
+                        variant="default"
+                        className="h-10"
+                        size="default"
+                        onClick={() => {
+                          const params = new URLSearchParams({
+                            other_user: robot.seller_id,
+                            item: robot.id,
+                            type: 'robot',
+                            name: robot.name,
+                          });
+                          navigate(`/chat?${params.toString()}`);
+                        }}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1.5" />
+                        Start Chat
+                      </Button>
+                    )}
 
-                <div className="grid grid-cols-3 gap-2">
-                  {user && user.id !== robot.seller_id && (
+                    {/* Get Quote - hidden for own listings */}
+                    {user.id !== robot.seller_id && (
+                      <Button
+                        variant="outline"
+                        className="h-10 border-primary/50 text-primary hover:bg-primary/10"
+                        size="default"
+                        onClick={() => setShowRobotQuoteModal(true)}
+                      >
+                        <FileText className="h-4 w-4 mr-1.5" />
+                        Get Quote
+                      </Button>
+                    )}
+
+                    {/* Compare */}
+                    <Button
+                      onClick={() => {
+                        if (robot) {
+                          addRobot({
+                            id: robot.id,
+                            name: robot.name,
+                            model: robot.model,
+                            brand: robot.brand,
+                            robot_type: robot.robot_type,
+                            price: robot.price,
+                            currency: robot.currency,
+                            payload_capacity: robot.payload_capacity,
+                            reach: robot.reach,
+                            repeatability: robot.repeatability,
+                            images: robot.images,
+                            applications: robot.applications,
+                            technical_specifications: robot.technical_specifications,
+                            condition: robot.condition,
+                            location: robot.location,
+                            profiles: robot.profiles,
+                          });
+                        }
+                      }}
+                      variant="outline"
+                      className="h-10"
+                      size="default"
+                    >
+                      <Scale className="h-4 w-4 mr-1.5" />
+                      Compare
+                    </Button>
+
+                    {/* Watchlist */}
                     <Button
                       onClick={handleAddToWatchlist}
                       variant="outline"
                       disabled={addingToWatchlist}
-                      className="h-9"
-                      size="sm"
+                      className="h-10"
+                      size="default"
                     >
                       <Heart className={`h-4 w-4 mr-1.5 ${isInWatchlist ? "fill-current text-red-500" : ""}`} />
-                      Watchlist
+                      Add Watchlist
                     </Button>
-                  )}
+                  </div>
+                </div>
+              )}
+
+              {/* Login prompt for non-logged-in users */}
+              {!user && (
+                <div className="pt-2">
                   <Button
-                    onClick={() => {
-                      if (robot) {
-                        addRobot({
-                          id: robot.id,
-                          name: robot.name,
-                          model: robot.model,
-                          brand: robot.brand,
-                          robot_type: robot.robot_type,
-                          price: robot.price,
-                          currency: robot.currency,
-                          payload_capacity: robot.payload_capacity,
-                          reach: robot.reach,
-                          repeatability: robot.repeatability,
-                          images: robot.images,
-                          applications: robot.applications,
-                          technical_specifications: robot.technical_specifications,
-                          condition: robot.condition,
-                          location: robot.location,
-                          profiles: robot.profiles,
-                        });
-                      }
-                    }}
-                    variant="outline"
-                    className="h-9"
-                    size="sm"
+                    variant="default"
+                    className="w-full h-10"
+                    size="default"
+                    onClick={() => navigate('/auth')}
                   >
-                    <Scale className="h-4 w-4 mr-1.5" />
-                    Compare
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (!user) {
-                        toast({
-                          title: "Login Required",
-                          description: "Please log in to request a quote.",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-                      trackButtonClick({
-                        buttonName: "get_quote",
-                        buttonType: "cta",
-                        itemId: robot.id,
-                        itemType: "robot"
-                      });
-                      setShowRobotQuoteModal(true);
-                    }}
-                    variant="outline"
-                    className="h-9 border-primary/50 text-primary hover:bg-primary/10"
-                    size="sm"
-                  >
-                    <FileText className="h-4 w-4 mr-1.5" />
-                    Get Quote
+                    Login to View Actions
                   </Button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -1070,7 +1081,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                             <h4 className="font-semibold mb-1">{part.name || part.part_name}</h4>
                             <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{part.description || "No description"}</p>
                             {part.price && <p className="text-lg font-bold text-primary mb-3">{part.currency === "USD" ? "$" : "₹"}{part.price.toLocaleString()}</p>}
-                            <ChatButton otherUserId={part.seller_id} itemId={part.id} itemType="spare_part" itemName={part.name || part.part_name} variant="outline" className="w-full" size="sm" />
+                            <Button variant="outline" className="w-full" size="sm" onClick={() => navigate(`/parts/${part.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
                       ))}
@@ -1104,7 +1115,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                               {service.service_type && <Badge variant="secondary">{service.service_type}</Badge>}
                             </div>
                             <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{service.description || "No description"}</p>
-                            <ChatButton otherUserId={service.provider_id} itemId={service.id} itemType="service" itemName={service.name} variant="default" className="w-full" size="sm" />
+                            <Button variant="default" className="w-full" size="sm" onClick={() => navigate(`/services/${service.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
                       ))}
@@ -1237,17 +1248,29 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {!aiAnalysis ? (
-                  <div className="text-center py-4 space-y-4">
-                    <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                      <Brain className="w-7 h-7 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-1">Get Smart Analysis</h4>
-                      <p className="text-sm text-muted-foreground">AI-powered insights for this robot</p>
-                    </div>
+                <div className="text-center py-4 space-y-4">
+                  <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                    <Brain className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Get Smart Analysis</h4>
+                    <p className="text-sm text-muted-foreground">AI-powered insights for this robot</p>
+                  </div>
+                  {aiAnalysis ? (
                     <Button
-                      onClick={handleAIAnalysis}
+                      onClick={() => setShowAnalysisModal(true)}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      View Analysis
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={async () => {
+                        await handleAIAnalysis();
+                        setShowAnalysisModal(true);
+                      }}
                       disabled={analysisLoading || !user}
                       className="w-full"
                       size="sm"
@@ -1264,17 +1287,35 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                         </>
                       )}
                     </Button>
-                    {!user && <p className="text-xs text-muted-foreground">Sign in to use AI analysis</p>}
-                  </div>
-                ) : (
-                  <AIAnalysisResult
-                    analysis={aiAnalysis.analysis}
-                    cached={aiAnalysis.cached || false}
-                    currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
-                  />
-                )}
+                  )}
+                  {!user && <p className="text-xs text-muted-foreground">Sign in to use AI analysis</p>}
+                </div>
               </CardContent>
             </Card>
+
+            {/* AI Analysis Modal */}
+            <Dialog open={showAnalysisModal && !!aiAnalysis} onOpenChange={setShowAnalysisModal}>
+              <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+                <DialogHeader className="px-6 pt-6 pb-0">
+                  <DialogTitle className="flex items-center gap-2 text-xl">
+                    <Brain className="w-5 h-5 text-primary" />
+                    AI Market Insights
+                    {aiAnalysis?.cached && (
+                      <Badge variant="outline" className="ml-2 text-xs">Cached</Badge>
+                    )}
+                  </DialogTitle>
+                </DialogHeader>
+                <ScrollArea className="max-h-[75vh] px-6 pb-6">
+                  {aiAnalysis && (
+                    <AIAnalysisResult
+                      analysis={aiAnalysis.analysis}
+                      cached={aiAnalysis.cached || false}
+                      currentUserLocation={aiAnalysis.currentUserLocation || currentUserLocation}
+                    />
+                  )}
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
 
             {/* Quick Stats Card */}
             <Card className="border shadow-sm">

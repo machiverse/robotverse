@@ -630,6 +630,43 @@ const ProfileSettings = () => {
                         </Select>
                       </div>
 
+                      {/* Seller Business Model - only for seller types */}
+                      {['seller', 'robot_seller', 'spare_parts_seller', 'service_provider'].includes(formData.user_type) && (
+                        <div>
+                          <Label htmlFor="seller_model_type">Business Model</Label>
+                          <Select 
+                            value={userProfile?.seller_model_type || 'subscription'} 
+                            onValueChange={async (value) => {
+                              if (!user) return;
+                              try {
+                                const { error } = await supabase
+                                  .from('profiles')
+                                  .update({ seller_model_type: value } as any)
+                                  .eq('user_id', user.id);
+                                if (error) throw error;
+                                toast({ title: "Updated", description: `Business model changed to ${value}` });
+                                fetchUserProfile();
+                              } catch (err) {
+                                toast({ variant: "destructive", title: "Error", description: "Failed to update business model" });
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select business model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="subscription">Subscription + Credits</SelectItem>
+                              <SelectItem value="commission">Commission-Based (5%)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {userProfile?.seller_model_type === 'commission' 
+                              ? 'Unlimited listings, 5% commission on completed deals' 
+                              : 'Purchase subscriptions & credits for leads'}
+                          </p>
+                        </div>
+                      )}
+
                       <div className="md:col-span-2">
                         <Label htmlFor="user_type">Additional Information</Label>
                         <p className="text-sm text-muted-foreground mt-2">

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Youtube, Linkedin, Instagram } from "lucide-react";
 import robotverseLogo from "@/assets/robotverse-r-logo.png";
 
 const Footer = () => {
@@ -30,15 +30,21 @@ const Footer = () => {
                   <Facebook className="h-4 w-4" />
                 </Button>
               </a>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                <Twitter className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                <Linkedin className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
-                <Instagram className="h-4 w-4" />
-              </Button>
+              <a href="https://youtube.com/@robotverse-in?si=IvwGixDEN0xA2JCo" target="_blank" rel="noopener noreferrer">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                  <Youtube className="h-4 w-4" />
+                </Button>
+              </a>
+              <a href="https://www.linkedin.com/company/robotverse/" target="_blank" rel="noopener noreferrer">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                  <Linkedin className="h-4 w-4" />
+                </Button>
+              </a>
+              <a href="https://www.instagram.com/robot.verse?igsh=bnNiOXkzOWlpbGg1" target="_blank" rel="noopener noreferrer">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary">
+                  <Instagram className="h-4 w-4" />
+                </Button>
+              </a>
             </div>
           </div>
 

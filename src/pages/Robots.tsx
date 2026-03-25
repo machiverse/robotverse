@@ -16,7 +16,7 @@ import {
   TrendingUp,
   Eye,
   Share2,
-  MessageCircle,
+  FileText,
   Brain,
   MapPin,
   Building,
@@ -30,7 +30,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import SellerRobotCarousel from "@/components/SellerRobotCarousel";
 import CategoryRobotCarousel from "@/components/CategoryRobotCarousel";
 import ViewCountDisplay from "@/components/ViewCountDisplay";
-import { ChatButton } from "@/components/chat/ChatButton";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
+import UserProductRequestModal from "@/components/UserProductRequestModal";
+import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
 
 const Robots = () => {
   const navigate = useNavigate();
@@ -90,6 +92,8 @@ const Robots = () => {
   const [showAiDialog, setShowAiDialog] = useState(false);
   const [aiDialogLoading, setAiDialogLoading] = useState(false);
   const [aiDialogData, setAiDialogData] = useState<any | null>(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [quoteRobot, setQuoteRobot] = useState<any>(null);
 
   // Fixed filter options - Business-logical structure
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([
@@ -783,6 +787,17 @@ const Robots = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Can't Find CTA - compact in sidebar */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm font-semibold mb-1">Can't find the robot you need?</p>
+                <p className="text-xs text-muted-foreground mb-3">Submit your requirement and we'll connect you with sellers.</p>
+                <Button size="sm" className="w-full" onClick={() => setShowRequestModal(true)}>
+                  <Search className="w-3 h-3 mr-1" /> Submit Request
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </aside>
 
@@ -1070,14 +1085,17 @@ const Robots = () => {
                                   )}
                                   {isSelected(robot.id) ? "Selected" : "Compare"}
                                 </Button>
-                                <ChatButton
-                                  otherUserId={robot.seller_id}
-                                  itemId={robot.id}
-                                  itemType="robot"
-                                  itemName={robot.name}
+                                <Button
                                   variant="outline"
                                   size="sm"
-                                />
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setQuoteRobot(robot);
+                                  }}
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Get Quote
+                                </Button>
                               </div>
                               <Button
                                 variant="outline"
@@ -1178,14 +1196,17 @@ const Robots = () => {
                                   <Eye className="w-3 h-3 mr-1" />
                                   Details
                                 </Button>
-                                <ChatButton
-                                  otherUserId={robot.seller_id}
-                                  itemId={robot.id}
-                                  itemType="robot"
-                                  itemName={robot.name}
+                                <Button
                                   variant="outline"
                                   size="sm"
-                                />
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setQuoteRobot(robot);
+                                  }}
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Get Quote
+                                </Button>
                               </div>
                               <Button
                                 variant="outline"
@@ -1215,7 +1236,17 @@ const Robots = () => {
             </div>
           )}
         </main>
+
       </div>
+
+      <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="robot" />
+      {quoteRobot && (
+        <RobotQuoteModal
+          isOpen={!!quoteRobot}
+          onClose={() => setQuoteRobot(null)}
+          robot={quoteRobot}
+        />
+      )}
     </div>
   );
 };

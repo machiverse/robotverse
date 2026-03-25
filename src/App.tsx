@@ -46,6 +46,7 @@ import Privacy from "./pages/dashboard/Privacy";
 import Messages from "./pages/dashboard/Messages";
 import Credits from "./pages/dashboard/Credits";
 import Quotations from "./pages/dashboard/Quotations";
+import MyRequests from "./pages/dashboard/MyRequests";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -57,6 +58,9 @@ import Chat from "./pages/Chat";
 import CRM from "./pages/CRM";
 import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
+import AIAssistant from "./pages/AIAssistant";
+import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
+import { AIAssistantProvider } from "./contexts/AIAssistantContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,8 +87,9 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AutoSignInPopup />
-            <Routes>
+            <AIAssistantProvider>
+              <AutoSignInPopup />
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -129,6 +134,7 @@ const App = () => (
             <Route path="/dashboard/privacy" element={<Privacy />} />
             <Route path="/dashboard/credits" element={<Credits />} />
             <Route path="/dashboard/quotations" element={<Quotations />} />
+            <Route path="/dashboard/my-requests" element={<MyRequests />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
             <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
@@ -143,9 +149,12 @@ const App = () => (
               <Route path="/chat" element={<Chat />} />
               <Route path="/crm" element={<CRM />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/ai-assistant" element={<AIAssistant />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <AIAssistantWidget />
+            </AIAssistantProvider>
           </BrowserRouter>
         </TooltipProvider>
       </RobotComparisonProvider>

@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileQuestion,
@@ -44,14 +44,17 @@ import LeadDetailView from "./LeadDetailView";
 import CreateQuotationModal from "./CreateQuotationModal";
 
 import { format, formatDistanceToNow } from "date-fns";
+import SellerAssignedRequests from "@/components/SellerAssignedRequests";
+import UserRequestsMarketplace from "./UserRequestsMarketplace";
 import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "list" | "pipeline";
-type LeadTab = "views" | "quotes" | "leads";
+type LeadTab = "views" | "quotes" | "leads" | "user_requests";
 
 const TAB_VIEWS: LeadTab = "views";
 const TAB_QUOTES: LeadTab = "quotes";
 const TAB_LEADS: LeadTab = "leads";
+const TAB_USER_REQUESTS: LeadTab = "user_requests";
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
   new: {
@@ -119,6 +122,8 @@ interface FullScreenLeadManagerProps {
   onClose: () => void;
   /** Force a specific category filter (robot, spare_part, service) */
   categoryFilter?: "robot" | "spare_part" | "service";
+  /** Commission sellers bypass credit checks */
+  isCommissionSeller?: boolean;
 }
 
 const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManagerProps["categoryFilter"]): boolean => {
@@ -137,7 +142,7 @@ const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManage
   return true;
 };
 
-const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManagerProps) => {
+const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: FullScreenLeadManagerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -186,11 +191,27 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
   });
 
   const handleUnlock = async (lead: Lead) => {
-    const creditsNeeded = getCreditsNeeded(lead.item_type);
-    if (creditsBalance < creditsNeeded) return;
+    if (!isCommissionSeller) {
+      const creditsNeeded = getCreditsNeeded(lead.item_type);
+      if (creditsBalance < creditsNeeded) return;
+    }
 
     setUnlocking(lead.id);
-    await unlockBuyerInfo(lead.id, lead.item_type);
+    if (isCommissionSeller) {
+      // Commission sellers: directly unlock without credits
+      try {
+        await supabase
+          .from('seller_leads')
+          .update({ is_unlocked: true })
+          .eq('id', lead.id);
+        fetchLeads();
+        toast({ title: "Lead unlocked", description: "Buyer details are now visible (no credits deducted)." });
+      } catch (error) {
+        console.error('Error unlocking lead:', error);
+      }
+    } else {
+      await unlockBuyerInfo(lead.id, lead.item_type);
+    }
     setUnlocking(null);
   };
 
@@ -262,7 +283,18 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
     }
   };
 
+  const PLATFORM_PHONE = "918610925352";
+  const PLATFORM_PHONE_DISPLAY = "+91 861 092 5352";
+
   const handleWhatsApp = (lead: Lead) => {
+    if (isCommissionSeller) {
+      const message = encodeURIComponent(
+        `Hi Robotverse, I'm a commission seller and want to connect regarding the lead for ${lead.item_name}. Buyer: ${lead.buyer_name || "Unknown"}.`,
+      );
+      window.open(`https://wa.me/${PLATFORM_PHONE}?text=${message}`, "_blank");
+      addActivity(lead.id, "call", "WhatsApp via Platform", "Contacted Robotverse platform for buyer connection");
+      return;
+    }
     if (!lead.is_unlocked || !lead.buyer_phone) return;
     const phone = lead.buyer_phone.replace(/\D/g, "");
     const message = encodeURIComponent(
@@ -273,6 +305,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
   };
 
   const handleEmail = (lead: Lead) => {
+    if (isCommissionSeller) return; // Commission sellers use platform only
     if (!lead.is_unlocked || !lead.buyer_email) return;
     const subject = encodeURIComponent(`Regarding your inquiry: ${lead.item_name}`);
     const body = encodeURIComponent(
@@ -283,6 +316,11 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
   };
 
   const handleCall = (lead: Lead) => {
+    if (isCommissionSeller) {
+      window.open(`tel:+${PLATFORM_PHONE}`, "_blank");
+      addActivity(lead.id, "call", "Called Platform", "Called Robotverse platform number");
+      return;
+    }
     if (!lead.is_unlocked || !lead.buyer_phone) return;
     window.open(`tel:${lead.buyer_phone}`, "_blank");
     addActivity(lead.id, "call", "Phone Call Made", `Called ${lead.buyer_phone}`);
@@ -320,10 +358,18 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
           <p className="text-xs text-muted-foreground">CRM workspace for managing leads and buyer inquiries</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs">
-            <CreditCard className="h-4 w-4 text-amber-600" />
-            <span className="font-medium">{creditsBalance} credits</span>
-          </div>
+          {!isCommissionSeller && (
+            <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5 text-xs">
+              <CreditCard className="h-4 w-4 text-amber-600" />
+              <span className="font-medium">{creditsBalance} credits</span>
+            </div>
+          )}
+          {isCommissionSeller && (
+            <div className="flex items-center gap-2 rounded-lg bg-green-100 dark:bg-green-900/30 px-3 py-1.5 text-xs">
+              <Unlock className="h-4 w-4 text-green-600" />
+              <span className="font-medium text-green-700 dark:text-green-300">Commission Model — Free Access</span>
+            </div>
+          )}
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close lead manager" type="button">
             <X className="h-5 w-5" />
           </Button>
@@ -414,6 +460,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                       {categoryFilteredLeads.length}
                     </Badge>
                   </TabsTrigger>
+                  <TabsTrigger value={TAB_USER_REQUESTS} className="flex items-center gap-2 px-4">
+                    <FileQuestion className="h-4 w-4" />
+                    <span>User Requests</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 {activeTab === TAB_LEADS && (
@@ -476,6 +526,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                   }}
                   onBuyCredits={() => navigate("/dashboard/credits")}
                   forcedCategoryFilter={categoryFilter}
+                  isCommissionSeller={isCommissionSeller}
                 />
               </TabsContent>
 
@@ -483,7 +534,12 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                 <QuoteRequestsSection 
                   sellerId={user?.id || ""} 
                   itemType={categoryFilter === "robot" ? "robot" : categoryFilter === "spare_part" ? "spare_part" : categoryFilter === "service" ? "service" : undefined}
+                  isCommissionSeller={isCommissionSeller}
                 />
+              </TabsContent>
+
+              <TabsContent value={TAB_USER_REQUESTS} className="mt-0 h-full">
+                <UserRequestsMarketplace categoryFilter={categoryFilter} isCommissionSeller={isCommissionSeller} />
               </TabsContent>
 
               <TabsContent value={TAB_LEADS} className="mt-0 h-full">
@@ -578,7 +634,18 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
 
                               {/* Contact info */}
                               <div className="mb-3 flex flex-wrap items-center gap-4 text-sm">
-                                {lead.is_unlocked ? (
+                                {isCommissionSeller ? (
+                                  <div className="flex gap-4 text-xs text-muted-foreground">
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Phone className="h-3.5 w-3.5" />
+                                      Hidden — Use Platform
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <Mail className="h-3.5 w-3.5" />
+                                      Hidden — Use Platform
+                                    </span>
+                                  </div>
+                                ) : lead.is_unlocked ? (
                                   <Fragment>
                                     {lead.buyer_phone && (
                                       <button
@@ -663,23 +730,65 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
                                   {!lead.is_unlocked ? (
                                     <Button
                                       size="sm"
-                                      variant={canUnlock ? "default" : "outline"}
+                                      variant={isCommissionSeller || canUnlock ? "default" : "outline"}
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (!canUnlock) return;
+                                        if (!isCommissionSeller && !canUnlock) return;
                                         handleUnlock(lead);
                                       }}
-                                      disabled={!canUnlock || unlocking === lead.id}
-                                      className="h-8 px-3 text-xs font-medium shadow-sm"
+                                      disabled={(!isCommissionSeller && !canUnlock) || unlocking === lead.id}
+                                      className={`h-8 px-3 text-xs font-medium shadow-sm ${isCommissionSeller ? 'bg-green-600 hover:bg-green-700' : ''}`}
                                     >
                                       {unlocking === lead.id ? (
                                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                                       ) : (
                                         <Unlock className="mr-1.5 h-3.5 w-3.5" />
                                       )}
-                                      Unlock ({creditsNeeded} cr)
+                                      {isCommissionSeller ? 'Unlock (Free)' : `Unlock (${creditsNeeded} cr)`}
                                     </Button>
+                                  ) : isCommissionSeller ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCall(lead);
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium"
+                                      >
+                                        <Phone className="mr-1.5 h-3.5 w-3.5" />
+                                        Call Platform
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleWhatsApp(lead);
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                      >
+                                        <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+                                        WhatsApp Platform
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openQuotation(lead);
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium"
+                                      >
+                                        <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+                                        Quote
+                                      </Button>
+                                    </div>
                                   ) : (
                                     <div className="flex items-center gap-1.5">
                                       <Button
@@ -742,6 +851,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
         <LeadDetailView
           lead={selectedLead}
           activities={leadActivities}
+          isCommissionSeller={isCommissionSeller}
           onClose={() => {
             setShowDetailView(false);
             setSelectedLead(null);
@@ -838,6 +948,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter }: FullScreenLeadManage
             fetchLeads();
             setShowQuotationModal(false);
           }}
+          isCommissionSeller={isCommissionSeller}
           leadData={{
             leadId: selectedLead.id,
             buyerName: selectedLead.buyer_name || "",

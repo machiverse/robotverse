@@ -52,6 +52,54 @@ interface GeneralNotification {
   created_at: string;
 }
 
+const getNotificationLabel = (type: string): string => {
+  switch (type) {
+    case "robot_view": case "robots_view": return "Robot View";
+    case "robot_inquiry": return "Robot Inquiry";
+    case "robot_quote": return "Robot Quote";
+    case "spare_part_view": case "spare_parts_view": return "Spare Part View";
+    case "spare_part_inquiry": return "Parts Inquiry";
+    case "spare_part_quote": return "Parts Quote";
+    case "service_view": case "services_view": return "Service View";
+    case "service_inquiry": return "Service Inquiry";
+    case "service_quote": return "Service Quote";
+    case "logistics_view": return "Logistics View";
+    case "logistics_inquiry": return "Logistics Inquiry";
+    case "logistics_quote": return "Logistics Quote";
+    case "financing_view": return "Finance View";
+    case "finance_inquiry": return "Finance Inquiry";
+    case "finance_application": return "Finance Application";
+    case "robobook_like": case "post_like": return "Like";
+    case "robobook_comment": case "post_comment": return "Comment";
+    case "product_view": return "Product View";
+    case "quote_received": return "Quote Received";
+    case "quote_request": return "Quote Request";
+    case "quote_accepted": return "Quote Accepted";
+    case "quote_rejected": return "Quote Rejected";
+    case "lead_new": return "New Lead";
+    case "lead_update": return "Lead Update";
+    case "buyer_access_request": return "Access Request";
+    case "buyer_access_approved": return "Access Approved";
+    case "user_request": return "User Request";
+    default: return "Notification";
+  }
+};
+
+const getNotificationLabelColor = (type: string): string => {
+  if (type.includes("robot")) return "bg-blue-500/10 text-blue-600";
+  if (type.includes("spare") || type.includes("part")) return "bg-orange-500/10 text-orange-600";
+  if (type.includes("service")) return "bg-purple-500/10 text-purple-600";
+  if (type.includes("logistics")) return "bg-green-500/10 text-green-600";
+  if (type.includes("financ")) return "bg-yellow-500/10 text-yellow-700";
+  if (type.includes("like")) return "bg-red-500/10 text-red-600";
+  if (type.includes("comment")) return "bg-cyan-500/10 text-cyan-600";
+  if (type.includes("quote_accepted")) return "bg-green-500/10 text-green-600";
+  if (type.includes("quote_rejected")) return "bg-red-500/10 text-red-600";
+  if (type.includes("quote")) return "bg-indigo-500/10 text-indigo-600";
+  if (type.includes("lead")) return "bg-emerald-500/10 text-emerald-600";
+  return "bg-muted text-muted-foreground";
+};
+
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case "robot_view":
@@ -343,50 +391,94 @@ export const NotificationCenter = () => {
 
       setOpen(false);
 
-      // Navigate based on notification type
-      if (notification.reference_type && notification.reference_id) {
-        switch (notification.reference_type) {
+      // Navigate based on notification type and reference
+      const navType = notification.reference_type || notification.notification_type;
+      const refId = notification.reference_id;
+
+      if (refId) {
+        switch (navType) {
           case "robot":
-            navigate(`/robots/${notification.reference_id}`);
+          case "robot_view":
+          case "robot_inquiry":
+          case "robot_quote":
+            navigate(`/robots/${refId}`);
             break;
           case "spare_part":
-            navigate(`/spare-parts/${notification.reference_id}`);
+          case "spare_part_view":
+          case "spare_part_inquiry":
+          case "spare_part_quote":
+            navigate(`/parts/${refId}`);
             break;
           case "service":
-            navigate(`/services/${notification.reference_id}`);
+          case "service_view":
+          case "service_inquiry":
+          case "service_quote":
+            navigate(`/services/${refId}`);
             break;
           case "logistics":
-            navigate(`/logistics/${notification.reference_id}`);
+          case "logistics_view":
+          case "logistics_inquiry":
+          case "logistics_quote":
+            navigate(`/logistics/${refId}`);
             break;
           case "financing":
-            navigate(`/financing/${notification.reference_id}`);
+          case "financing_view":
+          case "finance_inquiry":
+          case "finance_application":
+            navigate(`/financing/${refId}`);
             break;
           case "community_post":
           case "robobook":
-            navigate(`/robobook/${notification.reference_id}`);
+          case "robobook_like":
+          case "robobook_comment":
+          case "post_like":
+          case "post_comment":
+            navigate(`/robobook/${refId}`);
             break;
           case "lead":
+          case "lead_new":
+          case "lead_update":
             navigate(`/crm`);
             break;
           case "buyer_access_request":
+          case "buyer_access_approved":
             navigate(`/dashboard`);
             break;
           case "quotation":
-            // Navigate to buyer's quotations tab
-            navigate(`/dashboard?tab=quotations`);
+          case "quote_received":
+            navigate(`/dashboard/quotations`);
+            break;
+          case "user_request":
+            navigate(`/crm`);
             break;
           default:
             navigate(`/dashboard`);
         }
-      } else if (notification.notification_type === 'quote_request') {
-        // Navigate to dashboard for quote requests
-        navigate('/dashboard');
-      } else if (notification.notification_type === 'quote_received') {
-        // Navigate to buyer's received quotations page
-        navigate('/dashboard/quotations');
-      } else if (notification.notification_type === 'quote_accepted' || notification.notification_type === 'quote_rejected') {
-        // Navigate to seller's CRM to see response
-        navigate('/crm');
+      } else {
+        // Fallback navigation based on notification_type only
+        switch (notification.notification_type) {
+          case "quote_request":
+            navigate("/dashboard");
+            break;
+          case "quote_received":
+            navigate("/dashboard/quotations");
+            break;
+          case "quote_accepted":
+          case "quote_rejected":
+            navigate("/crm");
+            break;
+          case "lead_new":
+          case "lead_update":
+          case "user_request":
+            navigate("/crm");
+            break;
+          case "buyer_access_request":
+          case "buyer_access_approved":
+            navigate("/dashboard");
+            break;
+          default:
+            navigate("/dashboard");
+        }
       }
     } catch (error) {
       console.error("Error handling notification click:", error);
@@ -522,7 +614,7 @@ export const NotificationCenter = () => {
                     <div
                       key={notification.id}
                       onClick={() => handleGeneralNotificationClick(notification)}
-                      className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                      className={`p-4 cursor-pointer hover:bg-accent transition-colors group ${
                         !notification.is_read ? "bg-primary/5" : ""
                       }`}
                     >
@@ -540,9 +632,19 @@ export const NotificationCenter = () => {
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{notification.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(notification.created_at), "MMM dd, HH:mm")}
-                          </p>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${getNotificationLabelColor(notification.notification_type)}`}>
+                                {getNotificationLabel(notification.notification_type)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(notification.created_at), "MMM dd, HH:mm")}
+                              </span>
+                            </div>
+                            <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                              View →
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -607,7 +709,7 @@ export const NotificationCenter = () => {
                     <div
                       key={notification.id}
                       onClick={() => handleGeneralNotificationClick(notification)}
-                      className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                      className={`p-4 cursor-pointer hover:bg-accent transition-colors group ${
                         !notification.is_read ? "bg-primary/5" : ""
                       }`}
                     >
@@ -625,9 +727,19 @@ export const NotificationCenter = () => {
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{notification.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(notification.created_at), "MMM dd, HH:mm")}
-                          </p>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${getNotificationLabelColor(notification.notification_type)}`}>
+                                {getNotificationLabel(notification.notification_type)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(notification.created_at), "MMM dd, HH:mm")}
+                              </span>
+                            </div>
+                            <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                              View →
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>

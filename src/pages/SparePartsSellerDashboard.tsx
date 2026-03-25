@@ -45,7 +45,8 @@ import { ViewAnalyticsDashboard } from '@/components/analytics/ViewAnalyticsDash
 import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
-import { FileText } from 'lucide-react';
+import SellerAssignedRequests from '@/components/SellerAssignedRequests';
+import { FileText, FileQuestion } from 'lucide-react';
 
 interface SparePart {
   id: string;
@@ -428,11 +429,29 @@ const SparePartsSellerDashboard = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
           <TabsTrigger value="leads">Lead Manager</TabsTrigger>
+          <TabsTrigger value="user-requests">User Requests</TabsTrigger>
           <TabsTrigger value="views">View Statistics</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="user-requests" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileQuestion className="w-5 h-5" />
+                Assigned User Requests
+              </CardTitle>
+              <CardDescription>
+                User requests assigned to you. Submit quotations and solutions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SellerAssignedRequests categoryFilter="spare_part" />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="leads" className="mt-6">
           <Card>
