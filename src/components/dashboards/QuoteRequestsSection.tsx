@@ -85,10 +85,15 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [quotationLeadData, setQuotationLeadData] = useState<any>(null);
+  const [itemImages, setItemImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchQuoteRequests();
   }, [sellerId, itemType]);
+
+  useEffect(() => {
+    if (quoteRequests.length > 0) fetchItemImages();
+  }, [quoteRequests]);
 
   useEffect(() => {
     filterRequests();
@@ -125,6 +130,27 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
     } finally {
       setLoading(false);
     }
+  };
+  const fetchItemImages = async () => {
+    const images: Record<string, string> = {};
+    const robotIds = quoteRequests.filter(r => r.item_id && (r.item_type === 'robot' || r.item_type === 'robots')).map(r => r.item_id!);
+    const spareIds = quoteRequests.filter(r => r.item_id && (r.item_type === 'spare_part' || r.item_type === 'spare_parts')).map(r => r.item_id!);
+
+    if (robotIds.length > 0) {
+      const { data } = await supabase.from('robots').select('id, images').in('id', robotIds);
+      data?.forEach(r => {
+        const imgs = r.images as string[] | null;
+        if (imgs && imgs.length > 0) images[r.id] = imgs[0];
+      });
+    }
+    if (spareIds.length > 0) {
+      const { data } = await supabase.from('spare_parts').select('id, images').in('id', spareIds);
+      data?.forEach(r => {
+        const imgs = r.images as string[] | null;
+        if (imgs && imgs.length > 0) images[r.id] = imgs[0];
+      });
+    }
+    setItemImages(images);
   };
 
   const filterRequests = () => {
@@ -496,9 +522,22 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium text-sm">{request.item_name || 'N/A'}</span>
-                      {getItemTypeBadge(request.item_type)}
+                    <div className="flex items-center gap-3">
+                      {request.item_id && itemImages[request.item_id] ? (
+                        <img
+                          src={itemImages[request.item_id]}
+                          alt={request.item_name || 'Item'}
+                          className="w-10 h-10 rounded-md object-cover border border-border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                          <Package className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium text-sm">{request.item_name || 'N/A'}</span>
+                        {getItemTypeBadge(request.item_type)}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
