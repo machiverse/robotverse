@@ -134,6 +134,7 @@ const App = () => (
             <Route path="/dashboard/privacy" element={<Privacy />} />
             <Route path="/dashboard/credits" element={<Credits />} />
             <Route path="/dashboard/quotations" element={<Quotations />} />
+            <Route path="/dashboard/my-requests" element={<MyRequests />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
             <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />

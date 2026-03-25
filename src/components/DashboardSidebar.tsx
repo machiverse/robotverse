@@ -18,6 +18,7 @@ import {
   Bell,
   Search,
   MessageCircle,
+  Send,
 } from "lucide-react";
 import {
   Sidebar,
