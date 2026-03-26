@@ -30,8 +30,18 @@ interface QuoteEmailRequest {
   quoteCurrency?: string;
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
-  const client = new SMTPClient({
+async function sendEmail(client: SMTPClient, to: string, subject: string, html: string) {
+  await client.send({
+    from: Deno.env.get("SMTP_FROM") || "support@robotverse.in",
+    to: to,
+    subject: subject,
+    content: "auto",
+    html: html,
+  });
+}
+
+function createSMTPClient(): SMTPClient {
+  return new SMTPClient({
     connection: {
       hostname: Deno.env.get("SMTP_HOST") || "smtppro.zoho.in",
       port: parseInt(Deno.env.get("SMTP_PORT") || "465"),
@@ -42,18 +52,6 @@ async function sendEmail(to: string, subject: string, html: string) {
       },
     },
   });
-
-  try {
-    await client.send({
-      from: Deno.env.get("SMTP_FROM") || "support@robotverse.in",
-      to: to,
-      subject: subject,
-      content: "auto",
-      html: html,
-    });
-  } finally {
-    await client.close();
-  }
 }
 
 function getUrgencyColor(urgency: string): string {
