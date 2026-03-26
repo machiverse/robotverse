@@ -250,7 +250,7 @@ export const useSellerAssignments = () => {
         .eq('id', assignmentId);
       if (error) throw error;
 
-      // If quote submitted, update main request status
+      // If quote submitted, update main request status and send email
       if (response.status === 'quote_submitted') {
         const assignment = myAssignments.find(a => a.id === assignmentId);
         if (assignment?.request_id) {
@@ -271,6 +271,42 @@ export const useSellerAssignments = () => {
               reference_type: 'user_product_request',
               is_read: false,
             });
+
+            // Send email to buyer via Zoho SMTP
+            try {
+              // Get buyer email
+              const { data: buyerProfile } = await supabase
+                .from('profiles')
+                .select('email, full_name')
+                .eq('user_id', request.user_id)
+                .single();
+
+              // Get seller profile
+              const { data: sellerProfile } = await supabase
+                .from('profiles')
+                .select('full_name, company_name')
+                .eq('user_id', user?.id)
+                .single();
+
+              if (buyerProfile?.email) {
+                await supabase.functions.invoke('send-quote-request', {
+                  body: {
+                    type: 'seller_quote_response',
+                    buyerName: buyerProfile.full_name || request.contact_name,
+                    buyerEmail: buyerProfile.email || request.contact_email,
+                    sellerName: sellerProfile?.full_name || '',
+                    sellerCompany: sellerProfile?.company_name || '',
+                    itemName: request.product_name,
+                    itemType: request.product_type,
+                    quotePrice: response.quotation_amount?.toString() || '',
+                    quoteDescription: response.quotation_details || '',
+                    quoteCurrency: '₹',
+                  }
+                });
+              }
+            } catch (emailErr) {
+              console.error('Email notification error:', emailErr);
+            }
           }
         }
       }
