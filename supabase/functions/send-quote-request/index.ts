@@ -30,18 +30,8 @@ interface QuoteEmailRequest {
   quoteCurrency?: string;
 }
 
-async function sendEmail(client: SMTPClient, to: string, subject: string, html: string) {
-  await client.send({
-    from: Deno.env.get("SMTP_FROM") || "support@robotverse.in",
-    to: to,
-    subject: subject,
-    content: "auto",
-    html: html,
-  });
-}
-
-function createSMTPClient(): SMTPClient {
-  return new SMTPClient({
+async function sendEmail(to: string, subject: string, html: string) {
+  const client = new SMTPClient({
     connection: {
       hostname: Deno.env.get("SMTP_HOST") || "smtppro.zoho.in",
       port: parseInt(Deno.env.get("SMTP_PORT") || "465"),
@@ -52,6 +42,17 @@ function createSMTPClient(): SMTPClient {
       },
     },
   });
+  try {
+    await client.send({
+      from: Deno.env.get("SMTP_FROM") || "support@robotverse.in",
+      to: to,
+      subject: subject,
+      content: "auto",
+      html: html,
+    });
+  } finally {
+    await client.close();
+  }
 }
 
 function getUrgencyColor(urgency: string): string {
@@ -222,7 +223,6 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
-  const client = createSMTPClient();
   try {
     const data: QuoteEmailRequest = await req.json();
     const results: Record<string, boolean> = {};
@@ -234,7 +234,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Seller submitted a quote → email buyer
       if (data.buyerEmail) {
         try {
-          await sendEmail(client, data.buyerEmail,
+          await sendEmail(data.buyerEmail,
             `Your Quote for ${data.itemName || 'Your Request'}`,
             buildBuyerQuoteReceivedHtml(data)
           );
@@ -248,7 +248,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Also notify admin
       try {
-        await sendEmail(client, adminEmail,
+        await sendEmail(adminEmail,
           `Quote Submitted – ${data.itemName || 'Item'} by ${data.sellerName || 'Seller'}`,
           `<div style="font-family: Arial; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2>Seller Quote Submitted</h2>
@@ -266,25 +266,12 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
     } else {
-      // Quote request flow (default)
-      
-      // 1. Admin notification (full details)
-      try {
-        await sendEmail(client, adminEmail,
-          `New Quote Request – ${data.itemName || 'Item'}`,
-          buildAdminEmailHtml(data)
-        );
-        results.adminEmail = true;
-        console.log("Admin email sent");
-      } catch (e) {
-        console.error('Failed to send admin email:', e);
-        results.adminEmail = false;
-      }
+      // Quote request flow — send all emails with separate connections
 
-      // 2. Seller notification (buyer name ONLY, no email/phone)
+      // 1. Seller notification FIRST (most important — buyer name ONLY, no email/phone)
       if (data.sellerEmail) {
         try {
-          await sendEmail(client, data.sellerEmail,
+          await sendEmail(data.sellerEmail,
             `New Quote Request – ${data.itemName || 'Item'}`,
             buildSellerEmailHtml(data)
           );
@@ -298,10 +285,23 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("No seller email provided, skipping seller notification");
       }
 
+      // 2. Admin notification (full details)
+      try {
+        await sendEmail(adminEmail,
+          `New Quote Request – ${data.itemName || 'Item'}`,
+          buildAdminEmailHtml(data)
+        );
+        results.adminEmail = true;
+        console.log("Admin email sent");
+      } catch (e) {
+        console.error('Failed to send admin email:', e);
+        results.adminEmail = false;
+      }
+
       // 3. Buyer confirmation
       if (data.buyerEmail) {
         try {
-          await sendEmail(client, data.buyerEmail,
+          await sendEmail(data.buyerEmail,
             `Quote Request Confirmation – ${data.itemName || 'Item'}`,
             buildBuyerConfirmationHtml(data)
           );
@@ -328,8 +328,6 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ error: errorMessage, success: false }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
-  } finally {
-    await client.close();
   }
 };
 
