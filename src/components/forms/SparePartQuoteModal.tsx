@@ -18,6 +18,7 @@ interface Part {
   seller?: {
     full_name?: string;
     company_name?: string;
+    email?: string;
   };
 }
 
@@ -91,6 +92,7 @@ const SparePartQuoteModal = ({ isOpen, onClose, part, userEmail, userName }: Spa
           await supabase.functions.invoke('send-quote-request', {
             body: {
               type: 'quote_request',
+              sellerEmail: part.seller?.email || '',
               sellerName: part.seller?.full_name || '',
               sellerCompany: part.seller?.company_name || '',
               buyerName: userName,
