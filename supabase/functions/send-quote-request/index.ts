@@ -222,21 +222,24 @@ const handler = async (req: Request): Promise<Response> => {
     });
   }
 
+  const client = createSMTPClient();
   try {
     const data: QuoteEmailRequest = await req.json();
     const results: Record<string, boolean> = {};
     const adminEmail = Deno.env.get("SMTP_FROM") || "support@robotverse.in";
 
+    console.log("Processing email request:", { type: data.type, itemName: data.itemName, sellerEmail: data.sellerEmail, buyerEmail: data.buyerEmail });
+
     if (data.type === 'seller_quote_response') {
       // Seller submitted a quote → email buyer
       if (data.buyerEmail) {
         try {
-          await sendEmail(
-            data.buyerEmail,
+          await sendEmail(client, data.buyerEmail,
             `Your Quote for ${data.itemName || 'Your Request'}`,
             buildBuyerQuoteReceivedHtml(data)
           );
           results.buyerEmail = true;
+          console.log("Buyer quote email sent to:", data.buyerEmail);
         } catch (e) {
           console.error('Failed to send buyer quote email:', e);
           results.buyerEmail = false;
@@ -245,8 +248,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Also notify admin
       try {
-        await sendEmail(
-          adminEmail,
+        await sendEmail(client, adminEmail,
           `Quote Submitted – ${data.itemName || 'Item'} by ${data.sellerName || 'Seller'}`,
           `<div style="font-family: Arial; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2>Seller Quote Submitted</h2>
@@ -268,12 +270,12 @@ const handler = async (req: Request): Promise<Response> => {
       
       // 1. Admin notification (full details)
       try {
-        await sendEmail(
-          adminEmail,
+        await sendEmail(client, adminEmail,
           `New Quote Request – ${data.itemName || 'Item'}`,
           buildAdminEmailHtml(data)
         );
         results.adminEmail = true;
+        console.log("Admin email sent");
       } catch (e) {
         console.error('Failed to send admin email:', e);
         results.adminEmail = false;
@@ -282,27 +284,29 @@ const handler = async (req: Request): Promise<Response> => {
       // 2. Seller notification (buyer name ONLY, no email/phone)
       if (data.sellerEmail) {
         try {
-          await sendEmail(
-            data.sellerEmail,
+          await sendEmail(client, data.sellerEmail,
             `New Quote Request – ${data.itemName || 'Item'}`,
             buildSellerEmailHtml(data)
           );
           results.sellerEmail = true;
+          console.log("Seller email sent to:", data.sellerEmail);
         } catch (e) {
           console.error('Failed to send seller email:', e);
           results.sellerEmail = false;
         }
+      } else {
+        console.log("No seller email provided, skipping seller notification");
       }
 
       // 3. Buyer confirmation
       if (data.buyerEmail) {
         try {
-          await sendEmail(
-            data.buyerEmail,
+          await sendEmail(client, data.buyerEmail,
             `Quote Request Confirmation – ${data.itemName || 'Item'}`,
             buildBuyerConfirmationHtml(data)
           );
           results.buyerEmail = true;
+          console.log("Buyer confirmation sent to:", data.buyerEmail);
         } catch (e) {
           console.error('Failed to send buyer confirmation:', e);
           results.buyerEmail = false;
@@ -324,6 +328,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ error: errorMessage, success: false }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
+  } finally {
+    await client.close();
   }
 };
 
