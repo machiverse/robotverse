@@ -307,7 +307,25 @@ const CreateQuotationModal = ({
         });
       }
 
-      // In-app notification only (no email)
+      // Send email notification to buyer via Zoho SMTP
+      try {
+        await supabase.functions.invoke('send-quote-request', {
+          body: {
+            type: 'seller_quote_response',
+            buyerName: buyerName,
+            buyerEmail: buyerEmail,
+            sellerName: sellerProfile?.full_name || '',
+            sellerCompany: sellerProfile?.company_name || '',
+            itemName: items.map(i => i.name).join(', '),
+            itemType: 'Quotation',
+            quotePrice: totalAmount.toLocaleString('en-IN'),
+            quoteDescription: notes || items.map(i => `${i.name} x${i.quantity} - ₹${(i.unit_price * i.quantity).toLocaleString('en-IN')}`).join('\n'),
+            quoteCurrency: '₹',
+          }
+        });
+      } catch (emailErr) {
+        console.error('Email notification error:', emailErr);
+      }
 
       // Auto-create deal in Deal Tracker for commission sellers
       if (isCommissionSeller) {
