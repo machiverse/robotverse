@@ -183,31 +183,25 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
         // Non-blocking
       }
 
-      // 4. Also try sending email (non-blocking)
+      // 4. Send email via Zoho SMTP (non-blocking)
       try {
-        const quoteData = {
-          customerName: formData.customerName,
-          customerEmail: formData.customerEmail,
-          customerPhone: formData.customerPhone,
-          serviceProviderEmail: service.providerProfile?.email,
-          serviceProviderName: service.provider,
-          serviceName: service.name,
-          serviceType: service.category,
-          message: formData.message,
-          urgency: formData.urgency,
-          location: formData.projectLocation,
-          budget: formData.budget,
-          timeline: formData.timeline,
-          preferredContact: formData.preferredContact
-        };
-
-        await fetch('https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/send-quote-request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(quoteData)
+        await supabase.functions.invoke('send-quote-request', {
+          body: {
+            type: 'quote_request',
+            sellerEmail: service.providerProfile?.email,
+            sellerName: service.provider,
+            buyerName: formData.customerName,
+            buyerEmail: formData.customerEmail,
+            buyerPhone: formData.customerPhone,
+            itemType: 'Service',
+            itemName: service.name,
+            itemCategory: service.category,
+            urgency: formData.urgency,
+            requirements: formData.message || `Service request for ${service.name}`,
+          }
         });
       } catch {
-        // Email is non-blocking, don't fail the whole request
+        // Email is non-blocking
       }
 
       toast({
