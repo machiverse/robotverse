@@ -12,10 +12,16 @@ import { useNavigate } from "react-router-dom";
 
 const DashboardPage = () => {
   // Force refresh to clear cached UserTypeSelector references
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
