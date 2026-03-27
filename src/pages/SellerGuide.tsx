@@ -197,7 +197,7 @@ const SellerGuide = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary mb-2">5%</div>
+                  <div className="text-2xl font-bold text-primary mb-2">6%</div>
                   <h3 className="font-medium mb-2">Commission Fee</h3>
                   <p className="text-sm text-muted-foreground">Only charged on successful sales</p>
                 </div>

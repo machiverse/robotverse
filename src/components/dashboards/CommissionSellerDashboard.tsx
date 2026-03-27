@@ -126,7 +126,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
     { title: "Total Robots", value: dashboardStats.totalRobots, icon: Bot, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", sub: `${dashboardStats.activeListings} active` },
     { title: "Total Revenue", value: `₹${dashboardStats.totalRevenue.toLocaleString("en-IN")}`, icon: DollarSign, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30", sub: "Listing value" },
     { title: "Robot Views", value: viewStats?.viewsByCategory?.robots ?? 0, icon: Eye, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30", sub: viewsLoading ? "Loading..." : "Total views" },
-    { title: "Commission Model", value: "5%", icon: Handshake, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", sub: "On completed deals" },
+    { title: "Commission Model", value: "6%", icon: Handshake, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", sub: "On completed deals" },
   ];
 
   return (
@@ -138,7 +138,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
             Commission Seller Dashboard
           </h1>
           <p className="text-sm text-muted-foreground">
-            Unlimited listings • No credits required • 5% commission on completed deals
+            Unlimited listings • No credits required • 6% commission on completed deals
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -351,7 +351,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
               <div className="rounded-lg bg-muted p-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Account Type</span>
-                  <Badge>Commission (5%)</Badge>
+                  <Badge>Commission (6%)</Badge>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Listing Limit</span>

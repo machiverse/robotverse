@@ -656,12 +656,12 @@ const ProfileSettings = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="subscription">Subscription + Credits</SelectItem>
-                              <SelectItem value="commission">Commission-Based (5%)</SelectItem>
+                              <SelectItem value="commission">Commission-Based (6%)</SelectItem>
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-muted-foreground mt-1">
                             {userProfile?.seller_model_type === 'commission' 
-                              ? 'Unlimited listings, 5% commission on completed deals' 
+                              ? 'Unlimited listings, 6% commission on completed deals' 
                               : 'Purchase subscriptions & credits for leads'}
                           </p>
                         </div>
