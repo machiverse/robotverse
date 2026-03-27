@@ -18,6 +18,13 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user && !loading) {
+      navigate('/auth', { replace: true });
+      return;
+    }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) {
         setLoading(false);
