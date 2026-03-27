@@ -77,6 +77,8 @@ const infoRow = (label: string, value: string) => `<div style="display:flex;padd
 
 const ctaButton = (text: string, url: string) => `<div style="text-align:center;margin:28px 0 8px;"><a href="${url}" style="display:inline-block;background:linear-gradient(135deg,#1e40af,#3b82f6);color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">${text}</a></div>`;
 
+const SITE_URL = 'https://robotverse.in';
+
 function buildSellerEmailHtml(data: QuoteEmailRequest): string {
   const ts = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   return emailWrapper(`<div style="text-align:center;margin-bottom:28px;"><h2 style="margin:0;color:#1e293b;font-size:22px;">📩 New Quote Request Received</h2><p style="margin:8px 0 0;color:#64748b;font-size:14px;">A buyer is interested in your listing</p></div>${sectionCard('Buyer', '👤', '#3b82f6', infoRow('Name', data.buyerName || 'A Buyer') + (data.buyerCompany ? infoRow('Company', data.buyerCompany) : ''))}${sectionCard('Item', '📦', '#10b981', infoRow('Item', data.itemName || 'N/A') + infoRow('Type', data.itemType || 'N/A') + (data.itemModel ? infoRow('Model', data.itemModel) : '') + infoRow('Urgency', getUrgencyBadge(data.urgency || 'medium')))}${data.requirements ? sectionCard('Message', '💬', '#8b5cf6', `<p style="margin:0;color:#374151;font-size:14px;line-height:1.7;background:#f8fafc;padding:14px;border-radius:6px;">${data.requirements}</p>`) : ''}${ctaButton('Open Dashboard & Respond', 'https://robot-verse.lovable.app/dashboard')}<div style="background:#f8fafc;border-radius:8px;padding:16px;margin-top:24px;text-align:center;"><p style="margin:0;color:#64748b;font-size:13px;">⏰ ${ts} IST</p></div>`);
@@ -107,17 +109,17 @@ async function processEmails(data: QuoteEmailRequest) {
 
   if (data.type === 'seller_quote_response') {
     if (data.buyerEmail) {
-      await sendOneEmail(data.buyerEmail, `📋 Your Quote for ${data.itemName || 'Your Request'} — RobotVerse`, buildBuyerQuoteReceivedHtml(data));
+      await sendOneEmail(data.buyerEmail, `Your Quote for ${data.itemName || 'Your Request'} - RobotVerse`, buildBuyerQuoteReceivedHtml(data));
     }
-    await sendOneEmail(adminEmail, `💰 Quote Submitted – ${data.itemName || 'Item'}`, buildAdminQuoteSubmittedHtml(data));
+    await sendOneEmail(adminEmail, `Quote Submitted - ${data.itemName || 'Item'}`, buildAdminQuoteSubmittedHtml(data));
   } else {
     // Seller first (priority)
     if (data.sellerEmail) {
-      await sendOneEmail(data.sellerEmail, `📩 New Quote Request for ${data.itemName || 'Your Listing'} — RobotVerse`, buildSellerEmailHtml(data));
+      await sendOneEmail(data.sellerEmail, `New Quote Request for ${data.itemName || 'Your Listing'} - RobotVerse`, buildSellerEmailHtml(data));
     }
-    await sendOneEmail(adminEmail, `🔔 New Quote Request – ${data.itemName || 'Item'}`, buildAdminEmailHtml(data));
+    await sendOneEmail(adminEmail, `New Quote Request - ${data.itemName || 'Item'}`, buildAdminEmailHtml(data));
     if (data.buyerEmail) {
-      await sendOneEmail(data.buyerEmail, `✅ Quote Request Sent – ${data.itemName || 'Item'} — RobotVerse`, buildBuyerConfirmationHtml(data));
+      await sendOneEmail(data.buyerEmail, `Quote Request Sent - ${data.itemName || 'Item'} - RobotVerse`, buildBuyerConfirmationHtml(data));
     }
   }
   console.log("Background: all emails processed");
