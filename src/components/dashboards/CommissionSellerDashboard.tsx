@@ -158,7 +158,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           <Handshake className="h-5 w-5 text-amber-600 shrink-0" />
           <p className="text-sm text-amber-800 dark:text-amber-200">
             <strong>Commission Model Active:</strong> You have unlimited listings with no credit requirements. 
-            Robotverse earns a 5% service fee only when a deal is marked as Won and verified by admin.
+            Robotverse earns a 6% service fee only when a deal is marked as Won and verified by admin.
           </p>
         </CardContent>
       </Card>
