@@ -400,12 +400,12 @@ const CreateQuotationModal = ({
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="buyerName">Name *</Label>
+                <Label htmlFor="buyerName">Buyer Name</Label>
                 <Input
                   id="buyerName"
                   value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Buyer name"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2">
@@ -413,40 +413,23 @@ const CreateQuotationModal = ({
                 <Input
                   id="buyerCompany"
                   value={buyerCompany}
-                  onChange={(e) => setBuyerCompany(e.target.value)}
-                  placeholder="Company name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="buyerEmail">Email *</Label>
-                <Input
-                  id="buyerEmail"
-                  type="email"
-                  value={buyerEmail}
-                  onChange={(e) => setBuyerEmail(e.target.value)}
-                  placeholder="buyer@company.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="buyerPhone">Phone</Label>
-                <Input
-                  id="buyerPhone"
-                  value={buyerPhone}
-                  onChange={(e) => setBuyerPhone(e.target.value)}
-                  placeholder="+91 XXXXX XXXXX"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="buyerAddress">Address</Label>
-                <Textarea
-                  id="buyerAddress"
-                  value={buyerAddress}
-                  onChange={(e) => setBuyerAddress(e.target.value)}
-                  placeholder="Full address"
-                  rows={2}
+                <Label htmlFor="buyerLocation">Location</Label>
+                <Input
+                  id="buyerLocation"
+                  value={buyerAddress || "Not provided"}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Contact details are hidden to protect buyer privacy. The quote will be delivered via the platform.
+            </p>
           </div>
 
           <Separator />
