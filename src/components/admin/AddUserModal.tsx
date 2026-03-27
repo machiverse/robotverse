@@ -197,7 +197,7 @@ const AddUserModal = ({ open, onOpenChange, onUserCreated }: AddUserModalProps) 
                   <SelectTrigger id="add_seller_model"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="subscription">Subscription + Credits</SelectItem>
-                    <SelectItem value="commission">Commission-Based (5%)</SelectItem>
+                    <SelectItem value="commission">Commission-Based (6%)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

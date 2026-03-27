@@ -1643,7 +1643,7 @@ const Auth = () => {
                       <ul className="text-xs text-muted-foreground space-y-1 ml-6">
                         <li>• Unlimited listings, no subscription</li>
                         <li>• No credit purchase needed</li>
-                        <li>• 5% commission on completed deals</li>
+                        <li>• 6% commission on completed deals</li>
                       </ul>
                     </div>
                   </div>
