@@ -411,11 +411,11 @@ const UserRequestsMarketplace = ({ categoryFilter, isCommissionSeller }: UserReq
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Mail className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{isUnlocked ? (r.contact_email || 'Not provided') : '••••••'}</span>
+                          <span className="truncate text-xs italic">Hidden for privacy</span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Phone className="w-3.5 h-3.5 shrink-0" />
-                          <span>{isUnlocked ? (r.contact_phone || 'Not provided') : '••••••'}</span>
+                          <span className="text-xs italic">Hidden for privacy</span>
                         </div>
                         {r.location && (
                           <div className="flex items-center gap-2 text-muted-foreground">
