@@ -108,7 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             
             <div style="text-align: center; margin-top: 30px;">
-              <a href="https://robot-verse.lovable.app/dashboard" 
+              <a href="https://robotverse.in/dashboard" 
                  style="display: inline-block; background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">
                 View Quotation in Dashboard
               </a>
