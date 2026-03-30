@@ -399,33 +399,43 @@ export const NotificationCenter = () => {
         switch (navType) {
           case "robot":
           case "robot_view":
+            navigate(`/robots/${refId}`);
+            break;
           case "robot_inquiry":
           case "robot_quote":
-            navigate(`/robots/${refId}`);
+            navigate(`/crm?view=leads&tab=quotes`);
             break;
           case "spare_part":
           case "spare_part_view":
+            navigate(`/parts/${refId}`);
+            break;
           case "spare_part_inquiry":
           case "spare_part_quote":
-            navigate(`/parts/${refId}`);
+            navigate(`/crm?view=leads&tab=quotes`);
             break;
           case "service":
           case "service_view":
+            navigate(`/services/${refId}`);
+            break;
           case "service_inquiry":
           case "service_quote":
-            navigate(`/services/${refId}`);
+            navigate(`/crm?view=leads&tab=quotes`);
             break;
           case "logistics":
           case "logistics_view":
+            navigate(`/logistics/${refId}`);
+            break;
           case "logistics_inquiry":
           case "logistics_quote":
-            navigate(`/logistics/${refId}`);
+            navigate(`/crm?view=leads&tab=quotes`);
             break;
           case "financing":
           case "financing_view":
+            navigate(`/financing/${refId}`);
+            break;
           case "finance_inquiry":
           case "finance_application":
-            navigate(`/financing/${refId}`);
+            navigate(`/crm?view=leads&tab=quotes`);
             break;
           case "community_post":
           case "robobook":
@@ -438,7 +448,7 @@ export const NotificationCenter = () => {
           case "lead":
           case "lead_new":
           case "lead_update":
-            navigate(`/crm`);
+            navigate(`/crm?view=leads&tab=leads`);
             break;
           case "buyer_access_request":
           case "buyer_access_approved":
@@ -446,35 +456,52 @@ export const NotificationCenter = () => {
             break;
           case "quotation":
           case "quote_received":
-            navigate(`/dashboard/quotations`);
+            navigate(`/dashboard/my-requests`);
+            break;
+          case "quote_request":
+            navigate(`/crm?view=leads&tab=quotes`);
+            break;
+          case "quote_accepted":
+          case "quote_rejected":
+            navigate(`/crm?view=leads&tab=sent_quotes`);
             break;
           case "user_request":
-            navigate(`/crm`);
+            navigate(`/crm?view=leads&tab=user_requests`);
             break;
           default:
             navigate(`/dashboard`);
         }
       } else {
-        // Fallback navigation based on notification_type only
         switch (notification.notification_type) {
           case "quote_request":
-            navigate("/dashboard");
+            navigate("/crm?view=leads&tab=quotes");
             break;
           case "quote_received":
-            navigate("/dashboard/quotations");
+            navigate("/dashboard/my-requests");
             break;
           case "quote_accepted":
           case "quote_rejected":
-            navigate("/crm");
+            navigate("/crm?view=leads&tab=sent_quotes");
             break;
           case "lead_new":
           case "lead_update":
+            navigate("/crm?view=leads&tab=leads");
+            break;
           case "user_request":
-            navigate("/crm");
+            navigate("/crm?view=leads&tab=user_requests");
             break;
           case "buyer_access_request":
           case "buyer_access_approved":
             navigate("/dashboard");
+            break;
+          case "robot_view":
+          case "robots_view":
+          case "spare_part_view":
+          case "spare_parts_view":
+          case "service_view":
+          case "services_view":
+          case "product_view":
+            navigate("/crm?view=leads&tab=views");
             break;
           default:
             navigate("/dashboard");
