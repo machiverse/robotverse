@@ -34,7 +34,10 @@ import {
   Settings,
   Download,
   Share2,
-  Star
+  Star,
+  Handshake,
+  Users,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +49,9 @@ import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import { formatPrice, type Currency, convertToINR, calculateTotalInINR } from '@/utils/currency';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
 import SellerAssignedRequests from '@/components/SellerAssignedRequests';
+import CommissionDealsSection from '@/components/dashboards/CommissionDealsSection';
+import SentQuotationsTab from '@/components/crm/SentQuotationsTab';
+import WatchlistSection from '@/components/WatchlistSection';
 import { FileText, FileQuestion } from 'lucide-react';
 
 interface SparePart {
