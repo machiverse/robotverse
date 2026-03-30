@@ -177,7 +177,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       )}
 
       {/* Messages */}
-      <ScrollArea className={cn("flex-1", fullPage ? "px-6 py-5" : "px-3 py-3")} ref={scrollRef}>
+      <ScrollArea className={cn("flex-1", fullPage ? "px-4 sm:px-6 lg:px-0 py-5" : "px-3 py-3")} ref={scrollRef}>
+        <div className={cn(fullPage && "max-w-3xl mx-auto")}>
         {messages.length === 0 ? (
           <EmptyState
             onPromptClick={(query) => {
