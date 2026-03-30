@@ -126,6 +126,8 @@ interface FullScreenLeadManagerProps {
   categoryFilter?: "robot" | "spare_part" | "service";
   /** Commission sellers bypass credit checks */
   isCommissionSeller?: boolean;
+  /** Auto-select a specific tab on mount */
+  initialTab?: string;
 }
 
 const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManagerProps["categoryFilter"]): boolean => {
@@ -144,7 +146,7 @@ const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManage
   return true;
 };
 
-const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: FullScreenLeadManagerProps) => {
+const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, initialTab }: FullScreenLeadManagerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -164,7 +166,21 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
     fetchLeads,
   } = useSellerCRM();
 
-  const [activeTab, setActiveTab] = useState<LeadTab>(TAB_VIEWS);
+  const getInitialTab = (): LeadTab => {
+    if (initialTab) {
+      const tabMap: Record<string, LeadTab> = {
+        views: TAB_VIEWS,
+        quotes: TAB_QUOTES,
+        leads: TAB_LEADS,
+        user_requests: TAB_USER_REQUESTS,
+        sent_quotes: TAB_SENT_QUOTES,
+      };
+      return tabMap[initialTab] || TAB_VIEWS;
+    }
+    return TAB_VIEWS;
+  };
+
+  const [activeTab, setActiveTab] = useState<LeadTab>(getInitialTab());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
