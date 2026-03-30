@@ -154,7 +154,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
       {/* Summary */}
       {summary && (
         <div className={cn(markdownClasses, "pb-2 border-b border-border/30")}>
-          <ReactMarkdown>{summary}</ReactMarkdown>
+          <ReactMarkdown components={markdownComponents}>{summary}</ReactMarkdown>
         </div>
       )}
 
