@@ -267,7 +267,7 @@ function buildDatabaseContext(
   if (services.length > 0) {
     context += '\n🏭 SYSTEM INTEGRATORS / SERVICE PROVIDERS:\n';
     services.forEach((s, i) => {
-      context += `${i + 1}. ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | 📍 ${s.location || 'India'} | Coverage: ${s.coverage || 'N/A'}\n`;
+      context += `${i + 1}. [ID:${s.id}] ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | 📍 ${s.location || 'India'} | Coverage: ${s.coverage || 'N/A'}\n`;
     });
   }
 
