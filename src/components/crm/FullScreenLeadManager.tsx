@@ -548,6 +548,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
                 <UserRequestsMarketplace categoryFilter={categoryFilter} isCommissionSeller={isCommissionSeller} />
               </TabsContent>
 
+              <TabsContent value={TAB_SENT_QUOTES} className="mt-0 h-full">
+                <SentQuotationsTab />
+              </TabsContent>
+
               <TabsContent value={TAB_LEADS} className="mt-0 h-full">
                 {viewMode === "pipeline" ? (
                   <LeadsPipeline
