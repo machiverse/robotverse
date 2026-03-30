@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
-import WatchlistSection from '@/components/WatchlistSection';
+// WatchlistSection imported below
 import { useReviews } from '@/hooks/useReviews';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
 import { StarRating } from '@/components/reviews/StarRating';
