@@ -1303,6 +1303,10 @@ const EnhancedHeader = () => {
                 <span className="text-xs text-muted-foreground">Dashboard</span>
               </Link>
             )}
+            <Link to="/ai-assistant" onClick={() => setMenuOpen(false)} className="flex flex-col items-center gap-1">
+              <Bot className="h-5 w-5 text-primary" />
+              <span className="text-xs text-primary font-medium">AI</span>
+            </Link>
           </div>
 
           <nav className="flex flex-col space-y-1">
