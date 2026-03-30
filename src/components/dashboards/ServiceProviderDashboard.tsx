@@ -275,14 +275,41 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
           {/* Header and Stats */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold">Service Provider Dashboard</h1>
-              <p className="text-muted-foreground">Manage your services and service requests</p>
+              <h1 className="text-2xl font-bold">
+                {isCommissionSeller ? (
+                  <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                    Service Provider Dashboard (Commission)
+                  </span>
+                ) : (
+                  'Service Provider Dashboard'
+                )}
+              </h1>
+              <p className="text-muted-foreground">
+                {isCommissionSeller 
+                  ? 'Unlimited listings • No credits required • 6% commission on completed deals'
+                  : 'Manage your services and service requests'
+                }
+              </p>
             </div>
             <Button onClick={openAddModal} className="flex items-center gap-2" size="lg" variant="secondary">
               <Plus className="w-5 h-5" /> Add New Service
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+
+          {/* Commission info banner */}
+          {isCommissionSeller && (
+            <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
+              <CardContent className="p-4 flex items-center gap-3">
+                <Handshake className="h-5 w-5 text-amber-600 shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <strong>Commission Model Active:</strong> You have unlimited service listings with no credit requirements. 
+                  Robotverse earns a 6% service fee only when a deal is marked as Won and verified by admin.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className={`grid grid-cols-1 md:grid-cols-3 ${isCommissionSeller ? 'lg:grid-cols-7' : 'lg:grid-cols-6'} gap-6`}>
             {[ 
               { title: "Service Views", val: viewStats.viewsByCategory.services || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
               { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600" },
@@ -290,8 +317,9 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
               { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600" },
               { title: "Monthly Revenue", val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, variant: "secondary", color: "text-purple-600" },
               { title: "Average Rating", val: dashboardStats.averageRating, icon: Star, variant: "secondary", color: "text-yellow-600" },
+              ...(isCommissionSeller ? [{ title: "Commission", val: "6%", icon: Handshake, variant: "secondary", color: "text-amber-600" }] : []),
             ].map(({ title, val, icon: Icon, variant, color }, idx) => (
-              <Card key={idx} className="border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <Card key={idx} className={`border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow ${title === 'Commission' ? 'border-amber-200 dark:border-amber-800' : ''}`}>
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div>
@@ -309,12 +337,18 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
           </div>
           {/* Tabs */}
           <Tabs defaultValue="services" className="mt-6">
-            <TabsList className="grid grid-cols-8">
+            <TabsList className={`grid ${isCommissionSeller ? 'grid-cols-10' : 'grid-cols-8'}`}>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="quote-requests">Quote Requests</TabsTrigger>
               <TabsTrigger value="leads">Lead Manager</TabsTrigger>
               <TabsTrigger value="user-requests">User Requests</TabsTrigger>
               <TabsTrigger value="requests">Service Requests</TabsTrigger>
+              {isCommissionSeller && (
+                <>
+                  <TabsTrigger value="quotations">Quotations</TabsTrigger>
+                  <TabsTrigger value="deals">Deals</TabsTrigger>
+                </>
+              )}
               <TabsTrigger value="reviews">My Reviews</TabsTrigger>
               <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
               <TabsTrigger value="calendar" disabled>Calendar</TabsTrigger>
