@@ -13,17 +13,19 @@ interface CRMLeadsViewProps {
 }
 
 const CRMLeadsView = ({ categoryFilter, isCommissionSeller, initialTab }: CRMLeadsViewProps) => {
-  const [showFullScreen, setShowFullScreen] = useState(false);
+  const [showFullScreen, setShowFullScreen] = useState(!!initialTab);
+  const [currentTab, setCurrentTab] = useState(initialTab);
 
   // Auto-open Lead Manager when navigated with a specific tab
   useEffect(() => {
     if (initialTab) {
+      setCurrentTab(initialTab);
       setShowFullScreen(true);
     }
   }, [initialTab]);
   
   if (showFullScreen) {
-    return <FullScreenLeadManager onClose={() => setShowFullScreen(false)} categoryFilter={categoryFilter} isCommissionSeller={isCommissionSeller} initialTab={initialTab} />;
+    return <FullScreenLeadManager onClose={() => setShowFullScreen(false)} categoryFilter={categoryFilter} isCommissionSeller={isCommissionSeller} initialTab={currentTab} />;
   }
   
   return (
