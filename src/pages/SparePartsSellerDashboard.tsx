@@ -320,8 +320,21 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Spare Parts Dashboard</h1>
-          <p className="text-muted-foreground">Manage your spare parts inventory</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isCommissionSeller ? (
+              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                Spare Parts Dashboard (Commission)
+              </span>
+            ) : (
+              'Spare Parts Dashboard'
+            )}
+          </h1>
+          <p className="text-muted-foreground">
+            {isCommissionSeller 
+              ? 'Unlimited listings • No credits required • 6% commission on completed deals'
+              : 'Manage your spare parts inventory'
+            }
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -365,8 +378,21 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
         </div>
       </div>
 
+      {/* Commission info banner */}
+      {isCommissionSeller && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Handshake className="h-5 w-5 text-amber-600 shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>Commission Model Active:</strong> You have unlimited spare parts listings with no credit requirements. 
+              Robotverse earns a 6% service fee only when a deal is marked as Won and verified by admin.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${isCommissionSeller ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-6`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Parts</CardTitle>
@@ -374,9 +400,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              Active inventory items
-            </p>
+            <p className="text-xs text-muted-foreground">Active inventory items</p>
           </CardContent>
         </Card>
 
@@ -387,9 +411,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.inStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Available parts
-            </p>
+            <p className="text-xs text-muted-foreground">Available parts</p>
           </CardContent>
         </Card>
 
@@ -400,9 +422,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.totalValue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Inventory worth
-            </p>
+            <p className="text-xs text-muted-foreground">Inventory worth</p>
           </CardContent>
         </Card>
 
@@ -413,9 +433,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{Math.round(stats.avgPrice).toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Per part average
-            </p>
+            <p className="text-xs text-muted-foreground">Per part average</p>
           </CardContent>
         </Card>
 
@@ -426,20 +444,55 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{viewStats?.viewsByCategory?.spare_parts || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Parts views only
-            </p>
+            <p className="text-xs text-muted-foreground">Parts views only</p>
           </CardContent>
         </Card>
+
+        {isCommissionSeller && (
+          <Card className="border-amber-200 dark:border-amber-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Commission</CardTitle>
+              <Handshake className="h-4 w-4 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">6%</div>
+              <p className="text-xs text-muted-foreground">On completed deals</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
-          <TabsTrigger value="leads">Lead Manager</TabsTrigger>
-          <TabsTrigger value="user-requests">User Requests</TabsTrigger>
-          <TabsTrigger value="views">View Statistics</TabsTrigger>
+        <TabsList className={`grid w-full ${isCommissionSeller ? 'grid-cols-8' : 'grid-cols-4'}`}>
+          <TabsTrigger value="inventory">
+            <Package className="w-4 h-4 mr-1" /> Inventory
+          </TabsTrigger>
+          <TabsTrigger value="leads">
+            <Users className="w-4 h-4 mr-1" /> Lead Manager
+          </TabsTrigger>
+          <TabsTrigger value="user-requests">
+            <FileQuestion className="w-4 h-4 mr-1" /> User Requests
+          </TabsTrigger>
+          {isCommissionSeller && (
+            <>
+              <TabsTrigger value="quote-requests">
+                <FileText className="w-4 h-4 mr-1" /> Quote Requests
+              </TabsTrigger>
+              <TabsTrigger value="quotations">
+                <FileText className="w-4 h-4 mr-1" /> Quotations
+              </TabsTrigger>
+              <TabsTrigger value="deals">
+                <Handshake className="w-4 h-4 mr-1" /> Deals
+              </TabsTrigger>
+              <TabsTrigger value="watchlist">
+                <Heart className="w-4 h-4 mr-1" /> Watchlist
+              </TabsTrigger>
+            </>
+          )}
+          <TabsTrigger value="views">
+            <BarChart3 className="w-4 h-4 mr-1" /> Analytics
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="user-requests" className="mt-6">
@@ -475,6 +528,44 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isCommissionSeller && (
+          <>
+            <TabsContent value="quote-requests" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Quote Requests
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage quote requests from buyers for your spare parts.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <QuoteRequestsSection sellerId={user!.id} itemType="spare_part" />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="quotations" className="mt-6">
+              <SentQuotationsTab />
+            </TabsContent>
+
+            <TabsContent value="deals" className="mt-6">
+              <CommissionDealsSection />
+            </TabsContent>
+
+            <TabsContent value="watchlist" className="mt-6">
+              <WatchlistSection 
+                title="My Watchlist" 
+                showHeader={true}
+                compact={false}
+                showActions={true}
+              />
+            </TabsContent>
+          </>
+        )}
 
         <TabsContent value="inventory" className="mt-6">
           {/* Filters and Search */}
