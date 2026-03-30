@@ -211,7 +211,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
           {sections.map((section) => (
             <TabsContent key={section.key} value={section.key} className="mt-3 animate-in fade-in duration-200">
               <div className={cn(markdownClasses, "w-full overflow-x-auto bg-muted/20 rounded-xl p-4 border border-border/20")}>
-                <ReactMarkdown>{section.content}</ReactMarkdown>
+                <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
               </div>
             </TabsContent>
           ))}
