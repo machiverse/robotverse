@@ -43,10 +43,10 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
       description: isCommissionSeller ? 'Manage parts & 6% commission' : 'Manage spare parts'
     },
     service_provider: {
-      label: 'Service Provider',
+      label: isCommissionSeller ? 'Service Provider (Commission)' : 'Service Provider',
       icon: Wrench,
       component: ServiceProviderDashboard,
-      description: 'Manage service offerings'
+      description: isCommissionSeller ? 'Manage services & 6% commission' : 'Manage service offerings'
     },
     logistics_provider: {
       label: 'Logistics',
@@ -68,7 +68,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     const config = roleConfigs[role];
     if (config) {
       const DashboardComponent = config.component;
-      return <DashboardComponent userProfile={userProfile} />;
+      return <DashboardComponent userProfile={userProfile} isCommissionSeller={isCommissionSeller} />;
     }
   }
 
@@ -130,7 +130,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
                   <CardDescription>{config.description}</CardDescription>
                 </CardHeader>
               </Card>
-              <DashboardComponent userProfile={userProfile} />
+              <DashboardComponent userProfile={userProfile} isCommissionSeller={isCommissionSeller} />
             </TabsContent>
           );
         })}
