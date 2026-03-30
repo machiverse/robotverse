@@ -77,7 +77,7 @@ function ServiceProviderReviews({ userId }: { userId?: string }) {
   );
 }
 
-const ServiceProviderDashboard = ({ userProfile }: { userProfile: any }) => {
+const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userProfile: any; isCommissionSeller?: boolean }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { viewStats, fetchUserItemViews } = useViewTracking();
