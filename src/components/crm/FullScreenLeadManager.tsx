@@ -46,15 +46,17 @@ import CreateQuotationModal from "./CreateQuotationModal";
 import { format, formatDistanceToNow } from "date-fns";
 import SellerAssignedRequests from "@/components/SellerAssignedRequests";
 import UserRequestsMarketplace from "./UserRequestsMarketplace";
+import SentQuotationsTab from "./SentQuotationsTab";
 import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "list" | "pipeline";
-type LeadTab = "views" | "quotes" | "leads" | "user_requests";
+type LeadTab = "views" | "quotes" | "leads" | "user_requests" | "sent_quotes";
 
 const TAB_VIEWS: LeadTab = "views";
 const TAB_QUOTES: LeadTab = "quotes";
 const TAB_LEADS: LeadTab = "leads";
 const TAB_USER_REQUESTS: LeadTab = "user_requests";
+const TAB_SENT_QUOTES: LeadTab = "sent_quotes";
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
   new: {
@@ -464,6 +466,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
                     <FileQuestion className="h-4 w-4" />
                     <span>User Requests</span>
                   </TabsTrigger>
+                  <TabsTrigger value={TAB_SENT_QUOTES} className="flex items-center gap-2 px-4">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Sent Quotations</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 {activeTab === TAB_LEADS && (
@@ -540,6 +546,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
 
               <TabsContent value={TAB_USER_REQUESTS} className="mt-0 h-full">
                 <UserRequestsMarketplace categoryFilter={categoryFilter} isCommissionSeller={isCommissionSeller} />
+              </TabsContent>
+
+              <TabsContent value={TAB_SENT_QUOTES} className="mt-0 h-full">
+                <SentQuotationsTab />
               </TabsContent>
 
               <TabsContent value={TAB_LEADS} className="mt-0 h-full">
