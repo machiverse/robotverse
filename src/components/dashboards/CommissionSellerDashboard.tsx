@@ -329,6 +329,23 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           </Card>
         </TabsContent>
 
+        {/* Quotations Tab */}
+        <TabsContent value="quotations" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" /> Sent Quotations
+              </CardTitle>
+              <CardDescription>
+                Track all quotations you've sent to buyers with status and details.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SentQuotationsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Deals Tab */}
         <TabsContent value="deals" className="mt-6">
           <CommissionDealsSection />
