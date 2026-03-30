@@ -181,6 +181,21 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
   };
 
   const [activeTab, setActiveTab] = useState<LeadTab>(getInitialTab());
+
+  // Sync activeTab when initialTab prop changes (e.g. from notification click)
+  useEffect(() => {
+    if (initialTab) {
+      const tabMap: Record<string, LeadTab> = {
+        views: TAB_VIEWS,
+        quotes: TAB_QUOTES,
+        leads: TAB_LEADS,
+        user_requests: TAB_USER_REQUESTS,
+        sent_quotes: TAB_SENT_QUOTES,
+      };
+      const mapped = tabMap[initialTab];
+      if (mapped) setActiveTab(mapped);
+    }
+  }, [initialTab]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
