@@ -84,7 +84,7 @@ interface PartFormData {
   specifications: any;
 }
 
-const SparePartsSellerDashboard = () => {
+const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userProfile?: any; isCommissionSeller?: boolean }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { viewStats, fetchUserItemViews } = useViewTracking();
