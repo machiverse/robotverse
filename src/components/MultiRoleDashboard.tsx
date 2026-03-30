@@ -37,16 +37,16 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
       description: isCommissionSeller ? 'Manage deals & commission' : 'Manage robot listings'
     },
     spare_parts_seller: {
-      label: 'Parts Seller',
+      label: isCommissionSeller ? 'Parts Seller (Commission)' : 'Parts Seller',
       icon: Settings,
-      component: SparePartsDashboard, // Reuse for now, can be specialized later
-      description: 'Manage spare parts'
+      component: SparePartsDashboard,
+      description: isCommissionSeller ? 'Manage parts & 6% commission' : 'Manage spare parts'
     },
     service_provider: {
-      label: 'Service Provider',
+      label: isCommissionSeller ? 'Service Provider (Commission)' : 'Service Provider',
       icon: Wrench,
       component: ServiceProviderDashboard,
-      description: 'Manage service offerings'
+      description: isCommissionSeller ? 'Manage services & 6% commission' : 'Manage service offerings'
     },
     logistics_provider: {
       label: 'Logistics',
@@ -68,7 +68,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
     const config = roleConfigs[role];
     if (config) {
       const DashboardComponent = config.component;
-      return <DashboardComponent userProfile={userProfile} />;
+      return <DashboardComponent userProfile={userProfile} isCommissionSeller={isCommissionSeller} />;
     }
   }
 
@@ -130,7 +130,7 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
                   <CardDescription>{config.description}</CardDescription>
                 </CardHeader>
               </Card>
-              <DashboardComponent userProfile={userProfile} />
+              <DashboardComponent userProfile={userProfile} isCommissionSeller={isCommissionSeller} />
             </TabsContent>
           );
         })}
