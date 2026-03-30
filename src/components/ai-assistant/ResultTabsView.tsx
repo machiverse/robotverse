@@ -108,6 +108,32 @@ const markdownClasses = `
   [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
 `;
 
+// Custom link component that uses React Router for internal links
+const InternalLinkRenderer = ({ href, children, ...props }: any) => {
+  const navigate = useNavigate();
+  const isInternal = href && (href.startsWith('/') || href.startsWith('https://robotverse.in/'));
+
+  if (isInternal) {
+    const path = href.startsWith('https://robotverse.in') ? href.replace('https://robotverse.in', '') : href;
+    return (
+      <button
+        onClick={(e) => { e.preventDefault(); navigate(path); }}
+        className="inline-flex items-center gap-1 text-primary font-semibold hover:text-primary/80 underline underline-offset-2 transition-colors cursor-pointer text-[12px] bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 no-underline"
+        {...props}
+      >
+        {children}
+        <ExternalLink className="w-3 h-3" />
+      </button>
+    );
+  }
+
+  return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+};
+
+const markdownComponents = {
+  a: InternalLinkRenderer,
+};
+
 const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, className }) => {
   const [viewMode, setViewMode] = useState<"tabs" | "full">("tabs");
   const { summary, sections } = useMemo(() => parseSections(content, resultCounts), [content, resultCounts]);
