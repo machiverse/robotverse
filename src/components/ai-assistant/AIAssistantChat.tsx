@@ -250,8 +250,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       />
 
       {/* Input */}
-      <div className="p-3 border-t border-border/40 bg-background/80 backdrop-blur-sm">
-        <div className="flex gap-2 items-center">
+      <div className={cn("p-3 sm:p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm", fullPage && "px-4 sm:px-6 lg:px-0")}>
+        <div className={cn("flex gap-2 items-center", fullPage && "max-w-3xl mx-auto")}>
           <div className="flex-1 relative">
             <Input
               ref={inputRef}
@@ -260,14 +260,20 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
               onKeyDown={handleKeyDown}
               placeholder={canQuery ? "Ask about robots, EOAT, integrators, services..." : "Sign in to continue..."}
               disabled={!canQuery || isLoading}
-              className="text-sm h-10 rounded-xl border-border/50 bg-muted/30 pr-3 focus:bg-background transition-colors"
+              className={cn(
+                "text-sm rounded-xl border-border/50 bg-muted/30 pr-3 focus:bg-background transition-colors",
+                fullPage ? "h-12" : "h-10"
+              )}
             />
           </div>
           {isLoading ? (
             <Button
               size="icon"
               variant="outline"
-              className="h-10 w-10 shrink-0 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+              className={cn(
+                "shrink-0 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10",
+                fullPage ? "h-12 w-12" : "h-10 w-10"
+              )}
               onClick={stopGeneration}
             >
               <Square className="w-4 h-4" />
@@ -275,7 +281,10 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           ) : (
             <Button
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-xl shadow-md"
+              className={cn(
+                "shrink-0 rounded-xl shadow-md",
+                fullPage ? "h-12 w-12" : "h-10 w-10"
+              )}
               onClick={handleSend}
               disabled={!input.trim() || !canQuery}
             >
@@ -283,6 +292,11 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
             </Button>
           )}
         </div>
+        {fullPage && (
+          <p className="text-[10px] text-muted-foreground/50 text-center mt-2 max-w-3xl mx-auto">
+            RobotVerse AI searches across robots, spare parts, services, logistics & financing in real-time
+          </p>
+        )}
       </div>
     </div>
   );
