@@ -37,10 +37,10 @@ const MultiRoleDashboard = ({ userProfile }: MultiRoleDashboardProps) => {
       description: isCommissionSeller ? 'Manage deals & commission' : 'Manage robot listings'
     },
     spare_parts_seller: {
-      label: 'Parts Seller',
+      label: isCommissionSeller ? 'Parts Seller (Commission)' : 'Parts Seller',
       icon: Settings,
-      component: SparePartsDashboard, // Reuse for now, can be specialized later
-      description: 'Manage spare parts'
+      component: SparePartsDashboard,
+      description: isCommissionSeller ? 'Manage parts & 6% commission' : 'Manage spare parts'
     },
     service_provider: {
       label: 'Service Provider',
