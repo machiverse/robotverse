@@ -99,8 +99,10 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-card to-background shadow-xl",
-        fullPage ? "h-[calc(100vh-12rem)] max-w-5xl mx-auto w-full" : "h-[480px] w-full max-w-[380px]",
+        "flex flex-col overflow-hidden",
+        fullPage
+          ? "h-full w-full bg-background"
+          : "h-[480px] w-full max-w-[380px] rounded-2xl border border-border/50 bg-gradient-to-b from-card to-background shadow-xl",
         className,
       )}
     >
