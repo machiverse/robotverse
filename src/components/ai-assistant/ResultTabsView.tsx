@@ -218,7 +218,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
         </Tabs>
       ) : (
         <div className={cn(markdownClasses, "w-full overflow-x-auto")}>
-          <ReactMarkdown>{content}</ReactMarkdown>
+          <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
         </div>
       )}
     </div>
