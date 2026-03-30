@@ -25,7 +25,10 @@ import { StarRating } from '@/components/reviews/StarRating';
 import CRMLeadsView from '@/components/crm/CRMLeadsView';
 import QuoteRequestsSection from '@/components/dashboards/QuoteRequestsSection';
 import SellerAssignedRequests from '@/components/SellerAssignedRequests';
-import { FileText, FileQuestion } from 'lucide-react';
+import CommissionDealsSection from '@/components/dashboards/CommissionDealsSection';
+import SentQuotationsTab from '@/components/crm/SentQuotationsTab';
+import WatchlistSection from '@/components/WatchlistSection';
+import { FileText, FileQuestion, Handshake, Users, Heart } from 'lucide-react';
 
 const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand",
