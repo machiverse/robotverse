@@ -373,6 +373,7 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 💰 **Price:** ₹[X,XX,XXX] | **Condition:** [New/Used]
    - 📍 **Location:** [City, State]
    - 🔧 **Applications:** [Applications]
+   - 🔗 [View Details →](/robots/[ID])
 
 2. **[Next Robot]** ...
 
@@ -386,6 +387,7 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 💰 **Price:** ₹[XX,XXX] | **Condition:** [New/Used]
    - 🔗 **Compatible With:** [Robot models]
    - 📍 **Location:** [City]
+   - 🔗 [View Details →](/parts/[ID])
 
 ---
 
@@ -395,6 +397,27 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 🛠️ **Specialization:** [Type]
    - 💰 **Price Range:** [Range]
    - 📍 **Location:** [City] | **Coverage:** [Area]
+   - 🔗 [View Details →](/services/[ID])
+
+---
+
+### 🚚 Logistics Services
+
+1. **[Service Name]**
+   - 🚛 **Type:** [Type] | **Max Weight:** [XX] kg
+   - 💰 **Base Price:** ₹[XX,XXX]
+   - 📍 **Coverage:** [Areas]
+   - 🔗 [View Details →](/logistics/[ID])
+
+---
+
+### 💰 Financing & Loan Options
+
+1. **[Product/Scheme Name]**
+   - 📊 **Type:** [Loan Type] | **Interest:** [X%-Y%]
+   - 💵 **Amount:** ₹[Min] - ₹[Max]
+   - 📋 **Tenure:** [X-Y] months
+   - 🔗 [View Details →](/financing/[ID])
 
 ---
 
