@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCRM } from "@/hooks/useCRM";
 import { useSellerCRM } from "@/hooks/useSellerCRM";
@@ -19,16 +19,34 @@ type CRMView = "overview" | "leads" | "opportunities" | "accounts" | "tasks" | "
 
 const CRM = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
-  const [activeView, setActiveView] = useState<CRMView>("overview");
+  const [activeView, setActiveView] = useState<CRMView>(() => {
+    const view = searchParams.get("view");
+    if (view && ["overview", "leads", "opportunities", "accounts", "tasks", "quotations", "reports", "activity"].includes(view)) {
+      return view as CRMView;
+    }
+    return "overview";
+  });
   const crmData = useCRM();
   const sellerCRM = useSellerCRM();
+
+  // Read initial tab from URL for Lead Manager
+  const initialLeadTab = searchParams.get("tab") || undefined;
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
+  // Sync URL params to view
+  useEffect(() => {
+    const view = searchParams.get("view");
+    if (view && ["overview", "leads", "opportunities", "accounts", "tasks", "quotations", "reports", "activity"].includes(view)) {
+      setActiveView(view as CRMView);
+    }
+  }, [searchParams]);
 
   if (authLoading || crmData.loading) {
     return (
