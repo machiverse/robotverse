@@ -31,8 +31,9 @@ const CRM = () => {
   const crmData = useCRM();
   const sellerCRM = useSellerCRM();
 
-  // Read initial tab from URL for Lead Manager
+  // Read initial tab from URL for Lead Manager - use a key to force remount on tab change
   const initialLeadTab = searchParams.get("tab") || undefined;
+  const tabKey = searchParams.get("tab") || "default";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -66,7 +67,7 @@ const CRM = () => {
       case "overview":
         return <CRMOverview crmData={crmData} sellerCRM={sellerCRM} />;
       case "leads":
-        return <CRMLeadsView initialTab={initialLeadTab} />;
+        return <CRMLeadsView key={tabKey} initialTab={initialLeadTab} />;
       case "opportunities":
         return <CRMOpportunitiesView crmData={crmData} />;
       case "accounts":
