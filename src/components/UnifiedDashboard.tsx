@@ -256,7 +256,7 @@ const UnifiedDashboard = ({ userProfile }: UnifiedDashboardProps) => {
             const DashboardComponent = config.component;
             return (
               <TabsContent key={role} value={role} className="space-y-6">
-                <DashboardComponent userProfile={userProfile} />
+                <DashboardComponent userProfile={userProfile} isCommissionSeller={isCommissionSeller} />
               </TabsContent>
             );
           })}
