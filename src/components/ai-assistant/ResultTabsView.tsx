@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Users, Lightbulb, LayoutList, AlignJustify } from "lucide-react";
+import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Users, Lightbulb, LayoutList, AlignJustify, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResultCounts } from "@/contexts/AIAssistantContext";
 
@@ -107,6 +108,32 @@ const markdownClasses = `
   [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
 `;
 
+// Custom link component that uses React Router for internal links
+const InternalLinkRenderer = ({ href, children, ...props }: any) => {
+  const navigate = useNavigate();
+  const isInternal = href && (href.startsWith('/') || href.startsWith('https://robotverse.in/'));
+
+  if (isInternal) {
+    const path = href.startsWith('https://robotverse.in') ? href.replace('https://robotverse.in', '') : href;
+    return (
+      <button
+        onClick={(e) => { e.preventDefault(); navigate(path); }}
+        className="inline-flex items-center gap-1 text-primary font-semibold hover:text-primary/80 underline underline-offset-2 transition-colors cursor-pointer text-[12px] bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 no-underline"
+        {...props}
+      >
+        {children}
+        <ExternalLink className="w-3 h-3" />
+      </button>
+    );
+  }
+
+  return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+};
+
+const markdownComponents = {
+  a: InternalLinkRenderer,
+};
+
 const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, className }) => {
   const [viewMode, setViewMode] = useState<"tabs" | "full">("tabs");
   const { summary, sections } = useMemo(() => parseSections(content, resultCounts), [content, resultCounts]);
@@ -115,7 +142,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
   if (sections.length === 0) {
     return (
       <div className={cn(markdownClasses, "w-full overflow-x-auto", className)}>
-        <ReactMarkdown>{content}</ReactMarkdown>
+        <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
       </div>
     );
   }
@@ -127,7 +154,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
       {/* Summary */}
       {summary && (
         <div className={cn(markdownClasses, "pb-2 border-b border-border/30")}>
-          <ReactMarkdown>{summary}</ReactMarkdown>
+          <ReactMarkdown components={markdownComponents}>{summary}</ReactMarkdown>
         </div>
       )}
 
@@ -184,14 +211,14 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
           {sections.map((section) => (
             <TabsContent key={section.key} value={section.key} className="mt-3 animate-in fade-in duration-200">
               <div className={cn(markdownClasses, "w-full overflow-x-auto bg-muted/20 rounded-xl p-4 border border-border/20")}>
-                <ReactMarkdown>{section.content}</ReactMarkdown>
+                <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
               </div>
             </TabsContent>
           ))}
         </Tabs>
       ) : (
         <div className={cn(markdownClasses, "w-full overflow-x-auto")}>
-          <ReactMarkdown>{content}</ReactMarkdown>
+          <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
         </div>
       )}
     </div>

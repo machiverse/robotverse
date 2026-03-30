@@ -253,38 +253,38 @@ function buildDatabaseContext(
   if (robots.length > 0) {
     context += '\n📦 AVAILABLE ROBOTS:\n';
     robots.forEach((r, i) => {
-      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Applications: ${r.applications || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
+      context += `${i + 1}. [ID:${r.id}] ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Applications: ${r.applications || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
     });
   }
 
   if (parts.length > 0) {
     context += '\n🔧 SPARE PARTS / EOAT:\n';
     parts.forEach((p, i) => {
-      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.main_category || p.category || 'N/A'} > ${p.sub_category || 'N/A'} | Price: ${p.price ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${p.condition || 'N/A'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | 📍 ${p.location || p.state || 'India'}\n`;
+      context += `${i + 1}. [ID:${p.id}] ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.main_category || p.category || 'N/A'} > ${p.sub_category || 'N/A'} | Price: ${p.price ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${p.condition || 'N/A'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | 📍 ${p.location || p.state || 'India'}\n`;
     });
   }
 
   if (services.length > 0) {
     context += '\n🏭 SYSTEM INTEGRATORS / SERVICE PROVIDERS:\n';
     services.forEach((s, i) => {
-      context += `${i + 1}. ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | 📍 ${s.location || 'India'} | Coverage: ${s.coverage || 'N/A'}\n`;
+      context += `${i + 1}. [ID:${s.id}] ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | 📍 ${s.location || 'India'} | Coverage: ${s.coverage || 'N/A'}\n`;
     });
   }
 
   if (logistics.length > 0) {
     context += '\n🚚 LOGISTICS SERVICES:\n';
     logistics.forEach((l, i) => {
-      context += `${i + 1}. ${l.service_name || 'Unknown'} | Type: ${l.service_type || 'N/A'} | Base Price: ${l.base_price ? `₹${Number(l.base_price).toLocaleString('en-IN')}` : 'N/A'} | Max Weight: ${l.max_weight_kg || 'N/A'} kg | Delivery: ${l.delivery_time_hours || 'N/A'} hrs | Transport: ${Array.isArray(l.transport_modes) ? l.transport_modes.join(', ') : 'N/A'} | Insurance: ${l.insurance_included ? 'Yes' : 'No'} | Tracking: ${l.tracking_available ? 'Yes' : 'No'} | Coverage: ${Array.isArray(l.coverage_areas) ? l.coverage_areas.join(', ') : 'N/A'}\n`;
+      context += `${i + 1}. [ID:${l.id}] ${l.service_name || 'Unknown'} | Type: ${l.service_type || 'N/A'} | Base Price: ${l.base_price ? `₹${Number(l.base_price).toLocaleString('en-IN')}` : 'N/A'} | Max Weight: ${l.max_weight_kg || 'N/A'} kg | Delivery: ${l.delivery_time_hours || 'N/A'} hrs | Transport: ${Array.isArray(l.transport_modes) ? l.transport_modes.join(', ') : 'N/A'} | Insurance: ${l.insurance_included ? 'Yes' : 'No'} | Tracking: ${l.tracking_available ? 'Yes' : 'No'} | Coverage: ${Array.isArray(l.coverage_areas) ? l.coverage_areas.join(', ') : 'N/A'}\n`;
     });
   }
 
   if (finance.loanProducts.length > 0 || finance.loanSchemes.length > 0) {
     context += '\n💰 FINANCING OPTIONS:\n';
     finance.loanProducts.forEach((lp, i) => {
-      context += `${i + 1}. [Loan] ${lp.product_name || 'Unknown'} | Type: ${Array.isArray(lp.loan_type) ? lp.loan_type.join(', ') : 'N/A'} | Amount: ₹${lp.min_amount ? Number(lp.min_amount).toLocaleString('en-IN') : '?'} - ₹${lp.max_amount ? Number(lp.max_amount).toLocaleString('en-IN') : '?'} | Interest: ${lp.min_interest_rate || '?'}% - ${lp.max_interest_rate || '?'}% | Tenure: ${lp.min_tenure_months || '?'} - ${lp.max_tenure_months || '?'} months | Quick Approval: ${lp.quick_approval ? 'Yes' : 'No'} | Collateral: ${lp.collateral_required ? 'Required' : 'Not required'}\n`;
+      context += `${i + 1}. [ID:${lp.id}] [Loan] ${lp.product_name || 'Unknown'} | Type: ${Array.isArray(lp.loan_type) ? lp.loan_type.join(', ') : 'N/A'} | Amount: ₹${lp.min_amount ? Number(lp.min_amount).toLocaleString('en-IN') : '?'} - ₹${lp.max_amount ? Number(lp.max_amount).toLocaleString('en-IN') : '?'} | Interest: ${lp.min_interest_rate || '?'}% - ${lp.max_interest_rate || '?'}% | Tenure: ${lp.min_tenure_months || '?'} - ${lp.max_tenure_months || '?'} months | Quick Approval: ${lp.quick_approval ? 'Yes' : 'No'} | Collateral: ${lp.collateral_required ? 'Required' : 'Not required'}\n`;
     });
     finance.loanSchemes.forEach((ls, i) => {
-      context += `${i + 1}. [Scheme] ${ls.scheme_name || 'Unknown'} | Type: ${ls.scheme_type || 'N/A'} | Interest: ${ls.interest_rate_min || '?'}% - ${ls.interest_rate_max || '?'}% | Max Amount: ₹${ls.max_amount ? Number(ls.max_amount).toLocaleString('en-IN') : '?'} | Govt: ${ls.is_government_scheme ? 'Yes' : 'No'} | Features: ${Array.isArray(ls.features) ? ls.features.join(', ') : 'N/A'}\n`;
+      context += `${i + 1}. [ID:${ls.id}] [Scheme] ${ls.scheme_name || 'Unknown'} | Type: ${ls.scheme_type || 'N/A'} | Interest: ${ls.interest_rate_min || '?'}% - ${ls.interest_rate_max || '?'}% | Max Amount: ₹${ls.max_amount ? Number(ls.max_amount).toLocaleString('en-IN') : '?'} | Govt: ${ls.is_government_scheme ? 'Yes' : 'No'} | Features: ${Array.isArray(ls.features) ? ls.features.join(', ') : 'N/A'}\n`;
     });
   }
 
@@ -373,6 +373,7 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 💰 **Price:** ₹[X,XX,XXX] | **Condition:** [New/Used]
    - 📍 **Location:** [City, State]
    - 🔧 **Applications:** [Applications]
+   - 🔗 [View Details →](/robots/[ID])
 
 2. **[Next Robot]** ...
 
@@ -386,6 +387,7 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 💰 **Price:** ₹[XX,XXX] | **Condition:** [New/Used]
    - 🔗 **Compatible With:** [Robot models]
    - 📍 **Location:** [City]
+   - 🔗 [View Details →](/parts/[ID])
 
 ---
 
@@ -395,6 +397,27 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 🛠️ **Specialization:** [Type]
    - 💰 **Price Range:** [Range]
    - 📍 **Location:** [City] | **Coverage:** [Area]
+   - 🔗 [View Details →](/services/[ID])
+
+---
+
+### 🚚 Logistics Services
+
+1. **[Service Name]**
+   - 🚛 **Type:** [Type] | **Max Weight:** [XX] kg
+   - 💰 **Base Price:** ₹[XX,XXX]
+   - 📍 **Coverage:** [Areas]
+   - 🔗 [View Details →](/logistics/[ID])
+
+---
+
+### 💰 Financing & Loan Options
+
+1. **[Product/Scheme Name]**
+   - 📊 **Type:** [Loan Type] | **Interest:** [X%-Y%]
+   - 💵 **Amount:** ₹[Min] - ₹[Max]
+   - 📋 **Tenure:** [X-Y] months
+   - 🔗 [View Details →](/financing/[ID])
 
 ---
 
@@ -420,6 +443,7 @@ ADDITIONAL RULES:
 - Use **bold** for all product names, key specs, and important values.
 - Use emojis as visual markers for each data point.
 - Always include horizontal rules (---) between sections for visual separation.
+- **CRITICAL: Always include a clickable "View Details →" link for EVERY item using the exact ID from the database. Format: [View Details →](/robots/ACTUAL_ID) for robots, [View Details →](/parts/ACTUAL_ID) for spare parts, [View Details →](/services/ACTUAL_ID) for services, [View Details →](/logistics/ACTUAL_ID) for logistics, [View Details →](/financing/ACTUAL_ID) for financing. Use the [ID:xxx] value from the database context.**
 - If no exact match → suggest closest alternatives + recommend posting a requirement on RobotVerse.
 - If query is vague → ask a focused clarification question with 3-4 bullet-point options.
 - Prices always in ₹ (INR) with Indian number formatting.
