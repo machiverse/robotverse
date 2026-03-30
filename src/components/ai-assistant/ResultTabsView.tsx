@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Users, Lightbulb, LayoutList, AlignJustify } from "lucide-react";
+import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Users, Lightbulb, LayoutList, AlignJustify, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResultCounts } from "@/contexts/AIAssistantContext";
 
