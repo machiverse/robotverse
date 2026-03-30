@@ -369,7 +369,18 @@ const EnhancedHeader = () => {
             <span className="hidden lg:inline">Submit Request</span>
           </Button>
 
-          {/* Wishlist */}
+          {/* RobotVerse AI */}
+          <Link to="/ai-assistant" className="hidden sm:flex">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="items-center gap-1 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+            >
+              <Bot className="h-4 w-4" />
+              <span className="hidden lg:inline">RobotVerse AI</span>
+            </Button>
+          </Link>
+
           <Link to="/watchlist" className="hidden sm:flex">
             <Button
               variant="ghost"
