@@ -126,6 +126,8 @@ interface FullScreenLeadManagerProps {
   categoryFilter?: "robot" | "spare_part" | "service";
   /** Commission sellers bypass credit checks */
   isCommissionSeller?: boolean;
+  /** Auto-select a specific tab on mount */
+  initialTab?: string;
 }
 
 const matchesCategory = (itemType: string, categoryFilter?: FullScreenLeadManagerProps["categoryFilter"]): boolean => {
