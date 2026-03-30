@@ -398,6 +398,25 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
 const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean }> = ({ message, resultCounts, isLastAssistant }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
+
+  const InternalLink = ({ href, children, ...props }: any) => {
+    const isInternal = href && (href.startsWith('/') || href.startsWith('https://robotverse.in/'));
+    if (isInternal) {
+      const path = href.startsWith('https://robotverse.in') ? href.replace('https://robotverse.in', '') : href;
+      return (
+        <button
+          onClick={(e) => { e.preventDefault(); navigate(path); }}
+          className="inline-flex items-center gap-1 text-primary font-semibold hover:text-primary/80 transition-colors cursor-pointer text-[12px] bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20"
+          {...props}
+        >
+          {children}
+          <ExternalLink className="w-3 h-3" />
+        </button>
+      );
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+  };
 
   const handleCopy = async () => {
     try {
