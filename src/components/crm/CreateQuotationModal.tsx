@@ -245,12 +245,25 @@ const CreateQuotationModal = ({
       // Generate quotation number
       const quotationNumber = `QT-${Date.now().toString(36).toUpperCase()}`;
 
+       // Check if leadId exists in seller_leads before using it
+      let validLeadId: string | null = null;
+      if (leadData?.leadId) {
+        const { data: leadExists } = await supabase
+          .from("seller_leads")
+          .select("id")
+          .eq("id", leadData.leadId)
+          .maybeSingle();
+        if (leadExists) {
+          validLeadId = leadData.leadId;
+        }
+      }
+
       // Save quotation to database
       const { data: quotation, error: quotationError } = await supabase
         .from("crm_quotations")
         .insert({
           seller_id: user.id,
-          lead_id: leadData?.leadId || null,
+          lead_id: validLeadId,
           quotation_number: quotationNumber,
           buyer_name: buyerName,
           buyer_email: buyerEmail,
