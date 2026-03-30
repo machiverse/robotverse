@@ -466,6 +466,10 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller }: 
                     <FileQuestion className="h-4 w-4" />
                     <span>User Requests</span>
                   </TabsTrigger>
+                  <TabsTrigger value={TAB_SENT_QUOTES} className="flex items-center gap-2 px-4">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Sent Quotations</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 {activeTab === TAB_LEADS && (
