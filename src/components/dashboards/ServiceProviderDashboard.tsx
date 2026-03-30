@@ -556,6 +556,19 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
               </Card>
             </TabsContent>
 
+            {/* Commission-specific tabs */}
+            {isCommissionSeller && (
+              <>
+                <TabsContent value="quotations" className="mt-6">
+                  <SentQuotationsTab />
+                </TabsContent>
+
+                <TabsContent value="deals" className="mt-6">
+                  <CommissionDealsSection />
+                </TabsContent>
+              </>
+            )}
+
             {/* Reviews Tab */}
             <TabsContent value="reviews">
               <ServiceProviderReviews userId={user?.id} />
