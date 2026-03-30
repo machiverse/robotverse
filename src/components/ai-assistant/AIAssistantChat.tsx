@@ -503,7 +503,7 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
           "
           >
             <div className="w-full overflow-x-auto">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown components={{ a: InternalLink }}>{message.content}</ReactMarkdown>
             </div>
           </div>
         )}
