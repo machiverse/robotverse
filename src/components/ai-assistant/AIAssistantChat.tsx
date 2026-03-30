@@ -238,6 +238,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
             {error}
           </div>
         )}
+        </div>
       </ScrollArea>
 
       {/* Product Request Modal */}
