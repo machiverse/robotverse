@@ -67,6 +67,23 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const handleEditQuotation = (q: Quotation) => {
+    setEditQuotation(q);
+    setShowEditModal(true);
+    setShowDetail(false);
+  };
+
+  const mapToExistingQuotation = (q: Quotation): any => ({
+    ...q,
+    items: getItemsList(q.items),
+    discount_type: "fixed",
+    discount_value: q.discount_amount || 0,
+    version: 1,
+    parent_quotation_id: q.id,
+  });
 
   useEffect(() => {
     if (user) fetchQuotations();
