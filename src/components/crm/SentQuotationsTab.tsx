@@ -78,10 +78,8 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
   const mapToExistingQuotation = (q: Quotation): any => ({
     ...q,
     items: getItemsList(q.items),
-    discount_type: "fixed",
+    discount_type: q.discount_amount ? "fixed" : "percentage",
     discount_value: q.discount_amount || 0,
-    version: 1,
-    parent_quotation_id: q.id,
   });
 
   useEffect(() => {

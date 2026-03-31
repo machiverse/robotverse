@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_quotations ADD COLUMN IF NOT EXISTS revision_history jsonb DEFAULT '[]'::jsonb;
