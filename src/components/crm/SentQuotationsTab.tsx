@@ -9,16 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
-  FileText, Search, Eye, Clock, User, Building, Package,
+  FileText, Search, Eye, Clock, User, Building,
   CheckCircle, XCircle, RefreshCw, IndianRupee, Send,
-  Calendar, TrendingUp, AlertCircle, FileSpreadsheet, Loader2, Pencil, RotateCcw
+  Calendar, TrendingUp, FileSpreadsheet, Loader2, Pencil
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import CreateQuotationModal from "./CreateQuotationModal";
-import type { CRMQuotation } from "@/hooks/useCRM";
 
 interface Quotation {
   id: string;
