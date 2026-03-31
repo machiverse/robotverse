@@ -242,54 +242,119 @@ const CreateQuotationModal = ({
 
     setSending(true);
     try {
-      // Generate quotation number
-      const quotationNumber = `QT-${Date.now().toString(36).toUpperCase()}`;
+      const isEditing = !!existingQuotation?.id;
+      const quotationNumber = isEditing
+        ? existingQuotation.quotation_number
+        : `QT-${Date.now().toString(36).toUpperCase()}`;
 
-       // Check if leadId exists in seller_leads before using it
-      let validLeadId: string | null = null;
-      if (leadData?.leadId) {
-        const { data: leadExists } = await supabase
-          .from("seller_leads")
-          .select("id")
-          .eq("id", leadData.leadId)
-          .maybeSingle();
-        if (leadExists) {
-          validLeadId = leadData.leadId;
+      let quotation: any;
+
+      if (isEditing) {
+        // Build revision snapshot from existing quotation before updating
+        const revisionSnapshot = {
+          revised_at: new Date().toISOString(),
+          items: existingQuotation.items,
+          subtotal: existingQuotation.subtotal,
+          discount_type: existingQuotation.discount_type,
+          discount_value: existingQuotation.discount_value,
+          discount_amount: existingQuotation.discount_amount,
+          tax_rate: existingQuotation.tax_rate,
+          tax_amount: existingQuotation.tax_amount,
+          shipping_amount: existingQuotation.shipping_amount,
+          total_amount: existingQuotation.total_amount,
+          notes: existingQuotation.notes,
+          valid_until: existingQuotation.valid_until,
+        };
+
+        // Get existing revision history
+        const { data: currentRow } = await supabase
+          .from("crm_quotations")
+          .select("revision_history, version")
+          .eq("id", existingQuotation.id)
+          .single();
+
+        const existingHistory = (currentRow?.revision_history as any[]) || [];
+        const newVersion = (currentRow?.version || 1) + 1;
+
+        const { data: updated, error: updateError } = await supabase
+          .from("crm_quotations")
+          .update({
+            buyer_name: buyerName,
+            buyer_email: buyerEmail,
+            buyer_phone: buyerPhone,
+            buyer_company: buyerCompany,
+            buyer_address: buyerAddress,
+            items: JSON.stringify(items),
+            subtotal,
+            discount_type: discountType,
+            discount_value: discountValue,
+            discount_amount: discountAmount,
+            tax_rate: taxRate,
+            tax_amount: taxAmount,
+            shipping_amount: shippingAmount,
+            total_amount: totalAmount,
+            currency,
+            valid_until: validUntil,
+            terms_conditions: termsConditions,
+            notes,
+            status: "sent",
+            sent_at: new Date().toISOString(),
+            version: newVersion,
+            revision_history: JSON.stringify([...existingHistory, revisionSnapshot]),
+          } as any)
+          .eq("id", existingQuotation.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        quotation = updated;
+      } else {
+        // Check if leadId exists in seller_leads before using it
+        let validLeadId: string | null = null;
+        if (leadData?.leadId) {
+          const { data: leadExists } = await supabase
+            .from("seller_leads")
+            .select("id")
+            .eq("id", leadData.leadId)
+            .maybeSingle();
+          if (leadExists) {
+            validLeadId = leadData.leadId;
+          }
         }
+
+        const { data: inserted, error: insertError } = await supabase
+          .from("crm_quotations")
+          .insert({
+            seller_id: user.id,
+            lead_id: validLeadId,
+            quotation_number: quotationNumber,
+            buyer_name: buyerName,
+            buyer_email: buyerEmail,
+            buyer_phone: buyerPhone,
+            buyer_company: buyerCompany,
+            buyer_address: buyerAddress,
+            items: JSON.stringify(items),
+            subtotal,
+            discount_type: discountType,
+            discount_value: discountValue,
+            discount_amount: discountAmount,
+            tax_rate: taxRate,
+            tax_amount: taxAmount,
+            shipping_amount: shippingAmount,
+            total_amount: totalAmount,
+            currency,
+            valid_until: validUntil,
+            terms_conditions: termsConditions,
+            notes,
+            status: "sent",
+            sent_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        quotation = inserted;
       }
-
-      // Save quotation to database
-      const { data: quotation, error: quotationError } = await supabase
-        .from("crm_quotations")
-        .insert({
-          seller_id: user.id,
-          lead_id: validLeadId,
-          quotation_number: quotationNumber,
-          buyer_name: buyerName,
-          buyer_email: buyerEmail,
-          buyer_phone: buyerPhone,
-          buyer_company: buyerCompany,
-          buyer_address: buyerAddress,
-          items: JSON.stringify(items),
-          subtotal,
-          discount_type: discountType,
-          discount_value: discountValue,
-          discount_amount: discountAmount,
-          tax_rate: taxRate,
-          tax_amount: taxAmount,
-          shipping_amount: shippingAmount,
-          total_amount: totalAmount,
-          currency,
-          valid_until: validUntil,
-          terms_conditions: termsConditions,
-          notes,
-          status: "sent",
-          sent_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (quotationError) throw quotationError;
 
       // Look up buyer's user_id from profiles by email
       const { data: buyerProfile } = await supabase
@@ -363,8 +428,10 @@ const CreateQuotationModal = ({
       await downloadQuotationPDF(getPDFData(quotationNumber));
 
       toast({
-        title: "Quotation sent successfully!",
-        description: `Quotation ${quotationNumber} has been created and notification sent to the buyer.`,
+        title: isEditing ? "Quotation revised & resent!" : "Quotation sent successfully!",
+        description: isEditing
+          ? `Quotation ${quotationNumber} has been updated and resent to the buyer.`
+          : `Quotation ${quotationNumber} has been created and notification sent to the buyer.`,
       });
 
       onSuccess?.();

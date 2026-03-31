@@ -1365,6 +1365,7 @@ export type Database = {
           quotation_number: string
           rejected_at: string | null
           rejection_reason: string | null
+          revision_history: Json | null
           seller_id: string
           sent_at: string | null
           shipping_amount: number | null
@@ -1401,6 +1402,7 @@ export type Database = {
           quotation_number?: string
           rejected_at?: string | null
           rejection_reason?: string | null
+          revision_history?: Json | null
           seller_id: string
           sent_at?: string | null
           shipping_amount?: number | null
@@ -1437,6 +1439,7 @@ export type Database = {
           quotation_number?: string
           rejected_at?: string | null
           rejection_reason?: string | null
+          revision_history?: Json | null
           seller_id?: string
           sent_at?: string | null
           shipping_amount?: number | null
