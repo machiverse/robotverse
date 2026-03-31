@@ -59,6 +59,7 @@ function parseSections(content: string, resultCounts: ResultCounts | null): { su
           icon: pattern.icon,
           content: "",
           count,
+          color: pattern.color,
         };
         currentLines = [];
         matched = true;
