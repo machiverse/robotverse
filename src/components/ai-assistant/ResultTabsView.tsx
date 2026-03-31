@@ -213,15 +213,52 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
 
           {sections.map((section) => (
             <TabsContent key={section.key} value={section.key} className="mt-3 animate-in fade-in duration-200">
-              <div className={cn(markdownClasses, "w-full overflow-x-auto bg-muted/20 rounded-xl p-4 border border-border/20")}>
-                <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
+              <div className={cn(
+                "w-full overflow-x-auto rounded-xl p-4 border bg-gradient-to-br",
+                section.color
+              )}>
+                {/* Section header */}
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
+                  <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
+                    {section.icon}
+                  </div>
+                  <span className="font-bold text-sm text-foreground">{section.label}</span>
+                  {section.count > 0 && (
+                    <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">
+                      {section.count} found
+                    </Badge>
+                  )}
+                </div>
+                <div className={cn(markdownClasses)}>
+                  <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
+                </div>
               </div>
             </TabsContent>
           ))}
         </Tabs>
       ) : (
-        <div className={cn(markdownClasses, "w-full overflow-x-auto")}>
-          <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+        <div className="space-y-3">
+          {sections.map((section) => (
+            <div key={section.key} className={cn(
+              "w-full overflow-x-auto rounded-xl p-4 border bg-gradient-to-br",
+              section.color
+            )}>
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
+                <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
+                  {section.icon}
+                </div>
+                <span className="font-bold text-sm text-foreground">{section.label}</span>
+                {section.count > 0 && (
+                  <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">
+                    {section.count} found
+                  </Badge>
+                )}
+              </div>
+              <div className={cn(markdownClasses)}>
+                <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
