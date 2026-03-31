@@ -19,16 +19,18 @@ interface ParsedSection {
   icon: React.ReactNode;
   content: string;
   count: number;
+  color: string;
 }
 
-const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React.ReactNode; countKey?: keyof ResultCounts }[] = [
-  { regex: /###\s*🤖\s*Top Matching Robots/i, key: "robots", label: "Robots", icon: <Bot className="w-3.5 h-3.5" />, countKey: "robots" },
-  { regex: /###\s*🔧\s*(EOAT|Spare Parts)/i, key: "eoat", label: "EOAT & Parts", icon: <Wrench className="w-3.5 h-3.5" />, countKey: "spareParts" },
-  { regex: /###\s*🏭\s*(System Integrators|Service)/i, key: "services", label: "Services", icon: <Factory className="w-3.5 h-3.5" />, countKey: "services" },
-  { regex: /###\s*👥\s*(Verified Sellers|Sellers)/i, key: "sellers", label: "Sellers", icon: <Users className="w-3.5 h-3.5" />, countKey: "sellers" },
-  { regex: /###\s*🚚\s*Logistics/i, key: "logistics", label: "Logistics", icon: <Truck className="w-3.5 h-3.5" />, countKey: "logistics" },
-  { regex: /###\s*💰\s*(Financ|Loan)/i, key: "financing", label: "Financing", icon: <Banknote className="w-3.5 h-3.5" /> },
-  { regex: /###\s*💡\s*(Recommendation|Best Match)/i, key: "recommendation", label: "Best Match", icon: <Lightbulb className="w-3.5 h-3.5" /> },
+const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React.ReactNode; countKey?: keyof ResultCounts; color: string }[] = [
+  { regex: /###\s*🤖\s*Top Matching Robots/i, key: "robots", label: "Robots", icon: <Bot className="w-3.5 h-3.5" />, countKey: "robots", color: "from-blue-500/15 to-blue-500/5 border-blue-500/20" },
+  { regex: /###\s*🔧\s*(EOAT|Spare Parts)/i, key: "eoat", label: "EOAT & Parts", icon: <Wrench className="w-3.5 h-3.5" />, countKey: "spareParts", color: "from-orange-500/15 to-orange-500/5 border-orange-500/20" },
+  { regex: /###\s*🏭\s*(Application Builder|System Integrator|Service)/i, key: "integrators", label: "Integrators", icon: <Factory className="w-3.5 h-3.5" />, countKey: "services", color: "from-green-500/15 to-green-500/5 border-green-500/20" },
+  { regex: /###\s*💻\s*(Software|Programming)/i, key: "software", label: "Software", icon: <Cpu className="w-3.5 h-3.5" />, color: "from-purple-500/15 to-purple-500/5 border-purple-500/20" },
+  { regex: /###\s*🚚\s*(Logistics|Transport)/i, key: "logistics", label: "Logistics", icon: <Truck className="w-3.5 h-3.5" />, countKey: "logistics", color: "from-teal-500/15 to-teal-500/5 border-teal-500/20" },
+  { regex: /###\s*💰\s*(Financ|Loan)/i, key: "financing", label: "Financing", icon: <Banknote className="w-3.5 h-3.5" />, color: "from-yellow-500/15 to-yellow-500/5 border-yellow-500/20" },
+  { regex: /###\s*👥\s*(Verified Sellers|Sellers)/i, key: "sellers", label: "Sellers", icon: <Users className="w-3.5 h-3.5" />, countKey: "sellers", color: "from-pink-500/15 to-pink-500/5 border-pink-500/20" },
+  { regex: /###\s*💡\s*(AI Analysis|Recommendation|Best Match)/i, key: "analysis", label: "AI Analysis", icon: <Lightbulb className="w-3.5 h-3.5" />, color: "from-primary/15 to-primary/5 border-primary/20" },
 ];
 
 function parseSections(content: string, resultCounts: ResultCounts | null): { summary: string; sections: ParsedSection[] } {
@@ -57,6 +59,7 @@ function parseSections(content: string, resultCounts: ResultCounts | null): { su
           icon: pattern.icon,
           content: "",
           count,
+          color: pattern.color,
         };
         currentLines = [];
         matched = true;
@@ -210,15 +213,52 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
 
           {sections.map((section) => (
             <TabsContent key={section.key} value={section.key} className="mt-3 animate-in fade-in duration-200">
-              <div className={cn(markdownClasses, "w-full overflow-x-auto bg-muted/20 rounded-xl p-4 border border-border/20")}>
-                <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
+              <div className={cn(
+                "w-full overflow-x-auto rounded-xl p-4 border bg-gradient-to-br",
+                section.color
+              )}>
+                {/* Section header */}
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
+                  <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
+                    {section.icon}
+                  </div>
+                  <span className="font-bold text-sm text-foreground">{section.label}</span>
+                  {section.count > 0 && (
+                    <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">
+                      {section.count} found
+                    </Badge>
+                  )}
+                </div>
+                <div className={cn(markdownClasses)}>
+                  <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
+                </div>
               </div>
             </TabsContent>
           ))}
         </Tabs>
       ) : (
-        <div className={cn(markdownClasses, "w-full overflow-x-auto")}>
-          <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
+        <div className="space-y-3">
+          {sections.map((section) => (
+            <div key={section.key} className={cn(
+              "w-full overflow-x-auto rounded-xl p-4 border bg-gradient-to-br",
+              section.color
+            )}>
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
+                <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
+                  {section.icon}
+                </div>
+                <span className="font-bold text-sm text-foreground">{section.label}</span>
+                {section.count > 0 && (
+                  <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">
+                    {section.count} found
+                  </Badge>
+                )}
+              </div>
+              <div className={cn(markdownClasses)}>
+                <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
