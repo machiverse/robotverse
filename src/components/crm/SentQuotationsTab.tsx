@@ -9,14 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
-  FileText, Search, Eye, Clock, User, Building, Package,
+  FileText, Search, Eye, Clock, User, Building,
   CheckCircle, XCircle, RefreshCw, IndianRupee, Send,
-  Calendar, TrendingUp, AlertCircle, FileSpreadsheet, Loader2
+  Calendar, TrendingUp, FileSpreadsheet, Loader2, Pencil
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
+import CreateQuotationModal from "./CreateQuotationModal";
 
 interface Quotation {
   id: string;
@@ -65,6 +66,23 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const handleEditQuotation = (q: Quotation) => {
+    setEditQuotation(q);
+    setShowEditModal(true);
+    setShowDetail(false);
+  };
+
+  const mapToExistingQuotation = (q: Quotation): any => ({
+    ...q,
+    items: getItemsList(q.items),
+    discount_type: "fixed",
+    discount_value: q.discount_amount || 0,
+    version: 1,
+    parent_quotation_id: q.id,
+  });
 
   useEffect(() => {
     if (user) fetchQuotations();
@@ -259,9 +277,14 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedQuotation(q); setShowDetail(true); }}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEditQuotation(q); }} title="Edit & Resend">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedQuotation(q); setShowDetail(true); }}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -428,6 +451,17 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
                     </div>
                   )}
 
+                  {/* Edit & Resend Button */}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => handleEditQuotation(selectedQuotation)}
+                    >
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Edit & Resend Quotation
+                    </Button>
+                  </div>
+
                   {/* Valid Until */}
                   {selectedQuotation.valid_until && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -441,6 +475,23 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Quotation Modal */}
+      {editQuotation && (
+        <CreateQuotationModal
+          open={showEditModal}
+          onOpenChange={(open) => {
+            setShowEditModal(open);
+            if (!open) setEditQuotation(null);
+          }}
+          onSuccess={() => {
+            fetchQuotations();
+            setShowEditModal(false);
+            setEditQuotation(null);
+          }}
+          existingQuotation={mapToExistingQuotation(editQuotation)}
+        />
+      )}
     </div>
   );
 };
