@@ -428,8 +428,10 @@ const CreateQuotationModal = ({
       await downloadQuotationPDF(getPDFData(quotationNumber));
 
       toast({
-        title: "Quotation sent successfully!",
-        description: `Quotation ${quotationNumber} has been created and notification sent to the buyer.`,
+        title: isEditing ? "Quotation revised & resent!" : "Quotation sent successfully!",
+        description: isEditing
+          ? `Quotation ${quotationNumber} has been updated and resent to the buyer.`
+          : `Quotation ${quotationNumber} has been created and notification sent to the buyer.`,
       });
 
       onSuccess?.();
