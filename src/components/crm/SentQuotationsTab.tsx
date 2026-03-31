@@ -11,12 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import {
   FileText, Search, Eye, Clock, User, Building, Package,
   CheckCircle, XCircle, RefreshCw, IndianRupee, Send,
-  Calendar, TrendingUp, AlertCircle, FileSpreadsheet, Loader2
+  Calendar, TrendingUp, AlertCircle, FileSpreadsheet, Loader2, Pencil, RotateCcw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
+import CreateQuotationModal from "./CreateQuotationModal";
+import type { CRMQuotation } from "@/hooks/useCRM";
 
 interface Quotation {
   id: string;
