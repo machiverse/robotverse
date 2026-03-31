@@ -452,6 +452,17 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
                     </div>
                   )}
 
+                  {/* Edit & Resend Button */}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => handleEditQuotation(selectedQuotation)}
+                    >
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Edit & Resend Quotation
+                    </Button>
+                  </div>
+
                   {/* Valid Until */}
                   {selectedQuotation.valid_until && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -465,6 +476,23 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Quotation Modal */}
+      {editQuotation && (
+        <CreateQuotationModal
+          open={showEditModal}
+          onOpenChange={(open) => {
+            setShowEditModal(open);
+            if (!open) setEditQuotation(null);
+          }}
+          onSuccess={() => {
+            fetchQuotations();
+            setShowEditModal(false);
+            setEditQuotation(null);
+          }}
+          existingQuotation={mapToExistingQuotation(editQuotation)}
+        />
+      )}
     </div>
   );
 };
