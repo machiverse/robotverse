@@ -19,6 +19,7 @@ interface ParsedSection {
   icon: React.ReactNode;
   content: string;
   count: number;
+  color: string;
 }
 
 const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React.ReactNode; countKey?: keyof ResultCounts; color: string }[] = [
