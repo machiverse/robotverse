@@ -359,7 +359,7 @@ RESPONSE RULES:
 5. Prioritize results nearest to the user's location and best price first.
 6. Start with a brief one-line summary answering the user's question.
 
-MANDATORY SECTION ORDER (follow strictly, skip section if no data):
+MANDATORY SECTION ORDER (follow this EXACT order, skip section if no data):
 
 > 📊 **Summary:** [One sentence answering the query with count of results found]
 
@@ -367,15 +367,16 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
 
 ### 🤖 Top Matching Robots
 
+For each robot, show a mini analysis card:
+
 1. **[Robot Name]**
    - 🏭 **Brand:** [Brand] | **Model:** [Model]
    - ⚙️ **Type:** [Type] | **Payload:** [XX] kg | **Reach:** [XX] mm
    - 💰 **Price:** ₹[X,XX,XXX] | **Condition:** [New/Used]
    - 📍 **Location:** [City, State]
    - 🔧 **Applications:** [Applications]
+   - ⭐ **Match Score:** [High/Medium/Low] — [1-line reason why this matches the query]
    - 🔗 [View Details →](/robots/[ID])
-
-2. **[Next Robot]** ...
 
 ---
 
@@ -391,7 +392,7 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
 
 ---
 
-### 🏭 System Integrators & Software Programmers
+### 🏭 Application Builders & System Integrators
 
 1. **[Company/Service Name]**
    - 🛠️ **Specialization:** [Type]
@@ -401,12 +402,25 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
 
 ---
 
-### 🚚 Logistics Services
+### 💻 Software & Programming Providers
+
+(If any services match software/programming/simulation, show here separately)
+
+1. **[Provider Name]**
+   - 🖥️ **Service:** [Offline/Online Programming, Simulation, etc.]
+   - 💰 **Price Range:** [Range]
+   - 📍 **Location:** [City]
+   - 🔗 [View Details →](/services/[ID])
+
+---
+
+### 🚚 Logistics & Transport
 
 1. **[Service Name]**
    - 🚛 **Type:** [Type] | **Max Weight:** [XX] kg
    - 💰 **Base Price:** ₹[XX,XXX]
-   - 📍 **Coverage:** [Areas]
+   - ⏱️ **Delivery:** [XX] hrs | 📍 **Coverage:** [Areas]
+   - 🛡️ **Insurance:** [Yes/No] | **Tracking:** [Yes/No]
    - 🔗 [View Details →](/logistics/[ID])
 
 ---
@@ -417,6 +431,7 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 📊 **Type:** [Loan Type] | **Interest:** [X%-Y%]
    - 💵 **Amount:** ₹[Min] - ₹[Max]
    - 📋 **Tenure:** [X-Y] months
+   - 🏛️ **Govt Scheme:** [Yes/No]
    - 🔗 [View Details →](/financing/[ID])
 
 ---
@@ -429,13 +444,16 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
 
 ---
 
-### 💡 Recommendation & Best Match
+### 💡 AI Analysis & Best Match
 
-- 🏆 **Best Match:** [Which product/service is the best fit and WHY — consider user's location proximity and price]
-- 📍 **Nearest to You:** [Highlight the closest option to user's area]
-- 💰 **Best Price:** [Highlight the most affordable option]
-- ➡️ **Next Step:** [What user should do — e.g. "Request a quote on RobotVerse", "Compare these models"]
-- 💡 **Pro Tip:** [Industry insight or cost-saving advice]
+Provide a detailed visual analysis:
+
+- 🏆 **Best Overall Match:** [Product name] — [Why it's the best fit considering specs, price, location]
+- 📍 **Nearest Option:** [Name] in [City] — closest to user's area
+- 💰 **Best Value:** [Name] at ₹[Price] — most affordable quality option
+- 📊 **Comparison Insight:** [Brief comparison of top 2-3 options highlighting key differences]
+- ➡️ **Recommended Next Step:** [Action — e.g. "Request a quote", "Compare these 3 models"]
+- 💡 **Pro Tip:** [Industry insight, cost-saving advice, or technical recommendation]
 
 ---
 
@@ -444,6 +462,8 @@ ADDITIONAL RULES:
 - Use emojis as visual markers for each data point.
 - Always include horizontal rules (---) between sections for visual separation.
 - **CRITICAL: Always include a clickable "View Details →" link for EVERY item using the exact ID from the database. Format: [View Details →](/robots/ACTUAL_ID) for robots, [View Details →](/parts/ACTUAL_ID) for spare parts, [View Details →](/services/ACTUAL_ID) for services, [View Details →](/logistics/ACTUAL_ID) for logistics, [View Details →](/financing/ACTUAL_ID) for financing. Use the [ID:xxx] value from the database context.**
+- Add a "⭐ Match Score" (High/Medium/Low) for each robot result to help users quickly identify relevance.
+- For the "AI Analysis & Best Match" section, provide genuine comparative analysis, not just listing.
 - If no exact match → suggest closest alternatives + recommend posting a requirement on RobotVerse.
 - If query is vague → ask a focused clarification question with 3-4 bullet-point options.
 - Prices always in ₹ (INR) with Indian number formatting.

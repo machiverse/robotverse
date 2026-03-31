@@ -21,14 +21,15 @@ interface ParsedSection {
   count: number;
 }
 
-const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React.ReactNode; countKey?: keyof ResultCounts }[] = [
-  { regex: /###\s*🤖\s*Top Matching Robots/i, key: "robots", label: "Robots", icon: <Bot className="w-3.5 h-3.5" />, countKey: "robots" },
-  { regex: /###\s*🔧\s*(EOAT|Spare Parts)/i, key: "eoat", label: "EOAT & Parts", icon: <Wrench className="w-3.5 h-3.5" />, countKey: "spareParts" },
-  { regex: /###\s*🏭\s*(System Integrators|Service)/i, key: "services", label: "Services", icon: <Factory className="w-3.5 h-3.5" />, countKey: "services" },
-  { regex: /###\s*👥\s*(Verified Sellers|Sellers)/i, key: "sellers", label: "Sellers", icon: <Users className="w-3.5 h-3.5" />, countKey: "sellers" },
-  { regex: /###\s*🚚\s*Logistics/i, key: "logistics", label: "Logistics", icon: <Truck className="w-3.5 h-3.5" />, countKey: "logistics" },
-  { regex: /###\s*💰\s*(Financ|Loan)/i, key: "financing", label: "Financing", icon: <Banknote className="w-3.5 h-3.5" /> },
-  { regex: /###\s*💡\s*(Recommendation|Best Match)/i, key: "recommendation", label: "Best Match", icon: <Lightbulb className="w-3.5 h-3.5" /> },
+const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React.ReactNode; countKey?: keyof ResultCounts; color: string }[] = [
+  { regex: /###\s*🤖\s*Top Matching Robots/i, key: "robots", label: "Robots", icon: <Bot className="w-3.5 h-3.5" />, countKey: "robots", color: "from-blue-500/15 to-blue-500/5 border-blue-500/20" },
+  { regex: /###\s*🔧\s*(EOAT|Spare Parts)/i, key: "eoat", label: "EOAT & Parts", icon: <Wrench className="w-3.5 h-3.5" />, countKey: "spareParts", color: "from-orange-500/15 to-orange-500/5 border-orange-500/20" },
+  { regex: /###\s*🏭\s*(Application Builder|System Integrator|Service)/i, key: "integrators", label: "Integrators", icon: <Factory className="w-3.5 h-3.5" />, countKey: "services", color: "from-green-500/15 to-green-500/5 border-green-500/20" },
+  { regex: /###\s*💻\s*(Software|Programming)/i, key: "software", label: "Software", icon: <Cpu className="w-3.5 h-3.5" />, color: "from-purple-500/15 to-purple-500/5 border-purple-500/20" },
+  { regex: /###\s*🚚\s*(Logistics|Transport)/i, key: "logistics", label: "Logistics", icon: <Truck className="w-3.5 h-3.5" />, countKey: "logistics", color: "from-teal-500/15 to-teal-500/5 border-teal-500/20" },
+  { regex: /###\s*💰\s*(Financ|Loan)/i, key: "financing", label: "Financing", icon: <Banknote className="w-3.5 h-3.5" />, color: "from-yellow-500/15 to-yellow-500/5 border-yellow-500/20" },
+  { regex: /###\s*👥\s*(Verified Sellers|Sellers)/i, key: "sellers", label: "Sellers", icon: <Users className="w-3.5 h-3.5" />, countKey: "sellers", color: "from-pink-500/15 to-pink-500/5 border-pink-500/20" },
+  { regex: /###\s*💡\s*(AI Analysis|Recommendation|Best Match)/i, key: "analysis", label: "AI Analysis", icon: <Lightbulb className="w-3.5 h-3.5" />, color: "from-primary/15 to-primary/5 border-primary/20" },
 ];
 
 function parseSections(content: string, resultCounts: ResultCounts | null): { summary: string; sections: ParsedSection[] } {
