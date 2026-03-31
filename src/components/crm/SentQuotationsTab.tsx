@@ -278,9 +278,14 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedQuotation(q); setShowDetail(true); }}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEditQuotation(q); }} title="Edit & Resend">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedQuotation(q); setShowDetail(true); }}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
