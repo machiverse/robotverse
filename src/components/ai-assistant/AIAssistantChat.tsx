@@ -183,7 +183,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           <EmptyState
             onPromptClick={(query) => {
               setInput(query);
-              sendMessage(query);
+              inputRef.current?.focus();
             }}
             fullPage={fullPage}
           />
