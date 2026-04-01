@@ -120,6 +120,7 @@ const AdminQuoteMonitoring = () => {
   const totalQuotations = quotations.length;
   const acceptedQuotations = quotations.filter(q => q.status === 'accepted').length;
   const rejectedQuotations = quotations.filter(q => q.status === 'rejected').length;
+  const negotiationQuotations = quotations.filter(q => q.status === 'negotiation').length;
   const totalQuoteValue = quotations.reduce((sum, q) => sum + (Number(q.total_amount) || 0), 0);
 
   return (
