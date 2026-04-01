@@ -396,7 +396,7 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
 
 /* ─── Message Bubble ─── */
 
-const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean }> = ({ message, resultCounts, isLastAssistant }) => {
+const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean; visibleTabs?: string[] }> = ({ message, resultCounts, isLastAssistant, visibleTabs = [] }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
