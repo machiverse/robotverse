@@ -187,6 +187,7 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
             <SelectItem value="viewed">Viewed</SelectItem>
             <SelectItem value="accepted">Accepted</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="negotiation">Negotiation</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={fetchQuotations}>
