@@ -125,7 +125,7 @@ async function searchServices(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('services')
     .select('id, name, service_type, specializations, price_range, location, coverage, description, provider_id')
-    .limit(8);
+    .limit(5);
 
   if (searchTerms.length > 0) {
     const orFilters = searchTerms
