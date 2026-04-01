@@ -10,6 +10,7 @@ import { ResultCounts } from "@/contexts/AIAssistantContext";
 interface ResultTabsViewProps {
   content: string;
   resultCounts: ResultCounts | null;
+  visibleTabs?: string[];
   className?: string;
 }
 
