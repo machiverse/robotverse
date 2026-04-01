@@ -341,7 +341,7 @@ You have FULL ACCESS to analyze ALL tables in the RobotVerse database:
 - 🏭 Services (${stats.totalServices} providers) - System integrators, maintenance, repair
 - 🚚 Logistics - Shipping, transport, freight for robotics equipment
 - 💰 Finance - Loans, EMI options, government schemes for robot purchases
-- 👥 Sellers & Providers (${stats.totalSellers} registered) - Verified marketplace sellers
+
 - 📰 Knowledge Base - Articles, guides, industry insights
 
 RESPONSE RULES:
