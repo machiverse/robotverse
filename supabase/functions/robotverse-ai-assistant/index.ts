@@ -26,6 +26,7 @@ const INTENT_MAP: Record<string, string[]> = {
   logistics: ['logistics', 'shipping', 'transport', 'delivery', 'freight', 'cargo'],
   finance: ['finance', 'loan', 'emi', 'leasing', 'funding', 'subsidy', 'scheme'],
   spare: ['spare', 'part', 'component', 'eoat', 'gripper', 'sensor', 'controller', 'teach pendant'],
+  robot: ['robot', 'cobot', 'articulated', '6-axis', '4-axis', 'scara', 'delta', 'cartesian', 'gantry', 'agv', 'amr', 'fanuc', 'abb', 'kuka', 'yaskawa', 'universal robots', 'ur', 'mitsubishi', 'epson', 'kawasaki', 'doosan', 'payload', 'reach'],
 };
 
 const INDIAN_CITIES = ['chennai', 'bangalore', 'bengaluru', 'mumbai', 'pune', 'delhi', 'hyderabad', 'ahmedabad', 'coimbatore', 'noida', 'gurgaon', 'gurugram', 'kolkata', 'jaipur', 'lucknow', 'surat', 'indore', 'nagpur', 'vadodara', 'bhopal', 'visakhapatnam', 'kochi', 'thiruvananthapuram', 'chandigarh', 'ludhiana', 'rajkot', 'madurai', 'nashik', 'aurangabad', 'faridabad'];
