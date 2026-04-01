@@ -63,7 +63,7 @@ async function searchRobots(query: string, location: string | null) {
     .from('robots')
     .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, seller_id')
     .eq('availability', 'available')
-    .limit(10);
+    .limit(5);
 
   const matchedBrand = brands.find((b) => q.includes(b));
   const matchedType = types.find((t) => q.includes(t));
@@ -100,7 +100,7 @@ async function searchSpareParts(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('spare_parts')
     .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state, description, seller_id')
-    .limit(8);
+    .limit(5);
 
   const orFilters = searchTerms
     .map((term) => `name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,main_category.ilike.%${term}%,sub_category.ilike.%${term}%,description.ilike.%${term}%`)
@@ -125,7 +125,7 @@ async function searchServices(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('services')
     .select('id, name, service_type, specializations, price_range, location, coverage, description, provider_id')
-    .limit(8);
+    .limit(5);
 
   if (searchTerms.length > 0) {
     const orFilters = searchTerms
@@ -349,10 +349,11 @@ YOUR DATABASE ACCESS:
 RESPONSE FORMAT RULES:
 - **NEVER use tables.** Present ALL data as neat **numbered bullet points** with bold labels.
 - Skip empty sections entirely — don't mention sections with zero results.
-- Show **maximum 5 items** per section.
+- Show **EXACTLY the best 5 results only** per section — pick the top 5 most relevant matches. Never show more than 5.
 - Prioritize: best match first → nearest location → best price.
 - Start with a brief one-line summary answering the user's question.
 - Prices always in ₹ (INR) with Indian number formatting (e.g., ₹12,50,000).
+- **ALWAYS follow the exact section order:** Robots → EOAT & Spare Parts → Integrators → Software → Logistics → Financing → AI Analysis. Do not reorder sections.
 
 MANDATORY SECTION ORDER (skip section if no data):
 
