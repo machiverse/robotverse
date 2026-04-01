@@ -137,7 +137,7 @@ const AdminQuoteMonitoring = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <Card>
           <CardContent className="p-3 text-center">
             <Send className="h-5 w-5 mx-auto text-primary mb-1" />
@@ -178,6 +178,13 @@ const AdminQuoteMonitoring = () => {
             <XCircle className="h-5 w-5 mx-auto text-red-600 mb-1" />
             <p className="text-2xl font-bold">{rejectedQuotations}</p>
             <p className="text-xs text-muted-foreground">Rejected</p>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardContent className="p-3 text-center">
+            <FileText className="h-5 w-5 mx-auto text-amber-600 mb-1" />
+            <p className="text-2xl font-bold">{negotiationQuotations}</p>
+            <p className="text-xs text-muted-foreground">Negotiation</p>
           </CardContent>
         </Card>
         <Card>
