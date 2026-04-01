@@ -471,7 +471,7 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         ) : isLastAssistant && resultCounts ? (
-          <ResultTabsView content={message.content} resultCounts={resultCounts} />
+          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none
