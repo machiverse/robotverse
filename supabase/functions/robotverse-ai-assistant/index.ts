@@ -313,15 +313,13 @@ serve(async (req) => {
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
 
-    const searchLogisticsFlag = intents.includes('logistics') || intents.includes('general');
-    const searchFinanceFlag = intents.includes('finance') || intents.includes('general');
-
+    // Always search logistics and finance for every query
     const [robots, parts, services, logistics, finance, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
       searchSpareParts(latestQuery, location),
       searchServices(latestQuery, location),
-      searchLogisticsFlag ? searchLogistics(latestQuery, location) : Promise.resolve([]),
-      searchFinanceFlag ? searchFinance(latestQuery) : Promise.resolve({ loanProducts: [], loanSchemes: [] }),
+      searchLogistics(latestQuery, location),
+      searchFinance(latestQuery),
       searchBlogs(latestQuery),
       getMarketStats(),
     ]);
