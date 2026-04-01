@@ -320,8 +320,8 @@ serve(async (req) => {
 
     const [robots, parts, services, logistics, finance, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
-      isRobotOnly ? Promise.resolve([]) : searchSpareParts(latestQuery, location),
-      isRobotOnly ? Promise.resolve([]) : searchServices(latestQuery, location),
+      searchSpareParts(latestQuery, location),
+      searchServices(latestQuery, location),
       searchLogistics(latestQuery, location),
       searchFinance(latestQuery),
       searchBlogs(latestQuery),
@@ -341,29 +341,21 @@ serve(async (req) => {
     let sectionVisibility = '';
 
     if (isSpareOrEOAT || isMaintenanceOrIntegrator) {
-      visibleTabs = ['eoat', 'integrators'].filter(t => {
-        if (t === 'eoat') return isSpareOrEOAT || isMaintenanceOrIntegrator;
-        if (t === 'integrators') return isMaintenanceOrIntegrator || isSpareOrEOAT;
-        return false;
-      });
-      if (visibleTabs.length === 0) visibleTabs = ['eoat', 'integrators'];
-      sectionVisibility = `\nSECTION VISIBILITY: This is a SPARE PARTS/EOAT/INTEGRATOR query. ONLY show these sections: ${visibleTabs.includes('eoat') ? 'EOAT & Spare Parts,' : ''} ${visibleTabs.includes('integrators') ? 'Integrators' : ''}. Do NOT show Robots, Software, Logistics, Financing, or AI Analysis sections.`;
+      visibleTabs = ['eoat', 'integrators'];
+      sectionVisibility = `\nSECTION VISIBILITY: This is a SPARE PARTS/EOAT/INTEGRATOR query. ONLY show EOAT & Spare Parts and Integrators sections.`;
     } else if (isSoftwareQuery) {
       visibleTabs = ['software'];
-      sectionVisibility = `\nSECTION VISIBILITY: This is a SOFTWARE query. ONLY show the Software section. Do NOT show Robots, EOAT, Integrators, Logistics, Financing, or AI Analysis sections.`;
+      sectionVisibility = `\nSECTION VISIBILITY: This is a SOFTWARE query. ONLY show the Software section.`;
     } else if (isLogisticsQuery) {
       visibleTabs = ['logistics'];
-      sectionVisibility = `\nSECTION VISIBILITY: This is a LOGISTICS query. ONLY show the Logistics section. Do NOT show other sections.`;
+      sectionVisibility = `\nSECTION VISIBILITY: This is a LOGISTICS query. ONLY show the Logistics section.`;
     } else if (isFinanceQuery) {
       visibleTabs = ['financing'];
-      sectionVisibility = `\nSECTION VISIBILITY: This is a FINANCING query. ONLY show the Financing section. Do NOT show other sections.`;
-    } else if (isRobotOnly) {
-      visibleTabs = ['robots', 'logistics', 'financing', 'analysis'];
-      sectionVisibility = `\nSECTION VISIBILITY: This is a ROBOT-FOCUSED query. ONLY show these sections: Robots, Logistics, Financing, and AI Analysis/Best Match. Do NOT show EOAT, Integrators, or Software sections.`;
+      sectionVisibility = `\nSECTION VISIBILITY: This is a FINANCING query. ONLY show the Financing section.`;
     } else {
-      // General/default — show all
+      // Robot queries and general queries — show ALL tabs
       visibleTabs = ['robots', 'eoat', 'integrators', 'software', 'logistics', 'financing', 'analysis'];
-      sectionVisibility = `\nSECTION VISIBILITY: Show all relevant sections that have data.`;
+      sectionVisibility = `\nSECTION VISIBILITY: Show ALL sections: Robots, EOAT & Spare Parts, Integrators, Software, Logistics, Financing, and AI Analysis/Best Match. Include all sections that have data.`;
     }
 
     const systemPrompt = `You are RobotVerse AI — a professional industrial robot marketplace assistant and automation consultant for www.robotverse.in, India's leading industrial robotics marketplace.
