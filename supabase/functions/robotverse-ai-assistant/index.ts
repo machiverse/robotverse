@@ -314,11 +314,14 @@ serve(async (req) => {
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
 
-    // Always search logistics and finance for every query
+    // Determine if this is a robot-focused query (no spare/service/maintenance intent)
+    const isRobotOnly = (intents.includes('robot') || intents.some(i => ['welding', 'palletizing', 'pick and place', 'painting', 'assembly', 'machine tending', 'inspection', 'packaging', 'grinding'].includes(i)))
+      && !intents.includes('spare') && !intents.includes('maintenance') && !intents.includes('general');
+
     const [robots, parts, services, logistics, finance, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
-      searchSpareParts(latestQuery, location),
-      searchServices(latestQuery, location),
+      isRobotOnly ? Promise.resolve([]) : searchSpareParts(latestQuery, location),
+      isRobotOnly ? Promise.resolve([]) : searchServices(latestQuery, location),
       searchLogistics(latestQuery, location),
       searchFinance(latestQuery),
       searchBlogs(latestQuery),
@@ -326,6 +329,10 @@ serve(async (req) => {
     ]);
 
     const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, [], blogs, stats);
+
+    const sectionVisibility = isRobotOnly
+      ? `\nSECTION VISIBILITY: This is a ROBOT-FOCUSED query. ONLY show these sections: Robots, Logistics, Financing, and AI Analysis/Best Match. Do NOT show EOAT, Integrators, or Software sections.`
+      : `\nSECTION VISIBILITY: Show all relevant sections that have data.`;
 
     const systemPrompt = `You are RobotVerse AI — a professional industrial robot marketplace assistant and automation consultant for www.robotverse.in, India's leading industrial robotics marketplace.
 
