@@ -105,6 +105,7 @@ const AdminQuoteMonitoring = () => {
       accepted: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
       responded: 'bg-green-100 text-green-800',
+      negotiation: 'bg-amber-100 text-amber-800',
     };
     return (
       <Badge className={variants[status] || 'bg-muted text-muted-foreground'}>
