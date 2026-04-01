@@ -514,7 +514,7 @@ DATABASE RESULTS:${dbContext}`;
         logistics: logistics.length,
         loanProducts: finance.loanProducts.length,
         loanSchemes: finance.loanSchemes.length,
-        sellers: sellers.length,
+        sellers: 0,
         blogs: blogs.length,
       },
     }), {
