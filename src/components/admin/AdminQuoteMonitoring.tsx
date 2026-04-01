@@ -416,35 +416,87 @@ const AdminQuoteMonitoring = () => {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Quote #</TableHead>
-                        <TableHead>Seller</TableHead>
-                        <TableHead>Buyer</TableHead>
-                        <TableHead>Amount</TableHead>
+                        <TableHead>Seller (Sender)</TableHead>
+                        <TableHead>Buyer (Requester)</TableHead>
+                        <TableHead>Original Amount</TableHead>
+                        <TableHead>Proposed Price</TableHead>
+                        <TableHead>Negotiation Details</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {quotations.filter(q => q.status === 'negotiation').map(q => (
-                        <TableRow key={q.id}>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {format(new Date(q.created_at), 'dd MMM yyyy')}
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-mono text-sm font-medium">{q.quotation_number}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium text-sm">{q.seller_name}</span>
-                            <p className="text-xs text-muted-foreground">{q.seller_company}</p>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium text-sm">{q.buyer_name}</span>
-                            <p className="text-xs text-muted-foreground">{q.buyer_email || '-'}</p>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-semibold text-primary">₹{Number(q.total_amount).toLocaleString()}</span>
-                          </TableCell>
-                          <TableCell>{getStatusBadge('negotiation')}</TableCell>
-                        </TableRow>
-                      ))}
+                      {quotations.filter(q => q.status === 'negotiation').map(q => {
+                        const history = Array.isArray(q.revision_history) ? q.revision_history : [];
+                        const lastNegotiation = history.filter((h: any) => h.action === 'buyer_negotiation').pop();
+                        return (
+                          <TableRow key={q.id}>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {format(new Date(q.created_at), 'dd MMM yyyy HH:mm')}
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-mono text-sm font-medium">{q.quotation_number}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3 text-primary" />
+                                  <span className="font-medium text-sm">{q.seller_name}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Building2 className="h-3 w-3" />
+                                  {q.seller_company}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3 text-muted-foreground" />
+                                  <span className="font-medium text-sm">{q.buyer_name}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Building2 className="h-3 w-3" />
+                                  {q.buyer_company || '-'}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Mail className="h-3 w-3" />
+                                  {q.buyer_email || '-'}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="h-3 w-3" />
+                                  {q.buyer_phone || '-'}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-semibold text-primary">₹{Number(q.total_amount).toLocaleString()}</span>
+                            </TableCell>
+                            <TableCell>
+                              {lastNegotiation?.proposed_price ? (
+                                <span className="font-semibold text-amber-600">₹{Number(lastNegotiation.proposed_price).toLocaleString()}</span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">No price proposed</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="max-w-[200px] space-y-1">
+                                {lastNegotiation?.message && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">"{lastNegotiation.message}"</p>
+                                )}
+                                {lastNegotiation?.timestamp && (
+                                  <p className="text-xs text-amber-600">
+                                    {format(new Date(lastNegotiation.timestamp), 'dd MMM yyyy HH:mm')}
+                                  </p>
+                                )}
+                                {q.rejection_reason && !lastNegotiation?.message && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">"{q.rejection_reason}"</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge('negotiation')}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -469,10 +521,11 @@ const AdminQuoteMonitoring = () => {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Quote #</TableHead>
-                        <TableHead>Seller</TableHead>
-                        <TableHead>Buyer</TableHead>
+                        <TableHead>Seller (Sender)</TableHead>
+                        <TableHead>Buyer (Receiver)</TableHead>
                         <TableHead>Amount</TableHead>
-                        <TableHead>Accepted</TableHead>
+                        <TableHead>Timeline</TableHead>
+                        <TableHead>Accepted On</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -480,24 +533,67 @@ const AdminQuoteMonitoring = () => {
                       {quotations.filter(q => q.status === 'accepted').map(q => (
                         <TableRow key={q.id}>
                           <TableCell className="text-xs whitespace-nowrap">
-                            {format(new Date(q.created_at), 'dd MMM yyyy')}
+                            {format(new Date(q.created_at), 'dd MMM yyyy HH:mm')}
                           </TableCell>
                           <TableCell>
                             <span className="font-mono text-sm font-medium">{q.quotation_number}</span>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium text-sm">{q.seller_name}</span>
-                            <p className="text-xs text-muted-foreground">{q.seller_company}</p>
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3 text-primary" />
+                                <span className="font-medium text-sm">{q.seller_name}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3" />
+                                {q.seller_company}
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium text-sm">{q.buyer_name}</span>
-                            <p className="text-xs text-muted-foreground">{q.buyer_email || '-'}</p>
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-medium text-sm">{q.buyer_name}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3" />
+                                {q.buyer_company || '-'}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Mail className="h-3 w-3" />
+                                {q.buyer_email || '-'}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                {q.buyer_phone || '-'}
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <span className="font-semibold text-primary">₹{Number(q.total_amount).toLocaleString()}</span>
                           </TableCell>
+                          <TableCell>
+                            <div className="space-y-0.5 text-xs">
+                              {q.sent_at && (
+                                <div className="flex items-center gap-1 text-blue-600">
+                                  <Send className="h-3 w-3" /> Sent {format(new Date(q.sent_at), 'dd MMM')}
+                                </div>
+                              )}
+                              {q.viewed_at && (
+                                <div className="flex items-center gap-1 text-purple-600">
+                                  <Eye className="h-3 w-3" /> Viewed {format(new Date(q.viewed_at), 'dd MMM')}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-xs">
-                            {q.accepted_at ? format(new Date(q.accepted_at), 'dd MMM yyyy') : '-'}
+                            {q.accepted_at ? (
+                              <div className="flex items-center gap-1 text-green-600 font-medium">
+                                <CheckCircle className="h-3 w-3" />
+                                {format(new Date(q.accepted_at), 'dd MMM yyyy HH:mm')}
+                              </div>
+                            ) : '-'}
                           </TableCell>
                           <TableCell>{getStatusBadge('accepted')}</TableCell>
                         </TableRow>
