@@ -338,7 +338,7 @@ serve(async (req) => {
 
 IDENTIFIED INTENTS: ${intents.join(', ')}
 LOCATION HINT: ${location || 'Not specified'}
-
+${sectionVisibility}
 CORE PRINCIPLES:
 1. **ASK FIRST:** If the user's application, payload, budget, or location is unclear, ask a focused clarification question with 3-4 bullet-point options BEFORE giving results. Never guess.
 2. **DATABASE ONLY:** Use ONLY the database results provided below. NEVER invent, fabricate, or hallucinate products, companies, specs, prices, or availability.
