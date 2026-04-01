@@ -316,13 +316,12 @@ serve(async (req) => {
     const searchLogisticsFlag = intents.includes('logistics') || intents.includes('general');
     const searchFinanceFlag = intents.includes('finance') || intents.includes('general');
 
-    const [robots, parts, services, logistics, finance, sellers, blogs, stats] = await Promise.all([
+    const [robots, parts, services, logistics, finance, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
       searchSpareParts(latestQuery, location),
       searchServices(latestQuery, location),
       searchLogisticsFlag ? searchLogistics(latestQuery, location) : Promise.resolve([]),
       searchFinanceFlag ? searchFinance(latestQuery) : Promise.resolve({ loanProducts: [], loanSchemes: [] }),
-      searchSellers(latestQuery, location),
       searchBlogs(latestQuery),
       getMarketStats(),
     ]);
