@@ -288,13 +288,6 @@ function buildDatabaseContext(
     });
   }
 
-  if (sellers.length > 0) {
-    context += '\n👥 REGISTERED SELLERS / PROVIDERS:\n';
-    sellers.forEach((s, i) => {
-      const roles = Array.isArray(s.user_roles) ? s.user_roles.join(', ') : s.user_type || 'N/A';
-      context += `${i + 1}. ${s.company_name || s.full_name || 'Unknown'} | Roles: ${roles} | 📍 ${s.city || s.location || 'India'}\n`;
-    });
-  }
 
   if (blogs.length > 0) {
     context += '\n📰 RELATED ARTICLES:\n';
@@ -303,7 +296,7 @@ function buildDatabaseContext(
     });
   }
 
-  if (robots.length === 0 && parts.length === 0 && services.length === 0 && logistics.length === 0 && finance.loanProducts.length === 0 && sellers.length === 0) {
+  if (robots.length === 0 && parts.length === 0 && services.length === 0 && logistics.length === 0 && finance.loanProducts.length === 0) {
     context += '\nNO EXACT MATCHES FOUND IN DATABASE. Suggest closest alternatives based on marketplace stats.';
   }
 
@@ -323,18 +316,17 @@ serve(async (req) => {
     const searchLogisticsFlag = intents.includes('logistics') || intents.includes('general');
     const searchFinanceFlag = intents.includes('finance') || intents.includes('general');
 
-    const [robots, parts, services, logistics, finance, sellers, blogs, stats] = await Promise.all([
+    const [robots, parts, services, logistics, finance, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
       searchSpareParts(latestQuery, location),
       searchServices(latestQuery, location),
       searchLogisticsFlag ? searchLogistics(latestQuery, location) : Promise.resolve([]),
       searchFinanceFlag ? searchFinance(latestQuery) : Promise.resolve({ loanProducts: [], loanSchemes: [] }),
-      searchSellers(latestQuery, location),
       searchBlogs(latestQuery),
       getMarketStats(),
     ]);
 
-    const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, sellers, blogs, stats);
+    const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, [], blogs, stats);
 
     const systemPrompt = `You are the RobotVerse AI Assistant — a smart industrial automation consultant and marketplace search engine for www.robotverse.in, India's leading industrial robotics marketplace.
 
@@ -348,7 +340,7 @@ You have FULL ACCESS to analyze ALL tables in the RobotVerse database:
 - 🏭 Services (${stats.totalServices} providers) - System integrators, maintenance, repair
 - 🚚 Logistics - Shipping, transport, freight for robotics equipment
 - 💰 Finance - Loans, EMI options, government schemes for robot purchases
-- 👥 Sellers & Providers (${stats.totalSellers} registered) - Verified marketplace sellers
+
 - 📰 Knowledge Base - Articles, guides, industry insights
 
 RESPONSE RULES:
@@ -433,14 +425,6 @@ For each robot, show a mini analysis card:
    - 📋 **Tenure:** [X-Y] months
    - 🏛️ **Govt Scheme:** [Yes/No]
    - 🔗 [View Details →](/financing/[ID])
-
----
-
-### 👥 Verified Sellers & Providers
-
-1. **[Company Name]**
-   - 🏢 **Role:** [Roles]
-   - 📍 **Location:** [City]
 
 ---
 
@@ -530,7 +514,7 @@ DATABASE RESULTS:${dbContext}`;
         logistics: logistics.length,
         loanProducts: finance.loanProducts.length,
         loanSchemes: finance.loanSchemes.length,
-        sellers: sellers.length,
+        sellers: 0,
         blogs: blogs.length,
       },
     }), {
