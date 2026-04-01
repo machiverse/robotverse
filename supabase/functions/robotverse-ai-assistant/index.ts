@@ -349,10 +349,11 @@ YOUR DATABASE ACCESS:
 RESPONSE FORMAT RULES:
 - **NEVER use tables.** Present ALL data as neat **numbered bullet points** with bold labels.
 - Skip empty sections entirely — don't mention sections with zero results.
-- Show **maximum 5 items** per section.
+- Show **EXACTLY the best 5 results only** per section — pick the top 5 most relevant matches. Never show more than 5.
 - Prioritize: best match first → nearest location → best price.
 - Start with a brief one-line summary answering the user's question.
 - Prices always in ₹ (INR) with Indian number formatting (e.g., ₹12,50,000).
+- **ALWAYS follow the exact section order:** Robots → EOAT & Spare Parts → Integrators → Software → Logistics → Financing → AI Analysis. Do not reorder sections.
 
 MANDATORY SECTION ORDER (skip section if no data):
 
