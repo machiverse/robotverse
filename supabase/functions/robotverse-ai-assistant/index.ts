@@ -26,6 +26,7 @@ const INTENT_MAP: Record<string, string[]> = {
   logistics: ['logistics', 'shipping', 'transport', 'delivery', 'freight', 'cargo'],
   finance: ['finance', 'loan', 'emi', 'leasing', 'funding', 'subsidy', 'scheme'],
   spare: ['spare', 'part', 'component', 'eoat', 'gripper', 'sensor', 'controller', 'teach pendant'],
+  robot: ['robot', 'cobot', 'articulated', '6-axis', '4-axis', 'scara', 'delta', 'cartesian', 'gantry', 'agv', 'amr', 'fanuc', 'abb', 'kuka', 'yaskawa', 'universal robots', 'ur', 'mitsubishi', 'epson', 'kawasaki', 'doosan', 'payload', 'reach'],
 };
 
 const INDIAN_CITIES = ['chennai', 'bangalore', 'bengaluru', 'mumbai', 'pune', 'delhi', 'hyderabad', 'ahmedabad', 'coimbatore', 'noida', 'gurgaon', 'gurugram', 'kolkata', 'jaipur', 'lucknow', 'surat', 'indore', 'nagpur', 'vadodara', 'bhopal', 'visakhapatnam', 'kochi', 'thiruvananthapuram', 'chandigarh', 'ludhiana', 'rajkot', 'madurai', 'nashik', 'aurangabad', 'faridabad'];
@@ -313,11 +314,14 @@ serve(async (req) => {
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
 
-    // Always search logistics and finance for every query
+    // Determine if this is a robot-focused query (no spare/service/maintenance intent)
+    const isRobotOnly = (intents.includes('robot') || intents.some(i => ['welding', 'palletizing', 'pick and place', 'painting', 'assembly', 'machine tending', 'inspection', 'packaging', 'grinding'].includes(i)))
+      && !intents.includes('spare') && !intents.includes('maintenance') && !intents.includes('general');
+
     const [robots, parts, services, logistics, finance, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
-      searchSpareParts(latestQuery, location),
-      searchServices(latestQuery, location),
+      isRobotOnly ? Promise.resolve([]) : searchSpareParts(latestQuery, location),
+      isRobotOnly ? Promise.resolve([]) : searchServices(latestQuery, location),
       searchLogistics(latestQuery, location),
       searchFinance(latestQuery),
       searchBlogs(latestQuery),
@@ -326,11 +330,15 @@ serve(async (req) => {
 
     const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, [], blogs, stats);
 
+    const sectionVisibility = isRobotOnly
+      ? `\nSECTION VISIBILITY: This is a ROBOT-FOCUSED query. ONLY show these sections: Robots, Logistics, Financing, and AI Analysis/Best Match. Do NOT show EOAT, Integrators, or Software sections.`
+      : `\nSECTION VISIBILITY: Show all relevant sections that have data.`;
+
     const systemPrompt = `You are RobotVerse AI — a professional industrial robot marketplace assistant and automation consultant for www.robotverse.in, India's leading industrial robotics marketplace.
 
 IDENTIFIED INTENTS: ${intents.join(', ')}
 LOCATION HINT: ${location || 'Not specified'}
-
+${sectionVisibility}
 CORE PRINCIPLES:
 1. **ASK FIRST:** If the user's application, payload, budget, or location is unclear, ask a focused clarification question with 3-4 bullet-point options BEFORE giving results. Never guess.
 2. **DATABASE ONLY:** Use ONLY the database results provided below. NEVER invent, fabricate, or hallucinate products, companies, specs, prices, or availability.
