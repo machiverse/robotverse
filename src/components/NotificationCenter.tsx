@@ -466,6 +466,7 @@ export const NotificationCenter = () => {
             break;
           case "quote_accepted":
           case "quote_rejected":
+          case "quote_negotiation":
             navigate(`/crm?view=leads&tab=sent_quotes`);
             break;
           case "user_request":
