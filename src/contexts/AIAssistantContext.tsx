@@ -303,6 +303,7 @@ export function useAIAssistantContext() {
       isLoggedIn: false,
       lastResultCounts: null,
       lastUserQuery: '',
+      visibleTabs: [] as string[],
       sessions: [] as ChatSession[],
       activeSessionId: null,
       startNewChat: () => {},
