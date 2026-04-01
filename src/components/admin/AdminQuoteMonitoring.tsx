@@ -45,6 +45,8 @@ interface Quotation {
   viewed_at: string | null;
   accepted_at: string | null;
   rejected_at: string | null;
+  rejection_reason: string | null;
+  revision_history: any;
   items: any;
   seller_name?: string;
   seller_company?: string;
