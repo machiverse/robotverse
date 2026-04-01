@@ -55,6 +55,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   viewed: { label: "Viewed", color: "text-purple-700 dark:text-purple-300", bg: "bg-purple-100 dark:bg-purple-900/30", icon: Eye },
   accepted: { label: "Accepted", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-900/30", icon: CheckCircle },
   rejected: { label: "Rejected", color: "text-red-700 dark:text-red-300", bg: "bg-red-100 dark:bg-red-900/30", icon: XCircle },
+  negotiation: { label: "Negotiation", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/30", icon: Pencil },
 };
 
 const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
@@ -186,6 +187,7 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
             <SelectItem value="viewed">Viewed</SelectItem>
             <SelectItem value="accepted">Accepted</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="negotiation">Negotiation</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={fetchQuotations}>

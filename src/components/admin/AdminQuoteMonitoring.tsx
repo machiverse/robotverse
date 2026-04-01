@@ -105,6 +105,7 @@ const AdminQuoteMonitoring = () => {
       accepted: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
       responded: 'bg-green-100 text-green-800',
+      negotiation: 'bg-amber-100 text-amber-800',
     };
     return (
       <Badge className={variants[status] || 'bg-muted text-muted-foreground'}>
@@ -119,6 +120,7 @@ const AdminQuoteMonitoring = () => {
   const totalQuotations = quotations.length;
   const acceptedQuotations = quotations.filter(q => q.status === 'accepted').length;
   const rejectedQuotations = quotations.filter(q => q.status === 'rejected').length;
+  const negotiationQuotations = quotations.filter(q => q.status === 'negotiation').length;
   const totalQuoteValue = quotations.reduce((sum, q) => sum + (Number(q.total_amount) || 0), 0);
 
   return (
@@ -135,7 +137,7 @@ const AdminQuoteMonitoring = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <Card>
           <CardContent className="p-3 text-center">
             <Send className="h-5 w-5 mx-auto text-primary mb-1" />
@@ -178,6 +180,13 @@ const AdminQuoteMonitoring = () => {
             <p className="text-xs text-muted-foreground">Rejected</p>
           </CardContent>
         </Card>
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardContent className="p-3 text-center">
+            <FileText className="h-5 w-5 mx-auto text-amber-600 mb-1" />
+            <p className="text-2xl font-bold">{negotiationQuotations}</p>
+            <p className="text-xs text-muted-foreground">Negotiation</p>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="p-3 text-center">
             <TrendingUp className="h-5 w-5 mx-auto text-primary mb-1" />
@@ -191,6 +200,8 @@ const AdminQuoteMonitoring = () => {
         <TabsList>
           <TabsTrigger value="requests">Quote Requests ({totalRequests})</TabsTrigger>
           <TabsTrigger value="quotations">Quotations Sent ({totalQuotations})</TabsTrigger>
+          <TabsTrigger value="negotiations">Negotiations ({negotiationQuotations})</TabsTrigger>
+          <TabsTrigger value="accepted">Accepted ({acceptedQuotations})</TabsTrigger>
         </TabsList>
 
         {/* Quote Requests Tab */}
@@ -368,9 +379,125 @@ const AdminQuoteMonitoring = () => {
                                   <XCircle className="h-3 w-3" /> Rejected {format(new Date(q.rejected_at), 'dd MMM')}
                                 </div>
                               )}
+                {/* Show negotiation note if status is negotiation */}
+                {q.status === 'negotiation' && (
+                  <div className="flex items-center gap-1 text-amber-600">
+                    <FileText className="h-3 w-3" /> Negotiation requested
+                  </div>
+                )}
                             </div>
                           </TableCell>
                           <TableCell>{getStatusBadge(q.status || 'draft')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Negotiations Tab */}
+        <TabsContent value="negotiations">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Quotations Under Negotiation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {quotations.filter(q => q.status === 'negotiation').length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No quotations under negotiation</p>
+              ) : (
+                <div className="overflow-auto max-h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Quote #</TableHead>
+                        <TableHead>Seller</TableHead>
+                        <TableHead>Buyer</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {quotations.filter(q => q.status === 'negotiation').map(q => (
+                        <TableRow key={q.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(q.created_at), 'dd MMM yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-sm font-medium">{q.quotation_number}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm">{q.seller_name}</span>
+                            <p className="text-xs text-muted-foreground">{q.seller_company}</p>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm">{q.buyer_name}</span>
+                            <p className="text-xs text-muted-foreground">{q.buyer_email || '-'}</p>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold text-primary">₹{Number(q.total_amount).toLocaleString()}</span>
+                          </TableCell>
+                          <TableCell>{getStatusBadge('negotiation')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Accepted Tab */}
+        <TabsContent value="accepted">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Accepted Quotations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {quotations.filter(q => q.status === 'accepted').length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No accepted quotations</p>
+              ) : (
+                <div className="overflow-auto max-h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Quote #</TableHead>
+                        <TableHead>Seller</TableHead>
+                        <TableHead>Buyer</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Accepted</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {quotations.filter(q => q.status === 'accepted').map(q => (
+                        <TableRow key={q.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(q.created_at), 'dd MMM yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-sm font-medium">{q.quotation_number}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm">{q.seller_name}</span>
+                            <p className="text-xs text-muted-foreground">{q.seller_company}</p>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm">{q.buyer_name}</span>
+                            <p className="text-xs text-muted-foreground">{q.buyer_email || '-'}</p>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold text-primary">₹{Number(q.total_amount).toLocaleString()}</span>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {q.accepted_at ? format(new Date(q.accepted_at), 'dd MMM yyyy') : '-'}
+                          </TableCell>
+                          <TableCell>{getStatusBadge('accepted')}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
