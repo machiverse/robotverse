@@ -200,6 +200,8 @@ const AdminQuoteMonitoring = () => {
         <TabsList>
           <TabsTrigger value="requests">Quote Requests ({totalRequests})</TabsTrigger>
           <TabsTrigger value="quotations">Quotations Sent ({totalQuotations})</TabsTrigger>
+          <TabsTrigger value="negotiations">Negotiations ({negotiationQuotations})</TabsTrigger>
+          <TabsTrigger value="accepted">Accepted ({acceptedQuotations})</TabsTrigger>
         </TabsList>
 
         {/* Quote Requests Tab */}
