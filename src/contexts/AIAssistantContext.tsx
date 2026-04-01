@@ -226,9 +226,12 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const content = data.content || data.error || 'No response received';
       const assistantMsg: AIMessage = { role: 'assistant', content, timestamp: Date.now() };
 
-      // Store result counts for "submit request" feature
+      // Store result counts and visible tabs
       if (data.resultCounts) {
         setLastResultCounts(data.resultCounts as ResultCounts);
+      }
+      if (data.visibleTabs) {
+        setVisibleTabs(data.visibleTabs);
       }
 
       updateSession(currentSessionId, s => ({

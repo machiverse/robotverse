@@ -558,6 +558,7 @@ DATABASE RESULTS:${dbContext}`;
     return new Response(JSON.stringify({
       content: textContent,
       intents,
+      visibleTabs,
       stats,
       resultCounts: {
         robots: robots.length,
