@@ -100,7 +100,7 @@ async function searchSpareParts(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('spare_parts')
     .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state, description, seller_id')
-    .limit(8);
+    .limit(5);
 
   const orFilters = searchTerms
     .map((term) => `name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,main_category.ilike.%${term}%,sub_category.ilike.%${term}%,description.ilike.%${term}%`)
