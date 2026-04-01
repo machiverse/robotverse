@@ -63,7 +63,7 @@ async function searchRobots(query: string, location: string | null) {
     .from('robots')
     .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, seller_id')
     .eq('availability', 'available')
-    .limit(10);
+    .limit(5);
 
   const matchedBrand = brands.find((b) => q.includes(b));
   const matchedType = types.find((t) => q.includes(t));
