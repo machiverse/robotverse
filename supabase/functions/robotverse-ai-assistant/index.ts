@@ -357,11 +357,6 @@ serve(async (req) => {
       visibleTabs = ['robots', 'eoat', 'integrators', 'software', 'logistics', 'financing', 'analysis'];
       sectionVisibility = `\nSECTION VISIBILITY: Show ALL sections: Robots, EOAT & Spare Parts, Integrators, Software, Logistics, Financing, and AI Analysis/Best Match. Include all sections that have data.`;
     }
-    } else {
-      // General/default — show all
-      visibleTabs = ['robots', 'eoat', 'integrators', 'software', 'logistics', 'financing', 'analysis'];
-      sectionVisibility = `\nSECTION VISIBILITY: Show all relevant sections that have data.`;
-    }
 
     const systemPrompt = `You are RobotVerse AI — a professional industrial robot marketplace assistant and automation consultant for www.robotverse.in, India's leading industrial robotics marketplace.
 
