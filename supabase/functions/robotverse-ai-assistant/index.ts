@@ -326,7 +326,7 @@ serve(async (req) => {
       getMarketStats(),
     ]);
 
-    const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, sellers, blogs, stats);
+    const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, [], blogs, stats);
 
     const systemPrompt = `You are the RobotVerse AI Assistant — a smart industrial automation consultant and marketplace search engine for www.robotverse.in, India's leading industrial robotics marketplace.
 
