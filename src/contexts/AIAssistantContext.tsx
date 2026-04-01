@@ -83,6 +83,7 @@ interface AIAssistantContextType {
   isLoggedIn: boolean;
   lastResultCounts: ResultCounts | null;
   lastUserQuery: string;
+  visibleTabs: string[];
   // Chat history
   sessions: ChatSession[];
   activeSessionId: string | null;
@@ -101,6 +102,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [error, setError] = useState<string | null>(null);
   const [lastResultCounts, setLastResultCounts] = useState<ResultCounts | null>(null);
   const [lastUserQuery, setLastUserQuery] = useState('');
+  const [visibleTabs, setVisibleTabs] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   const queriesUsed = getQueryCount();
@@ -225,9 +227,12 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const content = data.content || data.error || 'No response received';
       const assistantMsg: AIMessage = { role: 'assistant', content, timestamp: Date.now() };
 
-      // Store result counts for "submit request" feature
+      // Store result counts and visible tabs
       if (data.resultCounts) {
         setLastResultCounts(data.resultCounts as ResultCounts);
+      }
+      if (data.visibleTabs) {
+        setVisibleTabs(data.visibleTabs);
       }
 
       updateSession(currentSessionId, s => ({
@@ -270,6 +275,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       isLoggedIn: !!user,
       lastResultCounts,
       lastUserQuery,
+      visibleTabs,
       sessions,
       activeSessionId,
       startNewChat,
@@ -297,6 +303,7 @@ export function useAIAssistantContext() {
       isLoggedIn: false,
       lastResultCounts: null,
       lastUserQuery: '',
+      visibleTabs: [] as string[],
       sessions: [] as ChatSession[],
       activeSessionId: null,
       startNewChat: () => {},

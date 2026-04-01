@@ -40,7 +40,7 @@ const QUICK_PROMPTS = [
 ];
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, className }) => {
-  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery } =
+  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery, visibleTabs } =
     useAIAssistantContext();
 
   const [input, setInput] = useState("");
@@ -197,6 +197,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
                   message={msg}
                   resultCounts={isLastAssistant ? lastResultCounts : null}
                   isLastAssistant={isLastAssistant}
+                  visibleTabs={isLastAssistant ? visibleTabs : []}
                 />
               );
             })}
@@ -395,7 +396,7 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
 
 /* ─── Message Bubble ─── */
 
-const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean }> = ({ message, resultCounts, isLastAssistant }) => {
+const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean; visibleTabs?: string[] }> = ({ message, resultCounts, isLastAssistant, visibleTabs = [] }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
@@ -471,7 +472,7 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         ) : isLastAssistant && resultCounts ? (
-          <ResultTabsView content={message.content} resultCounts={resultCounts} />
+          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none

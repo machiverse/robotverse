@@ -10,6 +10,7 @@ import { ResultCounts } from "@/contexts/AIAssistantContext";
 interface ResultTabsViewProps {
   content: string;
   resultCounts: ResultCounts | null;
+  visibleTabs?: string[];
   className?: string;
 }
 
@@ -136,9 +137,15 @@ const markdownComponents = {
   a: InternalLinkRenderer,
 };
 
-const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, className }) => {
+const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, visibleTabs = [], className }) => {
   const [viewMode, setViewMode] = useState<"tabs" | "full">("tabs");
-  const { summary, sections } = useMemo(() => parseSections(content, resultCounts), [content, resultCounts]);
+  const { summary, sections: allSections } = useMemo(() => parseSections(content, resultCounts), [content, resultCounts]);
+
+  // Filter sections based on visibleTabs from the backend
+  const sections = useMemo(() => {
+    if (!visibleTabs || visibleTabs.length === 0) return allSections;
+    return allSections.filter(s => visibleTabs.includes(s.key));
+  }, [allSections, visibleTabs]);
 
   // If no sections parsed, fall back to full view
   if (sections.length === 0) {
