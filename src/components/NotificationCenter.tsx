@@ -76,6 +76,7 @@ const getNotificationLabel = (type: string): string => {
     case "quote_request": return "Quote Request";
     case "quote_accepted": return "Quote Accepted";
     case "quote_rejected": return "Quote Rejected";
+    case "quote_negotiation": return "Negotiation Request";
     case "lead_new": return "New Lead";
     case "lead_update": return "Lead Update";
     case "buyer_access_request": return "Access Request";
