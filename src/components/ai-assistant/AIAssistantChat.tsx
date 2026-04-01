@@ -40,7 +40,7 @@ const QUICK_PROMPTS = [
 ];
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, className }) => {
-  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery } =
+  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery, visibleTabs } =
     useAIAssistantContext();
 
   const [input, setInput] = useState("");
