@@ -275,6 +275,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
       isLoggedIn: !!user,
       lastResultCounts,
       lastUserQuery,
+      visibleTabs,
       sessions,
       activeSessionId,
       startNewChat,
