@@ -141,6 +141,8 @@ const getNotificationIcon = (type: string) => {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     case "quote_rejected":
       return <XCircle className="h-4 w-4 text-red-500" />;
+    case "quote_negotiation":
+      return <MessageSquare className="h-4 w-4 text-amber-500" />;
     case "lead_new":
     case "lead_update":
       return <Users className="h-4 w-4 text-emerald-500" />;
