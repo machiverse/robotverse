@@ -197,6 +197,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
                   message={msg}
                   resultCounts={isLastAssistant ? lastResultCounts : null}
                   isLastAssistant={isLastAssistant}
+                  visibleTabs={isLastAssistant ? visibleTabs : []}
                 />
               );
             })}
