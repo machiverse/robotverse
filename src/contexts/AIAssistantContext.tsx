@@ -101,6 +101,7 @@ export const AIAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [error, setError] = useState<string | null>(null);
   const [lastResultCounts, setLastResultCounts] = useState<ResultCounts | null>(null);
   const [lastUserQuery, setLastUserQuery] = useState('');
+  const [visibleTabs, setVisibleTabs] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   const queriesUsed = getQueryCount();
