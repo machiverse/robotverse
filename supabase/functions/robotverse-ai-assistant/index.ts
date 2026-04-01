@@ -436,14 +436,6 @@ For each robot, show a mini analysis card:
 
 ---
 
-### 👥 Verified Sellers & Providers
-
-1. **[Company Name]**
-   - 🏢 **Role:** [Roles]
-   - 📍 **Location:** [City]
-
----
-
 ### 💡 AI Analysis & Best Match
 
 Provide a detailed visual analysis:

@@ -29,7 +29,7 @@ const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React
   { regex: /###\s*💻\s*(Software|Programming)/i, key: "software", label: "Software", icon: <Cpu className="w-3.5 h-3.5" />, color: "from-purple-500/15 to-purple-500/5 border-purple-500/20" },
   { regex: /###\s*🚚\s*(Logistics|Transport)/i, key: "logistics", label: "Logistics", icon: <Truck className="w-3.5 h-3.5" />, countKey: "logistics", color: "from-teal-500/15 to-teal-500/5 border-teal-500/20" },
   { regex: /###\s*💰\s*(Financ|Loan)/i, key: "financing", label: "Financing", icon: <Banknote className="w-3.5 h-3.5" />, color: "from-yellow-500/15 to-yellow-500/5 border-yellow-500/20" },
-  { regex: /###\s*👥\s*(Verified Sellers|Sellers)/i, key: "sellers", label: "Sellers", icon: <Users className="w-3.5 h-3.5" />, countKey: "sellers", color: "from-pink-500/15 to-pink-500/5 border-pink-500/20" },
+  
   { regex: /###\s*💡\s*(AI Analysis|Recommendation|Best Match)/i, key: "analysis", label: "AI Analysis", icon: <Lightbulb className="w-3.5 h-3.5" />, color: "from-primary/15 to-primary/5 border-primary/20" },
 ];
 
