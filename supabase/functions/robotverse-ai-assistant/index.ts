@@ -288,13 +288,6 @@ function buildDatabaseContext(
     });
   }
 
-  if (sellers.length > 0) {
-    context += '\n👥 REGISTERED SELLERS / PROVIDERS:\n';
-    sellers.forEach((s, i) => {
-      const roles = Array.isArray(s.user_roles) ? s.user_roles.join(', ') : s.user_type || 'N/A';
-      context += `${i + 1}. ${s.company_name || s.full_name || 'Unknown'} | Roles: ${roles} | 📍 ${s.city || s.location || 'India'}\n`;
-    });
-  }
 
   if (blogs.length > 0) {
     context += '\n📰 RELATED ARTICLES:\n';
