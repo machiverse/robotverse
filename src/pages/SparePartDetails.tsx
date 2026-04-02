@@ -77,6 +77,9 @@ interface SparePart {
     mobile_number: string;
     email: string;
     location: string;
+    completed_sales?: number;
+    average_rating?: number;
+    total_reviews?: number;
   };
 }
 
