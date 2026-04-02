@@ -78,6 +78,19 @@ const GlobalChatNotifications = () => {
   return null;
 };
 
+const AppLoadingFallback = () => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100vh',
+    fontFamily: 'system-ui, sans-serif',
+    color: '#64748b',
+  }}>
+    Loading...
+  </div>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
