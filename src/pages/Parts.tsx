@@ -19,7 +19,7 @@ import {
   Filter,
   ChevronRight,
   X,
-  FileText
+  FileText as _FileText
 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
