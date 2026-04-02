@@ -18,7 +18,10 @@ import {
   TrendingUp,
   Filter,
   ChevronRight,
-  X
+  X,
+  Clock,
+  FileText,
+  IndianRupee
 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
