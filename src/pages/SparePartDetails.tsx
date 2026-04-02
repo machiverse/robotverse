@@ -28,6 +28,7 @@ import {
   Maximize2,
   Bot,
   Wrench,
+  Star,
 } from "lucide-react";
 
 import ViewCountDisplay from "@/components/ViewCountDisplay";
@@ -77,6 +78,9 @@ interface SparePart {
     mobile_number: string;
     email: string;
     location: string;
+    completed_sales?: number;
+    average_rating?: number;
+    total_reviews?: number;
   };
 }
 
@@ -140,7 +144,7 @@ const SparePartDetails = () => {
           .select(
             `
             *,
-            profiles!spare_parts_seller_id_fkey(full_name, company_name, phone, mobile_number, email, location)
+            profiles!spare_parts_seller_id_fkey(full_name, company_name, phone, mobile_number, email, location, completed_sales, average_rating, total_reviews)
           `,
           )
           .eq("id", id)
@@ -476,6 +480,25 @@ const SparePartDetails = () => {
                       AI Analysis Coming Soon
                     </Button>
                   </div>
+
+                  {/* Seller Performance */}
+                  {(sparePart.profiles?.completed_sales > 0 || sparePart.profiles?.total_reviews > 0) && (
+                    <div className="flex items-center gap-4 pt-2">
+                      {sparePart.profiles?.average_rating > 0 && (
+                        <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 px-3 py-1.5 rounded-full">
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          <span className="font-semibold text-sm">{Number(sparePart.profiles.average_rating).toFixed(1)}</span>
+                          <span className="text-xs text-muted-foreground">({sparePart.profiles.total_reviews} reviews)</span>
+                        </div>
+                      )}
+                      {sparePart.profiles?.completed_sales > 0 && (
+                        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-full">
+                          <Package className="h-4 w-4 text-emerald-600" />
+                          <span className="font-semibold text-sm">{sparePart.profiles.completed_sales} sales</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 </CardContent>
               </Card>

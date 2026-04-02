@@ -8,12 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileText, Search, Download, Eye, Calendar, Building2, DollarSign, Clock, CheckCircle, XCircle, MessageSquareMore, History } from "lucide-react";
+import { FileText, Search, Download, Eye, Calendar, Building2, DollarSign, Clock, CheckCircle, XCircle, MessageSquareMore, History, Star } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { downloadQuotationPDF, type QuotationPDFData } from "@/utils/quotationPdfGenerator";
+import { WriteReviewModal } from "@/components/reviews/WriteReviewModal";
+import { useReviews } from "@/hooks/useReviews";
 
 interface ReceivedQuotation {
   id: string;
@@ -75,6 +77,9 @@ const BuyerQuotationsView = () => {
   const [negotiatePrice, setNegotiatePrice] = useState("");
   const [negotiating, setNegotiating] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewQuotation, setReviewQuotation] = useState<ReceivedQuotation | null>(null);
+  const { submitReview } = useReviews();
 
   useEffect(() => {
     const fetchQuotations = async () => {
@@ -253,6 +258,11 @@ const BuyerQuotationsView = () => {
 
       if (error) throw error;
 
+      // Increment seller's completed sales count
+      if (quotation?.seller_id) {
+        await supabase.rpc("increment_seller_sales", { p_seller_id: quotation.seller_id });
+      }
+
       setQuotations(prev => prev.map(q => 
         q.id === quotationId 
           ? { ...q, status: "accepted", accepted_at: new Date().toISOString() }
@@ -263,9 +273,26 @@ const BuyerQuotationsView = () => {
 
       toast({ title: "Quotation accepted successfully" });
       setDetailsOpen(false);
+
+      // Prompt buyer to leave a review
+      if (quotation) {
+        setReviewQuotation(quotation);
+        setReviewOpen(true);
+      }
     } catch (error: any) {
       toast({ title: "Error accepting quotation", description: error.message, variant: "destructive" });
     }
+  };
+
+  const handleReviewSubmit = async (data: any) => {
+    if (!reviewQuotation) return false;
+    return submitReview({
+      ...data,
+      item_id: reviewQuotation.id,
+      item_type: 'quotation',
+      deal_type: 'robot',
+      reviewed_user_id: reviewQuotation.seller_id,
+    });
   };
 
   const handleRejectQuotation = async (quotationId: string) => {
@@ -777,6 +804,14 @@ const BuyerQuotationsView = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Review Modal after acceptance */}
+      <WriteReviewModal
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        onSubmit={handleReviewSubmit}
+        itemName={reviewQuotation?.seller_profile?.company_name || reviewQuotation?.seller_profile?.full_name || "Seller"}
+      />
     </div>
   );
 };
