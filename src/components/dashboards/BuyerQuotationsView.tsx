@@ -804,6 +804,14 @@ const BuyerQuotationsView = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Review Modal after acceptance */}
+      <WriteReviewModal
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        onSubmit={handleReviewSubmit}
+        itemName={reviewQuotation?.seller_profile?.company_name || reviewQuotation?.seller_profile?.full_name || "Seller"}
+      />
     </div>
   );
 };
