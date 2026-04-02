@@ -77,6 +77,9 @@ const BuyerQuotationsView = () => {
   const [negotiatePrice, setNegotiatePrice] = useState("");
   const [negotiating, setNegotiating] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewQuotation, setReviewQuotation] = useState<ReceivedQuotation | null>(null);
+  const { submitReview } = useReviews();
 
   useEffect(() => {
     const fetchQuotations = async () => {
