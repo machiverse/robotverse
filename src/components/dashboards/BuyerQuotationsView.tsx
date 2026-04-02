@@ -253,6 +253,11 @@ const BuyerQuotationsView = () => {
 
       if (error) throw error;
 
+      // Increment seller's completed sales count
+      if (quotation?.seller_id) {
+        await supabase.rpc("increment_seller_sales", { p_seller_id: quotation.seller_id });
+      }
+
       setQuotations(prev => prev.map(q => 
         q.id === quotationId 
           ? { ...q, status: "accepted", accepted_at: new Date().toISOString() }
@@ -263,9 +268,26 @@ const BuyerQuotationsView = () => {
 
       toast({ title: "Quotation accepted successfully" });
       setDetailsOpen(false);
+
+      // Prompt buyer to leave a review
+      if (quotation) {
+        setReviewQuotation(quotation);
+        setReviewOpen(true);
+      }
     } catch (error: any) {
       toast({ title: "Error accepting quotation", description: error.message, variant: "destructive" });
     }
+  };
+
+  const handleReviewSubmit = async (data: any) => {
+    if (!reviewQuotation) return false;
+    return submitReview({
+      ...data,
+      item_id: reviewQuotation.id,
+      item_type: 'quotation',
+      deal_type: 'robot',
+      reviewed_user_id: reviewQuotation.seller_id,
+    });
   };
 
   const handleRejectQuotation = async (quotationId: string) => {
