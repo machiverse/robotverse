@@ -19,9 +19,7 @@ import {
   Filter,
   ChevronRight,
   X,
-  Clock,
-  FileText,
-  IndianRupee
+  FileText
 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
