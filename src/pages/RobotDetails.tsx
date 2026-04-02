@@ -1317,6 +1317,35 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               </DialogContent>
             </Dialog>
 
+            {/* Seller Stats Card */}
+            {(robot.profiles?.completed_sales > 0 || robot.profiles?.total_reviews > 0) && (
+              <Card className="border shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Seller Performance</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {robot.profiles?.average_rating > 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+                      <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                      <div>
+                        <p className="font-semibold">{Number(robot.profiles.average_rating).toFixed(1)} / 5.0</p>
+                        <p className="text-xs text-muted-foreground">{robot.profiles.total_reviews} reviews</p>
+                      </div>
+                    </div>
+                  )}
+                  {robot.profiles?.completed_sales > 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
+                      <Package className="w-5 h-5 text-emerald-600" />
+                      <div>
+                        <p className="font-semibold">{robot.profiles.completed_sales} completed sales</p>
+                        <p className="text-xs text-muted-foreground">Verified transactions</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quick Stats Card */}
             <Card className="border shadow-sm">
               <CardHeader className="pb-3">
