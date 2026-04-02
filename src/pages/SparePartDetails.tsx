@@ -143,7 +143,7 @@ const SparePartDetails = () => {
           .select(
             `
             *,
-            profiles!spare_parts_seller_id_fkey(full_name, company_name, phone, mobile_number, email, location)
+            profiles!spare_parts_seller_id_fkey(full_name, company_name, phone, mobile_number, email, location, completed_sales, average_rating, total_reviews)
           `,
           )
           .eq("id", id)
