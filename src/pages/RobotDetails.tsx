@@ -234,7 +234,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
           .select(`
             *,
             profiles!robots_seller_id_fkey (
-              full_name, company_name, phone, mobile_number, email, location
+              full_name, company_name, phone, mobile_number, email, location, completed_sales, average_rating, total_reviews
             )
           `)
           .eq("id", id)
