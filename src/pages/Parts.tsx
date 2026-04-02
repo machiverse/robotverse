@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Filter,
   ChevronRight,
-  X
+  X,
+  FileText as _FileText
 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
@@ -95,6 +96,7 @@ const Parts = () => {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
+  
 
   // Dynamic filter options
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([
@@ -245,6 +247,7 @@ const Parts = () => {
 
     fetchParts();
   }, [getItemViewCount, isReady]);
+
 
   // Handle category change - reset subcategory and component type
   const handleCategoryChange = (value: string) => {
@@ -671,6 +674,19 @@ const Parts = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Submit Request CTA */}
+            <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
+              <CardContent className="p-4 text-center">
+                <Package className="w-8 h-8 mx-auto mb-2 text-primary" />
+                <h4 className="font-semibold text-sm mb-1">Can't find your part?</h4>
+                <p className="text-xs text-muted-foreground mb-3">Submit your requirement</p>
+                <Button size="sm" className="w-full" onClick={() => setShowRequestModal(true)}>
+                  <Search className="w-3 h-3 mr-1" /> Submit Request
+                </Button>
+              </CardContent>
+            </Card>
+
           </div>
         </aside>
 
@@ -981,14 +997,6 @@ const Parts = () => {
         userName={user?.user_metadata?.full_name || ""}
       />
 
-      {/* Can't Find CTA */}
-      <div className="mt-8 mx-4 p-6 bg-muted rounded-xl text-center">
-        <h3 className="text-lg font-semibold mb-2">Can't find the spare part you need?</h3>
-        <p className="text-muted-foreground mb-4">Submit your requirement and we'll connect you with suppliers.</p>
-        <Button onClick={() => setShowRequestModal(true)} size="lg">
-          <Search className="w-4 h-4 mr-2" /> Submit a Request
-        </Button>
-      </div>
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="spare_part" />
     </div>
