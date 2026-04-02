@@ -19,7 +19,7 @@ import {
   Filter,
   ChevronRight,
   X,
-  FileText
+  FileText as _FileText
 } from "lucide-react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ChatButton } from "@/components/chat/ChatButton";
@@ -96,7 +96,7 @@ const Parts = () => {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
-  const [userRequests, setUserRequests] = useState<any[]>([]);
+  
 
   // Dynamic filter options
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([
@@ -248,18 +248,6 @@ const Parts = () => {
     fetchParts();
   }, [getItemViewCount, isReady]);
 
-  // Fetch user submitted requests
-  useEffect(() => {
-    const fetchRequests = async () => {
-      const { data } = await supabase
-        .from('user_product_requests')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      setUserRequests(data || []);
-    };
-    fetchRequests();
-  }, [showRequestModal]);
 
   // Handle category change - reset subcategory and component type
   const handleCategoryChange = (value: string) => {
@@ -699,59 +687,6 @@ const Parts = () => {
               </CardContent>
             </Card>
 
-            {/* Submitted Requests */}
-            {userRequests.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Recent Requests
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {userRequests.map((req) => (
-                    <div key={req.id} className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h5 className="font-medium text-sm line-clamp-1">{req.product_name}</h5>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-[10px] shrink-0 ${
-                            req.status === 'new_request' ? 'border-blue-500/50 text-blue-600 bg-blue-500/10' :
-                            req.status === 'seller_assigned' ? 'border-amber-500/50 text-amber-600 bg-amber-500/10' :
-                            req.status === 'quote_submitted' ? 'border-emerald-500/50 text-emerald-600 bg-emerald-500/10' :
-                            'border-muted-foreground/30'
-                          }`}
-                        >
-                          {req.status === 'new_request' ? 'New' : 
-                           req.status === 'seller_assigned' ? 'Assigned' :
-                           req.status === 'quote_submitted' ? 'Quoted' :
-                           req.status?.replace('_', ' ')}
-                        </Badge>
-                      </div>
-                      {req.brand && (
-                        <p className="text-xs text-muted-foreground">Brand: {req.brand}</p>
-                      )}
-                      <div className="flex items-center justify-between mt-1.5">
-                        {req.budget && (
-                          <span className="text-xs font-medium text-primary">
-                            Budget: ₹{Number(req.budget).toLocaleString('en-IN')}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      {req.location && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          {req.location}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </aside>
 
