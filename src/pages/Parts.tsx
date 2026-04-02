@@ -250,6 +250,19 @@ const Parts = () => {
     fetchParts();
   }, [getItemViewCount, isReady]);
 
+  // Fetch user submitted requests
+  useEffect(() => {
+    const fetchRequests = async () => {
+      const { data } = await supabase
+        .from('user_product_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      setUserRequests(data || []);
+    };
+    fetchRequests();
+  }, [showRequestModal]);
+
   // Handle category change - reset subcategory and component type
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
