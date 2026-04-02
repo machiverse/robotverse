@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileText, Search, Download, Eye, Calendar, Building2, DollarSign, Clock, CheckCircle, XCircle, MessageSquareMore, History } from "lucide-react";
+import { FileText, Search, Download, Eye, Calendar, Building2, DollarSign, Clock, CheckCircle, XCircle, MessageSquareMore, History, Star } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
