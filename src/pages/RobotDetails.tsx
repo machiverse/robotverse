@@ -1328,20 +1328,20 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {robot.profiles?.average_rating > 0 && (
-                    <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                       <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
                       <div>
-                        <p className="font-semibold">{Number(robot.profiles.average_rating).toFixed(1)} / 5.0</p>
-                        <p className="text-xs text-muted-foreground">{robot.profiles.total_reviews} reviews</p>
+                        <p className="font-bold text-amber-400">{Number(robot.profiles.average_rating).toFixed(1)} / 5.0</p>
+                        <p className="text-xs text-amber-300/70">{robot.profiles.total_reviews} reviews</p>
                       </div>
                     </div>
                   )}
                   {robot.profiles?.completed_sales > 0 && (
-                    <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
-                      <Package className="w-5 h-5 text-emerald-600" />
+                    <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                      <Package className="w-5 h-5 text-emerald-400" />
                       <div>
-                        <p className="font-semibold">{robot.profiles.completed_sales} completed sales</p>
-                        <p className="text-xs text-muted-foreground">Verified transactions</p>
+                        <p className="font-bold text-emerald-400">{robot.profiles.completed_sales} completed sales</p>
+                        <p className="text-xs text-emerald-300/70">Verified transactions</p>
                       </div>
                     </div>
                   )}
