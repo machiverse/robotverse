@@ -28,6 +28,7 @@ import {
   Maximize2,
   Bot,
   Wrench,
+  Star,
 } from "lucide-react";
 
 import ViewCountDisplay from "@/components/ViewCountDisplay";
