@@ -96,7 +96,7 @@ const Parts = () => {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
-  const [userRequests, setUserRequests] = useState<any[]>([]);
+  
 
   // Dynamic filter options
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([
