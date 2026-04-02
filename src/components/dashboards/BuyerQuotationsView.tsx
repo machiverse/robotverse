@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { downloadQuotationPDF, type QuotationPDFData } from "@/utils/quotationPdfGenerator";
+import { WriteReviewModal } from "@/components/reviews/WriteReviewModal";
+import { useReviews } from "@/hooks/useReviews";
 
 interface ReceivedQuotation {
   id: string;
