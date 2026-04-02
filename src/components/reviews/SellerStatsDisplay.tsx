@@ -16,14 +16,14 @@ export function SellerStatsDisplay({ completedSales = 0, averageRating = 0, tota
         {averageRating > 0 && (
           <div className="flex items-center gap-1">
             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span className="font-medium">{averageRating.toFixed(1)}</span>
+            <span className="font-semibold text-amber-400">{averageRating.toFixed(1)}</span>
             <span className="text-muted-foreground">({totalReviews})</span>
           </div>
         )}
         {completedSales > 0 && (
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <ShoppingBag className="h-3.5 w-3.5" />
-            <span>{completedSales} sales</span>
+          <div className="flex items-center gap-1">
+            <ShoppingBag className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="font-semibold text-emerald-400">{completedSales} sales</span>
           </div>
         )}
       </div>
