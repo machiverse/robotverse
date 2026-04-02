@@ -1365,6 +1365,7 @@ export type Database = {
           quotation_number: string
           rejected_at: string | null
           rejection_reason: string | null
+          revision_history: Json | null
           seller_id: string
           sent_at: string | null
           shipping_amount: number | null
@@ -1401,6 +1402,7 @@ export type Database = {
           quotation_number?: string
           rejected_at?: string | null
           rejection_reason?: string | null
+          revision_history?: Json | null
           seller_id: string
           sent_at?: string | null
           shipping_amount?: number | null
@@ -1437,6 +1439,7 @@ export type Database = {
           quotation_number?: string
           rejected_at?: string | null
           rejection_reason?: string | null
+          revision_history?: Json | null
           seller_id?: string
           sent_at?: string | null
           shipping_amount?: number | null
@@ -2392,9 +2395,11 @@ export type Database = {
         Row: {
           account_type: string | null
           avatar_url: string | null
+          average_rating: number | null
           city: string | null
           company_logo_url: string | null
           company_name: string | null
+          completed_sales: number | null
           created_at: string
           credits_balance: number | null
           email: string | null
@@ -2421,6 +2426,7 @@ export type Database = {
           seller_roles: string[] | null
           service_categories: string[] | null
           target_audience: string[] | null
+          total_reviews: number | null
           transport_modes: string[] | null
           updated_at: string
           user_id: string
@@ -2431,9 +2437,11 @@ export type Database = {
         Insert: {
           account_type?: string | null
           avatar_url?: string | null
+          average_rating?: number | null
           city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
+          completed_sales?: number | null
           created_at?: string
           credits_balance?: number | null
           email?: string | null
@@ -2460,6 +2468,7 @@ export type Database = {
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
+          total_reviews?: number | null
           transport_modes?: string[] | null
           updated_at?: string
           user_id: string
@@ -2470,9 +2479,11 @@ export type Database = {
         Update: {
           account_type?: string | null
           avatar_url?: string | null
+          average_rating?: number | null
           city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
+          completed_sales?: number | null
           created_at?: string
           credits_balance?: number | null
           email?: string | null
@@ -2499,6 +2510,7 @@ export type Database = {
           seller_roles?: string[] | null
           service_categories?: string[] | null
           target_audience?: string[] | null
+          total_reviews?: number | null
           transport_modes?: string[] | null
           updated_at?: string
           user_id?: string
@@ -4443,6 +4455,10 @@ export type Database = {
       increment_robot_view_count: {
         Args: { p_robot_id: string }
         Returns: number
+      }
+      increment_seller_sales: {
+        Args: { p_seller_id: string }
+        Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
       is_admin_user: { Args: never; Returns: boolean }

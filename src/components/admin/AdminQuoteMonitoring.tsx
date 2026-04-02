@@ -45,6 +45,8 @@ interface Quotation {
   viewed_at: string | null;
   accepted_at: string | null;
   rejected_at: string | null;
+  rejection_reason: string | null;
+  revision_history: any;
   items: any;
   seller_name?: string;
   seller_company?: string;
@@ -105,6 +107,7 @@ const AdminQuoteMonitoring = () => {
       accepted: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
       responded: 'bg-green-100 text-green-800',
+      negotiation: 'bg-amber-100 text-amber-800',
     };
     return (
       <Badge className={variants[status] || 'bg-muted text-muted-foreground'}>
@@ -119,6 +122,7 @@ const AdminQuoteMonitoring = () => {
   const totalQuotations = quotations.length;
   const acceptedQuotations = quotations.filter(q => q.status === 'accepted').length;
   const rejectedQuotations = quotations.filter(q => q.status === 'rejected').length;
+  const negotiationQuotations = quotations.filter(q => q.status === 'negotiation').length;
   const totalQuoteValue = quotations.reduce((sum, q) => sum + (Number(q.total_amount) || 0), 0);
 
   return (
@@ -135,7 +139,7 @@ const AdminQuoteMonitoring = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <Card>
           <CardContent className="p-3 text-center">
             <Send className="h-5 w-5 mx-auto text-primary mb-1" />
@@ -178,6 +182,13 @@ const AdminQuoteMonitoring = () => {
             <p className="text-xs text-muted-foreground">Rejected</p>
           </CardContent>
         </Card>
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardContent className="p-3 text-center">
+            <FileText className="h-5 w-5 mx-auto text-amber-600 mb-1" />
+            <p className="text-2xl font-bold">{negotiationQuotations}</p>
+            <p className="text-xs text-muted-foreground">Negotiation</p>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="p-3 text-center">
             <TrendingUp className="h-5 w-5 mx-auto text-primary mb-1" />
@@ -191,6 +202,8 @@ const AdminQuoteMonitoring = () => {
         <TabsList>
           <TabsTrigger value="requests">Quote Requests ({totalRequests})</TabsTrigger>
           <TabsTrigger value="quotations">Quotations Sent ({totalQuotations})</TabsTrigger>
+          <TabsTrigger value="negotiations">Negotiations ({negotiationQuotations})</TabsTrigger>
+          <TabsTrigger value="accepted">Accepted ({acceptedQuotations})</TabsTrigger>
         </TabsList>
 
         {/* Quote Requests Tab */}
@@ -368,9 +381,221 @@ const AdminQuoteMonitoring = () => {
                                   <XCircle className="h-3 w-3" /> Rejected {format(new Date(q.rejected_at), 'dd MMM')}
                                 </div>
                               )}
+                {/* Show negotiation note if status is negotiation */}
+                {q.status === 'negotiation' && (
+                  <div className="flex items-center gap-1 text-amber-600">
+                    <FileText className="h-3 w-3" /> Negotiation requested
+                  </div>
+                )}
                             </div>
                           </TableCell>
                           <TableCell>{getStatusBadge(q.status || 'draft')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Negotiations Tab */}
+        <TabsContent value="negotiations">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Quotations Under Negotiation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {quotations.filter(q => q.status === 'negotiation').length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No quotations under negotiation</p>
+              ) : (
+                <div className="overflow-auto max-h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Quote #</TableHead>
+                        <TableHead>Seller (Sender)</TableHead>
+                        <TableHead>Buyer (Requester)</TableHead>
+                        <TableHead>Original Amount</TableHead>
+                        <TableHead>Proposed Price</TableHead>
+                        <TableHead>Negotiation Details</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {quotations.filter(q => q.status === 'negotiation').map(q => {
+                        const history = Array.isArray(q.revision_history) ? q.revision_history : [];
+                        const lastNegotiation = history.filter((h: any) => h.action === 'buyer_negotiation').pop();
+                        return (
+                          <TableRow key={q.id}>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {format(new Date(q.created_at), 'dd MMM yyyy HH:mm')}
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-mono text-sm font-medium">{q.quotation_number}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3 text-primary" />
+                                  <span className="font-medium text-sm">{q.seller_name}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Building2 className="h-3 w-3" />
+                                  {q.seller_company}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3 text-muted-foreground" />
+                                  <span className="font-medium text-sm">{q.buyer_name}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Building2 className="h-3 w-3" />
+                                  {q.buyer_company || '-'}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Mail className="h-3 w-3" />
+                                  {q.buyer_email || '-'}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="h-3 w-3" />
+                                  {q.buyer_phone || '-'}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-semibold text-primary">₹{Number(q.total_amount).toLocaleString()}</span>
+                            </TableCell>
+                            <TableCell>
+                              {lastNegotiation?.proposed_price ? (
+                                <span className="font-semibold text-amber-600">₹{Number(lastNegotiation.proposed_price).toLocaleString()}</span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">No price proposed</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="max-w-[200px] space-y-1">
+                                {lastNegotiation?.message && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">"{lastNegotiation.message}"</p>
+                                )}
+                                {lastNegotiation?.timestamp && (
+                                  <p className="text-xs text-amber-600">
+                                    {format(new Date(lastNegotiation.timestamp), 'dd MMM yyyy HH:mm')}
+                                  </p>
+                                )}
+                                {q.rejection_reason && !lastNegotiation?.message && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">"{q.rejection_reason}"</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge('negotiation')}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Accepted Tab */}
+        <TabsContent value="accepted">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Accepted Quotations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {quotations.filter(q => q.status === 'accepted').length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No accepted quotations</p>
+              ) : (
+                <div className="overflow-auto max-h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Quote #</TableHead>
+                        <TableHead>Seller (Sender)</TableHead>
+                        <TableHead>Buyer (Receiver)</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Timeline</TableHead>
+                        <TableHead>Accepted On</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {quotations.filter(q => q.status === 'accepted').map(q => (
+                        <TableRow key={q.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(new Date(q.created_at), 'dd MMM yyyy HH:mm')}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-sm font-medium">{q.quotation_number}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3 text-primary" />
+                                <span className="font-medium text-sm">{q.seller_name}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3" />
+                                {q.seller_company}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1">
+                                <User className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-medium text-sm">{q.buyer_name}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3" />
+                                {q.buyer_company || '-'}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Mail className="h-3 w-3" />
+                                {q.buyer_email || '-'}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                {q.buyer_phone || '-'}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold text-primary">₹{Number(q.total_amount).toLocaleString()}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-0.5 text-xs">
+                              {q.sent_at && (
+                                <div className="flex items-center gap-1 text-blue-600">
+                                  <Send className="h-3 w-3" /> Sent {format(new Date(q.sent_at), 'dd MMM')}
+                                </div>
+                              )}
+                              {q.viewed_at && (
+                                <div className="flex items-center gap-1 text-purple-600">
+                                  <Eye className="h-3 w-3" /> Viewed {format(new Date(q.viewed_at), 'dd MMM')}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {q.accepted_at ? (
+                              <div className="flex items-center gap-1 text-green-600 font-medium">
+                                <CheckCircle className="h-3 w-3" />
+                                {format(new Date(q.accepted_at), 'dd MMM yyyy HH:mm')}
+                              </div>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell>{getStatusBadge('accepted')}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

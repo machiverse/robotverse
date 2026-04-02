@@ -4,14 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Search, Download, Eye, Calendar, Building2, DollarSign, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { FileText, Search, Download, Eye, Calendar, Building2, DollarSign, Clock, CheckCircle, XCircle, MessageSquareMore, History, Star } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { downloadQuotationPDF, type QuotationPDFData } from "@/utils/quotationPdfGenerator";
+import { WriteReviewModal } from "@/components/reviews/WriteReviewModal";
+import { useReviews } from "@/hooks/useReviews";
 
 interface ReceivedQuotation {
   id: string;
@@ -35,6 +39,9 @@ interface ReceivedQuotation {
   viewed_at: string | null;
   accepted_at: string | null;
   rejected_at: string | null;
+  rejection_reason: string | null;
+  revision_history: any;
+  version: number | null;
   created_at: string;
   seller_profile?: {
     full_name: string;
@@ -53,6 +60,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   viewed: { label: "Viewed", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400", icon: <Eye className="h-3 w-3" /> },
   accepted: { label: "Accepted", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", icon: <CheckCircle className="h-3 w-3" /> },
   rejected: { label: "Rejected", color: "bg-destructive/10 text-destructive", icon: <XCircle className="h-3 w-3" /> },
+  negotiation: { label: "Negotiation", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: <MessageSquareMore className="h-3 w-3" /> },
   expired: { label: "Expired", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400", icon: <Calendar className="h-3 w-3" /> },
 };
 
@@ -64,8 +72,15 @@ const BuyerQuotationsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuotation, setSelectedQuotation] = useState<ReceivedQuotation | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [negotiateOpen, setNegotiateOpen] = useState(false);
+  const [negotiateMessage, setNegotiateMessage] = useState("");
+  const [negotiatePrice, setNegotiatePrice] = useState("");
+  const [negotiating, setNegotiating] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewQuotation, setReviewQuotation] = useState<ReceivedQuotation | null>(null);
+  const { submitReview } = useReviews();
 
-  // Fetch quotations received by buyer
   useEffect(() => {
     const fetchQuotations = async () => {
       if (!user?.email) return;
@@ -79,7 +94,6 @@ const BuyerQuotationsView = () => {
 
         if (error) throw error;
 
-        // Fetch seller profiles for each quotation
         const quotationsWithSeller = await Promise.all(
           (data || []).map(async (q) => {
             const { data: sellerData } = await supabase
@@ -98,7 +112,6 @@ const BuyerQuotationsView = () => {
 
         setQuotations(quotationsWithSeller);
 
-        // Mark as viewed if not already
         const unviewedIds = quotationsWithSeller
           .filter(q => q.status === "sent" && !q.viewed_at)
           .map(q => q.id);
@@ -173,31 +186,62 @@ const BuyerQuotationsView = () => {
     }
   };
 
-  const notifySeller = async (quotation: ReceivedQuotation, action: "accepted" | "rejected") => {
+  const notifySeller = async (quotation: ReceivedQuotation, action: "accepted" | "rejected" | "negotiation", message?: string) => {
     try {
       const buyerName = user?.user_metadata?.full_name || user?.email || "A buyer";
       
-      // Send notification to seller via chat_notifications
-      await supabase.from("chat_notifications").insert({
-        user_id: quotation.seller_id,
-        conversation_id: quotation.id,
-        notification_type: `quote_${action}`,
-        is_read: false,
-      });
+      let title = "";
+      let notifMessage = "";
+      
+      if (action === "negotiation") {
+        title = "Quotation Negotiation Request";
+        notifMessage = `${buyerName} has requested negotiation on quotation ${quotation.quotation_number} (₹${quotation.total_amount.toLocaleString('en-IN')})${message ? ` - "${message}"` : ""}`;
+      } else {
+        title = `Quotation ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+        notifMessage = `${buyerName} has ${action} quotation ${quotation.quotation_number} (₹${quotation.total_amount.toLocaleString('en-IN')})`;
+      }
 
-      // Also insert into notifications table if available
+      // Insert into notifications table
       try {
         await supabase.from("notifications").insert({
           user_id: quotation.seller_id,
-          title: `Quotation ${action.charAt(0).toUpperCase() + action.slice(1)}`,
-          message: `${buyerName} has ${action} quotation ${quotation.quotation_number} (Rs. ${quotation.total_amount.toLocaleString('en-IN')})`,
+          title,
+          message: notifMessage,
           notification_type: `quote_${action}`,
           reference_id: quotation.id,
           reference_type: "quotation",
           is_read: false,
         });
       } catch {
-        // Silently fail if notifications table doesn't exist
+        // Silently fail if notifications table issue
+      }
+
+      // Send email notification to seller
+      try {
+        const { data: sellerProfile } = await supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("user_id", quotation.seller_id)
+          .single();
+
+        if (sellerProfile?.email) {
+          await supabase.functions.invoke("send-quotation-notification", {
+            body: {
+              buyerEmail: sellerProfile.email,
+              buyerName: sellerProfile.full_name || "Seller",
+              sellerName: buyerName,
+              sellerCompany: quotation.buyer_company || "",
+              quotationNumber: quotation.quotation_number,
+              totalAmount: quotation.total_amount,
+              validUntil: quotation.valid_until || "",
+              items: [],
+              notificationType: action,
+              negotiationMessage: message || "",
+            },
+          });
+        }
+      } catch {
+        console.log("Email notification skipped");
       }
     } catch (err) {
       console.error("Error notifying seller:", err);
@@ -214,20 +258,41 @@ const BuyerQuotationsView = () => {
 
       if (error) throw error;
 
+      // Increment seller's completed sales count
+      if (quotation?.seller_id) {
+        await supabase.rpc("increment_seller_sales", { p_seller_id: quotation.seller_id });
+      }
+
       setQuotations(prev => prev.map(q => 
         q.id === quotationId 
           ? { ...q, status: "accepted", accepted_at: new Date().toISOString() }
           : q
       ));
 
-      // Notify the seller
       if (quotation) await notifySeller(quotation, "accepted");
 
       toast({ title: "Quotation accepted successfully" });
       setDetailsOpen(false);
+
+      // Prompt buyer to leave a review
+      if (quotation) {
+        setReviewQuotation(quotation);
+        setReviewOpen(true);
+      }
     } catch (error: any) {
       toast({ title: "Error accepting quotation", description: error.message, variant: "destructive" });
     }
+  };
+
+  const handleReviewSubmit = async (data: any) => {
+    if (!reviewQuotation) return false;
+    return submitReview({
+      ...data,
+      item_id: reviewQuotation.id,
+      item_type: 'quotation',
+      deal_type: 'robot',
+      reviewed_user_id: reviewQuotation.seller_id,
+    });
   };
 
   const handleRejectQuotation = async (quotationId: string) => {
@@ -246,7 +311,6 @@ const BuyerQuotationsView = () => {
           : q
       ));
 
-      // Notify the seller
       if (quotation) await notifySeller(quotation, "rejected");
 
       toast({ title: "Quotation rejected" });
@@ -254,6 +318,65 @@ const BuyerQuotationsView = () => {
     } catch (error: any) {
       toast({ title: "Error rejecting quotation", description: error.message, variant: "destructive" });
     }
+  };
+
+  const handleNegotiate = async () => {
+    if (!selectedQuotation) return;
+    setNegotiating(true);
+    
+    try {
+      const negotiationEntry = {
+        action: "buyer_negotiation",
+        timestamp: new Date().toISOString(),
+        proposed_price: negotiatePrice ? Number(negotiatePrice) : null,
+        message: negotiateMessage,
+        buyer_name: user?.user_metadata?.full_name || user?.email || "Buyer",
+        previous_amount: selectedQuotation.total_amount,
+      };
+
+      const existingHistory = Array.isArray(selectedQuotation.revision_history) 
+        ? selectedQuotation.revision_history 
+        : [];
+
+      const { error } = await supabase
+        .from("crm_quotations")
+        .update({ 
+          status: "negotiation",
+          rejection_reason: negotiateMessage,
+          revision_history: [...existingHistory, negotiationEntry],
+        })
+        .eq("id", selectedQuotation.id);
+
+      if (error) throw error;
+
+      setQuotations(prev => prev.map(q => 
+        q.id === selectedQuotation.id 
+          ? { ...q, status: "negotiation", rejection_reason: negotiateMessage, revision_history: [...existingHistory, negotiationEntry] }
+          : q
+      ));
+
+      const fullMessage = negotiatePrice 
+        ? `Proposed price: ₹${Number(negotiatePrice).toLocaleString('en-IN')}. ${negotiateMessage}`
+        : negotiateMessage;
+
+      await notifySeller(selectedQuotation, "negotiation", fullMessage);
+
+      toast({ title: "Negotiation request sent to seller" });
+      setNegotiateOpen(false);
+      setDetailsOpen(false);
+      setNegotiateMessage("");
+      setNegotiatePrice("");
+    } catch (error: any) {
+      toast({ title: "Error sending negotiation", description: error.message, variant: "destructive" });
+    } finally {
+      setNegotiating(false);
+    }
+  };
+
+  const getRevisionHistory = (quotation: ReceivedQuotation) => {
+    if (!quotation.revision_history) return [];
+    if (Array.isArray(quotation.revision_history)) return quotation.revision_history;
+    return [];
   };
 
   if (loading) {
@@ -298,6 +421,7 @@ const BuyerQuotationsView = () => {
         <div className="space-y-4">
           {filteredQuotations.map((quotation) => {
             const status = STATUS_CONFIG[quotation.status] || STATUS_CONFIG.sent;
+            const history = getRevisionHistory(quotation);
             
             return (
               <Card key={quotation.id} className="hover:shadow-md transition-shadow">
@@ -309,12 +433,23 @@ const BuyerQuotationsView = () => {
                         <FileText className="h-6 w-6 text-primary" />
                       </div>
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold">{quotation.quotation_number}</p>
                           <Badge className={status.color}>
                             {status.icon}
                             <span className="ml-1">{status.label}</span>
                           </Badge>
+                          {(quotation.version || 1) > 1 && (
+                            <Badge variant="outline" className="text-xs">
+                              v{quotation.version}
+                            </Badge>
+                          )}
+                          {history.length > 0 && (
+                            <Badge variant="outline" className="text-xs cursor-pointer" onClick={() => { setSelectedQuotation(quotation); setHistoryOpen(true); }}>
+                              <History className="h-3 w-3 mr-1" />
+                              {history.length} updates
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Building2 className="h-3.5 w-3.5" />
@@ -369,6 +504,9 @@ const BuyerQuotationsView = () => {
                 <DialogTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
                   Quotation {selectedQuotation.quotation_number}
+                  {(selectedQuotation.version || 1) > 1 && (
+                    <Badge variant="outline">v{selectedQuotation.version}</Badge>
+                  )}
                 </DialogTitle>
               </DialogHeader>
 
@@ -390,9 +528,21 @@ const BuyerQuotationsView = () => {
                     )}
                   </div>
                   <Badge className={STATUS_CONFIG[selectedQuotation.status]?.color}>
-                    {STATUS_CONFIG[selectedQuotation.status]?.label}
+                    {STATUS_CONFIG[selectedQuotation.status]?.icon}
+                    <span className="ml-1">{STATUS_CONFIG[selectedQuotation.status]?.label}</span>
                   </Badge>
                 </div>
+
+                {/* Negotiation message if in negotiation */}
+                {selectedQuotation.status === "negotiation" && selectedQuotation.rejection_reason && (
+                  <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                      <MessageSquareMore className="h-4 w-4" />
+                      Your Negotiation Request
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">{selectedQuotation.rejection_reason}</p>
+                  </div>
+                )}
 
                 <Separator />
 
@@ -481,16 +631,68 @@ const BuyerQuotationsView = () => {
                     <p className="text-sm italic">{selectedQuotation.notes}</p>
                   </div>
                 )}
+
+                {/* Revision History inline */}
+                {getRevisionHistory(selectedQuotation).length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground uppercase tracking-wide font-medium mb-3 flex items-center gap-2">
+                        <History className="h-4 w-4" /> Negotiation & Revision History
+                      </p>
+                      <div className="space-y-3">
+                        {getRevisionHistory(selectedQuotation).map((entry: any, idx: number) => (
+                          <div key={idx} className="border rounded-lg p-3 bg-muted/30">
+                            <div className="flex items-center justify-between mb-1">
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {entry.action?.replace(/_/g, " ") || "Update"}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {entry.timestamp ? format(new Date(entry.timestamp), "dd MMM yyyy, hh:mm a") : ""}
+                              </span>
+                            </div>
+                            {entry.message && <p className="text-sm mt-1">{entry.message}</p>}
+                            {entry.proposed_price && (
+                              <p className="text-sm font-medium text-primary mt-1">
+                                Proposed: ₹{Number(entry.proposed_price).toLocaleString('en-IN')}
+                              </p>
+                            )}
+                            {entry.previous_amount && (
+                              <p className="text-xs text-muted-foreground">
+                                Previous amount: ₹{Number(entry.previous_amount).toLocaleString('en-IN')}
+                              </p>
+                            )}
+                            {entry.new_amount && (
+                              <p className="text-sm font-semibold text-emerald-600">
+                                Updated to: ₹{Number(entry.new_amount).toLocaleString('en-IN')}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Actions */}
-              {["sent", "viewed"].includes(selectedQuotation.status) && (
+              {/* Actions - show for sent, viewed, and negotiation statuses */}
+              {["sent", "viewed", "negotiation"].includes(selectedQuotation.status) && (
                 <div className="flex items-center justify-between pt-4 border-t">
                   <Button variant="outline" onClick={() => handleDownloadPDF(selectedQuotation)}>
                     <Download className="h-4 w-4 mr-2" />
                     Download PDF
                   </Button>
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      className="text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-950/30"
+                      onClick={() => {
+                        setNegotiateOpen(true);
+                      }}
+                    >
+                      <MessageSquareMore className="h-4 w-4 mr-2" />
+                      Negotiate
+                    </Button>
                     <Button 
                       variant="outline" 
                       className="text-destructive border-destructive hover:bg-destructive/10"
@@ -501,7 +703,7 @@ const BuyerQuotationsView = () => {
                     </Button>
                     <Button onClick={() => handleAcceptQuotation(selectedQuotation.id)}>
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      Accept Quotation
+                      Accept
                     </Button>
                   </div>
                 </div>
@@ -510,6 +712,106 @@ const BuyerQuotationsView = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Negotiate Dialog */}
+      <Dialog open={negotiateOpen} onOpenChange={setNegotiateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquareMore className="h-5 w-5 text-amber-600" />
+              Request Negotiation
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Current quotation amount: <span className="font-bold text-foreground">₹{selectedQuotation?.total_amount.toLocaleString()}</span>
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="proposed-price">Your Proposed Price (₹)</Label>
+              <Input
+                id="proposed-price"
+                type="number"
+                placeholder="Enter your proposed amount..."
+                value={negotiatePrice}
+                onChange={(e) => setNegotiatePrice(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="negotiate-message">Message to Seller *</Label>
+              <Textarea
+                id="negotiate-message"
+                placeholder="Explain your negotiation request... (e.g., need bulk discount, budget constraints, competitive pricing)"
+                value={negotiateMessage}
+                onChange={(e) => setNegotiateMessage(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNegotiateOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleNegotiate}
+              disabled={!negotiateMessage.trim() || negotiating}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {negotiating ? "Sending..." : "Send Negotiation Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History Dialog */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Negotiation History — {selectedQuotation?.quotation_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {selectedQuotation && getRevisionHistory(selectedQuotation).map((entry: any, idx: number) => (
+              <div key={idx} className="border rounded-lg p-3 bg-muted/30">
+                <div className="flex items-center justify-between mb-1">
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {entry.action?.replace(/_/g, " ") || "Update"}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {entry.timestamp ? format(new Date(entry.timestamp), "dd MMM yyyy, hh:mm a") : ""}
+                  </span>
+                </div>
+                {entry.message && <p className="text-sm mt-1">{entry.message}</p>}
+                {entry.proposed_price && (
+                  <p className="text-sm font-medium text-primary mt-1">
+                    Proposed: ₹{Number(entry.proposed_price).toLocaleString('en-IN')}
+                  </p>
+                )}
+                {entry.previous_amount && (
+                  <p className="text-xs text-muted-foreground">
+                    Previous: ₹{Number(entry.previous_amount).toLocaleString('en-IN')}
+                  </p>
+                )}
+                {entry.new_amount && (
+                  <p className="text-sm font-semibold text-emerald-600">
+                    Updated: ₹{Number(entry.new_amount).toLocaleString('en-IN')}
+                  </p>
+                )}
+              </div>
+            ))}
+            {selectedQuotation && getRevisionHistory(selectedQuotation).length === 0 && (
+              <p className="text-center text-muted-foreground py-4">No history available</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Modal after acceptance */}
+      <WriteReviewModal
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        onSubmit={handleReviewSubmit}
+        itemName={reviewQuotation?.seller_profile?.company_name || reviewQuotation?.seller_profile?.full_name || "Seller"}
+      />
     </div>
   );
 };

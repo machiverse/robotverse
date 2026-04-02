@@ -242,41 +242,119 @@ const CreateQuotationModal = ({
 
     setSending(true);
     try {
-      // Generate quotation number
-      const quotationNumber = `QT-${Date.now().toString(36).toUpperCase()}`;
+      const isEditing = !!existingQuotation?.id;
+      const quotationNumber = isEditing
+        ? existingQuotation.quotation_number
+        : `QT-${Date.now().toString(36).toUpperCase()}`;
 
-      // Save quotation to database
-      const { data: quotation, error: quotationError } = await supabase
-        .from("crm_quotations")
-        .insert({
-          seller_id: user.id,
-          lead_id: leadData?.leadId || null,
-          quotation_number: quotationNumber,
-          buyer_name: buyerName,
-          buyer_email: buyerEmail,
-          buyer_phone: buyerPhone,
-          buyer_company: buyerCompany,
-          buyer_address: buyerAddress,
-          items: JSON.stringify(items),
-          subtotal,
-          discount_type: discountType,
-          discount_value: discountValue,
-          discount_amount: discountAmount,
-          tax_rate: taxRate,
-          tax_amount: taxAmount,
-          shipping_amount: shippingAmount,
-          total_amount: totalAmount,
-          currency,
-          valid_until: validUntil,
-          terms_conditions: termsConditions,
-          notes,
-          status: "sent",
-          sent_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      let quotation: any;
 
-      if (quotationError) throw quotationError;
+      if (isEditing) {
+        // Build revision snapshot from existing quotation before updating
+        const revisionSnapshot = {
+          revised_at: new Date().toISOString(),
+          items: existingQuotation.items,
+          subtotal: existingQuotation.subtotal,
+          discount_type: existingQuotation.discount_type,
+          discount_value: existingQuotation.discount_value,
+          discount_amount: existingQuotation.discount_amount,
+          tax_rate: existingQuotation.tax_rate,
+          tax_amount: existingQuotation.tax_amount,
+          shipping_amount: existingQuotation.shipping_amount,
+          total_amount: existingQuotation.total_amount,
+          notes: existingQuotation.notes,
+          valid_until: existingQuotation.valid_until,
+        };
+
+        // Get existing revision history
+        const { data: currentRow } = await supabase
+          .from("crm_quotations")
+          .select("revision_history, version")
+          .eq("id", existingQuotation.id)
+          .single();
+
+        const existingHistory = (currentRow?.revision_history as any[]) || [];
+        const newVersion = (currentRow?.version || 1) + 1;
+
+        const { data: updated, error: updateError } = await supabase
+          .from("crm_quotations")
+          .update({
+            buyer_name: buyerName,
+            buyer_email: buyerEmail,
+            buyer_phone: buyerPhone,
+            buyer_company: buyerCompany,
+            buyer_address: buyerAddress,
+            items: JSON.stringify(items),
+            subtotal,
+            discount_type: discountType,
+            discount_value: discountValue,
+            discount_amount: discountAmount,
+            tax_rate: taxRate,
+            tax_amount: taxAmount,
+            shipping_amount: shippingAmount,
+            total_amount: totalAmount,
+            currency,
+            valid_until: validUntil,
+            terms_conditions: termsConditions,
+            notes,
+            status: "sent",
+            sent_at: new Date().toISOString(),
+            version: newVersion,
+            revision_history: JSON.stringify([...existingHistory, revisionSnapshot]),
+          } as any)
+          .eq("id", existingQuotation.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        quotation = updated;
+      } else {
+        // Check if leadId exists in seller_leads before using it
+        let validLeadId: string | null = null;
+        if (leadData?.leadId) {
+          const { data: leadExists } = await supabase
+            .from("seller_leads")
+            .select("id")
+            .eq("id", leadData.leadId)
+            .maybeSingle();
+          if (leadExists) {
+            validLeadId = leadData.leadId;
+          }
+        }
+
+        const { data: inserted, error: insertError } = await supabase
+          .from("crm_quotations")
+          .insert({
+            seller_id: user.id,
+            lead_id: validLeadId,
+            quotation_number: quotationNumber,
+            buyer_name: buyerName,
+            buyer_email: buyerEmail,
+            buyer_phone: buyerPhone,
+            buyer_company: buyerCompany,
+            buyer_address: buyerAddress,
+            items: JSON.stringify(items),
+            subtotal,
+            discount_type: discountType,
+            discount_value: discountValue,
+            discount_amount: discountAmount,
+            tax_rate: taxRate,
+            tax_amount: taxAmount,
+            shipping_amount: shippingAmount,
+            total_amount: totalAmount,
+            currency,
+            valid_until: validUntil,
+            terms_conditions: termsConditions,
+            notes,
+            status: "sent",
+            sent_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        quotation = inserted;
+      }
 
       // Look up buyer's user_id from profiles by email
       const { data: buyerProfile } = await supabase
@@ -307,7 +385,25 @@ const CreateQuotationModal = ({
         });
       }
 
-      // In-app notification only (no email)
+      // Send email notification to buyer via Zoho SMTP
+      try {
+        await supabase.functions.invoke('send-quote-request', {
+          body: {
+            type: 'seller_quote_response',
+            buyerName: buyerName,
+            buyerEmail: buyerEmail,
+            sellerName: sellerProfile?.full_name || '',
+            sellerCompany: sellerProfile?.company_name || '',
+            itemName: items.map(i => i.name).join(', '),
+            itemType: 'Quotation',
+            quotePrice: totalAmount.toLocaleString('en-IN'),
+            quoteDescription: notes || items.map(i => `${i.name} x${i.quantity} - ₹${(i.unit_price * i.quantity).toLocaleString('en-IN')}`).join('\n'),
+            quoteCurrency: '₹',
+          }
+        });
+      } catch (emailErr) {
+        console.error('Email notification error:', emailErr);
+      }
 
       // Auto-create deal in Deal Tracker for commission sellers
       if (isCommissionSeller) {
@@ -332,8 +428,10 @@ const CreateQuotationModal = ({
       await downloadQuotationPDF(getPDFData(quotationNumber));
 
       toast({
-        title: "Quotation sent successfully!",
-        description: `Quotation ${quotationNumber} has been created and notification sent to the buyer.`,
+        title: isEditing ? "Quotation revised & resent!" : "Quotation sent successfully!",
+        description: isEditing
+          ? `Quotation ${quotationNumber} has been updated and resent to the buyer.`
+          : `Quotation ${quotationNumber} has been created and notification sent to the buyer.`,
       });
 
       onSuccess?.();
@@ -382,12 +480,12 @@ const CreateQuotationModal = ({
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="buyerName">Name *</Label>
+                <Label htmlFor="buyerName">Buyer Name</Label>
                 <Input
                   id="buyerName"
                   value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Buyer name"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2">
@@ -395,40 +493,23 @@ const CreateQuotationModal = ({
                 <Input
                   id="buyerCompany"
                   value={buyerCompany}
-                  onChange={(e) => setBuyerCompany(e.target.value)}
-                  placeholder="Company name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="buyerEmail">Email *</Label>
-                <Input
-                  id="buyerEmail"
-                  type="email"
-                  value={buyerEmail}
-                  onChange={(e) => setBuyerEmail(e.target.value)}
-                  placeholder="buyer@company.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="buyerPhone">Phone</Label>
-                <Input
-                  id="buyerPhone"
-                  value={buyerPhone}
-                  onChange={(e) => setBuyerPhone(e.target.value)}
-                  placeholder="+91 XXXXX XXXXX"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="buyerAddress">Address</Label>
-                <Textarea
-                  id="buyerAddress"
-                  value={buyerAddress}
-                  onChange={(e) => setBuyerAddress(e.target.value)}
-                  placeholder="Full address"
-                  rows={2}
+                <Label htmlFor="buyerLocation">Location</Label>
+                <Input
+                  id="buyerLocation"
+                  value={buyerAddress || "Not provided"}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Contact details are hidden to protect buyer privacy. The quote will be delivered via the platform.
+            </p>
           </div>
 
           <Separator />

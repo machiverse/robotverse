@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, Copy, Check, FileSearch } from "lucide-react";
+import { Send, Square, Trash2, Bot, User, LogIn, Sparkles, MessageSquare, Copy, Check, FileSearch, ExternalLink } from "lucide-react";
+import ResultTabsView from "./ResultTabsView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAIAssistantContext, AIMessage } from "@/contexts/AIAssistantContext";
+import { useAIAssistantContext, AIMessage, ResultCounts } from "@/contexts/AIAssistantContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
@@ -39,7 +40,7 @@ const QUICK_PROMPTS = [
 ];
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, className }) => {
-  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery } =
+  const { messages, isLoading, error, sendMessage, clearChat, stopGeneration, canQuery, remainingFree, isLoggedIn, lastResultCounts, lastUserQuery, visibleTabs } =
     useAIAssistantContext();
 
   const [input, setInput] = useState("");
@@ -98,66 +99,108 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-card to-background shadow-xl",
-        fullPage ? "h-[calc(100vh-12rem)] max-w-5xl mx-auto w-full" : "h-[480px] w-full max-w-[380px]",
+        "flex flex-col overflow-hidden",
+        fullPage
+          ? "h-full w-full bg-background"
+          : "h-[480px] w-full max-w-[380px] rounded-2xl border border-border/50 bg-gradient-to-b from-card to-background shadow-xl",
         className,
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-              <Bot className="w-4.5 h-4.5 text-primary-foreground" />
+      {/* Header - hidden in fullPage mode since parent provides branding */}
+      {!fullPage && (
+        <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+                <Bot className="w-4.5 h-4.5 text-primary-foreground" />
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-card" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-card" />
+            <div>
+              <h3 className="font-bold text-sm text-foreground tracking-tight">RobotVerse AI</h3>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                Online • Industrial Robot Expert
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-sm text-foreground tracking-tight">RobotVerse AI</h3>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
-              Online • Industrial Robot Expert
-            </p>
+          <div className="flex items-center gap-1.5">
+            {!isLoggedIn && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-2 py-0.5 bg-background/50 border-primary/30 text-primary"
+              >
+                {remainingFree} free left
+              </Badge>
+            )}
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-lg hover:bg-destructive/10 hover:text-destructive"
+                onClick={clearChat}
+                title="Clear chat"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          {!isLoggedIn && (
-            <Badge
-              variant="outline"
-              className="text-[10px] px-2 py-0.5 bg-background/50 border-primary/30 text-primary"
-            >
-              {remainingFree} free left
-            </Badge>
-          )}
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-lg hover:bg-destructive/10 hover:text-destructive"
-              onClick={clearChat}
-              title="Clear chat"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          )}
+      )}
+
+      {/* Full-page top bar with clear & status */}
+      {fullPage && (
+        <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 border-b border-border/30 bg-background/50">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-xs font-medium">Powered by AI • Ask anything about industrial robots</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isLoggedIn && (
+              <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-primary/30 text-primary">
+                {remainingFree} free left
+              </Badge>
+            )}
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs rounded-lg hover:bg-destructive/10 hover:text-destructive gap-1.5"
+                onClick={clearChat}
+              >
+                <Trash2 className="w-3 h-3" />
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Messages */}
-      <ScrollArea className={cn("flex-1", fullPage ? "px-6 py-5" : "px-3 py-3")} ref={scrollRef}>
+      <ScrollArea className={cn("flex-1", fullPage ? "px-4 sm:px-6 lg:px-0 py-5" : "px-3 py-3")} ref={scrollRef}>
+        <div className={cn(fullPage && "max-w-3xl mx-auto")}>
         {messages.length === 0 ? (
           <EmptyState
             onPromptClick={(query) => {
               setInput(query);
-              sendMessage(query);
+              inputRef.current?.focus();
             }}
             fullPage={fullPage}
           />
         ) : (
           <div className="space-y-5">
-            {messages.map((msg, i) => (
-              <MessageBubble key={i} message={msg} />
-            ))}
+            {messages.map((msg, i) => {
+              const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1;
+              return (
+                <MessageBubble
+                  key={i}
+                  message={msg}
+                  resultCounts={isLastAssistant ? lastResultCounts : null}
+                  isLastAssistant={isLastAssistant}
+                  visibleTabs={isLastAssistant ? visibleTabs : []}
+                />
+              );
+            })}
 
             {/* Streaming / chain state indicator */}
             {isLoading && lastMessageRole !== "assistant" && <AssistantThinking />}
@@ -196,6 +239,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
             {error}
           </div>
         )}
+        </div>
       </ScrollArea>
 
       {/* Product Request Modal */}
@@ -207,8 +251,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       />
 
       {/* Input */}
-      <div className="p-3 border-t border-border/40 bg-background/80 backdrop-blur-sm">
-        <div className="flex gap-2 items-center">
+      <div className={cn("p-3 sm:p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm", fullPage && "px-4 sm:px-6 lg:px-0")}>
+        <div className={cn("flex gap-2 items-center", fullPage && "max-w-3xl mx-auto")}>
           <div className="flex-1 relative">
             <Input
               ref={inputRef}
@@ -217,14 +261,20 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
               onKeyDown={handleKeyDown}
               placeholder={canQuery ? "Ask about robots, EOAT, integrators, services..." : "Sign in to continue..."}
               disabled={!canQuery || isLoading}
-              className="text-sm h-10 rounded-xl border-border/50 bg-muted/30 pr-3 focus:bg-background transition-colors"
+              className={cn(
+                "text-sm rounded-xl border-border/50 bg-muted/30 pr-3 focus:bg-background transition-colors",
+                fullPage ? "h-12" : "h-10"
+              )}
             />
           </div>
           {isLoading ? (
             <Button
               size="icon"
               variant="outline"
-              className="h-10 w-10 shrink-0 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+              className={cn(
+                "shrink-0 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10",
+                fullPage ? "h-12 w-12" : "h-10 w-10"
+              )}
               onClick={stopGeneration}
             >
               <Square className="w-4 h-4" />
@@ -232,7 +282,10 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
           ) : (
             <Button
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-xl shadow-md"
+              className={cn(
+                "shrink-0 rounded-xl shadow-md",
+                fullPage ? "h-12 w-12" : "h-10 w-10"
+              )}
               onClick={handleSend}
               disabled={!input.trim() || !canQuery}
             >
@@ -240,6 +293,11 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
             </Button>
           )}
         </div>
+        {fullPage && (
+          <p className="text-[10px] text-muted-foreground/50 text-center mt-2 max-w-3xl mx-auto">
+            RobotVerse AI searches across robots, spare parts, services, logistics & financing in real-time
+          </p>
+        )}
       </div>
     </div>
   );
@@ -338,9 +396,28 @@ const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFre
 
 /* ─── Message Bubble ─── */
 
-const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
+const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts | null; isLastAssistant?: boolean; visibleTabs?: string[] }> = ({ message, resultCounts, isLastAssistant, visibleTabs = [] }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
+
+  const InternalLink = ({ href, children, ...props }: any) => {
+    const isInternal = href && (href.startsWith('/') || href.startsWith('https://robotverse.in/'));
+    if (isInternal) {
+      const path = href.startsWith('https://robotverse.in') ? href.replace('https://robotverse.in', '') : href;
+      return (
+        <button
+          onClick={(e) => { e.preventDefault(); navigate(path); }}
+          className="inline-flex items-center gap-1 text-primary font-semibold hover:text-primary/80 transition-colors cursor-pointer text-[12px] bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20"
+          {...props}
+        >
+          {children}
+          <ExternalLink className="w-3 h-3" />
+        </button>
+      );
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+  };
 
   const handleCopy = async () => {
     try {
@@ -394,6 +471,8 @@ const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
 
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        ) : isLastAssistant && resultCounts ? (
+          <ResultTabsView content={message.content} resultCounts={resultCounts} visibleTabs={visibleTabs} />
         ) : (
           <div
             className="prose prose-sm dark:prose-invert max-w-none
@@ -424,9 +503,8 @@ const MessageBubble: React.FC<{ message: AIMessage }> = ({ message }) => {
             [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a:hover]:text-primary/80
           "
           >
-            {/* Wrap markdown in a scroll container for wide tables */}
             <div className="w-full overflow-x-auto">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown components={{ a: InternalLink }}>{message.content}</ReactMarkdown>
             </div>
           </div>
         )}

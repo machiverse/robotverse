@@ -28,6 +28,7 @@ import CRMLeadsView from "@/components/crm/CRMLeadsView";
 import QuoteRequestsSection from "@/components/dashboards/QuoteRequestsSection";
 import CommissionDealsSection from "@/components/dashboards/CommissionDealsSection";
 import SellerAssignedRequests from "@/components/SellerAssignedRequests";
+import SentQuotationsTab from "@/components/crm/SentQuotationsTab";
 import { FileQuestion } from "lucide-react";
 
 interface CommissionSellerDashboardProps {
@@ -126,7 +127,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
     { title: "Total Robots", value: dashboardStats.totalRobots, icon: Bot, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", sub: `${dashboardStats.activeListings} active` },
     { title: "Total Revenue", value: `₹${dashboardStats.totalRevenue.toLocaleString("en-IN")}`, icon: DollarSign, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30", sub: "Listing value" },
     { title: "Robot Views", value: viewStats?.viewsByCategory?.robots ?? 0, icon: Eye, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30", sub: viewsLoading ? "Loading..." : "Total views" },
-    { title: "Commission Model", value: "5%", icon: Handshake, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", sub: "On completed deals" },
+    { title: "Commission Model", value: "6%", icon: Handshake, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", sub: "On completed deals" },
   ];
 
   return (
@@ -138,7 +139,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
             Commission Seller Dashboard
           </h1>
           <p className="text-sm text-muted-foreground">
-            Unlimited listings • No credits required • 5% commission on completed deals
+            Unlimited listings • No credits required • 6% commission on completed deals
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -158,7 +159,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           <Handshake className="h-5 w-5 text-amber-600 shrink-0" />
           <p className="text-sm text-amber-800 dark:text-amber-200">
             <strong>Commission Model Active:</strong> You have unlimited listings with no credit requirements. 
-            Robotverse earns a 5% service fee only when a deal is marked as Won and verified by admin.
+            Robotverse earns a 6% service fee only when a deal is marked as Won and verified by admin.
           </p>
         </CardContent>
       </Card>
@@ -185,7 +186,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7 h-12">
+        <TabsList className="grid w-full grid-cols-8 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" /> Inventory
           </TabsTrigger>
@@ -194,6 +195,9 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           </TabsTrigger>
           <TabsTrigger value="user-requests" className="flex items-center gap-2">
             <FileQuestion className="w-4 h-4" /> User Requests
+          </TabsTrigger>
+          <TabsTrigger value="quotations" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" /> Quotations
           </TabsTrigger>
           <TabsTrigger value="deals" className="flex items-center gap-2">
             <Handshake className="w-4 h-4" /> Deals
@@ -325,6 +329,23 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           </Card>
         </TabsContent>
 
+        {/* Quotations Tab */}
+        <TabsContent value="quotations" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" /> Sent Quotations
+              </CardTitle>
+              <CardDescription>
+                Track all quotations you've sent to buyers with status and details.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SentQuotationsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Deals Tab */}
         <TabsContent value="deals" className="mt-6">
           <CommissionDealsSection />
@@ -351,7 +372,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
               <div className="rounded-lg bg-muted p-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Account Type</span>
-                  <Badge>Commission (5%)</Badge>
+                  <Badge>Commission (6%)</Badge>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Listing Limit</span>

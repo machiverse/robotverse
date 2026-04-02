@@ -180,20 +180,20 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
         ignoreDuplicates: false 
       });
 
-      // 4. Send email notification via edge function
+      // 4. Send email notification via edge function (Zoho SMTP)
       try {
         await supabase.functions.invoke('send-quote-request', {
           body: {
-            supplierEmail: robot.profiles.email,
-            supplierName: robot.profiles.full_name,
-            supplierCompany: robot.profiles.company_name,
-            customerName: formData.customerName,
-            customerEmail: formData.customerEmail,
-            customerPhone: formData.customerPhone,
-            customerCompany: formData.company,
+            type: 'quote_request',
+            sellerEmail: robot.profiles.email,
+            sellerName: robot.profiles.full_name,
+            sellerCompany: robot.profiles.company_name,
+            buyerName: formData.customerName,
+            buyerEmail: formData.customerEmail,
+            buyerPhone: formData.customerPhone,
+            buyerCompany: formData.company,
             itemType: 'Robot',
             itemName: robot.name,
-            itemId: robot.id,
             itemModel: robot.model,
             itemCategory: robot.robot_type,
             urgency: formData.urgency,
@@ -203,7 +203,6 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
         });
       } catch (emailError) {
         console.error('Email sending error:', emailError);
-        // Don't fail the request if email fails
       }
 
       setSuccess(true);

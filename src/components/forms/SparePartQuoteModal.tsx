@@ -18,6 +18,7 @@ interface Part {
   seller?: {
     full_name?: string;
     company_name?: string;
+    email?: string;
   };
 }
 
@@ -85,6 +86,27 @@ const SparePartQuoteModal = ({ isOpen, onClose, part, userEmail, userName }: Spa
             message: `${userName} requested a quote for ${part.name} (Qty: ${formData.quantity})`,
             notification_type: 'quote_request'
           });
+
+        // Send email notifications via Zoho SMTP
+        try {
+          await supabase.functions.invoke('send-quote-request', {
+            body: {
+              type: 'quote_request',
+              sellerEmail: part.seller?.email || '',
+              sellerName: part.seller?.full_name || '',
+              sellerCompany: part.seller?.company_name || '',
+              buyerName: userName,
+              buyerEmail: userEmail,
+              itemType: 'Spare Part',
+              itemName: part.name,
+              itemModel: part.partNumber,
+              urgency: formData.urgency,
+              requirements: formData.message || `Quote request for ${part.name}, Qty: ${formData.quantity}`,
+            }
+          });
+        } catch (emailError) {
+          console.error('Email sending error:', emailError);
+        }
       }
 
       toast({

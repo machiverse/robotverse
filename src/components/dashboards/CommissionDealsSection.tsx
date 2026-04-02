@@ -162,7 +162,7 @@ const CommissionDealsSection = () => {
           product_type: "robot",
           quote_value: Number(quote.total_amount || 0),
           deal_status: mapQuotationStatusToDealStatus(quote.status),
-          commission_rate: 5,
+          commission_rate: 6,
           commission_amount: 0,
           admin_verified: false,
           closing_date: null,
@@ -269,14 +269,14 @@ const CommissionDealsSection = () => {
   // Financial calculations
   const wonDeals = deals.filter(d => d.deal_status === "deal_won");
   const totalDealValue = wonDeals.reduce((sum, d) => sum + d.quote_value, 0);
-  const totalCommission = wonDeals.reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
+  const totalCommission = wonDeals.reduce((sum, d) => sum + (d.quote_value * 0.06), 0);
   const netPayout = totalDealValue - totalCommission;
 
   // Expected commission from all active/pending deals
   const allDealsValue = deals.reduce((sum, d) => sum + d.quote_value, 0);
   const expectedCommission = deals
     .filter(d => !["deal_lost"].includes(d.deal_status))
-    .reduce((sum, d) => sum + (d.quote_value * 0.05), 0);
+    .reduce((sum, d) => sum + (d.quote_value * 0.06), 0);
 
   const statusColors: Record<string, string> = {
     lead_generated: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -311,7 +311,7 @@ const CommissionDealsSection = () => {
           { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", sub: "Completed" },
           { title: "All Deals Value", value: `₹${allDealsValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-blue-600", bg: "bg-blue-50", sub: "Total pipeline" },
           { title: "Won Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50", sub: "Confirmed revenue" },
-          { title: "Commission 5%", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: CreditCard, color: "text-amber-600", bg: "bg-amber-50", sub: "On won deals" },
+          { title: "Commission 6%", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: CreditCard, color: "text-amber-600", bg: "bg-amber-50", sub: "On won deals" },
           { title: "Expected Comm.", value: `₹${expectedCommission.toLocaleString("en-IN")}`, icon: Target, color: "text-blue-600", bg: "bg-blue-50", sub: "If all close" },
           { title: "Net Payout", value: `₹${netPayout.toLocaleString("en-IN")}`, icon: FileCheck, color: "text-emerald-700", bg: "bg-emerald-100", sub: "After commission" },
         ].map((stat) => (
@@ -367,7 +367,7 @@ const CommissionDealsSection = () => {
                 <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-md">
                   <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Commission (5%)</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Commission (6%)</p>
               </div>
               <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
                 ₹{totalCommission.toLocaleString("en-IN")}
@@ -425,7 +425,7 @@ const CommissionDealsSection = () => {
                   <TableHead>Buyer</TableHead>
                   <TableHead>Product</TableHead>
                    <TableHead className="text-right">Deal Value</TableHead>
-                   <TableHead className="text-right">Commission (5%)</TableHead>
+                   <TableHead className="text-right">Commission (6%)</TableHead>
                    <TableHead>Source</TableHead>
                    <TableHead>Status</TableHead>
                    <TableHead>Verified</TableHead>
@@ -471,7 +471,7 @@ const CommissionDealsSection = () => {
                         <TableCell className="text-right font-mono text-sm">
                           {deal.quote_value > 0 ? (
                             <span className="text-amber-600 dark:text-amber-400">
-                              ₹{(deal.quote_value * 0.05).toLocaleString("en-IN")}
+                              ₹{(deal.quote_value * 0.06).toLocaleString("en-IN")}
                             </span>
                           ) : "—"}
                         </TableCell>
@@ -522,7 +522,7 @@ const CommissionDealsSection = () => {
                                 variant="outline"
                                 className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
                                 onClick={() => {
-                                  const commission = deal.quote_value > 0 ? (deal.quote_value * 0.05) : 0;
+                                  const commission = deal.quote_value > 0 ? (deal.quote_value * 0.06) : 0;
                                   toast({
                                     title: "Pay Commission",
                                     description: `Commission of ₹${commission.toLocaleString("en-IN")} for Deal ${deal.deal_number} will be processed via Razorpay.`,
@@ -530,7 +530,7 @@ const CommissionDealsSection = () => {
                                 }}
                               >
                                 <CreditCard className="h-3.5 w-3.5" />
-                                Pay ₹{(deal.quote_value * 0.05).toLocaleString("en-IN")}
+                                Pay ₹{(deal.quote_value * 0.06).toLocaleString("en-IN")}
                               </Button>
                             )}
 
@@ -680,7 +680,7 @@ const CommissionDealsSection = () => {
                                          </div>
                                          <div className="flex justify-between font-bold text-emerald-700 dark:text-emerald-400 border-t border-emerald-200 dark:border-emerald-800 pt-1.5">
                                            <span>Commission Amount</span>
-                                           <span className="font-mono">₹{(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()}</span>
+                                           <span className="font-mono">₹{(Number(qtDetails.total_amount || 0) * 0.06).toLocaleString()}</span>
                                          </div>
                                        </div>
                                        {deal.deal_status === "deal_won" && (
@@ -691,12 +691,12 @@ const CommissionDealsSection = () => {
                                              e.stopPropagation();
                                              toast({
                                                title: "Payment Initiated",
-                                               description: `Commission payment of ₹${(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()} for Deal ${deal.deal_number} will be processed via Razorpay.`,
+                                               description: `Commission payment of ₹${(Number(qtDetails.total_amount || 0) * 0.06).toLocaleString()} for Deal ${deal.deal_number} will be processed via Razorpay.`,
                                              });
                                            }}
                                          >
                                            <CreditCard className="h-4 w-4" />
-                                           Pay ₹{(Number(qtDetails.total_amount || 0) * 0.05).toLocaleString()} Commission
+                                           Pay ₹{(Number(qtDetails.total_amount || 0) * 0.06).toLocaleString()} Commission
                                          </Button>
                                        )}
                                        {deal.deal_status !== "deal_won" && (

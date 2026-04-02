@@ -34,7 +34,7 @@ const Help = () => {
     {
       id: 2,
       question: "What are the commission fees?",
-      answer: "Our commission structure varies by user type. Robot sellers pay 3% on successful sales, spare parts sellers pay 2.5%, and service providers pay 5% on completed bookings. There are no listing fees."
+      answer: "Our commission structure is 6% on all completed deals. This applies uniformly to robot sellers, spare parts sellers, and service providers. There are no listing fees."
     },
     {
       id: 3,

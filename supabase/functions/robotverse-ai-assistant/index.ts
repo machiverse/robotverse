@@ -26,6 +26,7 @@ const INTENT_MAP: Record<string, string[]> = {
   logistics: ['logistics', 'shipping', 'transport', 'delivery', 'freight', 'cargo'],
   finance: ['finance', 'loan', 'emi', 'leasing', 'funding', 'subsidy', 'scheme'],
   spare: ['spare', 'part', 'component', 'eoat', 'gripper', 'sensor', 'controller', 'teach pendant'],
+  robot: ['robot', 'cobot', 'articulated', '6-axis', '4-axis', 'scara', 'delta', 'cartesian', 'gantry', 'agv', 'amr', 'fanuc', 'abb', 'kuka', 'yaskawa', 'universal robots', 'ur', 'mitsubishi', 'epson', 'kawasaki', 'doosan', 'payload', 'reach'],
 };
 
 const INDIAN_CITIES = ['chennai', 'bangalore', 'bengaluru', 'mumbai', 'pune', 'delhi', 'hyderabad', 'ahmedabad', 'coimbatore', 'noida', 'gurgaon', 'gurugram', 'kolkata', 'jaipur', 'lucknow', 'surat', 'indore', 'nagpur', 'vadodara', 'bhopal', 'visakhapatnam', 'kochi', 'thiruvananthapuram', 'chandigarh', 'ludhiana', 'rajkot', 'madurai', 'nashik', 'aurangabad', 'faridabad'];
@@ -63,7 +64,7 @@ async function searchRobots(query: string, location: string | null) {
     .from('robots')
     .select('id, name, robot_type, brand, model, price, currency, payload_capacity, reach, condition, images, description, location, state, availability, applications, seller_id')
     .eq('availability', 'available')
-    .limit(10);
+    .limit(5);
 
   const matchedBrand = brands.find((b) => q.includes(b));
   const matchedType = types.find((t) => q.includes(t));
@@ -100,7 +101,7 @@ async function searchSpareParts(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('spare_parts')
     .select('id, name, part_number, brand, price, currency, condition, category, main_category, sub_category, compatible_robots, location, state, description, seller_id')
-    .limit(8);
+    .limit(5);
 
   const orFilters = searchTerms
     .map((term) => `name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,main_category.ilike.%${term}%,sub_category.ilike.%${term}%,description.ilike.%${term}%`)
@@ -125,7 +126,7 @@ async function searchServices(query: string, location: string | null) {
   let dbQuery = supabaseAdmin
     .from('services')
     .select('id, name, service_type, specializations, price_range, location, coverage, description, provider_id')
-    .limit(8);
+    .limit(5);
 
   if (searchTerms.length > 0) {
     const orFilters = searchTerms
@@ -253,48 +254,41 @@ function buildDatabaseContext(
   if (robots.length > 0) {
     context += '\n📦 AVAILABLE ROBOTS:\n';
     robots.forEach((r, i) => {
-      context += `${i + 1}. ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Applications: ${r.applications || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
+      context += `${i + 1}. [ID:${r.id}] ${r.name || 'Unknown'} | Brand: ${r.brand || 'N/A'} | Model: ${r.model || 'N/A'} | Type: ${r.robot_type || 'N/A'} | Payload: ${r.payload_capacity || 'N/A'} kg | Reach: ${r.reach || 'N/A'} mm | Price: ${r.price ? `₹${Number(r.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${r.condition || 'N/A'} | Applications: ${r.applications || 'N/A'} | 📍 ${r.location || r.state || 'India'}\n`;
     });
   }
 
   if (parts.length > 0) {
     context += '\n🔧 SPARE PARTS / EOAT:\n';
     parts.forEach((p, i) => {
-      context += `${i + 1}. ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.main_category || p.category || 'N/A'} > ${p.sub_category || 'N/A'} | Price: ${p.price ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${p.condition || 'N/A'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | 📍 ${p.location || p.state || 'India'}\n`;
+      context += `${i + 1}. [ID:${p.id}] ${p.name || 'Unknown'} | Brand: ${p.brand || 'N/A'} | Part#: ${p.part_number || 'N/A'} | Category: ${p.main_category || p.category || 'N/A'} > ${p.sub_category || 'N/A'} | Price: ${p.price ? `₹${Number(p.price).toLocaleString('en-IN')}` : 'Contact for price'} | Condition: ${p.condition || 'N/A'} | Compatible: ${Array.isArray(p.compatible_robots) ? p.compatible_robots.join(', ') : 'N/A'} | 📍 ${p.location || p.state || 'India'}\n`;
     });
   }
 
   if (services.length > 0) {
     context += '\n🏭 SYSTEM INTEGRATORS / SERVICE PROVIDERS:\n';
     services.forEach((s, i) => {
-      context += `${i + 1}. ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | 📍 ${s.location || 'India'} | Coverage: ${s.coverage || 'N/A'}\n`;
+      context += `${i + 1}. [ID:${s.id}] ${s.name || 'Unknown'} | Type: ${s.service_type || 'N/A'} | Specializations: ${Array.isArray(s.specializations) ? s.specializations.join(', ') : 'N/A'} | Price: ${s.price_range || 'N/A'} | 📍 ${s.location || 'India'} | Coverage: ${s.coverage || 'N/A'}\n`;
     });
   }
 
   if (logistics.length > 0) {
     context += '\n🚚 LOGISTICS SERVICES:\n';
     logistics.forEach((l, i) => {
-      context += `${i + 1}. ${l.service_name || 'Unknown'} | Type: ${l.service_type || 'N/A'} | Base Price: ${l.base_price ? `₹${Number(l.base_price).toLocaleString('en-IN')}` : 'N/A'} | Max Weight: ${l.max_weight_kg || 'N/A'} kg | Delivery: ${l.delivery_time_hours || 'N/A'} hrs | Transport: ${Array.isArray(l.transport_modes) ? l.transport_modes.join(', ') : 'N/A'} | Insurance: ${l.insurance_included ? 'Yes' : 'No'} | Tracking: ${l.tracking_available ? 'Yes' : 'No'} | Coverage: ${Array.isArray(l.coverage_areas) ? l.coverage_areas.join(', ') : 'N/A'}\n`;
+      context += `${i + 1}. [ID:${l.id}] ${l.service_name || 'Unknown'} | Type: ${l.service_type || 'N/A'} | Base Price: ${l.base_price ? `₹${Number(l.base_price).toLocaleString('en-IN')}` : 'N/A'} | Max Weight: ${l.max_weight_kg || 'N/A'} kg | Delivery: ${l.delivery_time_hours || 'N/A'} hrs | Transport: ${Array.isArray(l.transport_modes) ? l.transport_modes.join(', ') : 'N/A'} | Insurance: ${l.insurance_included ? 'Yes' : 'No'} | Tracking: ${l.tracking_available ? 'Yes' : 'No'} | Coverage: ${Array.isArray(l.coverage_areas) ? l.coverage_areas.join(', ') : 'N/A'}\n`;
     });
   }
 
   if (finance.loanProducts.length > 0 || finance.loanSchemes.length > 0) {
     context += '\n💰 FINANCING OPTIONS:\n';
     finance.loanProducts.forEach((lp, i) => {
-      context += `${i + 1}. [Loan] ${lp.product_name || 'Unknown'} | Type: ${Array.isArray(lp.loan_type) ? lp.loan_type.join(', ') : 'N/A'} | Amount: ₹${lp.min_amount ? Number(lp.min_amount).toLocaleString('en-IN') : '?'} - ₹${lp.max_amount ? Number(lp.max_amount).toLocaleString('en-IN') : '?'} | Interest: ${lp.min_interest_rate || '?'}% - ${lp.max_interest_rate || '?'}% | Tenure: ${lp.min_tenure_months || '?'} - ${lp.max_tenure_months || '?'} months | Quick Approval: ${lp.quick_approval ? 'Yes' : 'No'} | Collateral: ${lp.collateral_required ? 'Required' : 'Not required'}\n`;
+      context += `${i + 1}. [ID:${lp.id}] [Loan] ${lp.product_name || 'Unknown'} | Type: ${Array.isArray(lp.loan_type) ? lp.loan_type.join(', ') : 'N/A'} | Amount: ₹${lp.min_amount ? Number(lp.min_amount).toLocaleString('en-IN') : '?'} - ₹${lp.max_amount ? Number(lp.max_amount).toLocaleString('en-IN') : '?'} | Interest: ${lp.min_interest_rate || '?'}% - ${lp.max_interest_rate || '?'}% | Tenure: ${lp.min_tenure_months || '?'} - ${lp.max_tenure_months || '?'} months | Quick Approval: ${lp.quick_approval ? 'Yes' : 'No'} | Collateral: ${lp.collateral_required ? 'Required' : 'Not required'}\n`;
     });
     finance.loanSchemes.forEach((ls, i) => {
-      context += `${i + 1}. [Scheme] ${ls.scheme_name || 'Unknown'} | Type: ${ls.scheme_type || 'N/A'} | Interest: ${ls.interest_rate_min || '?'}% - ${ls.interest_rate_max || '?'}% | Max Amount: ₹${ls.max_amount ? Number(ls.max_amount).toLocaleString('en-IN') : '?'} | Govt: ${ls.is_government_scheme ? 'Yes' : 'No'} | Features: ${Array.isArray(ls.features) ? ls.features.join(', ') : 'N/A'}\n`;
+      context += `${i + 1}. [ID:${ls.id}] [Scheme] ${ls.scheme_name || 'Unknown'} | Type: ${ls.scheme_type || 'N/A'} | Interest: ${ls.interest_rate_min || '?'}% - ${ls.interest_rate_max || '?'}% | Max Amount: ₹${ls.max_amount ? Number(ls.max_amount).toLocaleString('en-IN') : '?'} | Govt: ${ls.is_government_scheme ? 'Yes' : 'No'} | Features: ${Array.isArray(ls.features) ? ls.features.join(', ') : 'N/A'}\n`;
     });
   }
 
-  if (sellers.length > 0) {
-    context += '\n👥 REGISTERED SELLERS / PROVIDERS:\n';
-    sellers.forEach((s, i) => {
-      const roles = Array.isArray(s.user_roles) ? s.user_roles.join(', ') : s.user_type || 'N/A';
-      context += `${i + 1}. ${s.company_name || s.full_name || 'Unknown'} | Roles: ${roles} | 📍 ${s.city || s.location || 'India'}\n`;
-    });
-  }
 
   if (blogs.length > 0) {
     context += '\n📰 RELATED ARTICLES:\n';
@@ -303,7 +297,7 @@ function buildDatabaseContext(
     });
   }
 
-  if (robots.length === 0 && parts.length === 0 && services.length === 0 && logistics.length === 0 && finance.loanProducts.length === 0 && sellers.length === 0) {
+  if (robots.length === 0 && parts.length === 0 && services.length === 0 && logistics.length === 0 && finance.loanProducts.length === 0) {
     context += '\nNO EXACT MATCHES FOUND IN DATABASE. Suggest closest alternatives based on marketplace stats.';
   }
 
@@ -320,46 +314,78 @@ serve(async (req) => {
     const latestQuery = userQuery || messages[messages.length - 1]?.content || '';
     const { intents, location } = identifyIntent(latestQuery);
 
-    const searchLogisticsFlag = intents.includes('logistics') || intents.includes('general');
-    const searchFinanceFlag = intents.includes('finance') || intents.includes('general');
+    // Determine if this is a robot-focused query (no spare/service/maintenance intent)
+    const isRobotOnly = (intents.includes('robot') || intents.some(i => ['welding', 'palletizing', 'pick and place', 'painting', 'assembly', 'machine tending', 'inspection', 'packaging', 'grinding'].includes(i)))
+      && !intents.includes('spare') && !intents.includes('maintenance') && !intents.includes('general');
 
-    const [robots, parts, services, logistics, finance, sellers, blogs, stats] = await Promise.all([
+    const [robots, parts, services, logistics, finance, blogs, stats] = await Promise.all([
       searchRobots(latestQuery, location),
       searchSpareParts(latestQuery, location),
       searchServices(latestQuery, location),
-      searchLogisticsFlag ? searchLogistics(latestQuery, location) : Promise.resolve([]),
-      searchFinanceFlag ? searchFinance(latestQuery) : Promise.resolve({ loanProducts: [], loanSchemes: [] }),
-      searchSellers(latestQuery, location),
+      searchLogistics(latestQuery, location),
+      searchFinance(latestQuery),
       searchBlogs(latestQuery),
       getMarketStats(),
     ]);
 
-    const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, sellers, blogs, stats);
+    const dbContext = buildDatabaseContext(robots, parts, services, logistics, finance, [], blogs, stats);
 
-    const systemPrompt = `You are the RobotVerse AI Assistant — a smart industrial automation consultant and marketplace search engine for www.robotverse.in, India's leading industrial robotics marketplace.
+    // Determine visible tabs based on query intent
+    const isSpareOrEOAT = intents.includes('spare') && !intents.includes('robot');
+    const isMaintenanceOrIntegrator = intents.includes('maintenance') && !intents.includes('robot');
+    const isSoftwareQuery = intents.some(i => ['software', 'programming', 'simulation'].includes(i)) && !intents.includes('robot') && !intents.includes('spare');
+    const isLogisticsQuery = intents.includes('logistics') && !intents.includes('robot') && !intents.includes('spare');
+    const isFinanceQuery = intents.includes('finance') && !intents.includes('robot') && !intents.includes('spare');
+
+    let visibleTabs: string[] = [];
+    let sectionVisibility = '';
+
+    if (isSpareOrEOAT || isMaintenanceOrIntegrator) {
+      visibleTabs = ['eoat', 'integrators'];
+      sectionVisibility = `\nSECTION VISIBILITY: This is a SPARE PARTS/EOAT/INTEGRATOR query. ONLY show EOAT & Spare Parts and Integrators sections.`;
+    } else if (isSoftwareQuery) {
+      visibleTabs = ['software'];
+      sectionVisibility = `\nSECTION VISIBILITY: This is a SOFTWARE query. ONLY show the Software section.`;
+    } else if (isLogisticsQuery) {
+      visibleTabs = ['logistics'];
+      sectionVisibility = `\nSECTION VISIBILITY: This is a LOGISTICS query. ONLY show the Logistics section.`;
+    } else if (isFinanceQuery) {
+      visibleTabs = ['financing'];
+      sectionVisibility = `\nSECTION VISIBILITY: This is a FINANCING query. ONLY show the Financing section.`;
+    } else {
+      // Robot queries and general queries — show ALL tabs
+      visibleTabs = ['robots', 'eoat', 'integrators', 'software', 'logistics', 'financing', 'analysis'];
+      sectionVisibility = `\nSECTION VISIBILITY: Show ALL sections: Robots, EOAT & Spare Parts, Integrators, Software, Logistics, Financing, and AI Analysis/Best Match. Include all sections that have data.`;
+    }
+
+    const systemPrompt = `You are RobotVerse AI — a professional industrial robot marketplace assistant and automation consultant for www.robotverse.in, India's leading industrial robotics marketplace.
 
 IDENTIFIED INTENTS: ${intents.join(', ')}
 LOCATION HINT: ${location || 'Not specified'}
+${sectionVisibility}
+CORE PRINCIPLES:
+1. **ASK FIRST:** If the user's application, payload, budget, or location is unclear, ask a focused clarification question with 3-4 bullet-point options BEFORE giving results. Never guess.
+2. **DATABASE ONLY:** Use ONLY the database results provided below. NEVER invent, fabricate, or hallucinate products, companies, specs, prices, or availability.
+3. **HONEST:** If no results match, say so clearly. Suggest posting a requirement on RobotVerse or broadening search criteria.
 
-YOUR CAPABILITIES:
-You have FULL ACCESS to analyze ALL tables in the RobotVerse database:
-- 🤖 Robots (${stats.totalRobots} listings) - Industrial, collaborative, mobile robots
-- 🔧 Spare Parts & EOAT (${stats.totalParts} items) - Components, grippers, sensors, controllers
-- 🏭 Services (${stats.totalServices} providers) - System integrators, maintenance, repair
-- 🚚 Logistics - Shipping, transport, freight for robotics equipment
-- 💰 Finance - Loans, EMI options, government schemes for robot purchases
-- 👥 Sellers & Providers (${stats.totalSellers} registered) - Verified marketplace sellers
-- 📰 Knowledge Base - Articles, guides, industry insights
+YOUR DATABASE ACCESS:
+- 🤖 Robots (${stats.totalRobots} listings) — Industrial, collaborative, mobile robots
+- 🔧 Spare Parts & EOAT (${stats.totalParts} items) — Components, grippers, sensors, controllers
+- 🏭 Services (${stats.totalServices} providers) — System integrators, maintenance, programming
+- 🚚 Logistics — Shipping, transport, freight for robotics equipment
+- 💰 Finance — Loans, EMI options, government schemes for robot purchases
+- 📰 Knowledge Base — Articles, guides, industry insights
 
-RESPONSE RULES:
-1. ONLY use the database results provided below. Do NOT fabricate listings or companies.
-2. **NEVER use tables.** Present ALL data as neat **numbered bullet points** with bold labels.
-3. Skip empty sections entirely — don't show "No results" for each section.
-4. Show **maximum 5 items** per section. If fewer are available, show what's there.
-5. Prioritize results nearest to the user's location and best price first.
-6. Start with a brief one-line summary answering the user's question.
+RESPONSE FORMAT RULES:
+- **NEVER use tables.** Present ALL data as neat **numbered bullet points** with bold labels.
+- Skip empty sections entirely — don't mention sections with zero results.
+- Show **EXACTLY the best 5 results only** per section — pick the top 5 most relevant matches. Never show more than 5.
+- Prioritize: best match first → nearest location → best price.
+- Start with a brief one-line summary answering the user's question.
+- Prices always in ₹ (INR) with Indian number formatting (e.g., ₹12,50,000).
+- **ALWAYS follow the exact section order:** Robots → EOAT & Spare Parts → Integrators → Software → Logistics → Financing → AI Analysis. Do not reorder sections.
 
-MANDATORY SECTION ORDER (follow strictly, skip section if no data):
+MANDATORY SECTION ORDER (skip section if no data):
 
 > 📊 **Summary:** [One sentence answering the query with count of results found]
 
@@ -373,8 +399,8 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 💰 **Price:** ₹[X,XX,XXX] | **Condition:** [New/Used]
    - 📍 **Location:** [City, State]
    - 🔧 **Applications:** [Applications]
-
-2. **[Next Robot]** ...
+   - ⭐ **Match Score:** [High/Medium/Low] — [1-line reason]
+   - 🔗 [View Details →](/robots/[ID])
 
 ---
 
@@ -386,45 +412,91 @@ MANDATORY SECTION ORDER (follow strictly, skip section if no data):
    - 💰 **Price:** ₹[XX,XXX] | **Condition:** [New/Used]
    - 🔗 **Compatible With:** [Robot models]
    - 📍 **Location:** [City]
+   - 🔗 [View Details →](/parts/[ID])
 
 ---
 
-### 🏭 System Integrators & Software Programmers
+### 🏭 Application Builders & System Integrators
 
 1. **[Company/Service Name]**
    - 🛠️ **Specialization:** [Type]
    - 💰 **Price Range:** [Range]
-   - 📍 **Location:** [City] | **Coverage:** [Area]
+   - 📍 **HQ Location:** [City]
+   - 🌐 **Coverage:** All India — Major cities: Chennai, Bangalore, Mumbai, Pune, Delhi NCR, Hyderabad, Ahmedabad, Coimbatore, Kolkata, Jaipur, Lucknow, Indore, Nagpur, Vadodara, Kochi
+   - 🔗 [View Details →](/services/[ID])
 
 ---
 
-### 👥 Verified Sellers & Providers
+### 💻 Software & Programming Providers
 
-1. **[Company Name]**
-   - 🏢 **Role:** [Roles]
+(Only if services match software/programming/simulation)
+
+1. **[Provider Name]**
+   - 🖥️ **Service:** [Type]
+   - 💰 **Price Range:** [Range]
    - 📍 **Location:** [City]
+   - 🔗 [View Details →](/services/[ID])
 
 ---
 
-### 💡 Recommendation & Best Match
+### 🚚 Logistics & Transport
 
-- 🏆 **Best Match:** [Which product/service is the best fit and WHY — consider user's location proximity and price]
-- 📍 **Nearest to You:** [Highlight the closest option to user's area]
-- 💰 **Best Price:** [Highlight the most affordable option]
-- ➡️ **Next Step:** [What user should do — e.g. "Request a quote on RobotVerse", "Compare these models"]
-- 💡 **Pro Tip:** [Industry insight or cost-saving advice]
+(ALWAYS show this section — logistics is available for all robot purchases)
+
+1. **[Service Name]**
+   - 🚛 **Type:** [Type] | **Max Weight:** [XX] kg
+   - 💰 **Base Price:** ₹[XX,XXX]
+   - ⏱️ **Delivery:** [XX] hrs
+   - 🌐 **Coverage:** Pan-India — Major cities: Chennai, Bangalore, Mumbai, Pune, Delhi NCR, Hyderabad, Ahmedabad, Kolkata, Coimbatore, Jaipur, Lucknow, Surat, Indore, Nagpur, Vadodara, Bhopal, Visakhapatnam, Kochi, Chandigarh, Ludhiana
+   - 🛡️ **Insurance:** [Yes/No] | **Tracking:** [Yes/No]
+   - 🔗 [View Details →](/logistics/[ID])
 
 ---
 
-ADDITIONAL RULES:
-- Use **bold** for all product names, key specs, and important values.
-- Use emojis as visual markers for each data point.
-- Always include horizontal rules (---) between sections for visual separation.
-- If no exact match → suggest closest alternatives + recommend posting a requirement on RobotVerse.
-- If query is vague → ask a focused clarification question with 3-4 bullet-point options.
-- Prices always in ₹ (INR) with Indian number formatting.
-- Never return completely empty — always provide something useful.
-- Keep it professional, scannable, and visually clean with consistent formatting.
+### 💰 Financing & Loan Options
+
+(ALWAYS show this section — financing is available for all robot purchases)
+
+1. **[Product/Scheme Name]**
+   - 📊 **Type:** [Loan Type] | **Interest:** [X%-Y%]
+   - 💵 **Amount:** ₹[Min] - ₹[Max]
+   - 📋 **Tenure:** [X-Y] months
+   - 🏛️ **Govt Scheme:** [Yes/No]
+   - ✅ **Quick Approval:** [Yes/No] | **Collateral:** [Required/Not required]
+   - 🔗 [View Details →](/financing/[ID])
+
+---
+
+### 💡 AI Analysis & Best Match Summary
+
+This section is MANDATORY — always include a comprehensive best match summary:
+
+- 🏆 **Best Overall Match:** [Product name] — [Why it's the best fit for this query, considering specs, price, and location]
+- 📍 **Nearest Option:** [Name] in [City] — closest to the user's location
+- 💰 **Best Value for Money:** [Name] at ₹[Price] — most affordable quality option with strong ROI
+- ⚡ **Best Performance:** [Name] — highest specs match (payload, reach, speed)
+- 📊 **Comparison Insight:** [Brief comparison of top 2-3 robot options with key differentiators]
+- 🏭 **Recommended Integrator:** [Integrator name] — best suited to set up this application
+- 🚚 **Logistics Recommendation:** [Service name] — best transport option for this equipment
+- 💰 **Financing Tip:** [Scheme/product name] — best financing option for this price range
+- ➡️ **Recommended Next Steps:**
+  1. [Specific action 1 — e.g., Request quote for top robot]
+  2. [Specific action 2 — e.g., Contact integrator for site survey]
+  3. [Specific action 3 — e.g., Apply for financing]
+- 💡 **Pro Tip:** [Industry insight, technical recommendation, or cost-saving advice]
+
+---
+
+CRITICAL RULES:
+- **Every item MUST have a clickable link** using exact IDs from database: [View Details →](/robots/ACTUAL_ID), [View Details →](/parts/ACTUAL_ID), etc.
+- Use **bold** for product names, key specs, and important values.
+- Use emojis as visual markers consistently.
+- Use horizontal rules (---) between sections.
+- **Logistics & Financing sections are MANDATORY** — always show them even if the user didn't ask. These are always relevant for robot purchases.
+- **AI Analysis section is MANDATORY** — always end with a comprehensive best match summary comparing all results.
+- If query is vague → ASK for application, payload, budget, or location before answering.
+- Never return empty — always provide something useful (suggestions, clarification questions, or market insights).
+- Keep responses professional, scannable, and visually clean.
 
 DATABASE RESULTS:${dbContext}`;
 
@@ -478,6 +550,7 @@ DATABASE RESULTS:${dbContext}`;
     return new Response(JSON.stringify({
       content: textContent,
       intents,
+      visibleTabs,
       stats,
       resultCounts: {
         robots: robots.length,
@@ -486,7 +559,7 @@ DATABASE RESULTS:${dbContext}`;
         logistics: logistics.length,
         loanProducts: finance.loanProducts.length,
         loanSchemes: finance.loanSchemes.length,
-        sellers: sellers.length,
+        sellers: 0,
         blogs: blogs.length,
       },
     }), {

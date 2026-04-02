@@ -124,6 +124,9 @@ interface Robot {
     mobile_number: string;
     email: string;
     location: string;
+    completed_sales?: number;
+    average_rating?: number;
+    total_reviews?: number;
   };
 }
 
@@ -234,7 +237,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
           .select(`
             *,
             profiles!robots_seller_id_fkey (
-              full_name, company_name, phone, mobile_number, email, location
+              full_name, company_name, phone, mobile_number, email, location, completed_sales, average_rating, total_reviews
             )
           `)
           .eq("id", id)
@@ -1316,6 +1319,35 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                 </ScrollArea>
               </DialogContent>
             </Dialog>
+
+            {/* Seller Stats Card */}
+            {(robot.profiles?.completed_sales > 0 || robot.profiles?.total_reviews > 0) && (
+              <Card className="border shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Seller Performance</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {robot.profiles?.average_rating > 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                      <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                      <div>
+                        <p className="font-bold text-amber-400">{Number(robot.profiles.average_rating).toFixed(1)} / 5.0</p>
+                        <p className="text-xs text-amber-300/70">{robot.profiles.total_reviews} reviews</p>
+                      </div>
+                    </div>
+                  )}
+                  {robot.profiles?.completed_sales > 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                      <Package className="w-5 h-5 text-emerald-400" />
+                      <div>
+                        <p className="font-bold text-emerald-400">{robot.profiles.completed_sales} completed sales</p>
+                        <p className="text-xs text-emerald-300/70">Verified transactions</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Quick Stats Card */}
             <Card className="border shadow-sm">

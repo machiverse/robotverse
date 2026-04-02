@@ -293,24 +293,21 @@ const SupplierQuoteForm = ({ onClose, supplierInfo, itemInfo, robotInfo }: Suppl
         }
       }
 
-      // Send email via edge function
+      // Send email via edge function (Zoho SMTP)
       const { data, error } = await supabase.functions.invoke('send-quote-request', {
         body: {
-          supplierEmail: supplierInfo.email,
-          supplierName: supplierInfo.name,
-          supplierCompany: supplierInfo.company,
-          customerName: formData.customerName,
-          customerEmail: formData.customerEmail,
-          customerPhone: formData.customerPhone,
-          customerCompany: formData.company,
+          type: 'quote_request',
+          sellerEmail: supplierInfo.email,
+          sellerName: supplierInfo.name,
+          sellerCompany: supplierInfo.company,
+          buyerName: formData.customerName,
+          buyerEmail: formData.customerEmail,
+          buyerPhone: formData.customerPhone,
+          buyerCompany: formData.company,
           itemType: getItemTypeDisplay(),
           itemName: itemInfo.name,
-          itemId: itemInfo.id,
           itemModel: itemInfo.model,
           itemCategory: itemInfo.category,
-          robotName: robotInfo?.name,
-          robotModel: robotInfo?.model,
-          robotId: robotInfo?.id,
           urgency: formData.urgency,
           requirements: formData.requirements,
           additionalInfo: formData.additionalInfo
