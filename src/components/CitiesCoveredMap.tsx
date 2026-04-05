@@ -261,8 +261,30 @@ const CitiesCoveredMap = () => {
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{totalSellers}+</p>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Verified Sellers</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Sellers</p>
             </div>
+          </div>
+          <div className="w-px h-10 bg-border hidden sm:block" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+              <Wrench className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{totalServiceProviders}+</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Service Providers</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-6">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="w-3 h-3 rounded-full bg-primary inline-block" />
+            <span className="text-muted-foreground">Sellers</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
+            <span className="text-muted-foreground">Service Providers</span>
           </div>
         </div>
 
@@ -285,11 +307,20 @@ const CitiesCoveredMap = () => {
               />
               <FitBoundsToMarkers locations={cityData} />
               {cityData.map((loc) => (
-                <Marker key={loc.city} position={[loc.lat, loc.lng]} icon={pinIcon}>
+                <Marker
+                  key={loc.city}
+                  position={[loc.lat, loc.lng]}
+                  icon={loc.serviceCount > loc.sellerCount ? servicePinIcon : sellerPinIcon}
+                >
                   <Popup>
                     <div className="text-center px-1 py-0.5">
                       <p className="font-bold text-sm">{loc.city}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{loc.count} seller{loc.count > 1 ? 's' : ''}</p>
+                      {loc.sellerCount > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{loc.sellerCount} seller{loc.sellerCount > 1 ? 's' : ''}</p>
+                      )}
+                      {loc.serviceCount > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{loc.serviceCount} service provider{loc.serviceCount > 1 ? 's' : ''}</p>
+                      )}
                     </div>
                   </Popup>
                 </Marker>
@@ -312,6 +343,7 @@ const CitiesCoveredMap = () => {
                     <TableHead className="text-xs font-semibold uppercase tracking-wide">#</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide">City</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide text-right">Sellers</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-right">Services</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -326,7 +358,12 @@ const CitiesCoveredMap = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                          {city.count}
+                          {city.sellerCount}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-sm font-semibold">
+                          {city.serviceCount}
                         </span>
                       </TableCell>
                     </TableRow>
