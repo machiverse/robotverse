@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MapPin, Building2, Users } from "lucide-react";
+import { Loader2, MapPin, Building2, Users, Wrench } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import "leaflet/dist/leaflet.css";
 
@@ -19,14 +19,16 @@ interface CityData {
   count: number;
   lat: number;
   lng: number;
+  sellerCount: number;
+  serviceCount: number;
 }
 
-const createPinIcon = () =>
+const createPinIcon = (color: string = "hsl(221,83%,53%)") =>
   L.divIcon({
     className: "custom-pin-marker",
     html: `<div style="position:relative;width:24px;height:34px">
       <svg width="24" height="34" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="hsl(221,83%,53%)"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="${color}"/>
         <circle cx="12" cy="12" r="5" fill="white"/>
       </svg>
     </div>`,
@@ -136,24 +138,29 @@ const resolveCity = (location: string): string | null => {
   return null;
 };
 
+const SERVICE_ROLES = ['service_provider', 'integrator'];
+
 const CitiesCoveredMap = () => {
   const [cityData, setCityData] = useState<CityData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const pinIcon = useMemo(() => createPinIcon(), []);
-  const totalSellers = useMemo(() => cityData.reduce((sum, c) => sum + c.count, 0), [cityData]);
+  const sellerPinIcon = useMemo(() => createPinIcon("hsl(221,83%,53%)"), []);
+  const servicePinIcon = useMemo(() => createPinIcon("hsl(142,71%,45%)"), []);
+  const totalSellers = useMemo(() => cityData.reduce((sum, c) => sum + c.sellerCount, 0), [cityData]);
+  const totalServiceProviders = useMemo(() => cityData.reduce((sum, c) => sum + c.serviceCount, 0), [cityData]);
+  
 
   useEffect(() => {
     const fetchCities = async () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("user_id, location, city")
+          .select("user_id, location, city, user_type, user_roles")
           .eq("registration_complete", true);
 
         if (error) throw error;
 
-        const cityMap = new Map<string, number>();
+        const cityMap = new Map<string, { sellers: number; services: number }>();
         for (const row of data || []) {
           let cityKey: string | null = null;
           if (row.city && row.city.trim()) {
@@ -162,18 +169,28 @@ const CitiesCoveredMap = () => {
             cityKey = resolveCity(row.location);
           }
           if (!cityKey) continue;
-          // Resolve aliases
           const canonical = LOCATION_ALIASES[cityKey] || cityKey;
-          if (!INDIA_CITY_COORDS[canonical]) continue; // India only
-          cityMap.set(canonical, (cityMap.get(canonical) || 0) + 1);
+          if (!INDIA_CITY_COORDS[canonical]) continue;
+
+          const existing = cityMap.get(canonical) || { sellers: 0, services: 0 };
+          const roles: string[] = (row.user_roles as string[]) || [];
+          const isService = row.user_type === 'service_provider' || roles.some(r => SERVICE_ROLES.includes(r));
+          if (isService) {
+            existing.services += 1;
+          } else {
+            existing.sellers += 1;
+          }
+          cityMap.set(canonical, existing);
         }
 
         const result: CityData[] = [];
-        for (const [key, count] of cityMap) {
+        for (const [key, counts] of cityMap) {
           const coords = INDIA_CITY_COORDS[key];
           result.push({
             city: key.charAt(0).toUpperCase() + key.slice(1),
-            count,
+            count: counts.sellers + counts.services,
+            sellerCount: counts.sellers,
+            serviceCount: counts.services,
             lat: coords.lat,
             lng: coords.lng,
           });
@@ -244,8 +261,30 @@ const CitiesCoveredMap = () => {
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{totalSellers}+</p>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Verified Sellers</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Sellers</p>
             </div>
+          </div>
+          <div className="w-px h-10 bg-border hidden sm:block" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+              <Wrench className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{totalServiceProviders}+</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Service Providers</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mb-6">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="w-3 h-3 rounded-full bg-primary inline-block" />
+            <span className="text-muted-foreground">Sellers</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
+            <span className="text-muted-foreground">Service Providers</span>
           </div>
         </div>
 
@@ -268,11 +307,20 @@ const CitiesCoveredMap = () => {
               />
               <FitBoundsToMarkers locations={cityData} />
               {cityData.map((loc) => (
-                <Marker key={loc.city} position={[loc.lat, loc.lng]} icon={pinIcon}>
+                <Marker
+                  key={loc.city}
+                  position={[loc.lat, loc.lng]}
+                  icon={loc.serviceCount > loc.sellerCount ? servicePinIcon : sellerPinIcon}
+                >
                   <Popup>
                     <div className="text-center px-1 py-0.5">
                       <p className="font-bold text-sm">{loc.city}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{loc.count} seller{loc.count > 1 ? 's' : ''}</p>
+                      {loc.sellerCount > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{loc.sellerCount} seller{loc.sellerCount > 1 ? 's' : ''}</p>
+                      )}
+                      {loc.serviceCount > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{loc.serviceCount} service provider{loc.serviceCount > 1 ? 's' : ''}</p>
+                      )}
                     </div>
                   </Popup>
                 </Marker>
@@ -295,6 +343,7 @@ const CitiesCoveredMap = () => {
                     <TableHead className="text-xs font-semibold uppercase tracking-wide">#</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide">City</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide text-right">Sellers</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wide text-right">Services</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -309,7 +358,12 @@ const CitiesCoveredMap = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                          {city.count}
+                          {city.sellerCount}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-sm font-semibold">
+                          {city.serviceCount}
                         </span>
                       </TableCell>
                     </TableRow>
