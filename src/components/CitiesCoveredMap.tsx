@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MapPin, Building2, Users } from "lucide-react";
+import { Loader2, MapPin, Building2, Users, Wrench } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import "leaflet/dist/leaflet.css";
 
