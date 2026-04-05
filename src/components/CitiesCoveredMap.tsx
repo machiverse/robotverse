@@ -148,7 +148,7 @@ const CitiesCoveredMap = () => {
   const servicePinIcon = useMemo(() => createPinIcon("hsl(142,71%,45%)"), []);
   const totalSellers = useMemo(() => cityData.reduce((sum, c) => sum + c.sellerCount, 0), [cityData]);
   const totalServiceProviders = useMemo(() => cityData.reduce((sum, c) => sum + c.serviceCount, 0), [cityData]);
-  const totalMembers = useMemo(() => cityData.reduce((sum, c) => sum + c.count, 0), [cityData]);
+  
 
   useEffect(() => {
     const fetchCities = async () => {
