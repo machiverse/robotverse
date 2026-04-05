@@ -138,24 +138,29 @@ const resolveCity = (location: string): string | null => {
   return null;
 };
 
+const SERVICE_ROLES = ['service_provider', 'integrator'];
+
 const CitiesCoveredMap = () => {
   const [cityData, setCityData] = useState<CityData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const pinIcon = useMemo(() => createPinIcon(), []);
-  const totalSellers = useMemo(() => cityData.reduce((sum, c) => sum + c.count, 0), [cityData]);
+  const sellerPinIcon = useMemo(() => createPinIcon("hsl(221,83%,53%)"), []);
+  const servicePinIcon = useMemo(() => createPinIcon("hsl(142,71%,45%)"), []);
+  const totalSellers = useMemo(() => cityData.reduce((sum, c) => sum + c.sellerCount, 0), [cityData]);
+  const totalServiceProviders = useMemo(() => cityData.reduce((sum, c) => sum + c.serviceCount, 0), [cityData]);
+  const totalMembers = useMemo(() => cityData.reduce((sum, c) => sum + c.count, 0), [cityData]);
 
   useEffect(() => {
     const fetchCities = async () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("user_id, location, city")
+          .select("user_id, location, city, user_type, user_roles")
           .eq("registration_complete", true);
 
         if (error) throw error;
 
-        const cityMap = new Map<string, number>();
+        const cityMap = new Map<string, { sellers: number; services: number }>();
         for (const row of data || []) {
           let cityKey: string | null = null;
           if (row.city && row.city.trim()) {
@@ -164,18 +169,28 @@ const CitiesCoveredMap = () => {
             cityKey = resolveCity(row.location);
           }
           if (!cityKey) continue;
-          // Resolve aliases
           const canonical = LOCATION_ALIASES[cityKey] || cityKey;
-          if (!INDIA_CITY_COORDS[canonical]) continue; // India only
-          cityMap.set(canonical, (cityMap.get(canonical) || 0) + 1);
+          if (!INDIA_CITY_COORDS[canonical]) continue;
+
+          const existing = cityMap.get(canonical) || { sellers: 0, services: 0 };
+          const roles: string[] = (row.user_roles as string[]) || [];
+          const isService = row.user_type === 'service_provider' || roles.some(r => SERVICE_ROLES.includes(r));
+          if (isService) {
+            existing.services += 1;
+          } else {
+            existing.sellers += 1;
+          }
+          cityMap.set(canonical, existing);
         }
 
         const result: CityData[] = [];
-        for (const [key, count] of cityMap) {
+        for (const [key, counts] of cityMap) {
           const coords = INDIA_CITY_COORDS[key];
           result.push({
             city: key.charAt(0).toUpperCase() + key.slice(1),
-            count,
+            count: counts.sellers + counts.services,
+            sellerCount: counts.sellers,
+            serviceCount: counts.services,
             lat: coords.lat,
             lng: coords.lng,
           });
