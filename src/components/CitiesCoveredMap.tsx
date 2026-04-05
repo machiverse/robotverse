@@ -19,14 +19,16 @@ interface CityData {
   count: number;
   lat: number;
   lng: number;
+  sellerCount: number;
+  serviceCount: number;
 }
 
-const createPinIcon = () =>
+const createPinIcon = (color: string = "hsl(221,83%,53%)") =>
   L.divIcon({
     className: "custom-pin-marker",
     html: `<div style="position:relative;width:24px;height:34px">
       <svg width="24" height="34" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="hsl(221,83%,53%)"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 22 12 22s12-13 12-22C24 5.373 18.627 0 12 0z" fill="${color}"/>
         <circle cx="12" cy="12" r="5" fill="white"/>
       </svg>
     </div>`,
