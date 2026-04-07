@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 

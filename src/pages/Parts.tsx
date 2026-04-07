@@ -40,6 +40,7 @@ import {
   getComponentTypeNameFromSlug,
 } from "@/constants/sparePartsCategories";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 

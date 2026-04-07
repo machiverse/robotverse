@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
