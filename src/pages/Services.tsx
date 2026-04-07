@@ -266,7 +266,7 @@ const Services = () => {
         pageType="services"
         title="Robot Repair & Maintenance Services India | Expert Technicians"
         description="Find certified robot service providers for repair, maintenance, installation & programming. FANUC, ABB, KUKA, Yaskawa experts. 24x7 emergency support across India."
-        keywords={[
+        keywords={dynamicServiceKeywords.length > 0 ? dynamicServiceKeywords : [
           'robot repair maintenance services India',
           'robot installation service',
           'robot programming services',

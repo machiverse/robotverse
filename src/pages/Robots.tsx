@@ -584,7 +584,7 @@ const Robots = () => {
         pageType="robots"
         title="Used Industrial Robots for Sale India | Verified Sellers | RobotVerse"
         description="Browse 500+ used industrial robots from verified sellers. FANUC, ABB, KUKA, Yaskawa robots with warranty. Compare prices, get quotes. Free buyer support."
-        keywords={[
+        keywords={dynamicRobotKeywords.length > 0 ? dynamicRobotKeywords : [
           'used industrial robots for sale',
           'refurbished robots India',
           'second hand robots',

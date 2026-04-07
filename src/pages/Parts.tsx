@@ -483,7 +483,7 @@ const Parts = () => {
         pageType="parts"
         title="Robot Spare Parts & Components India | Genuine Parts | RobotVerse"
         description="Shop genuine robot spare parts from verified suppliers. Servo motors, cables, controllers, teach pendants for FANUC, ABB, KUKA, Yaskawa. Fast delivery across India."
-        keywords={[
+        keywords={dynamicPartsKeywords.length > 0 ? dynamicPartsKeywords : [
           'industrial robot spare parts India',
           'robot components suppliers',
           'genuine robot parts',
