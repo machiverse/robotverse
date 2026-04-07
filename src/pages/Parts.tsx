@@ -40,6 +40,7 @@ import {
   getComponentTypeNameFromSlug,
 } from "@/constants/sparePartsCategories";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 
@@ -77,6 +78,7 @@ const Parts = () => {
   const { isReady } = useAuthReady();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView, getItemViewCount } = useUniversalViewTracking();
+  const dynamicPartsKeywords = useDynamicSEOKeywords('parts');
 
   // Filter states - Three-level taxonomy
   const [searchQuery, setSearchQuery] = useState("");
@@ -481,7 +483,7 @@ const Parts = () => {
         pageType="parts"
         title="Robot Spare Parts & Components India | Genuine Parts | RobotVerse"
         description="Shop genuine robot spare parts from verified suppliers. Servo motors, cables, controllers, teach pendants for FANUC, ABB, KUKA, Yaskawa. Fast delivery across India."
-        keywords={[
+        keywords={dynamicPartsKeywords.length > 0 ? dynamicPartsKeywords : [
           'industrial robot spare parts India',
           'robot components suppliers',
           'genuine robot parts',
