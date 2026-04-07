@@ -60,6 +60,7 @@ const Robots = () => {
   const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
   const { addRobot, isSelected, removeRobot } = useRobotComparison();
+  const dynamicRobotKeywords = useDynamicSEOKeywords('robots');
 
   // Read initial values from URL params
   const initialType = searchParams.get("type") || "all";

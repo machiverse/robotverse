@@ -78,6 +78,7 @@ const Parts = () => {
   const { isReady } = useAuthReady();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView, getItemViewCount } = useUniversalViewTracking();
+  const dynamicPartsKeywords = useDynamicSEOKeywords('parts');
 
   // Filter states - Three-level taxonomy
   const [searchQuery, setSearchQuery] = useState("");

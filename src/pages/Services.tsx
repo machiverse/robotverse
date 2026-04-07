@@ -62,6 +62,7 @@ const Services = () => {
   const { user } = useAuth();
   const { isReady } = useAuthReady();
   const [searchParams, setSearchParams] = useSearchParams();
+  const dynamicServiceKeywords = useDynamicSEOKeywords('services');
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
