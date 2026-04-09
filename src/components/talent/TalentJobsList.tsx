@@ -93,7 +93,7 @@ const TalentJobsList = () => {
                   {job.skills_required?.slice(0, 3).map((s: string) => <Badge key={s} variant="outline" className="text-xs">{s}</Badge>)}
                 </div>
               </div>
-              {job.is_featured && <Badge className="bg-amber-500 text-white shrink-0">Featured</Badge>}
+              {job.is_featured && <Badge className="bg-primary text-primary-foreground shrink-0">Featured</Badge>}
             </div>
           </CardContent>
         </Card>

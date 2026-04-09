@@ -20,7 +20,7 @@ const RobotTalent = () => {
       <Header />
       <main className="container mx-auto px-4 py-8">
         {/* Hero */}
-        <div className="mb-8 rounded-2xl bg-gradient-to-r from-orange-600 via-red-600 to-purple-700 p-8 text-white">
+        <div className="mb-8 rounded-2xl bg-gradient-to-r from-primary via-primary/80 to-accent p-8 text-primary-foreground">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">🤖 Robot Talent</h1>
           <p className="text-lg opacity-90 mb-4">The hiring ecosystem for Industrial Robotics & Automation</p>
           <div className="flex flex-wrap gap-3">

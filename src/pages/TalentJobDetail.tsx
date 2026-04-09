@@ -54,7 +54,7 @@ const TalentJobDetail = () => {
                   <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(job.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
-              {job.is_featured && <Badge className="bg-amber-500 text-white">Featured</Badge>}
+              {job.is_featured && <Badge className="bg-primary text-primary-foreground">Featured</Badge>}
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
