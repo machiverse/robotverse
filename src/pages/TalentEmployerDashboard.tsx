@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
+import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ const TalentEmployerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <EnhancedHeader />
       <main className="container mx-auto px-4 py-8">
         <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate('/robot-talent')}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Robot Talent
@@ -50,7 +50,6 @@ const TalentEmployerDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* My Jobs */}
           <div className="lg:col-span-1 space-y-3">
             <h2 className="font-semibold text-lg">My Jobs ({myJobs?.length || 0})</h2>
             {myJobs?.map((job: any) => (
@@ -79,7 +78,6 @@ const TalentEmployerDashboard = () => {
             )}
           </div>
 
-          {/* Applicants */}
           <div className="lg:col-span-2">
             {selectedJobId ? (
               <div className="space-y-3">
