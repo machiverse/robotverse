@@ -87,28 +87,28 @@ const RobotTalent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-background">
       <EnhancedHeader />
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/85 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.08),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.05),transparent_40%)]" />
+      {/* Hero Section - Dark theme matching Robots/Spare Parts */}
+      <section className="relative overflow-hidden border-b border-border" style={{ background: 'var(--gradient-hero)' }}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(200_100%_50%/0.08),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,hsl(270_100%_60%/0.06),transparent_40%)]" />
         <div className="container mx-auto px-4 py-10 md:py-14 relative">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge className="bg-white/15 text-primary-foreground border-white/20 mb-4 text-xs font-medium backdrop-blur-sm">
+            <Badge className="bg-primary/15 text-primary border-primary/25 mb-4 text-xs font-medium backdrop-blur-sm">
               <Zap className="h-3 w-3 mr-1" /> India's #1 Robotics Talent Platform
             </Badge>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-3 leading-tight">
-              Find Your Dream Job in<br />
-              <span className="text-primary-foreground/90">Industrial Robotics</span>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 leading-tight">
+              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Find Your Dream Job in</span><br />
+              <span className="text-foreground">Industrial Robotics</span>
             </h1>
-            <p className="text-primary-foreground/70 text-base md:text-lg mb-8 max-w-xl mx-auto">
+            <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-xl mx-auto">
               Connect with top robotics employers, skilled professionals, and certified training programs.
             </p>
 
             {/* Search Bar */}
-            <form onSubmit={handleHeroSearch} className="bg-background rounded-xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
+            <form onSubmit={handleHeroSearch} className="bg-card rounded-xl p-2 shadow-xl border border-border flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -135,12 +135,12 @@ const RobotTalent = () => {
 
             {/* Trending Skills */}
             <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
-              <span className="text-primary-foreground/50 text-xs font-medium">Trending:</span>
+              <span className="text-muted-foreground text-xs font-medium">Trending:</span>
               {TRENDING_SKILLS.slice(0, 5).map((skill) => (
                 <Badge
                   key={skill}
                   variant="outline"
-                  className="bg-white/10 text-primary-foreground/80 border-white/20 text-xs cursor-pointer hover:bg-white/20 transition-colors"
+                  className="bg-primary/10 text-primary border-primary/20 text-xs cursor-pointer hover:bg-primary/20 transition-colors"
                 >
                   {skill}
                 </Badge>
@@ -151,10 +151,10 @@ const RobotTalent = () => {
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-3xl mx-auto">
             {STATS.map((stat) => (
-              <div key={stat.label} className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl p-3 text-center hover:bg-white/15 transition-colors">
-                <stat.icon className="h-5 w-5 text-primary-foreground/80 mx-auto mb-1" />
-                <p className="text-xl font-bold text-primary-foreground">{stat.value}</p>
-                <p className="text-[11px] text-primary-foreground/60">{stat.label}</p>
+              <div key={stat.label} className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-3 text-center hover:border-primary/30 transition-colors">
+                <stat.icon className="h-5 w-5 text-primary mx-auto mb-1" />
+                <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-[11px] text-muted-foreground">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -165,22 +165,22 @@ const RobotTalent = () => {
       <main className="container mx-auto px-4 py-6">
         {/* Tabs + Context Actions */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl w-fit">
+          <div className="flex items-center gap-1 bg-card border border-border p-1 rounded-xl w-fit">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveSection(tab.key)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   activeSection === tab.key
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
                 <tab.icon className="h-4 w-4" />
                 {tab.label}
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                   activeSection === tab.key
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary-foreground/20 text-primary-foreground"
                     : "bg-muted text-muted-foreground"
                 }`}>
                   {tab.count}
@@ -218,10 +218,10 @@ const RobotTalent = () => {
       </main>
 
       {/* Why Robot Talent */}
-      <section className="bg-background border-t border-border py-10">
+      <section className="border-t border-border py-10" style={{ background: 'var(--gradient-card)' }}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold">Why Robot Talent?</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Why Robot Talent?</h2>
             <p className="text-sm text-muted-foreground mt-1">The only hiring platform built for industrial robotics & automation</p>
           </div>
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
@@ -230,12 +230,12 @@ const RobotTalent = () => {
               { icon: TrendingUp, title: "Smart Matching", desc: "AI-powered matching based on robot brands, skills, and experience level." },
               { icon: Award, title: "Verified & Trusted", desc: "Verified employers, certified trainers, and authenticated skill profiles." },
             ].map((f) => (
-              <div key={f.title} className="flex gap-4 p-5 rounded-xl bg-muted/30 border border-border hover:shadow-md transition-shadow">
+              <div key={f.title} className="flex gap-4 p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <f.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">{f.title}</h3>
+                  <h3 className="font-semibold text-sm text-foreground">{f.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{f.desc}</p>
                 </div>
               </div>
