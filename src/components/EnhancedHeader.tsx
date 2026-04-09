@@ -25,6 +25,7 @@ import {
   LayoutGrid,
   Crown,
   Shield,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -1266,6 +1267,17 @@ const EnhancedHeader = () => {
                 </div>
               )}
             </div>
+
+            {/* Robot Talent - Direct Link */}
+            <div className="flex-1">
+              <Link
+                to="/robot-talent"
+                className="nav-item flex items-center justify-center gap-2 w-full"
+              >
+                <Users className="h-4 w-4" />
+                <span>Robot Talent</span>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
@@ -1599,6 +1611,16 @@ const EnhancedHeader = () => {
                 </div>
               )}
             </div>
+
+            {/* Robot Talent */}
+            <Link
+              to="/robot-talent"
+              className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition"
+              onClick={() => setMenuOpen(false)}
+            >
+              <Users className="h-4 w-4" />
+              Robot Talent
+            </Link>
           </nav>
 
           {/* Mobile Auth */}
