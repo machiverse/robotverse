@@ -33,7 +33,7 @@ const CRM = () => {
 
   // Read initial tab from URL for Lead Manager - use a key to force remount on tab change
   const initialLeadTab = searchParams.get("tab") || undefined;
-  const tabKey = searchParams.get("tab") || "default";
+  const tabKey = `${searchParams.get("tab") || "default"}-${searchParams.get("t") || "0"}`;
 
   useEffect(() => {
     if (!authLoading && !user) {
