@@ -19,7 +19,6 @@ import {
   Search,
   MessageCircle,
   Send,
-  Users,
 } from "lucide-react";
 import {
   Sidebar,
