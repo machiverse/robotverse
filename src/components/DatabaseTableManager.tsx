@@ -91,8 +91,8 @@ const DatabaseTableManager = () => {
     // Fetch counts in batches
     for (const tableName of ALL_TABLES) {
       try {
-        const { count, error } = await supabase
-          .from(tableName)
+        const { count, error } = await (supabase
+          .from(tableName as any) as any)
           .select('*', { count: 'exact', head: true });
         
         if (!error) {
