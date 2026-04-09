@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
+import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,21 +73,20 @@ const TalentSeekerProfile = () => {
 
   const allSkills = skillTags?.map((t: any) => t.skill_name) || [];
 
-  if (isLoading) return <div className="min-h-screen bg-background"><Header /><div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Loading...</div><Footer /></div>;
+  if (isLoading) return <div className="min-h-screen bg-background"><EnhancedHeader /><div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Loading...</div><Footer /></div>;
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <EnhancedHeader />
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate('/robot-talent')}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Robot Talent
         </Button>
         <Card>
           <CardHeader><CardTitle>{existingProfile ? 'Edit' : 'Create'} Job Seeker Profile</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div><Label>Headline</Label><Input value={form.headline} onChange={e => setForm(f => ({ ...f, headline: e.target.value }))} placeholder="e.g. Senior Robot Programmer - Fanuc & ABB" /></div>
-
               <div><Label>Preferred Role</Label><Input value={form.preferred_role} onChange={e => setForm(f => ({ ...f, preferred_role: e.target.value }))} placeholder="e.g. Robot Programmer" /></div>
 
               <div>

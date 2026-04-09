@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
+import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,12 +32,12 @@ const TalentJobDetail = () => {
 
   const alreadyApplied = myApps?.some((a: any) => a.job_id === id);
 
-  if (isLoading) return <div className="min-h-screen bg-background"><Header /><div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Loading...</div><Footer /></div>;
-  if (!job) return <div className="min-h-screen bg-background"><Header /><div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Job not found</div><Footer /></div>;
+  if (isLoading) return <div className="min-h-screen bg-background"><EnhancedHeader /><div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Loading...</div><Footer /></div>;
+  if (!job) return <div className="min-h-screen bg-background"><EnhancedHeader /><div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Job not found</div><Footer /></div>;
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <EnhancedHeader />
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate('/robot-talent')}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Jobs
@@ -99,7 +99,6 @@ const TalentJobDetail = () => {
               </div>
             )}
 
-            {/* Apply Section */}
             {user && !alreadyApplied && (
               <div className="border-t pt-4 space-y-3">
                 <Textarea placeholder="Cover letter (optional)" value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={3} />

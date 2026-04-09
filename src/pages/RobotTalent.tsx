@@ -1,94 +1,160 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Briefcase,
   Users,
   GraduationCap,
   PlusCircle,
   UserPlus,
-  TrendingUp,
   Building,
-  MapPin,
-  ArrowRight,
+  Search,
   Zap,
   Target,
   Award,
+  ArrowRight,
+  MapPin,
+  TrendingUp,
+  LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import TalentJobsList from "@/components/talent/TalentJobsList";
 import TalentProfilesList from "@/components/talent/TalentProfilesList";
 import TalentTrainingList from "@/components/talent/TalentTrainingList";
-import TalentHeader from "@/components/talent/TalentHeader";
 
 const STATS = [
-  { label: "Active Jobs", value: "500+", icon: Briefcase },
-  { label: "Professionals", value: "2,000+", icon: Users },
-  { label: "Companies Hiring", value: "150+", icon: Building },
-  { label: "Training Programs", value: "80+", icon: GraduationCap },
+  { label: "Active Jobs", value: "500+", icon: Briefcase, color: "text-blue-600" },
+  { label: "Professionals", value: "2,000+", icon: Users, color: "text-emerald-600" },
+  { label: "Companies Hiring", value: "150+", icon: Building, color: "text-amber-600" },
+  { label: "Training Programs", value: "80+", icon: GraduationCap, color: "text-purple-600" },
 ];
 
-const SKILL_CATEGORIES = [
-  { name: "Robot Programming", count: 120, color: "bg-blue-500/10 text-blue-700 border-blue-200" },
-  { name: "PLC / Automation", count: 95, color: "bg-emerald-500/10 text-emerald-700 border-emerald-200" },
-  { name: "Maintenance", count: 85, color: "bg-amber-500/10 text-amber-700 border-amber-200" },
-  { name: "Vision Systems", count: 45, color: "bg-purple-500/10 text-purple-700 border-purple-200" },
-  { name: "Welding", count: 60, color: "bg-red-500/10 text-red-700 border-red-200" },
-  { name: "EOAT / Tooling", count: 35, color: "bg-cyan-500/10 text-cyan-700 border-cyan-200" },
+const TRENDING_SKILLS = [
+  "Fanuc Programming", "ABB RobotStudio", "KUKA KRL", "PLC Integration",
+  "Vision Systems", "Welding Automation", "Palletizing", "Machine Tending",
 ];
 
 const RobotTalent = () => {
   const [activeSection, setActiveSection] = useState<"jobs" | "talent" | "training">("jobs");
+  const [heroSearch, setHeroSearch] = useState("");
+  const [heroLocation, setHeroLocation] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const handleHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSection("jobs");
+  };
+
+  const tabs = [
+    { key: "jobs" as const, label: "Jobs", icon: Briefcase, count: "500+" },
+    { key: "talent" as const, label: "Talent Profiles", icon: Users, count: "2K+" },
+    { key: "training" as const, label: "Training", icon: GraduationCap, count: "80+" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      <TalentHeader />
+      <EnhancedHeader />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-foreground via-foreground/95 to-foreground/90">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-50" />
-        <div className="container mx-auto px-4 py-12 md:py-16 relative">
-          <div className="max-w-3xl">
-            <Badge className="bg-primary/20 text-primary border-primary/30 mb-4">
-              <Zap className="h-3 w-3 mr-1" /> India's #1 Robotics Hiring Platform
+      {/* Hero Section - Naukri Style */}
+      <section className="bg-gradient-to-br from-primary/95 via-primary to-primary/85 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.08),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.05),transparent_40%)]" />
+        <div className="container mx-auto px-4 py-10 md:py-14 relative">
+          <div className="max-w-3xl mx-auto text-center">
+            <Badge className="bg-white/15 text-white border-white/20 mb-4 text-xs font-medium backdrop-blur-sm">
+              <Zap className="h-3 w-3 mr-1" /> India's #1 Robotics Talent Platform
             </Badge>
-            <h1 className="text-3xl md:text-5xl font-bold text-background mb-4 leading-tight">
-              Find Your Next Role in
-              <span className="text-primary"> Industrial Robotics</span>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+              Find Your Dream Job in<br />
+              <span className="text-white/90">Industrial Robotics</span>
             </h1>
-            <p className="text-background/70 text-lg mb-8 max-w-xl">
-              Connect with top employers, discover training programs, and build your career in automation.
+            <p className="text-white/70 text-base md:text-lg mb-8 max-w-xl mx-auto">
+              Connect with top robotics employers, skilled professionals, and certified training programs.
             </p>
 
-            {/* Quick stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-              {STATS.map((stat) => (
-                <div key={stat.label} className="bg-background/10 backdrop-blur-sm border border-background/10 rounded-xl p-3 text-center">
-                  <stat.icon className="h-5 w-5 text-primary mx-auto mb-1" />
-                  <p className="text-xl font-bold text-background">{stat.value}</p>
-                  <p className="text-xs text-background/60">{stat.label}</p>
-                </div>
+            {/* Search Bar - Naukri Style */}
+            <form onSubmit={handleHeroSearch} className="bg-white rounded-xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={heroSearch}
+                  onChange={(e) => setHeroSearch(e.target.value)}
+                  placeholder="Skills, job title, company..."
+                  className="pl-10 border-0 bg-transparent shadow-none focus-visible:ring-0 h-11"
+                />
+              </div>
+              <div className="hidden sm:block w-px bg-border" />
+              <div className="relative flex-1">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={heroLocation}
+                  onChange={(e) => setHeroLocation(e.target.value)}
+                  placeholder="City or location..."
+                  className="pl-10 border-0 bg-transparent shadow-none focus-visible:ring-0 h-11"
+                />
+              </div>
+              <Button type="submit" size="lg" className="h-11 px-8 rounded-lg font-semibold">
+                Search
+              </Button>
+            </form>
+
+            {/* Trending Skills */}
+            <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
+              <span className="text-white/50 text-xs font-medium">Trending:</span>
+              {TRENDING_SKILLS.slice(0, 5).map((skill) => (
+                <Badge
+                  key={skill}
+                  variant="outline"
+                  className="bg-white/10 text-white/80 border-white/20 text-xs cursor-pointer hover:bg-white/20 transition-colors"
+                >
+                  {skill}
+                </Badge>
               ))}
             </div>
+          </div>
 
-            {/* CTA buttons */}
-            <div className="flex flex-wrap gap-3">
-              {user ? (
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-3xl mx-auto">
+            {STATS.map((stat) => (
+              <div key={stat.label} className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl p-3 text-center hover:bg-white/15 transition-colors">
+                <stat.icon className="h-5 w-5 text-white/80 mx-auto mb-1" />
+                <p className="text-xl font-bold text-white">{stat.value}</p>
+                <p className="text-[11px] text-white/60">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Action Bar */}
+      <section className="border-b border-border bg-card shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between py-3 gap-4 overflow-x-auto">
+            <div className="flex items-center gap-2">
+              {user && (
                 <>
-                  <Button size="lg" onClick={() => navigate('/robot-talent/post-job')} className="gap-2">
-                    <PlusCircle className="h-4 w-4" /> Post a Job
+                  <Button size="sm" onClick={() => navigate('/robot-talent/post-job')} className="gap-1.5 text-xs whitespace-nowrap">
+                    <PlusCircle className="h-3.5 w-3.5" /> Post a Job
                   </Button>
-                  <Button size="lg" variant="outline" onClick={() => navigate('/robot-talent/seeker-profile')} className="gap-2 bg-background/10 border-background/20 text-background hover:bg-background/20">
-                    <UserPlus className="h-4 w-4" /> Create Seeker Profile
+                  <Button size="sm" variant="outline" onClick={() => navigate('/robot-talent/seeker-profile')} className="gap-1.5 text-xs whitespace-nowrap">
+                    <UserPlus className="h-3.5 w-3.5" /> My Profile
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/robot-talent/post-training')} className="gap-1.5 text-xs whitespace-nowrap">
+                    <GraduationCap className="h-3.5 w-3.5" /> Add Training
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/robot-talent/employer-dashboard')} className="gap-1.5 text-xs whitespace-nowrap">
+                    <LayoutDashboard className="h-3.5 w-3.5" /> Employer Dashboard
                   </Button>
                 </>
-              ) : (
-                <Button size="lg" onClick={() => navigate('/auth')} className="gap-2">
-                  Get Started <ArrowRight className="h-4 w-4" />
+              )}
+              {!user && (
+                <Button size="sm" onClick={() => navigate('/auth')} className="gap-1.5 text-xs">
+                  Get Started <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
@@ -96,45 +162,29 @@ const RobotTalent = () => {
         </div>
       </section>
 
-      {/* Skill Categories Quick Filter */}
-      <section className="border-b border-border bg-muted/30">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-thin pb-1">
-            <span className="text-sm font-medium text-muted-foreground shrink-0">Popular Skills:</span>
-            {SKILL_CATEGORIES.map((cat) => (
-              <Badge
-                key={cat.name}
-                variant="outline"
-                className={`shrink-0 cursor-pointer hover:shadow-sm transition-all ${cat.color}`}
-              >
-                {cat.name}
-                <span className="ml-1 opacity-60">{cat.count}</span>
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Section Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b border-border">
-          {[
-            { key: "jobs" as const, label: "Job Listings", icon: Briefcase, desc: "Browse open positions" },
-            { key: "talent" as const, label: "Talent Profiles", icon: Users, desc: "Find professionals" },
-            { key: "training" as const, label: "Training Programs", icon: GraduationCap, desc: "Upskill yourself" },
-          ].map((tab) => (
+      <main className="container mx-auto px-4 py-6">
+        {/* Tabs - Professional Style */}
+        <div className="flex items-center gap-1 mb-6 bg-muted/50 p-1 rounded-xl w-fit">
+          {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveSection(tab.key)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all -mb-px ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeSection === tab.key
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                activeSection === tab.key
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                {tab.count}
+              </span>
             </button>
           ))}
         </div>
@@ -145,22 +195,27 @@ const RobotTalent = () => {
         {activeSection === "training" && <TalentTrainingList />}
       </main>
 
-      {/* Why Robot Talent section */}
-      <section className="bg-muted/50 border-t border-border py-12">
+      {/* Why Robot Talent - Compact */}
+      <section className="bg-muted/30 border-t border-border py-10">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center mb-8">Why Robot Talent?</h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold">Why Robot Talent?</h2>
+            <p className="text-sm text-muted-foreground mt-1">The only hiring platform built for industrial robotics & automation</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
-              { icon: Target, title: "Industry Focused", desc: "Exclusively for industrial robotics and automation professionals." },
-              { icon: Zap, title: "Smart Matching", desc: "AI-powered matching based on skills, brands, and experience." },
-              { icon: Award, title: "Verified Profiles", desc: "Trusted employers and certified training providers." },
+              { icon: Target, title: "Industry Focused", desc: "Exclusively for industrial robotics and automation professionals across India." },
+              { icon: TrendingUp, title: "Smart Matching", desc: "AI-powered matching based on robot brands, skills, and experience level." },
+              { icon: Award, title: "Verified & Trusted", desc: "Verified employers, certified trainers, and authenticated skill profiles." },
             ].map((f) => (
-              <div key={f.title} className="text-center p-6 rounded-xl bg-background border border-border">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <f.icon className="h-6 w-6 text-primary" />
+              <div key={f.title} className="flex gap-4 p-5 rounded-xl bg-background border border-border">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <f.icon className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="font-semibold mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.desc}</p>
+                <div>
+                  <h3 className="font-semibold text-sm">{f.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{f.desc}</p>
+                </div>
               </div>
             ))}
           </div>
