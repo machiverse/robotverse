@@ -61,6 +61,12 @@ import { AutoSignInPopup } from "./components/AutoSignInPopup";
 import AIAssistant from "./pages/AIAssistant";
 import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
 import { AIAssistantProvider } from "./contexts/AIAssistantContext";
+import RobotTalent from "./pages/RobotTalent";
+import TalentJobDetail from "./pages/TalentJobDetail";
+import TalentPostJob from "./pages/TalentPostJob";
+import TalentSeekerProfile from "./pages/TalentSeekerProfile";
+import TalentPostTraining from "./pages/TalentPostTraining";
+import TalentEmployerDashboard from "./pages/TalentEmployerDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -163,6 +169,12 @@ const App = () => (
               <Route path="/crm" element={<CRM />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />
+              <Route path="/robot-talent" element={<RobotTalent />} />
+              <Route path="/robot-talent/jobs/:id" element={<TalentJobDetail />} />
+              <Route path="/robot-talent/post-job" element={<TalentPostJob />} />
+              <Route path="/robot-talent/seeker-profile" element={<TalentSeekerProfile />} />
+              <Route path="/robot-talent/post-training" element={<TalentPostTraining />} />
+              <Route path="/robot-talent/employer-dashboard" element={<TalentEmployerDashboard />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
