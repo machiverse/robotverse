@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,21 +11,37 @@ import {
   Search, Zap, Target, Award, ArrowRight, MapPin, TrendingUp, LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import TalentJobsList from "@/components/talent/TalentJobsList";
 import TalentProfilesList from "@/components/talent/TalentProfilesList";
 import TalentTrainingList from "@/components/talent/TalentTrainingList";
-
-const STATS = [
-  { label: "Active Jobs", value: "500+", icon: Briefcase },
-  { label: "Professionals", value: "2,000+", icon: Users },
-  { label: "Companies Hiring", value: "150+", icon: Building },
-  { label: "Training Programs", value: "80+", icon: GraduationCap },
-];
 
 const TRENDING_SKILLS = [
   "Fanuc Programming", "ABB RobotStudio", "KUKA KRL", "PLC Integration",
   "Vision Systems", "Welding Automation", "Palletizing", "Machine Tending",
 ];
+
+function useTalentStats() {
+  return useQuery({
+    queryKey: ['talent-stats'],
+    queryFn: async () => {
+      const [jobsRes, profilesRes, employersRes, trainingRes] = await Promise.all([
+        supabase.from('talent_jobs' as any).select('id', { count: 'exact', head: true }).eq('status', 'open'),
+        supabase.from('job_seeker_profiles' as any).select('id', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('talent_jobs' as any).select('employer_id').eq('status', 'open'),
+        supabase.from('training_programs' as any).select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      ]);
+      const uniqueEmployers = new Set((employersRes.data || []).map((j: any) => j.employer_id)).size;
+      return {
+        activeJobs: jobsRes.count || 0,
+        professionals: profilesRes.count || 0,
+        companiesHiring: uniqueEmployers,
+        trainingPrograms: trainingRes.count || 0,
+      };
+    },
+    staleTime: 60 * 1000,
+  });
+}
 
 const RobotTalent = () => {
   const [activeSection, setActiveSection] = useState<"jobs" | "talent" | "training">("jobs");
@@ -32,16 +49,24 @@ const RobotTalent = () => {
   const [heroLocation, setHeroLocation] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: stats } = useTalentStats();
 
   const handleHeroSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveSection("jobs");
   };
 
+  const STATS = [
+    { label: "Active Jobs", value: stats?.activeJobs ?? 0, icon: Briefcase },
+    { label: "Professionals", value: stats?.professionals ?? 0, icon: Users },
+    { label: "Companies Hiring", value: stats?.companiesHiring ?? 0, icon: Building },
+    { label: "Training Programs", value: stats?.trainingPrograms ?? 0, icon: GraduationCap },
+  ];
+
   const tabs = [
-    { key: "jobs" as const, label: "Jobs", icon: Briefcase, count: "500+" },
-    { key: "talent" as const, label: "Talent Profiles", icon: Users, count: "2K+" },
-    { key: "training" as const, label: "Training", icon: GraduationCap, count: "80+" },
+    { key: "jobs" as const, label: "Jobs", icon: Briefcase, count: String(stats?.activeJobs ?? 0) },
+    { key: "talent" as const, label: "Talent Profiles", icon: Users, count: String(stats?.professionals ?? 0) },
+    { key: "training" as const, label: "Training", icon: GraduationCap, count: String(stats?.trainingPrograms ?? 0) },
   ];
 
   // Contextual actions per tab
