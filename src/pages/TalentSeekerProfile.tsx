@@ -16,7 +16,7 @@ import { useSeekerProfile, useSaveSeekerProfile, ROBOT_BRANDS, useSkillTags } fr
 
 const TalentSeekerProfile = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const { data: existingProfile, isLoading } = useSeekerProfile();
   const saveProfile = useSaveSeekerProfile();
   const { data: skillTags } = useSkillTags();
@@ -47,8 +47,6 @@ const TalentSeekerProfile = () => {
         city: existingProfile.city || '',
         bio: existingProfile.bio || '',
       });
-    } else if (userProfile) {
-      setForm(f => ({ ...f, city: userProfile.city || '', location: userProfile.location || '' }));
     }
   }, [existingProfile, userProfile]);
 

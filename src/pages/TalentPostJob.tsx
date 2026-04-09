@@ -15,15 +15,15 @@ import { useCreateJob, ROBOT_BRANDS, JOB_CATEGORIES, JOB_TYPES, useSkillTags } f
 
 const TalentPostJob = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const createJob = useCreateJob();
   const { data: skillTags } = useSkillTags();
   const [form, setForm] = useState({
     title: '', category: '', description: '', robot_brand: '',
     experience_min: 0, experience_max: undefined as number | undefined,
     salary_min: undefined as number | undefined, salary_max: undefined as number | undefined,
-    job_type: 'full-time', location: userProfile?.location || '', city: userProfile?.city || '',
-    skills_required: [] as string[], company_type: userProfile?.account_type === 'buyer' ? 'Factory' : 'Integrator',
+    job_type: 'full-time', location: '', city: '',
+    skills_required: [] as string[], company_type: 'Integrator',
   });
   const [skillInput, setSkillInput] = useState('');
 

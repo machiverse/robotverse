@@ -15,14 +15,14 @@ import { useCreateTraining, ROBOT_BRANDS, JOB_CATEGORIES, useSkillTags } from "@
 
 const TalentPostTraining = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const createTraining = useCreateTraining();
   const { data: skillTags } = useSkillTags();
 
   const [form, setForm] = useState({
     course_name: '', description: '', robot_brand: '', skill_category: '',
     duration: '', mode: 'offline', fees: undefined as number | undefined,
-    certification: '', location: userProfile?.location || '', city: userProfile?.city || '',
+    certification: '', location: '', city: '',
     skills_covered: [] as string[], max_students: undefined as number | undefined,
   });
   const [skillInput, setSkillInput] = useState('');

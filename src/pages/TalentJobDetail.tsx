@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Clock, IndianRupee, Briefcase, ArrowLeft } from "lucide-react";
+import { MapPin, Clock, IndianRupee, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useApplyJob, useMyApplications } from "@/hooks/useRobotTalent";
 import { useState } from "react";
