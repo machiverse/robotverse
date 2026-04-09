@@ -48,7 +48,7 @@ const TalentSeekerProfile = () => {
         bio: existingProfile.bio || '',
       });
     }
-  }, [existingProfile, userProfile]);
+  }, [existingProfile]);
 
   if (!user) { navigate('/auth'); return null; }
 
