@@ -23,7 +23,7 @@ interface TableInfo {
   count: number;
 }
 
-const ALL_TABLES = [
+const ALL_TABLES: string[] = [
   'profiles', 'robots', 'spare_parts', 'services',
   'blogs', 'community_posts', 'blog_comments', 'blog_likes', 'blog_shares', 'blog_views',
   'post_comments', 'post_likes', 'post_shares', 'comment_likes',
@@ -42,7 +42,7 @@ const ALL_TABLES = [
   'loan_products', 'loan_schemes', 'loan_applications',
   'document_uploads', 'watchlists', 'unlocked_contacts', 'unlocked_leads',
   'razorpay_orders', 'razorpay_webhook_events', 'states',
-] as const;
+];
 
 const TABLE_CATEGORIES: Record<string, string[]> = {
   'Users & Profiles': ['profiles'],
