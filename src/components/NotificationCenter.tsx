@@ -395,8 +395,10 @@ export const NotificationCenter = () => {
       setOpen(false);
 
       // Navigate based on notification type and reference
+      // Add timestamp to force re-render when navigating to the same CRM route
       const navType = notification.reference_type || notification.notification_type;
       const refId = notification.reference_id;
+      const ts = Date.now();
 
       if (refId) {
         switch (navType) {
