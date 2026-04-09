@@ -408,7 +408,7 @@ export const NotificationCenter = () => {
             break;
           case "robot_inquiry":
           case "robot_quote":
-            navigate(`/crm?view=leads&tab=quotes`);
+            navigate(`/crm?view=leads&tab=quotes&t=${ts}`);
             break;
           case "spare_part":
           case "spare_part_view":
@@ -416,7 +416,7 @@ export const NotificationCenter = () => {
             break;
           case "spare_part_inquiry":
           case "spare_part_quote":
-            navigate(`/crm?view=leads&tab=quotes`);
+            navigate(`/crm?view=leads&tab=quotes&t=${ts}`);
             break;
           case "service":
           case "service_view":
@@ -424,7 +424,7 @@ export const NotificationCenter = () => {
             break;
           case "service_inquiry":
           case "service_quote":
-            navigate(`/crm?view=leads&tab=quotes`);
+            navigate(`/crm?view=leads&tab=quotes&t=${ts}`);
             break;
           case "logistics":
           case "logistics_view":
@@ -432,7 +432,7 @@ export const NotificationCenter = () => {
             break;
           case "logistics_inquiry":
           case "logistics_quote":
-            navigate(`/crm?view=leads&tab=quotes`);
+            navigate(`/crm?view=leads&tab=quotes&t=${ts}`);
             break;
           case "financing":
           case "financing_view":
@@ -440,7 +440,7 @@ export const NotificationCenter = () => {
             break;
           case "finance_inquiry":
           case "finance_application":
-            navigate(`/crm?view=leads&tab=quotes`);
+            navigate(`/crm?view=leads&tab=quotes&t=${ts}`);
             break;
           case "community_post":
           case "robobook":
@@ -453,7 +453,7 @@ export const NotificationCenter = () => {
           case "lead":
           case "lead_new":
           case "lead_update":
-            navigate(`/crm?view=leads&tab=leads`);
+            navigate(`/crm?view=leads&tab=leads&t=${ts}`);
             break;
           case "buyer_access_request":
           case "buyer_access_approved":
@@ -461,18 +461,18 @@ export const NotificationCenter = () => {
             break;
           case "quotation":
           case "quote_received":
-            navigate(`/dashboard/my-requests`);
+            navigate(`/dashboard/quotations`);
             break;
           case "quote_request":
-            navigate(`/crm?view=leads&tab=quotes`);
+            navigate(`/crm?view=leads&tab=quotes&t=${ts}`);
             break;
           case "quote_accepted":
           case "quote_rejected":
           case "quote_negotiation":
-            navigate(`/crm?view=leads&tab=sent_quotes`);
+            navigate(`/crm?view=leads&tab=sent_quotes&t=${ts}`);
             break;
           case "user_request":
-            navigate(`/crm?view=leads&tab=user_requests`);
+            navigate(`/crm?view=leads&tab=user_requests&t=${ts}`);
             break;
           default:
             navigate(`/dashboard`);
@@ -480,22 +480,22 @@ export const NotificationCenter = () => {
       } else {
         switch (notification.notification_type) {
           case "quote_request":
-            navigate("/crm?view=leads&tab=quotes");
+            navigate(`/crm?view=leads&tab=quotes&t=${ts}`);
             break;
           case "quote_received":
-            navigate("/dashboard/my-requests");
+            navigate("/dashboard/quotations");
             break;
           case "quote_accepted":
           case "quote_rejected":
           case "quote_negotiation":
-            navigate("/crm?view=leads&tab=sent_quotes");
+            navigate(`/crm?view=leads&tab=sent_quotes&t=${ts}`);
             break;
           case "lead_new":
           case "lead_update":
-            navigate("/crm?view=leads&tab=leads");
+            navigate(`/crm?view=leads&tab=leads&t=${ts}`);
             break;
           case "user_request":
-            navigate("/crm?view=leads&tab=user_requests");
+            navigate(`/crm?view=leads&tab=user_requests&t=${ts}`);
             break;
           case "buyer_access_request":
           case "buyer_access_approved":
@@ -508,7 +508,7 @@ export const NotificationCenter = () => {
           case "service_view":
           case "services_view":
           case "product_view":
-            navigate("/crm?view=leads&tab=views");
+            navigate(`/crm?view=leads&tab=views&t=${ts}`);
             break;
           default:
             navigate("/dashboard");
