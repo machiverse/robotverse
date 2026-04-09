@@ -6,20 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Briefcase,
-  Users,
-  GraduationCap,
-  PlusCircle,
-  UserPlus,
-  Building,
-  Search,
-  Zap,
-  Target,
-  Award,
-  ArrowRight,
-  MapPin,
-  TrendingUp,
-  LayoutDashboard,
+  Briefcase, Users, GraduationCap, PlusCircle, UserPlus, Building,
+  Search, Zap, Target, Award, ArrowRight, MapPin, TrendingUp, LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import TalentJobsList from "@/components/talent/TalentJobsList";
@@ -27,10 +15,10 @@ import TalentProfilesList from "@/components/talent/TalentProfilesList";
 import TalentTrainingList from "@/components/talent/TalentTrainingList";
 
 const STATS = [
-  { label: "Active Jobs", value: "500+", icon: Briefcase, color: "text-blue-600" },
-  { label: "Professionals", value: "2,000+", icon: Users, color: "text-emerald-600" },
-  { label: "Companies Hiring", value: "150+", icon: Building, color: "text-amber-600" },
-  { label: "Training Programs", value: "80+", icon: GraduationCap, color: "text-purple-600" },
+  { label: "Active Jobs", value: "500+", icon: Briefcase },
+  { label: "Professionals", value: "2,000+", icon: Users },
+  { label: "Companies Hiring", value: "150+", icon: Building },
+  { label: "Training Programs", value: "80+", icon: GraduationCap },
 ];
 
 const TRENDING_SKILLS = [
@@ -56,29 +44,46 @@ const RobotTalent = () => {
     { key: "training" as const, label: "Training", icon: GraduationCap, count: "80+" },
   ];
 
+  // Contextual actions per tab
+  const contextActions = {
+    jobs: user ? [
+      { label: "Post a Job", icon: PlusCircle, path: "/robot-talent/post-job", variant: "default" as const },
+      { label: "Employer Dashboard", icon: LayoutDashboard, path: "/robot-talent/employer-dashboard", variant: "outline" as const },
+      { label: "My Profile", icon: UserPlus, path: "/robot-talent/seeker-profile", variant: "outline" as const },
+    ] : [],
+    talent: user ? [
+      { label: "Create My Profile", icon: UserPlus, path: "/robot-talent/seeker-profile", variant: "default" as const },
+      { label: "Employer Dashboard", icon: LayoutDashboard, path: "/robot-talent/employer-dashboard", variant: "outline" as const },
+    ] : [],
+    training: user ? [
+      { label: "Add Training Program", icon: GraduationCap, path: "/robot-talent/post-training", variant: "default" as const },
+      { label: "My Profile", icon: UserPlus, path: "/robot-talent/seeker-profile", variant: "outline" as const },
+    ] : [],
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       <EnhancedHeader />
 
-      {/* Hero Section - Naukri Style */}
-      <section className="bg-gradient-to-br from-primary/95 via-primary to-primary/85 relative overflow-hidden">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/85 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.08),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.05),transparent_40%)]" />
         <div className="container mx-auto px-4 py-10 md:py-14 relative">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge className="bg-white/15 text-white border-white/20 mb-4 text-xs font-medium backdrop-blur-sm">
+            <Badge className="bg-white/15 text-primary-foreground border-white/20 mb-4 text-xs font-medium backdrop-blur-sm">
               <Zap className="h-3 w-3 mr-1" /> India's #1 Robotics Talent Platform
             </Badge>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-3 leading-tight">
               Find Your Dream Job in<br />
-              <span className="text-white/90">Industrial Robotics</span>
+              <span className="text-primary-foreground/90">Industrial Robotics</span>
             </h1>
-            <p className="text-white/70 text-base md:text-lg mb-8 max-w-xl mx-auto">
+            <p className="text-primary-foreground/70 text-base md:text-lg mb-8 max-w-xl mx-auto">
               Connect with top robotics employers, skilled professionals, and certified training programs.
             </p>
 
-            {/* Search Bar - Naukri Style */}
-            <form onSubmit={handleHeroSearch} className="bg-white rounded-xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
+            {/* Search Bar */}
+            <form onSubmit={handleHeroSearch} className="bg-background rounded-xl p-2 shadow-2xl flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -105,12 +110,12 @@ const RobotTalent = () => {
 
             {/* Trending Skills */}
             <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">
-              <span className="text-white/50 text-xs font-medium">Trending:</span>
+              <span className="text-primary-foreground/50 text-xs font-medium">Trending:</span>
               {TRENDING_SKILLS.slice(0, 5).map((skill) => (
                 <Badge
                   key={skill}
                   variant="outline"
-                  className="bg-white/10 text-white/80 border-white/20 text-xs cursor-pointer hover:bg-white/20 transition-colors"
+                  className="bg-white/10 text-primary-foreground/80 border-white/20 text-xs cursor-pointer hover:bg-white/20 transition-colors"
                 >
                   {skill}
                 </Badge>
@@ -122,71 +127,63 @@ const RobotTalent = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-3xl mx-auto">
             {STATS.map((stat) => (
               <div key={stat.label} className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl p-3 text-center hover:bg-white/15 transition-colors">
-                <stat.icon className="h-5 w-5 text-white/80 mx-auto mb-1" />
-                <p className="text-xl font-bold text-white">{stat.value}</p>
-                <p className="text-[11px] text-white/60">{stat.label}</p>
+                <stat.icon className="h-5 w-5 text-primary-foreground/80 mx-auto mb-1" />
+                <p className="text-xl font-bold text-primary-foreground">{stat.value}</p>
+                <p className="text-[11px] text-primary-foreground/60">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Quick Action Bar */}
-      <section className="border-b border-border bg-card shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between py-3 gap-4 overflow-x-auto">
-            <div className="flex items-center gap-2">
-              {user && (
-                <>
-                  <Button size="sm" onClick={() => navigate('/robot-talent/post-job')} className="gap-1.5 text-xs whitespace-nowrap">
-                    <PlusCircle className="h-3.5 w-3.5" /> Post a Job
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/robot-talent/seeker-profile')} className="gap-1.5 text-xs whitespace-nowrap">
-                    <UserPlus className="h-3.5 w-3.5" /> My Profile
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/robot-talent/post-training')} className="gap-1.5 text-xs whitespace-nowrap">
-                    <GraduationCap className="h-3.5 w-3.5" /> Add Training
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate('/robot-talent/employer-dashboard')} className="gap-1.5 text-xs whitespace-nowrap">
-                    <LayoutDashboard className="h-3.5 w-3.5" /> Employer Dashboard
-                  </Button>
-                </>
-              )}
-              {!user && (
-                <Button size="sm" onClick={() => navigate('/auth')} className="gap-1.5 text-xs">
-                  Get Started <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        {/* Tabs - Professional Style */}
-        <div className="flex items-center gap-1 mb-6 bg-muted/50 p-1 rounded-xl w-fit">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveSection(tab.key)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeSection === tab.key
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                activeSection === tab.key
-                  ? "bg-primary/10 text-primary"
-                  : "bg-muted text-muted-foreground"
-              }`}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
+        {/* Tabs + Context Actions */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl w-fit">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveSection(tab.key)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  activeSection === tab.key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  activeSection === tab.key
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Contextual Actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {contextActions[activeSection].map((action) => (
+              <Button
+                key={action.label}
+                size="sm"
+                variant={action.variant}
+                className="gap-1.5 text-xs"
+                onClick={() => navigate(action.path)}
+              >
+                <action.icon className="h-3.5 w-3.5" />
+                {action.label}
+              </Button>
+            ))}
+            {!user && (
+              <Button size="sm" onClick={() => navigate('/auth')} className="gap-1.5 text-xs">
+                Get Started <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -195,8 +192,8 @@ const RobotTalent = () => {
         {activeSection === "training" && <TalentTrainingList />}
       </main>
 
-      {/* Why Robot Talent - Compact */}
-      <section className="bg-muted/30 border-t border-border py-10">
+      {/* Why Robot Talent */}
+      <section className="bg-background border-t border-border py-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Why Robot Talent?</h2>
@@ -208,7 +205,7 @@ const RobotTalent = () => {
               { icon: TrendingUp, title: "Smart Matching", desc: "AI-powered matching based on robot brands, skills, and experience level." },
               { icon: Award, title: "Verified & Trusted", desc: "Verified employers, certified trainers, and authenticated skill profiles." },
             ].map((f) => (
-              <div key={f.title} className="flex gap-4 p-5 rounded-xl bg-background border border-border">
+              <div key={f.title} className="flex gap-4 p-5 rounded-xl bg-muted/30 border border-border hover:shadow-md transition-shadow">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <f.icon className="h-5 w-5 text-primary" />
                 </div>
