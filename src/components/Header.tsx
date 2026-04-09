@@ -69,6 +69,9 @@ const Header = () => {
             <a href="#services" className="text-foreground hover:text-primary transition-colors">
               Services
             </a>
+            <Link to="/robot-talent" className="text-foreground hover:text-primary transition-colors font-medium">
+              🤖 Robot Talent
+            </Link>
             <a href="#about" className="text-foreground hover:text-primary transition-colors">
               About
             </a>

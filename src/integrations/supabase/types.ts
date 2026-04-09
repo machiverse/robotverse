@@ -1719,6 +1719,110 @@ export type Database = {
         }
         Relationships: []
       }
+      job_applications: {
+        Row: {
+          applicant_id: string
+          applied_at: string
+          cover_letter: string | null
+          id: string
+          job_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          applied_at?: string
+          cover_letter?: string | null
+          id?: string
+          job_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          applied_at?: string
+          cover_letter?: string | null
+          id?: string
+          job_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "talent_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_seeker_profiles: {
+        Row: {
+          availability: string | null
+          bio: string | null
+          city: string | null
+          created_at: string
+          expected_salary_max: number | null
+          expected_salary_min: number | null
+          experience_areas: string[] | null
+          headline: string | null
+          id: string
+          is_active: boolean | null
+          location: string | null
+          preferred_role: string | null
+          projects_completed: number | null
+          resume_url: string | null
+          robot_brands: string[] | null
+          skills: string[] | null
+          total_experience_years: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          expected_salary_max?: number | null
+          expected_salary_min?: number | null
+          experience_areas?: string[] | null
+          headline?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          preferred_role?: string | null
+          projects_completed?: number | null
+          resume_url?: string | null
+          robot_brands?: string[] | null
+          skills?: string[] | null
+          total_experience_years?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          expected_salary_max?: number | null
+          expected_salary_min?: number | null
+          experience_areas?: string[] | null
+          headline?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          preferred_role?: string | null
+          projects_completed?: number | null
+          resume_url?: string | null
+          robot_brands?: string[] | null
+          skills?: string[] | null
+          total_experience_years?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           activity_type: string
@@ -2409,6 +2513,9 @@ export type Database = {
           full_name: string | null
           government_scheme_support: boolean | null
           id: string
+          is_employer: boolean | null
+          is_job_seeker: boolean | null
+          is_trainer: boolean | null
           location: string | null
           logistics_region: string | null
           logistics_type: string | null
@@ -2451,6 +2558,9 @@ export type Database = {
           full_name?: string | null
           government_scheme_support?: boolean | null
           id?: string
+          is_employer?: boolean | null
+          is_job_seeker?: boolean | null
+          is_trainer?: boolean | null
           location?: string | null
           logistics_region?: string | null
           logistics_type?: string | null
@@ -2493,6 +2603,9 @@ export type Database = {
           full_name?: string | null
           government_scheme_support?: boolean | null
           id?: string
+          is_employer?: boolean | null
+          is_job_seeker?: boolean | null
+          is_trainer?: boolean | null
           location?: string | null
           logistics_region?: string | null
           logistics_type?: string | null
@@ -2989,6 +3102,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      saved_jobs: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "talent_jobs"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3634,6 +3776,33 @@ export type Database = {
           },
         ]
       }
+      skill_tags: {
+        Row: {
+          category: string
+          created_at: string
+          icon: string | null
+          id: string
+          skill_name: string
+          sort_order: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          skill_name: string
+          sort_order?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          skill_name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       spare_parts: {
         Row: {
           brand: string | null
@@ -3911,6 +4080,176 @@ export type Database = {
           ticket_id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      talent_jobs: {
+        Row: {
+          application_count: number | null
+          category: string
+          city: string | null
+          company_type: string | null
+          created_at: string
+          description: string | null
+          employer_id: string
+          experience_max: number | null
+          experience_min: number | null
+          id: string
+          is_featured: boolean | null
+          job_type: string | null
+          location: string | null
+          robot_brand: string | null
+          salary_max: number | null
+          salary_min: number | null
+          skills_required: string[] | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_count?: number | null
+          category: string
+          city?: string | null
+          company_type?: string | null
+          created_at?: string
+          description?: string | null
+          employer_id: string
+          experience_max?: number | null
+          experience_min?: number | null
+          id?: string
+          is_featured?: boolean | null
+          job_type?: string | null
+          location?: string | null
+          robot_brand?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          skills_required?: string[] | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_count?: number | null
+          category?: string
+          city?: string | null
+          company_type?: string | null
+          created_at?: string
+          description?: string | null
+          employer_id?: string
+          experience_max?: number | null
+          experience_min?: number | null
+          id?: string
+          is_featured?: boolean | null
+          job_type?: string | null
+          location?: string | null
+          robot_brand?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          skills_required?: string[] | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      training_inquiries: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          program_id: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          program_id: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          program_id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_inquiries_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "training_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_programs: {
+        Row: {
+          certification: string | null
+          city: string | null
+          course_name: string
+          created_at: string
+          description: string | null
+          duration: string | null
+          fees: number | null
+          id: string
+          is_featured: boolean | null
+          location: string | null
+          max_students: number | null
+          mode: string | null
+          robot_brand: string | null
+          skill_category: string | null
+          skills_covered: string[] | null
+          status: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          certification?: string | null
+          city?: string | null
+          course_name: string
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          fees?: number | null
+          id?: string
+          is_featured?: boolean | null
+          location?: string | null
+          max_students?: number | null
+          mode?: string | null
+          robot_brand?: string | null
+          skill_category?: string | null
+          skills_covered?: string[] | null
+          status?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          certification?: string | null
+          city?: string | null
+          course_name?: string
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          fees?: number | null
+          id?: string
+          is_featured?: boolean | null
+          location?: string | null
+          max_students?: number | null
+          mode?: string | null
+          robot_brand?: string | null
+          skill_category?: string | null
+          skills_covered?: string[] | null
+          status?: string | null
+          trainer_id?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -19,6 +19,7 @@ import {
   Search,
   MessageCircle,
   Send,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -107,6 +108,7 @@ export function DashboardSidebar({ userProfile }: DashboardSidebarProps) {
 
   // Account items
   const accountItems = [
+    { title: "Robot Talent", url: "/robot-talent", icon: Users },
     { title: "Profile Settings", url: "/profile-settings", icon: User },
     { title: "Account Settings", url: "/dashboard/settings", icon: Settings },
     { title: "Help & Support", url: "/dashboard/help", icon: HelpCircle },
