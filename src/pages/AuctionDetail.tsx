@@ -235,14 +235,14 @@ const AuctionDetail: React.FC = () => {
             )}
 
             {/* Seller Info */}
-            {auction.profiles && (
+            {auction.seller_profile && (
               <Card className="border border-border bg-card">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    {(auction.profiles as any).company_name ? <Building className="w-5 h-5 text-muted-foreground" /> : <User className="w-5 h-5 text-muted-foreground" />}
+                    {auction.seller_profile.company_name ? <Building className="w-5 h-5 text-muted-foreground" /> : <User className="w-5 h-5 text-muted-foreground" />}
                   </div>
                   <div>
-                    <p className="font-medium text-foreground text-sm">{(auction.profiles as any).company_name || (auction.profiles as any).full_name}</p>
+                    <p className="font-medium text-foreground text-sm">{auction.seller_profile.company_name || auction.seller_profile.full_name}</p>
                     <p className="text-xs text-muted-foreground">Auction Seller</p>
                   </div>
                 </CardContent>
