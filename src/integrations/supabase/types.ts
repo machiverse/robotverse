@@ -14,6 +14,171 @@ export type Database = {
   }
   public: {
     Tables: {
+      auction_bids: {
+        Row: {
+          auction_id: string
+          bid_amount: number
+          bidder_id: string
+          created_at: string
+          id: string
+          is_auto_bid: boolean | null
+          is_winning_bid: boolean | null
+          max_auto_bid: number | null
+        }
+        Insert: {
+          auction_id: string
+          bid_amount: number
+          bidder_id: string
+          created_at?: string
+          id?: string
+          is_auto_bid?: boolean | null
+          is_winning_bid?: boolean | null
+          max_auto_bid?: number | null
+        }
+        Update: {
+          auction_id?: string
+          bid_amount?: number
+          bidder_id?: string
+          created_at?: string
+          id?: string
+          is_auto_bid?: boolean | null
+          is_winning_bid?: boolean | null
+          max_auto_bid?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auction_watchlist: {
+        Row: {
+          auction_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          auction_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          auction_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_watchlist_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auctions: {
+        Row: {
+          auction_title: string
+          auction_type: Database["public"]["Enums"]["auction_type"]
+          auto_extend_minutes: number | null
+          buy_now_price: number | null
+          created_at: string
+          currency: string
+          current_highest_bid: number | null
+          description: string | null
+          end_time: string
+          highest_bidder_id: string | null
+          id: string
+          images: string[] | null
+          is_featured: boolean | null
+          min_increment: number
+          reserve_price: number | null
+          robot_id: string | null
+          seller_accepted: boolean | null
+          seller_id: string
+          start_time: string
+          starting_price: number
+          status: Database["public"]["Enums"]["auction_status"]
+          total_bidders: number | null
+          total_bids: number | null
+          updated_at: string
+          winner_id: string | null
+          winner_notified: boolean | null
+        }
+        Insert: {
+          auction_title: string
+          auction_type?: Database["public"]["Enums"]["auction_type"]
+          auto_extend_minutes?: number | null
+          buy_now_price?: number | null
+          created_at?: string
+          currency?: string
+          current_highest_bid?: number | null
+          description?: string | null
+          end_time: string
+          highest_bidder_id?: string | null
+          id?: string
+          images?: string[] | null
+          is_featured?: boolean | null
+          min_increment?: number
+          reserve_price?: number | null
+          robot_id?: string | null
+          seller_accepted?: boolean | null
+          seller_id: string
+          start_time: string
+          starting_price?: number
+          status?: Database["public"]["Enums"]["auction_status"]
+          total_bidders?: number | null
+          total_bids?: number | null
+          updated_at?: string
+          winner_id?: string | null
+          winner_notified?: boolean | null
+        }
+        Update: {
+          auction_title?: string
+          auction_type?: Database["public"]["Enums"]["auction_type"]
+          auto_extend_minutes?: number | null
+          buy_now_price?: number | null
+          created_at?: string
+          currency?: string
+          current_highest_bid?: number | null
+          description?: string | null
+          end_time?: string
+          highest_bidder_id?: string | null
+          id?: string
+          images?: string[] | null
+          is_featured?: boolean | null
+          min_increment?: number
+          reserve_price?: number | null
+          robot_id?: string | null
+          seller_accepted?: boolean | null
+          seller_id?: string
+          start_time?: string
+          starting_price?: number
+          status?: Database["public"]["Enums"]["auction_status"]
+          total_bidders?: number | null
+          total_bids?: number | null
+          updated_at?: string
+          winner_id?: string | null
+          winner_notified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auctions_robot_id_fkey"
+            columns: ["robot_id"]
+            isOneToOne: false
+            referencedRelation: "robots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_comments: {
         Row: {
           blog_id: string
@@ -4805,12 +4970,22 @@ export type Database = {
         Args: { p_item_id: string; p_item_type: string; p_user_id: string }
         Returns: boolean
       }
+      place_auction_bid: {
+        Args: {
+          p_auction_id: string
+          p_bid_amount: number
+          p_bidder_id: string
+        }
+        Returns: Json
+      }
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
         Returns: boolean
       }
     }
     Enums: {
+      auction_status: "upcoming" | "live" | "ended" | "sold" | "not_sold"
+      auction_type: "open" | "sealed"
       lead_source_type:
         | "website"
         | "inquiry"
@@ -4973,6 +5148,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      auction_status: ["upcoming", "live", "ended", "sold", "not_sold"],
+      auction_type: ["open", "sealed"],
       lead_source_type: [
         "website",
         "inquiry",
