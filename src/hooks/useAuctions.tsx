@@ -37,9 +37,10 @@ export interface Auction {
     location: string;
     brand: string;
   } | null;
-  profiles?: {
+  seller_profile?: {
     company_name: string | null;
     full_name: string | null;
+    location: string | null;
   } | null;
 }
 
@@ -51,10 +52,21 @@ export interface AuctionBid {
   is_winning_bid: boolean;
   is_auto_bid: boolean;
   created_at: string;
-  profiles?: {
-    company_name: string | null;
-    full_name: string | null;
-  } | null;
+  bidder_name?: string;
+  bidder_company?: string;
+}
+
+// Helper to fetch profiles for a list of user IDs
+async function fetchProfiles(userIds: string[]) {
+  if (!userIds.length) return {};
+  const unique = [...new Set(userIds)];
+  const { data } = await supabase
+    .from('profiles')
+    .select('user_id, company_name, full_name, location')
+    .in('user_id', unique);
+  const map: Record<string, any> = {};
+  (data || []).forEach((p: any) => { map[p.user_id] = p; });
+  return map;
 }
 
 export function useAuctions(statusFilter?: string) {
@@ -63,7 +75,7 @@ export function useAuctions(statusFilter?: string) {
     queryFn: async () => {
       let query = supabase
         .from('auctions')
-        .select('*, robots(name, model, robot_type, images, location, brand), profiles!auctions_seller_id_fkey(company_name, full_name)')
+        .select('*, robots(name, model, robot_type, images, location, brand)')
         .order('created_at', { ascending: false });
 
       if (statusFilter && statusFilter !== 'all') {
@@ -76,7 +88,15 @@ export function useAuctions(statusFilter?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as Auction[];
+
+      // Fetch seller profiles
+      const sellerIds = (data || []).map((a: any) => a.seller_id);
+      const profiles = await fetchProfiles(sellerIds);
+
+      return (data || []).map((a: any) => ({
+        ...a,
+        seller_profile: profiles[a.seller_id] || null,
+      })) as Auction[];
     },
   });
 }
@@ -88,14 +108,21 @@ export function useAuctionDetail(auctionId: string | undefined) {
       if (!auctionId) return null;
       const { data, error } = await supabase
         .from('auctions')
-        .select('*, robots(name, model, robot_type, images, location, brand, description, payload_capacity, reach, applications, condition), profiles!auctions_seller_id_fkey(company_name, full_name, location)')
+        .select('*, robots(name, model, robot_type, images, location, brand, description, payload_capacity, reach, applications, condition)')
         .eq('id', auctionId)
         .single();
       if (error) throw error;
-      return data as unknown as Auction;
+
+      // Fetch seller profile
+      const profiles = await fetchProfiles([data.seller_id]);
+
+      return {
+        ...data,
+        seller_profile: profiles[data.seller_id] || null,
+      } as unknown as Auction;
     },
     enabled: !!auctionId,
-    refetchInterval: 10000, // refresh every 10s for live updates
+    refetchInterval: 10000,
   });
 }
 
@@ -106,11 +133,20 @@ export function useAuctionBids(auctionId: string | undefined) {
       if (!auctionId) return [];
       const { data, error } = await supabase
         .from('auction_bids')
-        .select('*, profiles!auction_bids_bidder_id_fkey(company_name, full_name)')
+        .select('*')
         .eq('auction_id', auctionId)
         .order('bid_amount', { ascending: false });
       if (error) throw error;
-      return (data || []) as unknown as AuctionBid[];
+
+      // Fetch bidder profiles
+      const bidderIds = (data || []).map((b: any) => b.bidder_id);
+      const profiles = await fetchProfiles(bidderIds);
+
+      return (data || []).map((b: any) => ({
+        ...b,
+        bidder_name: profiles[b.bidder_id]?.full_name || null,
+        bidder_company: profiles[b.bidder_id]?.company_name || null,
+      })) as AuctionBid[];
     },
     enabled: !!auctionId,
     refetchInterval: 5000,
