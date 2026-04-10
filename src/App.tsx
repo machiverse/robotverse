@@ -67,6 +67,9 @@ import TalentPostJob from "./pages/TalentPostJob";
 import TalentSeekerProfile from "./pages/TalentSeekerProfile";
 import TalentPostTraining from "./pages/TalentPostTraining";
 import TalentEmployerDashboard from "./pages/TalentEmployerDashboard";
+import Auctions from "./pages/Auctions";
+import AuctionDetail from "./pages/AuctionDetail";
+import CreateAuction from "./pages/CreateAuction";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -175,6 +178,9 @@ const App = () => (
               <Route path="/robot-talent/seeker-profile" element={<TalentSeekerProfile />} />
               <Route path="/robot-talent/post-training" element={<TalentPostTraining />} />
               <Route path="/robot-talent/employer-dashboard" element={<TalentEmployerDashboard />} />
+              <Route path="/auctions" element={<Auctions />} />
+              <Route path="/auctions/:id" element={<AuctionDetail />} />
+              <Route path="/auctions/create" element={<CreateAuction />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
