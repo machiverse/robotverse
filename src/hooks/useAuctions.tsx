@@ -68,9 +68,9 @@ export function useAuctions(statusFilter?: string) {
 
       if (statusFilter && statusFilter !== 'all') {
         if (statusFilter === 'live') {
-          query = query.in('status', ['live', 'upcoming']).lte('start_time', new Date().toISOString());
+          query = query.in('status', ['live', 'upcoming'] as any).lte('start_time', new Date().toISOString());
         } else {
-          query = query.eq('status', statusFilter);
+          query = query.eq('status', statusFilter as any);
         }
       }
 

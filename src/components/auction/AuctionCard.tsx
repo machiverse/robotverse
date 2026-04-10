@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Gavel, Users, TrendingUp, Eye, Bot } from 'lucide-react';
+import { Gavel, Users, Bot } from 'lucide-react';
 import AuctionCountdown from './AuctionCountdown';
 import type { Auction } from '@/hooks/useAuctions';
 
