@@ -129,7 +129,7 @@ const AuctionDetail: React.FC = () => {
                         <div className="flex items-center gap-2">
                           {i === 0 && <Trophy className="w-4 h-4 text-primary" />}
                           <span className="text-sm text-foreground">
-                            {auction.auction_type === 'sealed' && !isSeller ? 'Bidder' : (bid.profiles?.company_name || bid.profiles?.full_name || 'Anonymous')}
+                            {auction.auction_type === 'sealed' && !isSeller ? 'Bidder' : (bid.bidder_company || bid.bidder_name || 'Anonymous')}
                           </span>
                         </div>
                         <div className="text-right">
