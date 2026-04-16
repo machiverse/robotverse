@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Gavel, ArrowLeft, Bot, MapPin, Users, TrendingUp, Shield, Building, User, Loader2 } from 'lucide-react';
+import { Gavel, ArrowLeft, Bot, MapPin, Users, TrendingUp, Shield, Building, User, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -25,7 +25,7 @@ const AuctionDetail: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: auction, isLoading } = useAuctionDetail(id);
-  const { data: bids } = useAuctionBids(id);
+  const { data: bids } = useAuctionBids(id, auction?.seller_id);
   const placeBid = usePlaceBid();
   const [bidAmount, setBidAmount] = useState('');
 
@@ -33,6 +33,12 @@ const AuctionDetail: React.FC = () => {
   const isLive = auction?.status === 'live' || (auction?.status === 'upcoming' && new Date(auction.start_time) <= new Date());
   const isSeller = user?.id === auction?.seller_id;
   const minBid = auction ? Math.max(auction.starting_price, (auction.current_highest_bid || 0) + auction.min_increment) : 0;
+
+  // Determine if current user has placed a bid
+  const userHasBid = bids?.some((b) => b.bidder_name === 'You') || false;
+  // Determine user's bid status
+  const userBids = bids?.filter((b) => b.bidder_name === 'You') || [];
+  const isHighestBidder = bids?.[0]?.bidder_name === 'You';
 
   const handleBid = () => {
     if (!id || !bidAmount) return;
@@ -112,32 +118,94 @@ const AuctionDetail: React.FC = () => {
               </Card>
             )}
 
+            {/* Bidder Status Banner */}
+            {user && !isSeller && userHasBid && (
+              <Card className={`border ${isHighestBidder ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
+                <CardContent className="p-4 flex items-center gap-3">
+                  {isHighestBidder ? (
+                    <>
+                      <Trophy className="w-5 h-5 text-emerald-400" />
+                      <div>
+                        <p className="font-semibold text-emerald-400 text-sm">You are the highest bidder!</p>
+                        <p className="text-xs text-muted-foreground">Your bid: {formatPrice(userBids[0]?.bid_amount || 0)}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="w-5 h-5 text-amber-400" />
+                      <div>
+                        <p className="font-semibold text-amber-400 text-sm">You have been outbid</p>
+                        <p className="text-xs text-muted-foreground">Your highest bid: {formatPrice(userBids[0]?.bid_amount || 0)} • Current highest: {formatPrice(auction.current_highest_bid || 0)}</p>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Bid History */}
             <Card className="border border-border bg-card">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" /> Bid History ({bids?.length || 0})
+                  {!isSeller && (
+                    <Badge variant="outline" className="text-[10px] ml-auto flex items-center gap-1">
+                      <EyeOff className="w-3 h-3" /> {isSeller ? 'Full Access' : userHasBid ? 'Anonymized' : 'Limited'}
+                    </Badge>
+                  )}
+                  {isSeller && (
+                    <Badge variant="outline" className="text-[10px] ml-auto flex items-center gap-1 border-primary/30 text-primary">
+                      <Eye className="w-3 h-3" /> Seller View
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {!bids?.length ? (
+                {!user && (
+                  <div className="text-center py-6 space-y-3">
+                    <Lock className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+                    <p className="text-sm text-muted-foreground">Login to participate in bidding and view bid activity</p>
+                    <Button size="sm" onClick={() => navigate('/auth')}>Sign In</Button>
+                  </div>
+                )}
+
+                {user && !bids?.length && (
                   <p className="text-sm text-muted-foreground text-center py-4">No bids yet. Be the first!</p>
-                ) : (
+                )}
+
+                {user && bids && bids.length > 0 && (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {bids.map((bid, i) => (
-                      <div key={bid.id} className={`flex items-center justify-between p-3 rounded-lg ${i === 0 ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
-                        <div className="flex items-center gap-2">
-                          {i === 0 && <Trophy className="w-4 h-4 text-primary" />}
-                          <span className="text-sm text-foreground">
-                            {auction.auction_type === 'sealed' && !isSeller ? 'Bidder' : (bid.bidder_company || bid.bidder_name || 'Anonymous')}
-                          </span>
+                    {bids.map((bid, i) => {
+                      const isYou = bid.bidder_name === 'You';
+                      return (
+                        <div key={bid.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                          i === 0 ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'
+                        } ${isYou ? 'ring-1 ring-primary/30' : ''}`}>
+                          <div className="flex items-center gap-2">
+                            {i === 0 && <Trophy className="w-4 h-4 text-primary" />}
+                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                              {isYou ? (
+                                <User className="w-3 h-3 text-primary" />
+                              ) : isSeller ? (
+                                <User className="w-3 h-3 text-muted-foreground" />
+                              ) : (
+                                <EyeOff className="w-3 h-3 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div>
+                              <span className={`text-sm ${isYou ? 'text-primary font-semibold' : 'text-foreground'}`}>
+                                {isYou ? 'You' : (bid.bidder_company || bid.bidder_name || 'Anonymous Bidder')}
+                              </span>
+                              {isYou && <Badge className="ml-2 bg-primary/10 text-primary border-primary/20 text-[10px]">Your Bid</Badge>}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-semibold text-foreground">{formatPrice(bid.bid_amount)}</span>
+                            <p className="text-[10px] text-muted-foreground">{new Date(bid.created_at).toLocaleString('en-IN')}</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-semibold text-foreground">{formatPrice(bid.bid_amount)}</span>
-                          <p className="text-[10px] text-muted-foreground">{new Date(bid.created_at).toLocaleString('en-IN')}</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -210,7 +278,6 @@ const AuctionDetail: React.FC = () => {
                       {placeBid.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Bid'}
                     </Button>
                   </div>
-                  {/* Quick bid buttons */}
                   <div className="flex gap-2">
                     {[minBid, Math.round(minBid * 1.1), Math.round(minBid * 1.25)].map((v) => (
                       <Button key={v} variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setBidAmount(v.toString())}>
@@ -223,13 +290,21 @@ const AuctionDetail: React.FC = () => {
             )}
 
             {!user && isLive && (
-              <Button className="w-full" onClick={() => navigate('/auth')}>Sign in to Bid</Button>
+              <Card className="border border-border bg-card">
+                <CardContent className="p-5 text-center space-y-3">
+                  <Lock className="w-8 h-8 text-muted-foreground/40 mx-auto" />
+                  <p className="text-sm text-muted-foreground">Login to participate in bidding</p>
+                  <Button className="w-full" onClick={() => navigate('/auth')}>Sign in to Bid</Button>
+                </CardContent>
+              </Card>
             )}
 
             {isSeller && (
-              <Card className="border border-border bg-card">
-                <CardContent className="p-5">
-                  <p className="text-sm text-muted-foreground text-center">You are the seller of this auction.</p>
+              <Card className="border border-primary/20 bg-primary/5">
+                <CardContent className="p-5 text-center space-y-1">
+                  <Eye className="w-5 h-5 text-primary mx-auto" />
+                  <p className="text-sm font-medium text-primary">Seller View</p>
+                  <p className="text-xs text-muted-foreground">You can see all bidder details</p>
                 </CardContent>
               </Card>
             )}
@@ -257,7 +332,6 @@ const AuctionDetail: React.FC = () => {
   );
 };
 
-// Trophy icon used inline
 const Trophy: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>

@@ -126,9 +126,10 @@ export function useAuctionDetail(auctionId: string | undefined) {
   });
 }
 
-export function useAuctionBids(auctionId: string | undefined) {
+export function useAuctionBids(auctionId: string | undefined, sellerId?: string) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ['auction-bids', auctionId],
+    queryKey: ['auction-bids', auctionId, user?.id],
     queryFn: async () => {
       if (!auctionId) return [];
       const { data, error } = await supabase
@@ -138,15 +139,47 @@ export function useAuctionBids(auctionId: string | undefined) {
         .order('bid_amount', { ascending: false });
       if (error) throw error;
 
-      // Fetch bidder profiles
-      const bidderIds = (data || []).map((b: any) => b.bidder_id);
-      const profiles = await fetchProfiles(bidderIds);
+      const isSeller = user?.id === sellerId;
+      const currentUserBidderIds = new Set(
+        (data || []).filter((b: any) => b.bidder_id === user?.id).map((b: any) => b.bidder_id)
+      );
+      const hasPlacedBid = currentUserBidderIds.size > 0;
 
-      return (data || []).map((b: any) => ({
-        ...b,
-        bidder_name: profiles[b.bidder_id]?.full_name || null,
-        bidder_company: profiles[b.bidder_id]?.company_name || null,
-      })) as AuctionBid[];
+      // Only fetch full profiles if the current user is the seller
+      if (isSeller) {
+        const bidderIds = (data || []).map((b: any) => b.bidder_id);
+        const profiles = await fetchProfiles(bidderIds);
+        return (data || []).map((b: any) => ({
+          ...b,
+          bidder_name: profiles[b.bidder_id]?.full_name || null,
+          bidder_company: profiles[b.bidder_id]?.company_name || null,
+        })) as AuctionBid[];
+      }
+
+      // For bidders: show "You" for own bids, anonymize others
+      // For public/non-bidders: strip all identity
+      let anonymousCounter = 0;
+      const bidderLabelMap: Record<string, string> = {};
+
+      return (data || []).map((b: any) => {
+        const isOwnBid = b.bidder_id === user?.id;
+
+        if (isOwnBid) {
+          return { ...b, bidder_name: 'You', bidder_company: null };
+        }
+
+        if (!hasPlacedBid) {
+          // Public / non-bidder: hide all identity
+          return { ...b, bidder_id: 'anonymous', bidder_name: 'Anonymous Bidder', bidder_company: null };
+        }
+
+        // Bidder viewing others: consistent anonymous labels
+        if (!bidderLabelMap[b.bidder_id]) {
+          anonymousCounter++;
+          bidderLabelMap[b.bidder_id] = `Bidder ${anonymousCounter}`;
+        }
+        return { ...b, bidder_id: 'anonymous', bidder_name: bidderLabelMap[b.bidder_id], bidder_company: null };
+      }) as AuctionBid[];
     },
     enabled: !!auctionId,
     refetchInterval: 5000,
