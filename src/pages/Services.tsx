@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
+import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 
@@ -61,6 +62,7 @@ const Services = () => {
   const { user } = useAuth();
   const { isReady } = useAuthReady();
   const [searchParams, setSearchParams] = useSearchParams();
+  const dynamicServiceKeywords = useDynamicSEOKeywords('services');
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -264,7 +266,7 @@ const Services = () => {
         pageType="services"
         title="Robot Repair & Maintenance Services India | Expert Technicians"
         description="Find certified robot service providers for repair, maintenance, installation & programming. FANUC, ABB, KUKA, Yaskawa experts. 24x7 emergency support across India."
-        keywords={[
+        keywords={dynamicServiceKeywords.length > 0 ? dynamicServiceKeywords : [
           'robot repair maintenance services India',
           'robot installation service',
           'robot programming services',

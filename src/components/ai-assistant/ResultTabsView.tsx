@@ -3,9 +3,18 @@ import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Users, Lightbulb, LayoutList, AlignJustify, ExternalLink } from "lucide-react";
+import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Lightbulb, LayoutList, AlignJustify, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResultCounts } from "@/contexts/AIAssistantContext";
+
+// Category images
+import robotsImg from "@/assets/ai-category-robots.jpg";
+import partsImg from "@/assets/ai-category-parts.jpg";
+import integratorsImg from "@/assets/ai-category-integrators.jpg";
+import softwareImg from "@/assets/ai-category-software.jpg";
+import logisticsImg from "@/assets/ai-category-logistics.jpg";
+import financingImg from "@/assets/ai-category-financing.jpg";
+import analysisImg from "@/assets/ai-category-analysis.jpg";
 
 interface ResultTabsViewProps {
   content: string;
@@ -21,7 +30,18 @@ interface ParsedSection {
   content: string;
   count: number;
   color: string;
+  image: string;
 }
+
+const CATEGORY_IMAGES: Record<string, string> = {
+  robots: robotsImg,
+  eoat: partsImg,
+  integrators: integratorsImg,
+  software: softwareImg,
+  logistics: logisticsImg,
+  financing: financingImg,
+  analysis: analysisImg,
+};
 
 const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React.ReactNode; countKey?: keyof ResultCounts; color: string }[] = [
   { regex: /###\s*🤖\s*Top Matching Robots/i, key: "robots", label: "Robots", icon: <Bot className="w-3.5 h-3.5" />, countKey: "robots", color: "from-blue-500/15 to-blue-500/5 border-blue-500/20" },
@@ -42,11 +62,9 @@ function parseSections(content: string, resultCounts: ResultCounts | null): { su
   let pastSummary = false;
 
   for (const line of lines) {
-    // Check if line matches any section header
     let matched = false;
     for (const pattern of SECTION_PATTERNS) {
       if (pattern.regex.test(line)) {
-        // Save previous section
         if (currentSection) {
           currentSection.content = currentLines.join("\n").trim();
           if (currentSection.content) sections.push(currentSection);
@@ -60,6 +78,7 @@ function parseSections(content: string, resultCounts: ResultCounts | null): { su
           content: "",
           count,
           color: pattern.color,
+          image: CATEGORY_IMAGES[pattern.key] || "",
         };
         currentLines = [];
         matched = true;
@@ -68,14 +87,12 @@ function parseSections(content: string, resultCounts: ResultCounts | null): { su
     }
     if (matched) continue;
 
-    // Check for first --- separator (end of summary)
     if (!pastSummary && line.trim() === "---") {
       pastSummary = true;
       continue;
     }
 
     if (currentSection) {
-      // Skip standalone --- separators between sections
       if (line.trim() === "---") continue;
       currentLines.push(line);
     } else if (!pastSummary) {
@@ -83,7 +100,6 @@ function parseSections(content: string, resultCounts: ResultCounts | null): { su
     }
   }
 
-  // Save last section
   if (currentSection) {
     currentSection.content = currentLines.join("\n").trim();
     if (currentSection.content) sections.push(currentSection);
@@ -111,7 +127,6 @@ const markdownClasses = `
   [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
 `;
 
-// Custom link component that uses React Router for internal links
 const InternalLinkRenderer = ({ href, children, ...props }: any) => {
   const navigate = useNavigate();
   const isInternal = href && (href.startsWith('/') || href.startsWith('https://robotverse.in/'));
@@ -137,17 +152,71 @@ const markdownComponents = {
   a: InternalLinkRenderer,
 };
 
+/** Section card with hero banner image */
+const SectionCard: React.FC<{ section: ParsedSection }> = ({ section }) => (
+  <div className={cn(
+    "w-full overflow-hidden rounded-xl border bg-gradient-to-br",
+    section.color
+  )}>
+    {/* Category hero banner */}
+    {section.image && (
+      <div className="relative w-full h-28 overflow-hidden">
+        <img
+          src={section.image}
+          alt={`${section.label} category`}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          width={1024}
+          height={512}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shadow-lg">
+              {section.icon}
+            </div>
+            <span className="font-bold text-sm text-white drop-shadow-lg">{section.label}</span>
+          </div>
+          {section.count > 0 && (
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-[10px] px-1.5 h-5">
+              {section.count} found
+            </Badge>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* Content */}
+    <div className="p-4">
+      {!section.image && (
+        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
+          <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
+            {section.icon}
+          </div>
+          <span className="font-bold text-sm text-foreground">{section.label}</span>
+          {section.count > 0 && (
+            <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">
+              {section.count} found
+            </Badge>
+          )}
+        </div>
+      )}
+      <div className={cn(markdownClasses)}>
+        <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
+      </div>
+    </div>
+  </div>
+);
+
 const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, visibleTabs = [], className }) => {
   const [viewMode, setViewMode] = useState<"tabs" | "full">("tabs");
   const { summary, sections: allSections } = useMemo(() => parseSections(content, resultCounts), [content, resultCounts]);
 
-  // Filter sections based on visibleTabs from the backend
   const sections = useMemo(() => {
     if (!visibleTabs || visibleTabs.length === 0) return allSections;
     return allSections.filter(s => visibleTabs.includes(s.key));
   }, [allSections, visibleTabs]);
 
-  // If no sections parsed, fall back to full view
   if (sections.length === 0) {
     return (
       <div className={cn(markdownClasses, "w-full overflow-x-auto", className)}>
@@ -219,51 +288,14 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
 
           {sections.map((section) => (
             <TabsContent key={section.key} value={section.key} className="mt-3 animate-in fade-in duration-200">
-              <div className={cn(
-                "w-full overflow-x-auto rounded-xl p-4 border bg-gradient-to-br",
-                section.color
-              )}>
-                {/* Section header */}
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
-                  <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
-                    {section.icon}
-                  </div>
-                  <span className="font-bold text-sm text-foreground">{section.label}</span>
-                  {section.count > 0 && (
-                    <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">
-                      {section.count} found
-                    </Badge>
-                  )}
-                </div>
-                <div className={cn(markdownClasses)}>
-                  <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
-                </div>
-              </div>
+              <SectionCard section={section} />
             </TabsContent>
           ))}
         </Tabs>
       ) : (
         <div className="space-y-3">
           {sections.map((section) => (
-            <div key={section.key} className={cn(
-              "w-full overflow-x-auto rounded-xl p-4 border bg-gradient-to-br",
-              section.color
-            )}>
-              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
-                <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
-                  {section.icon}
-                </div>
-                <span className="font-bold text-sm text-foreground">{section.label}</span>
-                {section.count > 0 && (
-                  <Badge variant="secondary" className="h-5 text-[10px] px-1.5 rounded-full">
-                    {section.count} found
-                  </Badge>
-                )}
-              </div>
-              <div className={cn(markdownClasses)}>
-                <ReactMarkdown components={markdownComponents}>{section.content}</ReactMarkdown>
-              </div>
-            </div>
+            <SectionCard key={section.key} section={section} />
           ))}
         </div>
       )}
