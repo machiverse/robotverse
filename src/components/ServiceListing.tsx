@@ -57,36 +57,44 @@ interface ServiceFormData {
   portfolio_images: string[];
 }
 
-const ServiceListing = () => {
+interface ServiceListingProps {
+  editingService?: any;
+  onSuccess?: () => void;
+}
+
+const ServiceListing = ({ editingService, onSuccess }: ServiceListingProps = {}) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isEditMode = !!editingService;
   const [loading, setLoading] = useState(false);
   const [newSpecialization, setNewSpecialization] = useState('');
   const [newCertification, setNewCertification] = useState('');
   const [newLanguage, setNewLanguage] = useState('');
   const [formCompletion, setFormCompletion] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [imageUrls, setImageUrls] = useState<string[]>(['']);
+  const [imageUrls, setImageUrls] = useState<string[]>(
+    editingService?.portfolio_images?.length ? editingService.portfolio_images : ['']
+  );
   const [validatingImages, setValidatingImages] = useState(false);
   
   const [formData, setFormData] = useState<ServiceFormData>({
-    name: '',
-    service_type: '',
-    specializations: [],
-    price_range: '',
-    location: '',
-    description: '',
-    certifications: [],
-    experience_years: 0,
-    availability: [],
-    emergency_service: false,
-    warranty_offered: false,
-    service_radius: 50,
-    contact_method: 'both',
-    response_time: '24_hours',
-    languages: ['English'],
-    equipment_provided: false,
-    portfolio_images: []
+    name: editingService?.name || '',
+    service_type: editingService?.service_type || '',
+    specializations: editingService?.specializations || [],
+    price_range: editingService?.price_range || '',
+    location: editingService?.location || '',
+    description: editingService?.description || '',
+    certifications: editingService?.certifications || [],
+    experience_years: editingService?.experience_years || 0,
+    availability: editingService?.availability || [],
+    emergency_service: editingService?.emergency_service || false,
+    warranty_offered: editingService?.warranty_offered || false,
+    service_radius: editingService?.service_radius || 50,
+    contact_method: editingService?.contact_method || 'both',
+    response_time: editingService?.response_time || '24_hours',
+    languages: editingService?.languages || ['English'],
+    equipment_provided: editingService?.equipment_provided || false,
+    portfolio_images: editingService?.portfolio_images || []
   });
 
   // Enhanced service types with categories
@@ -366,66 +374,80 @@ const ServiceListing = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('services')
-        .insert({
-          provider_id: user.id,
-          name: formData.name,
-          service_type: formData.service_type,
-          specializations: formData.specializations,
-          price_range: formData.price_range,
-          location: formData.location,
-          description: formData.description,
-          certifications: formData.certifications,
-          experience_years: formData.experience_years,
-          availability: formData.availability,
-          emergency_service: formData.emergency_service,
-          warranty_offered: formData.warranty_offered,
-          service_radius: formData.service_radius,
-          contact_method: formData.contact_method,
-          response_time: formData.response_time,
-          languages: formData.languages,
-          equipment_provided: formData.equipment_provided,
-          portfolio_images: formData.portfolio_images,
-          created_at: new Date().toISOString()
-        });
+      const payload = {
+        provider_id: user.id,
+        name: formData.name,
+        service_type: formData.service_type,
+        specializations: formData.specializations,
+        price_range: formData.price_range,
+        location: formData.location,
+        description: formData.description,
+        certifications: formData.certifications,
+        experience_years: formData.experience_years,
+        availability: formData.availability,
+        emergency_service: formData.emergency_service,
+        warranty_offered: formData.warranty_offered,
+        service_radius: formData.service_radius,
+        contact_method: formData.contact_method,
+        response_time: formData.response_time,
+        languages: formData.languages,
+        equipment_provided: formData.equipment_provided,
+        portfolio_images: formData.portfolio_images,
+      };
+
+      let error;
+      if (isEditMode) {
+        ({ error } = await supabase
+          .from('services')
+          .update(payload)
+          .eq('id', editingService.id)
+          .eq('provider_id', user.id));
+      } else {
+        ({ error } = await supabase
+          .from('services')
+          .insert({ ...payload, created_at: new Date().toISOString() }));
+      }
 
       if (error) throw error;
 
       toast({
         title: "Success!",
-        description: "Service listing created successfully!"
+        description: isEditMode ? "Service updated successfully!" : "Service listing created successfully!"
       });
-      
-      // Reset form
-      setFormData({
-        name: '',
-        service_type: '',
-        specializations: [],
-        price_range: '',
-        location: '',
-        description: '',
-        certifications: [],
-        experience_years: 0,
-        availability: [],
-        emergency_service: false,
-        warranty_offered: false,
-        service_radius: 50,
-        contact_method: 'both',
-        response_time: '24_hours',
-        languages: ['English'],
-        equipment_provided: false,
-        portfolio_images: []
-      });
-      setImageUrls(['']);
-      setErrors({});
+
+      if (!isEditMode) {
+        // Reset form on create
+        setFormData({
+          name: '',
+          service_type: '',
+          specializations: [],
+          price_range: '',
+          location: '',
+          description: '',
+          certifications: [],
+          experience_years: 0,
+          availability: [],
+          emergency_service: false,
+          warranty_offered: false,
+          service_radius: 50,
+          contact_method: 'both',
+          response_time: '24_hours',
+          languages: ['English'],
+          equipment_provided: false,
+          portfolio_images: []
+        });
+        setImageUrls(['']);
+        setErrors({});
+      }
+
+      onSuccess?.();
 
     } catch (error: any) {
-      console.error('Error creating service listing:', error);
+      console.error('Error saving service listing:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create service listing"
+        description: isEditMode ? "Failed to update service listing" : "Failed to create service listing"
       });
     } finally {
       setLoading(false);

@@ -2,12 +2,18 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Plus, Edit, MoreHorizontal, AlertTriangle, RefreshCw } from "lucide-react";
+import { Package, Plus, Edit, MoreHorizontal, AlertTriangle, RefreshCw, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatPrice, type Currency } from '@/utils/currency';
+import EnhancedSparePartsForm from '@/components/EnhancedSparePartsForm';
 
 interface SparePart {
   id: string;
@@ -18,6 +24,7 @@ interface SparePart {
   quantity: number;
   category_tags: string[];
   created_at: string;
+  [key: string]: any;
 }
 
 const PartsManagement = () => {
@@ -25,6 +32,9 @@ const PartsManagement = () => {
   const { toast } = useToast();
   const [parts, setParts] = useState<SparePart[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingPart, setEditingPart] = useState<SparePart | null>(null);
+  const [deletingPart, setDeletingPart] = useState<SparePart | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     inStock: 0,
@@ -80,6 +90,24 @@ const PartsManagement = () => {
     setStats({ total, inStock, lowStock, outOfStock });
   };
 
+  const handleDelete = async () => {
+    if (!deletingPart || !user) return;
+    try {
+      const { error } = await supabase
+        .from('spare_parts')
+        .delete()
+        .eq('id', deletingPart.id)
+        .eq('seller_id', user.id);
+      if (error) throw error;
+      toast({ title: 'Deleted', description: 'Spare part removed successfully.' });
+      setDeletingPart(null);
+      fetchParts();
+    } catch (error: any) {
+      console.error('Error deleting part:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete part.' });
+    }
+  };
+
   const getStockStatus = (quantity: number) => {
     if (quantity === 0) return 'out_of_stock';
     if (quantity <= 10) return 'low_stock';
@@ -123,16 +151,11 @@ const PartsManagement = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchParts}
-            disabled={loading}
-          >
+          <Button variant="outline" size="sm" onClick={fetchParts} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button>
+          <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add New Part
           </Button>
@@ -143,61 +166,45 @@ const PartsManagement = () => {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Parts
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Parts</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              Total parts in inventory
-            </p>
+            <p className="text-xs text-muted-foreground">Total parts in inventory</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              In Stock
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">In Stock</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Well stocked items
-            </p>
+            <p className="text-xs text-muted-foreground">Well stocked items</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Low Stock
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.lowStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Need restocking
-            </p>
+            <p className="text-xs text-muted-foreground">Need restocking</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Out of Stock
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.outOfStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Unavailable items
-            </p>
+            <p className="text-xs text-muted-foreground">Unavailable items</p>
           </CardContent>
         </Card>
       </div>
@@ -206,19 +213,17 @@ const PartsManagement = () => {
       <Card>
         <CardHeader>
           <CardTitle>Parts Inventory</CardTitle>
-          <CardDescription>
-            Current spare parts stock and order information
-          </CardDescription>
+          <CardDescription>Current spare parts stock and order information</CardDescription>
         </CardHeader>
         <CardContent>
           {parts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Package className="w-12 h-12 text-gray-400 mb-4" />
+              <Package className="w-12 h-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No spare parts found</h3>
               <p className="text-muted-foreground mb-4">
                 Get started by adding your first spare part
               </p>
-              <Button>
+              <Button onClick={() => setShowAddDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Your First Part
               </Button>
@@ -259,6 +264,10 @@ const PartsManagement = () => {
                           {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </Badge>
                       </div>
+                      <Button variant="outline" size="sm" onClick={() => setEditingPart(part)}>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
@@ -266,15 +275,15 @@ const PartsManagement = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditingPart(part)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Part
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Package className="h-4 w-4 mr-2" />
-                            Update Stock
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeletingPart(part)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
                             Remove Part
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -287,6 +296,57 @@ const PartsManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Part Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Spare Part</DialogTitle>
+          </DialogHeader>
+          <EnhancedSparePartsForm
+            onSuccess={() => {
+              setShowAddDialog(false);
+              fetchParts();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Part Dialog */}
+      <Dialog open={!!editingPart} onOpenChange={(open) => !open && setEditingPart(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Spare Part</DialogTitle>
+          </DialogHeader>
+          {editingPart && (
+            <EnhancedSparePartsForm
+              editingPart={editingPart}
+              onSuccess={() => {
+                setEditingPart(null);
+                fetchParts();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletingPart} onOpenChange={(open) => !open && setDeletingPart(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this spare part?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{deletingPart?.name}" and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

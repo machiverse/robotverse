@@ -2,19 +2,30 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Plus, Edit, Eye, MoreHorizontal, Loader2 } from "lucide-react";
+import { Bot, Plus, Edit, Eye, MoreHorizontal, Loader2, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import RobotUpload from "@/components/RobotUpload";
 
 const MyRobots = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { getItemViewCount } = useUniversalViewTracking();
   const [robots, setRobots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingRobot, setEditingRobot] = useState<any | null>(null);
+  const [deletingRobot, setDeletingRobot] = useState<any | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -32,6 +43,7 @@ const MyRobots = () => {
     if (!user) return;
 
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('robots')
         .select('*')
@@ -40,7 +52,6 @@ const MyRobots = () => {
 
       if (error) throw error;
 
-      // Fetch view counts for all robots
       const robotsWithViews = await Promise.all(
         (data || []).map(async (robot) => {
           try {
@@ -71,8 +82,26 @@ const MyRobots = () => {
       total,
       active,
       totalViews,
-      inquiries: Math.floor(totalViews * 0.05) // Estimate 5% inquiry rate
+      inquiries: Math.floor(totalViews * 0.05)
     });
+  };
+
+  const handleDelete = async () => {
+    if (!deletingRobot || !user) return;
+    try {
+      const { error } = await supabase
+        .from('robots')
+        .delete()
+        .eq('id', deletingRobot.id)
+        .eq('seller_id', user.id);
+      if (error) throw error;
+      toast({ title: 'Deleted', description: 'Robot listing removed successfully.' });
+      setDeletingRobot(null);
+      fetchRobots();
+    } catch (error: any) {
+      console.error('Error deleting robot:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete robot.' });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -93,7 +122,7 @@ const MyRobots = () => {
             Manage your robot listings and track performance
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add New Robot
         </Button>
@@ -103,61 +132,45 @@ const MyRobots = () => {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Listings
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Listings</CardTitle>
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              Robot listings
-            </p>
+            <p className="text-xs text-muted-foreground">Robot listings</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Listings
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently available
-            </p>
+            <p className="text-xs text-muted-foreground">Currently available</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Views
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalViews}</div>
-            <p className="text-xs text-muted-foreground">
-              All time views
-            </p>
+            <p className="text-xs text-muted-foreground">All time views</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Inquiries
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Inquiries</CardTitle>
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inquiries}</div>
-            <p className="text-xs text-muted-foreground">
-              Estimated inquiries
-            </p>
+            <p className="text-xs text-muted-foreground">Estimated inquiries</p>
           </CardContent>
         </Card>
       </div>
@@ -166,9 +179,7 @@ const MyRobots = () => {
       <Card>
         <CardHeader>
           <CardTitle>Robot Listings</CardTitle>
-          <CardDescription>
-            Your current robot inventory and their performance
-          </CardDescription>
+          <CardDescription>Your current robot inventory and their performance</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -181,7 +192,7 @@ const MyRobots = () => {
               <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No robots found</h3>
               <p className="text-muted-foreground mb-4">You haven't added any robot listings yet.</p>
-              <Button onClick={() => navigate('/dashboard?tab=seller')}>
+              <Button onClick={() => setShowAddDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Robot
               </Button>
@@ -226,6 +237,10 @@ const MyRobots = () => {
                             {Math.floor((robot.views || 0) * 0.05)} inquiries
                           </div>
                         </div>
+                        <Button variant="outline" size="sm" onClick={() => setEditingRobot(robot)}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm">
@@ -237,11 +252,15 @@ const MyRobots = () => {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate('/dashboard?tab=seller')}>
+                            <DropdownMenuItem onClick={() => setEditingRobot(robot)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Listing
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeletingRobot(robot)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
                               Remove Listing
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -255,6 +274,58 @@ const MyRobots = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Robot Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Robot Listing</DialogTitle>
+          </DialogHeader>
+          <RobotUpload
+            onSuccess={() => {
+              setShowAddDialog(false);
+              fetchRobots();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Robot Dialog */}
+      <Dialog open={!!editingRobot} onOpenChange={(open) => !open && setEditingRobot(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Robot Listing</DialogTitle>
+          </DialogHeader>
+          {editingRobot && (
+            <RobotUpload
+              editMode
+              robotData={editingRobot}
+              onSuccess={() => {
+                setEditingRobot(null);
+                fetchRobots();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletingRobot} onOpenChange={(open) => !open && setDeletingRobot(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this robot listing?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{deletingRobot?.name}" and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
