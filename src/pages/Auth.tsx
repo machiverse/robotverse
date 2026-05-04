@@ -55,6 +55,9 @@ const Auth = () => {
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [verificationFailed, setVerificationFailed] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendingVerification, setResendingVerification] = useState(false);
   
   // Hooks
   const { signUp, signIn, user } = useAuth();
