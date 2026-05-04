@@ -160,6 +160,7 @@ const Auth = () => {
 
           if (error) {
             console.error('❌ verifyOtp failed:', error);
+            setVerificationFailed(true);
             toast({
               variant: 'destructive',
               title: 'Verification Failed',
