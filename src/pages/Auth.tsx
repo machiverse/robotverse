@@ -55,6 +55,9 @@ const Auth = () => {
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [verificationFailed, setVerificationFailed] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendingVerification, setResendingVerification] = useState(false);
   
   // Hooks
   const { signUp, signIn, user } = useAuth();
@@ -118,6 +121,55 @@ const Auth = () => {
     }
   };
 
+  // Resend email verification
+  const handleResendVerification = async () => {
+    const targetEmail = (verificationEmail || email || '').trim();
+    if (!targetEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter your email address below, then click resend.',
+      });
+      return;
+    }
+
+    setResendingVerification(true);
+    try {
+      const origin = window.location.origin;
+      const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+      const isHttp = origin.startsWith('http://') && !isLocalhost;
+      const safeOrigin = isHttp ? origin.replace('http://', 'https://') : origin;
+      const redirectUrl = `${safeOrigin}/auth`;
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: targetEmail,
+        options: { emailRedirectTo: redirectUrl },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Verification Email Sent',
+        description: `A new verification link has been sent to ${targetEmail}. Please check your inbox.`,
+      });
+      setVerificationFailed(false);
+    } catch (error: any) {
+      console.error('❌ Resend verification error:', error);
+      let msg = 'Failed to resend verification email.';
+      if (error.message?.includes('rate limit')) {
+        msg = 'Too many attempts. Please wait a few minutes before trying again.';
+      } else if (error.message?.includes('already confirmed')) {
+        msg = 'This email is already verified. You can sign in directly.';
+      } else if (error.message) {
+        msg = error.message;
+      }
+      toast({ variant: 'destructive', title: 'Error', description: msg });
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
   // Remove the old password reset handler since it's now in a separate page
 
   // Handle email verification token from confirmation links
@@ -134,6 +186,9 @@ const Auth = () => {
 
       if (hashError) {
         console.error('❌ Email verification error from URL:', hashError, hashErrorDesc);
+        const emailFromUrl = urlParams.get('email') || hashParams.get('email');
+        if (emailFromUrl) setVerificationEmail(emailFromUrl);
+        setVerificationFailed(true);
         toast({
           variant: 'destructive',
           title: 'Verification Failed',
@@ -154,6 +209,7 @@ const Auth = () => {
 
           if (error) {
             console.error('❌ verifyOtp failed:', error);
+            setVerificationFailed(true);
             toast({
               variant: 'destructive',
               title: 'Verification Failed',
@@ -1352,6 +1408,47 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
+            {verificationFailed && (
+              <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Mail className="w-5 h-5 text-destructive mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground">Verification link invalid or expired</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Enter your email below (if not already filled) and resend the verification link.
+                    </p>
+                  </div>
+                </div>
+                {!verificationEmail && !email && (
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={verificationEmail}
+                    onChange={(e) => setVerificationEmail(e.target.value)}
+                  />
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                  >
+                    {resendingVerification ? 'Sending...' : 'Resend verification email'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setVerificationFailed(false)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={
               isForgotPassword 
                 ? handleForgotPassword 
