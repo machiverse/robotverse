@@ -1408,6 +1408,47 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
+            {verificationFailed && (
+              <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Mail className="w-5 h-5 text-destructive mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground">Verification link invalid or expired</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Enter your email below (if not already filled) and resend the verification link.
+                    </p>
+                  </div>
+                </div>
+                {!verificationEmail && !email && (
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={verificationEmail}
+                    onChange={(e) => setVerificationEmail(e.target.value)}
+                  />
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                  >
+                    {resendingVerification ? 'Sending...' : 'Resend verification email'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setVerificationFailed(false)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={
               isForgotPassword 
                 ? handleForgotPassword 
