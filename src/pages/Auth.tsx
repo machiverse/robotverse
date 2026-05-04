@@ -121,6 +121,55 @@ const Auth = () => {
     }
   };
 
+  // Resend email verification
+  const handleResendVerification = async () => {
+    const targetEmail = (verificationEmail || email || '').trim();
+    if (!targetEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter your email address below, then click resend.',
+      });
+      return;
+    }
+
+    setResendingVerification(true);
+    try {
+      const origin = window.location.origin;
+      const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+      const isHttp = origin.startsWith('http://') && !isLocalhost;
+      const safeOrigin = isHttp ? origin.replace('http://', 'https://') : origin;
+      const redirectUrl = `${safeOrigin}/auth`;
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: targetEmail,
+        options: { emailRedirectTo: redirectUrl },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Verification Email Sent',
+        description: `A new verification link has been sent to ${targetEmail}. Please check your inbox.`,
+      });
+      setVerificationFailed(false);
+    } catch (error: any) {
+      console.error('❌ Resend verification error:', error);
+      let msg = 'Failed to resend verification email.';
+      if (error.message?.includes('rate limit')) {
+        msg = 'Too many attempts. Please wait a few minutes before trying again.';
+      } else if (error.message?.includes('already confirmed')) {
+        msg = 'This email is already verified. You can sign in directly.';
+      } else if (error.message) {
+        msg = error.message;
+      }
+      toast({ variant: 'destructive', title: 'Error', description: msg });
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
   // Remove the old password reset handler since it's now in a separate page
 
   // Handle email verification token from confirmation links
