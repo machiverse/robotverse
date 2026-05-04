@@ -137,6 +137,9 @@ const Auth = () => {
 
       if (hashError) {
         console.error('❌ Email verification error from URL:', hashError, hashErrorDesc);
+        const emailFromUrl = urlParams.get('email') || hashParams.get('email');
+        if (emailFromUrl) setVerificationEmail(emailFromUrl);
+        setVerificationFailed(true);
         toast({
           variant: 'destructive',
           title: 'Verification Failed',
