@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { MessageCircle, Send, User, Lock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import DOMPurify from "dompurify";
 
 interface Comment {
   id: string;
@@ -113,13 +114,16 @@ const BlogComments = ({ blogId }: BlogCommentsProps) => {
   };
 
   const formatText = (text: string) => {
-    // Simple rich text formatting
-    return text
+    const formatted = text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/^• (.+)$/gm, '<li>$1</li>')
       .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
       .replace(/\n/g, '<br>');
+    return DOMPurify.sanitize(formatted, {
+      ALLOWED_TAGS: ['strong', 'em', 'li', 'br', 'ul', 'ol'],
+      ALLOWED_ATTR: [],
+    });
   };
 
   return (

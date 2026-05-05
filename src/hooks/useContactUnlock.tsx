@@ -116,7 +116,7 @@ export const useContactUnlock = () => {
     );
   }, [unlockedContacts, user?.id]);
 
-  // Unlock a contact by spending credits
+  // Unlock a contact by spending credits (server-side validated via RPC)
   const unlockContact = async (
     sellerId: string,
     itemId: string,
@@ -128,80 +128,46 @@ export const useContactUnlock = () => {
       return false;
     }
 
-    // Check if already unlocked
+    // Check if already unlocked locally
     if (isContactUnlocked(sellerId, itemId, itemType)) {
       toast.info('Contact already unlocked');
       return true;
     }
 
-    // Check if user has enough credits
-    if (!userCredits || userCredits.current_balance < CREDITS_PER_UNLOCK) {
-      toast.error(`Insufficient credits. You need ${CREDITS_PER_UNLOCK} credits to unlock.`);
-      return false;
-    }
-
     try {
-      const newBalance = userCredits.current_balance - CREDITS_PER_UNLOCK;
-      const session = await supabase.auth.getSession();
-
-      // Insert unlock record using REST API
-      const unlockResponse = await fetch(
-        `${(supabase as any).supabaseUrl}/rest/v1/unlocked_contacts`,
+      const { data, error } = await supabase.rpc(
+        'unlock_contact_with_credits' as any,
         {
-          method: 'POST',
-          headers: {
-            'apikey': (supabase as any).supabaseKey,
-            'Authorization': `Bearer ${session.data.session?.access_token}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            seller_id: sellerId,
-            item_id: itemId,
-            item_type: itemType,
-            credits_used: CREDITS_PER_UNLOCK
-          })
+          p_seller_id: sellerId,
+          p_item_id: itemId,
+          p_item_type: itemType,
+          p_item_name: itemName,
         }
       );
 
-      if (!unlockResponse.ok) {
-        throw new Error('Failed to unlock contact');
+      if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (msg.includes('insufficient')) {
+          toast.error(`Insufficient credits. You need ${CREDITS_PER_UNLOCK} credits to unlock.`);
+        } else if (msg.includes('authentication')) {
+          toast.error('Please login to unlock contact details');
+        } else {
+          toast.error('Failed to unlock contact');
+        }
+        return false;
       }
 
-      // Record transaction
-      const { error: txError } = await supabase
-        .from('credit_transactions')
-        .insert({
-          seller_id: user.id,
-          transaction_type: 'contact_unlock',
-          credits_amount: -CREDITS_PER_UNLOCK,
-          balance_before: userCredits.current_balance,
-          balance_after: newBalance,
-          description: `Unlocked contact for ${itemType}: ${itemName}`,
-          reference_id: itemId,
-          reference_type: itemType
-        });
-
-      if (txError) throw txError;
-
-      // Update user credits
-      const { error: updateError } = await supabase
-        .from('seller_credits')
-        .update({
-          current_balance: newBalance,
-          total_spent: userCredits.total_spent + CREDITS_PER_UNLOCK,
-          updated_at: new Date().toISOString()
-        })
-        .eq('seller_id', user.id);
-
-      if (updateError) throw updateError;
+      const result = (data as any) || {};
+      if (result.status === 'already_unlocked') {
+        toast.info('Contact already unlocked');
+      } else if (result.status === 'self') {
+        // No-op
+      } else {
+        toast.success('Contact unlocked successfully!');
+      }
 
       // Refresh data
-      await fetchUserCredits();
-      await fetchUnlockedContacts();
-
-      toast.success('Contact unlocked successfully!');
+      await Promise.all([fetchUserCredits(), fetchUnlockedContacts()]);
       return true;
     } catch (error) {
       console.error('Error unlocking contact:', error);
