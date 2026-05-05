@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { MessageCircle, Send, User, Lock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import DOMPurify from "dompurify";
 
 interface Comment {
   id: string;

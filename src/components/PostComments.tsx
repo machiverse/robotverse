@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { MessageCircle, Send, User, Heart, Lock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import DOMPurify from "dompurify";
 
 interface Comment {
   id: string;
@@ -185,10 +186,14 @@ const PostComments = ({ postId, postType = 'blog', onCommentCountChange }: PostC
   };
 
   const formatText = (text: string) => {
-    return text
+    const formatted = text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br>');
+    return DOMPurify.sanitize(formatted, {
+      ALLOWED_TAGS: ['strong', 'em', 'br'],
+      ALLOWED_ATTR: [],
+    });
   };
 
   const CommentCard = ({ comment }: { comment: Comment }) => (
