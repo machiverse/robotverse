@@ -4907,6 +4907,7 @@ export type Database = {
           user_type: string
         }[]
       }
+      get_public_profile_count: { Args: never; Returns: number }
       get_public_provider_profile: {
         Args: { provider_user_id: string }
         Returns: {
@@ -4981,6 +4982,15 @@ export type Database = {
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
         Returns: boolean
+      }
+      unlock_contact_with_credits: {
+        Args: {
+          p_item_id: string
+          p_item_name?: string
+          p_item_type: string
+          p_seller_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
