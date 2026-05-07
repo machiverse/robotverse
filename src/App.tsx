@@ -58,6 +58,7 @@ import Chat from "./pages/Chat";
 import CRM from "./pages/CRM";
 import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
+import { GlobalEmailVerificationHandler } from "./components/GlobalEmailVerificationHandler";
 import AIAssistant from "./pages/AIAssistant";
 import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
 import { AIAssistantProvider } from "./contexts/AIAssistantContext";
@@ -110,6 +111,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AIAssistantProvider>
+              <GlobalEmailVerificationHandler />
               <AutoSignInPopup />
               <Routes>
               <Route path="/" element={<Index />} />
