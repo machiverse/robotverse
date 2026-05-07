@@ -1408,6 +1408,23 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
+            {!isSignUp && !isForgotPassword && (
+              <div className="mb-4 flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">
+                  Didn't receive the verification email?
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResendVerification}
+                  disabled={resendingVerification}
+                >
+                  {resendingVerification ? 'Sending...' : 'Resend verification email'}
+                </Button>
+              </div>
+            )}
+
             {verificationFailed && (
               <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
                 <div className="flex items-start gap-2">
