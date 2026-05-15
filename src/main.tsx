@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { HelmetProvider } from 'react-helmet-async';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
@@ -12,7 +13,9 @@ if (!rootElement) {
   try {
     createRoot(rootElement).render(
       <ErrorBoundary>
-        <App />
+        <HelmetProvider>
+          <App />
+        </HelmetProvider>
       </ErrorBoundary>
     );
   } catch (error) {
