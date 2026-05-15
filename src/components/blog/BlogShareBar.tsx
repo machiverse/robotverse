@@ -26,11 +26,11 @@ const BlogShareBar = ({ url, title, excerpt, postId, table = "blogs", className 
   const incrementShare = async () => {
     if (!postId) return;
     try {
-      // Best-effort share count increment
-      await supabase.rpc("increment_share_count" as never, { p_post_id: postId } as never).catch(() => null);
+      await (supabase.rpc as any)("increment_share_count", { p_post_id: postId });
     } catch {
       // ignore — non-critical
     }
+    void table; // reserved for future per-table tracking
   };
 
   const open = (href: string) => {
