@@ -158,15 +158,16 @@ const CommunityPostDetails = () => {
           postData = {
             ...blogPost,
             post_type: 'blog',
-            comment_count: 0,
+            comment_count: blogPost.comment_count ?? 0,
             share_count: 0,
             video_duration: null,
             media_url: blogPost.image_url,
             media_type: blogPost.image_url ? 'image' : null,
             edited_at: null,
             edit_history: [],
-            video_thumbnail: null
-          };
+            video_thumbnail: null,
+            featured_image: (blogPost as any).featured_image ?? blogPost.image_url ?? null,
+          } as any;
         }
       }
 
