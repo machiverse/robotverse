@@ -189,7 +189,7 @@ const BlogEditor = () => {
         if (error) throw error;
         return recordIdRef.current;
       }
-      const { data: row, error } = await supabase.from("blogs").insert(data).select("id").single();
+      const { data: row, error } = await supabase.from("blogs").insert([data] as any).select("id").single();
       if (error) throw error;
       recordIdRef.current = row.id;
       return row.id as string;
