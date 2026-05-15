@@ -157,7 +157,7 @@ const BlogRichEditor = ({ value, onChange, placeholder, userId, className }: Blo
   useEffect(() => {
     if (!editor) return;
     if (value && value !== editor.getHTML()) {
-      editor.commands.setContent(value, { emitUpdate: false });
+      editor.commands.setContent(value, false);
     }
   }, [editor, value]);
 
