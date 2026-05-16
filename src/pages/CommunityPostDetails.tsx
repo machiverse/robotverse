@@ -70,6 +70,7 @@ const CommunityPostDetails = () => {
   
   // Determine content type based on post data
   const contentType = post?.post_type === 'blog' ? 'blog' : (post?.post_type === 'video' ? 'video' : 'community_post');
+  const interactionPostId = post?.id || id || '';
   const shareUrl = post ? buildRoboBookPostUrl((post as any).slug || post.id) : "";
   
   // Use new unified interactions hook
@@ -84,7 +85,7 @@ const CommunityPostDetails = () => {
     addComment,
     updateComment,
     deleteComment
-  } = useContentInteractions(id || '', contentType);
+  } = useContentInteractions(interactionPostId, contentType);
 
   // Track interaction buttons
   const handleInteractionTracking = async (action: string) => {
@@ -112,10 +113,10 @@ const CommunityPostDetails = () => {
 
   // Separate useEffect for incrementing view count after post is loaded
   useEffect(() => {
-    if (post && id) {
+    if (post) {
       incrementViewCount();
     }
-  }, [post, id]);
+  }, [post]);
 
   const getPostTypeIcon = () => {
     if (!post) return <FileText className="h-5 w-5" />;
@@ -159,6 +160,8 @@ const CommunityPostDetails = () => {
         const { data: blogPost, error: blogError } = isUuid
           ? await blogBaseQuery.eq('id', id).maybeSingle()
           : await blogBaseQuery.eq('slug', id).maybeSingle();
+
+        if (blogError) throw blogError;
 
         if (blogPost) {
           // Transform blog to match community post format
@@ -205,7 +208,7 @@ const CommunityPostDetails = () => {
   };
 
   const incrementViewCount = async () => {
-    if (!id || !post) return;
+    if (!post?.id) return;
     
     try {
       const isBlogPost = post.post_type === 'blog';
