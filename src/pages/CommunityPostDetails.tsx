@@ -389,6 +389,14 @@ const CommunityPostDetails = () => {
 
             {/* Engagement Actions */}
             <div className="p-6 bg-muted/30">
+              <BlogShareBar
+                url={shareUrl}
+                title={post.title || "RoboBook Post - RobotVerse"}
+                excerpt={post.excerpt || post.content?.replace(/<[^>]+>/g, " ").slice(0, 140)}
+                postId={post.id}
+                table={post.post_type === "blog" ? "blogs" : "community_posts"}
+                className="mb-4"
+              />
               <ContentInteractionButtons
                 likeCount={likeCount}
                 commentCount={commentCount}
@@ -400,7 +408,9 @@ const CommunityPostDetails = () => {
                 onCommentClick={handleCommentClick}
                 onShare={() => {
                   handleInteractionTracking('share');
-                  toast.success('Share functionality coming soon!');
+                  navigator.clipboard.writeText(shareUrl)
+                    .then(() => toast.success('Link copied to clipboard'))
+                    .catch(() => toast.error('Failed to copy link'));
                 }}
               />
             </div>
