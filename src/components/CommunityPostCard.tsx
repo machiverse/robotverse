@@ -42,6 +42,7 @@ import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
 import EditPostModal from "@/components/EditPostModal";
 import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
+import { buildRoboBookPostPath, buildRoboBookPostUrl } from "@/utils/blogSeo";
 
 interface CommunityPost {
   id: string;
@@ -93,6 +94,8 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     userHasLiked, 
     toggleLike 
   } = useContentInteractions(post.id, contentType);
+  const postPath = buildRoboBookPostPath((post as any).slug || post.id);
+  const postUrl = buildRoboBookPostUrl((post as any).slug || post.id);
 
   const getPostTypeIcon = () => {
     switch (post.post_type) {
@@ -162,16 +165,10 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     }
     
     try {
-      // Use custom domain for sharing
-      const baseUrl = 'https://robotverse.in';
-      const shareUrl = post.post_type === 'blog' && !post.media_url 
-        ? `${baseUrl}/robobook/${post.id}`
-        : `${baseUrl}/community/${post.id}`;
-      
       const shareData = {
         title: post.title || 'RoboBook Post - RobotVerse',
         text: post.excerpt || post.content?.substring(0, 100) + '...',
-        url: shareUrl
+        url: postUrl
       };
       
       if (navigator.share && navigator.canShare(shareData)) {
@@ -239,7 +236,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
     ) {
       return;
     }
-    navigate(`/robobook/${post.id}`);
+    navigate(postPath);
   };
 
   return (
@@ -308,7 +305,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
         </div>
       </div>
 
-      <Link to={post.post_type === 'blog' && !post.media_url ? `/robobook/${post.id}` : `/community/${post.id}`} className="block">
+      <Link to={postPath} className="block">
         <div className="px-4 pb-3">
           {/* Title */}
           {post.title && (
@@ -379,7 +376,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
             commentCount={commentCount}
             userHasLiked={userHasLiked}
             onLike={handleLike}
-            onCommentClick={() => navigate(`/robobook/${post.id}#comments`)}
+            onCommentClick={() => navigate(`${postPath}#comments`)}
             onShare={handleShare}
           />
         </div>

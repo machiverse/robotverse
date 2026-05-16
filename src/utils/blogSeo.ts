@@ -1,6 +1,9 @@
 import DOMPurify from "dompurify";
 
-export const SITE_URL = "https://robotverse.in";
+export const SITE_URL =
+  typeof window !== "undefined" && window.location.origin
+    ? window.location.origin
+    : "https://robotverse.in";
 
 export function slugify(input: string): string {
   return (input || "")
@@ -21,6 +24,14 @@ export function calcReadingTime(content: string): number {
 
 export function buildBlogUrl(slugOrId: string): string {
   return `${SITE_URL}/blog/${slugOrId}`;
+}
+
+export function buildRoboBookPostPath(slugOrId: string): string {
+  return `/robobook/${slugOrId}`;
+}
+
+export function buildRoboBookPostUrl(slugOrId: string): string {
+  return `${SITE_URL}${buildRoboBookPostPath(slugOrId)}`;
 }
 
 export function sanitizeHtml(html: string): string {
