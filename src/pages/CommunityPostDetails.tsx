@@ -29,6 +29,8 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
+import BlogShareBar from "@/components/blog/BlogShareBar";
+import { buildRoboBookPostUrl } from "@/utils/blogSeo";
 
 interface CommunityPost {
   id: string;
@@ -68,6 +70,7 @@ const CommunityPostDetails = () => {
   
   // Determine content type based on post data
   const contentType = post?.post_type === 'blog' ? 'blog' : (post?.post_type === 'video' ? 'video' : 'community_post');
+  const shareUrl = post ? buildRoboBookPostUrl((post as any).slug || post.id) : "";
   
   // Use new unified interactions hook
   const {
@@ -134,24 +137,28 @@ const CommunityPostDetails = () => {
     try {
       setLoading(true);
       
-      // Try to fetch from community_posts first
-      const { data: communityPost, error: communityError } = await supabase
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "");
+
+      // Try to fetch from community_posts first by slug or UUID
+      const communityBaseQuery = supabase
         .from('community_posts')
         .select('*')
-        .eq('id', id)
-        .eq('status', 'published')
-        .maybeSingle();
+        .eq('status', 'published');
+      const { data: communityPost, error: communityError } = isUuid
+        ? await communityBaseQuery.eq('id', id).maybeSingle()
+        : await communityBaseQuery.eq('slug', id).maybeSingle();
 
       let postData = communityPost;
       
       // If not found in community_posts, try blogs table
       if (!communityPost && !communityError) {
-        const { data: blogPost, error: blogError } = await supabase
+        const blogBaseQuery = supabase
           .from('blogs')
           .select('*')
-          .eq('id', id)
-          .eq('status', 'published')
-          .maybeSingle();
+          .eq('status', 'published');
+        const { data: blogPost, error: blogError } = isUuid
+          ? await blogBaseQuery.eq('id', id).maybeSingle()
+          : await blogBaseQuery.eq('slug', id).maybeSingle();
 
         if (blogPost) {
           // Transform blog to match community post format
@@ -159,7 +166,7 @@ const CommunityPostDetails = () => {
             ...blogPost,
             post_type: 'blog',
             comment_count: blogPost.comment_count ?? 0,
-            share_count: 0,
+              share_count: (blogPost as any).share_count ?? 0,
             video_duration: null,
             media_url: blogPost.image_url,
             media_type: blogPost.image_url ? 'image' : null,
