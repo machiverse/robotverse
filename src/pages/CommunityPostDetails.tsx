@@ -215,11 +215,11 @@ const CommunityPostDetails = () => {
       
       if (isBlogPost) {
         await supabase.rpc('increment_blog_view_count', {
-          p_blog_id: id
+          p_blog_id: post.id
         });
       } else {
         await supabase.rpc('increment_community_post_view_count', {
-          p_post_id: id
+          p_post_id: post.id
         });
       }
     } catch (error) {
