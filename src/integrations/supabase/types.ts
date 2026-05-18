@@ -1933,6 +1933,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "document_uploads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       item_view_counts: {
@@ -2266,6 +2273,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "loan_products_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       loan_schemes: {
@@ -2517,6 +2531,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "logistics_services_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       logistics_shipments: {
@@ -2583,6 +2604,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "logistics_shipments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
             referencedColumns: ["user_id"]
           },
         ]
@@ -3346,6 +3374,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "robots_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       saved_jobs: {
@@ -3778,10 +3813,24 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
+            foreignKeyName: "service_appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "service_appointments_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_appointments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
             referencedColumns: ["user_id"]
           },
           {
@@ -3887,10 +3936,24 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
+            foreignKeyName: "service_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "service_requests_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_requests_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
             referencedColumns: ["user_id"]
           },
           {
@@ -3948,10 +4011,24 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
+            foreignKeyName: "service_reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "service_reviews_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "service_reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
             referencedColumns: ["user_id"]
           },
           {
@@ -4015,6 +4092,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "services_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
             referencedColumns: ["user_id"]
           },
         ]
@@ -4143,6 +4227,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "spare_parts_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_profiles"
             referencedColumns: ["user_id"]
           },
         ]
@@ -4740,7 +4831,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_business_profiles: {
+        Row: {
+          account_type: string | null
+          avatar_url: string | null
+          average_rating: number | null
+          city: string | null
+          company_logo_url: string | null
+          company_name: string | null
+          completed_sales: number | null
+          full_name: string | null
+          location: string | null
+          primary_user_type:
+            | Database["public"]["Enums"]["user_type_enum"]
+            | null
+          total_reviews: number | null
+          user_id: string | null
+          user_type: string | null
+        }
+        Insert: {
+          account_type?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
+          city?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          completed_sales?: number | null
+          full_name?: string | null
+          location?: string | null
+          primary_user_type?:
+            | Database["public"]["Enums"]["user_type_enum"]
+            | null
+          total_reviews?: number | null
+          user_id?: string | null
+          user_type?: string | null
+        }
+        Update: {
+          account_type?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
+          city?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          completed_sales?: number | null
+          full_name?: string | null
+          location?: string | null
+          primary_user_type?:
+            | Database["public"]["Enums"]["user_type_enum"]
+            | null
+          total_reviews?: number | null
+          user_id?: string | null
+          user_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calc_reading_time: { Args: { _content: string }; Returns: number }
