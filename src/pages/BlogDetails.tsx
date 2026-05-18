@@ -103,10 +103,32 @@ const BlogDetails = () => {
       // Try slug first, then id (UUID-shaped)
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "");
       const query = supabase.from("blogs").select("*").eq("status", "published");
-      const { data, error } = isUuid
+      const { data: blogRow, error } = isUuid
         ? await query.eq("id", id!).maybeSingle()
         : await query.eq("slug", id!).maybeSingle();
       if (error) throw error;
+
+      let data: any = blogRow;
+
+      // Fallback: RoboBook blog/video posts may live in community_posts
+      if (!data) {
+        const cpQuery = supabase
+          .from("community_posts")
+          .select("*")
+          .eq("status", "published");
+        const { data: cpRow } = isUuid
+          ? await cpQuery.eq("id", id!).maybeSingle()
+          : await cpQuery.eq("slug", id!).maybeSingle();
+        if (cpRow) {
+          // Map community_posts row to Blog shape
+          data = {
+            ...cpRow,
+            image_url: (cpRow as any).featured_image || (cpRow as any).media_url || null,
+            category: (cpRow as any).category || "RoboBook",
+          };
+        }
+      }
+
       if (!data) {
         setBlog(null);
         return;
