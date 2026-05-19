@@ -80,6 +80,8 @@ const CommunityPostDetails = () => {
   const { trackButtonClick } = useButtonTracking();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sourceTable, setSourceTable] = useState<'community_posts' | 'blogs'>('community_posts');
+  const [editOpen, setEditOpen] = useState(false);
   
   // Determine content type based on post data
   const contentType = post?.post_type === 'blog' ? 'blog' : (post?.post_type === 'video' ? 'video' : 'community_post');
