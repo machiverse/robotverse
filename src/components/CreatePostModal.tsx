@@ -530,15 +530,15 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
                 value={tagInput}
                 onChange={(e) => {
                   const v = e.target.value;
-                  setTagInput(v);
                   if (/[,\n]/.test(v)) {
-                    // Defer so state reflects latest before splitting
-                    setTimeout(() => handleAddTag(), 0);
+                    addTagsFromText(v);
+                  } else {
+                    setTagInput(v);
                   }
                 }}
                 placeholder="Add tags (comma separated)"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ',') {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
                     handleAddTag();
                   }
