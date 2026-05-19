@@ -240,7 +240,7 @@ const CommunityPostDetails = () => {
   const handleEditClick = () => {
     if (!post) return;
     if (sourceTable === 'blogs') {
-      navigate(`/robobook/${post.slug || post.id}/edit`);
+      navigate(`/robobook/${(post as any).slug || post.id}/edit`);
     } else {
       setEditOpen(true);
     }
