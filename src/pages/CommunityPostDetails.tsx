@@ -332,7 +332,7 @@ const CommunityPostDetails = () => {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => navigate(`/robobook/${post.id}/edit`)}
+                onClick={handleEditClick}
               >
                 <Edit className="h-4 w-4" /> Edit
               </Button>
