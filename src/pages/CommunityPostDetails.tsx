@@ -165,6 +165,7 @@ const CommunityPostDetails = () => {
         : await communityBaseQuery.eq('slug', id).maybeSingle();
 
       let postData = communityPost;
+      let src: 'community_posts' | 'blogs' = 'community_posts';
       
       // If not found in community_posts, try blogs table
       if (!communityPost && !communityError) {
