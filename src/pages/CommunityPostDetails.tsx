@@ -226,21 +226,23 @@ const CommunityPostDetails = () => {
 
   const handleDeletePost = async () => {
     if (!post) return;
-    const table = post.post_type === 'blog' && !(post as any).media_type
-      ? 'community_posts'
-      : 'community_posts';
     try {
-      const { error } = await supabase.from(table).delete().eq('id', post.id);
-      if (error) {
-        // Fallback to blogs table
-        const { error: bErr } = await supabase.from('blogs').delete().eq('id', post.id);
-        if (bErr) throw bErr;
-      }
+      const { error } = await supabase.from(sourceTable).delete().eq('id', post.id);
+      if (error) throw error;
       toast.success('Post deleted');
       navigate('/robobook');
     } catch (e) {
       console.error(e);
       toast.error('Failed to delete post');
+    }
+  };
+
+  const handleEditClick = () => {
+    if (!post) return;
+    if (sourceTable === 'blogs') {
+      navigate(`/robobook/${post.slug || post.id}/edit`);
+    } else {
+      setEditOpen(true);
     }
   };
 
