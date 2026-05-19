@@ -182,8 +182,7 @@ const CommunityPostDetails = () => {
       }
 
       if (!postData) {
-        navigate('/robobook');
-        toast.error('Post not found');
+        setPost(null);
         return;
       }
 
@@ -201,9 +200,29 @@ const CommunityPostDetails = () => {
     } catch (error) {
       console.error('Error fetching post:', error);
       toast.error('Failed to load post');
-      navigate('/robobook');
+      setPost(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!post) return;
+    const table = post.post_type === 'blog' && !(post as any).media_type
+      ? 'community_posts'
+      : 'community_posts';
+    try {
+      const { error } = await supabase.from(table).delete().eq('id', post.id);
+      if (error) {
+        // Fallback to blogs table
+        const { error: bErr } = await supabase.from('blogs').delete().eq('id', post.id);
+        if (bErr) throw bErr;
+      }
+      toast.success('Post deleted');
+      navigate('/robobook');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to delete post');
     }
   };
 
