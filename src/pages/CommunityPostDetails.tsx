@@ -510,6 +510,17 @@ const CommunityPostDetails = () => {
           />
         </div>
       </main>
+      {post && sourceTable === 'community_posts' && (
+        <EditPostModal
+          post={post as any}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          onPostUpdated={() => {
+            setEditOpen(false);
+            fetchPost();
+          }}
+        />
+      )}
     </div>
   );
 };
