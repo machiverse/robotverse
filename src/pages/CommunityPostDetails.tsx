@@ -290,32 +290,73 @@ const CommunityPostDetails = () => {
     return (
       <div className="min-h-screen bg-background">
         <EnhancedHeader />
-        <main className="container max-w-4xl mx-auto px-4 py-8">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">Post not found</p>
-              <Button onClick={() => navigate('/robobook')} className="mt-4">
-                Go Back
-              </Button>
-            </CardContent>
-          </Card>
+        <main className="container max-w-md mx-auto px-4 py-16 text-center">
+          <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-3">Post not found</h1>
+          <p className="text-muted-foreground mb-6">
+            This post may have been removed or the link is no longer valid.
+          </p>
+          <Button onClick={() => navigate('/robobook')}>
+            Back to RoboBook
+          </Button>
         </main>
       </div>
     );
   }
 
+  const isAuthor = !!user && user.id === post.author_id;
+
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
       <main className="container max-w-4xl mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6 hover:bg-primary/10"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="hover:bg-primary/10"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          {isAuthor && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => navigate(`/robobook/${post.id}/edit`)}
+              >
+                <Edit className="h-4 w-4" /> Edit
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-destructive">
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action can't be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeletePost}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </div>
+
 
         <Card className="overflow-hidden border-border/50 shadow-lg">
           <CardContent className="p-0">
