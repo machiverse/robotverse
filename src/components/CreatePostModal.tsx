@@ -134,10 +134,19 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   };
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
+    if (!tagInput.trim()) return;
+    // Split by comma so users can paste/type "a, b, c" and get 3 tags.
+    const parts = tagInput
+      .split(/[,\n]/)
+      .map((t) => t.replace(/^#+/, "").trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+    const merged = [...tags];
+    for (const p of parts) {
+      if (!merged.includes(p)) merged.push(p);
     }
+    setTags(merged);
+    setTagInput('');
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
