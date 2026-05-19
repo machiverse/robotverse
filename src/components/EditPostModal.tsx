@@ -92,20 +92,21 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     }
   }, [open, post]);
 
-  const handleAddTag = () => {
-    if (!tagInput.trim()) return;
-    const parts = tagInput
+  const addTagsFromText = (raw: string) => {
+    const parts = raw
       .split(/[,\n]/)
       .map((t) => t.replace(/^#+/, "").trim())
       .filter(Boolean);
     if (parts.length === 0) return;
-    const merged = [...tags];
-    for (const p of parts) {
-      if (!merged.includes(p)) merged.push(p);
-    }
-    setTags(merged);
+    setTags((prev) => {
+      const merged = [...prev];
+      for (const p of parts) if (!merged.includes(p)) merged.push(p);
+      return merged;
+    });
     setTagInput('');
   };
+
+  const handleAddTag = () => addTagsFromText(tagInput);
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
