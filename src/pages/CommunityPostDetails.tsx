@@ -180,6 +180,7 @@ const CommunityPostDetails = () => {
         if (blogError) throw blogError;
 
         if (blogPost) {
+          src = 'blogs';
           // Transform blog to match community post format
           postData = {
             ...blogPost,
@@ -196,6 +197,7 @@ const CommunityPostDetails = () => {
           } as any;
         }
       }
+      setSourceTable(src);
 
       if (!postData) {
         setPost(null);
