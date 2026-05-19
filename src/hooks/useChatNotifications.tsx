@@ -35,11 +35,17 @@ export const useChatNotifications = () => {
 
     console.log('🔔 Setting up real-time chat notifications for user:', user.id);
 
-    // Subscribe to all messages where user is buyer or seller
-    const channel = supabase
-      .channel(`user-chat-notifications:${user.id}`)
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
+    // Unique channel name per mount prevents "cannot add postgres_changes
+    // callbacks ... after subscribe()" when the effect remounts (StrictMode,
+    // auth state changes, post-email-verification redirect, etc.)
+    const channelName = `user-chat-notifications:${user.id}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    channel = supabase
+      .channel(channelName)
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: 'INSERT',
           schema: 'public',
@@ -86,10 +92,15 @@ export const useChatNotifications = () => {
       .subscribe((status) => {
         console.log('🔌 Chat notification subscription status:', status);
       });
+    } catch (err) {
+      console.error('Failed to set up chat notifications channel:', err);
+    }
 
     return () => {
       console.log('🔌 Cleaning up chat notifications');
-      supabase.removeChannel(channel);
+      if (channel) {
+        try { supabase.removeChannel(channel); } catch (e) { console.warn(e); }
+      }
     };
   }, [user]);
 

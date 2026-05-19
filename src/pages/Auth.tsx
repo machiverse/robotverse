@@ -55,6 +55,9 @@ const Auth = () => {
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [verificationFailed, setVerificationFailed] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendingVerification, setResendingVerification] = useState(false);
   
   // Hooks
   const { signUp, signIn, user } = useAuth();
@@ -118,14 +121,137 @@ const Auth = () => {
     }
   };
 
+  // Resend email verification
+  const handleResendVerification = async () => {
+    const targetEmail = (verificationEmail || email || '').trim();
+    if (!targetEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter your email address below, then click resend.',
+      });
+      return;
+    }
+
+    setResendingVerification(true);
+    try {
+      const origin = window.location.origin;
+      const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+      const isHttp = origin.startsWith('http://') && !isLocalhost;
+      const safeOrigin = isHttp ? origin.replace('http://', 'https://') : origin;
+      const redirectUrl = `${safeOrigin}/auth`;
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: targetEmail,
+        options: { emailRedirectTo: redirectUrl },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Verification Email Sent',
+        description: `A new verification link has been sent to ${targetEmail}. Please check your inbox.`,
+      });
+      setVerificationFailed(false);
+    } catch (error: any) {
+      console.error('❌ Resend verification error:', error);
+      let msg = 'Failed to resend verification email.';
+      if (error.message?.includes('rate limit')) {
+        msg = 'Too many attempts. Please wait a few minutes before trying again.';
+      } else if (error.message?.includes('already confirmed')) {
+        msg = 'This email is already verified. You can sign in directly.';
+      } else if (error.message) {
+        msg = error.message;
+      }
+      toast({ variant: 'destructive', title: 'Error', description: msg });
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
   // Remove the old password reset handler since it's now in a separate page
 
-  // Redirect if already logged in (but not during password recovery)
+  // Handle email verification token from confirmation links
+  // Supabase sends links like: /auth?token_hash=xxx&type=signup (or email/email_change/invite)
+  useEffect(() => {
+    const handleEmailVerification = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenHash = urlParams.get('token_hash');
+      const type = urlParams.get('type');
+      // Also handle legacy hash-based links (#access_token=...)
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const hashError = hashParams.get('error') || urlParams.get('error');
+      const hashErrorDesc = hashParams.get('error_description') || urlParams.get('error_description');
+
+      if (hashError) {
+        console.error('❌ Email verification error from URL:', hashError, hashErrorDesc);
+        const emailFromUrl = urlParams.get('email') || hashParams.get('email');
+        if (emailFromUrl) setVerificationEmail(emailFromUrl);
+        setVerificationFailed(true);
+        toast({
+          variant: 'destructive',
+          title: 'Verification Failed',
+          description: hashErrorDesc?.replace(/\+/g, ' ') || 'The verification link is invalid or has expired. Please request a new one.',
+        });
+        // Clean URL
+        window.history.replaceState({}, document.title, '/auth');
+        return;
+      }
+
+      if (tokenHash && type && type !== 'recovery') {
+        console.log('🔗 Processing email verification:', type);
+        try {
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type as 'signup' | 'email' | 'email_change' | 'invite' | 'magiclink',
+          });
+
+          if (error) {
+            console.error('❌ verifyOtp failed:', error);
+            setVerificationFailed(true);
+            toast({
+              variant: 'destructive',
+              title: 'Verification Failed',
+              description: error.message.includes('expired')
+                ? 'This verification link has expired. Please sign up again or request a new link.'
+                : error.message,
+            });
+            window.history.replaceState({}, document.title, '/auth');
+            return;
+          }
+
+          if (data?.user) {
+            console.log('✅ Email verified successfully for:', data.user.email);
+            toast({
+              title: '✅ Email Verified!',
+              description: 'Your account is now active. Welcome to RobotVerse!',
+            });
+            // Clean URL and redirect home
+            window.history.replaceState({}, document.title, '/');
+            setTimeout(() => navigate('/'), 500);
+          }
+        } catch (err: any) {
+          console.error('❌ Verification exception:', err);
+          toast({
+            variant: 'destructive',
+            title: 'Verification Error',
+            description: err.message || 'Something went wrong. Please try again.',
+          });
+        }
+      }
+    };
+
+    handleEmailVerification();
+  }, [navigate, toast]);
+
+  // Redirect if already logged in (but not during password recovery / verification)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const isRecoveryFlow = urlParams.get('type') === 'recovery';
+    const hasToken = urlParams.get('token_hash');
     
-    if (user && !isRecoveryFlow) {
+    if (user && !isRecoveryFlow && !hasToken) {
       console.log('✅ User already authenticated, redirecting to home');
       navigate('/');
     }
@@ -1282,6 +1408,64 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
+            {!isSignUp && !isForgotPassword && (
+              <div className="mb-4 flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">
+                  Didn't receive the verification email?
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResendVerification}
+                  disabled={resendingVerification}
+                >
+                  {resendingVerification ? 'Sending...' : 'Resend verification email'}
+                </Button>
+              </div>
+            )}
+
+            {verificationFailed && (
+              <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Mail className="w-5 h-5 text-destructive mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground">Verification link invalid or expired</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Enter your email below (if not already filled) and resend the verification link.
+                    </p>
+                  </div>
+                </div>
+                {!verificationEmail && !email && (
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={verificationEmail}
+                    onChange={(e) => setVerificationEmail(e.target.value)}
+                  />
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification}
+                  >
+                    {resendingVerification ? 'Sending...' : 'Resend verification email'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setVerificationFailed(false)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={
               isForgotPassword 
                 ? handleForgotPassword 

@@ -302,14 +302,27 @@ export type Database = {
       blogs: {
         Row: {
           author_id: string
+          canonical_url: string | null
+          category: string | null
+          comment_count: number
           content: string
           created_at: string
           excerpt: string | null
+          featured_image_alt: string | null
+          featured_image_caption: string | null
+          focus_keywords: string[] | null
           id: string
           image_url: string | null
+          is_draft: boolean
           like_count: number | null
+          meta_description: string | null
+          meta_title: string | null
           published_at: string | null
+          reading_time_minutes: number | null
+          scheduled_publish_at: string | null
+          seo_tags: string[] | null
           share_count: number | null
+          slug: string | null
           status: string
           tags: string[] | null
           title: string
@@ -318,14 +331,27 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          canonical_url?: string | null
+          category?: string | null
+          comment_count?: number
           content: string
           created_at?: string
           excerpt?: string | null
+          featured_image_alt?: string | null
+          featured_image_caption?: string | null
+          focus_keywords?: string[] | null
           id?: string
           image_url?: string | null
+          is_draft?: boolean
           like_count?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
           published_at?: string | null
+          reading_time_minutes?: number | null
+          scheduled_publish_at?: string | null
+          seo_tags?: string[] | null
           share_count?: number | null
+          slug?: string | null
           status?: string
           tags?: string[] | null
           title: string
@@ -334,14 +360,27 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          canonical_url?: string | null
+          category?: string | null
+          comment_count?: number
           content?: string
           created_at?: string
           excerpt?: string | null
+          featured_image_alt?: string | null
+          featured_image_caption?: string | null
+          focus_keywords?: string[] | null
           id?: string
           image_url?: string | null
+          is_draft?: boolean
           like_count?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
           published_at?: string | null
+          reading_time_minutes?: number | null
+          scheduled_publish_at?: string | null
+          seo_tags?: string[] | null
           share_count?: number | null
+          slug?: string | null
           status?: string
           tags?: string[] | null
           title?: string
@@ -805,19 +844,32 @@ export type Database = {
       community_posts: {
         Row: {
           author_id: string
+          canonical_url: string | null
+          category: string | null
           comment_count: number | null
           content: string | null
           created_at: string
           edit_history: Json | null
           edited_at: string | null
           excerpt: string | null
+          featured_image: string | null
+          featured_image_alt: string | null
+          featured_image_caption: string | null
+          focus_keywords: string[] | null
           id: string
+          is_draft: boolean
           like_count: number | null
           media_type: string | null
           media_url: string | null
+          meta_description: string | null
+          meta_title: string | null
           post_type: string
           published_at: string | null
+          reading_time_minutes: number | null
+          scheduled_publish_at: string | null
+          seo_tags: string[] | null
           share_count: number | null
+          slug: string | null
           status: string
           tags: string[] | null
           title: string | null
@@ -828,19 +880,32 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          canonical_url?: string | null
+          category?: string | null
           comment_count?: number | null
           content?: string | null
           created_at?: string
           edit_history?: Json | null
           edited_at?: string | null
           excerpt?: string | null
+          featured_image?: string | null
+          featured_image_alt?: string | null
+          featured_image_caption?: string | null
+          focus_keywords?: string[] | null
           id?: string
+          is_draft?: boolean
           like_count?: number | null
           media_type?: string | null
           media_url?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
           post_type: string
           published_at?: string | null
+          reading_time_minutes?: number | null
+          scheduled_publish_at?: string | null
+          seo_tags?: string[] | null
           share_count?: number | null
+          slug?: string | null
           status?: string
           tags?: string[] | null
           title?: string | null
@@ -851,19 +916,32 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          canonical_url?: string | null
+          category?: string | null
           comment_count?: number | null
           content?: string | null
           created_at?: string
           edit_history?: Json | null
           edited_at?: string | null
           excerpt?: string | null
+          featured_image?: string | null
+          featured_image_alt?: string | null
+          featured_image_caption?: string | null
+          focus_keywords?: string[] | null
           id?: string
+          is_draft?: boolean
           like_count?: number | null
           media_type?: string | null
           media_url?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
           post_type?: string
           published_at?: string | null
+          reading_time_minutes?: number | null
+          scheduled_publish_at?: string | null
+          seo_tags?: string[] | null
           share_count?: number | null
+          slug?: string | null
           status?: string
           tags?: string[] | null
           title?: string | null
@@ -4665,6 +4743,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calc_reading_time: { Args: { _content: string }; Returns: number }
       complete_user_profile:
         | {
             Args: {
@@ -4821,6 +4900,14 @@ export type Database = {
       }
       filter_contact_info: { Args: { message: string }; Returns: boolean }
       generate_random_string: { Args: { length: number }; Returns: string }
+      generate_unique_blog_slug: {
+        Args: { _id: string; _title: string }
+        Returns: string
+      }
+      generate_unique_blogs_slug: {
+        Args: { _id: string; _title: string }
+        Returns: string
+      }
       get_buyer_info: {
         Args: {
           p_buyer_name: string
@@ -4907,6 +4994,7 @@ export type Database = {
           user_type: string
         }[]
       }
+      get_public_profile_count: { Args: never; Returns: number }
       get_public_provider_profile: {
         Args: { provider_user_id: string }
         Returns: {
@@ -4978,9 +5066,19 @@ export type Database = {
         }
         Returns: Json
       }
+      slugify: { Args: { input: string }; Returns: string }
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
         Returns: boolean
+      }
+      unlock_contact_with_credits: {
+        Args: {
+          p_item_id: string
+          p_item_name?: string
+          p_item_type: string
+          p_seller_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

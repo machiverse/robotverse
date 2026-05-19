@@ -135,11 +135,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('🚀 Starting signup with email confirmation for:', email);
         
+        // Build a stable HTTPS redirect URL.
+        // Email links opened in a new tab/device must point to a real, HTTPS host.
+        const origin = window.location.origin;
+        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+        const isHttp = origin.startsWith('http://') && !isLocalhost;
+        // Force HTTPS on production domains so email verification links don't break
+        const safeOrigin = isHttp ? origin.replace('http://', 'https://') : origin;
+        const redirectUrl = `${safeOrigin}/auth`;
+        console.log('📧 Email redirect URL:', redirectUrl);
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth`, // Redirect back to auth page
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName || ''
             }

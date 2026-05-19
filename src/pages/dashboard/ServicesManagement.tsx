@@ -2,14 +2,22 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, Plus, Edit, MoreHorizontal, Clock, CheckCircle } from "lucide-react";
+import { Wrench, Plus, Edit, MoreHorizontal, CheckCircle, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import ServiceListing from "@/components/ServiceListing";
 
 const ServicesManagement = () => {
   const { user } = useAuth();
-  const [services, setServices] = useState([]);
+  const { toast } = useToast();
+  const [services, setServices] = useState<any[]>([]);
   const [stats, setStats] = useState({
     activeServices: 0,
     totalBookings: 0,
@@ -17,6 +25,9 @@ const ServicesManagement = () => {
     revenue: 0
   });
   const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingService, setEditingService] = useState<any | null>(null);
+  const [deletingService, setDeletingService] = useState<any | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -40,8 +51,6 @@ const ServicesManagement = () => {
       }
 
       setServices(servicesData || []);
-      
-      // Calculate stats from services data
       const activeServices = servicesData?.length || 0;
       setStats(prev => ({ ...prev, activeServices }));
     } catch (error) {
@@ -65,27 +74,35 @@ const ServicesManagement = () => {
         return;
       }
 
-      // Calculate booking stats
       const totalBookings = requestsData?.length || 0;
       const completedBookings = requestsData?.filter(req => req.status === 'completed').length || 0;
       
       setStats(prev => ({ 
         ...prev, 
         totalBookings,
-        avgRating: 4.8, // Will be calculated from reviews when implemented
-        revenue: completedBookings * 200 // Estimated revenue calculation
+        avgRating: 4.8,
+        revenue: completedBookings * 200
       }));
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-700';
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'paused': return 'bg-gray-100 text-gray-700';
-      default: return 'bg-gray-100 text-gray-700';
+  const handleDelete = async () => {
+    if (!deletingService || !user) return;
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', deletingService.id)
+        .eq('provider_id', user.id);
+      if (error) throw error;
+      toast({ title: 'Deleted', description: 'Service removed successfully.' });
+      setDeletingService(null);
+      fetchServices();
+    } catch (error: any) {
+      console.error('Error deleting service:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete service.' });
     }
   };
 
@@ -98,7 +115,7 @@ const ServicesManagement = () => {
             Manage your service offerings and track bookings
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add New Service
         </Button>
@@ -108,61 +125,45 @@ const ServicesManagement = () => {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Services
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Active Services</CardTitle>
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeServices}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently available
-            </p>
+            <p className="text-xs text-muted-foreground">Currently available</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Bookings
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalBookings}</div>
-            <p className="text-xs text-muted-foreground">
-              All time
-            </p>
+            <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Avg Rating
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Rating</CardTitle>
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.avgRating}</div>
-            <p className="text-xs text-muted-foreground">
-              ⭐⭐⭐⭐⭐
-            </p>
+            <p className="text-xs text-muted-foreground">⭐⭐⭐⭐⭐</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Revenue
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.revenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Estimated total
-            </p>
+            <p className="text-xs text-muted-foreground">Estimated total</p>
           </CardContent>
         </Card>
       </div>
@@ -171,9 +172,7 @@ const ServicesManagement = () => {
       <Card>
         <CardHeader>
           <CardTitle>Your Services</CardTitle>
-          <CardDescription>
-            Manage your service offerings and performance
-          </CardDescription>
+          <CardDescription>Manage your service offerings and performance</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -209,10 +208,12 @@ const ServicesManagement = () => {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <div className="text-sm font-medium">Active</div>
-                      <Badge className="bg-green-100 text-green-700">
-                        Available
-                      </Badge>
+                      <Badge className="bg-green-100 text-green-700">Available</Badge>
                     </div>
+                    <Button variant="outline" size="sm" onClick={() => setEditingService(service)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm">
@@ -220,16 +221,16 @@ const ServicesManagement = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditingService(service)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Service
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          View Requests
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          Pause Service
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => setDeletingService(service)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove Service
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -240,6 +241,57 @@ const ServicesManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Service Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Service</DialogTitle>
+          </DialogHeader>
+          <ServiceListing
+            onSuccess={() => {
+              setShowAddDialog(false);
+              fetchServices();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Service Dialog */}
+      <Dialog open={!!editingService} onOpenChange={(open) => !open && setEditingService(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Service</DialogTitle>
+          </DialogHeader>
+          {editingService && (
+            <ServiceListing
+              editingService={editingService}
+              onSuccess={() => {
+                setEditingService(null);
+                fetchServices();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletingService} onOpenChange={(open) => !open && setDeletingService(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this service?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{deletingService?.name}" and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

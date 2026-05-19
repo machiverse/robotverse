@@ -29,6 +29,8 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
+import BlogShareBar from "@/components/blog/BlogShareBar";
+import { buildRoboBookPostUrl } from "@/utils/blogSeo";
 
 interface CommunityPost {
   id: string;
@@ -68,6 +70,8 @@ const CommunityPostDetails = () => {
   
   // Determine content type based on post data
   const contentType = post?.post_type === 'blog' ? 'blog' : (post?.post_type === 'video' ? 'video' : 'community_post');
+  const interactionPostId = post?.id || id || '';
+  const shareUrl = post ? buildRoboBookPostUrl((post as any).slug || post.id) : "";
   
   // Use new unified interactions hook
   const {
@@ -81,7 +85,7 @@ const CommunityPostDetails = () => {
     addComment,
     updateComment,
     deleteComment
-  } = useContentInteractions(id || '', contentType);
+  } = useContentInteractions(interactionPostId, contentType);
 
   // Track interaction buttons
   const handleInteractionTracking = async (action: string) => {
@@ -109,10 +113,10 @@ const CommunityPostDetails = () => {
 
   // Separate useEffect for incrementing view count after post is loaded
   useEffect(() => {
-    if (post && id) {
+    if (post) {
       incrementViewCount();
     }
-  }, [post, id]);
+  }, [post]);
 
   const getPostTypeIcon = () => {
     if (!post) return <FileText className="h-5 w-5" />;
@@ -134,39 +138,46 @@ const CommunityPostDetails = () => {
     try {
       setLoading(true);
       
-      // Try to fetch from community_posts first
-      const { data: communityPost, error: communityError } = await supabase
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "");
+
+      // Try to fetch from community_posts first by slug or UUID
+      const communityBaseQuery = supabase
         .from('community_posts')
         .select('*')
-        .eq('id', id)
-        .eq('status', 'published')
-        .maybeSingle();
+        .eq('status', 'published');
+      const { data: communityPost, error: communityError } = isUuid
+        ? await communityBaseQuery.eq('id', id).maybeSingle()
+        : await communityBaseQuery.eq('slug', id).maybeSingle();
 
       let postData = communityPost;
       
       // If not found in community_posts, try blogs table
       if (!communityPost && !communityError) {
-        const { data: blogPost, error: blogError } = await supabase
+        const blogBaseQuery = supabase
           .from('blogs')
           .select('*')
-          .eq('id', id)
-          .eq('status', 'published')
-          .maybeSingle();
+          .eq('status', 'published');
+        const { data: blogPost, error: blogError } = isUuid
+          ? await blogBaseQuery.eq('id', id).maybeSingle()
+          : await blogBaseQuery.eq('slug', id).maybeSingle();
+
+        if (blogError) throw blogError;
 
         if (blogPost) {
           // Transform blog to match community post format
           postData = {
             ...blogPost,
             post_type: 'blog',
-            comment_count: 0,
-            share_count: 0,
+            comment_count: blogPost.comment_count ?? 0,
+              share_count: (blogPost as any).share_count ?? 0,
             video_duration: null,
             media_url: blogPost.image_url,
             media_type: blogPost.image_url ? 'image' : null,
             edited_at: null,
             edit_history: [],
-            video_thumbnail: null
-          };
+            video_thumbnail: null,
+            featured_image: (blogPost as any).featured_image ?? blogPost.image_url ?? null,
+          } as any;
         }
       }
 
@@ -197,18 +208,18 @@ const CommunityPostDetails = () => {
   };
 
   const incrementViewCount = async () => {
-    if (!id || !post) return;
+    if (!post?.id) return;
     
     try {
       const isBlogPost = post.post_type === 'blog';
       
       if (isBlogPost) {
         await supabase.rpc('increment_blog_view_count', {
-          p_blog_id: id
+          p_blog_id: post.id
         });
       } else {
         await supabase.rpc('increment_community_post_view_count', {
-          p_post_id: id
+          p_post_id: post.id
         });
       }
     } catch (error) {
@@ -378,6 +389,14 @@ const CommunityPostDetails = () => {
 
             {/* Engagement Actions */}
             <div className="p-6 bg-muted/30">
+              <BlogShareBar
+                url={shareUrl}
+                title={post.title || "RoboBook Post - RobotVerse"}
+                excerpt={post.excerpt || post.content?.replace(/<[^>]+>/g, " ").slice(0, 140)}
+                postId={post.id}
+                table={post.post_type === "blog" ? "blogs" : "community_posts"}
+                className="mb-4"
+              />
               <ContentInteractionButtons
                 likeCount={likeCount}
                 commentCount={commentCount}
@@ -389,7 +408,9 @@ const CommunityPostDetails = () => {
                 onCommentClick={handleCommentClick}
                 onShare={() => {
                   handleInteractionTracking('share');
-                  toast.success('Share functionality coming soon!');
+                  navigator.clipboard.writeText(shareUrl)
+                    .then(() => toast.success('Link copied to clipboard'))
+                    .catch(() => toast.error('Failed to copy link'));
                 }}
               />
             </div>
