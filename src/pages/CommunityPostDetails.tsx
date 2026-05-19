@@ -13,9 +13,9 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import { ContentComments } from "@/components/content/ContentComments";
 import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
 import { useContentInteractions } from "@/hooks/useContentInteractions";
-import { 
-  Eye, 
-  Play, 
+import {
+  Eye,
+  Play,
   ArrowLeft,
   User,
   BookOpen,
@@ -23,8 +23,21 @@ import {
   FileText,
   Image as ImageIcon,
   Calendar,
-  Clock
+  Clock,
+  Edit,
+  Trash2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
