@@ -92,10 +92,15 @@ export const useChatNotifications = () => {
       .subscribe((status) => {
         console.log('🔌 Chat notification subscription status:', status);
       });
+    } catch (err) {
+      console.error('Failed to set up chat notifications channel:', err);
+    }
 
     return () => {
       console.log('🔌 Cleaning up chat notifications');
-      supabase.removeChannel(channel);
+      if (channel) {
+        try { supabase.removeChannel(channel); } catch (e) { console.warn(e); }
+      }
     };
   }, [user]);
 
