@@ -528,9 +528,21 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             <div className="flex gap-2">
               <Input
                 value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Add a tag..."
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setTagInput(v);
+                  if (/[,\n]/.test(v)) {
+                    // Defer so state reflects latest before splitting
+                    setTimeout(() => handleAddTag(), 0);
+                  }
+                }}
+                placeholder="Add tags (comma separated)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
                 className="flex-1"
               />
               <Button variant="outline" onClick={handleAddTag} type="button">
