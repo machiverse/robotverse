@@ -5,8 +5,35 @@ interface FormattedContentProps {
   className?: string;
 }
 
+// Sanitize potentially-unsafe HTML by removing script/style/event handlers.
+const sanitizeHtml = (html: string): string => {
+  return html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+    .replace(/ on\w+="[^"]*"/gi, "")
+    .replace(/ on\w+='[^']*'/gi, "")
+    .replace(/javascript:/gi, "");
+};
+
 const FormattedContent = ({ content, className }: FormattedContentProps) => {
-  // Parse and render formatted content
+  // If content already contains HTML markup (from the rich editor),
+  // render it directly so alignment, lists, and formatting are preserved
+  // exactly as the author wrote/pasted them.
+  const looksLikeHtml = /<\/?(p|div|span|h[1-6]|ul|ol|li|br|strong|em|u|a|img|blockquote|figure|table|iframe)\b/i.test(content || "");
+
+  if (looksLikeHtml) {
+    return (
+      <div
+        className={cn(
+          "prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap break-words",
+          className
+        )}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
+      />
+    );
+  }
+
+  // Parse and render formatted content (markdown-like fallback)
   const parseContent = (text: string) => {
     if (!text) return [];
 
