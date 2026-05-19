@@ -475,9 +475,20 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             <div className="flex gap-2">
               <Input
                 value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Add tags..."
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setTagInput(v);
+                  if (/[,\n]/.test(v)) {
+                    setTimeout(() => handleAddTag(), 0);
+                  }
+                }}
+                placeholder="Add tags (comma separated)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
                 className="flex-1"
               />
               <Button type="button" variant="outline" onClick={handleAddTag}>
