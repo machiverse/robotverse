@@ -35,14 +35,17 @@ export const useChatNotifications = () => {
 
     console.log('🔔 Setting up real-time chat notifications for user:', user.id);
 
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    try {
     // Unique channel name per mount prevents "cannot add postgres_changes
     // callbacks ... after subscribe()" when the effect remounts (StrictMode,
     // auth state changes, post-email-verification redirect, etc.)
     const channelName = `user-chat-notifications:${user.id}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
+    channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: 'INSERT',
           schema: 'public',
