@@ -93,10 +93,18 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
   }, [open, post]);
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
+    if (!tagInput.trim()) return;
+    const parts = tagInput
+      .split(/[,\n]/)
+      .map((t) => t.replace(/^#+/, "").trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+    const merged = [...tags];
+    for (const p of parts) {
+      if (!merged.includes(p)) merged.push(p);
     }
+    setTags(merged);
+    setTagInput('');
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
