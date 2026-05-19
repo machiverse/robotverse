@@ -92,12 +92,21 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     }
   }, [open, post]);
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
-    }
+  const addTagsFromText = (raw: string) => {
+    const parts = raw
+      .split(/[,\n]/)
+      .map((t) => t.replace(/^#+/, "").trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+    setTags((prev) => {
+      const merged = [...prev];
+      for (const p of parts) if (!merged.includes(p)) merged.push(p);
+      return merged;
+    });
+    setTagInput('');
   };
+
+  const handleAddTag = () => addTagsFromText(tagInput);
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
@@ -467,9 +476,21 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             <div className="flex gap-2">
               <Input
                 value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Add tags..."
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (/[,\n]/.test(v)) {
+                    addTagsFromText(v);
+                  } else {
+                    setTagInput(v);
+                  }
+                }}
+                placeholder="Add tags (comma separated)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
                 className="flex-1"
               />
               <Button type="button" variant="outline" onClick={handleAddTag}>
