@@ -478,14 +478,15 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
                 value={tagInput}
                 onChange={(e) => {
                   const v = e.target.value;
-                  setTagInput(v);
                   if (/[,\n]/.test(v)) {
-                    setTimeout(() => handleAddTag(), 0);
+                    addTagsFromText(v);
+                  } else {
+                    setTagInput(v);
                   }
                 }}
                 placeholder="Add tags (comma separated)"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ',') {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
                     handleAddTag();
                   }
