@@ -564,13 +564,21 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleSubmit(true)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save as Draft
+            </Button>
             <Button 
-              onClick={handleSubmit} 
+              onClick={() => handleSubmit(false)} 
               disabled={isSubmitting || validateForm().length > 0}
               className="min-w-[120px]"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isSubmitting ? 'Creating...' : 'Create Post'}
+              {isSubmitting ? 'Publishing...' : 'Publish'}
             </Button>
           </div>
         </div>
