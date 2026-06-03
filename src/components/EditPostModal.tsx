@@ -506,9 +506,13 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button variant="secondary" onClick={() => handleSubmit(true)} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Update Post
+              Save as Draft
+            </Button>
+            <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {post.status === 'draft' || (post as any).is_draft ? 'Publish' : 'Update Post'}
             </Button>
           </div>
         </div>
