@@ -275,7 +275,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     return errors;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (asDraft: boolean = false) => {
     const errors = validateForm();
     if (errors.length > 0) {
       toast.error(errors[0]);
@@ -289,18 +289,15 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
       // Upload media file if provided
       if (mediaFile) {
-        console.log('Uploading file:', mediaFile.name, mediaFile.type);
         uploadedMediaUrl = await handleFileUpload(mediaFile);
         mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-        console.log('File uploaded successfully:', uploadedMediaUrl);
       } else if (mediaUrl) {
-        // Determine media type from URL
         const isVideo = /\.(mp4|webm|mov|avi)$/i.test(mediaUrl) || mediaUrl.includes('youtube') || mediaUrl.includes('vimeo');
         mediaType = isVideo ? 'video' : 'image';
       }
 
-      // Generate excerpt for longer content
-      const excerpt = content.length > 200 ? content.substring(0, 200) + '...' : content;
+      const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const excerpt = plain.length > 200 ? plain.substring(0, 200) + '...' : plain;
 
       const postData = {
         post_type: postType,
@@ -311,26 +308,20 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
         media_url: uploadedMediaUrl || null,
         media_type: mediaType || null,
         tags: tags,
-        status: 'published',
-        published_at: new Date().toISOString()
+        status: asDraft ? 'draft' : 'published',
+        is_draft: asDraft,
+        published_at: asDraft ? null : new Date().toISOString()
       };
-
-      console.log('Creating post with data:', postData);
 
       const { data, error } = await supabase
         .from('community_posts')
         .insert([postData])
         .select();
 
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Post created successfully:', data);
-      toast.success('Post created successfully!');
+      toast.success(asDraft ? 'Draft saved!' : 'Post published successfully!');
       
-      // Reset form
       setTitle('');
       setContent('');
       setTags([]);
@@ -345,7 +336,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       onPostCreated?.();
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error(`Failed to create post: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to ${asDraft ? 'save draft' : 'create post'}: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -573,13 +564,21 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleSubmit(true)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save as Draft
+            </Button>
             <Button 
-              onClick={handleSubmit} 
+              onClick={() => handleSubmit(false)} 
               disabled={isSubmitting || validateForm().length > 0}
               className="min-w-[120px]"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isSubmitting ? 'Creating...' : 'Create Post'}
+              {isSubmitting ? 'Publishing...' : 'Publish'}
             </Button>
           </div>
         </div>
