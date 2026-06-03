@@ -512,7 +512,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             </Button>
             <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {post.status === 'draft' || (post as any).is_draft ? 'Publish' : 'Update Post'}
+              {(post as any).status === 'draft' || (post as any).is_draft ? 'Publish' : 'Update Post'}
             </Button>
           </div>
         </div>
