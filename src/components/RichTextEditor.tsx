@@ -195,16 +195,17 @@ const RichTextEditor = ({ value, onChange, placeholder, className }: RichTextEdi
             if (t.id === "sep") {
               return <div key={`sep-${i}`} className="w-px h-6 bg-border mx-1" />;
             }
-            const Icon = t.icon;
+            const tool = t as { id: string; icon: typeof Bold; label: string; run: () => void };
+            const Icon = tool.icon;
             return (
               <Button
-                key={t.id}
+                key={tool.id}
                 type="button"
                 variant="ghost"
                 size="sm"
-                title={t.label}
-                onMouseDown={(e) => e.preventDefault()} // keep selection
-                onClick={t.run}
+                title={tool.label}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={tool.run}
                 className="h-8 w-8 p-0 hover:bg-accent"
               >
                 <Icon className="h-4 w-4" />
