@@ -221,7 +221,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     return errors;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (asDraft: boolean = false) => {
     const errors = validateForm();
     if (errors.length > 0) {
       toast.error(errors[0]);
@@ -233,20 +233,17 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       let uploadedMediaUrl = mediaUrl;
       let mediaType = '';
 
-      // Upload new media file if provided
       if (mediaFile) {
         uploadedMediaUrl = await handleFileUpload(mediaFile);
         mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
       } else if (mediaUrl) {
-        // Determine media type from URL
         const isVideo = /\.(mp4|webm|mov|avi)$/i.test(mediaUrl) || mediaUrl.includes('youtube') || mediaUrl.includes('vimeo');
         mediaType = isVideo ? 'video' : 'image';
       }
 
-      // Generate excerpt for longer content
-      const excerpt = content.length > 200 ? content.substring(0, 200) + '...' : content;
+      const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const excerpt = plain.length > 200 ? plain.substring(0, 200) + '...' : plain;
 
-      // Add to edit history
       const editHistory = [
         ...(post.edit_history || []),
         {
@@ -260,7 +257,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         }
       ];
 
-      const updateData = {
+      const updateData: Record<string, any> = {
         post_type: postType,
         title: title.trim() || null,
         content: content.trim(),
@@ -270,8 +267,13 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         tags: tags,
         updated_at: new Date().toISOString(),
         edited_at: new Date().toISOString(),
-        edit_history: editHistory
+        edit_history: editHistory,
+        status: asDraft ? 'draft' : 'published',
+        is_draft: asDraft,
       };
+      if (!asDraft) {
+        updateData.published_at = new Date().toISOString();
+      }
 
       const { error } = await supabase
         .from('community_posts')
@@ -281,7 +283,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
 
       if (error) throw error;
 
-      toast.success('Post updated successfully!');
+      toast.success(asDraft ? 'Draft saved!' : 'Post published!');
       onOpenChange(false);
       onPostUpdated?.();
     } catch (error) {
