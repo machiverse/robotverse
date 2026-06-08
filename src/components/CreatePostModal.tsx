@@ -264,8 +264,8 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       errors.push(...validationErrors);
     }
 
-    if (content.length > 10000) {
-      errors.push('Content is too long (maximum 10,000 characters)');
+    if (content.length > 50000) {
+      errors.push('Content is too long (maximum 50,000 characters)');
     }
 
     if (title && title.length > 200) {
