@@ -249,18 +249,24 @@ const CommunityPostDetails = () => {
 
   const incrementViewCount = async () => {
     if (!post?.id) return;
-    
+
     try {
-      const isBlogPost = post.post_type === 'blog';
-      
-      if (isBlogPost) {
-        await supabase.rpc('increment_blog_view_count', {
+      if (sourceTable === 'blogs') {
+        const { data, error } = await supabase.rpc('increment_blog_view_count', {
           p_blog_id: post.id
         });
+        if (error) throw error;
+        if (typeof data === 'number') {
+          setPost((prev) => (prev ? { ...prev, view_count: data } : prev));
+        }
       } else {
-        await supabase.rpc('increment_community_post_view_count', {
+        const { data, error } = await supabase.rpc('increment_community_post_view_count', {
           p_post_id: post.id
         });
+        if (error) throw error;
+        if (typeof data === 'number') {
+          setPost((prev) => (prev ? { ...prev, view_count: data } : prev));
+        }
       }
     } catch (error) {
       console.error('Error incrementing view count:', error);
