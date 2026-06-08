@@ -264,8 +264,8 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       errors.push(...validationErrors);
     }
 
-    if (content.length > 10000) {
-      errors.push('Content is too long (maximum 10,000 characters)');
+    if (content.length > 50000) {
+      errors.push('Content is too long (maximum 50,000 characters)');
     }
 
     if (title && title.length > 200) {
@@ -416,7 +416,12 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
 
           {/* Rich Text Content Editor */}
           <div className="space-y-2">
-            <Label htmlFor="content">Content</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="content">Content</Label>
+              <span className="text-xs text-muted-foreground">
+                {content.length.toLocaleString()} / 50,000 characters
+              </span>
+            </div>
             <RichTextEditor
               value={content}
               onChange={setContent}
