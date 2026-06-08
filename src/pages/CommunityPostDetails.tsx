@@ -129,10 +129,11 @@ const CommunityPostDetails = () => {
 
   // Separate useEffect for incrementing view count after post is loaded
   useEffect(() => {
-    if (post) {
+    if (post?.id) {
       incrementViewCount();
     }
-  }, [post]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post?.id, sourceTable]);
 
   const getPostTypeIcon = () => {
     if (!post) return <FileText className="h-5 w-5" />;
