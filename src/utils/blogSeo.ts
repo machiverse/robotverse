@@ -1,9 +1,8 @@
 import DOMPurify from "dompurify";
 
-export const SITE_URL =
-  typeof window !== "undefined" && window.location.origin
-    ? window.location.origin
-    : "https://robotverse.in";
+// Always use the canonical production domain for shareable URLs,
+// regardless of where the app is being previewed from.
+export const SITE_URL = "https://robotverse.in";
 
 export function slugify(input: string): string {
   return (input || "")
