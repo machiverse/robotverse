@@ -38,12 +38,6 @@ const AuctionDetail: React.FC = () => {
   const userBids = bids?.filter((b) => b.bidder_name === 'You') || [];
   const isHighestBidder = bids?.[0]?.bidder_name === 'You';
 
-  // Determine if current user has placed a bid
-  const userHasBid = bids?.some((b) => b.bidder_name === 'You') || false;
-  // Determine user's bid status
-  const userBids = bids?.filter((b) => b.bidder_name === 'You') || [];
-  const isHighestBidder = bids?.[0]?.bidder_name === 'You';
-
   const handleBid = () => {
     if (!id || !bidAmount) return;
     placeBid.mutate({ auctionId: id, bidAmount: parseFloat(bidAmount) });
