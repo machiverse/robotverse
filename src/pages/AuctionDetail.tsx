@@ -217,8 +217,42 @@ const AuctionDetail: React.FC = () => {
           {/* Right - Bidding Panel */}
           <div className="space-y-5">
             {/* Countdown */}
-            {(auction.status === 'live' || auction.status === 'upcoming') && (
-              <AuctionCountdown endTime={auction.end_time} startTime={auction.start_time} status={auction.status} />
+            {(derived === 'live' || derived === 'ending_soon' || derived === 'upcoming') && (
+              <AuctionCountdown
+                endTime={auction.end_time}
+                startTime={auction.start_time}
+                status={derived === 'upcoming' ? 'upcoming' : 'live'}
+                onComplete={() => id && finalize.mutate(id)}
+              />
+            )}
+
+            {derived === 'sold' && (
+              <Card className="border border-purple-500/30 bg-purple-500/5">
+                <CardContent className="p-5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-purple-400" />
+                    <h3 className="font-semibold text-purple-300">Auction Sold</h3>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{formatPrice(auction.current_highest_bid)}</p>
+                  {(isSeller || isHighestBidder) && (
+                    <p className="text-xs text-muted-foreground">
+                      {isHighestBidder ? 'Congratulations — you won this auction!' : 'Winner notified via email.'}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {derived === 'ended' && (
+              <Card className="border border-red-500/30 bg-red-500/5">
+                <CardContent className="p-5 text-center space-y-2">
+                  <AlertCircle className="w-6 h-6 text-red-400 mx-auto" />
+                  <p className="text-sm font-semibold text-red-300">Auction Ended</p>
+                  <p className="text-xs text-muted-foreground">
+                    {auction.current_highest_bid > 0 ? 'Reserve was not met.' : 'No bids were received.'}
+                  </p>
+                </CardContent>
+              </Card>
             )}
 
             {/* Pricing */}
