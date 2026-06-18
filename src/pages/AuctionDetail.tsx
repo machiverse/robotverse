@@ -92,11 +92,15 @@ const AuctionDetail: React.FC = () => {
             {/* Title & Status */}
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Badge className={`${statusColors[auction.status]} border text-xs uppercase tracking-wider`}>
-                  {auction.status === 'live' ? '🔴 Live' : auction.status}
-                </Badge>
+                <AuctionStatusBadge auction={auction} className="text-xs" />
                 <Badge variant="outline" className="text-xs capitalize">{auction.auction_type} Auction</Badge>
               </div>
+              {wasExtended && (
+                <div className="mt-2 flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 p-2.5 text-xs text-orange-300">
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                  <span>Auction extended due to last-minute bidding ({(auction as any).extensions_count} {((auction as any).extensions_count === 1) ? 'time' : 'times'}).</span>
+                </div>
+              )}
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">{auction.auction_title}</h1>
               {auction.description && <p className="text-muted-foreground mt-2">{auction.description}</p>}
             </div>
