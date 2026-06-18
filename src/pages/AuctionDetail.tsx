@@ -296,7 +296,7 @@ const AuctionDetail: React.FC = () => {
             </Card>
 
             {/* Place Bid */}
-            {isLive && !isSeller && user && (
+            {canBid && !isSeller && user && (
               <Card className="border border-primary/30 bg-card">
                 <CardContent className="p-5 space-y-3">
                   <h3 className="font-semibold text-foreground flex items-center gap-2"><Gavel className="w-4 h-4 text-primary" />Place Your Bid</h3>
@@ -325,7 +325,7 @@ const AuctionDetail: React.FC = () => {
               </Card>
             )}
 
-            {!user && isLive && (
+            {!user && canBid && (
               <Card className="border border-border bg-card">
                 <CardContent className="p-5 text-center space-y-3">
                   <Lock className="w-8 h-8 text-muted-foreground/40 mx-auto" />
