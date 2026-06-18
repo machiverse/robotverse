@@ -21,12 +21,16 @@ export interface Auction {
   highest_bidder_id: string | null;
   total_bids: number;
   total_bidders: number;
-  status: 'upcoming' | 'live' | 'ended' | 'sold' | 'not_sold';
+  status: 'upcoming' | 'live' | 'ended' | 'sold' | 'not_sold' | 'cancelled';
   currency: string;
   images: string[] | null;
   is_featured: boolean;
   winner_id: string | null;
   seller_accepted: boolean | null;
+  extensions_count?: number;
+  original_end_time?: string | null;
+  first_bid_at?: string | null;
+  admin_status?: string;
   created_at: string;
   updated_at: string;
   robots?: {
