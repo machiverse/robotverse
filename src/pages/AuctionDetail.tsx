@@ -2,23 +2,18 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import Footer from '@/components/Footer';
-import { useAuctionDetail, useAuctionBids, usePlaceBid } from '@/hooks/useAuctions';
+import { useAuctionDetail, useAuctionBids, usePlaceBid, useFinalizeAuction } from '@/hooks/useAuctions';
 import { useAuth } from '@/hooks/useAuth';
 import AuctionCountdown from '@/components/auction/AuctionCountdown';
+import AuctionStatusBadge from '@/components/auction/AuctionStatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Gavel, ArrowLeft, Bot, MapPin, Users, TrendingUp, Shield, Building, User, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
-
-const statusColors: Record<string, string> = {
-  upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  live: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  ended: 'bg-muted text-muted-foreground border-border',
-  sold: 'bg-primary/20 text-primary border-primary/30',
-  not_sold: 'bg-destructive/20 text-destructive border-destructive/30',
-};
+import { Gavel, ArrowLeft, Bot, MapPin, Users, TrendingUp, Shield, Building, User, Loader2, Lock, Eye, EyeOff, AlertCircle, Award } from 'lucide-react';
+import { getAuctionStatus, isBiddable } from '@/utils/auctionStatus';
+import { getMinNextBid } from '@/utils/bidIncrements';
 
 const AuctionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,12 +22,21 @@ const AuctionDetail: React.FC = () => {
   const { data: auction, isLoading } = useAuctionDetail(id);
   const { data: bids } = useAuctionBids(id, auction?.seller_id);
   const placeBid = usePlaceBid();
+  const finalize = useFinalizeAuction();
   const [bidAmount, setBidAmount] = useState('');
 
   const formatPrice = (v: number) => `₹${v.toLocaleString('en-IN')}`;
-  const isLive = auction?.status === 'live' || (auction?.status === 'upcoming' && new Date(auction.start_time) <= new Date());
+  const derived = auction ? getAuctionStatus(auction) : 'ended';
+  const canBid = auction ? isBiddable(auction) : false;
   const isSeller = user?.id === auction?.seller_id;
-  const minBid = auction ? Math.max(auction.starting_price, (auction.current_highest_bid || 0) + auction.min_increment) : 0;
+  const minBid = auction ? getMinNextBid(auction.current_highest_bid || 0, auction.starting_price, auction.min_increment) : 0;
+  const wasExtended = !!(auction as any)?.original_end_time && ((auction as any)?.extensions_count || 0) > 0;
+
+  // Determine if current user has placed a bid
+  const userHasBid = bids?.some((b) => b.bidder_name === 'You') || false;
+  // Determine user's bid status
+  const userBids = bids?.filter((b) => b.bidder_name === 'You') || [];
+  const isHighestBidder = bids?.[0]?.bidder_name === 'You';
 
   // Determine if current user has placed a bid
   const userHasBid = bids?.some((b) => b.bidder_name === 'You') || false;
