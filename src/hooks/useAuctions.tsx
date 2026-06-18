@@ -73,30 +73,49 @@ export function useAuctions(statusFilter?: string) {
   return useQuery({
     queryKey: ['auctions', statusFilter],
     queryFn: async () => {
-      let query = supabase
+      // Always fetch all non-cancelled auctions; we derive status client-side
+      // so an auction marked "live" in DB but past end_time is correctly classified.
+      const { data, error } = await supabase
         .from('auctions')
         .select('*, robots(name, model, robot_type, images, location, brand)')
+        .neq('status', 'cancelled' as any)
         .order('created_at', { ascending: false });
-
-      if (statusFilter && statusFilter !== 'all') {
-        if (statusFilter === 'live') {
-          query = query.in('status', ['live', 'upcoming'] as any).lte('start_time', new Date().toISOString());
-        } else {
-          query = query.eq('status', statusFilter as any);
-        }
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
 
-      // Fetch seller profiles
-      const sellerIds = (data || []).map((a: any) => a.seller_id);
-      const profiles = await fetchProfiles(sellerIds);
+      const now = Date.now();
+      let rows = (data || []) as any[];
 
-      return (data || []).map((a: any) => ({
-        ...a,
-        seller_profile: profiles[a.seller_id] || null,
-      })) as Auction[];
+      if (statusFilter && statusFilter !== 'all') {
+        rows = rows.filter((a: any) => {
+          const start = new Date(a.start_time).getTime();
+          const end = new Date(a.end_time).getTime();
+          if (statusFilter === 'live') return now >= start && now < end && !['sold','ended','cancelled'].includes(a.status);
+          if (statusFilter === 'upcoming') return now < start && !['sold','ended','cancelled'].includes(a.status);
+          if (statusFilter === 'ended') return now >= end || ['sold','ended'].includes(a.status);
+          if (statusFilter === 'sold') return a.status === 'sold';
+          return a.status === statusFilter;
+        });
+      }
+
+      const sellerIds = rows.map((a: any) => a.seller_id);
+      const profiles = await fetchProfiles(sellerIds);
+      return rows.map((a: any) => ({ ...a, seller_profile: profiles[a.seller_id] || null })) as Auction[];
+    },
+    refetchInterval: 30000,
+  });
+}
+
+export function useFinalizeAuction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (auctionId: string) => {
+      const { data, error } = await supabase.rpc('finalize_auction', { p_auction_id: auctionId });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, auctionId) => {
+      qc.invalidateQueries({ queryKey: ['auction', auctionId] });
+      qc.invalidateQueries({ queryKey: ['auctions'] });
     },
   });
 }
