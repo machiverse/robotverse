@@ -4743,6 +4743,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_end_auction: { Args: { p_auction_id: string }; Returns: Json }
       calc_reading_time: { Args: { _content: string }; Returns: number }
       complete_user_profile:
         | {

@@ -2,23 +2,18 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import Footer from '@/components/Footer';
-import { useAuctionDetail, useAuctionBids, usePlaceBid } from '@/hooks/useAuctions';
+import { useAuctionDetail, useAuctionBids, usePlaceBid, useFinalizeAuction } from '@/hooks/useAuctions';
 import { useAuth } from '@/hooks/useAuth';
 import AuctionCountdown from '@/components/auction/AuctionCountdown';
+import AuctionStatusBadge from '@/components/auction/AuctionStatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Gavel, ArrowLeft, Bot, MapPin, Users, TrendingUp, Shield, Building, User, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
-
-const statusColors: Record<string, string> = {
-  upcoming: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  live: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  ended: 'bg-muted text-muted-foreground border-border',
-  sold: 'bg-primary/20 text-primary border-primary/30',
-  not_sold: 'bg-destructive/20 text-destructive border-destructive/30',
-};
+import { Gavel, ArrowLeft, Bot, MapPin, Users, TrendingUp, Shield, Building, User, Loader2, Lock, Eye, EyeOff, AlertCircle, Award } from 'lucide-react';
+import { getAuctionStatus, isBiddable } from '@/utils/auctionStatus';
+import { getMinNextBid } from '@/utils/bidIncrements';
 
 const AuctionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,12 +22,15 @@ const AuctionDetail: React.FC = () => {
   const { data: auction, isLoading } = useAuctionDetail(id);
   const { data: bids } = useAuctionBids(id, auction?.seller_id);
   const placeBid = usePlaceBid();
+  const finalize = useFinalizeAuction();
   const [bidAmount, setBidAmount] = useState('');
 
   const formatPrice = (v: number) => `₹${v.toLocaleString('en-IN')}`;
-  const isLive = auction?.status === 'live' || (auction?.status === 'upcoming' && new Date(auction.start_time) <= new Date());
+  const derived = auction ? getAuctionStatus(auction) : 'ended';
+  const canBid = auction ? isBiddable(auction) : false;
   const isSeller = user?.id === auction?.seller_id;
-  const minBid = auction ? Math.max(auction.starting_price, (auction.current_highest_bid || 0) + auction.min_increment) : 0;
+  const minBid = auction ? getMinNextBid(auction.current_highest_bid || 0, auction.starting_price, auction.min_increment) : 0;
+  const wasExtended = !!(auction as any)?.original_end_time && ((auction as any)?.extensions_count || 0) > 0;
 
   // Determine if current user has placed a bid
   const userHasBid = bids?.some((b) => b.bidder_name === 'You') || false;
@@ -94,11 +92,15 @@ const AuctionDetail: React.FC = () => {
             {/* Title & Status */}
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Badge className={`${statusColors[auction.status]} border text-xs uppercase tracking-wider`}>
-                  {auction.status === 'live' ? '🔴 Live' : auction.status}
-                </Badge>
+                <AuctionStatusBadge auction={auction} className="text-xs" />
                 <Badge variant="outline" className="text-xs capitalize">{auction.auction_type} Auction</Badge>
               </div>
+              {wasExtended && (
+                <div className="mt-2 flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 p-2.5 text-xs text-orange-300">
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                  <span>Auction extended due to last-minute bidding ({(auction as any).extensions_count} {((auction as any).extensions_count === 1) ? 'time' : 'times'}).</span>
+                </div>
+              )}
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">{auction.auction_title}</h1>
               {auction.description && <p className="text-muted-foreground mt-2">{auction.description}</p>}
             </div>
@@ -215,8 +217,42 @@ const AuctionDetail: React.FC = () => {
           {/* Right - Bidding Panel */}
           <div className="space-y-5">
             {/* Countdown */}
-            {(auction.status === 'live' || auction.status === 'upcoming') && (
-              <AuctionCountdown endTime={auction.end_time} startTime={auction.start_time} status={auction.status} />
+            {(derived === 'live' || derived === 'ending_soon' || derived === 'upcoming') && (
+              <AuctionCountdown
+                endTime={auction.end_time}
+                startTime={auction.start_time}
+                status={derived === 'upcoming' ? 'upcoming' : 'live'}
+                onComplete={() => id && finalize.mutate(id)}
+              />
+            )}
+
+            {derived === 'sold' && (
+              <Card className="border border-purple-500/30 bg-purple-500/5">
+                <CardContent className="p-5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-purple-400" />
+                    <h3 className="font-semibold text-purple-300">Auction Sold</h3>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{formatPrice(auction.current_highest_bid)}</p>
+                  {(isSeller || isHighestBidder) && (
+                    <p className="text-xs text-muted-foreground">
+                      {isHighestBidder ? 'Congratulations — you won this auction!' : 'Winner notified via email.'}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {derived === 'ended' && (
+              <Card className="border border-red-500/30 bg-red-500/5">
+                <CardContent className="p-5 text-center space-y-2">
+                  <AlertCircle className="w-6 h-6 text-red-400 mx-auto" />
+                  <p className="text-sm font-semibold text-red-300">Auction Ended</p>
+                  <p className="text-xs text-muted-foreground">
+                    {auction.current_highest_bid > 0 ? 'Reserve was not met.' : 'No bids were received.'}
+                  </p>
+                </CardContent>
+              </Card>
             )}
 
             {/* Pricing */}
@@ -260,7 +296,7 @@ const AuctionDetail: React.FC = () => {
             </Card>
 
             {/* Place Bid */}
-            {isLive && !isSeller && user && (
+            {canBid && !isSeller && user && (
               <Card className="border border-primary/30 bg-card">
                 <CardContent className="p-5 space-y-3">
                   <h3 className="font-semibold text-foreground flex items-center gap-2"><Gavel className="w-4 h-4 text-primary" />Place Your Bid</h3>
@@ -289,7 +325,7 @@ const AuctionDetail: React.FC = () => {
               </Card>
             )}
 
-            {!user && isLive && (
+            {!user && canBid && (
               <Card className="border border-border bg-card">
                 <CardContent className="p-5 text-center space-y-3">
                   <Lock className="w-8 h-8 text-muted-foreground/40 mx-auto" />
