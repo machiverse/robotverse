@@ -109,7 +109,7 @@ export function useFinalizeAuction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (auctionId: string) => {
-      const { data, error } = await supabase.rpc('finalize_auction', { p_auction_id: auctionId });
+      const { data, error } = await (supabase.rpc as any)('finalize_auction', { p_auction_id: auctionId });
       if (error) throw error;
       return data;
     },
