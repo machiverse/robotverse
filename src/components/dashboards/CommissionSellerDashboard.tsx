@@ -18,7 +18,7 @@ import {
   IndianRupee, Target, Handshake, FileText,
   Package, Users, BarChart3, Heart, Bot,
   Eye, TrendingUp, DollarSign, Search, RefreshCw,
-  Download, Settings, Edit, Trash2
+  Download, Settings, Edit, Trash2, Ticket
 } from "lucide-react";
 import { format } from "date-fns";
 import RobotUpload from "@/components/RobotUpload";
