@@ -30,6 +30,7 @@ import CommissionDealsSection from "@/components/dashboards/CommissionDealsSecti
 import SellerAssignedRequests from "@/components/SellerAssignedRequests";
 import SentQuotationsTab from "@/components/crm/SentQuotationsTab";
 import { FileQuestion } from "lucide-react";
+import SellerCouponsSection from "@/components/coupons/SellerCouponsSection";
 
 interface CommissionSellerDashboardProps {
   userProfile?: any;
