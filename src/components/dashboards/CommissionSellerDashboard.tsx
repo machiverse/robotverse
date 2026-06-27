@@ -209,6 +209,9 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           <TabsTrigger value="watchlist" className="flex items-center gap-2">
             <Heart className="w-4 h-4" /> Watchlist
           </TabsTrigger>
+          <TabsTrigger value="coupons" className="flex items-center gap-2">
+            <Ticket className="w-4 h-4" /> Coupons
+          </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" /> Settings
           </TabsTrigger>
