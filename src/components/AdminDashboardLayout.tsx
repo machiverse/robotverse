@@ -97,6 +97,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminQuoteMonitoring />;
       case "user-requests":
         return <AdminUserRequests />;
+      case "coupons":
+        return <AdminCouponsPanel />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
