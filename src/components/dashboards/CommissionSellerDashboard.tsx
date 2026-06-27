@@ -187,7 +187,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8 h-12">
+        <TabsList className="grid w-full grid-cols-9 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" /> Inventory
           </TabsTrigger>
