@@ -18,7 +18,7 @@ import {
   IndianRupee, Target, Handshake, FileText,
   Package, Users, BarChart3, Heart, Bot,
   Eye, TrendingUp, DollarSign, Search, RefreshCw,
-  Download, Settings, Edit, Trash2
+  Download, Settings, Edit, Trash2, Ticket
 } from "lucide-react";
 import { format } from "date-fns";
 import RobotUpload from "@/components/RobotUpload";
@@ -30,6 +30,7 @@ import CommissionDealsSection from "@/components/dashboards/CommissionDealsSecti
 import SellerAssignedRequests from "@/components/SellerAssignedRequests";
 import SentQuotationsTab from "@/components/crm/SentQuotationsTab";
 import { FileQuestion } from "lucide-react";
+import SellerCouponsSection from "@/components/coupons/SellerCouponsSection";
 
 interface CommissionSellerDashboardProps {
   userProfile?: any;
@@ -186,7 +187,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8 h-12">
+        <TabsList className="grid w-full grid-cols-9 h-12">
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Package className="w-4 h-4" /> Inventory
           </TabsTrigger>
@@ -207,6 +208,9 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           </TabsTrigger>
           <TabsTrigger value="watchlist" className="flex items-center gap-2">
             <Heart className="w-4 h-4" /> Watchlist
+          </TabsTrigger>
+          <TabsTrigger value="coupons" className="flex items-center gap-2">
+            <Ticket className="w-4 h-4" /> Coupons
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="w-4 h-4" /> Settings
@@ -359,6 +363,11 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
         {/* Watchlist Tab */}
         <TabsContent value="watchlist" className="mt-6">
           <WatchlistSection />
+        </TabsContent>
+
+        {/* Coupons Tab */}
+        <TabsContent value="coupons" className="mt-6">
+          <SellerCouponsSection />
         </TabsContent>
 
         {/* Settings Tab */}

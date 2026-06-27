@@ -19,6 +19,7 @@ import AdminCredits from "./admin/AdminCredits";
 import AdminReviews from "./admin/AdminReviews";
 import AdminDealsCommission from "./admin/AdminDealsCommission";
 import AdminQuoteMonitoring from "./admin/AdminQuoteMonitoring";
+import AdminCouponsPanel from "./admin/AdminCouponsPanel";
 import AdminUserRequests from "./admin/AdminUserRequests";
 
 interface AdminDashboardLayoutProps {
@@ -96,6 +97,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminQuoteMonitoring />;
       case "user-requests":
         return <AdminUserRequests />;
+      case "coupons":
+        return <AdminCouponsPanel />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }

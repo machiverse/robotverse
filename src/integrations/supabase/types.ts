@@ -985,6 +985,53 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_usages: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          customer_id: string
+          discount_amount: number
+          final_price: number
+          id: string
+          order_reference: string | null
+          original_price: number
+          robot_id: string | null
+          seller_id: string
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          customer_id: string
+          discount_amount: number
+          final_price: number
+          id?: string
+          order_reference?: string | null
+          original_price: number
+          robot_id?: string | null
+          seller_id: string
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          customer_id?: string
+          discount_amount?: number
+          final_price?: number
+          id?: string
+          order_reference?: string | null
+          original_price?: number
+          robot_id?: string | null
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usages_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "seller_coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coverage_areas: {
         Row: {
           area_name: string
@@ -3377,6 +3424,81 @@ export type Database = {
           },
         ]
       }
+      seller_coupons: {
+        Row: {
+          admin_disabled: boolean
+          applicable_brands: string[]
+          applicable_categories: string[]
+          applicable_robot_ids: string[]
+          applies_to: Database["public"]["Enums"]["coupon_applies_to"]
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          expiry_date: string
+          id: string
+          is_active: boolean
+          max_discount_amount: number | null
+          min_order_amount: number
+          name: string
+          seller_id: string
+          start_date: string
+          times_used: number
+          updated_at: string
+          usage_limit: number
+          usage_limit_per_customer: number
+        }
+        Insert: {
+          admin_disabled?: boolean
+          applicable_brands?: string[]
+          applicable_categories?: string[]
+          applicable_robot_ids?: string[]
+          applies_to?: Database["public"]["Enums"]["coupon_applies_to"]
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          expiry_date: string
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number
+          name: string
+          seller_id: string
+          start_date?: string
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number
+          usage_limit_per_customer?: number
+        }
+        Update: {
+          admin_disabled?: boolean
+          applicable_brands?: string[]
+          applicable_categories?: string[]
+          applicable_robot_ids?: string[]
+          applies_to?: Database["public"]["Enums"]["coupon_applies_to"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number
+          expiry_date?: string
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number
+          name?: string
+          seller_id?: string
+          start_date?: string
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number
+          usage_limit_per_customer?: number
+        }
+        Relationships: []
+      }
       seller_credit_transactions: {
         Row: {
           balance_after: number
@@ -5067,6 +5189,15 @@ export type Database = {
         }
         Returns: Json
       }
+      record_coupon_usage: {
+        Args: {
+          p_coupon_id: string
+          p_order_reference?: string
+          p_original_price: number
+          p_robot_id: string
+        }
+        Returns: Json
+      }
       slugify: { Args: { input: string }; Returns: string }
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
@@ -5081,10 +5212,21 @@ export type Database = {
         }
         Returns: Json
       }
+      validate_and_apply_coupon: {
+        Args: {
+          p_code: string
+          p_order_amount: number
+          p_robot_id: string
+          p_seller_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       auction_status: "upcoming" | "live" | "ended" | "sold" | "not_sold"
       auction_type: "open" | "sealed"
+      coupon_applies_to: "all" | "robots" | "categories" | "brands"
+      coupon_discount_type: "percentage" | "fixed"
       lead_source_type:
         | "website"
         | "inquiry"
@@ -5249,6 +5391,8 @@ export const Constants = {
     Enums: {
       auction_status: ["upcoming", "live", "ended", "sold", "not_sold"],
       auction_type: ["open", "sealed"],
+      coupon_applies_to: ["all", "robots", "categories", "brands"],
+      coupon_discount_type: ["percentage", "fixed"],
       lead_source_type: [
         "website",
         "inquiry",
