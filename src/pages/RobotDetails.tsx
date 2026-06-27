@@ -726,6 +726,9 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     + Est. Import Duty: {formatPrice(importDuty, robot.currency)}
                   </p>
                 )}
+                <div className="pt-1">
+                  <CouponBadge sellerId={robot.seller_id} robotId={robot.id} />
+                </div>
               </div>
 
               {/* Key Details Grid */}
