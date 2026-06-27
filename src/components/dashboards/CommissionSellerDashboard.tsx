@@ -365,6 +365,11 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           <WatchlistSection />
         </TabsContent>
 
+        {/* Coupons Tab */}
+        <TabsContent value="coupons" className="mt-6">
+          <SellerCouponsSection />
+        </TabsContent>
+
         {/* Settings Tab */}
         <TabsContent value="settings" className="mt-6">
           <Card>
