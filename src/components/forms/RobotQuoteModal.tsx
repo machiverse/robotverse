@@ -415,6 +415,36 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
               </div>
             </div>
 
+            {/* Coupon + Price Summary */}
+            {unitPrice > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">Pricing</h3>
+                <CouponApplyBox
+                  sellerId={robot.seller_id}
+                  robotId={robot.id}
+                  amount={unitPrice}
+                  onApplied={(r) => setCoupon(r)}
+                  onCleared={() => setCoupon(null)}
+                />
+                <div className="rounded-lg border p-3 text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Unit price × {qty}</span>
+                    <span>{robot.currency || '₹'} {subtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  {coupon && (
+                    <div className="flex justify-between text-emerald-600">
+                      <span>Coupon "{coupon.code}"</span>
+                      <span>− {robot.currency || '₹'} {discount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold border-t pt-1 mt-1">
+                    <span>Total</span>
+                    <span className="text-primary">{robot.currency || '₹'} {total.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Info Note */}
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm">
               <p className="text-muted-foreground">
