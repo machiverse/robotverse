@@ -43,6 +43,8 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
   const [success, setSuccess] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   
+  const [coupon, setCoupon] = useState<{ couponId: string; code: string; discount: number; finalPrice: number } | null>(null);
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -53,6 +55,12 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
     requirements: '',
     quantity: '1'
   });
+
+  const unitPrice = Number(robot.price || 0);
+  const qty = Math.max(1, parseInt(formData.quantity || '1', 10) || 1);
+  const subtotal = unitPrice * qty;
+  const discount = coupon ? coupon.discount * qty : 0;
+  const total = Math.max(0, subtotal - discount);
 
   // Fetch user profile to auto-fill form
   useEffect(() => {
