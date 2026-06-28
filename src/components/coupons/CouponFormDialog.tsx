@@ -56,8 +56,12 @@ function toLocal(iso: string) {
 }
 
 export default function CouponFormDialog({ open, onOpenChange, initial, onSubmit }: Props) {
+  const { user } = useAuth();
   const [form, setForm] = useState<CouponInput>(empty);
   const [saving, setSaving] = useState(false);
+  const [sellerRobots, setSellerRobots] = useState<SellerRobot[]>([]);
+  const [robotSearch, setRobotSearch] = useState("");
+  const [loadingRobots, setLoadingRobots] = useState(false);
 
   useEffect(() => {
     if (initial) {
@@ -66,7 +70,63 @@ export default function CouponFormDialog({ open, onOpenChange, initial, onSubmit
     } else {
       setForm(empty);
     }
+    setRobotSearch("");
   }, [initial, open]);
+
+  // Fetch the seller's own robot listings once dialog opens
+  useEffect(() => {
+    if (!open || !user) return;
+    let cancel = false;
+    (async () => {
+      setLoadingRobots(true);
+      const { data } = await supabase
+        .from("robots")
+        .select("id,name,brand,model,price,images,availability")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false });
+      if (!cancel) {
+        setSellerRobots((data || []) as SellerRobot[]);
+        setLoadingRobots(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [open, user]);
+
+  const sellerBrands = useMemo(
+    () => Array.from(new Set(sellerRobots.map((r) => r.brand).filter(Boolean) as string[])).sort(),
+    [sellerRobots],
+  );
+
+  const filteredRobots = useMemo(() => {
+    const q = robotSearch.trim().toLowerCase();
+    if (!q) return sellerRobots;
+    return sellerRobots.filter((r) =>
+      [r.name, r.brand, r.model].filter(Boolean).some((v) => v!.toLowerCase().includes(q)),
+    );
+  }, [sellerRobots, robotSearch]);
+
+  const toggleRobot = (id: string) => {
+    setForm((f) => {
+      const has = f.applicable_robot_ids.includes(id);
+      return { ...f, applicable_robot_ids: has ? f.applicable_robot_ids.filter((x) => x !== id) : [...f.applicable_robot_ids, id] };
+    });
+  };
+
+  const toggleBrand = (brand: string) => {
+    setForm((f) => {
+      const has = f.applicable_brands.includes(brand);
+      return { ...f, applicable_brands: has ? f.applicable_brands.filter((x) => x !== brand) : [...f.applicable_brands, brand] };
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setForm((f) => {
+      const set = new Set(f.applicable_robot_ids);
+      filteredRobots.forEach((r) => set.add(r.id));
+      return { ...f, applicable_robot_ids: Array.from(set) };
+    });
+  };
+  const clearAllRobots = () => setForm((f) => ({ ...f, applicable_robot_ids: [] }));
 
   const set = <K extends keyof CouponInput>(k: K, v: CouponInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -78,6 +138,12 @@ export default function CouponFormDialog({ open, onOpenChange, initial, onSubmit
     if (form.discount_value <= 0) { alert("Discount value must be > 0"); return; }
     if (form.discount_type === "percentage" && form.discount_value > 100) { alert("Percentage cannot exceed 100"); return; }
     if (new Date(form.expiry_date) <= new Date(form.start_date)) { alert("Expiry must be after start"); return; }
+    if (form.applies_to === "robots" && form.applicable_robot_ids.length === 0) {
+      alert("Select at least one robot for this coupon"); return;
+    }
+    if (form.applies_to === "brands" && form.applicable_brands.length === 0) {
+      alert("Select at least one brand for this coupon"); return;
+    }
     setSaving(true);
     const res = await onSubmit(form);
     setSaving(false);
