@@ -231,13 +231,68 @@ export default function CouponFormDialog({ open, onOpenChange, initial, onSubmit
           </div>
 
           {form.applies_to === "robots" && (
-            <div className="md:col-span-2">
-              <Label>Robot IDs (comma separated)</Label>
-              <Input
-                value={form.applicable_robot_ids.join(",")}
-                onChange={(e) => set("applicable_robot_ids", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                placeholder="uuid,uuid"
-              />
+            <div className="md:col-span-2 rounded-lg border p-3 space-y-3 bg-muted/30">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label className="flex items-center gap-2">
+                  <Bot className="w-4 h-4" /> Pick from your listed robots
+                  <Badge variant="secondary">{form.applicable_robot_ids.length} selected</Badge>
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={selectAllFiltered} disabled={!filteredRobots.length}>
+                    Select all{robotSearch ? " filtered" : ""}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={clearAllRobots} disabled={!form.applicable_robot_ids.length}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Search by name, brand or model..."
+                  value={robotSearch}
+                  onChange={(e) => setRobotSearch(e.target.value)}
+                />
+              </div>
+              <div className="max-h-72 overflow-y-auto rounded-md border bg-background divide-y">
+                {loadingRobots ? (
+                  <div className="p-4 text-sm text-muted-foreground">Loading your robots...</div>
+                ) : filteredRobots.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground">
+                    {sellerRobots.length === 0 ? "You haven't listed any robots yet." : "No robots match your search."}
+                  </div>
+                ) : (
+                  filteredRobots.map((r) => {
+                    const checked = form.applicable_robot_ids.includes(r.id);
+                    return (
+                      <label key={r.id} className="flex items-center gap-3 p-2 cursor-pointer hover:bg-muted/40">
+                        <Checkbox checked={checked} onCheckedChange={() => toggleRobot(r.id)} />
+                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                          {r.images?.[0] ? (
+                            <img src={r.images[0]} alt={r.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Bot className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate flex items-center gap-2">
+                            {r.name}
+                            {checked && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {[r.brand, r.model].filter(Boolean).join(" · ")}
+                            {r.price ? ` · ₹${Number(r.price).toLocaleString("en-IN")}` : ""}
+                          </div>
+                        </div>
+                        {r.availability && (
+                          <Badge variant="outline" className="text-[10px] capitalize">{r.availability}</Badge>
+                        )}
+                      </label>
+                    );
+                  })
+                )}
+              </div>
             </div>
           )}
           {form.applies_to === "categories" && (
@@ -251,12 +306,44 @@ export default function CouponFormDialog({ open, onOpenChange, initial, onSubmit
             </div>
           )}
           {form.applies_to === "brands" && (
-            <div className="md:col-span-2">
-              <Label>Brands (comma separated)</Label>
+            <div className="md:col-span-2 rounded-lg border p-3 space-y-2 bg-muted/30">
+              <Label className="flex items-center gap-2">
+                Pick brands from your listings
+                <Badge variant="secondary">{form.applicable_brands.length} selected</Badge>
+              </Label>
+              {sellerBrands.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No brands found in your listings.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {sellerBrands.map((b) => {
+                    const active = form.applicable_brands.includes(b);
+                    return (
+                      <button
+                        type="button"
+                        key={b}
+                        onClick={() => toggleBrand(b)}
+                        className={`px-3 py-1 rounded-full border text-sm transition ${
+                          active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+                        }`}
+                      >
+                        {b}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <Input
-                value={form.applicable_brands.join(",")}
-                onChange={(e) => set("applicable_brands", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                placeholder="ABB,FANUC"
+                placeholder="Add other brand and press Enter"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const v = (e.target as HTMLInputElement).value.trim();
+                    if (v && !form.applicable_brands.includes(v)) {
+                      set("applicable_brands", [...form.applicable_brands, v]);
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }
+                }}
               />
             </div>
           )}
