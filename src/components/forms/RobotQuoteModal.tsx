@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Mail, Loader2, Bot, User, Phone, Building, MapPin, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import CouponApplyBox from '@/components/coupons/CouponApplyBox';
+import { recordCouponUsage } from '@/hooks/useCoupons';
 
 interface RobotQuoteModalProps {
   isOpen: boolean;
