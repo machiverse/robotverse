@@ -144,7 +144,13 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
           robot_price: robot.price,
           robot_currency: robot.currency,
           quantity: formData.quantity,
-          auto_submitted: true
+          auto_submitted: true,
+          coupon_code: coupon?.code || null,
+          coupon_id: coupon?.couponId || null,
+          unit_price: unitPrice,
+          subtotal,
+          discount_amount: discount,
+          final_total: total,
         }
       };
 
@@ -154,6 +160,20 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
 
       if (dbError) {
         console.error('Error logging request:', dbError);
+      }
+
+      // Record coupon usage (if any)
+      if (coupon) {
+        try {
+          await recordCouponUsage({
+            couponId: coupon.couponId,
+            robotId: robot.id,
+            originalPrice: subtotal,
+            orderReference: `quote:${robot.id}:${Date.now()}`,
+          });
+        } catch (err) {
+          console.error('Coupon record error:', err);
+        }
       }
 
       // 2. Create notification for seller
