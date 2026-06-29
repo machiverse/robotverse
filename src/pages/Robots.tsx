@@ -461,6 +461,8 @@ const Robots = () => {
       selectedLocation,
       sortBy,
       groupBy,
+      onlyWithOffers,
+      robotsWithOffers,
     ],
   );
 
