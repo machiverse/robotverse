@@ -283,10 +283,13 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => window.open(`/robots/${robot.id}`, "_blank")}>
+                            <Button variant="ghost" size="sm" title="View" onClick={() => window.open(`/robots/${robot.id}`, "_blank")}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteRobot(robot.id)}>
+                            <Button variant="ghost" size="sm" title="Edit" onClick={() => setEditingRobot(robot)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive" title="Delete" onClick={() => handleDeleteRobot(robot.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
