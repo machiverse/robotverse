@@ -824,6 +824,29 @@ const Robots = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* 7. Available Offers toggle */}
+                <div className="pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setOnlyWithOffers((v) => !v)}
+                    className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                      onlyWithOffers
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30"
+                        : "border-input hover:bg-muted/50"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded border bg-background">
+                        {onlyWithOffers && <Check className="h-3 w-3" />}
+                      </span>
+                      Available Offers Only
+                    </span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {robotsWithOffers.size}
+                    </Badge>
+                  </button>
+                </div>
               </CardContent>
             </Card>
 
