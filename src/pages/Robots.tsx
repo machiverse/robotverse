@@ -405,6 +405,11 @@ const Robots = () => {
       filteredRobots = filteredRobots.filter((r) => r.location?.toLowerCase() === locLabel);
     }
 
+    // Offers filter
+    if (onlyWithOffers) {
+      filteredRobots = filteredRobots.filter((r) => robotsWithOffers.has(r.id));
+    }
+
     // Sort
     filteredRobots.sort((a, b) => {
       switch (sortBy) {
