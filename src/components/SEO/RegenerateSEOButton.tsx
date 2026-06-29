@@ -40,8 +40,8 @@ export const RegenerateSEOButton = ({
     setLoading(true);
     try {
       const { error } = await supabase.rpc("request_seo_regenerate", {
-        _content_type: contentType,
-        _content_id: contentId,
+        p_content_type: contentType,
+        p_content_id: contentId,
       });
       if (error) throw error;
 
