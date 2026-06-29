@@ -36,6 +36,7 @@ import NotFound from "./pages/NotFound";
 import CityRobots from "./pages/landing/CityRobots";
 import BrandRobots from "./pages/landing/BrandRobots";
 import UsedBrandRobots from "./pages/landing/UsedBrandRobots";
+import ApplicationRobots from "./pages/landing/ApplicationRobots";
 import BrandParts from "./pages/landing/BrandParts";
 import CategoryParts from "./pages/landing/CategoryParts";
 import CityServices from "./pages/landing/CityServices";
@@ -133,6 +134,7 @@ const App = () => (
               <Route path="/robots/city/:city" element={<CityRobots />} />
               <Route path="/robots/brand/:brand" element={<BrandRobots />} />
               <Route path="/robots/:brand/used" element={<UsedBrandRobots />} />
+              <Route path="/robots/application/:application" element={<ApplicationRobots />} />
               <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/parts/brand/:brand" element={<BrandParts />} />
               <Route path="/parts/category/:cat" element={<CategoryParts />} />
