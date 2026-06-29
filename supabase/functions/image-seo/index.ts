@@ -108,6 +108,14 @@ Deno.serve(async (req) => {
     const analysis = await analyzeImage(body.image_url, body.context ?? "");
     const filename_slug = slugify(`${body.content_type}-${analysis.alt || body.content_id}`);
 
+    // Pack extra SEO data into description as JSON (existing table is narrow).
+    const descriptionJson = JSON.stringify({
+      keywords: analysis.keywords,
+      dominant_colors: analysis.dominant_colors,
+      filename_slug,
+      generated_at: new Date().toISOString(),
+    });
+
     const { data, error } = await supabase
       .from("seo_image_metadata")
       .upsert(
@@ -115,15 +123,11 @@ Deno.serve(async (req) => {
           image_url: body.image_url,
           content_type: body.content_type,
           content_id: body.content_id,
-          alt_text: analysis.alt,
+          alt: analysis.alt,
           caption: analysis.caption,
-          keywords: analysis.keywords,
-          dominant_colors: analysis.dominant_colors,
-          filename_slug,
-          status: "generated",
-          generated_at: new Date().toISOString(),
+          description: descriptionJson,
         },
-        { onConflict: "image_url" }
+        { onConflict: "content_type,content_id,image_url" }
       )
       .select()
       .single();
