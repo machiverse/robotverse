@@ -20,7 +20,7 @@ async function findRobot(query: string) {
   const model = tokens.slice(1).join(" ");
   const q = supabase
     .from("robots")
-    .select("id, brand, model, year_manufactured, payload, reach, axes, controller_type, price, primary_image_url, location")
+    .select("id, brand, model, year_manufactured, payload, reach, axes, controller_type, price, images, location")
     .ilike("brand", `%${brand}%`)
     .order("updated_at", { ascending: false })
     .limit(1);
@@ -106,8 +106,8 @@ export default function CompareRobots() {
             <h2 className="font-semibold mb-2">{i === 0 ? leftLabel : rightLabel}</h2>
             {r ? (
               <div className="flex gap-4">
-                {r.primary_image_url && (
-                  <img src={r.primary_image_url} alt={`${r.brand} ${r.model}`} className="w-32 h-32 object-cover rounded" loading="lazy" />
+                {r.images?.[0] && (
+                  <img src={r.images?.[0]} alt={`${r.brand} ${r.model}`} className="w-32 h-32 object-cover rounded" loading="lazy" />
                 )}
                 <div className="text-sm text-muted-foreground">
                   <div>{r.brand} {r.model}</div>
