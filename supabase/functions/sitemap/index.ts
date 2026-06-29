@@ -87,9 +87,51 @@ async function buildUrls(supabase: ReturnType<typeof createClient>): Promise<str
     { p: "/contact", pr: "0.5", cf: "monthly" },
   ];
 
+  // Programmatic landing pages — derived from distinct brands/cities/categories.
+  const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const landing: string[] = [];
+
+  const [{ data: robotsRows }, { data: partsRows }, { data: servicesRows }] = await Promise.all([
+    supabase.from("robots").select("brand, location").limit(2000),
+    supabase.from("spare_parts").select("brand, category").limit(2000),
+    supabase.from("services").select("service_type, location").limit(2000),
+  ]);
+
+  const robotBrands = new Set<string>();
+  const cities = new Set<string>();
+  (robotsRows ?? []).forEach((r: any) => {
+    if (r.brand) robotBrands.add(slugify(r.brand));
+    if (r.location) cities.add(slugify(r.location.split(",")[0]));
+  });
+  robotBrands.forEach((b) => landing.push(`/robots/brand/${b}`));
+  cities.forEach((c) => c && landing.push(`/robots/city/${c}`));
+
+  const partBrands = new Set<string>();
+  const partCats = new Set<string>();
+  (partsRows ?? []).forEach((p: any) => {
+    if (p.brand) partBrands.add(slugify(p.brand));
+    if (p.category) partCats.add(slugify(p.category));
+  });
+  partBrands.forEach((b) => landing.push(`/parts/brand/${b}`));
+  partCats.forEach((c) => landing.push(`/parts/category/${c}`));
+
+  const serviceTypes = new Set<string>();
+  const serviceCities = new Set<string>();
+  (servicesRows ?? []).forEach((s: any) => {
+    if (s.service_type) serviceTypes.add(slugify(s.service_type));
+    if (s.location) serviceCities.add(slugify(s.location.split(",")[0]));
+  });
+  serviceCities.forEach((c) => {
+    if (!c) return;
+    serviceTypes.forEach((t) => landing.push(`/services/${c}/${t}`));
+  });
+
   const now = new Date().toISOString();
   const staticXml = staticPages
     .map((s) => `  <url><loc>${SITE_URL}${s.p}</loc><lastmod>${now}</lastmod><changefreq>${s.cf}</changefreq><priority>${s.pr}</priority></url>`)
+    .concat(
+      landing.map((p) => `  <url><loc>${SITE_URL}${p}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`)
+    )
     .join("\n");
 
   const dynXml = rows
