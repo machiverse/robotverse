@@ -3851,6 +3851,231 @@ export type Database = {
           },
         ]
       }
+      seo_image_metadata: {
+        Row: {
+          alt: string | null
+          caption: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          description: string | null
+          height: number | null
+          id: string
+          image_url: string
+          is_primary: boolean | null
+          mime_type: string | null
+          position: number | null
+          title: string | null
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          alt?: string | null
+          caption?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          description?: string | null
+          height?: number | null
+          id?: string
+          image_url: string
+          is_primary?: boolean | null
+          mime_type?: string | null
+          position?: number | null
+          title?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          alt?: string | null
+          caption?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          description?: string | null
+          height?: number | null
+          id?: string
+          image_url?: string
+          is_primary?: boolean | null
+          mime_type?: string | null
+          position?: number | null
+          title?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
+      seo_jobs: {
+        Row: {
+          action: string
+          attempts: number
+          content_id: string
+          content_type: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          last_error: string | null
+          payload: Json | null
+          priority: number
+          requested_by: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          attempts?: number
+          content_id: string
+          content_type: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          priority?: number
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          attempts?: number
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          priority?: number
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_metadata: {
+        Row: {
+          ai_blocks: Json | null
+          breadcrumb: Json | null
+          canonical_url: string | null
+          content_hash: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          external_links: Json | null
+          faq: Json | null
+          focus_keyword: string | null
+          generated_at: string | null
+          highlights: Json | null
+          id: string
+          internal_links: Json | null
+          jsonld: Json | null
+          keywords: string[] | null
+          lang: string | null
+          meta_description: string | null
+          meta_title: string | null
+          model: string | null
+          og_description: string | null
+          og_image: string | null
+          og_title: string | null
+          og_type: string | null
+          prompt_version: number | null
+          related: Json | null
+          rich_description: string | null
+          slug: string | null
+          status: string | null
+          summary: string | null
+          tags: string[] | null
+          title: string | null
+          twitter_card: string | null
+          twitter_description: string | null
+          twitter_image: string | null
+          twitter_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_blocks?: Json | null
+          breadcrumb?: Json | null
+          canonical_url?: string | null
+          content_hash?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          external_links?: Json | null
+          faq?: Json | null
+          focus_keyword?: string | null
+          generated_at?: string | null
+          highlights?: Json | null
+          id?: string
+          internal_links?: Json | null
+          jsonld?: Json | null
+          keywords?: string[] | null
+          lang?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          model?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          og_type?: string | null
+          prompt_version?: number | null
+          related?: Json | null
+          rich_description?: string | null
+          slug?: string | null
+          status?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string | null
+          twitter_card?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_blocks?: Json | null
+          breadcrumb?: Json | null
+          canonical_url?: string | null
+          content_hash?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          external_links?: Json | null
+          faq?: Json | null
+          focus_keyword?: string | null
+          generated_at?: string | null
+          highlights?: Json | null
+          id?: string
+          internal_links?: Json | null
+          jsonld?: Json | null
+          keywords?: string[] | null
+          lang?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          model?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          og_type?: string | null
+          prompt_version?: number | null
+          related?: Json | null
+          rich_description?: string | null
+          slug?: string | null
+          status?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string | null
+          twitter_card?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_appointments: {
         Row: {
           appointment_date: string
@@ -5021,6 +5246,17 @@ export type Database = {
         }
         Returns: string
       }
+      enqueue_seo_job: {
+        Args: {
+          p_action?: string
+          p_content_id: string
+          p_content_type: string
+          p_payload?: Json
+          p_priority?: number
+          p_requested_by?: string
+        }
+        Returns: string
+      }
       filter_contact_info: { Args: { message: string }; Returns: boolean }
       generate_random_string: { Args: { length: number }; Returns: string }
       generate_unique_blog_slug: {
@@ -5198,6 +5434,11 @@ export type Database = {
         }
         Returns: Json
       }
+      request_seo_regenerate: {
+        Args: { p_content_id: string; p_content_type: string }
+        Returns: string
+      }
+      seo_hash: { Args: { p: string }; Returns: string }
       slugify: { Args: { input: string }; Returns: string }
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
