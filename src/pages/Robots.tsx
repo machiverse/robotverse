@@ -24,6 +24,7 @@ import {
   Heart,
   Scale,
   Check,
+  Tag,
 } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -1034,6 +1035,16 @@ const Robots = () => {
                               </div>
                             )}
 
+                            {/* Coupon available */}
+                            {robotsWithOffers.has(robot.id) && (
+                              <div className="absolute bottom-2 left-2">
+                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                  <Tag className="w-3 h-3" />
+                                  Coupon available
+                                </Badge>
+                              </div>
+                            )}
+
                             {/* View count + share */}
                             <div className="absolute top-2 right-2 flex gap-1">
                               <ViewCountDisplay targetType="robots" targetId={robot.id} />
@@ -1240,6 +1251,12 @@ const Robots = () => {
                                     className="text-xs"
                                   >
                                     {robot.condition}
+                                  </Badge>
+                                )}
+                                {robotsWithOffers.has(robot.id) && (
+                                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                    <Tag className="w-3 h-3" />
+                                    Coupon available
                                   </Badge>
                                 )}
                                 <ViewCountDisplay targetType="robots" targetId={robot.id} />
