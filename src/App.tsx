@@ -35,6 +35,7 @@ import NotFound from "./pages/NotFound";
 // Programmatic SEO landing pages
 import CityRobots from "./pages/landing/CityRobots";
 import BrandRobots from "./pages/landing/BrandRobots";
+import UsedBrandRobots from "./pages/landing/UsedBrandRobots";
 import BrandParts from "./pages/landing/BrandParts";
 import CategoryParts from "./pages/landing/CategoryParts";
 import CityServices from "./pages/landing/CityServices";
@@ -127,11 +128,12 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/robots" element={<Robots />} />
-              <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/robots/compare" element={<RobotComparison />} />
               {/* Programmatic SEO landing pages (must precede dynamic /robots/:id) */}
               <Route path="/robots/city/:city" element={<CityRobots />} />
               <Route path="/robots/brand/:brand" element={<BrandRobots />} />
+              <Route path="/robots/:brand/used" element={<UsedBrandRobots />} />
+              <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/parts/brand/:brand" element={<BrandParts />} />
               <Route path="/parts/category/:cat" element={<CategoryParts />} />
               <Route path="/services/:city/:type" element={<CityServices />} />
