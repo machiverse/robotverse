@@ -1,49 +1,144 @@
 # RobotVerse SEO — Implementation Notes (Phase 3, safe wins)
 
-This PR is intentionally narrow: **document everything; ship only safe, non-structural code changes**. No URL changes, no routing changes, no business-logic edits.
+This PR is intentionally narrow: document the broader SEO plan, but ship only safe, non-structural on-page changes. It does not modify routes, URLs, canonical strategy, data models, or business logic.
 
-## Changes shipped in this PR
+## Scope of this PR
 
-### 1. `index.html` — sitewide head rewrite
-- **Title** now leads with the primary commercial intent: `Used Industrial Robots India | Buy FANUC, ABB, KUKA, Yaskawa | RobotVerse` (66 chars — within Google's pixel budget on desktop, may truncate on mobile but the brand fallback is on the right side, so the keyword load is preserved).
-- **Meta description** rewritten to include India, the four anchor brands, form factors (6-axis, SCARA, cobots), and conversion levers (verified sellers, spare parts, financing, logistics). 232 chars — within the typical 230–280 visible range.
-- **Keywords meta** rewritten for India + brand + form-factor coverage. (Google ignores `<meta keywords>`, but Bing and several internal scoring tools still use it; keeping it accurate is free.)
-- **og:title / og:description** mirrored so social-preview crawlers (LinkedIn, Slack, Facebook — which don't execute JS) see the new copy. Per the `head-meta` guidance, per-route Helmet/SEOHead tags still override these for JS-executing crawlers like Googlebot.
+### Included
 
-### 2. `src/pages/RobotDetails.tsx` — Product page title/description
-Rewrote the `<SEOHead>` props so each robot detail page reads:
+- Sitewide homepage metadata refresh in `index.html`
+- Robot detail page metadata improvements in `src/pages/RobotDetails.tsx`
+- SEO planning documents under `/seo/`
 
-- **Title:** `Used FANUC M-20iA 20kg Payload Industrial Robot for Sale in India | RobotVerse` (template; "Used" suppressed when `condition === 'new'`).
-- **Description:** brand + model + payload + reach + type + location + conversion CTAs (quotation, inspection, financing, logistics).
-- **Keywords:** brand-India, brand+model, used brand, type, payload-kg payload, generic India fallbacks.
-- **Product JSON-LD** unchanged — `generateProductSchema` already covers `name`, `brand`, `offers`, `itemCondition`, etc.
+### Excluded
 
-### 3. Markdown deliverables under `/seo/`
-- `seo-audit.md` — Phase 1 audit (Semrush data + on-page review + gap list).
-- `keyword-map.md` — Phase 2 keyword → URL map with proposed (not implemented) new routes.
-- `implementation-notes.md` — this file.
-- `robobook-outlines.md` — Phase 4 article outlines.
+- URL or route changes
+- Canonical consolidation across duplicate content paths
+- New landing-page templates
+- Internal-linking systems
+- Performance refactors
+- Database or sitemap architecture changes
 
-## Deliberately NOT changed in this PR
+## Changes shipped
 
-| Area | Why deferred | Recommended next step |
-|---|---|---|
-| Robot detail URLs (`/robots/:uuid`) | Changing URLs needs DB slug column + 301 from UUID + sitemap regen + Search Console resubmission. Trade-off: short-term ranking dip during the swap. | Add `slug` column to `robots` table, populate `{brand}-{model}-{payloadkg}-{shortId}`, route `/robots/:slug`, redirect from `/robots/:uuid`. |
-| `/robots/:brand/used`, `/robots/payload/:kg`, `/robots/application/:app` | New routes need React Router entries, page templates, sitemap registration, and content. Out of scope for "safe wins only". | Reuse `LandingPageLayout`; query `robots` with filters; add to dynamic sitemap edge function (`sitemap?kind=urls`). |
-| Canonical for duplicate pairs (`/robobook` vs `/community`, `/robobook/:id` vs `/community/:id` vs `/blogs/:id` vs `/blog/:id`) | Requires deciding which is canonical and adding `<link rel="canonical">` to the non-canonical side. Should be a single coordinated PR. | Decide canonical = `/robobook` and `/robobook/:id`; in `Blogs.tsx` and `CommunityPostDetails.tsx`, force canonical to `/robobook…` regardless of which alias the user landed on. |
-| Performance: image pipeline, LCP preload, favicon sizing | Non-trivial Vite config work. | Add `vite-imagetools`, generate WebP/AVIF, preload `<link rel="preload">` for hero image, ship sized favicon set (16, 32, 180, 192, 512). |
-| `<img>` explicit `width`/`height` to remove CLS | Sweeping change across many components. | Audit `ResponsiveImage` to enforce intrinsic dimensions from DB metadata. |
-| RoboBook → marketplace internal linking | Needs an editorial pass + a component (e.g. `<RelatedRobots brand="FANUC" payload="20kg" />`) editors can drop into MDX. | Build the component, retrofit top 10 articles. |
-| `/robots/:id` H1 ("robot.name") rewriting to brand-model-payload format | Cosmetic on the page; SEO benefit small relative to risk of UI breakage. | One-line change once visual QA is approved. |
+### 1. `index.html` — sitewide fallback metadata refresh
 
-## Tracking the impact
+Updated the default document-level metadata used when route-level SEO tags are absent or before client-side rendering takes over.
 
-1. Trigger an SEO rescan in the Lovable SEO tab a few days after merge.
-2. Re-run `semrush--domain_analysis` for `robotverse.in` in DB `in` in ~4 weeks. Expect movement on `used industrial robots`, `industrial robot marketplace`, and brand+India tail.
-3. Submit the updated sitemap (`https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap`) in Google Search Console.
+#### Updated fields
 
-## Reminders for whoever picks up Phase 4+
+- `<title>` now targets the primary marketplace intent for India-focused industrial robot searches.
+- `<meta name="description">` now summarizes brand coverage, robot categories, and buyer trust signals.
+- `<meta name="keywords">` was rewritten for internal consistency, even though it is not relied on as a primary Google ranking signal.
+- `og:title` and `og:description` were aligned with the revised homepage positioning so social crawlers receive stronger default preview text.
 
-- The project domain in `head-meta` knowledge is `robot-verse.lovable.app`, but the live production canonical is **`https://www.robotverse.in`**. Keep canonical and `og:url` on the production domain — already correct in `index.html`, and per-route SEO components resolve to it via `window.location.origin` on prod.
-- Robot detail pages with `condition === 'new'` get a different title prefix than used. Verify the DB enum values match the lower-case `'new'` check.
-- Don't reintroduce a placeholder OG image — the `head-meta` knowledge file says a missing OG is better than a logo-as-OG. Generate a proper 1200×630 social card before re-enabling.
+#### Why this helps
+
+- Improves default metadata quality for homepage discovery and branded/social sharing.
+- Aligns the homepage snippet with commercial search intent such as used industrial robots, brand-led searches, and India-focused B2B demand.
+- Keeps route-level SEO components free to override these defaults where more specific metadata exists.
+
+#### Guardrails
+
+- This PR does not assume exact title or description length guarantees in Google search results.
+- The priority is relevance, clarity, uniqueness, and early keyword placement, not strict character-count targeting.
+
+### 2. `src/pages/RobotDetails.tsx` — product metadata rewrite
+
+Updated `<SEOHead>` inputs so robot detail pages produce stronger product-specific titles, descriptions, and keywords.
+
+#### Title pattern
+
+- Template now emphasizes:
+  - condition where relevant,
+  - brand,
+  - model,
+  - payload,
+  - industrial robot intent,
+  - India sales intent,
+  - RobotVerse branding.
+
+Example pattern:
+`Used {Brand} {Model} {Payload} Industrial Robot for Sale in India | RobotVerse`
+
+If `condition === 'new'`, the “Used” prefix is removed.
+
+#### Description pattern
+
+Descriptions now combine the most commercially useful fields available on the page, including:
+
+- brand
+- model
+- payload
+- reach
+- robot type
+- location
+- commercial CTAs such as quote, inspection, financing, and logistics
+
+#### Keywords pattern
+
+Keyword generation now prioritizes:
+
+- brand + India
+- brand + model
+- used-brand intent where applicable
+- robot type
+- payload-led phrases
+- generic industrial robot marketplace terms for India
+
+#### Schema status
+
+- Product JSON-LD was not reworked in this PR.
+- Existing `generateProductSchema` logic was retained because it already covers core `Product` fields such as `name`, `brand`, `offers`, and `itemCondition`.
+
+#### Why this helps
+
+- Makes each robot detail page more specific to long-tail buyer searches.
+- Improves metadata uniqueness across product pages.
+- Reinforces structured product context for search engines through the existing JSON-LD layer.
+
+### 3. `/seo/` markdown deliverables
+
+Added planning and audit documents to keep strategic SEO work separate from this low-risk implementation pass.
+
+#### Files added
+
+- `/seo/seo-audit.md` — Phase 1 findings, including ranking and on-page issues
+- `/seo/keyword-map.md` — Phase 2 keyword-to-page strategy and proposed route ideas
+- `/seo/implementation-notes.md` — implementation summary for this PR
+- `/seo/robobook-outlines.md` — article outlines with heading structure and linking guidance
+
+#### Why this helps
+
+- Preserves decision context for future SEO phases.
+- Lets larger route/content changes be reviewed before implementation.
+- Reduces the risk of mixing strategy work with production code changes in the same PR.
+
+## Explicitly deferred
+
+| Area                                                                                | Why deferred                                                    | Recommended next step                                        |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ |
+| Robot detail slugs                                                                  | Requires DB, redirect, sitemap, and Search Console coordination | Add slug support and redirect plan in a dedicated PR         |
+| New brand/payload/application routes                                                | Requires templates, routing, content, and canonical planning    | Implement as a separate programmatic SEO phase               |
+| Canonical consolidation across `/robobook`, `/community`, `/blogs`, `/blog` aliases | Requires a single content-source decision                       | Choose one canonical path family and enforce it consistently |
+| Large internal-linking blocks                                                       | Needs editorial logic and reusable components                   | Build reusable related-links/related-robots components       |
+| Performance work                                                                    | Broader frontend QA required                                    | Run dedicated performance pass with image and bundle review  |
+| Global image dimension cleanup                                                      | Wide component impact                                           | Standardize intrinsic image metadata and rendering rules     |
+
+## Impact tracking
+
+1. Re-run the Lovable SEO scan after deployment.
+2. Check Google Search Console for:
+   - indexed page changes,
+   - title/snippet rewrites,
+   - CTR changes on homepage and robot detail pages,
+   - impressions for brand, payload, and “used industrial robots India” queries.
+3. Re-run Semrush in a few weeks to compare ranking movement on the target commercial terms.
+4. Re-submit the production sitemap in Search Console after deployment if needed.
+
+## Notes for the next phase
+
+- Keep production SEO signals on `https://www.robotverse.in`, not the Lovable preview domain.
+- Verify `condition` values in the data layer before relying on title-prefix logic for “new” vs. “used”.
+- Do not add a placeholder OG image; only enable one when a proper 1200×630 social card exists.
+- Route, canonical, and sitemap changes should be grouped into a dedicated follow-up PR with QA and rollback planning.
