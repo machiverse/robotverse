@@ -111,12 +111,28 @@ export default function SEODashboard() {
 
   const regenerateAll = async () => {
     toast({ title: "Queuing regenerate…", description: "All published content will be re-queued." });
-    const { error } = await supabase.rpc("request_seo_regenerate_all");
+    // Enqueue jobs for every content type with published SEO metadata.
+    const rows: any[] = [];
+    for (const { type } of CONTENT_TYPES) {
+      const { data } = await supabase
+        .from("seo_metadata")
+        .select("content_id")
+        .eq("content_type", type)
+        .eq("status", "published");
+      (data ?? []).forEach((r: any) =>
+        rows.push({ content_type: type, content_id: r.content_id, status: "pending", source: "admin-regenerate" })
+      );
+    }
+    if (rows.length === 0) {
+      toast({ title: "Nothing to queue", description: "No published SEO metadata found." });
+      return;
+    }
+    const { error } = await supabase.from("seo_jobs").insert(rows);
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Queued", description: "Cron will drain the queue within a minute." });
+    toast({ title: "Queued", description: `${rows.length} jobs queued. Cron drains within a minute.` });
     setTimeout(load, 1500);
   };
 
