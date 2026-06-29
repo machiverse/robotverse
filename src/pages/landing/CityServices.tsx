@@ -20,15 +20,6 @@ export default function CityServices() {
       setLoading(true);
       const { data } = await supabase
         .from("services")
-        .select("id, name, service_type, location, primary_image_url, description")
-        .ilike("service_type", `%${typeLabel}%`)
-        .ilike("location", `%${cityLabel}%`)
-        .order("updated_at", { ascending: false })
-        .limit(60);
-      if (!cancelled) {
-        setItems(data ?? []);
-        setLoading(false);
-      }
     })();
     return () => {
       cancelled = true;
@@ -75,9 +66,6 @@ export default function CityServices() {
           <Link to={`/services/${s.id}`} key={s.id}>
             <Card className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-square bg-muted overflow-hidden">
-                {s.primary_image_url && (
-                  <img
-                    src={s.primary_image_url}
                     alt={`${s.name} - ${typeLabel} in ${cityLabel}`}
                     loading="lazy"
                     className="w-full h-full object-cover"

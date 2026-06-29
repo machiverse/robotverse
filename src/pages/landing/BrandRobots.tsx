@@ -19,7 +19,7 @@ export default function BrandRobots() {
       setLoading(true);
       const { data } = await supabase
         .from("robots")
-        .select("id, brand, model, year_manufactured, price, location, primary_image_url")
+        .select("id, brand, model, year_manufactured, price, location, images")
         .ilike("brand", brandLabel)
         .order("updated_at", { ascending: false })
         .limit(60);
@@ -78,9 +78,9 @@ export default function BrandRobots() {
           <Link to={`/robots/${r.id}`} key={r.id}>
             <Card className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-square bg-muted overflow-hidden">
-                {r.primary_image_url && (
+                {(r.images?.[0]) && (
                   <img
-                    src={r.primary_image_url}
+                    src={(r.images?.[0])}
                     alt={`${brandLabel} ${r.model} industrial robot - ${r.year_manufactured}`}
                     loading="lazy"
                     className="w-full h-full object-cover"

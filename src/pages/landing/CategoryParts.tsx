@@ -19,7 +19,7 @@ export default function CategoryParts() {
       setLoading(true);
       const { data } = await supabase
         .from("spare_parts")
-        .select("id, brand, name, category, part_number, primary_image_url")
+        .select("id, brand, name, category, part_number, images")
         .ilike("category", `%${catLabel}%`)
         .order("updated_at", { ascending: false })
         .limit(60);
@@ -68,9 +68,9 @@ export default function CategoryParts() {
           <Link to={`/parts/${p.id}`} key={p.id}>
             <Card className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-square bg-muted overflow-hidden">
-                {p.primary_image_url && (
+                {(p.images?.[0]) && (
                   <img
-                    src={p.primary_image_url}
+                    src={(p.images?.[0])}
                     alt={`${p.brand} ${p.name} ${catLabel.toLowerCase()}`}
                     loading="lazy"
                     className="w-full h-full object-cover"

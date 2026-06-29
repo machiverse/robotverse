@@ -19,7 +19,7 @@ export default function CityRobots() {
       setLoading(true);
       const { data } = await supabase
         .from("robots")
-        .select("id, brand, model, year_manufactured, price, location, primary_image_url")
+        .select("id, brand, model, year_manufactured, price, location, images")
         .ilike("location", `%${cityLabel}%`)
         .order("updated_at", { ascending: false })
         .limit(60);
@@ -79,9 +79,9 @@ export default function CityRobots() {
           <Link to={`/robots/${r.id}`} key={r.id}>
             <Card className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-square bg-muted overflow-hidden">
-                {r.primary_image_url && (
+                {(r.images?.[0]) && (
                   <img
-                    src={r.primary_image_url}
+                    src={(r.images?.[0])}
                     alt={`${r.brand} ${r.model} industrial robot for sale in ${cityLabel}`}
                     loading="lazy"
                     className="w-full h-full object-cover"
