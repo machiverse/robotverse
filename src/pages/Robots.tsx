@@ -1253,6 +1253,12 @@ const Robots = () => {
                                     {robot.condition}
                                   </Badge>
                                 )}
+                                {robotsWithOffers.has(robot.id) && (
+                                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                    <Tag className="w-3 h-3" />
+                                    Coupon available
+                                  </Badge>
+                                )}
                                 <ViewCountDisplay targetType="robots" targetId={robot.id} />
                               </div>
                             </div>
