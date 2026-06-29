@@ -32,6 +32,15 @@ import TestImageMigration from "./pages/TestImageMigration";
 import WatchlistDashboard from "./pages/WatchlistDashboard";
 import NotFound from "./pages/NotFound";
 
+// Programmatic SEO landing pages
+import CityRobots from "./pages/landing/CityRobots";
+import BrandRobots from "./pages/landing/BrandRobots";
+import BrandParts from "./pages/landing/BrandParts";
+import CategoryParts from "./pages/landing/CategoryParts";
+import CityServices from "./pages/landing/CityServices";
+import CompareRobots from "./pages/landing/CompareRobots";
+import SEODashboard from "./pages/dashboard/admin/SEODashboard";
+
 // Dashboard Pages
 import Analytics from "./pages/dashboard/Analytics";
 import Reports from "./pages/dashboard/Reports";
