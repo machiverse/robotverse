@@ -414,6 +414,22 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
           <RobotUpload onSuccess={() => { setShowAddForm(false); fetchDashboardData(); }} />
         </DialogContent>
       </Dialog>
+
+      {/* Edit Robot Dialog */}
+      <Dialog open={!!editingRobot} onOpenChange={(open) => !open && setEditingRobot(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Robot Listing</DialogTitle>
+          </DialogHeader>
+          {editingRobot && (
+            <RobotUpload
+              editMode
+              robotData={editingRobot}
+              onSuccess={() => { setEditingRobot(null); fetchDashboardData(); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
