@@ -129,6 +129,14 @@ const App = () => (
               <Route path="/robots" element={<Robots />} />
               <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/robots/compare" element={<RobotComparison />} />
+              {/* Programmatic SEO landing pages (must precede dynamic /robots/:id) */}
+              <Route path="/robots/city/:city" element={<CityRobots />} />
+              <Route path="/robots/brand/:brand" element={<BrandRobots />} />
+              <Route path="/parts/brand/:brand" element={<BrandParts />} />
+              <Route path="/parts/category/:cat" element={<CategoryParts />} />
+              <Route path="/services/:city/:type" element={<CityServices />} />
+              <Route path="/compare/:slug" element={<CompareRobots />} />
+              <Route path="/dashboard/admin/seo" element={<SEODashboard />} />
               <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/parts/:id" element={<SparePartDetails />} />
