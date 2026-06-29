@@ -77,6 +77,8 @@ const Robots = () => {
   const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
   const [groupBy, setGroupBy] = useState<"all" | "category" | "company">(initialGroupBy);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [onlyWithOffers, setOnlyWithOffers] = useState(false);
+  const [robotsWithOffers, setRobotsWithOffers] = useState<Set<string>>(new Set());
 
   // Watchlist
   const [watchlistItems, setWatchlistItems] = useState<Set<string>>(new Set());
