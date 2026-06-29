@@ -16,7 +16,7 @@ const safeReplace = (template: string, dynamicData?: DynamicData): string => {
   if (!dynamicData) return template;
   return Object.entries(dynamicData)
     .reduce((result, [key, value]) => {
-      return result.replaceAll(`{${key}}`, value?.trim() || "");
+      return result.split(`{${key}}`).join(value?.trim() || "");
     }, template)
     .replace(/\s+/g, " ")
     .trim();
