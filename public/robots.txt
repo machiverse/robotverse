@@ -41,8 +41,11 @@ Disallow: /*?*sortBy=
 Disallow: /*?*viewMode=
 Disallow: /*?*page=
 
-# Main Sitemap
-Sitemap: https://www.robotverse.in/sitemap.xml
+# Main Sitemap (dynamic, backed by seo_metadata)
+Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap
+Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap?kind=urls
+Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap?kind=images
+Sitemap: https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/sitemap?kind=news
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
