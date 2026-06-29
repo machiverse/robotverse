@@ -47,6 +47,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingRobot, setEditingRobot] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState("inventory");
 
   const [dashboardStats, setDashboardStats] = useState({
@@ -282,10 +283,13 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => window.open(`/robots/${robot.id}`, "_blank")}>
+                            <Button variant="ghost" size="sm" title="View" onClick={() => window.open(`/robots/${robot.id}`, "_blank")}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteRobot(robot.id)}>
+                            <Button variant="ghost" size="sm" title="Edit" onClick={() => setEditingRobot(robot)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive" title="Delete" onClick={() => handleDeleteRobot(robot.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -408,6 +412,22 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
             <DialogTitle>Add New Robot Listing</DialogTitle>
           </DialogHeader>
           <RobotUpload onSuccess={() => { setShowAddForm(false); fetchDashboardData(); }} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Robot Dialog */}
+      <Dialog open={!!editingRobot} onOpenChange={(open) => !open && setEditingRobot(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Robot Listing</DialogTitle>
+          </DialogHeader>
+          {editingRobot && (
+            <RobotUpload
+              editMode
+              robotData={editingRobot}
+              onSuccess={() => { setEditingRobot(null); fetchDashboardData(); }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
