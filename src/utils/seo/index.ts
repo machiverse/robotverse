@@ -22,7 +22,7 @@ export {
 export {
   generateOrganizationSchema,
   generateWebSiteSchema,
-  generateEnhancedProductSchema as generateProductSchema,
+  generateProductSchema,
   generateFAQSchema,
   generateBreadcrumbSchema,
   generateItemListSchema,
