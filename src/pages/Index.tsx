@@ -42,7 +42,7 @@ const Index = () => {
           "robot logistics India",
         ]}
         ogTitle="RobotVerse - India's Largest Industrial Robot Marketplace"
-        ogDescription="Buy & sell verified industrial robots, spare parts, and automation equipment. Connect with 500+ sellers across India. Get financing & logistics support."
+        ogDescription="Buy & sell verified industrial robots, spare parts, and automation equipment. Connect with 200+ sellers across India. Get financing & logistics support."
         schemas={homeSchemas}
       />
       <EnhancedHeader />
