@@ -1,108 +1,278 @@
 # RobotVerse SEO Audit — Phase 1
 
-_Date: 2026-06-29 · Target market: India · Domain: https://www.robotverse.in_
+_Date: 2026-06-29_  
+_Target market: India_  
+_Domain: https://www.robotverse.in_
 
-## 1. Executive snapshot (Semrush, database `in`)
+## 1. Executive snapshot
 
-| Metric | Value |
-|---|---|
-| Indexed organic keywords (India) | 16 |
-| Estimated organic traffic | ~1 visit/month |
-| Indexed Adwords keywords | 0 |
-| Best ranking keyword | "buy robot" — position 14 (vol 390/mo) |
-| Other page-1-adjacent | "robots for sale" #21, "robot machine price" #15, "robobooks" #17 |
+This audit combines third-party keyword visibility data, live-site inspection, and codebase review. Semrush metrics should be treated as directional rather than absolute, especially for a low-authority domain and low-volume long-tail industrial queries.
 
-**Reading.** The domain is brand-new in Google's index. Almost every target keyword (`fanuc robot india`, `abb robot price india`, `used industrial robots india`, `industrial robot marketplace`) returns **no Semrush data** — meaning either ultra-low volume in India or no historical SERP coverage. The keywords that *do* track are generic ("buy robot", "robots for sale", "robot store"), so RobotVerse currently competes in the consumer/hobby robot space, not B2B industrial. That is the single biggest gap to close.
+### India organic snapshot
 
-**Authority.** Semrush sees the project as a low-authority new site. With AS in the 0–20 band, realistic near-term targets are KDI < 30 long-tail brand+model and city+brand phrases — not head terms like "industrial robots".
+| Metric                                            | Value                                                 |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| Indexed organic keywords (Semrush India database) | 16                                                    |
+| Estimated organic traffic                         | ~1 visit/month                                        |
+| Indexed Google Ads keywords                       | 0                                                     |
+| Best ranking keyword                              | `buy robot` — position 14                             |
+| Other visible terms                               | `robots for sale`, `robot machine price`, `robobooks` |
 
-## 2. Direct organic competitors (India)
+### Reading
 
-Semrush surfaces no strong direct competitor (top relevance ≈ 0.36). The two true B2B threats showing up at all are:
+The domain appears to be early in Google’s organic discovery cycle. Current visible keywords skew toward broad or ambiguous robot terms rather than industrial B2B buying intent, which suggests RobotVerse is not yet strongly associated with brand-led, payload-led, or used-industrial-robot commercial searches.
 
-- **galexonrobotics.in** — 43 keywords, 139 visits/mo. Used-robot dealer, ranks for brand+model terms.
-- **robostore.com** — 33 keywords, 72 visits/mo. Robot-product directory.
+### Strategic implication
 
-Broader B2B aggregators (`tradeindia.com`, `exportersindia.com`, `aajjo.com`) dominate "industrial robot India" SERPs. **Strategy implication:** beat aggregators on *specificity* — brand+model+payload+city pages they can't match with generic listings.
+The immediate SEO objective is not “rank for industrial robots” broadly. The realistic near-term goal is to build topical relevance and indexation around:
+
+- brand + India,
+- brand + model,
+- used-brand,
+- payload-band,
+- application,
+- and city + brand long-tail phrases.
+
+## 2. Competitive picture
+
+Semrush does not show a strong direct, high-overlap competitor set yet, which is common for a new or lightly indexed domain. However, the practical SERP competition in India is likely to come from:
+
+- industrial aggregators,
+- used-equipment listing sites,
+- and brand or integrator pages with stronger trust signals.
+
+### Strategic implication
+
+RobotVerse should not try to beat broad marketplaces on generic head terms immediately. The better path is to win on specificity:
+
+- brand + model,
+- payload + application,
+- city + brand,
+- and high-intent used-robot pages.
 
 ## 3. On-page audit
 
-### 3.1 `index.html` (sitewide head)
-| Check | Before | After (this PR) |
-|---|---|---|
-| Title | "RobotVerse - Advanced Industrial Robots Marketplace \| Buy, Sell & Service" (no India, no brands) | "Used Industrial Robots India \| Buy FANUC, ABB, KUKA, Yaskawa \| RobotVerse" |
-| Meta description | Generic worldwide pitch | India + brands + 6-axis/SCARA/cobots + payload/reach |
-| Canonical | ✅ `https://robotverse.in` | unchanged |
-| Organization JSON-LD | ✅ present | unchanged |
-| og:image | `/robotverse-logo.png` (logo, not a social card) | unchanged — see implementation notes |
+### 3.1 `index.html` and sitewide fallback metadata
 
-### 3.2 Per-route head (`react-helmet` / `UniversalSEOHead` / `SEOHead`)
-- `/` Home — ✅ `UniversalSEOHead` with India keywords & schemas.
-- `/robots` — ✅ `UniversalSEOHead` `pageType="robots"`. H1 present.
-- `/robots/:id` (RobotDetails) — ✅ `SEOHead` + Product JSON-LD. **Title rewritten in this PR** to include "Used", payload, "for sale in India".
-- `/robobook` — ✅ `SEOMetaTags` with structured data + BreadcrumbList.
-- `/ai-assistant` — ✅ `UniversalSEOHead`.
-- `/parts`, `/services`, `/logistics`, `/financing`, `/auctions`, `/robot-talent`, brand/city landing pages — heads in place via `UniversalSEOHead` / page templates.
-- `/auth`, `/dashboard/*`, `/crm`, `/chat`, `/profile-settings` — correctly **disallowed in robots.txt** (no indexable head needed).
+| Check                | Observation                                                                                | Priority |
+| -------------------- | ------------------------------------------------------------------------------------------ | -------- |
+| Title                | Generic marketplace wording before rewrite; now more aligned to India + industrial intent  | High     |
+| Meta description     | Improved in the current PR; should emphasize relevance and click value over length targets | High     |
+| Canonical            | Present                                                                                    | Medium   |
+| Organization JSON-LD | Present                                                                                    | Medium   |
+| og:image             | Uses logo image rather than a purpose-built social card                                    | Medium   |
 
-### 3.3 Headings
-- Single H1 per page on Home, Robots, RoboBook, AI Assistant, landing templates — ✅.
-- RobotDetails H1 = robot name. Acceptable; consider `{Brand} {Model} — {payload}kg Industrial Robot` for keyword density (see implementation notes).
+### 3.2 Per-route metadata coverage
+
+Metadata components are present across major public page types, which is a strong base:
+
+- Home
+- Robots listing
+- Robot detail
+- RoboBook
+- AI Assistant
+- Parts
+- Services
+- Financing
+- Logistics
+- Auctions
+- Talent
+- landing templates
+
+Admin, auth, dashboard, CRM, and similar utility routes are appropriately excluded from public indexing.
+
+### 3.3 Heading structure
+
+Most major pages appear to use a single H1, which is the correct pattern. Robot detail pages currently use the robot name as H1; this is acceptable, but a more descriptive pattern with brand, model, and payload could improve keyword alignment if implemented safely.
 
 ### 3.4 Internal linking
-- Home → `/robots`, `/parts`, `/services`, brand landing pages via `MarketplaceCategories` / `ProfessionalCategories`.
-- `/robots` → robot detail pages, brand pages.
-- RoboBook articles → mostly orphaned from marketplace. **Gap:** no contextual links from blog content into `/robots/brand/:brand` or `/robots/category/:cat`. Highest-impact unfixed gap.
-- Footer covers utility pages.
+
+Current internal linking is functional at the marketplace level:
+
+- Home links into robots, parts, services, and landing pages.
+- Robots listing links to robot detail and some category pages.
+
+The main weakness is RoboBook:
+
+- many articles do not contextually link into relevant commercial pages,
+- blog authority is not being routed effectively into brand, payload, or application pages.
+
+This is one of the highest-impact on-site improvements available without structural risk.
 
 ### 3.5 URL structure
-- Marketplace: `/robots/:id` uses **UUIDs** (`/robots/65d376d1-...`). Loses keyword signal in the URL and in Semrush rank attribution. Migration to `/robots/{brand}-{model}-{payload}kg-{shortId}` recommended (additive, with redirect from UUID) — covered as a future phase, not in this PR.
-- Programmatic: `/robots/brand/:brand`, `/robots/city/:city` — ✅ clean.
-- Spares: `/spares/:category/:subcategory/:componentType` — ✅ clean.
-- Lowercase, hyphenated — ✅.
 
-### 3.6 Canonical & duplicates
-- `/robots` filter params (`sortBy`, `viewMode`, `page`) are blocked in `robots.txt`. ✅
-- `/robobook` and `/community` render the same `Blogs` component — canonical should pin one. Currently each uses `window.location.href`; this can split equity. Recommendation in implementation notes: canonical `/community/*` → `/robobook/*`.
-- `/blogs/:id`, `/blog/:id`, `/community/:id`, `/robobook/:id` all map to similar content — same canonical caveat.
+Strengths:
 
-### 3.7 Sitemap & robots
-- Dynamic sitemap edge function serving urls/images/news. ✅
-- `public/sitemap.xml` static file still ships; harmless but stale.
-- `robots.txt` allows the big AI crawlers (GPTBot, PerplexityBot, ClaudeBot, Google-Extended), blocks dashboards. ✅
+- lowercase,
+- readable landing-page paths,
+- clean brand and city route patterns.
 
-### 3.8 Core Web Vitals — quick wins
-- Hero & robot images: no explicit `width`/`height` on most `<img>` — CLS risk.
-- LCP image not preloaded in `index.html`.
-- Favicon = full logo PNG (heavy, no proper 32×32 / 16×16 / apple-touch sizes).
-- No `vite-imagetools` / WebP/AVIF pipeline for user-uploaded images.
+Weakness:
 
-### 3.9 Mobile friendliness
-- Tailwind responsive — generally fine. Spot-check on `/robots` shows the filter sidebar collapsing correctly; product cards use aspect-square per design memory.
+- robot detail URLs currently use UUID-based paths (`/robots/:id`), which are technically valid but weak for keyword signaling, memorability, and third-party attribution.
 
-## 4. Top 10 keywords currently ranking (India)
+Recommendation:
 
-| Keyword | Vol | Pos | URL |
-|---|---|---|---|
-| buy robot | 390 | 14 | / |
-| robobooks | 590 | 17 | /robobook |
-| robots for sale | 210 | 21 | / |
-| robot machine price | 140 | 15 | /robots |
-| robotic equipment | 170 | 50 | / |
-| robot store | 320 | 57 | / |
-| in robot | 110 | 69 | /robobook |
-| industrial robot | 590 | 64 | /blogs/... |
-| robot work envelope | 140 | 63 | /robobook |
-| robot machine | 1,600 | 41 | /robots/... |
+- keep current URLs for now,
+- plan a future slug migration only in a dedicated release with redirects and sitemap updates.
 
-## 5. Gaps & missed opportunities
+### 3.6 Canonicalization and duplicate URL groups
 
-1. **Brand + India queries** (`fanuc robot india`, `abb robot india`, `kuka robot india`, `yaskawa robot india`) — **not ranking at all**. Brand landing pages exist (`/robots/brand/:brand`) but aren't indexed yet; need internal links + sitemap inclusion + content depth.
-2. **Brand + model queries** (`fanuc m-20ia for sale`, `abb irb 2600 used`) — no dedicated URL exists per model. Either generate `/robots/:brand/:model` or rewrite `/robots/:id` to a model-slug URL.
-3. **Payload / reach queries** (`20 kg payload industrial robot`, `6 axis robot 1.8m reach`) — no category page exists. Build `/robots/payload/:kg` and `/robots/reach/:mm`.
-4. **Application queries** (`pick and place robot india` — vol 20, KDI very easy) — no `/robots/application/:app` page.
-5. **City + brand combos** (`fanuc robot pune`, `abb robot chennai`) — only generic `/robots/city/:city` exists.
-6. **RoboBook → marketplace internal links** — articles do not deep-link to brand/payload pages, leaving long-tail equity stranded.
-7. **`industrial robot` (590/mo, pos 64)** ranks via a blog post URL, not `/`. Either redirect or strengthen the home page H1 around the term.
+This is one of the most important unresolved technical SEO issues.
 
-See `keyword-map.md` for the proposed keyword → URL plan and `implementation-notes.md` for the safe edits already shipped in this PR plus the next-step plan.
+Potential duplicate or near-duplicate path groups include:
+
+- `/robobook`
+- `/community`
+- `/blogs/:id`
+- `/blog/:id`
+- `/community/:id`
+- `/robobook/:id`
+
+If these pages expose the same or substantially similar content, canonical signals must be unified. Otherwise, Google may choose its own canonical, split crawl attention, or dilute ranking signals across duplicates.
+
+Recommendation:
+
+- choose one canonical article family,
+- choose one canonical hub path,
+- update canonicals, internal links, sitemap URLs, and navigation to match that decision consistently.
+
+### 3.7 Sitemap and robots
+
+Strengths:
+
+- dynamic sitemap exists,
+- robots.txt blocks non-public areas,
+- crawl access is available to major search and AI crawlers.
+
+Improvement areas:
+
+- remove or replace stale static sitemap files if they no longer reflect production truth,
+- ensure only canonical public URLs are emitted in the sitemap,
+- ensure future proposed route families are not added before content quality thresholds are met.
+
+### 3.8 Performance and Core Web Vitals quick wins
+
+Observed opportunities:
+
+- many images appear to lack explicit `width` and `height`,
+- likely CLS risk from image layout instability,
+- no clear LCP image preload strategy,
+- favicon/social asset set appears incomplete for production polish,
+- no visible modern image pipeline for user-uploaded assets.
+
+These are not emergency blockers for indexing, but they matter for crawl efficiency, UX, and long-term competitive quality.
+
+### 3.9 Mobile readiness
+
+The responsive layout foundation appears sound. Key marketplace pages seem mobile-adapted, but this should still be validated with real-page Lighthouse or PageSpeed runs on:
+
+- `/`
+- `/robots`
+- `/robobook`
+- one robot detail page
+
+## 4. Current ranking footprint
+
+Current rankings suggest Google has only weak or early confidence in RobotVerse’s B2B industrial relevance. The domain is visible for a small set of broad or ambiguous robot terms, but it is not yet strongly associated with:
+
+- used industrial robots India,
+- FANUC / ABB / KUKA / Yaskawa + India,
+- payload-led robot searches,
+- application-led industrial robot searches.
+
+This is the core relevance gap.
+
+## 5. Main gaps and missed opportunities
+
+### 5.1 Brand + India intent is not established
+
+Brand landing pages exist or are planned, but search visibility for terms like:
+
+- `fanuc robot india`
+- `abb robot india`
+- `kuka robot india`
+- `yaskawa robot india`
+
+is not yet materially visible in the current dataset.
+
+### 5.2 Brand + model intent lacks dedicated SEO targets
+
+There is no strong model-led route layer yet. That makes it harder to target searches such as:
+
+- `fanuc m-20ia for sale`
+- `abb irb 2600 used`
+- `kuka kr 60 price india`
+
+### 5.3 Payload and application pages are missing
+
+Commercially valuable route families such as:
+
+- `/robots/payload/:band`
+- `/robots/application/:app`
+
+are not yet live as indexable SEO targets.
+
+### 5.4 RoboBook does not support marketplace discovery strongly enough
+
+Educational content exists, but internal links into relevant product and landing pages are limited. This leaves topical relevance and link equity underused.
+
+### 5.5 Duplicate path families may weaken indexing efficiency
+
+Without a single canonical article family, blog-related signals can fragment across multiple route aliases.
+
+### 5.6 Home page relevance needs reinforcement
+
+If broad industrial-intent terms are being captured by blog posts rather than the homepage or core marketplace pages, that suggests the primary commercial pages need stronger topical clarity, internal links, and supporting copy.
+
+## 6. Priority actions
+
+### Safe wins now
+
+- Strengthen homepage, robots, and RoboBook metadata.
+- Improve robot detail metadata.
+- Add contextual RoboBook links into brand, payload, and application pages.
+- Clean up canonical strategy across blog/community/article aliases.
+- Ensure sitemap outputs only preferred canonical URLs.
+
+### Next structured SEO expansion
+
+- Launch brand-used pages.
+- Launch payload-band pages.
+- Launch application pages.
+- Add selective brand-model pages for top opportunities only.
+
+### Later technical phase
+
+- Migrate robot detail URLs from UUID to slug format with redirects.
+- Improve image pipeline and layout stability.
+- Standardize social preview assets.
+
+## 7. Search Console actions
+
+After deployment of SEO changes:
+
+1. Submit the preferred sitemap in Google Search Console.
+2. Use URL Inspection for a small set of priority URLs:
+   - homepage,
+   - `/robots`,
+   - `/robobook`,
+   - 2–3 brand pages,
+   - 2–3 robot detail pages.
+3. Request recrawl only for the most important updated URLs, not every page.
+4. Monitor:
+   - Page Indexing report,
+   - canonical selection,
+   - crawl status,
+   - excluded pages,
+   - and impressions for priority long-tail queries.
+5. Re-check whether duplicate article paths are being indexed instead of preferred canonicals.
+
+## 8. Summary
+
+RobotVerse has a solid technical base for SEO, but the domain is still at the earliest stage of topical and commercial relevance in Google’s index. The fastest gains will come from:
+
+- clearer keyword targeting,
+- stronger canonical consolidation,
+- better internal linking from RoboBook into marketplace pages,
+- and controlled rollout of high-intent landing pages rather than broad route expansion.

@@ -1,6 +1,6 @@
 /**
  * RobotVerse Enhanced SEO System
- * Central export point for all SEO utilities
+ * Central export point for all production-ready SEO utilities
  */
 
 // Master SEO - Keyword Mapping & Meta Generation
@@ -15,10 +15,10 @@ export {
   getPageKeywords,
   getLocationKeywords,
   getBrandKeywords,
-  getApplicationKeywords
-} from './masterSEO';
+  getApplicationKeywords,
+} from "./masterSEO";
 
-// Modern Schema Generators
+// Schema Generators
 export {
   generateOrganizationSchema,
   generateWebSiteSchema,
@@ -29,12 +29,10 @@ export {
   generateServiceSchema,
   generateArticleSchema,
   generateLocalBusinessSchema,
-  generateHowToSchema,
-  generateAggregateOfferSchema,
-  generatePageSchemas
-} from './modernSchemas';
+  generatePageSchemas,
+} from "./modernSchemas";
 
-// Programmatic SEO Content Generation
+// Programmatic SEO Content
 export {
   INDIAN_CITIES,
   ROBOT_BRANDS,
@@ -49,8 +47,8 @@ export {
   generateLocationSEOContent,
   generateComparisonContent,
   generatePriceRangeContent,
-  extractLongTailKeywords
-} from './programmaticSEO';
+  extractLongTailKeywords,
+} from "./programmaticSEO";
 
 // Technical SEO Utilities
 export {
@@ -60,14 +58,13 @@ export {
   generateMetaDescription,
   generateImageAlt,
   generateRobotsMeta,
-  generateHreflangTags,
   generatePreloadHints,
   generateBreadcrumbs,
   analyzeSEOQuality,
   generateOpenGraphTags,
   generateTwitterCardTags,
-  generateJSONLDScript
-} from './technicalSEO';
+  generateJSONLDScript,
+} from "./technicalSEO";
 
 // Sitemap Utilities
 export {
@@ -81,5 +78,5 @@ export {
   generateSitemapXML,
   generateSitemapIndexXML,
   getSitemapIndexEntries,
-  generateCompleteSitemap
-} from './sitemapUtils';
+  generateCompleteSitemap,
+} from "./sitemapUtils";

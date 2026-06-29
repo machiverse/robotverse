@@ -61,12 +61,12 @@ const Robots = () => {
   const { getItemViewCount, trackItemView } = useUniversalViewTracking();
   const { trackButtonClick } = useButtonTracking();
   const { addRobot, isSelected, removeRobot } = useRobotComparison();
-  const dynamicRobotKeywords = useDynamicSEOKeywords('robots');
+  const dynamicRobotKeywords = useDynamicSEOKeywords("robots");
 
   // Read initial values from URL params
   const initialType = searchParams.get("type") || "all";
   const initialSearch = searchParams.get("search") || "";
-  const initialGroupBy = searchParams.get("groupBy") as "all" | "category" | "company" || "all";
+  const initialGroupBy = (searchParams.get("groupBy") as "all" | "category" | "company") || "all";
 
   // Filter UI state - Business-logical order: Robot Type → Payload Range → Condition → Price Range → Location
   const [searchQuery, setSearchQuery] = useState(initialSearch);
@@ -146,11 +146,11 @@ const Robots = () => {
     } else {
       setSelectedRobotType("all");
     }
-    
+
     if (searchParam) {
       setSearchQuery(searchParam);
     }
-    
+
     if (groupByParam) {
       setGroupBy(groupByParam as "company" | "category" | "all");
     }
@@ -159,7 +159,7 @@ const Robots = () => {
   // Update URL when filters change
   const updateURLParams = (updates: Record<string, string | null>) => {
     const newParams = new URLSearchParams(searchParams);
-    
+
     Object.entries(updates).forEach(([key, value]) => {
       if (value && value !== "all" && value !== "") {
         newParams.set(key, value);
@@ -167,7 +167,7 @@ const Robots = () => {
         newParams.delete(key);
       }
     });
-    
+
     setSearchParams(newParams, { replace: true });
   };
 
@@ -328,7 +328,9 @@ const Robots = () => {
       // Mark all robots whose seller has a generic coupon
       setRobotsWithOffers((prev) => {
         const set = new Set<string>(robotIds);
-        robots.forEach((r) => { if (sellersAll.has(r.seller_id)) set.add(r.id); });
+        robots.forEach((r) => {
+          if (sellersAll.has(r.seller_id)) set.add(r.id);
+        });
         return set;
       });
     })();
@@ -621,21 +623,25 @@ const Robots = () => {
       <UniversalSEOHead
         pageType="robots"
         title="Used Industrial Robots for Sale India | Verified Sellers | RobotVerse"
-        description="Browse 500+ used industrial robots from verified sellers. FANUC, ABB, KUKA, Yaskawa robots with warranty. Compare prices, get quotes. Free buyer support."
-        keywords={dynamicRobotKeywords.length > 0 ? dynamicRobotKeywords : [
-          'used industrial robots for sale',
-          'refurbished robots India',
-          'second hand robots',
-          'pre-owned industrial robots',
-          'FANUC robots for sale',
-          'ABB robots India',
-          'KUKA robots price',
-          'Yaskawa robots dealers',
-          'welding robots India',
-          'palletizing robots',
-          'material handling robots',
-          'robot automation equipment'
-        ]}
+        description="Browse 150+ used industrial robots from verified sellers. FANUC, ABB, KUKA, Yaskawa robots with warranty. Compare prices, get quotes. Free buyer support."
+        keywords={
+          dynamicRobotKeywords.length > 0
+            ? dynamicRobotKeywords
+            : [
+                "used industrial robots for sale",
+                "refurbished robots India",
+                "second hand robots",
+                "pre-owned industrial robots",
+                "FANUC robots for sale",
+                "ABB robots India",
+                "KUKA robots price",
+                "Yaskawa robots dealers",
+                "welding robots India",
+                "palletizing robots",
+                "material handling robots",
+                "robot automation equipment",
+              ]
+        }
         schemas={[pageSEO.jsonLd]}
       />
       <EnhancedHeader />
@@ -643,9 +649,7 @@ const Robots = () => {
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
         <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-          {selectedRobotType !== "all" 
-            ? `${selectedRobotType} - Industrial Robots` 
-            : "Industrial Robots Marketplace"}
+          {selectedRobotType !== "all" ? `${selectedRobotType} - Industrial Robots` : "Industrial Robots Marketplace"}
         </h1>
         <p className="text-muted-foreground">
           {selectedRobotType !== "all"
@@ -665,9 +669,9 @@ const Robots = () => {
                 <CardContent className="py-3 px-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold text-primary">Active Filters</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
                       onClick={handleClearFilters}
                     >
@@ -678,10 +682,7 @@ const Robots = () => {
                     {selectedRobotType !== "all" && (
                       <Badge variant="secondary" className="text-xs">
                         {selectedRobotType}
-                        <button 
-                          className="ml-1.5 hover:text-destructive" 
-                          onClick={() => handleRobotTypeChange("all")}
-                        >
+                        <button className="ml-1.5 hover:text-destructive" onClick={() => handleRobotTypeChange("all")}>
                           ×
                         </button>
                       </Badge>
@@ -689,8 +690,8 @@ const Robots = () => {
                     {searchQuery && (
                       <Badge variant="secondary" className="text-xs">
                         Search: {searchQuery}
-                        <button 
-                          className="ml-1.5 hover:text-destructive" 
+                        <button
+                          className="ml-1.5 hover:text-destructive"
                           onClick={() => {
                             setSearchQuery("");
                             updateURLParams({ search: null });
@@ -855,7 +856,9 @@ const Robots = () => {
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="p-4 text-center">
                 <p className="text-sm font-semibold mb-1">Can't find the robot you need?</p>
-                <p className="text-xs text-muted-foreground mb-3">Submit your requirement and we'll connect you with sellers.</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Submit your requirement and we'll connect you with sellers.
+                </p>
                 <Button size="sm" className="w-full" onClick={() => setShowRequestModal(true)}>
                   <Search className="w-3 h-3 mr-1" /> Submit Request
                 </Button>
@@ -1141,7 +1144,7 @@ const Robots = () => {
                                         description: "Please sign in to compare robots",
                                         variant: "default",
                                       });
-                                      navigate('/auth');
+                                      navigate("/auth");
                                       return;
                                     }
                                     if (isSelected(robot.id)) {
@@ -1315,17 +1318,10 @@ const Robots = () => {
             </div>
           )}
         </main>
-
       </div>
 
       <UserProductRequestModal open={showRequestModal} onOpenChange={setShowRequestModal} defaultProductType="robot" />
-      {quoteRobot && (
-        <RobotQuoteModal
-          isOpen={!!quoteRobot}
-          onClose={() => setQuoteRobot(null)}
-          robot={quoteRobot}
-        />
-      )}
+      {quoteRobot && <RobotQuoteModal isOpen={!!quoteRobot} onClose={() => setQuoteRobot(null)} robot={quoteRobot} />}
     </div>
   );
 };
