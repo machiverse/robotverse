@@ -32,6 +32,15 @@ import TestImageMigration from "./pages/TestImageMigration";
 import WatchlistDashboard from "./pages/WatchlistDashboard";
 import NotFound from "./pages/NotFound";
 
+// Programmatic SEO landing pages
+import CityRobots from "./pages/landing/CityRobots";
+import BrandRobots from "./pages/landing/BrandRobots";
+import BrandParts from "./pages/landing/BrandParts";
+import CategoryParts from "./pages/landing/CategoryParts";
+import CityServices from "./pages/landing/CityServices";
+import CompareRobots from "./pages/landing/CompareRobots";
+import SEODashboard from "./pages/dashboard/admin/SEODashboard";
+
 // Dashboard Pages
 import Analytics from "./pages/dashboard/Analytics";
 import Reports from "./pages/dashboard/Reports";
@@ -120,6 +129,14 @@ const App = () => (
               <Route path="/robots" element={<Robots />} />
               <Route path="/robots/:id" element={<RobotDetails />} />
               <Route path="/robots/compare" element={<RobotComparison />} />
+              {/* Programmatic SEO landing pages (must precede dynamic /robots/:id) */}
+              <Route path="/robots/city/:city" element={<CityRobots />} />
+              <Route path="/robots/brand/:brand" element={<BrandRobots />} />
+              <Route path="/parts/brand/:brand" element={<BrandParts />} />
+              <Route path="/parts/category/:cat" element={<CategoryParts />} />
+              <Route path="/services/:city/:type" element={<CityServices />} />
+              <Route path="/compare/:slug" element={<CompareRobots />} />
+              <Route path="/dashboard/admin/seo" element={<SEODashboard />} />
               <Route path="/seller/:sellerId/robots" element={<SellerRobots />} />
             <Route path="/parts" element={<Parts />} />
             <Route path="/parts/:id" element={<SparePartDetails />} />

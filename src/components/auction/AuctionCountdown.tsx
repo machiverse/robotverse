@@ -6,13 +6,15 @@ interface AuctionCountdownProps {
   startTime?: string;
   status: string;
   compact?: boolean;
+  onComplete?: () => void;
 }
 
-const AuctionCountdown: React.FC<AuctionCountdownProps> = ({ endTime, startTime, status, compact }) => {
+const AuctionCountdown: React.FC<AuctionCountdownProps> = ({ endTime, startTime, status, compact, onComplete }) => {
   const [timeLeft, setTimeLeft] = useState('');
   const [urgency, setUrgency] = useState<'normal' | 'warning' | 'critical'>('normal');
 
   useEffect(() => {
+    let completed = false;
     const calc = () => {
       const now = Date.now();
       const end = new Date(endTime).getTime();
@@ -28,6 +30,7 @@ const AuctionCountdown: React.FC<AuctionCountdownProps> = ({ endTime, startTime,
       if (end <= now) {
         setTimeLeft('Ended');
         setUrgency('critical');
+        if (!completed && onComplete) { completed = true; onComplete(); }
         return;
       }
 
@@ -39,7 +42,7 @@ const AuctionCountdown: React.FC<AuctionCountdownProps> = ({ endTime, startTime,
     calc();
     const interval = setInterval(calc, 1000);
     return () => clearInterval(interval);
-  }, [endTime, startTime, status]);
+  }, [endTime, startTime, status, onComplete]);
 
   const formatDiff = (ms: number) => {
     const days = Math.floor(ms / 86400000);

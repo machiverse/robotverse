@@ -24,6 +24,7 @@ import {
   Heart,
   Scale,
   Check,
+  Tag,
 } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -77,6 +78,8 @@ const Robots = () => {
   const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
   const [groupBy, setGroupBy] = useState<"all" | "category" | "company">(initialGroupBy);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [onlyWithOffers, setOnlyWithOffers] = useState(false);
+  const [robotsWithOffers, setRobotsWithOffers] = useState<Set<string>>(new Set());
 
   // Watchlist
   const [watchlistItems, setWatchlistItems] = useState<Set<string>>(new Set());
@@ -303,6 +306,34 @@ const Robots = () => {
     fetchData();
   }, [getItemViewCount, user, isReady]);
 
+  // Fetch active coupons to know which robots have offers
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("seller_coupons")
+        .select("seller_id, applies_to, applicable_robot_ids")
+        .eq("is_active", true)
+        .eq("admin_disabled", false)
+        .gte("expiry_date", new Date().toISOString());
+      if (!data) return;
+      const sellersAll = new Set<string>();
+      const robotIds = new Set<string>();
+      data.forEach((c: any) => {
+        if (c.applies_to === "all" || c.applies_to === "categories" || c.applies_to === "brands") {
+          sellersAll.add(c.seller_id);
+        } else if (c.applies_to === "robots" && Array.isArray(c.applicable_robot_ids)) {
+          c.applicable_robot_ids.forEach((id: string) => robotIds.add(id));
+        }
+      });
+      // Mark all robots whose seller has a generic coupon
+      setRobotsWithOffers((prev) => {
+        const set = new Set<string>(robotIds);
+        robots.forEach((r) => { if (sellersAll.has(r.seller_id)) set.add(r.id); });
+        return set;
+      });
+    })();
+  }, [robots]);
+
   const getLabelFromValue = (arr: { value: string; label: string }[], value: string): string => {
     return arr.find((i) => i.value === value)?.label?.toLowerCase() || value;
   };
@@ -375,6 +406,11 @@ const Robots = () => {
       filteredRobots = filteredRobots.filter((r) => r.location?.toLowerCase() === locLabel);
     }
 
+    // Offers filter
+    if (onlyWithOffers) {
+      filteredRobots = filteredRobots.filter((r) => robotsWithOffers.has(r.id));
+    }
+
     // Sort
     filteredRobots.sort((a, b) => {
       switch (sortBy) {
@@ -426,6 +462,8 @@ const Robots = () => {
       selectedLocation,
       sortBy,
       groupBy,
+      onlyWithOffers,
+      robotsWithOffers,
     ],
   );
 
@@ -787,6 +825,29 @@ const Robots = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* 7. Available Offers toggle */}
+                <div className="pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setOnlyWithOffers((v) => !v)}
+                    className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                      onlyWithOffers
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30"
+                        : "border-input hover:bg-muted/50"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded border bg-background">
+                        {onlyWithOffers && <Check className="h-3 w-3" />}
+                      </span>
+                      Available Offers Only
+                    </span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {robotsWithOffers.size}
+                    </Badge>
+                  </button>
+                </div>
               </CardContent>
             </Card>
 
@@ -970,6 +1031,16 @@ const Robots = () => {
                                   className="text-xs"
                                 >
                                   {robot.condition}
+                                </Badge>
+                              </div>
+                            )}
+
+                            {/* Coupon available */}
+                            {robotsWithOffers.has(robot.id) && (
+                              <div className="absolute bottom-2 left-2">
+                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                  <Tag className="w-3 h-3" />
+                                  Coupon available
                                 </Badge>
                               </div>
                             )}
@@ -1180,6 +1251,12 @@ const Robots = () => {
                                     className="text-xs"
                                   >
                                     {robot.condition}
+                                  </Badge>
+                                )}
+                                {robotsWithOffers.has(robot.id) && (
+                                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                    <Tag className="w-3 h-3" />
+                                    Coupon available
                                   </Badge>
                                 )}
                                 <ViewCountDisplay targetType="robots" targetId={robot.id} />

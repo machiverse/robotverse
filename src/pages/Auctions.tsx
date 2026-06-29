@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import Footer from '@/components/Footer';
 import { useAuctions, useMyBids } from '@/hooks/useAuctions';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import AuctionCard from '@/components/auction/AuctionCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +17,16 @@ const Auctions: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tab, setTab] = useState('live');
+
+  // Periodically finalize any expired auctions (every 2 minutes while page is open)
+  useEffect(() => {
+    const tick = async () => {
+      try { await (supabase as any).rpc('finalize_due_auctions'); } catch {}
+    };
+    tick();
+    const i = setInterval(tick, 120000);
+    return () => clearInterval(i);
+  }, []);
 
   const { data: liveAuctions, isLoading: loadingLive } = useAuctions('live');
   const { data: upcomingAuctions, isLoading: loadingUpcoming } = useAuctions('upcoming');

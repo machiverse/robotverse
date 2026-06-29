@@ -1,102 +1,133 @@
-## RoboBook Blog Modernization
 
-This plan upgrades the existing blog (stored in `community_posts` with `post_type='blog'`) without removing current functionality. All changes are additive.
+# RobotVerse Automated AI-SEO Roadmap
 
-### 1. Database (one migration)
+Goal: every robot, spare part, service, blog, profile, category, brand and landing page is automatically optimized for Google, Bing, ChatGPT, Gemini, Claude, Perplexity and Copilot — with zero seller effort. Built on the existing Supabase + Lovable AI Gateway stack, using your hybrid generation strategy.
 
-Add SEO + publishing columns to `community_posts` (nullable, safe defaults). Existing rows continue to work.
+## Architecture overview
 
-- `slug text unique` (auto-generated from title if missing)
-- `meta_title text`, `meta_description text`
-- `focus_keywords text[]`, `seo_tags text[]`
-- `featured_image text`, `featured_image_alt text`, `featured_image_caption text`
-- `canonical_url text`
-- `reading_time_minutes int`
-- `scheduled_publish_at timestamptz`
-- `is_draft boolean default false`
-- DB function `generate_unique_slug(title text)` + trigger to auto-fill `slug` on insert/update when null
-- DB function `calculate_reading_time(content text)` + trigger for `reading_time_minutes`
-- Index on `slug`, `published_at`, `status`
+```text
+Seller publishes content
+        │
+        ▼
+INSERT/UPDATE on robots / spare_parts / services / blogs / profiles
+        │
+        ▼ (DB trigger)
+seo_jobs queue (pending → processing → completed/failed)
+        │
+        ▼ (pg_cron every 1 min  +  on-demand invoke)
+Edge fn: seo-generator  ── Lovable AI Gateway (gemini-3-flash)
+        │                       ├─ titles, meta, slug, OG, twitter
+        │                       ├─ FAQ, summary, highlights, AEO/GEO blocks
+        │                       ├─ JSON-LD, breadcrumbs, image alt/title/caption
+        │                       └─ keywords, related links
+        ▼
+seo_metadata table (1 row per content item, content_hash for dedupe)
+        │
+        ├──► Edge fn: sitemap-generator  → public sitemap + image + news sitemaps
+        └──► Edge fn: indexing-pinger    → IndexNow + Google Indexing API + Bing
+        ▼
+Frontend (react-helmet-async + UniversalSEOHead) reads seo_metadata
+Fallback: render with on-the-fly defaults + enqueue job if missing
+```
 
-### 2. Rich text editor
+Key design choices:
+- **Hybrid generation** as you specified: async on INSERT, smart-diff on UPDATE (only regenerate when title/description/specs/brand/category/images/applications change — not price/stock/contact), render-time fallback, manual "Regenerate AI SEO" button.
+- **Content hashing** (sha256 of significant fields) to skip AI calls when nothing meaningful changed and to detect duplicates across listings.
+- **Single `seo_metadata` table** keyed by `(content_type, content_id)` so every entity inherits the system without per-table columns.
+- **Job queue** with retry, status, and error logs for reliability and cost visibility.
 
-New `src/components/blog/BlogRichEditor.tsx` using **Tiptap** (already React-friendly, lightweight). Features:
-- H1/H2/H3, bold, italic, underline, strike
-- Bullet + numbered lists, blockquote
-- Internal/external links with auto `rel="noopener"` for external
-- Image insertion (drag-drop + paste) → uploads via existing Supabase storage, auto-compresses with `browser-image-compression`
-- Video embed (YouTube/Vimeo URL → iframe block)
-- Mobile preview toggle (desktop / tablet / mobile width frame)
+## Phase 1 — Foundation (DB + queue + render)
 
-Keep existing `RichTextEditor.tsx` untouched (used elsewhere).
+1. Migration:
+   - `seo_metadata` table — content_type, content_id, slug, title, meta_description, focus_keyword, canonical_url, og_*, twitter_*, jsonld jsonb, faq jsonb, summary, highlights jsonb, ai_blocks jsonb (AEO/GEO), image_seo jsonb, related jsonb, content_hash, generated_at, model, version.
+   - `seo_jobs` table — content_type, content_id, status (pending/processing/completed/failed), attempts, last_error, payload, priority, created_at.
+   - `seo_image_metadata` table — image_url, alt, title, caption, description, content_type, content_id.
+   - DB triggers on `robots`, `spare_parts`, `services`, `blogs`, `profiles`, `community_posts` → enqueue job on INSERT; on UPDATE compare significant columns and enqueue only when changed.
+   - RLS: seo_metadata public SELECT; jobs service_role only.
+2. Frontend rendering pass:
+   - Wire `UniversalSEOHead` (already exists) to read from `seo_metadata` on every detail page (RobotDetails, SparePartDetails, ServiceDetails, BlogDetails, talent, financing, logistics).
+   - Fallback generator (`src/utils/seo/fallback.ts`) builds sensible defaults from the row if seo_metadata row is missing, and fires a client → edge call to enqueue.
+   - Breadcrumbs + Product/Article/FAQ JSON-LD rendered from `jsonld` column.
 
-### 3. BlogEditor page enhancements
+## Phase 2 — AI generation engine
 
-`src/pages/BlogEditor.tsx` upgraded with:
-- **SEO panel** (collapsible sidebar): meta title, meta description, focus keywords (chip input), SEO tags, URL slug (auto from title, editable), canonical URL
-- **Featured image section**: drag-drop upload, auto-compress, ALT text, caption, file-name optimization (slugified before upload)
-- **Social preview cards**: live Google SERP preview, LinkedIn card, Facebook card, Twitter card
-- **Draft auto-save** every 20s to `is_draft=true`
-- **Schedule publish** date-time picker → `scheduled_publish_at`
-- **Reading-time** auto-calculated and shown
-- Save/Publish/Schedule actions
+3. Edge function `seo-generator`:
+   - Pulls up to N pending jobs, marks processing, calls Lovable AI Gateway `google/gemini-3-flash-preview` with a strict JSON schema (Output object) producing every SEO field listed in your spec (title, meta, slug, focus keyword, OG/Twitter, JSON-LD, FAQ, AEO answer blocks, GEO summary/highlights/applications/industries/specs/use cases/pros/cons/maintenance/buying guide, image alt/title/caption per image, keyword set, related entity ids).
+   - Dedupe: skip call if content_hash unchanged; if hash matches another listing exactly, copy & lightly rewrite via cheaper prompt.
+   - Writes `seo_metadata`, updates job status, logs errors, supports retries (max 3 with backoff).
+4. Edge function `seo-regenerate` — auth-protected endpoint used by the seller dashboard and admin "Regenerate AI SEO" buttons; bypasses hash check.
+5. pg_cron job: every minute invoke `seo-generator` to drain the queue.
 
-### 4. BlogDetails page (public)
+## Phase 3 — Sitemap, robots, indexing automation
 
-`src/pages/BlogDetails.tsx`:
-- Add `<Helmet>` (already in project) tags: title, meta description, canonical, OG, Twitter
-- Inject `Article` + `BreadcrumbList` JSON-LD schema
-- Render featured image with `loading="lazy"`, `decoding="async"`, alt + caption
-- Sticky social-share bar: LinkedIn, Facebook, Twitter/X, WhatsApp, Copy Link
-- Author block (avatar, name, date, reading time, view count)
-- Related blogs (same category/tags) at the bottom
-- Slug-based routing: `/blog/:slug` (legacy `/blog/:id` still works via fallback lookup)
+6. Edge function `sitemap-generator`:
+   - Emits `/sitemap.xml` (index), `/sitemap-robots.xml`, `/sitemap-parts.xml`, `/sitemap-services.xml`, `/sitemap-blogs.xml` (news), `/sitemap-images.xml`, `/sitemap-categories.xml`, `/sitemap-brands.xml`, `/sitemap-landing.xml`.
+   - Triggered by job completion + nightly cron.
+   - Served via Supabase function URL, with redirect from `/sitemap.xml` (route handler) so robots.txt advertises a clean URL.
+7. `public/robots.txt` — add `Sitemap: https://www.robotverse.in/sitemap.xml`, keep current allow rules, block /admin, /dashboard, /auth.
+8. Edge function `indexing-pinger`:
+   - On seo_metadata insert/update → push URL to IndexNow (key file at `/<key>.txt`) and Google Indexing API (service account JSON in secret).
+   - Batches per minute, respects per-day quotas, logs results.
 
-### 5. Blogs listing page
+## Phase 4 — Category, brand, landing & search SEO
 
-`src/pages/Blogs.tsx`:
-- Search bar (title + content full-text)
-- Category + tag filter chips
-- Recent posts sidebar
-- Modern card layout with featured image, reading time, view count, publish date, author
-- Lazy-loaded images, responsive grid
+9. Dynamic landing-page generator:
+   - DB table `landing_pages` (slug, type=city/brand/category/combo, params, seo fields).
+   - Worker pre-creates pages like `/used-robots-in-india`, `/fanuc-robots-chennai`, `/abb-robots-germany`, `/spare-parts/fanuc-servo-motor`, populated by `seo-generator`.
+   - Routes added in `src/App.tsx`: `/landing/:slug`, `/brand/:brand`, `/category/:slug`, `/search` (already), `/used-robots-in-:city`.
+10. Category & brand pages reuse the same `seo_metadata` pipeline (content_type = 'category' | 'brand' | 'landing').
+11. Search results page: server-rendered title/description from query, schema=`SearchResultsPage` + `SearchAction`.
 
-### 6. Sitemap
+## Phase 5 — Image SEO & performance
 
-Existing sitemap generator (or `SitemapXML.tsx` route) extended to pull all published blog slugs and emit `/blog/{slug}` entries with `lastmod`. Triggered on every build (existing `predev`/`prebuild`) and dynamically served.
+12. On image upload (existing `enhanced-image-upload` function):
+    - Generate AI alt/title/caption, store in `seo_image_metadata`.
+    - Convert to WebP, generate responsive srcset, write to storage.
+    - Add to image sitemap.
+13. Shared `<SEOImage />` component using `loading="lazy"`, `decoding="async"`, srcset, alt from metadata.
 
-### 7. Social sharing
+## Phase 6 — AEO / GEO / Discover polish
 
-New `src/components/blog/BlogShareBar.tsx` with native share-intent URLs (no SDKs) for LinkedIn, Facebook, Twitter, WhatsApp + clipboard copy with toast.
+14. Every detail page renders the AI-generated AEO/GEO blocks (Quick Summary, Key Features, Applications, Specs, Pros, Cons, FAQ accordion, Comparison table, Buying Guide) — these are what AI search engines quote.
+15. Author + datePublished + dateModified on blogs for Google Discover.
+16. Auto-blog suggester: cron job inspects new robots/brands without blog coverage and queues `blog_draft` jobs that AI fills in for admin approval.
 
-### 8. Design
+## Phase 7 — Monitoring & guardrails
 
-Industrial aesthetic using existing semantic tokens (no new colors). Large readable serif headings (existing font tokens), generous spacing, white surface cards, subtle borders. Fully responsive (sm/md/lg/xl).
+17. Admin SEO dashboard:
+    - Per-content SEO status, last generated, model, tokens, error.
+    - Bulk regenerate by content_type / brand / date range.
+    - Lighthouse + schema validation snapshot per URL (via PageSpeed Insights API).
+18. Duplicate detector: nightly job flags content_hash collisions and queues rewrite jobs.
+19. Cost dashboard: AI Gateway usage by content_type.
 
-### 9. Files
+## Phase 8 — Future-ready
 
-**New:**
-- `supabase/migrations/<ts>_blog_seo.sql`
-- `src/components/blog/BlogRichEditor.tsx`
-- `src/components/blog/BlogSEOPanel.tsx`
-- `src/components/blog/BlogSocialPreview.tsx`
-- `src/components/blog/BlogShareBar.tsx`
-- `src/components/blog/FeaturedImageUpload.tsx`
-- `src/components/blog/BlogPreviewFrame.tsx` (mobile/tablet/desktop preview)
-- `src/utils/blogSeo.ts` (slug, reading time, schema helpers)
+20. `lang` column on seo_metadata for future multilingual SEO.
+21. `seo_metadata.version` lets us re-run the prompt globally when we improve it without losing history.
+22. New entity types (auctions, training, talent jobs) drop in by adding a trigger + prompt template — no other code changes.
 
-**Edited:**
-- `src/pages/BlogEditor.tsx` — wire new components, auto-save, schedule
-- `src/pages/BlogDetails.tsx` — Helmet, schema, share bar, related posts, slug routing
-- `src/pages/Blogs.tsx` — search/filter/sidebar, modern cards
-- `src/App.tsx` — add `/blog/:slug` route alongside existing
-- `scripts/generate-sitemap.ts` (or create if absent) — include blog slugs
+## Technical details
 
-**Dependencies added:** `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link`, `@tiptap/extension-image`, `@tiptap/extension-youtube`, `browser-image-compression`, `react-helmet-async` (if not already installed).
+- **Models**: `google/gemini-3-flash-preview` default; fallback to `google/gemini-3.1-flash-lite` for cheap rewrites/dedupes; `google/gemini-3.1-pro-preview` for 800-1500 word rich descriptions on flagship robots only.
+- **Secrets needed** (will request via add_secret when we reach Phase 3):
+  - `GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON`
+  - `INDEXNOW_KEY` (also written to `public/<key>.txt`)
+  - `BING_WEBMASTER_API_KEY` (optional)
+  - `PAGESPEED_API_KEY` (optional, Phase 7)
+- **Domain**: canonical base `https://www.robotverse.in` (per project memory).
+- **No SSR**: react-helmet-async covers Google/Bing/ChatGPT (they execute JS); social-preview crawlers will see the sitewide `index.html` OG fallback. SSR/edge rendering is out of scope here; can be revisited as Phase 9 if needed.
+- **Backward compatibility**: existing `useAutoSEO`, `UniversalSEOHead`, `src/utils/seo/*` keep working; the new pipeline writes into the format those utilities already consume.
+- **Rollout**: ship Phase 1+2 first, backfill existing rows via one-time admin "Generate SEO for all" job, then enable Phase 3 indexing pings so we don't ping Google with empty metadata.
 
-### Out of scope (future, as user noted)
-AI blog generation, multi-language, automated cross-posting — schema leaves room (`focus_keywords`, `seo_tags`, draft/schedule) but no implementation in this pass.
+## Suggested build order (each is a separate message after you approve)
 
----
+1. Phase 1 migration + frontend reads + fallback.
+2. Phase 2 `seo-generator` + `seo-regenerate` + cron + dashboard buttons.
+3. Phase 3 sitemap + robots + IndexNow + Google Indexing (needs secrets).
+4. Phase 4 landing/category/brand expansion.
+5. Phase 5 image SEO.
+6. Phase 6 AEO/GEO render + blog suggester.
+7. Phase 7 monitoring.
 
-This is a large change set spanning DB + ~10 files. After approval I'll create the migration first, then implement the components and page upgrades in batches.
+Approve the plan and I'll start with Phase 1.

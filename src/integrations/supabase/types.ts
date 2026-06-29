@@ -985,6 +985,53 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_usages: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          customer_id: string
+          discount_amount: number
+          final_price: number
+          id: string
+          order_reference: string | null
+          original_price: number
+          robot_id: string | null
+          seller_id: string
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          customer_id: string
+          discount_amount: number
+          final_price: number
+          id?: string
+          order_reference?: string | null
+          original_price: number
+          robot_id?: string | null
+          seller_id: string
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          customer_id?: string
+          discount_amount?: number
+          final_price?: number
+          id?: string
+          order_reference?: string | null
+          original_price?: number
+          robot_id?: string | null
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usages_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "seller_coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coverage_areas: {
         Row: {
           area_name: string
@@ -3377,6 +3424,81 @@ export type Database = {
           },
         ]
       }
+      seller_coupons: {
+        Row: {
+          admin_disabled: boolean
+          applicable_brands: string[]
+          applicable_categories: string[]
+          applicable_robot_ids: string[]
+          applies_to: Database["public"]["Enums"]["coupon_applies_to"]
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          expiry_date: string
+          id: string
+          is_active: boolean
+          max_discount_amount: number | null
+          min_order_amount: number
+          name: string
+          seller_id: string
+          start_date: string
+          times_used: number
+          updated_at: string
+          usage_limit: number
+          usage_limit_per_customer: number
+        }
+        Insert: {
+          admin_disabled?: boolean
+          applicable_brands?: string[]
+          applicable_categories?: string[]
+          applicable_robot_ids?: string[]
+          applies_to?: Database["public"]["Enums"]["coupon_applies_to"]
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          expiry_date: string
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number
+          name: string
+          seller_id: string
+          start_date?: string
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number
+          usage_limit_per_customer?: number
+        }
+        Update: {
+          admin_disabled?: boolean
+          applicable_brands?: string[]
+          applicable_categories?: string[]
+          applicable_robot_ids?: string[]
+          applies_to?: Database["public"]["Enums"]["coupon_applies_to"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number
+          expiry_date?: string
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number
+          name?: string
+          seller_id?: string
+          start_date?: string
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number
+          usage_limit_per_customer?: number
+        }
+        Relationships: []
+      }
       seller_credit_transactions: {
         Row: {
           balance_after: number
@@ -3728,6 +3850,231 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seo_image_metadata: {
+        Row: {
+          alt: string | null
+          caption: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          description: string | null
+          height: number | null
+          id: string
+          image_url: string
+          is_primary: boolean | null
+          mime_type: string | null
+          position: number | null
+          title: string | null
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          alt?: string | null
+          caption?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          description?: string | null
+          height?: number | null
+          id?: string
+          image_url: string
+          is_primary?: boolean | null
+          mime_type?: string | null
+          position?: number | null
+          title?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          alt?: string | null
+          caption?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          description?: string | null
+          height?: number | null
+          id?: string
+          image_url?: string
+          is_primary?: boolean | null
+          mime_type?: string | null
+          position?: number | null
+          title?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
+      seo_jobs: {
+        Row: {
+          action: string
+          attempts: number
+          content_id: string
+          content_type: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          last_error: string | null
+          payload: Json | null
+          priority: number
+          requested_by: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          attempts?: number
+          content_id: string
+          content_type: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          priority?: number
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          attempts?: number
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          priority?: number
+          requested_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_metadata: {
+        Row: {
+          ai_blocks: Json | null
+          breadcrumb: Json | null
+          canonical_url: string | null
+          content_hash: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          external_links: Json | null
+          faq: Json | null
+          focus_keyword: string | null
+          generated_at: string | null
+          highlights: Json | null
+          id: string
+          internal_links: Json | null
+          jsonld: Json | null
+          keywords: string[] | null
+          lang: string | null
+          meta_description: string | null
+          meta_title: string | null
+          model: string | null
+          og_description: string | null
+          og_image: string | null
+          og_title: string | null
+          og_type: string | null
+          prompt_version: number | null
+          related: Json | null
+          rich_description: string | null
+          slug: string | null
+          status: string | null
+          summary: string | null
+          tags: string[] | null
+          title: string | null
+          twitter_card: string | null
+          twitter_description: string | null
+          twitter_image: string | null
+          twitter_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_blocks?: Json | null
+          breadcrumb?: Json | null
+          canonical_url?: string | null
+          content_hash?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          external_links?: Json | null
+          faq?: Json | null
+          focus_keyword?: string | null
+          generated_at?: string | null
+          highlights?: Json | null
+          id?: string
+          internal_links?: Json | null
+          jsonld?: Json | null
+          keywords?: string[] | null
+          lang?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          model?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          og_type?: string | null
+          prompt_version?: number | null
+          related?: Json | null
+          rich_description?: string | null
+          slug?: string | null
+          status?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string | null
+          twitter_card?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_blocks?: Json | null
+          breadcrumb?: Json | null
+          canonical_url?: string | null
+          content_hash?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          external_links?: Json | null
+          faq?: Json | null
+          focus_keyword?: string | null
+          generated_at?: string | null
+          highlights?: Json | null
+          id?: string
+          internal_links?: Json | null
+          jsonld?: Json | null
+          keywords?: string[] | null
+          lang?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          model?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          og_type?: string | null
+          prompt_version?: number | null
+          related?: Json | null
+          rich_description?: string | null
+          slug?: string | null
+          status?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string | null
+          twitter_card?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       service_appointments: {
         Row: {
@@ -4743,6 +5090,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_end_auction: { Args: { p_auction_id: string }; Returns: Json }
       calc_reading_time: { Args: { _content: string }; Returns: number }
       complete_user_profile:
         | {
@@ -4895,6 +5243,17 @@ export type Database = {
           p_mobile_number?: string
           p_user_id: string
           p_user_type?: string
+        }
+        Returns: string
+      }
+      enqueue_seo_job: {
+        Args: {
+          p_action?: string
+          p_content_id: string
+          p_content_type: string
+          p_payload?: Json
+          p_priority?: number
+          p_requested_by?: string
         }
         Returns: string
       }
@@ -5066,6 +5425,20 @@ export type Database = {
         }
         Returns: Json
       }
+      record_coupon_usage: {
+        Args: {
+          p_coupon_id: string
+          p_order_reference?: string
+          p_original_price: number
+          p_robot_id: string
+        }
+        Returns: Json
+      }
+      request_seo_regenerate: {
+        Args: { p_content_id: string; p_content_type: string }
+        Returns: string
+      }
+      seo_hash: { Args: { p: string }; Returns: string }
       slugify: { Args: { input: string }; Returns: string }
       unlock_buyer_with_credits: {
         Args: { p_item_type: string; p_lead_id: string; p_seller_id: string }
@@ -5080,10 +5453,21 @@ export type Database = {
         }
         Returns: Json
       }
+      validate_and_apply_coupon: {
+        Args: {
+          p_code: string
+          p_order_amount: number
+          p_robot_id: string
+          p_seller_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       auction_status: "upcoming" | "live" | "ended" | "sold" | "not_sold"
       auction_type: "open" | "sealed"
+      coupon_applies_to: "all" | "robots" | "categories" | "brands"
+      coupon_discount_type: "percentage" | "fixed"
       lead_source_type:
         | "website"
         | "inquiry"
@@ -5248,6 +5632,8 @@ export const Constants = {
     Enums: {
       auction_status: ["upcoming", "live", "ended", "sold", "not_sold"],
       auction_type: ["open", "sealed"],
+      coupon_applies_to: ["all", "robots", "categories", "brands"],
+      coupon_discount_type: ["percentage", "fixed"],
       lead_source_type: [
         "website",
         "inquiry",

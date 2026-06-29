@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Mail, Loader2, Bot, User, Phone, Building, MapPin, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import CouponApplyBox from '@/components/coupons/CouponApplyBox';
+import { recordCouponUsage } from '@/hooks/useCoupons';
 
 interface RobotQuoteModalProps {
   isOpen: boolean;
@@ -41,6 +43,8 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
   const [success, setSuccess] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   
+  const [coupon, setCoupon] = useState<{ couponId: string; code: string; discount: number; finalPrice: number } | null>(null);
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -51,6 +55,12 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
     requirements: '',
     quantity: '1'
   });
+
+  const unitPrice = Number(robot.price || 0);
+  const qty = Math.max(1, parseInt(formData.quantity || '1', 10) || 1);
+  const subtotal = unitPrice * qty;
+  const discount = coupon ? coupon.discount * qty : 0;
+  const total = Math.max(0, subtotal - discount);
 
   // Fetch user profile to auto-fill form
   useEffect(() => {
@@ -134,7 +144,13 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
           robot_price: robot.price,
           robot_currency: robot.currency,
           quantity: formData.quantity,
-          auto_submitted: true
+          auto_submitted: true,
+          coupon_code: coupon?.code || null,
+          coupon_id: coupon?.couponId || null,
+          unit_price: unitPrice,
+          subtotal,
+          discount_amount: discount,
+          final_total: total,
         }
       };
 
@@ -144,6 +160,20 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
 
       if (dbError) {
         console.error('Error logging request:', dbError);
+      }
+
+      // Record coupon usage (if any)
+      if (coupon) {
+        try {
+          await recordCouponUsage({
+            couponId: coupon.couponId,
+            robotId: robot.id,
+            originalPrice: subtotal,
+            orderReference: `quote:${robot.id}:${Date.now()}`,
+          });
+        } catch (err) {
+          console.error('Coupon record error:', err);
+        }
       }
 
       // 2. Create notification for seller
@@ -384,6 +414,36 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
                 />
               </div>
             </div>
+
+            {/* Coupon + Price Summary */}
+            {unitPrice > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">Pricing</h3>
+                <CouponApplyBox
+                  sellerId={robot.seller_id}
+                  robotId={robot.id}
+                  amount={unitPrice}
+                  onApplied={(r) => setCoupon(r)}
+                  onCleared={() => setCoupon(null)}
+                />
+                <div className="rounded-lg border p-3 text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Unit price × {qty}</span>
+                    <span>{robot.currency || '₹'} {subtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  {coupon && (
+                    <div className="flex justify-between text-emerald-600">
+                      <span>Coupon "{coupon.code}"</span>
+                      <span>− {robot.currency || '₹'} {discount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-semibold border-t pt-1 mt-1">
+                    <span>Total</span>
+                    <span className="text-primary">{robot.currency || '₹'} {total.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Info Note */}
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm">

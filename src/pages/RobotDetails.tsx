@@ -19,6 +19,7 @@ import LoanCalculator from "@/components/forms/LoanCalculator";
 import LoanApplicationModal from "@/components/forms/LoanApplicationModal";
 import SupplierQuoteForm from "@/components/forms/SupplierQuoteForm";
 import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
+import CouponBadge from "@/components/coupons/CouponBadge";
 import { Textarea } from "@/components/ui/textarea";
 import AIAnalysisResult from "@/components/AIAnalysisResult";
 import {
@@ -726,6 +727,9 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     + Est. Import Duty: {formatPrice(importDuty, robot.currency)}
                   </p>
                 )}
+                <div className="pt-1">
+                  <CouponBadge sellerId={robot.seller_id} robotId={robot.id} />
+                </div>
               </div>
 
               {/* Key Details Grid */}

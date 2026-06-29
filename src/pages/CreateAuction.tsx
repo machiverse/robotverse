@@ -69,13 +69,30 @@ const CreateAuction: React.FC = () => {
     e.preventDefault();
     if (!user) { navigate('/auth'); return; }
 
-    if (!form.auction_title || !form.starting_price || !form.start_time || !form.end_time) {
-      toast({ title: 'Missing fields', description: 'Please fill all required fields.', variant: 'destructive' });
-      return;
-    }
+    const errors: string[] = [];
+    if (!form.auction_title.trim()) errors.push('Auction title is required');
+    if (!form.robot_id) errors.push('Please select a robot (category, type, images come from it)');
+    if (!form.starting_price || parseFloat(form.starting_price) <= 0) errors.push('Starting price must be greater than zero');
+    if (!form.start_time) errors.push('Start date & time is required');
+    if (!form.end_time) errors.push('End date & time is required');
 
-    if (new Date(form.end_time) <= new Date(form.start_time)) {
-      toast({ title: 'Invalid dates', description: 'End time must be after start time.', variant: 'destructive' });
+    const start = new Date(form.start_time);
+    const end = new Date(form.end_time);
+    const now = new Date();
+    if (form.start_time && start.getTime() < now.getTime() - 60_000) errors.push('Start time cannot be in the past');
+    if (form.end_time && end <= start) errors.push('End time must be after start time');
+    if (form.end_time && start && end.getTime() - start.getTime() < 15 * 60_000) errors.push('Auction must run at least 15 minutes');
+
+    if (form.has_reserve && (!form.reserve_price || parseFloat(form.reserve_price) <= parseFloat(form.starting_price))) {
+      errors.push('Reserve price must be greater than starting price');
+    }
+    if (form.has_buy_now && (!form.buy_now_price || parseFloat(form.buy_now_price) <= parseFloat(form.starting_price))) {
+      errors.push('Buy Now price must be greater than starting price');
+    }
+    if (!selectedRobot?.images?.length) errors.push('Selected robot must have at least one image');
+
+    if (errors.length) {
+      toast({ title: 'Please fix the following', description: errors.join(' • '), variant: 'destructive' });
       return;
     }
 
@@ -83,19 +100,19 @@ const CreateAuction: React.FC = () => {
     try {
       const { error } = await supabase.from('auctions').insert({
         seller_id: user.id,
-        auction_title: form.auction_title,
+        auction_title: form.auction_title.trim(),
         description: form.description || null,
         robot_id: form.robot_id || null,
         auction_type: form.auction_type as any,
-        start_time: new Date(form.start_time).toISOString(),
-        end_time: new Date(form.end_time).toISOString(),
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
         starting_price: parseFloat(form.starting_price),
         min_increment: parseFloat(form.min_increment) || 100,
         reserve_price: form.has_reserve && form.reserve_price ? parseFloat(form.reserve_price) : null,
         buy_now_price: form.has_buy_now && form.buy_now_price ? parseFloat(form.buy_now_price) : null,
         auto_extend_minutes: parseInt(form.auto_extend_minutes) || 5,
         images: selectedRobot?.images || null,
-        status: new Date(form.start_time) <= new Date() ? 'live' as any : 'upcoming' as any,
+        status: start <= now ? 'live' as any : 'upcoming' as any,
       } as any);
 
       if (error) throw error;
