@@ -1,108 +1,88 @@
 /**
  * Modern Schema.org Structured Data for RobotVerse
- * Comprehensive JSON-LD schemas for maximum search visibility
+ * Cleaner, safer JSON-LD aligned with visible content and canonical URLs
  */
 
-const BASE_URL = 'https://www.robotverse.in';
+const BASE_URL = "https://www.robotverse.in";
 const LOGO_URL = `${BASE_URL}/robotverse-logo.png`;
 const OG_IMAGE_URL = `${BASE_URL}/og-image.jpg`;
 
+const absoluteUrl = (url?: string) => {
+  if (!url) return BASE_URL;
+  return url.startsWith("http") ? url : `${BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+};
+
+const cleanObject = <T extends Record<string, any>>(obj: T): T =>
+  Object.fromEntries(
+    Object.entries(obj).filter(
+      ([, value]) =>
+        value !== undefined && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0),
+    ),
+  ) as T;
+
+const normalizeCondition = (condition?: string) => {
+  const value = (condition || "").toLowerCase();
+  if (value === "new") return "https://schema.org/NewCondition";
+  if (value === "refurbished") return "https://schema.org/RefurbishedCondition";
+  return "https://schema.org/UsedCondition";
+};
+
 // ============ ORGANIZATION SCHEMA ============
 
-export const generateOrganizationSchema = () => ({
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "@id": `${BASE_URL}/#organization`,
-  "name": "RobotVerse",
-  "alternateName": "RobotVerse India",
-  "url": BASE_URL,
-  "logo": {
-    "@type": "ImageObject",
-    "url": LOGO_URL,
-    "width": 512,
-    "height": 512
-  },
-  "image": OG_IMAGE_URL,
-  "description": "India's leading B2B marketplace for industrial robots, automation equipment, spare parts, and services. Connecting verified sellers with buyers across India and globally.",
-  "foundingDate": "2020",
-  "foundingLocation": {
-    "@type": "Place",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Chennai",
-      "addressRegion": "Tamil Nadu",
-      "addressCountry": "IN"
-    }
-  },
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "SIPCOT IT Park, 5-B/9, 6th Cross St, Siruseri",
-    "addressLocality": "Chennai",
-    "addressRegion": "Tamil Nadu",
-    "postalCode": "603103",
-    "addressCountry": "IN"
-  },
-  "contactPoint": [
-    {
-      "@type": "ContactPoint",
-      "telephone": "+91-8610925352",
-      "contactType": "customer service",
-      "areaServed": "IN",
-      "availableLanguage": ["English", "Hindi", "Tamil"]
+export const generateOrganizationSchema = () =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": `${BASE_URL}/#organization`,
+    name: "RobotVerse",
+    url: BASE_URL,
+    logo: {
+      "@type": "ImageObject",
+      url: LOGO_URL,
     },
-    {
-      "@type": "ContactPoint",
-      "email": "support@robotverse.in",
-      "contactType": "customer support"
-    }
-  ],
-  "sameAs": [
-    "https://www.linkedin.com/company/robotverse",
-    "https://twitter.com/RobotVerseIndia",
-    "https://www.facebook.com/RobotVerseIndia",
-    "https://www.youtube.com/@RobotVerse"
-  ],
-  "slogan": "India's Trusted Industrial Robot Marketplace",
-  "knowsAbout": [
-    "Industrial Robots",
-    "Automation Equipment",
-    "Robot Spare Parts",
-    "Robot Services",
-    "FANUC Robots",
-    "ABB Robots",
-    "KUKA Robots",
-    "Yaskawa Robots"
-  ],
-  "areaServed": {
-    "@type": "Country",
-    "name": "India"
-  }
-});
+    image: OG_IMAGE_URL,
+    description: "Marketplace for industrial robots, spare parts, and automation services in India.",
+    areaServed: {
+      "@type": "Country",
+      name: "India",
+    },
+    contactPoint: [
+      cleanObject({
+        "@type": "ContactPoint",
+        telephone: "+91-8610925352",
+        email: "support@robotverse.in",
+        contactType: "customer service",
+        areaServed: "IN",
+        availableLanguage: ["English", "Tamil"],
+      }),
+    ],
+  });
 
 // ============ WEBSITE SCHEMA ============
 
-export const generateWebSiteSchema = () => ({
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "@id": `${BASE_URL}/#website`,
-  "name": "RobotVerse",
-  "url": BASE_URL,
-  "description": "Buy and sell industrial robots, spare parts, and automation equipment on India's largest robot marketplace",
-  "publisher": {
-    "@id": `${BASE_URL}/#organization`
-  },
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": {
-      "@type": "EntryPoint",
-      "urlTemplate": `${BASE_URL}/robots?search={search_term_string}`
+export const generateWebSiteSchema = () =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${BASE_URL}/#website`,
+    name: "RobotVerse",
+    url: BASE_URL,
+    description: "Marketplace for industrial robots, spare parts, and automation services in India.",
+    publisher: {
+      "@id": `${BASE_URL}/#organization`,
     },
-    "query-input": "required name=search_term_string"
-  },
-  "inLanguage": "en-IN"
-});
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${BASE_URL}/robots?search={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+    inLanguage: "en-IN",
+  });
 
-// ============ PRODUCT SCHEMA (Robot/Part) ============
+// ============ PRODUCT SCHEMA ============
 
 export const generateProductSchema = (product: {
   id: string;
@@ -126,171 +106,156 @@ export const generateProductSchema = (product: {
     company_name?: string;
   };
 }) => {
-  const productName = `${product.brand || ''} ${product.model || product.name}`.trim();
-  const productUrl = `${BASE_URL}/robots/${product.id}`;
-  
-  return {
+  const productName = `${product.brand || ""} ${product.model || product.name}`.trim();
+  const productUrl = absoluteUrl(`/robots/${product.id}`);
+
+  const schema: Record<string, any> = cleanObject({
     "@context": "https://schema.org",
     "@type": "Product",
     "@id": `${productUrl}#product`,
-    "name": productName,
-    "description": product.description || `${productName} industrial robot available on RobotVerse marketplace`,
-    "brand": {
-      "@type": "Brand",
-      "name": product.brand || "Generic"
-    },
-    "model": product.model,
-    "sku": product.id,
-    "mpn": product.model,
-    "image": product.images?.length ? product.images.map(img => 
-      img.startsWith('http') ? img : `${BASE_URL}${img}`
-    ) : [OG_IMAGE_URL],
-    "offers": {
-      "@type": "Offer",
-      "url": productUrl,
-      "priceCurrency": product.currency || "INR",
-      "price": product.price || 0,
-      "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      "availability": product.availability === 'available' 
-        ? "https://schema.org/InStock" 
-        : "https://schema.org/OutOfStock",
-      "itemCondition": product.condition === 'new' 
-        ? "https://schema.org/NewCondition" 
-        : product.condition === 'refurbished'
-        ? "https://schema.org/RefurbishedCondition"
-        : "https://schema.org/UsedCondition",
-      "seller": {
-        "@type": "Organization",
-        "name": product.seller?.company_name || product.seller?.full_name || "RobotVerse Seller",
-        "url": BASE_URL
-      },
-      "shippingDetails": {
-        "@type": "OfferShippingDetails",
-        "shippingDestination": {
-          "@type": "DefinedRegion",
-          "addressCountry": "IN"
-        },
-        "deliveryTime": {
-          "@type": "ShippingDeliveryTime",
-          "handlingTime": {
-            "@type": "QuantitativeValue",
-            "minValue": 1,
-            "maxValue": 3,
-            "unitCode": "d"
-          },
-          "transitTime": {
-            "@type": "QuantitativeValue",
-            "minValue": 3,
-            "maxValue": 10,
-            "unitCode": "d"
-          }
+    name: productName,
+    description: product.description || `${productName} industrial robot listed on RobotVerse.`,
+    brand: product.brand
+      ? {
+          "@type": "Brand",
+          name: product.brand,
         }
-      }
-    },
-    "additionalProperty": [
+      : undefined,
+    model: product.model,
+    sku: product.id,
+    mpn: product.model,
+    image: product.images?.length ? product.images.map((img) => absoluteUrl(img)) : undefined,
+    category: "Industrial Robot",
+    additionalProperty: [
       product.payload_capacity && {
         "@type": "PropertyValue",
-        "name": "Payload Capacity",
-        "value": product.payload_capacity,
-        "unitCode": "KGM",
-        "unitText": "kg"
+        name: "Payload Capacity",
+        value: product.payload_capacity,
+        unitText: "kg",
       },
       product.reach && {
         "@type": "PropertyValue",
-        "name": "Reach",
-        "value": product.reach,
-        "unitCode": "MMT",
-        "unitText": "mm"
+        name: "Reach",
+        value: product.reach,
+        unitText: "mm",
       },
       product.year_manufactured && {
         "@type": "PropertyValue",
-        "name": "Year of Manufacture",
-        "value": product.year_manufactured
+        name: "Year of Manufacture",
+        value: product.year_manufactured,
       },
       product.controller_type && {
         "@type": "PropertyValue",
-        "name": "Controller Type",
-        "value": product.controller_type
-      }
+        name: "Controller Type",
+        value: product.controller_type,
+      },
     ].filter(Boolean),
-    "category": "Industrial Robot",
-    "audience": {
+    audience: {
       "@type": "Audience",
-      "audienceType": "Manufacturers, Factory Owners, System Integrators"
+      audienceType: "Manufacturing and industrial buyers",
     },
     ...(product.location && {
-      "availableAtOrFrom": {
+      availableAtOrFrom: {
         "@type": "Place",
-        "address": {
+        address: {
           "@type": "PostalAddress",
-          "addressLocality": product.location,
-          "addressCountry": "IN"
-        }
-      }
-    })
-  };
+          addressLocality: product.location,
+          addressCountry: "IN",
+        },
+      },
+    }),
+  });
+
+  if (product.price) {
+    schema.offers = cleanObject({
+      "@type": "Offer",
+      url: productUrl,
+      priceCurrency: product.currency || "INR",
+      price: String(product.price),
+      priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      availability:
+        product.availability === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      itemCondition: normalizeCondition(product.condition),
+      seller: {
+        "@type": "Organization",
+        name: product.seller?.company_name || product.seller?.full_name || "RobotVerse",
+        url: BASE_URL,
+      },
+    });
+  }
+
+  return schema;
 };
 
 // ============ FAQ SCHEMA ============
 
-export const generateFAQSchema = (faqs: Array<{question: string; answer: string}>) => ({
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": faqs.map(faq => ({
-    "@type": "Question",
-    "name": faq.question,
-    "acceptedAnswer": {
-      "@type": "Answer",
-      "text": faq.answer
-    }
-  }))
-});
+export const generateFAQSchema = (faqs: Array<{ question: string; answer: string }>) =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: (faqs || [])
+      .filter((faq) => faq?.question && faq?.answer)
+      .map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+  });
 
 // ============ BREADCRUMB SCHEMA ============
 
-export const generateBreadcrumbSchema = (items: Array<{name: string; url: string}>) => ({
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": items.map((item, index) => ({
-    "@type": "ListItem",
-    "position": index + 1,
-    "name": item.name,
-    "item": item.url.startsWith('http') ? item.url : `${BASE_URL}${item.url}`
-  }))
-});
+export const generateBreadcrumbSchema = (items: Array<{ name: string; url: string }>) =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(item.url),
+    })),
+  });
 
-// ============ ITEM LIST SCHEMA (Listings) ============
+// ============ ITEM LIST SCHEMA ============
 
 export const generateItemListSchema = (
   items: any[],
   listName: string,
-  listType: 'robots' | 'parts' | 'services' = 'robots'
-) => ({
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  "name": listName,
-  "description": `Browse ${listName.toLowerCase()} on RobotVerse - India's leading industrial robot marketplace`,
-  "numberOfItems": items.length,
-  "itemListElement": items.slice(0, 20).map((item, index) => ({
-    "@type": "ListItem",
-    "position": index + 1,
-    "item": {
-      "@type": "Product",
-      "name": `${item.brand || ''} ${item.model || item.name}`.trim(),
-      "url": `${BASE_URL}/${listType}/${item.id}`,
-      "image": item.images?.[0] || item.image || OG_IMAGE_URL,
-      "description": item.description?.substring(0, 150) || `${item.brand || ''} ${item.model || item.name} available on RobotVerse`,
-      "offers": {
-        "@type": "Offer",
-        "price": item.price || 0,
-        "priceCurrency": item.currency || "INR",
-        "availability": item.availability === 'available' 
-          ? "https://schema.org/InStock" 
-          : "https://schema.org/OutOfStock"
-      }
-    }
-  }))
-});
+  listType: "robots" | "parts" | "services" = "robots",
+) =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: listName,
+    description: `Browse ${listName.toLowerCase()} on RobotVerse.`,
+    numberOfItems: items.length,
+    itemListElement: items.slice(0, 20).map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      item: cleanObject({
+        "@type": listType === "services" ? "Service" : "Product",
+        name: `${item.brand || ""} ${item.model || item.name || ""}`.trim(),
+        url: absoluteUrl(`/${listType}/${item.id}`),
+        image: item.images?.[0] ? absoluteUrl(item.images[0]) : item.image ? absoluteUrl(item.image) : undefined,
+        description:
+          item.description?.substring(0, 150) || `${item.brand || ""} ${item.model || item.name || ""}`.trim(),
+        ...(item.price
+          ? {
+              offers: {
+                "@type": "Offer",
+                price: String(item.price),
+                priceCurrency: item.currency || "INR",
+                availability:
+                  item.availability === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+              },
+            }
+          : {}),
+      }),
+    })),
+  });
 
 // ============ SERVICE SCHEMA ============
 
@@ -304,43 +269,44 @@ export const generateServiceSchema = (service: {
     full_name?: string;
     company_name?: string;
   };
-}) => ({
-  "@context": "https://schema.org",
-  "@type": "Service",
-  "@id": `${BASE_URL}/services/${service.id}#service`,
-  "name": service.name || service.service_type,
-  "description": service.description || `Professional ${service.service_type} for industrial robots`,
-  "serviceType": service.service_type || "Robot Service",
-  "provider": {
-    "@type": "Organization",
-    "name": service.provider?.company_name || service.provider?.full_name || "RobotVerse Service Provider",
-    "url": BASE_URL
-  },
-  "areaServed": {
-    "@type": "Country",
-    "name": "India"
-  },
-  "availableChannel": {
-    "@type": "ServiceChannel",
-    "serviceUrl": `${BASE_URL}/services/${service.id}`,
-    "servicePhone": "+91-8610925352"
-  },
-  ...(service.location && {
-    "serviceLocation": {
-      "@type": "Place",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": service.location,
-        "addressCountry": "IN"
-      }
-    }
-  })
-});
+}) =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "@id": `${BASE_URL}/services/${service.id}#service`,
+    name: service.name || service.service_type,
+    description: service.description || `Professional ${service.service_type || "industrial robot"} service.`,
+    serviceType: service.service_type || "Robot Service",
+    provider: {
+      "@type": "Organization",
+      name: service.provider?.company_name || service.provider?.full_name || "RobotVerse",
+      url: BASE_URL,
+    },
+    areaServed: {
+      "@type": "Country",
+      name: "India",
+    },
+    availableChannel: {
+      "@type": "ServiceChannel",
+      serviceUrl: absoluteUrl(`/services/${service.id}`),
+    },
+    ...(service.location && {
+      serviceLocation: {
+        "@type": "Place",
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: service.location,
+          addressCountry: "IN",
+        },
+      },
+    }),
+  });
 
-// ============ ARTICLE SCHEMA (Blog) ============
+// ============ ARTICLE SCHEMA ============
 
 export const generateArticleSchema = (article: {
   id: string;
+  slug?: string;
   title: string;
   content?: string;
   excerpt?: string;
@@ -349,101 +315,96 @@ export const generateArticleSchema = (article: {
   updated_at?: string;
   image_url?: string;
   tags?: string[];
-}) => ({
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "@id": `${BASE_URL}/blogs/${article.id}#article`,
-  "headline": article.title,
-  "description": article.excerpt || article.content?.substring(0, 160) || article.title,
-  "image": article.image_url || OG_IMAGE_URL,
-  "author": {
-    "@type": "Person",
-    "name": article.author_name || "RobotVerse Team"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "RobotVerse",
-    "logo": {
-      "@type": "ImageObject",
-      "url": LOGO_URL
-    }
-  },
-  "datePublished": article.created_at,
-  "dateModified": article.updated_at || article.created_at,
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": `${BASE_URL}/blogs/${article.id}`
-  },
-  "keywords": article.tags?.join(', ') || "industrial robots, automation, robotics",
-  "articleSection": "Industrial Robotics",
-  "inLanguage": "en-IN"
-});
+}) => {
+  const articleUrl = absoluteUrl(`/robobook/${article.slug || article.id}`);
+
+  return cleanObject({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${articleUrl}#article`,
+    headline: article.title,
+    description: article.excerpt || article.content?.substring(0, 160) || article.title,
+    image: article.image_url ? absoluteUrl(article.image_url) : undefined,
+    author: {
+      "@type": "Person",
+      name: article.author_name || "RobotVerse Team",
+    },
+    publisher: {
+      "@id": `${BASE_URL}/#organization`,
+    },
+    datePublished: article.created_at,
+    dateModified: article.updated_at || article.created_at,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
+    },
+    keywords: article.tags?.length ? article.tags.join(", ") : undefined,
+    articleSection: "Industrial Robotics",
+    inLanguage: "en-IN",
+  });
+};
 
 // ============ LOCAL BUSINESS SCHEMA ============
 
-export const generateLocalBusinessSchema = () => ({
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  "@id": `${BASE_URL}/#localbusiness`,
-  "name": "RobotVerse",
-  "image": LOGO_URL,
-  "description": "India's leading industrial robot marketplace - Buy, sell robots, spare parts, and services",
-  "url": BASE_URL,
-  "telephone": "+91-8610925352",
-  "email": "support@robotverse.in",
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "SIPCOT IT Park, 5-B/9, 6th Cross St, Siruseri",
-    "addressLocality": "Chennai",
-    "addressRegion": "Tamil Nadu",
-    "postalCode": "603103",
-    "addressCountry": "IN"
-  },
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": 12.8342,
-    "longitude": 80.2134
-  },
-  "openingHoursSpecification": [
-    {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      "opens": "09:00",
-      "closes": "18:00"
+export const generateLocalBusinessSchema = () =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": `${BASE_URL}/#localbusiness`,
+    name: "RobotVerse",
+    url: BASE_URL,
+    image: LOGO_URL,
+    telephone: "+91-8610925352",
+    email: "support@robotverse.in",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "No. 309A, ECR, Near PEC & PU,Pillaichavady, Vanur Taluk,Villupuram District,",
+      addressLocality: "Pillaichavady",
+      addressRegion: "Tamil Nadu",
+      postalCode: "605014",
+      addressCountry: "IN",
     },
-    {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": "Saturday",
-      "opens": "10:00",
-      "closes": "16:00"
-    }
-  ],
-  "priceRange": "₹₹₹",
-  "currenciesAccepted": "INR",
-  "paymentAccepted": "Bank Transfer, UPI, Credit Card"
-});
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 12.8342,
+      longitude: 80.2134,
+    },
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "09:00",
+        closes: "18:00",
+      },
+    ],
+    priceRange: "₹₹₹",
+    currenciesAccepted: "INR",
+  });
 
-// ============ HOW-TO SCHEMA (Guides) ============
+// ============ HOW-TO SCHEMA ============
 
 export const generateHowToSchema = (howTo: {
   name: string;
   description: string;
-  steps: Array<{name: string; text: string; image?: string}>;
+  steps: Array<{ name: string; text: string; image?: string }>;
   totalTime?: string;
-}) => ({
-  "@context": "https://schema.org",
-  "@type": "HowTo",
-  "name": howTo.name,
-  "description": howTo.description,
-  "totalTime": howTo.totalTime || "PT30M",
-  "step": howTo.steps.map((step, index) => ({
-    "@type": "HowToStep",
-    "position": index + 1,
-    "name": step.name,
-    "text": step.text,
-    ...(step.image && { "image": step.image })
-  }))
-});
+}) =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: howTo.name,
+    description: howTo.description,
+    totalTime: howTo.totalTime || "PT30M",
+    step: howTo.steps.map((step, index) =>
+      cleanObject({
+        "@type": "HowToStep",
+        position: index + 1,
+        name: step.name,
+        text: step.text,
+        image: step.image ? absoluteUrl(step.image) : undefined,
+      }),
+    ),
+  });
 
 // ============ AGGREGATE OFFER SCHEMA ============
 
@@ -452,42 +413,42 @@ export const generateAggregateOfferSchema = (stats: {
   lowPrice: number;
   highPrice: number;
   currency?: string;
-}) => ({
-  "@context": "https://schema.org",
-  "@type": "AggregateOffer",
-  "offerCount": stats.totalProducts,
-  "lowPrice": stats.lowPrice,
-  "highPrice": stats.highPrice,
-  "priceCurrency": stats.currency || "INR"
-});
+}) =>
+  cleanObject({
+    "@context": "https://schema.org",
+    "@type": "AggregateOffer",
+    offerCount: stats.totalProducts,
+    lowPrice: stats.lowPrice,
+    highPrice: stats.highPrice,
+    priceCurrency: stats.currency || "INR",
+  });
 
 // ============ COMBINED PAGE SCHEMAS ============
 
 export const generatePageSchemas = (
-  pageType: 'home' | 'listing' | 'product' | 'service' | 'article',
-  data?: any
+  pageType: "home" | "listing" | "product" | "service" | "article",
+  data?: any,
 ): object[] => {
-  const schemas: object[] = [
-    generateOrganizationSchema(),
-    generateWebSiteSchema()
-  ];
-  
+  const schemas: object[] = [generateOrganizationSchema(), generateWebSiteSchema()];
+
   switch (pageType) {
-    case 'home':
+    case "home":
       schemas.push(generateLocalBusinessSchema());
       break;
-    case 'listing':
+
+    case "listing":
       if (data?.items) {
-        schemas.push(generateItemListSchema(data.items, data.listName || 'Products', data.listType));
+        schemas.push(generateItemListSchema(data.items, data.listName || "Products", data.listType));
       }
       if (data?.breadcrumbs) {
         schemas.push(generateBreadcrumbSchema(data.breadcrumbs));
       }
       break;
-    case 'product':
+
+    case "product":
       if (data) {
         schemas.push(generateProductSchema(data));
-        if (data.faqs) {
+        if (Array.isArray(data.faqs) && data.faqs.length > 0) {
           schemas.push(generateFAQSchema(data.faqs));
         }
         if (data.breadcrumbs) {
@@ -495,7 +456,8 @@ export const generatePageSchemas = (
         }
       }
       break;
-    case 'service':
+
+    case "service":
       if (data) {
         schemas.push(generateServiceSchema(data));
         if (data.breadcrumbs) {
@@ -503,7 +465,8 @@ export const generatePageSchemas = (
         }
       }
       break;
-    case 'article':
+
+    case "article":
       if (data) {
         schemas.push(generateArticleSchema(data));
         if (data.breadcrumbs) {
@@ -512,7 +475,7 @@ export const generatePageSchemas = (
       }
       break;
   }
-  
+
   return schemas;
 };
 
@@ -528,5 +491,5 @@ export default {
   generateLocalBusinessSchema,
   generateHowToSchema,
   generateAggregateOfferSchema,
-  generatePageSchemas
+  generatePageSchemas,
 };
