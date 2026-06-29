@@ -65,12 +65,8 @@ export default function CityServices() {
         {items.map((s) => (
           <Link to={`/services/${s.id}`} key={s.id}>
             <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="aspect-square bg-muted overflow-hidden">
-                    alt={`${s.name} - ${typeLabel} in ${cityLabel}`}
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                  />
-                )}
+              <div className="aspect-video bg-muted flex items-center justify-center text-muted-foreground text-xs">
+                {s.service_type}
               </div>
               <div className="p-4">
                 <h3 className="font-semibold truncate">{s.name}</h3>
