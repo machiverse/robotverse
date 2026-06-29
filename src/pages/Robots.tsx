@@ -305,6 +305,34 @@ const Robots = () => {
     fetchData();
   }, [getItemViewCount, user, isReady]);
 
+  // Fetch active coupons to know which robots have offers
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("seller_coupons")
+        .select("seller_id, applies_to, applicable_robot_ids")
+        .eq("is_active", true)
+        .eq("admin_disabled", false)
+        .gte("expiry_date", new Date().toISOString());
+      if (!data) return;
+      const sellersAll = new Set<string>();
+      const robotIds = new Set<string>();
+      data.forEach((c: any) => {
+        if (c.applies_to === "all" || c.applies_to === "categories" || c.applies_to === "brands") {
+          sellersAll.add(c.seller_id);
+        } else if (c.applies_to === "robots" && Array.isArray(c.applicable_robot_ids)) {
+          c.applicable_robot_ids.forEach((id: string) => robotIds.add(id));
+        }
+      });
+      // Mark all robots whose seller has a generic coupon
+      setRobotsWithOffers((prev) => {
+        const set = new Set<string>(robotIds);
+        robots.forEach((r) => { if (sellersAll.has(r.seller_id)) set.add(r.id); });
+        return set;
+      });
+    })();
+  }, [robots]);
+
   const getLabelFromValue = (arr: { value: string; label: string }[], value: string): string => {
     return arr.find((i) => i.value === value)?.label?.toLowerCase() || value;
   };
