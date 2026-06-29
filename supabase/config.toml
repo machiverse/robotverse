@@ -55,6 +55,12 @@ verify_jwt = false
 [functions.sitemap]
 verify_jwt = false
 
+[functions.image-seo]
+verify_jwt = false
+
+[functions.aeo-render]
+verify_jwt = false
+
 [db]
 enabled = true
 port = 54322
