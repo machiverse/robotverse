@@ -24,6 +24,7 @@ import {
   Heart,
   Scale,
   Check,
+  Tag,
 } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
