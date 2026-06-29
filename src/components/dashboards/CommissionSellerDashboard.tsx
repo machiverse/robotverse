@@ -47,6 +47,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingRobot, setEditingRobot] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState("inventory");
 
   const [dashboardStats, setDashboardStats] = useState({
