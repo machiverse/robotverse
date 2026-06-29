@@ -20,6 +20,15 @@ export default function CityServices() {
       setLoading(true);
       const { data } = await supabase
         .from("services")
+        .select("id, name, service_type, location, description")
+        .ilike("service_type", `%${typeLabel}%`)
+        .ilike("location", `%${cityLabel}%`)
+        .order("updated_at", { ascending: false })
+        .limit(60);
+      if (!cancelled) {
+        setItems(data ?? []);
+        setLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
