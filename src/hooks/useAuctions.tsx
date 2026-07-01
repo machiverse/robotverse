@@ -82,7 +82,6 @@ export function useAuctions(statusFilter?: string) {
       const { data, error } = await supabase
         .from('auctions')
         .select('*, robots(name, model, robot_type, images, location, brand)')
-        .neq('status', 'cancelled' as any)
         .order('created_at', { ascending: false });
       if (error) throw error;
 

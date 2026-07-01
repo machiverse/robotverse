@@ -21,7 +21,12 @@ const Auctions: React.FC = () => {
   // Periodically finalize any expired auctions (every 2 minutes while page is open)
   useEffect(() => {
     const tick = async () => {
-      try { await (supabase as any).rpc('finalize_due_auctions'); } catch {}
+      try {
+        const { error } = await (supabase as any).rpc('finalize_due_auctions');
+        if (error && error.code !== 'PGRST202' && !String(error.message || '').includes('Could not find the function')) {
+          console.warn('finalize_due_auctions:', error.message);
+        }
+      } catch {}
     };
     tick();
     const i = setInterval(tick, 120000);
