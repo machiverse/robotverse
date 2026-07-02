@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Gavel, Loader2, Bot, CheckCircle2, MapPin } from 'lucide-react';
+import { ArrowLeft, Gavel, Loader2, Bot, CheckCircle2, MapPin, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 const CreateAuction: React.FC = () => {
@@ -229,6 +229,38 @@ const CreateAuction: React.FC = () => {
                     })}
                   </div>
                 )}
+
+                {/* Selected robots chips with explicit remove buttons */}
+                {selectedRobots.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground mr-1">Selected:</span>
+                    {selectedRobots.map((robot: any) => (
+                      <Badge
+                        key={robot.id}
+                        variant="secondary"
+                        className="flex items-center gap-1 pl-2 pr-1 py-1 text-xs cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        onClick={() => toggleRobot(robot)}
+                        title="Click to remove"
+                      >
+                        {robot.name}
+                        <span className="inline-flex items-center justify-center rounded-full hover:bg-destructive/20 p-0.5">
+                          <X className="w-3 h-3" />
+                        </span>
+                      </Badge>
+                    ))}
+                    {selectedRobots.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-6 px-2 text-muted-foreground hover:text-destructive"
+                        onClick={() => setForm((prev) => ({ ...prev, robot_ids: [] }))}
+                      >
+                        Clear all
+                      </Button>
+                    )}
+                  </div>
+                )}
+
                 {myRobots && myRobots.length > 0 && form.robot_ids.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-2">Tap one or more robots to bundle them into this auction.</p>
                 )}
