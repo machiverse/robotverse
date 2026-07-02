@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Gavel, Loader2, Bot, CheckCircle2, MapPin } from 'lucide-react';
+import { ArrowLeft, Gavel, Loader2, Bot, CheckCircle2, MapPin, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 const CreateAuction: React.FC = () => {
