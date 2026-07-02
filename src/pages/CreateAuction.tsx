@@ -77,7 +77,7 @@ const CreateAuction: React.FC = () => {
 
     const errors: string[] = [];
     if (!form.auction_title.trim()) errors.push('Auction title is required');
-    if (!form.robot_id) errors.push('Please select a robot (category, type, images come from it)');
+    if (!form.robot_ids.length) errors.push('Please select at least one robot (category, type, images come from it)');
     if (!form.starting_price || parseFloat(form.starting_price) <= 0) errors.push('Starting price must be greater than zero');
     if (!form.start_time) errors.push('Start date & time is required');
     if (!form.end_time) errors.push('End date & time is required');
