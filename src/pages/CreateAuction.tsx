@@ -109,7 +109,8 @@ const CreateAuction: React.FC = () => {
         seller_id: user.id,
         auction_title: form.auction_title.trim(),
         description: form.description || null,
-        robot_id: form.robot_id || null,
+        robot_id: primaryRobot?.id || null,
+        robot_ids: form.robot_ids,
         auction_type: form.auction_type as any,
         start_time: start.toISOString(),
         end_time: end.toISOString(),
@@ -118,7 +119,7 @@ const CreateAuction: React.FC = () => {
         reserve_price: form.has_reserve && form.reserve_price ? parseFloat(form.reserve_price) : null,
         buy_now_price: form.has_buy_now && form.buy_now_price ? parseFloat(form.buy_now_price) : null,
         auto_extend_minutes: parseInt(form.auto_extend_minutes) || 5,
-        images: selectedRobot?.images || null,
+        images: aggregatedImages.length ? aggregatedImages : null,
         status: start <= now ? 'live' as any : 'upcoming' as any,
       } as any);
 
