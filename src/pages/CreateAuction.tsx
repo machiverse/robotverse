@@ -162,7 +162,7 @@ const CreateAuction: React.FC = () => {
 
               {/* Step 1: Select Robot */}
               <div>
-                <Label className="text-sm font-semibold mb-3 block">Step 1: Select a Robot from Your Listings</Label>
+                <Label className="text-sm font-semibold mb-3 block">Step 1: Select One or More Robots from Your Listings</Label>
                 {loadingRobots ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
