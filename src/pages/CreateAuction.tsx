@@ -178,11 +178,11 @@ const CreateAuction: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
                     {myRobots.map((robot: any) => {
-                      const isSelected = form.robot_id === robot.id;
+                      const isSelected = form.robot_ids.includes(robot.id);
                       return (
                         <div
                           key={robot.id}
-                          onClick={() => selectRobot(robot)}
+                          onClick={() => toggleRobot(robot)}
                           className={`relative flex gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
                             isSelected
                               ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
