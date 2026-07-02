@@ -22,7 +22,7 @@ const CreateAuction: React.FC = () => {
   const [form, setForm] = useState({
     auction_title: '',
     description: '',
-    robot_id: '',
+    robot_ids: [] as string[],
     auction_type: 'open' as 'open' | 'sealed',
     start_time: '',
     end_time: '',
@@ -50,20 +50,26 @@ const CreateAuction: React.FC = () => {
     enabled: !!user,
   });
 
-  const selectRobot = (robot: any) => {
-    if (form.robot_id === robot.id) {
-      // Deselect
-      setForm({ ...form, robot_id: '', auction_title: form.auction_title });
-    } else {
-      setForm({
-        ...form,
-        robot_id: robot.id,
-        auction_title: form.auction_title || `${robot.name} ${robot.model ? '— ' + robot.model : ''}`.trim(),
-      });
-    }
+  const toggleRobot = (robot: any) => {
+    setForm((prev) => {
+      const exists = prev.robot_ids.includes(robot.id);
+      const nextIds = exists
+        ? prev.robot_ids.filter((id) => id !== robot.id)
+        : [...prev.robot_ids, robot.id];
+
+      // Auto-fill title from the first selected robot if title is empty
+      let nextTitle = prev.auction_title;
+      if (!exists && !prev.auction_title.trim()) {
+        nextTitle = `${robot.name}${robot.model ? ' — ' + robot.model : ''}`.trim();
+      }
+      // If user removes all robots, keep any manually-typed title
+      return { ...prev, robot_ids: nextIds, auction_title: nextTitle };
+    });
   };
 
-  const selectedRobot = myRobots?.find((r: any) => r.id === form.robot_id);
+  const selectedRobots = (myRobots || []).filter((r: any) => form.robot_ids.includes(r.id));
+  const primaryRobot = selectedRobots[0];
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +77,7 @@ const CreateAuction: React.FC = () => {
 
     const errors: string[] = [];
     if (!form.auction_title.trim()) errors.push('Auction title is required');
-    if (!form.robot_id) errors.push('Please select a robot (category, type, images come from it)');
+    if (!form.robot_ids.length) errors.push('Please select at least one robot (category, type, images come from it)');
     if (!form.starting_price || parseFloat(form.starting_price) <= 0) errors.push('Starting price must be greater than zero');
     if (!form.start_time) errors.push('Start date & time is required');
     if (!form.end_time) errors.push('End date & time is required');
@@ -89,7 +95,8 @@ const CreateAuction: React.FC = () => {
     if (form.has_buy_now && (!form.buy_now_price || parseFloat(form.buy_now_price) <= parseFloat(form.starting_price))) {
       errors.push('Buy Now price must be greater than starting price');
     }
-    if (!selectedRobot?.images?.length) errors.push('Selected robot must have at least one image');
+    const aggregatedImages = selectedRobots.flatMap((r: any) => r.images || []);
+    if (!aggregatedImages.length) errors.push('At least one selected robot must have an image');
 
     if (errors.length) {
       toast({ title: 'Please fix the following', description: errors.join(' • '), variant: 'destructive' });
@@ -102,7 +109,8 @@ const CreateAuction: React.FC = () => {
         seller_id: user.id,
         auction_title: form.auction_title.trim(),
         description: form.description || null,
-        robot_id: form.robot_id || null,
+        robot_id: primaryRobot?.id || null,
+        robot_ids: form.robot_ids,
         auction_type: form.auction_type as any,
         start_time: start.toISOString(),
         end_time: end.toISOString(),
@@ -111,7 +119,7 @@ const CreateAuction: React.FC = () => {
         reserve_price: form.has_reserve && form.reserve_price ? parseFloat(form.reserve_price) : null,
         buy_now_price: form.has_buy_now && form.buy_now_price ? parseFloat(form.buy_now_price) : null,
         auto_extend_minutes: parseInt(form.auto_extend_minutes) || 5,
-        images: selectedRobot?.images || null,
+        images: aggregatedImages.length ? aggregatedImages : null,
         status: start <= now ? 'live' as any : 'upcoming' as any,
       } as any);
 
@@ -154,7 +162,7 @@ const CreateAuction: React.FC = () => {
 
               {/* Step 1: Select Robot */}
               <div>
-                <Label className="text-sm font-semibold mb-3 block">Step 1: Select a Robot from Your Listings</Label>
+                <Label className="text-sm font-semibold mb-3 block">Step 1: Select One or More Robots from Your Listings</Label>
                 {loadingRobots ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -170,11 +178,11 @@ const CreateAuction: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
                     {myRobots.map((robot: any) => {
-                      const isSelected = form.robot_id === robot.id;
+                      const isSelected = form.robot_ids.includes(robot.id);
                       return (
                         <div
                           key={robot.id}
-                          onClick={() => selectRobot(robot)}
+                          onClick={() => toggleRobot(robot)}
                           className={`relative flex gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
                             isSelected
                               ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
@@ -221,8 +229,11 @@ const CreateAuction: React.FC = () => {
                     })}
                   </div>
                 )}
-                {myRobots && myRobots.length > 0 && !form.robot_id && (
-                  <p className="text-xs text-muted-foreground mt-2">Click a robot to link it to this auction. You can also create an auction without linking.</p>
+                {myRobots && myRobots.length > 0 && form.robot_ids.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">Tap one or more robots to bundle them into this auction.</p>
+                )}
+                {form.robot_ids.length > 1 && (
+                  <p className="text-xs text-primary mt-2">{form.robot_ids.length} robots selected — they'll be listed together in this auction.</p>
                 )}
               </div>
 
