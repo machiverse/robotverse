@@ -344,10 +344,17 @@ const CreateAuction: React.FC = () => {
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={loading || form.robot_ids.length === 0}
+                  >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Gavel className="w-4 h-4 mr-2" />}
                     Create Auction
                   </Button>
+                  {form.robot_ids.length === 0 && (
+                    <p className="text-xs text-destructive text-center -mt-2">Select at least one robot to create the auction.</p>
+                  )}
                 </div>
               </div>
             </form>
