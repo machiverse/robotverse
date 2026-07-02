@@ -22,7 +22,7 @@ const CreateAuction: React.FC = () => {
   const [form, setForm] = useState({
     auction_title: '',
     description: '',
-    robot_id: '',
+    robot_ids: [] as string[],
     auction_type: 'open' as 'open' | 'sealed',
     start_time: '',
     end_time: '',
@@ -50,20 +50,26 @@ const CreateAuction: React.FC = () => {
     enabled: !!user,
   });
 
-  const selectRobot = (robot: any) => {
-    if (form.robot_id === robot.id) {
-      // Deselect
-      setForm({ ...form, robot_id: '', auction_title: form.auction_title });
-    } else {
-      setForm({
-        ...form,
-        robot_id: robot.id,
-        auction_title: form.auction_title || `${robot.name} ${robot.model ? '— ' + robot.model : ''}`.trim(),
-      });
-    }
+  const toggleRobot = (robot: any) => {
+    setForm((prev) => {
+      const exists = prev.robot_ids.includes(robot.id);
+      const nextIds = exists
+        ? prev.robot_ids.filter((id) => id !== robot.id)
+        : [...prev.robot_ids, robot.id];
+
+      // Auto-fill title from the first selected robot if title is empty
+      let nextTitle = prev.auction_title;
+      if (!exists && !prev.auction_title.trim()) {
+        nextTitle = `${robot.name}${robot.model ? ' — ' + robot.model : ''}`.trim();
+      }
+      // If user removes all robots, keep any manually-typed title
+      return { ...prev, robot_ids: nextIds, auction_title: nextTitle };
+    });
   };
 
-  const selectedRobot = myRobots?.find((r: any) => r.id === form.robot_id);
+  const selectedRobots = (myRobots || []).filter((r: any) => form.robot_ids.includes(r.id));
+  const primaryRobot = selectedRobots[0];
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

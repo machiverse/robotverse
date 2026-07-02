@@ -102,6 +102,7 @@ export type Database = {
           min_increment: number
           reserve_price: number | null
           robot_id: string | null
+          robot_ids: string[] | null
           seller_accepted: boolean | null
           seller_id: string
           start_time: string
@@ -130,6 +131,7 @@ export type Database = {
           min_increment?: number
           reserve_price?: number | null
           robot_id?: string | null
+          robot_ids?: string[] | null
           seller_accepted?: boolean | null
           seller_id: string
           start_time: string
@@ -158,6 +160,7 @@ export type Database = {
           min_increment?: number
           reserve_price?: number | null
           robot_id?: string | null
+          robot_ids?: string[] | null
           seller_accepted?: boolean | null
           seller_id?: string
           start_time?: string

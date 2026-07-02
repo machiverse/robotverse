@@ -1,0 +1,1 @@
+ALTER TABLE public.auctions ADD COLUMN IF NOT EXISTS robot_ids uuid[] DEFAULT '{}'::uuid[];
