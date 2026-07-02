@@ -95,7 +95,8 @@ const CreateAuction: React.FC = () => {
     if (form.has_buy_now && (!form.buy_now_price || parseFloat(form.buy_now_price) <= parseFloat(form.starting_price))) {
       errors.push('Buy Now price must be greater than starting price');
     }
-    if (!selectedRobot?.images?.length) errors.push('Selected robot must have at least one image');
+    const aggregatedImages = selectedRobots.flatMap((r: any) => r.images || []);
+    if (!aggregatedImages.length) errors.push('At least one selected robot must have an image');
 
     if (errors.length) {
       toast({ title: 'Please fix the following', description: errors.join(' • '), variant: 'destructive' });
