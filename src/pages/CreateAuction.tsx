@@ -235,9 +235,6 @@ const CreateAuction: React.FC = () => {
                 {form.robot_ids.length > 1 && (
                   <p className="text-xs text-primary mt-2">{form.robot_ids.length} robots selected — they'll be listed together in this auction.</p>
                 )}
-                {false && (
-                  <p className="text-xs text-muted-foreground mt-2">Click a robot to link it to this auction. You can also create an auction without linking.</p>
-                )}
               </div>
 
               {/* Step 2: Auction Details */}
