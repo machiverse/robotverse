@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Key, Shield, Zap, Webhook, Code } from 'lucide-react';
+import { Key, Shield, Zap, Webhook } from 'lucide-react';
 
 const BASE = 'https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/api-v1';
 
-function Code({ children }: { children: React.ReactNode }) {
+function CodeBlock({ children }: { children: React.ReactNode }) {
   return <pre className="bg-muted text-sm p-3 rounded overflow-x-auto"><code>{children}</code></pre>;
 }
 
