@@ -14,6 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_key_usage: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          hour_bucket: string
+          id: string
+          request_count: number
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          hour_bucket: string
+          id?: string
+          request_count?: number
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          hour_bucket?: string
+          id?: string
+          request_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_usage_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          is_partner: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          partner_name: string | null
+          rate_limit_per_hour: number
+          request_count: number
+          revoked_at: string | null
+          scopes: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_partner?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          partner_name?: string | null
+          rate_limit_per_hour?: number
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_partner?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          partner_name?: string | null
+          rate_limit_per_hour?: number
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      api_webhook_deliveries: {
+        Row: {
+          attempted_at: string
+          event: string
+          id: string
+          payload: Json
+          response_body: string | null
+          status_code: number | null
+          success: boolean
+          webhook_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          event: string
+          id?: string
+          payload: Json
+          response_body?: string | null
+          status_code?: number | null
+          success?: boolean
+          webhook_id: string
+        }
+        Update: {
+          attempted_at?: string
+          event?: string
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          status_code?: number | null
+          success?: boolean
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "api_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_webhooks: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          events: string[]
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_delivered_at: string | null
+          secret: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          events?: string[]
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_delivered_at?: string | null
+          secret: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          events?: string[]
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_delivered_at?: string | null
+          secret?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_webhooks_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auction_bids: {
         Row: {
           auction_id: string
