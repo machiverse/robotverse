@@ -58,6 +58,8 @@ import Messages from "./pages/dashboard/Messages";
 import Credits from "./pages/dashboard/Credits";
 import Quotations from "./pages/dashboard/Quotations";
 import MyRequests from "./pages/dashboard/MyRequests";
+import ApiKeys from "./pages/dashboard/ApiKeys";
+import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
