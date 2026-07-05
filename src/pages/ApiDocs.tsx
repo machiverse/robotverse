@@ -21,7 +21,7 @@ function Endpoint({ method, path, desc, example }: { method: string; path: strin
         <code className="font-mono text-sm">{path}</code>
       </div>
       <p className="text-sm text-muted-foreground">{desc}</p>
-      {example && <Code>{example}</Code>}
+      {example && <CodeBlock>{example}</CodeBlock>}
     </div>
   );
 }
@@ -50,11 +50,11 @@ export default function ApiDocs() {
 
         <section className="space-y-3">
           <h2 className="text-2xl font-bold">Base URL</h2>
-          <Code>{BASE}</Code>
+          <CodeBlock>{BASE}</CodeBlock>
           <h3 className="font-semibold mt-4">Authentication</h3>
           <p className="text-sm text-muted-foreground">Send your API key on every request:</p>
-          <Code>{`curl "${BASE}/v1/robots?limit=5" \\
-  -H "x-api-key: rv_live_YOUR_KEY_HERE"`}</Code>
+          <CodeBlock>{`curl "${BASE}/v1/robots?limit=5" \\
+  -H "x-api-key: rv_live_YOUR_KEY_HERE"`}</CodeBlock>
           <p className="text-sm text-muted-foreground">All responses are JSON with the shape <code>{'{ "data": ..., "pagination": {...} }'}</code> or <code>{'{ "error": "..." }'}</code>.</p>
         </section>
 
@@ -113,24 +113,24 @@ export default function ApiDocs() {
         <section className="space-y-3">
           <h2 className="text-2xl font-bold">Rate limits & errors</h2>
           <p className="text-sm text-muted-foreground">1000 requests/hour per key. When exceeded, responses return HTTP 429 with headers <code>X-RateLimit-Limit</code> and <code>X-RateLimit-Remaining</code>. Standard error format:</p>
-          <Code>{`{ "error": "Rate limit exceeded", "limit": 1000 }`}</Code>
+          <CodeBlock>{`{ "error": "Rate limit exceeded", "limit": 1000 }`}</CodeBlock>
           <p className="text-sm text-muted-foreground">Status codes: 200 OK · 201 Created · 400 Bad Request · 401 Unauthorized · 402 Insufficient credits · 403 Missing scope · 404 Not found · 429 Rate limited · 500 Server error.</p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-2xl font-bold">SDK quickstart</h2>
-          <Code>{`// JavaScript / Node
+          <CodeBlock>{`// JavaScript / Node
 const res = await fetch("${BASE}/v1/search?q=palletizing", {
   headers: { "x-api-key": process.env.ROBOTVERSE_KEY }
 });
 const { data } = await res.json();
-console.log(data.robots);`}</Code>
-          <Code>{`# Python
+console.log(data.robots);`}</CodeBlock>
+          <CodeBlock>{`# Python
 import os, requests
 r = requests.get("${BASE}/v1/robots",
   headers={"x-api-key": os.environ["ROBOTVERSE_KEY"]},
   params={"brand": "ABB", "limit": 20})
-print(r.json())`}</Code>
+print(r.json())`}</CodeBlock>
         </section>
       </div>
       <Footer />
