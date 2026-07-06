@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Copy, Key, Trash2, ExternalLink, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import EnhancedHeader from '@/components/EnhancedHeader';
+import { Copy, Key, Trash2, ExternalLink, Plus, Menu } from 'lucide-react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 const SCOPES = [
   { id: 'read', label: 'Read', desc: 'Fetch robots, parts, services, categories, search' },
@@ -35,9 +36,11 @@ interface ApiKey {
 }
 
 export default function ApiKeys() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newlyCreated, setNewlyCreated] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', scopes: ['read'] as string[] });
@@ -46,13 +49,36 @@ export default function ApiKeys() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from('api_keys').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('api_keys')
+      .select('id, name, key_prefix, scopes, is_partner, partner_name, rate_limit_per_hour, revoked_at, last_used_at, request_count, created_at')
+      .order('created_at', { ascending: false });
     if (error) toast.error(error.message);
     setKeys((data as ApiKey[]) || []);
     setLoading(false);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Profile fetch error:', error);
+      } else {
+        setUserProfile(data);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   const create = async () => {
     if (!form.name.trim()) return toast.error('Name required');
@@ -82,61 +108,85 @@ export default function ApiKeys() {
     toast.success('Copied');
   };
 
-  if (!user) {
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <EnhancedHeader />
-        <div className="container py-16 text-center">Sign in to manage API keys.</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <EnhancedHeader />
-      <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2"><Key className="w-7 h-7" /> API Keys</h1>
-            <p className="text-muted-foreground mt-1">
-              Programmatic access to RobotVerse. Use these keys to integrate with ERP, CRM, marketplaces, mobile apps, and AI tools.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button asChild variant="outline"><Link to="/api-docs"><ExternalLink className="w-4 h-4 mr-2" /> API Docs</Link></Button>
-            <Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4 mr-2" /> Create Key</Button>
-          </div>
-        </div>
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
-        {loading ? (
-          <div className="text-muted-foreground">Loading…</div>
-        ) : keys.length === 0 ? (
-          <Card><CardContent className="py-12 text-center text-muted-foreground">No keys yet. Create one to start using the API.</CardContent></Card>
-        ) : (
-          <div className="grid gap-3">
-            {keys.map((k) => (
-              <Card key={k.id} className={k.revoked_at ? 'opacity-60' : ''}>
-                <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold">{k.name}</span>
-                      {k.is_partner && <Badge variant="secondary">Partner</Badge>}
-                      {k.revoked_at && <Badge variant="destructive">Revoked</Badge>}
-                      {k.scopes.map(s => <Badge key={s} variant="outline">{s}</Badge>)}
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1 font-mono truncate">{k.key_prefix}••••••••••••</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {k.rate_limit_per_hour}/hr · {k.request_count} requests · last used {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : 'never'}
-                    </div>
-                  </div>
-                  {!k.revoked_at && (
-                    <Button variant="ghost" size="sm" onClick={() => revoke(k.id)}><Trash2 className="w-4 h-4 mr-2" /> Revoke</Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <DashboardSidebar userProfile={userProfile} />
+        <div className="flex-1 flex flex-col">
+          <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+            <div className="flex items-center justify-between h-full px-4">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="p-2">
+                  <Menu className="h-4 w-4" />
+                </SidebarTrigger>
+                <h1 className="text-xl font-semibold flex items-center gap-2">
+                  <Key className="w-5 h-5" /> API Keys
+                </h1>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+                Back to RobotVerse
+              </Button>
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-auto">
+            <div className="container mx-auto max-w-5xl px-4 py-8 space-y-6">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-muted-foreground mt-1">
+                    Programmatic access to RobotVerse. Use these keys to integrate with ERP, CRM, marketplaces, mobile apps, and AI tools.
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button asChild variant="outline"><Link to="/api-docs"><ExternalLink className="w-4 h-4 mr-2" /> API Docs</Link></Button>
+                  <Button onClick={() => setDialogOpen(true)}><Plus className="w-4 h-4 mr-2" /> Create Key</Button>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="text-muted-foreground">Loading…</div>
+              ) : keys.length === 0 ? (
+                <Card><CardContent className="py-12 text-center text-muted-foreground">No keys yet. Create one to start using the API.</CardContent></Card>
+              ) : (
+                <div className="grid gap-3">
+                  {keys.map((k) => (
+                    <Card key={k.id} className={k.revoked_at ? 'opacity-60' : ''}>
+                      <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">{k.name}</span>
+                            {k.is_partner && <Badge variant="secondary">Partner</Badge>}
+                            {k.revoked_at && <Badge variant="destructive">Revoked</Badge>}
+                            {k.scopes.map(s => <Badge key={s} variant="outline">{s}</Badge>)}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1 font-mono truncate">{k.key_prefix}••••••••••••</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {k.rate_limit_per_hour}/hr · {k.request_count} requests · last used {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : 'never'}
+                          </div>
+                        </div>
+                        {!k.revoked_at && (
+                          <Button variant="ghost" size="sm" onClick={() => revoke(k.id)}><Trash2 className="w-4 h-4 mr-2" /> Revoke</Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
       </div>
 
       {/* Create dialog */}
@@ -190,6 +240,6 @@ export default function ApiKeys() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </SidebarProvider>
   );
 }
