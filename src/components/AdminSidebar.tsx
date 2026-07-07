@@ -34,6 +34,7 @@ const AdminSidebar = React.memo(({ userProfile, onSignOut, activeSection, onSect
     { id: "quotes", label: "Quotes & Quotations", icon: FileText },
     { id: "user-requests", label: "User Requests", icon: FileQuestion },
     { id: "coupons", label: "Coupons", icon: Ticket },
+    { id: "api-keys", label: "API Key Requests", icon: Key },
   ], []);
 
   const handleToggleCollapse = useCallback(() => {
