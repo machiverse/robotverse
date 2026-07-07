@@ -21,6 +21,7 @@ import AdminDealsCommission from "./admin/AdminDealsCommission";
 import AdminQuoteMonitoring from "./admin/AdminQuoteMonitoring";
 import AdminCouponsPanel from "./admin/AdminCouponsPanel";
 import AdminUserRequests from "./admin/AdminUserRequests";
+import AdminApiKeys from "./admin/AdminApiKeys";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
