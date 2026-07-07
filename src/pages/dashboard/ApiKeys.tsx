@@ -93,9 +93,25 @@ export default function ApiKeys() {
     setSaving(false);
     if (error) return toast.error(error.message);
     if (data?.error) return toast.error(data.error);
-    setNewlyCreated(data.data.api_key);
+    toast.success('Request submitted — an admin will review and approve your API key shortly.');
     setDialogOpen(false);
     setForm({ name: '', scopes: ['read'] });
+    load();
+  };
+
+  const reveal = async (id: string) => {
+    const { data, error } = await supabase.functions.invoke('api-keys-manage', { body: { action: 'reveal', id } });
+    if (error) return toast.error(error.message);
+    if (data?.error) return toast.error(data.error);
+    setNewlyCreated(data.data.api_key);
+    load();
+  };
+
+  const revoke = async (id: string) => {
+    if (!confirm('Revoke this API key? Integrations using it will stop working immediately.')) return;
+    const { data, error } = await supabase.functions.invoke('api-keys-manage', { body: { action: 'revoke', id } });
+    if (error || data?.error) return toast.error(error?.message || data?.error);
+    toast.success('Key revoked');
     load();
   };
 
