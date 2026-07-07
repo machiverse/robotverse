@@ -24,7 +24,7 @@ const SCOPES = [
 interface ApiKey {
   id: string;
   name: string;
-  key_prefix: string;
+  key_prefix: string | null;
   scopes: string[];
   is_partner: boolean;
   partner_name: string | null;
@@ -33,6 +33,10 @@ interface ApiKey {
   last_used_at: string | null;
   request_count: number;
   created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approved_at: string | null;
+  rejection_reason: string | null;
+  plaintext_key: string | null;
 }
 
 export default function ApiKeys() {
@@ -51,7 +55,7 @@ export default function ApiKeys() {
     setLoading(true);
     const { data, error } = await supabase
       .from('api_keys')
-      .select('id, name, key_prefix, scopes, is_partner, partner_name, rate_limit_per_hour, revoked_at, last_used_at, request_count, created_at')
+      .select('id, name, key_prefix, scopes, is_partner, partner_name, rate_limit_per_hour, revoked_at, last_used_at, request_count, created_at, status, approved_at, rejection_reason, plaintext_key')
       .order('created_at', { ascending: false });
     if (error) toast.error(error.message);
     setKeys((data as ApiKey[]) || []);
@@ -89,9 +93,17 @@ export default function ApiKeys() {
     setSaving(false);
     if (error) return toast.error(error.message);
     if (data?.error) return toast.error(data.error);
-    setNewlyCreated(data.data.api_key);
+    toast.success('Request submitted — an admin will review and approve your API key shortly.');
     setDialogOpen(false);
     setForm({ name: '', scopes: ['read'] });
+    load();
+  };
+
+  const reveal = async (id: string) => {
+    const { data, error } = await supabase.functions.invoke('api-keys-manage', { body: { action: 'reveal', id } });
+    if (error) return toast.error(error.message);
+    if (data?.error) return toast.error(data.error);
+    setNewlyCreated(data.data.api_key);
     load();
   };
 
@@ -102,6 +114,7 @@ export default function ApiKeys() {
     toast.success('Key revoked');
     load();
   };
+
 
   const copy = (val: string) => {
     navigator.clipboard.writeText(val);
@@ -161,27 +174,46 @@ export default function ApiKeys() {
                 <Card><CardContent className="py-12 text-center text-muted-foreground">No keys yet. Create one to start using the API.</CardContent></Card>
               ) : (
                 <div className="grid gap-3">
-                  {keys.map((k) => (
-                    <Card key={k.id} className={k.revoked_at ? 'opacity-60' : ''}>
-                      <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold">{k.name}</span>
-                            {k.is_partner && <Badge variant="secondary">Partner</Badge>}
-                            {k.revoked_at && <Badge variant="destructive">Revoked</Badge>}
-                            {k.scopes.map(s => <Badge key={s} variant="outline">{s}</Badge>)}
+                  {keys.map((k) => {
+                    const isPending = k.status === 'pending';
+                    const isRejected = k.status === 'rejected';
+                    const isApproved = k.status === 'approved';
+                    return (
+                      <Card key={k.id} className={k.revoked_at || isRejected ? 'opacity-60' : ''}>
+                        <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold">{k.name}</span>
+                              {isPending && <Badge variant="outline" className="border-amber-500 text-amber-600">Pending admin approval</Badge>}
+                              {isRejected && <Badge variant="destructive">Rejected</Badge>}
+                              {isApproved && !k.revoked_at && <Badge className="bg-emerald-600 hover:bg-emerald-600">Approved</Badge>}
+                              {k.is_partner && <Badge variant="secondary">Partner</Badge>}
+                              {k.revoked_at && <Badge variant="destructive">Revoked</Badge>}
+                              {k.scopes.map(s => <Badge key={s} variant="outline">{s}</Badge>)}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1 font-mono truncate">
+                              {isApproved ? `${k.key_prefix}••••••••••••` : isPending ? 'Key will be generated after admin approval' : isRejected ? (k.rejection_reason || 'Request rejected') : ''}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {k.rate_limit_per_hour}/hr · {k.request_count} requests · last used {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : 'never'}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground mt-1 font-mono truncate">{k.key_prefix}••••••••••••</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {k.rate_limit_per_hour}/hr · {k.request_count} requests · last used {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : 'never'}
+                          <div className="flex gap-2 flex-wrap">
+                            {isApproved && k.plaintext_key && !k.revoked_at && (
+                              <Button variant="default" size="sm" onClick={() => reveal(k.id)}>
+                                <Key className="w-4 h-4 mr-2" /> Reveal Key
+                              </Button>
+                            )}
+                            {!k.revoked_at && !isRejected && (
+                              <Button variant="ghost" size="sm" onClick={() => revoke(k.id)}>
+                                <Trash2 className="w-4 h-4 mr-2" /> {isPending ? 'Cancel' : 'Revoke'}
+                              </Button>
+                            )}
                           </div>
-                        </div>
-                        {!k.revoked_at && (
-                          <Button variant="ghost" size="sm" onClick={() => revoke(k.id)}><Trash2 className="w-4 h-4 mr-2" /> Revoke</Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </div>

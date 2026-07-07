@@ -48,50 +48,65 @@ export type Database = {
       }
       api_keys: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           id: string
           is_partner: boolean
-          key_hash: string
-          key_prefix: string
+          key_hash: string | null
+          key_prefix: string | null
           last_used_at: string | null
           name: string
           partner_name: string | null
+          plaintext_key: string | null
           rate_limit_per_hour: number
+          rejection_reason: string | null
           request_count: number
           revoked_at: string | null
           scopes: string[]
+          status: string
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           id?: string
           is_partner?: boolean
-          key_hash: string
-          key_prefix: string
+          key_hash?: string | null
+          key_prefix?: string | null
           last_used_at?: string | null
           name: string
           partner_name?: string | null
+          plaintext_key?: string | null
           rate_limit_per_hour?: number
+          rejection_reason?: string | null
           request_count?: number
           revoked_at?: string | null
           scopes?: string[]
+          status?: string
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           id?: string
           is_partner?: boolean
-          key_hash?: string
-          key_prefix?: string
+          key_hash?: string | null
+          key_prefix?: string | null
           last_used_at?: string | null
           name?: string
           partner_name?: string | null
+          plaintext_key?: string | null
           rate_limit_per_hour?: number
+          rejection_reason?: string | null
           request_count?: number
           revoked_at?: string | null
           scopes?: string[]
+          status?: string
           updated_at?: string
           user_id?: string | null
         }
