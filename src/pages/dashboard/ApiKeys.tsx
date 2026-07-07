@@ -115,13 +115,6 @@ export default function ApiKeys() {
     load();
   };
 
-  const revoke = async (id: string) => {
-    if (!confirm('Revoke this API key? Integrations using it will stop working immediately.')) return;
-    const { data, error } = await supabase.functions.invoke('api-keys-manage', { body: { action: 'revoke', id } });
-    if (error || data?.error) return toast.error(error?.message || data?.error);
-    toast.success('Key revoked');
-    load();
-  };
 
   const copy = (val: string) => {
     navigator.clipboard.writeText(val);
