@@ -24,7 +24,7 @@ const SCOPES = [
 interface ApiKey {
   id: string;
   name: string;
-  key_prefix: string;
+  key_prefix: string | null;
   scopes: string[];
   is_partner: boolean;
   partner_name: string | null;
@@ -33,6 +33,10 @@ interface ApiKey {
   last_used_at: string | null;
   request_count: number;
   created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approved_at: string | null;
+  rejection_reason: string | null;
+  plaintext_key: string | null;
 }
 
 export default function ApiKeys() {
