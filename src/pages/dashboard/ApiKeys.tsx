@@ -55,7 +55,7 @@ export default function ApiKeys() {
     setLoading(true);
     const { data, error } = await supabase
       .from('api_keys')
-      .select('id, name, key_prefix, scopes, is_partner, partner_name, rate_limit_per_hour, revoked_at, last_used_at, request_count, created_at')
+      .select('id, name, key_prefix, scopes, is_partner, partner_name, rate_limit_per_hour, revoked_at, last_used_at, request_count, created_at, status, approved_at, rejection_reason, plaintext_key')
       .order('created_at', { ascending: false });
     if (error) toast.error(error.message);
     setKeys((data as ApiKey[]) || []);
