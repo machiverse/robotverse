@@ -2979,10 +2979,12 @@ export type Database = {
           account_type: string | null
           avatar_url: string | null
           average_rating: number | null
+          bio: string | null
           city: string | null
           company_logo_url: string | null
           company_name: string | null
           completed_sales: number | null
+          country: string | null
           created_at: string
           credits_balance: number | null
           email: string | null
@@ -3011,6 +3013,8 @@ export type Database = {
           seller_model_type: string | null
           seller_roles: string[] | null
           service_categories: string[] | null
+          specializations: string[] | null
+          state: string | null
           target_audience: string[] | null
           total_reviews: number | null
           transport_modes: string[] | null
@@ -3024,10 +3028,12 @@ export type Database = {
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
+          bio?: string | null
           city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          country?: string | null
           created_at?: string
           credits_balance?: number | null
           email?: string | null
@@ -3056,6 +3062,8 @@ export type Database = {
           seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
+          specializations?: string[] | null
+          state?: string | null
           target_audience?: string[] | null
           total_reviews?: number | null
           transport_modes?: string[] | null
@@ -3069,10 +3077,12 @@ export type Database = {
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
+          bio?: string | null
           city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          country?: string | null
           created_at?: string
           credits_balance?: number | null
           email?: string | null
@@ -3101,6 +3111,8 @@ export type Database = {
           seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
+          specializations?: string[] | null
+          state?: string | null
           target_audience?: string[] | null
           total_reviews?: number | null
           transport_modes?: string[] | null
