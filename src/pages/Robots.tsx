@@ -960,7 +960,7 @@ const Robots = () => {
                           {robotsGroup.length !== 1 ? "s" : ""} available
                         </p>
                       </div>
-                      {groupBy === "company" && sellerProfiles[key] && <Badge variant="outline">Verified Seller</Badge>}
+                      
                     </div>
                   )}
 
