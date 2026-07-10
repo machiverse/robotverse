@@ -185,7 +185,47 @@ const ServiceDetails = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <UniversalSEOHead
+        pageType="services"
+        title={`${service.name} - ${service.category} in ${service.location} | RobotVerse`}
+        description={`${service.description.slice(0, 150)} Provided by ${service.provider} in ${service.location}. Response time ${service.responseTime}. Request a quote on RobotVerse.`}
+        ogType="product"
+        location={service.location}
+        canonicalUrl={`https://www.robotverse.in/services/${service.id}`}
+        schemas={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Service",
+            name: service.name,
+            serviceType: service.category,
+            areaServed: service.location,
+            provider: {
+              "@type": "Organization",
+              name: service.provider,
+            },
+            description: service.description,
+            aggregateRating: service.rating
+              ? {
+                  "@type": "AggregateRating",
+                  ratingValue: service.rating,
+                  reviewCount: service.completedJobs ?? 1,
+                }
+              : undefined,
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://www.robotverse.in" },
+              { "@type": "ListItem", position: 2, name: "Services", item: "https://www.robotverse.in/services" },
+              { "@type": "ListItem", position: 3, name: service.name, item: `https://www.robotverse.in/services/${service.id}` },
+            ],
+          },
+        ]}
+      />
       <EnhancedHeader />
+
+
 
       <main className="flex-grow">
         {/* Breadcrumb */}
