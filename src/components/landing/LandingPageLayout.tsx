@@ -45,6 +45,32 @@ export function LandingPageLayout({
     ? seo.canonical
     : `${BASE_URL}${seo.canonical}`;
 
+  // Auto-generate FAQ + Breadcrumb JSON-LD for richer SERP/AEO results
+  const autoSchemas: unknown[] = [];
+  if (seo.faq && seo.faq.length > 0) {
+    autoSchemas.push({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: seo.faq.map((f) => ({
+        "@type": "Question",
+        name: f.question,
+        acceptedAnswer: { "@type": "Answer", text: f.answer },
+      })),
+    });
+  }
+  autoSchemas.push({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
+      { "@type": "ListItem", position: 2, name: heroTitle, item: canonicalAbs },
+    ],
+  });
+  if (seo.jsonld) {
+    if (Array.isArray(seo.jsonld)) autoSchemas.push(...seo.jsonld);
+    else autoSchemas.push(seo.jsonld);
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Helmet>
@@ -53,15 +79,19 @@ export function LandingPageLayout({
         {seo.keywords && seo.keywords.length > 0 && (
           <meta name="keywords" content={seo.keywords.join(", ")} />
         )}
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
         <link rel="canonical" href={canonicalAbs} />
         <meta property="og:title" content={seo.title} />
         <meta property="og:description" content={seo.description} />
         <meta property="og:url" content={canonicalAbs} />
         <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="RobotVerse" />
         {seo.ogImage && <meta property="og:image" content={seo.ogImage} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seo.title} />
         <meta name="twitter:description" content={seo.description} />
+        {seo.ogImage && <meta name="twitter:image" content={seo.ogImage} />}
+        <script type="application/ld+json">{JSON.stringify(autoSchemas)}</script>
       </Helmet>
 
       <Header />
