@@ -1239,9 +1239,6 @@ const Robots = () => {
                                 <div className="text-lg font-bold text-primary">
                                   {formatPrice(robot.price, robot.currency)}
                                 </div>
-                                <Badge variant="outline" className="text-xs">
-                                  {robot.profiles?.company_name || robot.profiles?.full_name || "Seller"}
-                                </Badge>
                                 {robot.condition && (
                                   <Badge
                                     variant={robot.condition === "New" ? "default" : "secondary"}
