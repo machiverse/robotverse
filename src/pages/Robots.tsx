@@ -66,7 +66,7 @@ const Robots = () => {
   // Read initial values from URL params
   const initialType = searchParams.get("type") || "all";
   const initialSearch = searchParams.get("search") || "";
-  const initialGroupBy = (searchParams.get("groupBy") as "all" | "category" | "company") || "all";
+  const initialGroupBy = (searchParams.get("groupBy") as "all" | "category") || "all";
 
   // Filter UI state - Business-logical order: Robot Type → Payload Range → Condition → Price Range → Location
   const [searchQuery, setSearchQuery] = useState(initialSearch);
@@ -76,7 +76,7 @@ const Robots = () => {
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
-  const [groupBy, setGroupBy] = useState<"all" | "category" | "company">(initialGroupBy);
+  const [groupBy, setGroupBy] = useState<"all" | "category">(initialGroupBy);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [onlyWithOffers, setOnlyWithOffers] = useState(false);
   const [robotsWithOffers, setRobotsWithOffers] = useState<Set<string>>(new Set());
@@ -88,8 +88,6 @@ const Robots = () => {
   // Data states
   const [robots, setRobots] = useState<any[]>([]);
   const [robotsWithViews, setRobotsWithViews] = useState<any[]>([]);
-  const [sellerGroups, setSellerGroups] = useState<Record<string, any[]>>({});
-  const [sellerProfiles, setSellerProfiles] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,7 +150,7 @@ const Robots = () => {
     }
 
     if (groupByParam) {
-      setGroupBy(groupByParam as "company" | "category" | "all");
+      setGroupBy(groupByParam as "category" | "all");
     }
   }, [searchParams]);
 
@@ -214,22 +212,6 @@ const Robots = () => {
           }),
         );
         setRobotsWithViews(robotsWithViewCounts);
-
-        // Group by seller
-        const grouped: Record<string, any[]> = {};
-        const profiles: Record<string, any> = {};
-
-        robotsWithViewCounts.forEach((robot) => {
-          if (!grouped[robot.seller_id]) grouped[robot.seller_id] = [];
-          grouped[robot.seller_id].push(robot);
-
-          if (robot.profiles && !profiles[robot.seller_id]) {
-            profiles[robot.seller_id] = robot.profiles;
-          }
-        });
-
-        setSellerGroups(grouped);
-        setSellerProfiles(profiles);
 
         // Watchlist for user
         if (user) {
@@ -433,12 +415,7 @@ const Robots = () => {
 
     const groups: Record<string, any[]> = {};
 
-    if (groupBy === "company") {
-      filteredRobots.forEach((r) => {
-        if (!groups[r.seller_id]) groups[r.seller_id] = [];
-        groups[r.seller_id].push(r);
-      });
-    } else if (groupBy === "category") {
+    if (groupBy === "category") {
       filteredRobots.forEach((r) => {
         const cat = r.robot_type || "Others";
         if (!groups[cat]) groups[cat] = [];
@@ -937,13 +914,6 @@ const Robots = () => {
                       >
                         Category
                       </Button>
-                      <Button
-                        size="sm"
-                        variant={groupBy === "company" ? "default" : "outline"}
-                        onClick={() => setGroupBy("company")}
-                      >
-                        Company
-                      </Button>
                     </div>
                   </div>
 
@@ -984,17 +954,13 @@ const Robots = () => {
                   {key !== "All Robots" && (
                     <div className="flex items-center justify-between border-b pb-3">
                       <div>
-                        <h3 className="text-xl font-semibold">
-                          {groupBy === "company"
-                            ? sellerProfiles[key]?.company_name || sellerProfiles[key]?.full_name || "Company"
-                            : key}
-                        </h3>
+                        <h3 className="text-xl font-semibold">{key}</h3>
                         <p className="text-xs text-muted-foreground">
                           {robotsGroup.length} robot
                           {robotsGroup.length !== 1 ? "s" : ""} available
                         </p>
                       </div>
-                      {groupBy === "company" && sellerProfiles[key] && <Badge variant="outline">Verified Seller</Badge>}
+                      
                     </div>
                   )}
 
