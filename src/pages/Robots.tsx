@@ -213,22 +213,6 @@ const Robots = () => {
         );
         setRobotsWithViews(robotsWithViewCounts);
 
-        // Group by seller
-        const grouped: Record<string, any[]> = {};
-        const profiles: Record<string, any> = {};
-
-        robotsWithViewCounts.forEach((robot) => {
-          if (!grouped[robot.seller_id]) grouped[robot.seller_id] = [];
-          grouped[robot.seller_id].push(robot);
-
-          if (robot.profiles && !profiles[robot.seller_id]) {
-            profiles[robot.seller_id] = robot.profiles;
-          }
-        });
-
-        setSellerGroups(grouped);
-        setSellerProfiles(profiles);
-
         // Watchlist for user
         if (user) {
           const { data: watchlistData } = await supabase
@@ -431,12 +415,7 @@ const Robots = () => {
 
     const groups: Record<string, any[]> = {};
 
-    if (groupBy === "company") {
-      filteredRobots.forEach((r) => {
-        if (!groups[r.seller_id]) groups[r.seller_id] = [];
-        groups[r.seller_id].push(r);
-      });
-    } else if (groupBy === "category") {
+    if (groupBy === "category") {
       filteredRobots.forEach((r) => {
         const cat = r.robot_type || "Others";
         if (!groups[cat]) groups[cat] = [];
@@ -935,13 +914,6 @@ const Robots = () => {
                       >
                         Category
                       </Button>
-                      <Button
-                        size="sm"
-                        variant={groupBy === "company" ? "default" : "outline"}
-                        onClick={() => setGroupBy("company")}
-                      >
-                        Company
-                      </Button>
                     </div>
                   </div>
 
@@ -982,11 +954,7 @@ const Robots = () => {
                   {key !== "All Robots" && (
                     <div className="flex items-center justify-between border-b pb-3">
                       <div>
-                        <h3 className="text-xl font-semibold">
-                          {groupBy === "company"
-                            ? sellerProfiles[key]?.company_name || sellerProfiles[key]?.full_name || "Company"
-                            : key}
-                        </h3>
+                        <h3 className="text-xl font-semibold">{key}</h3>
                         <p className="text-xs text-muted-foreground">
                           {robotsGroup.length} robot
                           {robotsGroup.length !== 1 ? "s" : ""} available
