@@ -1135,21 +1135,13 @@ const Auth = () => {
 
         console.log('✅ User account created:', newUser.id);
 
-        // Check if this is a repeated signup (user already exists)
-        // Supabase returns empty identities array for repeated signups
-        const isRepeatedSignup = !newUser.identities || newUser.identities.length === 0;
-        
-        if (isRepeatedSignup) {
-          console.log('⚠️ Repeated signup detected - user already exists with this email');
-          // Save data to storage in case they need to complete profile after confirmation
-          saveUserDataToStorage(newUser);
-          toast({
-            title: "Account Already Exists",
-            description: "An account with this email already exists. Please check your email for confirmation or try signing in.",
-          });
-          setIsSignUp(false); // Switch to sign-in view
-          return;
-        }
+        // NOTE: We used to detect "repeated signup" via empty `identities` array,
+        // but Supabase now returns an empty identities array for ALL new signups
+        // when email confirmation is enabled (to prevent email enumeration).
+        // That check produced false positives and skipped profile creation for
+        // brand-new users, leaving them with an incomplete profile.
+        // If the email is truly already registered, supabase.auth.signUp itself
+        // returns an error which is handled above.
 
         // Save data to storage as backup for email confirmation flow
         saveUserDataToStorage(newUser);

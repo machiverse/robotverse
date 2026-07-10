@@ -15,8 +15,7 @@ import {
   User,
   Wrench,
   LogOut,
-  Bell,
-  Search,
+  Key,
   MessageCircle,
   Send,
 } from "lucide-react";
@@ -73,6 +72,7 @@ export function DashboardSidebar({ userProfile }: DashboardSidebarProps) {
     { title: "Messages", url: "/dashboard/messages", icon: MessageCircle },
     { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
     { title: "Reports", url: "/dashboard/reports", icon: FileText },
+    { title: "API Keys", url: "/dashboard/api-keys", icon: Key },
   ];
 
   // Business items based on user roles

@@ -58,6 +58,8 @@ import Messages from "./pages/dashboard/Messages";
 import Credits from "./pages/dashboard/Credits";
 import Quotations from "./pages/dashboard/Quotations";
 import MyRequests from "./pages/dashboard/MyRequests";
+import ApiKeys from "./pages/dashboard/ApiKeys";
+import ApiDocs from "./pages/ApiDocs";
 import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import SellerGuide from "./pages/SellerGuide";
@@ -181,6 +183,8 @@ const App = () => (
             <Route path="/dashboard/credits" element={<Credits />} />
             <Route path="/dashboard/quotations" element={<Quotations />} />
             <Route path="/dashboard/my-requests" element={<MyRequests />} />
+            <Route path="/dashboard/api-keys" element={<ApiKeys />} />
+            <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/spare-parts-dashboard" element={<SparePartsSellerDashboard />} />
             <Route path="/watchlist" element={<WatchlistDashboard />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />

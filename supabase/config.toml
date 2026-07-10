@@ -66,3 +66,9 @@ enabled = true
 port = 54322
 shadow_port = 54320
 major_version = 15
+
+[functions.api-v1]
+verify_jwt = false
+
+[functions.api-keys-manage]
+verify_jwt = false

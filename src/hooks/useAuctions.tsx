@@ -73,6 +73,19 @@ async function fetchProfiles(userIds: string[]) {
   return map;
 }
 
+// Valid DB enum values for auctions.status — keep in sync with the Postgres enum.
+export const VALID_AUCTION_STATUSES = ['upcoming', 'live', 'ended', 'sold', 'not_sold', 'cancelled'] as const;
+export type AuctionStatus = typeof VALID_AUCTION_STATUSES[number];
+
+// UI tab -> set of DB enum statuses that tab is allowed to surface.
+// Any tab key not listed here falls back to client-side time-based derivation only.
+const TAB_STATUS_MAP: Record<string, AuctionStatus[]> = {
+  upcoming: ['upcoming'],
+  live: ['live'],
+  ended: ['ended', 'sold', 'not_sold'],
+  sold: ['sold'],
+};
+
 export function useAuctions(statusFilter?: string) {
   return useQuery({
     queryKey: ['auctions', statusFilter],
@@ -82,7 +95,6 @@ export function useAuctions(statusFilter?: string) {
       const { data, error } = await supabase
         .from('auctions')
         .select('*, robots(name, model, robot_type, images, location, brand)')
-        .neq('status', 'cancelled' as any)
         .order('created_at', { ascending: false });
       if (error) throw error;
 
@@ -90,14 +102,34 @@ export function useAuctions(statusFilter?: string) {
       let rows = (data || []) as any[];
 
       if (statusFilter && statusFilter !== 'all') {
+        // Guard: only allow known tab keys or raw valid enum values through.
+        const allowedDbStatuses =
+          TAB_STATUS_MAP[statusFilter] ??
+          (VALID_AUCTION_STATUSES.includes(statusFilter as AuctionStatus)
+            ? [statusFilter as AuctionStatus]
+            : null);
+
+        if (!allowedDbStatuses) {
+          return [] as Auction[];
+        }
+
         rows = rows.filter((a: any) => {
           const start = new Date(a.start_time).getTime();
           const end = new Date(a.end_time).getTime();
-          if (statusFilter === 'live') return now >= start && now < end && !['sold','ended','cancelled'].includes(a.status);
-          if (statusFilter === 'upcoming') return now < start && !['sold','ended','cancelled'].includes(a.status);
-          if (statusFilter === 'ended') return now >= end || ['sold','ended'].includes(a.status);
-          if (statusFilter === 'sold') return a.status === 'sold';
-          return a.status === statusFilter;
+          const dbStatus = a.status as AuctionStatus;
+          // Only consider rows whose persisted enum status is valid for this tab.
+          if (!allowedDbStatuses.includes(dbStatus)) {
+            // Time-based fallback for the two time-derived tabs, since DB rows
+            // may lag finalization (e.g. still 'live' but past end_time -> ended).
+            if (statusFilter === 'live') return dbStatus !== 'cancelled' && now >= start && now < end;
+            if (statusFilter === 'upcoming') return dbStatus !== 'cancelled' && now < start;
+            if (statusFilter === 'ended') return dbStatus !== 'cancelled' && now >= end;
+            return false;
+          }
+          if (statusFilter === 'live') return now >= start && now < end;
+          if (statusFilter === 'upcoming') return now < start;
+          if (statusFilter === 'ended') return now >= end || ['sold', 'not_sold', 'ended'].includes(dbStatus);
+          return true;
         });
       }
 

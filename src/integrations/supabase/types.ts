@@ -14,6 +14,192 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_key_usage: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          hour_bucket: string
+          id: string
+          request_count: number
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          hour_bucket: string
+          id?: string
+          request_count?: number
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          hour_bucket?: string
+          id?: string
+          request_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_usage_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_keys: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          is_partner: boolean
+          key_hash: string | null
+          key_prefix: string | null
+          last_used_at: string | null
+          name: string
+          partner_name: string | null
+          plaintext_key: string | null
+          rate_limit_per_hour: number
+          rejection_reason: string | null
+          request_count: number
+          revoked_at: string | null
+          scopes: string[]
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          is_partner?: boolean
+          key_hash?: string | null
+          key_prefix?: string | null
+          last_used_at?: string | null
+          name: string
+          partner_name?: string | null
+          plaintext_key?: string | null
+          rate_limit_per_hour?: number
+          rejection_reason?: string | null
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          is_partner?: boolean
+          key_hash?: string | null
+          key_prefix?: string | null
+          last_used_at?: string | null
+          name?: string
+          partner_name?: string | null
+          plaintext_key?: string | null
+          rate_limit_per_hour?: number
+          rejection_reason?: string | null
+          request_count?: number
+          revoked_at?: string | null
+          scopes?: string[]
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      api_webhook_deliveries: {
+        Row: {
+          attempted_at: string
+          event: string
+          id: string
+          payload: Json
+          response_body: string | null
+          status_code: number | null
+          success: boolean
+          webhook_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          event: string
+          id?: string
+          payload: Json
+          response_body?: string | null
+          status_code?: number | null
+          success?: boolean
+          webhook_id: string
+        }
+        Update: {
+          attempted_at?: string
+          event?: string
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          status_code?: number | null
+          success?: boolean
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "api_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_webhooks: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          events: string[]
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_delivered_at: string | null
+          secret: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          events?: string[]
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_delivered_at?: string | null
+          secret: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          events?: string[]
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_delivered_at?: string | null
+          secret?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_webhooks_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auction_bids: {
         Row: {
           auction_id: string
@@ -102,6 +288,7 @@ export type Database = {
           min_increment: number
           reserve_price: number | null
           robot_id: string | null
+          robot_ids: string[] | null
           seller_accepted: boolean | null
           seller_id: string
           start_time: string
@@ -130,6 +317,7 @@ export type Database = {
           min_increment?: number
           reserve_price?: number | null
           robot_id?: string | null
+          robot_ids?: string[] | null
           seller_accepted?: boolean | null
           seller_id: string
           start_time: string
@@ -158,6 +346,7 @@ export type Database = {
           min_increment?: number
           reserve_price?: number | null
           robot_id?: string | null
+          robot_ids?: string[] | null
           seller_accepted?: boolean | null
           seller_id?: string
           start_time?: string
@@ -2790,10 +2979,12 @@ export type Database = {
           account_type: string | null
           avatar_url: string | null
           average_rating: number | null
+          bio: string | null
           city: string | null
           company_logo_url: string | null
           company_name: string | null
           completed_sales: number | null
+          country: string | null
           created_at: string
           credits_balance: number | null
           email: string | null
@@ -2822,6 +3013,8 @@ export type Database = {
           seller_model_type: string | null
           seller_roles: string[] | null
           service_categories: string[] | null
+          specializations: string[] | null
+          state: string | null
           target_audience: string[] | null
           total_reviews: number | null
           transport_modes: string[] | null
@@ -2835,10 +3028,12 @@ export type Database = {
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
+          bio?: string | null
           city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          country?: string | null
           created_at?: string
           credits_balance?: number | null
           email?: string | null
@@ -2867,6 +3062,8 @@ export type Database = {
           seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
+          specializations?: string[] | null
+          state?: string | null
           target_audience?: string[] | null
           total_reviews?: number | null
           transport_modes?: string[] | null
@@ -2880,10 +3077,12 @@ export type Database = {
           account_type?: string | null
           avatar_url?: string | null
           average_rating?: number | null
+          bio?: string | null
           city?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           completed_sales?: number | null
+          country?: string | null
           created_at?: string
           credits_balance?: number | null
           email?: string | null
@@ -2912,6 +3111,8 @@ export type Database = {
           seller_model_type?: string | null
           seller_roles?: string[] | null
           service_categories?: string[] | null
+          specializations?: string[] | null
+          state?: string | null
           target_audience?: string[] | null
           total_reviews?: number | null
           transport_modes?: string[] | null
