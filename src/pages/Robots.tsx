@@ -1116,14 +1116,8 @@ const Robots = () => {
                               </div>
                             </div>
 
-                            {/* Company + availability */}
-                            <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
-                              <div className="flex items-center">
-                                <Building className="w-3 h-3 mr-1" />
-                                <span className="line-clamp-1">
-                                  {robot.profiles?.company_name || robot.profiles?.full_name || "Seller"}
-                                </span>
-                              </div>
+                            {/* Availability */}
+                            <div className="flex items-center justify-end text-xs text-muted-foreground border-t pt-2">
                               <div className="flex items-center gap-1">
                                 <CheckCircle className="w-3 h-3 text-green-500" />
                                 <span>{robot.availability || "Available"}</span>
