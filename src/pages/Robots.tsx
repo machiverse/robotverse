@@ -66,7 +66,7 @@ const Robots = () => {
   // Read initial values from URL params
   const initialType = searchParams.get("type") || "all";
   const initialSearch = searchParams.get("search") || "";
-  const initialGroupBy = (searchParams.get("groupBy") as "all" | "category" | "company") || "all";
+  const initialGroupBy = (searchParams.get("groupBy") as "all" | "category") || "all";
 
   // Filter UI state - Business-logical order: Robot Type → Payload Range → Condition → Price Range → Location
   const [searchQuery, setSearchQuery] = useState(initialSearch);
@@ -76,7 +76,7 @@ const Robots = () => {
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
-  const [groupBy, setGroupBy] = useState<"all" | "category" | "company">(initialGroupBy);
+  const [groupBy, setGroupBy] = useState<"all" | "category">(initialGroupBy);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [onlyWithOffers, setOnlyWithOffers] = useState(false);
   const [robotsWithOffers, setRobotsWithOffers] = useState<Set<string>>(new Set());
@@ -88,8 +88,6 @@ const Robots = () => {
   // Data states
   const [robots, setRobots] = useState<any[]>([]);
   const [robotsWithViews, setRobotsWithViews] = useState<any[]>([]);
-  const [sellerGroups, setSellerGroups] = useState<Record<string, any[]>>({});
-  const [sellerProfiles, setSellerProfiles] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,7 +150,7 @@ const Robots = () => {
     }
 
     if (groupByParam) {
-      setGroupBy(groupByParam as "company" | "category" | "all");
+      setGroupBy(groupByParam as "category" | "all");
     }
   }, [searchParams]);
 
