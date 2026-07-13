@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
+import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
+import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,14 +83,16 @@ const Parts = () => {
   const dynamicPartsKeywords = useDynamicSEOKeywords('parts');
 
   // Filter states - Three-level taxonomy
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSubcategory, setSelectedSubcategory] = useState("all");
-  const [selectedComponentType, setSelectedComponentType] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [selectedPriceRange, setSelectedPriceRange] = useState("all");
-  const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // URL-synced filter state
+  const [searchQuery, setSearchQuery] = useDebouncedUrlParam("search", "", 400);
+  const [selectedCategory, setSelectedCategory] = useUrlParam<string>("category", "all");
+  const [selectedSubcategory, setSelectedSubcategory] = useUrlParam<string>("subcategory", "all");
+  const [selectedComponentType, setSelectedComponentType] = useUrlParam<string>("componentType", "all");
+  const [selectedLocation, setSelectedLocation] = useUrlParam<string>("location", "all");
+  const [selectedPriceRange, setSelectedPriceRange] = useUrlParam<string>("price", "all");
+  const [sortBy, setSortBy] = useUrlParam<"views" | "price-low" | "price-high" | "newest" | "name">("sort", "views");
+  const [viewMode, setViewMode] = useUrlParam<"grid" | "list">("view", "grid");
+
 
   // Data states
   const [parts, setParts] = useState<Part[]>([]);
