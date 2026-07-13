@@ -259,6 +259,7 @@ const Financing = () => {
         <p className="text-muted-foreground">
           Make your automation dreams affordable with customized financing solutions
         </p>
+        <div className="mt-3"><CopySearchLinkButton /></div>
 
         {/* Breadcrumb */}
         {selectedType !== "all" && (
