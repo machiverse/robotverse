@@ -513,6 +513,7 @@ const Parts = () => {
         <p className="text-muted-foreground">
           Source authentic spare parts from verified suppliers - delivered to your facility
         </p>
+        <div className="mt-3"><CopySearchLinkButton /></div>
 
         {/* Breadcrumb */}
         {(selectedCategory !== "all" || selectedSubcategory !== "all" || selectedComponentType !== "all") && (
