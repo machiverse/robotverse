@@ -31,6 +31,8 @@ import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
+import CopySearchLinkButton from "@/components/CopySearchLinkButton";
+import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 
 interface Service {
   id: string;
@@ -66,20 +68,21 @@ const Services = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"views" | "rating" | "newest" | "name">("views");
+  const [searchQuery, setSearchQuery] = useDebouncedUrlParam("search", "", 400);
+  const [selectedCategory, setSelectedCategory] = useUrlParam<string>("category", "all");
+  const [selectedLocation, setSelectedLocation] = useUrlParam<string>("location", "all");
+  const [viewMode, setViewMode] = useUrlParam<"grid" | "list">("view", "grid");
+  const [sortBy, setSortBy] = useUrlParam<"views" | "rating" | "newest" | "name">("sort", "views");
   const [showRequestModal, setShowRequestModal] = useState(false);
 
-  // Read filter from URL params
+  // Legacy: honor ?type= as alias for ?category=
   useEffect(() => {
     const typeParam = searchParams.get("type");
-    if (typeParam) {
+    if (typeParam && selectedCategory === "all") {
       setSelectedCategory(typeParam);
     }
-  }, [searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch services from Supabase
   useEffect(() => {
