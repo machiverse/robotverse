@@ -68,12 +68,12 @@ const Robots = () => {
   // === URL is the single source of truth for every filter/sort/view state ===
   // Search input is debounced so we don't spam history entries per keystroke.
   const [searchQuery, setSearchQuery] = useDebouncedUrlParam("search", "", 400);
-  const [selectedRobotType, setSelectedRobotType] = useUrlParam("type", "all");
-  const [selectedManufacturer, setSelectedManufacturer] = useUrlParam("brand", "all");
-  const [selectedPayloadRange, setSelectedPayloadRange] = useUrlParam("payload", "all");
-  const [selectedCondition, setSelectedCondition] = useUrlParam("condition", "all");
-  const [selectedPriceRange, setSelectedPriceRange] = useUrlParam("price", "all");
-  const [selectedLocation, setSelectedLocation] = useUrlParam("location", "all");
+  const [selectedRobotType, setSelectedRobotType] = useUrlParam<string>("type", "all");
+  const [selectedManufacturer, setSelectedManufacturer] = useUrlParam<string>("brand", "all");
+  const [selectedPayloadRange, setSelectedPayloadRange] = useUrlParam<string>("payload", "all");
+  const [selectedCondition, setSelectedCondition] = useUrlParam<string>("condition", "all");
+  const [selectedPriceRange, setSelectedPriceRange] = useUrlParam<string>("price", "all");
+  const [selectedLocation, setSelectedLocation] = useUrlParam<string>("location", "all");
   const [sortBy, setSortBy] = useUrlParam<
     "views" | "price-low" | "price-high" | "newest" | "name"
   >("sort", "views");
