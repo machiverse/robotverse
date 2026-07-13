@@ -133,49 +133,12 @@ const Robots = () => {
     { value: "over-1m", label: "Over ₹10,00,000" },
   ];
 
-  // Sync URL params with filter state (reactive to URL changes)
-  useEffect(() => {
-    const typeParam = searchParams.get("type");
-    const searchParam = searchParams.get("search");
-    const groupByParam = searchParams.get("groupBy");
-
-    if (typeParam) {
-      setSelectedRobotType(typeParam);
-    } else {
-      setSelectedRobotType("all");
-    }
-
-    if (searchParam) {
-      setSearchQuery(searchParam);
-    }
-
-    if (groupByParam) {
-      setGroupBy(groupByParam as "category" | "all");
-    }
-  }, [searchParams]);
-
-  // Update URL when filters change
-  const updateURLParams = (updates: Record<string, string | null>) => {
-    const newParams = new URLSearchParams(searchParams);
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value && value !== "all" && value !== "") {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-
-    setSearchParams(newParams, { replace: true });
-  };
-
-  // Handle robot type filter change
+  // Filter changes are already URL-synced via the useUrl* hooks above.
   const handleRobotTypeChange = (value: string) => {
     setSelectedRobotType(value);
-    updateURLParams({ type: value });
   };
 
-  // Clear all filters
+  // Clear all filters — resetting each hook clears its URL param.
   const handleClearFilters = () => {
     setSearchQuery("");
     setSelectedRobotType("all");
@@ -184,7 +147,10 @@ const Robots = () => {
     setSelectedCondition("all");
     setSelectedPriceRange("all");
     setSelectedLocation("all");
-    setSearchParams({}, { replace: true });
+    setSortBy("views");
+    setGroupBy("all");
+    setViewMode("grid");
+    setOnlyWithOffers(false);
   };
 
   // Fetch robots and filters
