@@ -637,7 +637,6 @@ const Robots = () => {
                           className="ml-1.5 hover:text-destructive"
                           onClick={() => {
                             setSearchQuery("");
-                            updateURLParams({ search: null });
                           }}
                         >
                           ×
@@ -774,7 +773,7 @@ const Robots = () => {
                 <div className="pt-2 border-t">
                   <button
                     type="button"
-                    onClick={() => setOnlyWithOffers((v) => !v)}
+                    onClick={() => setOnlyWithOffers(!onlyWithOffers)}
                     className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
                       onlyWithOffers
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30"
