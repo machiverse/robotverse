@@ -599,6 +599,9 @@ const Robots = () => {
             ? `Browse ${selectedRobotType} from verified sellers - with financing, logistics, parts and service support.`
             : "Browse verified robots from trusted sellers - with financing, logistics, parts and service support."}
         </p>
+        <div className="mt-3">
+          <CopySearchLinkButton />
+        </div>
       </div>
 
       {/* Layout similar to robotmp: left filter, right listing */}
