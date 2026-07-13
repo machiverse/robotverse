@@ -63,22 +63,21 @@ const Robots = () => {
   const { addRobot, isSelected, removeRobot } = useRobotComparison();
   const dynamicRobotKeywords = useDynamicSEOKeywords("robots");
 
-  // Read initial values from URL params
-  const initialType = searchParams.get("type") || "all";
-  const initialSearch = searchParams.get("search") || "";
-  const initialGroupBy = (searchParams.get("groupBy") as "all" | "category") || "all";
-
-  // Filter UI state - Business-logical order: Robot Type → Payload Range → Condition → Price Range → Location
-  const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [selectedRobotType, setSelectedRobotType] = useState(initialType);
-  const [selectedPayloadRange, setSelectedPayloadRange] = useState("all");
-  const [selectedCondition, setSelectedCondition] = useState("all");
-  const [selectedPriceRange, setSelectedPriceRange] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
-  const [groupBy, setGroupBy] = useState<"all" | "category">(initialGroupBy);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [onlyWithOffers, setOnlyWithOffers] = useState(false);
+  // === URL is the single source of truth for every filter/sort/view state ===
+  // Search input is debounced so we don't spam history entries per keystroke.
+  const [searchQuery, setSearchQuery] = useDebouncedUrlParam("search", "", 400);
+  const [selectedRobotType, setSelectedRobotType] = useUrlParam("type", "all");
+  const [selectedManufacturer, setSelectedManufacturer] = useUrlParam("brand", "all");
+  const [selectedPayloadRange, setSelectedPayloadRange] = useUrlParam("payload", "all");
+  const [selectedCondition, setSelectedCondition] = useUrlParam("condition", "all");
+  const [selectedPriceRange, setSelectedPriceRange] = useUrlParam("price", "all");
+  const [selectedLocation, setSelectedLocation] = useUrlParam("location", "all");
+  const [sortBy, setSortBy] = useUrlParam<
+    "views" | "price-low" | "price-high" | "newest" | "name"
+  >("sort", "views");
+  const [groupBy, setGroupBy] = useUrlParam<"all" | "category">("groupBy", "all");
+  const [viewMode, setViewMode] = useUrlParam<"grid" | "list">("view", "grid");
+  const [onlyWithOffers, setOnlyWithOffers] = useUrlBoolParam("offers");
   const [robotsWithOffers, setRobotsWithOffers] = useState<Set<string>>(new Set());
 
   // Watchlist
@@ -111,7 +110,6 @@ const Robots = () => {
   const [manufacturers, setManufacturers] = useState<{ value: string; label: string }[]>([
     { value: "all", label: "All Manufacturers" },
   ]);
-  const [selectedManufacturer, setSelectedManufacturer] = useState("all");
 
   // Fixed payload ranges (kg) for industrial robots
   const payloadRanges = [
