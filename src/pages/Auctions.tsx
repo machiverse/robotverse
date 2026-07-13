@@ -12,11 +12,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { useUrlParam } from '@/hooks/useUrlState';
+import CopySearchLinkButton from '@/components/CopySearchLinkButton';
 
 const Auctions: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tab, setTab] = useState('live');
+  const [tab, setTab] = useUrlParam<string>('tab', 'live');
 
   // Periodically finalize any expired auctions (every 2 minutes while page is open)
   useEffect(() => {
