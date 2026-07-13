@@ -103,6 +103,6 @@ export function useUrlNumberParam(
 export function useUrlBoolParam(
   key: string
 ): [boolean, (v: boolean) => void] {
-  const [raw, setRaw] = useUrlParam(key, "");
+  const [raw, setRaw] = useUrlParam<string>(key, "");
   return [raw === "1" || raw === "true", (v: boolean) => setRaw(v ? "1" : "")];
 }
