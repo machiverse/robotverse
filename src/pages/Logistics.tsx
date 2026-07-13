@@ -222,6 +222,7 @@ const Logistics = () => {
         <p className="text-muted-foreground">
           Safe handling and delivery with specialized logistics partners
         </p>
+        <div className="mt-3"><CopySearchLinkButton /></div>
 
         {/* Breadcrumb */}
         {selectedType !== "all" && (
