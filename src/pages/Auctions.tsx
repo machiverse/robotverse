@@ -82,7 +82,8 @@ const Auctions: React.FC = () => {
                 India's first B2B auction platform for industrial robots, automation equipment, and bulk inventory.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
+              <CopySearchLinkButton />
               {user && (
                 <Button onClick={() => navigate('/auctions/create')} className="gap-2">
                   <Plus className="w-4 h-4" /> Create Auction
