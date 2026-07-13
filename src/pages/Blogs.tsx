@@ -349,6 +349,7 @@ const Community = () => {
               <p className="text-lg text-muted-foreground mt-2">
                 Learn, share, and connect - your knowledge hub for industrial robotics and automation technology
               </p>
+              <div className="mt-3"><CopySearchLinkButton /></div>
             </div>
             
             <CreatePostModal onPostCreated={fetchPosts} />
