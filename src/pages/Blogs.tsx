@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
+import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePostInteractions } from "@/hooks/usePostInteractions";
@@ -66,19 +68,11 @@ const Community = () => {
   const { trackItemView } = useUniversalViewTracking();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("latest");
-  const [filterType, setFilterType] = useState("all");
-  const [selectedTag, setSelectedTag] = useState("all");
+  const [searchTerm, setSearchTerm] = useDebouncedUrlParam("search", "", 400);
+  const [sortBy, setSortBy] = useUrlParam<string>("sort", "latest");
+  const [filterType, setFilterType] = useUrlParam<string>("category", "all");
+  const [selectedTag, setSelectedTag] = useUrlParam<string>("tag", "all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
-
-  // Read filter from URL params
-  useEffect(() => {
-    const categoryParam = searchParams.get("category");
-    if (categoryParam) {
-      setFilterType(categoryParam);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     fetchPosts();
@@ -355,6 +349,7 @@ const Community = () => {
               <p className="text-lg text-muted-foreground mt-2">
                 Learn, share, and connect - your knowledge hub for industrial robotics and automation technology
               </p>
+              <div className="mt-3"><CopySearchLinkButton /></div>
             </div>
             
             <CreatePostModal onPostCreated={fetchPosts} />
