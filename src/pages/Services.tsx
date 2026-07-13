@@ -294,6 +294,7 @@ const Services = () => {
         <p className="text-muted-foreground">
           From installation to maintenance - connect with certified professionals
         </p>
+        <div className="mt-3"><CopySearchLinkButton /></div>
 
         {/* Breadcrumb */}
         {selectedCategory !== "all" && (
