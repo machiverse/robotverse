@@ -605,7 +605,7 @@ const Robots = () => {
       </div>
 
       {/* Layout similar to robotmp: left filter, right listing */}
-      <div className="container mx-auto px-4 pb-10 flex gap-6">
+      <div className="container mx-auto px-4 pb-10 flex flex-col lg:flex-row gap-6">
         {/* LEFT FILTER COLUMN (sticky) */}
         <aside className="w-72 flex-shrink-0 hidden lg:block">
           <div className="sticky top-20 space-y-4">
@@ -813,7 +813,7 @@ const Robots = () => {
         </aside>
 
         {/* RIGHT CONTENT COLUMN */}
-        <main className="flex-1 space-y-6">
+        <main className="flex-1 min-w-0 w-full space-y-6">
           {/* Top bar: sort, group, view */}
           <Card>
             <CardHeader>
@@ -841,7 +841,7 @@ const Robots = () => {
                   Showing <span className="font-semibold">{totalFilteredRobots}</span> robots
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   {/* Sort */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium">Sort by</span>
