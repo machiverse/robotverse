@@ -5626,6 +5626,7 @@ export type Database = {
         }
         Returns: Json
       }
+      publish_scheduled_community_posts: { Args: never; Returns: undefined }
       record_coupon_usage: {
         Args: {
           p_coupon_id: string
