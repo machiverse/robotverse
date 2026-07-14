@@ -59,6 +59,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [activeFormats, setActiveFormats] = useState<string[]>([]);
+  const [scheduledAt, setScheduledAt] = useState<string>('');
 
   const postTypes = [
     { value: 'short_post', label: 'Short Post', icon: FileText, description: 'Quick thoughts and updates' },
@@ -275,11 +276,25 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
     return errors;
   };
 
-  const handleSubmit = async (asDraft: boolean = false) => {
+  const handleSubmit = async (mode: 'draft' | 'publish' | 'schedule' = 'publish') => {
     const errors = validateForm();
     if (errors.length > 0) {
       toast.error(errors[0]);
       return;
+    }
+
+    let scheduleIso: string | null = null;
+    if (mode === 'schedule') {
+      if (!scheduledAt) {
+        toast.error('Please pick a date and time to schedule the post');
+        return;
+      }
+      const dt = new Date(scheduledAt);
+      if (isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
+        toast.error('Scheduled time must be in the future');
+        return;
+      }
+      scheduleIso = dt.toISOString();
     }
 
     try {
@@ -287,7 +302,6 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       let uploadedMediaUrl = mediaUrl;
       let mediaType = '';
 
-      // Upload media file if provided
       if (mediaFile) {
         uploadedMediaUrl = await handleFileUpload(mediaFile);
         mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
@@ -299,7 +313,8 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       const excerpt = plain.length > 200 ? plain.substring(0, 200) + '...' : plain;
 
-      const postData = {
+      const status = mode === 'draft' ? 'draft' : mode === 'schedule' ? 'scheduled' : 'published';
+      const postData: Record<string, any> = {
         post_type: postType,
         author_id: user.id,
         title: title.trim() || null,
@@ -308,20 +323,25 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
         media_url: uploadedMediaUrl || null,
         media_type: mediaType || null,
         tags: tags,
-        status: asDraft ? 'draft' : 'published',
-        is_draft: asDraft,
-        published_at: asDraft ? null : new Date().toISOString()
+        status,
+        is_draft: mode === 'draft',
+        published_at: mode === 'publish' ? new Date().toISOString() : null,
+        scheduled_publish_at: mode === 'schedule' ? scheduleIso : null,
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('community_posts')
         .insert([postData])
         .select();
 
       if (error) throw error;
 
-      toast.success(asDraft ? 'Draft saved!' : 'Post published successfully!');
-      
+      toast.success(
+        mode === 'draft' ? 'Draft saved!' :
+        mode === 'schedule' ? `Post scheduled for ${new Date(scheduleIso!).toLocaleString()}` :
+        'Post published successfully!'
+      );
+
       setTitle('');
       setContent('');
       setTags([]);
@@ -331,12 +351,13 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       setPostType('short_post');
       setValidationErrors([]);
       setActiveFormats([]);
+      setScheduledAt('');
       setOpen(false);
-      
+
       onPostCreated?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating post:', error);
-      toast.error(`Failed to ${asDraft ? 'save draft' : 'create post'}: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
