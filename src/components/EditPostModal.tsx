@@ -63,6 +63,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
   const [mediaUrl, setMediaUrl] = useState(post.media_url || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [scheduledAt, setScheduledAt] = useState<string>('');
 
   const postTypes = [
     { value: 'short_post', label: 'Short Post', icon: FileText, description: 'Quick thoughts and updates' },
