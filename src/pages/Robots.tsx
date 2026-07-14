@@ -841,7 +841,7 @@ const Robots = () => {
                   Showing <span className="font-semibold">{totalFilteredRobots}</span> robots
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   {/* Sort */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium">Sort by</span>
