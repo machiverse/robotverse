@@ -51,6 +51,8 @@ import { useDynamicSEOKeywords } from "@/hooks/useDynamicSEOKeywords";
 import { generateItemListSchema, generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 import RobotQuoteModal from "@/components/forms/RobotQuoteModal";
+import CopySearchLinkButton from "@/components/CopySearchLinkButton";
+import { useUrlParam, useDebouncedUrlParam, useUrlBoolParam } from "@/hooks/useUrlState";
 
 const Robots = () => {
   const navigate = useNavigate();
@@ -63,22 +65,21 @@ const Robots = () => {
   const { addRobot, isSelected, removeRobot } = useRobotComparison();
   const dynamicRobotKeywords = useDynamicSEOKeywords("robots");
 
-  // Read initial values from URL params
-  const initialType = searchParams.get("type") || "all";
-  const initialSearch = searchParams.get("search") || "";
-  const initialGroupBy = (searchParams.get("groupBy") as "all" | "category") || "all";
-
-  // Filter UI state - Business-logical order: Robot Type → Payload Range → Condition → Price Range → Location
-  const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [selectedRobotType, setSelectedRobotType] = useState(initialType);
-  const [selectedPayloadRange, setSelectedPayloadRange] = useState("all");
-  const [selectedCondition, setSelectedCondition] = useState("all");
-  const [selectedPriceRange, setSelectedPriceRange] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest" | "name">("views");
-  const [groupBy, setGroupBy] = useState<"all" | "category">(initialGroupBy);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [onlyWithOffers, setOnlyWithOffers] = useState(false);
+  // === URL is the single source of truth for every filter/sort/view state ===
+  // Search input is debounced so we don't spam history entries per keystroke.
+  const [searchQuery, setSearchQuery] = useDebouncedUrlParam("search", "", 400);
+  const [selectedRobotType, setSelectedRobotType] = useUrlParam<string>("type", "all");
+  const [selectedManufacturer, setSelectedManufacturer] = useUrlParam<string>("brand", "all");
+  const [selectedPayloadRange, setSelectedPayloadRange] = useUrlParam<string>("payload", "all");
+  const [selectedCondition, setSelectedCondition] = useUrlParam<string>("condition", "all");
+  const [selectedPriceRange, setSelectedPriceRange] = useUrlParam<string>("price", "all");
+  const [selectedLocation, setSelectedLocation] = useUrlParam<string>("location", "all");
+  const [sortBy, setSortBy] = useUrlParam<
+    "views" | "price-low" | "price-high" | "newest" | "name"
+  >("sort", "views");
+  const [groupBy, setGroupBy] = useUrlParam<"all" | "category">("groupBy", "all");
+  const [viewMode, setViewMode] = useUrlParam<"grid" | "list">("view", "grid");
+  const [onlyWithOffers, setOnlyWithOffers] = useUrlBoolParam("offers");
   const [robotsWithOffers, setRobotsWithOffers] = useState<Set<string>>(new Set());
 
   // Watchlist
@@ -111,7 +112,6 @@ const Robots = () => {
   const [manufacturers, setManufacturers] = useState<{ value: string; label: string }[]>([
     { value: "all", label: "All Manufacturers" },
   ]);
-  const [selectedManufacturer, setSelectedManufacturer] = useState("all");
 
   // Fixed payload ranges (kg) for industrial robots
   const payloadRanges = [
@@ -133,49 +133,12 @@ const Robots = () => {
     { value: "over-1m", label: "Over ₹10,00,000" },
   ];
 
-  // Sync URL params with filter state (reactive to URL changes)
-  useEffect(() => {
-    const typeParam = searchParams.get("type");
-    const searchParam = searchParams.get("search");
-    const groupByParam = searchParams.get("groupBy");
-
-    if (typeParam) {
-      setSelectedRobotType(typeParam);
-    } else {
-      setSelectedRobotType("all");
-    }
-
-    if (searchParam) {
-      setSearchQuery(searchParam);
-    }
-
-    if (groupByParam) {
-      setGroupBy(groupByParam as "category" | "all");
-    }
-  }, [searchParams]);
-
-  // Update URL when filters change
-  const updateURLParams = (updates: Record<string, string | null>) => {
-    const newParams = new URLSearchParams(searchParams);
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value && value !== "all" && value !== "") {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-
-    setSearchParams(newParams, { replace: true });
-  };
-
-  // Handle robot type filter change
+  // Filter changes are already URL-synced via the useUrl* hooks above.
   const handleRobotTypeChange = (value: string) => {
     setSelectedRobotType(value);
-    updateURLParams({ type: value });
   };
 
-  // Clear all filters
+  // Clear all filters — resetting each hook clears its URL param.
   const handleClearFilters = () => {
     setSearchQuery("");
     setSelectedRobotType("all");
@@ -184,7 +147,10 @@ const Robots = () => {
     setSelectedCondition("all");
     setSelectedPriceRange("all");
     setSelectedLocation("all");
-    setSearchParams({}, { replace: true });
+    setSortBy("views");
+    setGroupBy("all");
+    setViewMode("grid");
+    setOnlyWithOffers(false);
   };
 
   // Fetch robots and filters
@@ -633,6 +599,9 @@ const Robots = () => {
             ? `Browse ${selectedRobotType} from verified sellers - with financing, logistics, parts and service support.`
             : "Browse verified robots from trusted sellers - with financing, logistics, parts and service support."}
         </p>
+        <div className="mt-3">
+          <CopySearchLinkButton />
+        </div>
       </div>
 
       {/* Layout similar to robotmp: left filter, right listing */}
@@ -671,7 +640,6 @@ const Robots = () => {
                           className="ml-1.5 hover:text-destructive"
                           onClick={() => {
                             setSearchQuery("");
-                            updateURLParams({ search: null });
                           }}
                         >
                           ×
@@ -808,7 +776,7 @@ const Robots = () => {
                 <div className="pt-2 border-t">
                   <button
                     type="button"
-                    onClick={() => setOnlyWithOffers((v) => !v)}
+                    onClick={() => setOnlyWithOffers(!onlyWithOffers)}
                     className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
                       onlyWithOffers
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30"

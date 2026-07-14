@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
+import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { useAuth } from "@/hooks/useAuth";
 import { useAutoSEO } from "@/hooks/useAutoSEO";
 import { AutoSEOHead } from "@/components/SEO/AutoSEOHead";
@@ -75,23 +77,16 @@ const Financing = () => {
   const { seoData } = useAutoSEO({ type: 'financing' });
   const [providers, setProviders] = useState<FinanceProvider[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("all");
-  const [selectedAmountRange, setSelectedAmountRange] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"views" | "interest-low" | "interest-high" | "amount-high">("views");
+  const [searchTerm, setSearchTerm] = useDebouncedUrlParam("search", "", 400);
+  const [selectedType, setSelectedType] = useUrlParam<string>("type", "all");
+  const [selectedAmountRange, setSelectedAmountRange] = useUrlParam<string>("amount", "all");
+  const [viewMode, setViewMode] = useUrlParam<"grid" | "list">("view", "grid");
+  const [sortBy, setSortBy] = useUrlParam<"views" | "interest-low" | "interest-high" | "amount-high">("sort", "views");
 
   const handleProviderClick = (providerId: string) => {
     navigate(`/financing/${providerId}`);
   };
 
-  // Read filter from URL params
-  useEffect(() => {
-    const typeParam = searchParams.get("type");
-    if (typeParam) {
-      setSelectedType(typeParam);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     fetchFinanceProviders();
@@ -264,6 +259,7 @@ const Financing = () => {
         <p className="text-muted-foreground">
           Make your automation dreams affordable with customized financing solutions
         </p>
+        <div className="mt-3"><CopySearchLinkButton /></div>
 
         {/* Breadcrumb */}
         {selectedType !== "all" && (

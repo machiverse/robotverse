@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
+import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { useAuth } from "@/hooks/useAuth";
 import { useAutoSEO } from "@/hooks/useAutoSEO";
 import { AutoSEOHead } from "@/components/SEO/AutoSEOHead";
@@ -71,23 +73,16 @@ const Logistics = () => {
   const { seoData } = useAutoSEO({ type: 'logistics' });
   const [providers, setProviders] = useState<LogisticsProvider[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"views" | "price-low" | "price-high" | "newest">("views");
+  const [searchTerm, setSearchTerm] = useDebouncedUrlParam("search", "", 400);
+  const [selectedType, setSelectedType] = useUrlParam<string>("type", "all");
+  const [selectedLocation, setSelectedLocation] = useUrlParam<string>("location", "all");
+  const [viewMode, setViewMode] = useUrlParam<"grid" | "list">("view", "grid");
+  const [sortBy, setSortBy] = useUrlParam<"views" | "price-low" | "price-high" | "newest">("sort", "views");
 
   const handleProviderClick = (providerId: string) => {
     navigate(`/logistics/${providerId}`);
   };
 
-  // Read filter from URL params
-  useEffect(() => {
-    const typeParam = searchParams.get("type");
-    if (typeParam) {
-      setSelectedType(typeParam);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     fetchLogisticsProviders();
@@ -227,6 +222,7 @@ const Logistics = () => {
         <p className="text-muted-foreground">
           Safe handling and delivery with specialized logistics partners
         </p>
+        <div className="mt-3"><CopySearchLinkButton /></div>
 
         {/* Breadcrumb */}
         {selectedType !== "all" && (
