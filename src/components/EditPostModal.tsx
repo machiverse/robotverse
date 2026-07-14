@@ -535,18 +535,40 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             </div>
           </div>
 
+          {/* Schedule */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-scheduled-at">Schedule for later (optional)</Label>
+            <Input
+              id="edit-scheduled-at"
+              type="datetime-local"
+              value={scheduledAt}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              className="w-full max-w-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Pick a future date/time — the post will be published automatically.
+            </p>
+          </div>
+
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button variant="secondary" onClick={() => handleSubmit(true)} disabled={isSubmitting}>
+            <Button variant="secondary" onClick={() => handleSubmit('draft')} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save as Draft
             </Button>
-            <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
+            {scheduledAt && (
+              <Button variant="secondary" onClick={() => handleSubmit('schedule')} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Schedule Post
+              </Button>
+            )}
+            <Button onClick={() => handleSubmit('publish')} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {(post as any).status === 'draft' || (post as any).is_draft ? 'Publish' : 'Update Post'}
+              {(post as any).status === 'draft' || (post as any).is_draft || (post as any).status === 'scheduled' ? 'Publish Now' : 'Update Post'}
             </Button>
           </div>
         </div>
