@@ -314,7 +314,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
       const excerpt = plain.length > 200 ? plain.substring(0, 200) + '...' : plain;
 
       const status = mode === 'draft' ? 'draft' : mode === 'schedule' ? 'scheduled' : 'published';
-      const postData: Record<string, any> = {
+      const postData: any = {
         post_type: postType,
         author_id: user.id,
         title: title.trim() || null,
