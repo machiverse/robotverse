@@ -90,6 +90,14 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       setMediaUrl(post.media_url || '');
       setMediaFile(null);
       setValidationErrors([]);
+      const sp = (post as any).scheduled_publish_at;
+      if (sp) {
+        const d = new Date(sp);
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        setScheduledAt(local);
+      } else {
+        setScheduledAt('');
+      }
     }
   }, [open, post]);
 
