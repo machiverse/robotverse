@@ -585,28 +585,55 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
             )}
           </div>
 
+          {/* Schedule */}
+          <div className="space-y-2">
+            <Label htmlFor="scheduled-at">Schedule for later (optional)</Label>
+            <Input
+              id="scheduled-at"
+              type="datetime-local"
+              value={scheduledAt}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              className="w-full max-w-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Pick a future date/time — the post will be published automatically.
+            </p>
+          </div>
+
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button
               variant="secondary"
-              onClick={() => handleSubmit(true)}
+              onClick={() => handleSubmit('draft')}
               disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save as Draft
             </Button>
-            <Button 
-              onClick={() => handleSubmit(false)} 
+            {scheduledAt && (
+              <Button
+                variant="secondary"
+                onClick={() => handleSubmit('schedule')}
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Schedule Post
+              </Button>
+            )}
+            <Button
+              onClick={() => handleSubmit('publish')}
               disabled={isSubmitting || validateForm().length > 0}
               className="min-w-[120px]"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isSubmitting ? 'Publishing...' : 'Publish'}
+              {isSubmitting ? 'Publishing...' : 'Publish Now'}
             </Button>
           </div>
+
         </div>
       </DialogContent>
     </Dialog>
