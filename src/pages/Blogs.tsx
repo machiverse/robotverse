@@ -32,6 +32,8 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import CommunityPostCard from "@/components/CommunityPostCard";
 import CreatePostModal from "@/components/CreatePostModal";
 import SEOMetaTags from "@/components/SEOMetaTags";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface CommunityPost {
   id: string;
