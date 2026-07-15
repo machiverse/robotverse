@@ -61,6 +61,8 @@ interface CommunityPost {
     avatar_url?: string;
   } | null;
   user_liked?: boolean;
+  status?: string;
+  scheduled_publish_at?: string;
 }
 
 const Community = () => {
@@ -75,6 +77,8 @@ const Community = () => {
   const [filterType, setFilterType] = useUrlParam<string>("category", "all");
   const [selectedTag, setSelectedTag] = useUrlParam<string>("tag", "all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
+
 
   useEffect(() => {
     fetchPosts();
