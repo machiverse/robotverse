@@ -210,25 +210,39 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
 
     try {
       setIsDeleting(true);
-      
-      const { error } = await supabase
-        .from('community_posts')
-        .delete()
-        .eq('id', post.id)
-        .eq('author_id', user.id);
 
-      if (error) throw error;
-      
+      console.log('[DeletePost] attempting delete', { id: post.id, status: post.status, author_id: post.author_id, user_id: user.id });
+
+      const { data, error, count } = await supabase
+        .from('community_posts')
+        .delete({ count: 'exact' })
+        .eq('id', post.id)
+        .eq('author_id', user.id)
+        .select();
+
+      if (error) {
+        console.error('[DeletePost] supabase error', error);
+        throw error;
+      }
+
+      console.log('[DeletePost] deleted rows:', count, data);
+
+      if (!count || count === 0) {
+        toast.error('Post could not be deleted (no matching row / permission denied)');
+        return;
+      }
+
       toast.success('Post deleted successfully');
       onPostDeleted?.(post.id);
       setShowDeleteDialog(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting post:', error);
-      toast.error('Failed to delete post');
+      toast.error(`Failed to delete post: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsDeleting(false);
     }
   };
+
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on buttons or interactive elements
@@ -309,17 +323,30 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           {user && post.author_id === user.id && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditModal(true);
+                  }}
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Post
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setShowDeleteDialog(true)}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteDialog(true);
+                  }}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -328,6 +355,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
         </div>
       </div>
 
