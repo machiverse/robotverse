@@ -103,13 +103,45 @@ const RoboBookCategory = () => {
   }, [categoryName, user?.id]);
 
 
-  const filteredPosts = posts.filter(post => {
+  const isMine = (post: any) => user?.id && post.author_id === user.id && post.source === 'community';
+  const myDraftsCount = posts.filter(p => isMine(p) && p.status === 'draft').length;
+  const myScheduledCount = posts.filter(p => isMine(p) && p.status === 'scheduled').length;
+
+  const tabFilteredPosts = posts.filter(post => {
+    if (tab === 'drafts') return isMine(post) && post.status === 'draft';
+    if (tab === 'scheduled') return isMine(post) && post.status === 'scheduled';
+    // published tab: everyone's published + blogs
+    return post.status === 'published' || post.source === 'blog';
+  });
+
+  const filteredPosts = tabFilteredPosts.filter(post => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return post.title?.toLowerCase().includes(search) || 
            post.content?.toLowerCase().includes(search) ||
            post.excerpt?.toLowerCase().includes(search);
   });
+
+  const handleDelete = async () => {
+    if (!deletingPost || !user) return;
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', deletingPost.id)
+        .eq('author_id', user.id);
+      if (error) throw error;
+      toast.success('Post deleted');
+      setDeletingPost(null);
+      fetchAndSet();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete post');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const getDescription = () => {
     const desc: Record<string, string> = {
