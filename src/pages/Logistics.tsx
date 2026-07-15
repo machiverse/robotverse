@@ -237,7 +237,7 @@ const Logistics = () => {
       </div>
 
       {/* Layout: left filter, right listing */}
-      <div className="container mx-auto px-4 pb-10 flex gap-6">
+      <div className="container mx-auto px-4 pb-10 flex flex-col lg:flex-row gap-6">
         {/* LEFT FILTER COLUMN (sticky) */}
         <aside className="w-72 flex-shrink-0 hidden lg:block">
           <div className="sticky top-20 space-y-4">
@@ -307,7 +307,7 @@ const Logistics = () => {
         </aside>
 
         {/* RIGHT CONTENT COLUMN */}
-        <main className="flex-1 space-y-6">
+        <main className="flex-1 min-w-0 w-full space-y-6">
           {/* Top bar */}
           <Card>
             <CardHeader>

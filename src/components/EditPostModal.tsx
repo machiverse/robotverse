@@ -18,8 +18,10 @@ import {
   FileText, 
   Image as ImageIcon,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  CalendarClock
 } from "lucide-react";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -63,6 +65,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
   const [mediaUrl, setMediaUrl] = useState(post.media_url || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [scheduledAt, setScheduledAt] = useState<string>('');
 
   const postTypes = [
     { value: 'short_post', label: 'Short Post', icon: FileText, description: 'Quick thoughts and updates' },
@@ -89,6 +92,14 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       setMediaUrl(post.media_url || '');
       setMediaFile(null);
       setValidationErrors([]);
+      const sp = (post as any).scheduled_publish_at;
+      if (sp) {
+        const d = new Date(sp);
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        setScheduledAt(local);
+      } else {
+        setScheduledAt('');
+      }
     }
   }, [open, post]);
 
@@ -221,11 +232,25 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     return errors;
   };
 
-  const handleSubmit = async (asDraft: boolean = false) => {
+  const handleSubmit = async (mode: 'draft' | 'publish' | 'schedule' = 'publish') => {
     const errors = validateForm();
     if (errors.length > 0) {
       toast.error(errors[0]);
       return;
+    }
+
+    let scheduleIso: string | null = null;
+    if (mode === 'schedule') {
+      if (!scheduledAt) {
+        toast.error('Please pick a date and time to schedule the post');
+        return;
+      }
+      const dt = new Date(scheduledAt);
+      if (isNaN(dt.getTime()) || dt.getTime() <= Date.now()) {
+        toast.error('Scheduled time must be in the future');
+        return;
+      }
+      scheduleIso = dt.toISOString();
     }
 
     try {
@@ -252,12 +277,13 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             title: post.title !== title.trim() ? { old: post.title, new: title.trim() } : null,
             content: post.content !== content.trim() ? { old: post.content, new: content.trim() } : null,
             media_url: post.media_url !== uploadedMediaUrl ? { old: post.media_url, new: uploadedMediaUrl } : null,
-            tags: JSON.stringify(post.tags) !== JSON.stringify(tags) ? { old: post.tags, new: tags } : null
-          }
-        }
+            tags: JSON.stringify(post.tags) !== JSON.stringify(tags) ? { old: post.tags, new: tags } : null,
+          },
+        },
       ];
 
-      const updateData: Record<string, any> = {
+      const status = mode === 'draft' ? 'draft' : mode === 'schedule' ? 'scheduled' : 'published';
+      const updateData: any = {
         post_type: postType,
         title: title.trim() || null,
         content: content.trim(),
@@ -268,10 +294,11 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         updated_at: new Date().toISOString(),
         edited_at: new Date().toISOString(),
         edit_history: editHistory,
-        status: asDraft ? 'draft' : 'published',
-        is_draft: asDraft,
+        status,
+        is_draft: mode === 'draft',
+        scheduled_publish_at: mode === 'schedule' ? scheduleIso : null,
       };
-      if (!asDraft) {
+      if (mode === 'publish') {
         updateData.published_at = new Date().toISOString();
       }
 
@@ -283,12 +310,43 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
 
       if (error) throw error;
 
-      toast.success(asDraft ? 'Draft saved!' : 'Post published!');
+      toast.success(
+        mode === 'draft' ? 'Draft saved!' :
+        mode === 'schedule' ? `Post scheduled for ${new Date(scheduleIso!).toLocaleString()}` :
+        'Post published!'
+      );
       onOpenChange(false);
       onPostUpdated?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating post:', error);
       toast.error(`Failed to update post: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelSchedule = async () => {
+    if (!user || post.author_id !== user.id) return;
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from('community_posts')
+        .update({
+          status: 'draft',
+          is_draft: true,
+          scheduled_publish_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', post.id)
+        .eq('author_id', user.id);
+      if (error) throw error;
+      toast.success('Scheduling cancelled — post moved to drafts');
+      setScheduledAt('');
+      onOpenChange(false);
+      onPostUpdated?.();
+    } catch (error: any) {
+      console.error('Error cancelling schedule:', error);
+      toast.error(`Failed to cancel scheduling: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -297,6 +355,8 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
   if (!user || post.author_id !== user.id) {
     return null;
   }
+
+  const isScheduled = (post as any).status === 'scheduled' && !!(post as any).scheduled_publish_at;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -506,18 +566,68 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             </div>
           </div>
 
+          {/* Schedule */}
+          <div className="space-y-2">
+            {isScheduled && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <div className="flex items-start gap-2 text-amber-800 dark:text-amber-300">
+                  <CalendarClock className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <div className="font-medium">Scheduled to publish</div>
+                    <div className="text-xs opacity-90">
+                      {format(new Date((post as any).scheduled_publish_at), "PPP 'at' p")}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelSchedule}
+                  disabled={isSubmitting}
+                  className="border-amber-500/40"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel Scheduling
+                </Button>
+              </div>
+            )}
+            <Label htmlFor="edit-scheduled-at">
+              {isScheduled ? 'Reschedule publish time' : 'Schedule for later (optional)'}
+            </Label>
+            <Input
+              id="edit-scheduled-at"
+              type="datetime-local"
+              value={scheduledAt}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              className="w-full max-w-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              {isScheduled
+                ? 'Pick a new date/time and click Reschedule to update when the post goes live.'
+                : 'Pick a future date/time — the post will be published automatically.'}
+            </p>
+          </div>
+
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button variant="secondary" onClick={() => handleSubmit(true)} disabled={isSubmitting}>
+            <Button variant="secondary" onClick={() => handleSubmit('draft')} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save as Draft
             </Button>
-            <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
+            {scheduledAt && (
+              <Button variant="secondary" onClick={() => handleSubmit('schedule')} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {isScheduled ? 'Reschedule' : 'Schedule Post'}
+              </Button>
+            )}
+            <Button onClick={() => handleSubmit('publish')} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {(post as any).status === 'draft' || (post as any).is_draft ? 'Publish' : 'Update Post'}
+              {(post as any).status === 'draft' || (post as any).is_draft || (post as any).status === 'scheduled' ? 'Publish Now' : 'Update Post'}
             </Button>
           </div>
         </div>
