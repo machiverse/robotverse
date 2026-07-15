@@ -568,7 +568,33 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
 
           {/* Schedule */}
           <div className="space-y-2">
-            <Label htmlFor="edit-scheduled-at">Schedule for later (optional)</Label>
+            {isScheduled && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <div className="flex items-start gap-2 text-amber-800 dark:text-amber-300">
+                  <CalendarClock className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <div className="font-medium">Scheduled to publish</div>
+                    <div className="text-xs opacity-90">
+                      {format(new Date((post as any).scheduled_publish_at), "PPP 'at' p")}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelSchedule}
+                  disabled={isSubmitting}
+                  className="border-amber-500/40"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel Scheduling
+                </Button>
+              </div>
+            )}
+            <Label htmlFor="edit-scheduled-at">
+              {isScheduled ? 'Reschedule publish time' : 'Schedule for later (optional)'}
+            </Label>
             <Input
               id="edit-scheduled-at"
               type="datetime-local"
@@ -578,7 +604,9 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
               className="w-full max-w-xs"
             />
             <p className="text-xs text-muted-foreground">
-              Pick a future date/time — the post will be published automatically.
+              {isScheduled
+                ? 'Pick a new date/time and click Reschedule to update when the post goes live.'
+                : 'Pick a future date/time — the post will be published automatically.'}
             </p>
           </div>
 
@@ -594,7 +622,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
             {scheduledAt && (
               <Button variant="secondary" onClick={() => handleSubmit('schedule')} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Schedule Post
+                {isScheduled ? 'Reschedule' : 'Schedule Post'}
               </Button>
             )}
             <Button onClick={() => handleSubmit('publish')} disabled={isSubmitting}>
