@@ -383,6 +383,18 @@ const Community = () => {
             <CreatePostModal onPostCreated={fetchPosts} />
           </div>
 
+          {user && (
+            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-4">
+              <TabsList>
+                <TabsTrigger value="published">Published</TabsTrigger>
+                <TabsTrigger value="scheduled">My Scheduled ({myScheduledCount})</TabsTrigger>
+                <TabsTrigger value="drafts">My Drafts ({myDraftsCount})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+
+
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4 bg-card p-6 rounded-lg shadow-sm border">
             <div className="relative flex-1">
