@@ -36,9 +36,67 @@ const RoboBookCategory = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
+  const [editingPost, setEditingPost] = useState<any | null>(null);
+  const [deletingPost, setDeletingPost] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
+  const refetch = () => {
+    // bump a dependency by toggling loading + re-running effect via key
+    setPosts([]);
+    setLoading(true);
+    // re-trigger by updating a state that useEffect depends on — reuse user?.id trick isn't possible; call fetch directly
+    fetchAndSet();
+  };
+
+  const fetchAndSet = async () => {
+    try {
+      setLoading(true);
+      let communityQuery = supabase
+        .from("community_posts")
+        .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
+        .order("created_at", { ascending: false });
+
+      if (user?.id) {
+        communityQuery = communityQuery.or(
+          `status.eq.published,and(author_id.eq.${user.id},status.in.(scheduled,draft))`
+        );
+      } else {
+        communityQuery = communityQuery.eq("status", "published");
+      }
+
+      const [postsResult, blogsResult] = await Promise.all([
+        communityQuery,
+        supabase
+          .from("blogs")
+          .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
+          .eq("status", "published")
+          .order("created_at", { ascending: false })
+      ]);
+
+      const allPosts = [
+        ...(postsResult.data || []).map(p => ({ ...p, source: 'community' })),
+        ...(blogsResult.data || []).map(b => ({ ...b, source: 'blog' }))
+      ];
+
+      const filteredPosts = allPosts.filter(post => {
+        const tags = post.tags || [];
+        const postType = (post as any).post_type?.toLowerCase() || '';
+        const searchCat = categoryName.toLowerCase();
+        return tags.some((tag: string) => tag.toLowerCase().includes(searchCat)) ||
+               postType.includes(searchCat) ||
+               searchCat.includes(postType);
+      });
+
+      filteredPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setPosts(filteredPosts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load posts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
       try {
         setLoading(true);
         
