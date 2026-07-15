@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Grid, List, Search, Eye, Heart, MessageCircle, ChevronRight, Home, BookOpen, Calendar } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
@@ -16,6 +17,7 @@ import { format } from "date-fns";
 const RoboBookCategory = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const categoryName = category ? decodeURIComponent(category).replace(/-/g, ' ') : '';
   const matchedCategory = ROBOBOOK_CATEGORIES.find(rc => 
@@ -35,13 +37,22 @@ const RoboBookCategory = () => {
       try {
         setLoading(true);
         
-        // Fetch from community_posts and blogs
+        // Show published posts to everyone; additionally show current user's own scheduled/draft posts
+        let communityQuery = supabase
+          .from("community_posts")
+          .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
+          .order("created_at", { ascending: false });
+
+        if (user?.id) {
+          communityQuery = communityQuery.or(
+            `status.eq.published,and(author_id.eq.${user.id},status.in.(scheduled,draft))`
+          );
+        } else {
+          communityQuery = communityQuery.eq("status", "published");
+        }
+
         const [postsResult, blogsResult] = await Promise.all([
-          supabase
-            .from("community_posts")
-            .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
-            .eq("status", "published")
-            .order("created_at", { ascending: false }),
+          communityQuery,
           supabase
             .from("blogs")
             .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
@@ -78,7 +89,7 @@ const RoboBookCategory = () => {
     };
 
     if (categoryName) fetchPosts();
-  }, [categoryName]);
+  }, [categoryName, user?.id]);
 
   const filteredPosts = posts.filter(post => {
     if (!searchQuery) return true;

@@ -76,7 +76,7 @@ const Community = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [sortBy, filterType]);
+  }, [sortBy, filterType, user?.id]);
 
   useEffect(() => {
     if (posts.length > 0) {
@@ -89,11 +89,18 @@ const Community = () => {
     try {
       setLoading(true);
       
-      // Fetch new community posts
+      // Show published posts to everyone; additionally show the current user's own scheduled/draft posts
       let communityQuery = supabase
         .from('community_posts')
-        .select('*')
-        .eq('status', 'published');
+        .select('*');
+
+      if (user?.id) {
+        communityQuery = communityQuery.or(
+          `status.eq.published,and(author_id.eq.${user.id},status.in.(scheduled,draft))`
+        );
+      } else {
+        communityQuery = communityQuery.eq('status', 'published');
+      }
 
       // Apply post type filter
       if (filterType !== 'all') {
