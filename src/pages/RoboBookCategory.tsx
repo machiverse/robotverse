@@ -17,6 +17,7 @@ import { format } from "date-fns";
 const RoboBookCategory = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const categoryName = category ? decodeURIComponent(category).replace(/-/g, ' ') : '';
   const matchedCategory = ROBOBOOK_CATEGORIES.find(rc => 
