@@ -269,13 +269,50 @@ const RoboBookCategory = () => {
                         {format(new Date(post.created_at), 'MMM d, yyyy')}
                       </div>
                     </div>
+                    {isMine(post) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingPost(post); }}>
+                            <Edit className="h-4 w-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); setDeletingPost(post); }}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
+
+                  {isMine(post) && post.status && post.status !== 'published' && (
+                    <div className="mb-2">
+                      {post.status === 'scheduled' && (
+                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Scheduled{post.scheduled_publish_at ? ` · ${format(new Date(post.scheduled_publish_at), 'MMM d, h:mm a')}` : ''}
+                        </Badge>
+                      )}
+                      {post.status === 'draft' && (
+                        <Badge variant="outline" className="border-muted-foreground/30 bg-muted text-muted-foreground">
+                          <FileEdit className="h-3 w-3 mr-1" /> Draft
+                        </Badge>
+                      )}
+                    </div>
+                  )}
 
                   <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{post.title}</h3>
                   
                   {post.excerpt && (
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{post.excerpt}</p>
                   )}
+
 
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-4">
