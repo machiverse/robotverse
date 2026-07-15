@@ -97,62 +97,11 @@ const RoboBookCategory = () => {
     }
   };
 
-      try {
-        setLoading(true);
-        
-        // Show published posts to everyone; additionally show current user's own scheduled/draft posts
-        let communityQuery = supabase
-          .from("community_posts")
-          .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
-          .order("created_at", { ascending: false });
-
-        if (user?.id) {
-          communityQuery = communityQuery.or(
-            `status.eq.published,and(author_id.eq.${user.id},status.in.(scheduled,draft))`
-          );
-        } else {
-          communityQuery = communityQuery.eq("status", "published");
-        }
-
-        const [postsResult, blogsResult] = await Promise.all([
-          communityQuery,
-          supabase
-            .from("blogs")
-            .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
-            .eq("status", "published")
-            .order("created_at", { ascending: false })
-        ]);
-
-        const allPosts = [
-          ...(postsResult.data || []).map(p => ({ ...p, source: 'community' })),
-          ...(blogsResult.data || []).map(b => ({ ...b, source: 'blog' }))
-        ];
-
-        // Filter by category/tags
-        const filteredPosts = allPosts.filter(post => {
-          const tags = post.tags || [];
-          const postType = (post as any).post_type?.toLowerCase() || '';
-          const searchCat = categoryName.toLowerCase();
-          
-          return tags.some((tag: string) => tag.toLowerCase().includes(searchCat)) ||
-                 postType.includes(searchCat) ||
-                 searchCat.includes(postType);
-        });
-
-        // Sort by date
-        filteredPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-        setPosts(filteredPosts);
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load posts");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (categoryName) fetchPosts();
+  useEffect(() => {
+    if (categoryName) fetchAndSet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryName, user?.id]);
+
 
   const filteredPosts = posts.filter(post => {
     if (!searchQuery) return true;
