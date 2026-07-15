@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Grid, List, Search, Eye, Heart, MessageCircle, ChevronRight, Home, BookOpen, Calendar } from "lucide-react";
+import { Loader2, Grid, List, Search, Eye, Heart, MessageCircle, ChevronRight, Home, BookOpen, Calendar, MoreVertical, Edit, Trash2, Clock, FileEdit, CheckCircle2 } from "lucide-react";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import EditPostModal from "@/components/EditPostModal";
+import { toast } from "sonner";
 import { SEOHead } from "@/components/SEOHead";
 import { ROBOBOOK_CATEGORIES } from "@/constants/navigationMenus";
 import { format } from "date-fns";
@@ -31,73 +36,112 @@ const RoboBookCategory = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
+  const [editingPost, setEditingPost] = useState<any | null>(null);
+  const [deletingPost, setDeletingPost] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const refetch = () => {
+    // bump a dependency by toggling loading + re-running effect via key
+    setPosts([]);
+    setLoading(true);
+    // re-trigger by updating a state that useEffect depends on — reuse user?.id trick isn't possible; call fetch directly
+    fetchAndSet();
+  };
+
+  const fetchAndSet = async () => {
+    try {
+      setLoading(true);
+      let communityQuery = supabase
+        .from("community_posts")
+        .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
+        .order("created_at", { ascending: false });
+
+      if (user?.id) {
+        communityQuery = communityQuery.or(
+          `status.eq.published,and(author_id.eq.${user.id},status.in.(scheduled,draft))`
+        );
+      } else {
+        communityQuery = communityQuery.eq("status", "published");
+      }
+
+      const [postsResult, blogsResult] = await Promise.all([
+        communityQuery,
+        supabase
+          .from("blogs")
+          .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
+          .eq("status", "published")
+          .order("created_at", { ascending: false })
+      ]);
+
+      const allPosts = [
+        ...(postsResult.data || []).map(p => ({ ...p, source: 'community' })),
+        ...(blogsResult.data || []).map(b => ({ ...b, source: 'blog' }))
+      ];
+
+      const filteredPosts = allPosts.filter(post => {
+        const tags = post.tags || [];
+        const postType = (post as any).post_type?.toLowerCase() || '';
+        const searchCat = categoryName.toLowerCase();
+        return tags.some((tag: string) => tag.toLowerCase().includes(searchCat)) ||
+               postType.includes(searchCat) ||
+               searchCat.includes(postType);
+      });
+
+      filteredPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setPosts(filteredPosts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load posts");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        
-        // Show published posts to everyone; additionally show current user's own scheduled/draft posts
-        let communityQuery = supabase
-          .from("community_posts")
-          .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
-          .order("created_at", { ascending: false });
-
-        if (user?.id) {
-          communityQuery = communityQuery.or(
-            `status.eq.published,and(author_id.eq.${user.id},status.in.(scheduled,draft))`
-          );
-        } else {
-          communityQuery = communityQuery.eq("status", "published");
-        }
-
-        const [postsResult, blogsResult] = await Promise.all([
-          communityQuery,
-          supabase
-            .from("blogs")
-            .select(`*, profiles:author_id (full_name, company_name, avatar_url)`)
-            .eq("status", "published")
-            .order("created_at", { ascending: false })
-        ]);
-
-        const allPosts = [
-          ...(postsResult.data || []).map(p => ({ ...p, source: 'community' })),
-          ...(blogsResult.data || []).map(b => ({ ...b, source: 'blog' }))
-        ];
-
-        // Filter by category/tags
-        const filteredPosts = allPosts.filter(post => {
-          const tags = post.tags || [];
-          const postType = (post as any).post_type?.toLowerCase() || '';
-          const searchCat = categoryName.toLowerCase();
-          
-          return tags.some((tag: string) => tag.toLowerCase().includes(searchCat)) ||
-                 postType.includes(searchCat) ||
-                 searchCat.includes(postType);
-        });
-
-        // Sort by date
-        filteredPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-        setPosts(filteredPosts);
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load posts");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (categoryName) fetchPosts();
+    if (categoryName) fetchAndSet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryName, user?.id]);
 
-  const filteredPosts = posts.filter(post => {
+
+  const isMine = (post: any) => user?.id && post.author_id === user.id && post.source === 'community';
+  const myDraftsCount = posts.filter(p => isMine(p) && p.status === 'draft').length;
+  const myScheduledCount = posts.filter(p => isMine(p) && p.status === 'scheduled').length;
+
+  const tabFilteredPosts = posts.filter(post => {
+    if (tab === 'drafts') return isMine(post) && post.status === 'draft';
+    if (tab === 'scheduled') return isMine(post) && post.status === 'scheduled';
+    // published tab: everyone's published + blogs
+    return post.status === 'published' || post.source === 'blog';
+  });
+
+  const filteredPosts = tabFilteredPosts.filter(post => {
     if (!searchQuery) return true;
     const search = searchQuery.toLowerCase();
     return post.title?.toLowerCase().includes(search) || 
            post.content?.toLowerCase().includes(search) ||
            post.excerpt?.toLowerCase().includes(search);
   });
+
+  const handleDelete = async () => {
+    if (!deletingPost || !user) return;
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', deletingPost.id)
+        .eq('author_id', user.id);
+      if (error) throw error;
+      toast.success('Post deleted');
+      setDeletingPost(null);
+      fetchAndSet();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete post');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const getDescription = () => {
     const desc: Record<string, string> = {
@@ -164,6 +208,17 @@ const RoboBookCategory = () => {
           </CardContent>
         </Card>
 
+        {user && (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-6">
+            <TabsList className="grid grid-cols-3 w-full max-w-lg">
+              <TabsTrigger value="published">Published</TabsTrigger>
+              <TabsTrigger value="scheduled">My Scheduled{myScheduledCount ? ` (${myScheduledCount})` : ''}</TabsTrigger>
+              <TabsTrigger value="drafts">My Drafts{myDraftsCount ? ` (${myDraftsCount})` : ''}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
+
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
@@ -214,13 +269,50 @@ const RoboBookCategory = () => {
                         {format(new Date(post.created_at), 'MMM d, yyyy')}
                       </div>
                     </div>
+                    {isMine(post) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingPost(post); }}>
+                            <Edit className="h-4 w-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); setDeletingPost(post); }}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
+
+                  {isMine(post) && post.status && post.status !== 'published' && (
+                    <div className="mb-2">
+                      {post.status === 'scheduled' && (
+                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Scheduled{post.scheduled_publish_at ? ` · ${format(new Date(post.scheduled_publish_at), 'MMM d, h:mm a')}` : ''}
+                        </Badge>
+                      )}
+                      {post.status === 'draft' && (
+                        <Badge variant="outline" className="border-muted-foreground/30 bg-muted text-muted-foreground">
+                          <FileEdit className="h-3 w-3 mr-1" /> Draft
+                        </Badge>
+                      )}
+                    </div>
+                  )}
 
                   <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{post.title}</h3>
                   
                   {post.excerpt && (
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{post.excerpt}</p>
                   )}
+
 
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-4">
@@ -243,6 +335,34 @@ const RoboBookCategory = () => {
           </div>
         )}
       </div>
+
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          open={!!editingPost}
+          onOpenChange={(o) => !o && setEditingPost(null)}
+          onPostUpdated={() => { setEditingPost(null); fetchAndSet(); }}
+        />
+      )}
+
+      <AlertDialog open={!!deletingPost} onOpenChange={(o) => !o && setDeletingPost(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete post?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
