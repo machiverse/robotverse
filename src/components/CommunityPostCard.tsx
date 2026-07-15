@@ -323,17 +323,30 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           {user && post.author_id === user.id && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditModal(true);
+                  }}
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Post
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setShowDeleteDialog(true)}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteDialog(true);
+                  }}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -342,6 +355,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
         </div>
       </div>
 
