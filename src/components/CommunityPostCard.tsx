@@ -210,25 +210,39 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
 
     try {
       setIsDeleting(true);
-      
-      const { error } = await supabase
-        .from('community_posts')
-        .delete()
-        .eq('id', post.id)
-        .eq('author_id', user.id);
 
-      if (error) throw error;
-      
+      console.log('[DeletePost] attempting delete', { id: post.id, status: post.status, author_id: post.author_id, user_id: user.id });
+
+      const { data, error, count } = await supabase
+        .from('community_posts')
+        .delete({ count: 'exact' })
+        .eq('id', post.id)
+        .eq('author_id', user.id)
+        .select();
+
+      if (error) {
+        console.error('[DeletePost] supabase error', error);
+        throw error;
+      }
+
+      console.log('[DeletePost] deleted rows:', count, data);
+
+      if (!count || count === 0) {
+        toast.error('Post could not be deleted (no matching row / permission denied)');
+        return;
+      }
+
       toast.success('Post deleted successfully');
       onPostDeleted?.(post.id);
       setShowDeleteDialog(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting post:', error);
-      toast.error('Failed to delete post');
+      toast.error(`Failed to delete post: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsDeleting(false);
     }
   };
+
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on buttons or interactive elements
