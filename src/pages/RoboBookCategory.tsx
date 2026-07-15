@@ -208,6 +208,17 @@ const RoboBookCategory = () => {
           </CardContent>
         </Card>
 
+        {user && (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-6">
+            <TabsList className="grid grid-cols-3 w-full max-w-lg">
+              <TabsTrigger value="published">Published</TabsTrigger>
+              <TabsTrigger value="scheduled">My Scheduled{myScheduledCount ? ` (${myScheduledCount})` : ''}</TabsTrigger>
+              <TabsTrigger value="drafts">My Drafts{myDraftsCount ? ` (${myDraftsCount})` : ''}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
+
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
