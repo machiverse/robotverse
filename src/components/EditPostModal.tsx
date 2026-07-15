@@ -325,9 +325,38 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     }
   };
 
+  const handleCancelSchedule = async () => {
+    if (!user || post.author_id !== user.id) return;
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from('community_posts')
+        .update({
+          status: 'draft',
+          is_draft: true,
+          scheduled_publish_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', post.id)
+        .eq('author_id', user.id);
+      if (error) throw error;
+      toast.success('Scheduling cancelled — post moved to drafts');
+      setScheduledAt('');
+      onOpenChange(false);
+      onPostUpdated?.();
+    } catch (error: any) {
+      console.error('Error cancelling schedule:', error);
+      toast.error(`Failed to cancel scheduling: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!user || post.author_id !== user.id) {
     return null;
   }
+
+  const isScheduled = (post as any).status === 'scheduled' && !!(post as any).scheduled_publish_at;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
