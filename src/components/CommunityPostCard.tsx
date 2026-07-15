@@ -64,6 +64,9 @@ interface CommunityPost {
   edited_at?: string;
   edit_history?: any[];
   video_thumbnail?: string;
+  status?: string;
+  scheduled_publish_at?: string | null;
+  published_at?: string | null;
   profiles?: {
     full_name: string;
     company_name?: string;
