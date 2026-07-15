@@ -32,6 +32,8 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import CommunityPostCard from "@/components/CommunityPostCard";
 import CreatePostModal from "@/components/CreatePostModal";
 import SEOMetaTags from "@/components/SEOMetaTags";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface CommunityPost {
   id: string;
@@ -59,6 +61,8 @@ interface CommunityPost {
     avatar_url?: string;
   } | null;
   user_liked?: boolean;
+  status?: string;
+  scheduled_publish_at?: string;
 }
 
 const Community = () => {
@@ -73,10 +77,12 @@ const Community = () => {
   const [filterType, setFilterType] = useUrlParam<string>("category", "all");
   const [selectedTag, setSelectedTag] = useUrlParam<string>("tag", "all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [tab, setTab] = useState<"published" | "scheduled" | "drafts">("published");
+
 
   useEffect(() => {
     fetchPosts();
-  }, [sortBy, filterType]);
+  }, [sortBy, filterType, user?.id]);
 
   useEffect(() => {
     if (posts.length > 0) {
@@ -89,11 +95,18 @@ const Community = () => {
     try {
       setLoading(true);
       
-      // Fetch new community posts
+      // Show published posts to everyone; additionally show the current user's own scheduled/draft posts
       let communityQuery = supabase
         .from('community_posts')
-        .select('*')
-        .eq('status', 'published');
+        .select('*');
+
+      if (user?.id) {
+        communityQuery = communityQuery.or(
+          `status.eq.published,and(author_id.eq.${user.id},status.in.(scheduled,draft))`
+        );
+      } else {
+        communityQuery = communityQuery.eq('status', 'published');
+      }
 
       // Apply post type filter
       if (filterType !== 'all') {
@@ -218,19 +231,34 @@ const Community = () => {
     }
   };
 
+  const isMine = (post: CommunityPost) => !!user && post.author_id === user.id;
+
+  const myScheduledCount = posts.filter(p => isMine(p) && p.status === 'scheduled').length;
+  const myDraftsCount = posts.filter(p => isMine(p) && p.status === 'draft').length;
+
   const filteredPosts = posts.filter(post => {
+    // Tab filter
+    if (tab === "published") {
+      if (post.status && post.status !== 'published') return false;
+    } else if (tab === "scheduled") {
+      if (!(isMine(post) && post.status === 'scheduled')) return false;
+    } else if (tab === "drafts") {
+      if (!(isMine(post) && post.status === 'draft')) return false;
+    }
+
     const searchContent = [
       post.title,
       post.content,
       post.excerpt,
       ...post.tags
     ].filter(Boolean).join(' ').toLowerCase();
-    
+
     const matchesSearch = searchContent.includes(searchTerm.toLowerCase());
     const matchesTag = selectedTag === "all" || post.tags.includes(selectedTag);
-    
+
     return matchesSearch && matchesTag;
   });
+
 
   const handleLikeUpdate = async (postId: string, newLikeCount: number, userLiked: boolean, newShareCount?: number) => {
     // Track like/unlike interaction
@@ -354,6 +382,18 @@ const Community = () => {
             
             <CreatePostModal onPostCreated={fetchPosts} />
           </div>
+
+          {user && (
+            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-4">
+              <TabsList>
+                <TabsTrigger value="published">Published</TabsTrigger>
+                <TabsTrigger value="scheduled">My Scheduled ({myScheduledCount})</TabsTrigger>
+                <TabsTrigger value="drafts">My Drafts ({myDraftsCount})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+
 
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4 bg-card p-6 rounded-lg shadow-sm border">
