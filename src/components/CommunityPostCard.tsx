@@ -272,7 +272,29 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Status Badge */}
+          {post.status === 'scheduled' && (
+            <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+              <Clock className="h-3 w-3 mr-1" />
+              <span className="text-xs font-medium">
+                Scheduled{post.scheduled_publish_at ? ` · ${format(new Date(post.scheduled_publish_at), 'MMM d, h:mm a')}` : ''}
+              </span>
+            </Badge>
+          )}
+          {post.status === 'draft' && (
+            <Badge variant="outline" className="border-muted-foreground/30 bg-muted text-muted-foreground">
+              <FileEdit className="h-3 w-3 mr-1" />
+              <span className="text-xs font-medium">Draft</span>
+            </Badge>
+          )}
+          {post.status === 'published' && (
+            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              <span className="text-xs font-medium">Published</span>
+            </Badge>
+          )}
+
           {/* Post Type Badge */}
           <Badge variant="outline" className="border-none bg-gradient-to-r from-primary/10 to-accent/10 text-primary hover:from-primary/20 hover:to-accent/20 transition-all">
             <div className="flex items-center gap-1">
