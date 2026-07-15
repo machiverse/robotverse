@@ -335,6 +335,34 @@ const RoboBookCategory = () => {
           </div>
         )}
       </div>
+
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          open={!!editingPost}
+          onOpenChange={(o) => !o && setEditingPost(null)}
+          onPostUpdated={() => { setEditingPost(null); fetchAndSet(); }}
+        />
+      )}
+
+      <AlertDialog open={!!deletingPost} onOpenChange={(o) => !o && setDeletingPost(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete post?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
