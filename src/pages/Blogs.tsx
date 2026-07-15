@@ -231,19 +231,34 @@ const Community = () => {
     }
   };
 
+  const isMine = (post: CommunityPost) => !!user && post.author_id === user.id;
+
+  const myScheduledCount = posts.filter(p => isMine(p) && p.status === 'scheduled').length;
+  const myDraftsCount = posts.filter(p => isMine(p) && p.status === 'draft').length;
+
   const filteredPosts = posts.filter(post => {
+    // Tab filter
+    if (tab === "published") {
+      if (post.status && post.status !== 'published') return false;
+    } else if (tab === "scheduled") {
+      if (!(isMine(post) && post.status === 'scheduled')) return false;
+    } else if (tab === "drafts") {
+      if (!(isMine(post) && post.status === 'draft')) return false;
+    }
+
     const searchContent = [
       post.title,
       post.content,
       post.excerpt,
       ...post.tags
     ].filter(Boolean).join(' ').toLowerCase();
-    
+
     const matchesSearch = searchContent.includes(searchTerm.toLowerCase());
     const matchesTag = selectedTag === "all" || post.tags.includes(selectedTag);
-    
+
     return matchesSearch && matchesTag;
   });
+
 
   const handleLikeUpdate = async (postId: string, newLikeCount: number, userLiked: boolean, newShareCount?: number) => {
     // Track like/unlike interaction
