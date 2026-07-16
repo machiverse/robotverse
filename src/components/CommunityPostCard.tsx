@@ -44,6 +44,7 @@ import ResponsiveMedia from "@/components/ResponsiveMedia";
 import EditPostModal from "@/components/EditPostModal";
 import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
 import { buildRoboBookPostPath, buildRoboBookPostUrl } from "@/utils/blogSeo";
+import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 
 interface CommunityPost {
   id: string;
