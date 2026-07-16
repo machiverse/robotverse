@@ -129,7 +129,8 @@ const CommunityPostDetails = () => {
     if (id) {
       fetchPost();
     }
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, previewToken]);
 
   // Separate useEffect for incrementing view count after post is loaded
   useEffect(() => {
