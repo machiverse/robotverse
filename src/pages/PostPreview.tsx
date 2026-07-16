@@ -149,6 +149,8 @@ const PostPreview = () => {
 
         <PreviewLinkCard
           token={post.preview_token || token}
+          slug={post.slug}
+          postId={post.id}
           status={post.status}
           liveUrl={liveUrl}
           previewViewCount={post.preview_view_count}
