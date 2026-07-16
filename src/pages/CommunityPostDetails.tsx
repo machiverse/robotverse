@@ -291,7 +291,7 @@ const CommunityPostDetails = () => {
   };
 
   const incrementViewCount = async () => {
-    if (!post?.id) return;
+    if (!post?.id || isPreviewMode) return;
 
     try {
       if (sourceTable === 'blogs') {
