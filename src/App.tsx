@@ -24,6 +24,7 @@ import Blogs from "./pages/Blogs";
 import BlogDetails from "./pages/BlogDetails";
 import BlogEditor from "./pages/BlogEditor";
 import CommunityPostDetails from "./pages/CommunityPostDetails";
+import PostPreview from "./pages/PostPreview";
 import DashboardPage from "./pages/DashboardPage";
 import SparePartsSellerDashboard from "./pages/SparePartsSellerDashboard";
 import SellerRobots from "./pages/SellerRobots";
@@ -163,6 +164,7 @@ const App = () => (
             <Route path="/community/:id" element={<CommunityPostDetails />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
+            <Route path="/preview/:token" element={<PostPreview />} />
             <Route path="/blogs/:id" element={<BlogDetails />} />
             <Route path="/blog/:id" element={<BlogDetails />} />
             <Route path="/marketplace/robots" element={<Robots />} />

@@ -506,6 +506,9 @@ export type Database = {
           like_count: number | null
           meta_description: string | null
           meta_title: string | null
+          preview_last_viewed_at: string | null
+          preview_token: string
+          preview_view_count: number
           published_at: string | null
           reading_time_minutes: number | null
           scheduled_publish_at: string | null
@@ -535,6 +538,9 @@ export type Database = {
           like_count?: number | null
           meta_description?: string | null
           meta_title?: string | null
+          preview_last_viewed_at?: string | null
+          preview_token?: string
+          preview_view_count?: number
           published_at?: string | null
           reading_time_minutes?: number | null
           scheduled_publish_at?: string | null
@@ -564,6 +570,9 @@ export type Database = {
           like_count?: number | null
           meta_description?: string | null
           meta_title?: string | null
+          preview_last_viewed_at?: string | null
+          preview_token?: string
+          preview_view_count?: number
           published_at?: string | null
           reading_time_minutes?: number | null
           scheduled_publish_at?: string | null
@@ -1053,6 +1062,9 @@ export type Database = {
           meta_description: string | null
           meta_title: string | null
           post_type: string
+          preview_last_viewed_at: string | null
+          preview_token: string
+          preview_view_count: number
           published_at: string | null
           reading_time_minutes: number | null
           scheduled_publish_at: string | null
@@ -1089,6 +1101,9 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           post_type: string
+          preview_last_viewed_at?: string | null
+          preview_token?: string
+          preview_view_count?: number
           published_at?: string | null
           reading_time_minutes?: number | null
           scheduled_publish_at?: string | null
@@ -1125,6 +1140,9 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           post_type?: string
+          preview_last_viewed_at?: string | null
+          preview_token?: string
+          preview_view_count?: number
           published_at?: string | null
           reading_time_minutes?: number | null
           scheduled_publish_at?: string | null
@@ -5526,6 +5544,7 @@ export type Database = {
         Args: { provider_id: string; table_name: string }
         Returns: Json
       }
+      get_post_by_preview_token: { Args: { p_token: string }; Returns: Json }
       get_provider_business_info: {
         Args: { provider_user_id: string }
         Returns: {
@@ -5604,6 +5623,7 @@ export type Database = {
         Args: { p_item_id: string; p_item_type: string }
         Returns: number
       }
+      increment_preview_view: { Args: { p_token: string }; Returns: undefined }
       increment_robot_view_count: {
         Args: { p_robot_id: string }
         Returns: number

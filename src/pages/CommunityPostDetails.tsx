@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
 import BlogShareBar from "@/components/blog/BlogShareBar";
+import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 import EditPostModal from "@/components/EditPostModal";
 import { buildRoboBookPostUrl } from "@/utils/blogSeo";
 
@@ -372,6 +373,18 @@ const CommunityPostDetails = () => {
           )}
         </div>
 
+
+        {isAuthor && (post as any).preview_token && (post as any).status !== 'published' && (
+          <div className="mb-6">
+            <PreviewLinkCard
+              token={(post as any).preview_token}
+              status={(post as any).status}
+              previewViewCount={(post as any).preview_view_count}
+              previewLastViewedAt={(post as any).preview_last_viewed_at}
+              title={post.title}
+            />
+          </div>
+        )}
 
         <Card className="overflow-hidden border-border/50 shadow-lg">
           <CardContent className="p-0">
