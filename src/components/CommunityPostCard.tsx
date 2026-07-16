@@ -44,6 +44,7 @@ import ResponsiveMedia from "@/components/ResponsiveMedia";
 import EditPostModal from "@/components/EditPostModal";
 import { ContentInteractionButtons } from "@/components/content/ContentInteractionButtons";
 import { buildRoboBookPostPath, buildRoboBookPostUrl } from "@/utils/blogSeo";
+import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 
 interface CommunityPost {
   id: string;
@@ -67,6 +68,9 @@ interface CommunityPost {
   status?: string;
   scheduled_publish_at?: string | null;
   published_at?: string | null;
+  preview_token?: string | null;
+  preview_view_count?: number | null;
+  preview_last_viewed_at?: string | null;
   profiles?: {
     full_name: string;
     company_name?: string;
@@ -421,6 +425,23 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           </div>
         </div>
       )}
+
+      {/* Preview link for author on scheduled/draft */}
+      {user && post.author_id === user.id &&
+        (post.status === 'scheduled' || post.status === 'draft') &&
+        post.preview_token && (
+          <div className="px-4 pt-3">
+            <PreviewLinkCard
+              token={post.preview_token}
+              slug={(post as any).slug}
+              postId={post.id}
+              status={post.status}
+              previewViewCount={post.preview_view_count}
+              previewLastViewedAt={post.preview_last_viewed_at}
+              title={post.title}
+            />
+          </div>
+        )}
 
       {/* Engagement Actions */}
       <div className="px-4 py-3 border-t border-border/50 bg-muted/20">
