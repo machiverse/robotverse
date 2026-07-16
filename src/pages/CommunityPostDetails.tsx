@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
 import ResponsiveMedia from "@/components/ResponsiveMedia";
 import BlogShareBar from "@/components/blog/BlogShareBar";
+import PreviewLinkCard from "@/components/blog/PreviewLinkCard";
 import EditPostModal from "@/components/EditPostModal";
 import { buildRoboBookPostUrl } from "@/utils/blogSeo";
 
