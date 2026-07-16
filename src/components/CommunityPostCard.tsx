@@ -426,6 +426,21 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
         </div>
       )}
 
+      {/* Preview link for author on scheduled/draft */}
+      {user && post.author_id === user.id &&
+        (post.status === 'scheduled' || post.status === 'draft') &&
+        post.preview_token && (
+          <div className="px-4 pt-3">
+            <PreviewLinkCard
+              token={post.preview_token}
+              status={post.status}
+              previewViewCount={post.preview_view_count}
+              previewLastViewedAt={post.preview_last_viewed_at}
+              title={post.title}
+            />
+          </div>
+        )}
+
       {/* Engagement Actions */}
       <div className="px-4 py-3 border-t border-border/50 bg-muted/20">
         <div className="flex items-center justify-between">
