@@ -433,6 +433,8 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
           <div className="px-4 pt-3">
             <PreviewLinkCard
               token={post.preview_token}
+              slug={(post as any).slug}
+              postId={post.id}
               status={post.status}
               previewViewCount={post.preview_view_count}
               previewLastViewedAt={post.preview_last_viewed_at}

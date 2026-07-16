@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
@@ -77,12 +77,15 @@ interface CommunityPost {
 
 const CommunityPostDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const previewToken = searchParams.get('preview');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { trackButtonClick } = useButtonTracking();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [sourceTable, setSourceTable] = useState<'community_posts' | 'blogs'>('community_posts');
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   
   // Determine content type based on post data
@@ -126,7 +129,8 @@ const CommunityPostDetails = () => {
     if (id) {
       fetchPost();
     }
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, previewToken]);
 
   // Separate useEffect for incrementing view count after post is loaded
   useEffect(() => {
@@ -155,7 +159,44 @@ const CommunityPostDetails = () => {
   const fetchPost = async () => {
     try {
       setLoading(true);
-      
+
+      // Preview mode: fetch draft/scheduled via secure RPC using preview token
+      if (previewToken) {
+        const { data: res, error } = await supabase.rpc(
+          'get_post_by_preview_token' as any,
+          { p_token: previewToken }
+        );
+        if (error) throw error;
+        if (res) {
+          const parsed: any = typeof res === 'string' ? JSON.parse(res) : res;
+          const src = (parsed.source || 'community_posts') as 'community_posts' | 'blogs';
+          setSourceTable(src);
+          setIsPreviewMode(true);
+          let postData: any = parsed.post;
+          if (src === 'blogs') {
+            postData = {
+              ...postData,
+              post_type: 'blog',
+              comment_count: postData.comment_count ?? 0,
+              share_count: postData.share_count ?? 0,
+              video_duration: null,
+              media_url: postData.image_url,
+              media_type: postData.image_url ? 'image' : null,
+              edited_at: null,
+              edit_history: [],
+              video_thumbnail: null,
+              featured_image: postData.featured_image ?? postData.image_url ?? null,
+            };
+          }
+          // Fire-and-forget preview analytics
+          supabase.rpc('increment_preview_view' as any, { p_token: previewToken });
+          setPost({ ...postData, profiles: parsed.profile } as CommunityPost);
+          return;
+        }
+        setPost(null);
+        return;
+      }
+
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "");
 
       // Try to fetch from community_posts first by slug or UUID
@@ -250,7 +291,7 @@ const CommunityPostDetails = () => {
   };
 
   const incrementViewCount = async () => {
-    if (!post?.id) return;
+    if (!post?.id || isPreviewMode) return;
 
     try {
       if (sourceTable === 'blogs') {
