@@ -77,12 +77,15 @@ interface CommunityPost {
 
 const CommunityPostDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const previewToken = searchParams.get('preview');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { trackButtonClick } = useButtonTracking();
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [sourceTable, setSourceTable] = useState<'community_posts' | 'blogs'>('community_posts');
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   
   // Determine content type based on post data
