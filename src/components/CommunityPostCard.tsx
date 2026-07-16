@@ -68,6 +68,9 @@ interface CommunityPost {
   status?: string;
   scheduled_publish_at?: string | null;
   published_at?: string | null;
+  preview_token?: string | null;
+  preview_view_count?: number | null;
+  preview_last_viewed_at?: string | null;
   profiles?: {
     full_name: string;
     company_name?: string;
