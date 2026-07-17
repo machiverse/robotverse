@@ -123,10 +123,14 @@ const AuctionDetail: React.FC = () => {
               <h1 className="text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight mb-4">
                 {auction.auction_title}
               </h1>
-              {auction.robots?.location && (
+              {(auction.item_location || auction.robots?.location) && (
                 <div className="flex items-center text-muted-foreground mb-4">
                   <MapPin className="w-5 h-5 mr-2 text-primary" />
-                  <span className="text-lg">Location: {auction.robots.location}</span>
+                  <span className="text-lg">
+                    Location: {auction.item_location || auction.robots?.location}
+                    {auction.robots?.state ? `, ${auction.robots.state}` : ''}
+                    {auction.robots?.pincode ? ` — ${auction.robots.pincode}` : ''}
+                  </span>
                 </div>
               )}
             </div>
@@ -147,34 +151,123 @@ const AuctionDetail: React.FC = () => {
               <h3 className="text-2xl font-bold border-b border-border pb-3">Technical Specifications</h3>
 
               {auction.robots ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                  <div className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground">Manufacturer</span>
-                    <span className="font-semibold">{auction.robots.brand || "-"}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground">Model Name</span>
-                    <span className="font-semibold">{auction.robots.name || "-"}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground">Robot Type</span>
-                    <span className="font-semibold">{auction.robots.robot_type || "-"}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground">Condition</span>
-                    <span className="font-semibold capitalize">{auction.robots.condition || "Used"}</span>
-                  </div>
-                </div>
+                (() => {
+                  const r = auction.robots!;
+                  const rows: Array<[string, React.ReactNode]> = [
+                    ['Manufacturer', r.brand || '-'],
+                    ['Model Name', r.name || '-'],
+                    ['Model Number', r.model || '-'],
+                    ['Robot Type', r.robot_type || '-'],
+                    ['Condition', <span className="capitalize">{r.condition || 'Used'}</span>],
+                    ['Year Manufactured', r.year_manufactured || '-'],
+                    ['Payload Capacity', r.payload_capacity ? `${r.payload_capacity} kg` : '-'],
+                    ['Reach', r.reach ? `${r.reach} mm` : '-'],
+                    ['Repeatability', r.repeatability ? `± ${r.repeatability} mm` : '-'],
+                    ['Power Consumption', r.power_consumption ? `${r.power_consumption} kW` : '-'],
+                    ['Controller Type', r.controller_type || '-'],
+                    ['Operating Environment', r.operating_environment || '-'],
+                    ['Warranty (Item)', r.warranty_info || '-'],
+                  ];
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
+                        {rows.map(([k, v]) => (
+                          <div key={k} className="flex justify-between py-2 border-b border-border/50 text-sm">
+                            <span className="text-muted-foreground">{k}</span>
+                            <span className="font-semibold text-right">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {r.applications?.length ? (
+                        <div>
+                          <h4 className="text-base font-semibold mb-2">Applications</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {r.applications.map((a) => (
+                              <Badge key={a} variant="secondary" className="text-xs">{a}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {r.certification_standards?.length ? (
+                        <div>
+                          <h4 className="text-base font-semibold mb-2">Certifications & Standards</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {r.certification_standards.map((c) => (
+                              <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {r.included_accessories?.length ? (
+                        <div>
+                          <h4 className="text-base font-semibold mb-2">Included Accessories</h4>
+                          <ul className="list-disc list-inside text-sm text-foreground/90 space-y-1">
+                            {r.included_accessories.map((a) => <li key={a}>{a}</li>)}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      {r.description && (
+                        <div>
+                          <h4 className="text-base font-semibold mb-2">Item Overview</h4>
+                          <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">{r.description}</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
               ) : (
                 <p className="text-muted-foreground">Detailed specifications are currently unavailable.</p>
               )}
 
               {auction.description && (
                 <div className="mt-8">
-                  <h4 className="text-lg font-semibold mb-3">Description</h4>
+                  <h4 className="text-lg font-semibold mb-3">Auction Description</h4>
                   <div className="p-6 bg-muted/30 rounded-lg border border-border/50 text-foreground leading-relaxed whitespace-pre-line">
                     {auction.description}
                   </div>
+                </div>
+              )}
+
+              {/* Auction-specific commercial details */}
+              {(auction.inspection_details || auction.payment_terms || auction.delivery_terms || auction.warranty_period || auction.terms_and_conditions) && (
+                <div className="mt-8 space-y-4">
+                  <h3 className="text-2xl font-bold border-b border-border pb-3">Auction Terms & Logistics</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {auction.inspection_details && (
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Inspection</p>
+                        <p className="text-sm whitespace-pre-line">{auction.inspection_details}</p>
+                      </div>
+                    )}
+                    {auction.payment_terms && (
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Payment Terms</p>
+                        <p className="text-sm whitespace-pre-line">{auction.payment_terms}</p>
+                      </div>
+                    )}
+                    {auction.delivery_terms && (
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Delivery / Shipping</p>
+                        <p className="text-sm whitespace-pre-line">{auction.delivery_terms}</p>
+                      </div>
+                    )}
+                    {auction.warranty_period && (
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Warranty Period</p>
+                        <p className="text-sm whitespace-pre-line">{auction.warranty_period}</p>
+                      </div>
+                    )}
+                  </div>
+                  {auction.terms_and_conditions && (
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Terms & Conditions</p>
+                      <p className="text-sm whitespace-pre-line">{auction.terms_and_conditions}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -303,18 +396,23 @@ const AuctionDetail: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-5 space-y-4">
-                  {auction.seller_profile && (
-                    <div className="mb-4">
-                      <p className="font-bold text-lg text-foreground">
-                        {auction.seller_profile.company_name ||
-                          auction.seller_profile.full_name ||
-                          "Industrial Supplier"}
+                  <div className="mb-4">
+                    <p className="font-bold text-lg text-foreground">
+                      {auction.seller_profile?.company_name ||
+                        auction.seller_profile?.full_name ||
+                        'Industrial Supplier'}
+                    </p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Verified Seller
+                    </p>
+                    {(auction.item_location || auction.seller_profile?.location) && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {auction.item_location || auction.seller_profile?.location}
                       </p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Verified Seller
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
 
                   <Separator />
 
