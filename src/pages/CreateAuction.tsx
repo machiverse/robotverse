@@ -127,6 +127,12 @@ const CreateAuction: React.FC = () => {
         auto_extend_minutes: parseInt(form.auto_extend_minutes) || 5,
         images: aggregatedImages.length ? aggregatedImages : null,
         status: start <= now ? 'live' as any : 'upcoming' as any,
+        item_location: form.item_location.trim() || primaryRobot?.location || null,
+        inspection_details: form.inspection_details.trim() || null,
+        payment_terms: form.payment_terms.trim() || null,
+        delivery_terms: form.delivery_terms.trim() || null,
+        warranty_period: form.warranty_period.trim() || null,
+        terms_and_conditions: form.terms_and_conditions.trim() || null,
       } as any);
 
       if (error) throw error;
