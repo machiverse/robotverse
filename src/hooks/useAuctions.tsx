@@ -185,7 +185,7 @@ export function useAuctionDetail(auctionId: string | undefined) {
       if (!auctionId) return null;
       const { data, error } = await supabase
         .from('auctions')
-        .select('*, robots(name, model, robot_type, images, location, brand, description, payload_capacity, reach, applications, condition)')
+        .select('*, robots(name, model, robot_type, images, location, brand, description, payload_capacity, reach, repeatability, power_consumption, controller_type, operating_environment, warranty_info, year_manufactured, certification_standards, included_accessories, applications, condition, state, pincode)')
         .eq('id', auctionId)
         .single();
       if (error) throw error;
