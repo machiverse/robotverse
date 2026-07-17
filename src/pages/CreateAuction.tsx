@@ -33,6 +33,12 @@ const CreateAuction: React.FC = () => {
     auto_extend_minutes: '5',
     has_reserve: false,
     has_buy_now: false,
+    item_location: '',
+    inspection_details: '',
+    payment_terms: '50% advance on winning, balance before dispatch. Bank transfer (NEFT/RTGS) only.',
+    delivery_terms: 'Ex-works. Buyer arranges pickup and logistics within 7 days of full payment.',
+    warranty_period: '',
+    terms_and_conditions: '',
   });
 
   // Fetch seller's robots with full details
