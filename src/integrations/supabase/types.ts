@@ -279,13 +279,17 @@ export type Database = {
           created_at: string
           currency: string
           current_highest_bid: number | null
+          delivery_terms: string | null
           description: string | null
           end_time: string
           highest_bidder_id: string | null
           id: string
           images: string[] | null
+          inspection_details: string | null
           is_featured: boolean | null
+          item_location: string | null
           min_increment: number
+          payment_terms: string | null
           reserve_price: number | null
           robot_id: string | null
           robot_ids: string[] | null
@@ -294,9 +298,11 @@ export type Database = {
           start_time: string
           starting_price: number
           status: Database["public"]["Enums"]["auction_status"]
+          terms_and_conditions: string | null
           total_bidders: number | null
           total_bids: number | null
           updated_at: string
+          warranty_period: string | null
           winner_id: string | null
           winner_notified: boolean | null
         }
@@ -308,13 +314,17 @@ export type Database = {
           created_at?: string
           currency?: string
           current_highest_bid?: number | null
+          delivery_terms?: string | null
           description?: string | null
           end_time: string
           highest_bidder_id?: string | null
           id?: string
           images?: string[] | null
+          inspection_details?: string | null
           is_featured?: boolean | null
+          item_location?: string | null
           min_increment?: number
+          payment_terms?: string | null
           reserve_price?: number | null
           robot_id?: string | null
           robot_ids?: string[] | null
@@ -323,9 +333,11 @@ export type Database = {
           start_time: string
           starting_price?: number
           status?: Database["public"]["Enums"]["auction_status"]
+          terms_and_conditions?: string | null
           total_bidders?: number | null
           total_bids?: number | null
           updated_at?: string
+          warranty_period?: string | null
           winner_id?: string | null
           winner_notified?: boolean | null
         }
@@ -337,13 +349,17 @@ export type Database = {
           created_at?: string
           currency?: string
           current_highest_bid?: number | null
+          delivery_terms?: string | null
           description?: string | null
           end_time?: string
           highest_bidder_id?: string | null
           id?: string
           images?: string[] | null
+          inspection_details?: string | null
           is_featured?: boolean | null
+          item_location?: string | null
           min_increment?: number
+          payment_terms?: string | null
           reserve_price?: number | null
           robot_id?: string | null
           robot_ids?: string[] | null
@@ -352,9 +368,11 @@ export type Database = {
           start_time?: string
           starting_price?: number
           status?: Database["public"]["Enums"]["auction_status"]
+          terms_and_conditions?: string | null
           total_bidders?: number | null
           total_bids?: number | null
           updated_at?: string
+          warranty_period?: string | null
           winner_id?: string | null
           winner_notified?: boolean | null
         }
@@ -5686,7 +5704,13 @@ export type Database = {
       }
     }
     Enums: {
-      auction_status: "upcoming" | "live" | "ended" | "sold" | "not_sold"
+      auction_status:
+        | "upcoming"
+        | "live"
+        | "ended"
+        | "sold"
+        | "not_sold"
+        | "cancelled"
       auction_type: "open" | "sealed"
       coupon_applies_to: "all" | "robots" | "categories" | "brands"
       coupon_discount_type: "percentage" | "fixed"
@@ -5852,7 +5876,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      auction_status: ["upcoming", "live", "ended", "sold", "not_sold"],
+      auction_status: [
+        "upcoming",
+        "live",
+        "ended",
+        "sold",
+        "not_sold",
+        "cancelled",
+      ],
       auction_type: ["open", "sealed"],
       coupon_applies_to: ["all", "robots", "categories", "brands"],
       coupon_discount_type: ["percentage", "fixed"],
