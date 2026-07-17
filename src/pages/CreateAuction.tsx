@@ -355,6 +355,81 @@ const CreateAuction: React.FC = () => {
                       <Input type="number" value={form.buy_now_price} onChange={(e) => setForm({ ...form, buy_now_price: e.target.value })} placeholder="Instant purchase price" className="bg-muted border-border" />
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Step 3: Commercial & Logistics Details */}
+              <div className="pt-2 border-t border-border">
+                <Label className="text-sm font-semibold mb-3 block">Step 3: Commercial & Logistics Details (Recommended)</Label>
+                <p className="text-xs text-muted-foreground mb-4">Adding these details helps buyers make confident bids and reduces post-auction disputes.</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Item Location (City / Site)</Label>
+                    <Input
+                      value={form.item_location}
+                      onChange={(e) => setForm({ ...form, item_location: e.target.value })}
+                      placeholder="e.g. Pune, Maharashtra — Warehouse #4"
+                      className="bg-muted border-border"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Leave blank to use the selected robot's location.</p>
+                  </div>
+
+                  <div>
+                    <Label>Inspection Details</Label>
+                    <Textarea
+                      value={form.inspection_details}
+                      onChange={(e) => setForm({ ...form, inspection_details: e.target.value })}
+                      placeholder="e.g. On-site inspection allowed Mon–Fri, 10am–5pm. Prior appointment required."
+                      className="bg-muted border-border"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Payment Terms</Label>
+                    <Textarea
+                      value={form.payment_terms}
+                      onChange={(e) => setForm({ ...form, payment_terms: e.target.value })}
+                      className="bg-muted border-border"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Delivery / Shipping Terms</Label>
+                    <Textarea
+                      value={form.delivery_terms}
+                      onChange={(e) => setForm({ ...form, delivery_terms: e.target.value })}
+                      className="bg-muted border-border"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Warranty Period</Label>
+                    <Input
+                      value={form.warranty_period}
+                      onChange={(e) => setForm({ ...form, warranty_period: e.target.value })}
+                      placeholder="e.g. 3 months limited warranty / Sold as-is"
+                      className="bg-muted border-border"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Additional Terms & Conditions</Label>
+                    <Textarea
+                      value={form.terms_and_conditions}
+                      onChange={(e) => setForm({ ...form, terms_and_conditions: e.target.value })}
+                      placeholder="Any additional legal, taxation (GST), or buyer eligibility clauses."
+                      className="bg-muted border-border"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-border">
+
 
                   <Button
                     type="submit"
