@@ -310,6 +310,7 @@ export type Database = {
       }
       auctions: {
         Row: {
+          admin_status: string | null
           auction_title: string
           auction_type: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes: number | null
@@ -320,6 +321,8 @@ export type Database = {
           delivery_terms: string | null
           description: string | null
           end_time: string
+          extensions_count: number
+          first_bid_at: string | null
           highest_bidder_id: string | null
           id: string
           images: string[] | null
@@ -327,6 +330,7 @@ export type Database = {
           is_featured: boolean | null
           item_location: string | null
           min_increment: number
+          original_end_time: string | null
           payment_terms: string | null
           reserve_price: number | null
           robot_id: string | null
@@ -345,6 +349,7 @@ export type Database = {
           winner_notified: boolean | null
         }
         Insert: {
+          admin_status?: string | null
           auction_title: string
           auction_type?: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes?: number | null
@@ -355,6 +360,8 @@ export type Database = {
           delivery_terms?: string | null
           description?: string | null
           end_time: string
+          extensions_count?: number
+          first_bid_at?: string | null
           highest_bidder_id?: string | null
           id?: string
           images?: string[] | null
@@ -362,6 +369,7 @@ export type Database = {
           is_featured?: boolean | null
           item_location?: string | null
           min_increment?: number
+          original_end_time?: string | null
           payment_terms?: string | null
           reserve_price?: number | null
           robot_id?: string | null
@@ -380,6 +388,7 @@ export type Database = {
           winner_notified?: boolean | null
         }
         Update: {
+          admin_status?: string | null
           auction_title?: string
           auction_type?: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes?: number | null
@@ -390,6 +399,8 @@ export type Database = {
           delivery_terms?: string | null
           description?: string | null
           end_time?: string
+          extensions_count?: number
+          first_bid_at?: string | null
           highest_bidder_id?: string | null
           id?: string
           images?: string[] | null
@@ -397,6 +408,7 @@ export type Database = {
           is_featured?: boolean | null
           item_location?: string | null
           min_increment?: number
+          original_end_time?: string | null
           payment_terms?: string | null
           reserve_price?: number | null
           robot_id?: string | null
