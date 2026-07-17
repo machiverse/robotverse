@@ -40,7 +40,13 @@ export interface Auction {
     images: string[];
     location: string;
     brand: string;
+    description?: string | null;
+    payload_capacity?: number | string | null;
+    reach?: number | string | null;
+    applications?: string[] | null;
+    condition?: string | null;
   } | null;
+
   seller_profile?: {
     company_name: string | null;
     full_name: string | null;
