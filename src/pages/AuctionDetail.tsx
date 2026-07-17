@@ -396,18 +396,23 @@ const AuctionDetail: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-5 space-y-4">
-                  {auction.seller_profile && (
-                    <div className="mb-4">
-                      <p className="font-bold text-lg text-foreground">
-                        {auction.seller_profile.company_name ||
-                          auction.seller_profile.full_name ||
-                          "Industrial Supplier"}
+                  <div className="mb-4">
+                    <p className="font-bold text-lg text-foreground">
+                      {auction.seller_profile?.company_name ||
+                        auction.seller_profile?.full_name ||
+                        'Industrial Supplier'}
+                    </p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Verified Seller
+                    </p>
+                    {(auction.item_location || auction.seller_profile?.location) && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {auction.item_location || auction.seller_profile?.location}
                       </p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Verified Seller
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
 
                   <Separator />
 
