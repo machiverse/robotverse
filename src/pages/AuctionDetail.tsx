@@ -387,7 +387,28 @@ const AuctionDetail: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Supplier Details intentionally hidden */}
+              {/* Key Account Manager */}
+              <Card className="border border-border shadow-sm">
+                <CardHeader className="pb-3 border-b border-border/50">
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <User className="w-5 h-5 text-primary" />
+                    Key Account Manager
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    For any questions about this auction, contact your RobotVerse Key Account Manager.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 gap-3"
+                    onClick={() => (window.location.href = "tel:+918610925352")}
+                  >
+                    <PhoneCall className="w-4 h-4 text-primary" />
+                    <span className="font-semibold">+91 86109 25352</span>
+                  </Button>
+                </CardContent>
+              </Card>
 
               {/* Bidding History (Simplified for Sidebar) */}
               {user && (
