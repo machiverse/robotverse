@@ -426,8 +426,10 @@ const AuctionDetail: React.FC = () => {
                         <User className="w-4 h-4 text-primary" />
                       </div>
                       <div>
-                        <p className="font-semibold text-foreground">Contact: Anee</p>
-                        <p className="text-muted-foreground">Account Manager</p>
+                        <p className="font-semibold text-foreground">
+                          {auction.seller_profile?.company_name || auction.seller_profile?.full_name || 'RobotVerse Supplier'}
+                        </p>
+                        <p className="text-muted-foreground">Verified Account Manager</p>
                       </div>
                     </div>
 
