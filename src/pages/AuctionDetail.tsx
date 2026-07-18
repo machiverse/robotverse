@@ -387,63 +387,7 @@ const AuctionDetail: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Seller / Contact Box */}
-              <Card className="border border-border shadow-sm">
-                <CardHeader className="pb-3 border-b border-border/50">
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <Building className="w-5 h-5 text-primary" />
-                    Supplier Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-4">
-                  <div className="mb-4">
-                    <p className="font-bold text-lg text-foreground">
-                      {auction.seller_profile?.company_name ||
-                        auction.seller_profile?.full_name ||
-                        'Industrial Supplier'}
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Verified Seller
-                    </p>
-                    {(auction.item_location || auction.seller_profile?.location) && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
-                        <MapPin className="w-3.5 h-3.5" />
-                        {auction.item_location || auction.seller_profile?.location}
-                      </p>
-                    )}
-                  </div>
-
-
-                  <Separator />
-
-                  <div className="space-y-3 pt-2">
-                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Have a question about this machine?
-                    </p>
-
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <User className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {auction.seller_profile?.company_name || auction.seller_profile?.full_name || 'RobotVerse Supplier'}
-                        </p>
-                        <p className="text-muted-foreground">Verified Account Manager</p>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start h-12 mt-2 gap-3"
-                      onClick={() => (window.location.href = "tel:+918610925352")}
-                    >
-                      <PhoneCall className="w-4 h-4 text-primary" />
-                      <span className="font-semibold">+91 8610925352</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Supplier Details intentionally hidden */}
 
               {/* Bidding History (Simplified for Sidebar) */}
               {user && (
