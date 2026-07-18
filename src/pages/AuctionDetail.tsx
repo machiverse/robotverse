@@ -59,10 +59,30 @@ const AuctionDetail: React.FC = () => {
   const userBids = bids?.filter((b) => b.bidder_name === "You") || [];
   const isHighestBidder = bids?.[0]?.bidder_name === "You";
 
-  const handleBid = () => {
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
+
+  const submitBid = () => {
     if (!id || !bidAmount) return;
     placeBid.mutate({ auctionId: id, bidAmount: parseFloat(bidAmount) });
     setBidAmount("");
+  };
+
+  const handleBid = () => {
+    if (!id || !bidAmount) return;
+    const accepted = localStorage.getItem("auction_terms_accepted") === "true";
+    if (!accepted) {
+      setTermsChecked(false);
+      setShowTerms(true);
+      return;
+    }
+    submitBid();
+  };
+
+  const handleAcceptTerms = () => {
+    localStorage.setItem("auction_terms_accepted", "true");
+    setShowTerms(false);
+    submitBid();
   };
 
   if (isLoading) {
