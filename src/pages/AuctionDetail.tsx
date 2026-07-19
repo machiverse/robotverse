@@ -490,11 +490,14 @@ const AuctionDetail: React.FC = () => {
           <div className="max-h-64 overflow-y-auto text-sm text-foreground/90 space-y-2 border rounded-md p-4 bg-muted/30">
             <p>1. All bids placed are legally binding. If you win, you commit to purchase the item at the winning bid price.</p>
             <p>2. Bids cannot be retracted once submitted. Ensure your bid amount is correct before confirming.</p>
-            <p>3. Payment must be completed as per the seller's stated payment terms after auction closure.</p>
-            <p>4. Inspection, delivery, and warranty are governed by the terms listed on this auction page.</p>
-            <p>5. RobotVerse acts as a facilitator; disputes are to be resolved between buyer and seller with platform mediation via the Key Account Manager.</p>
-            <p>6. Anti-sniping: bids placed near close time may extend the auction to allow fair competition.</p>
-            <p>7. Violation of bidding rules may result in account suspension.</p>
+            <p>3. Winning bids are subject to <strong>admin approval</strong>. On approval, a confirmation email is sent to you and to <strong>support@robotverse.in</strong> with all payment details.</p>
+            <p>4. <strong>Total payable = Winning Bid + 5% Platform Fee + 18% GST on the fee.</strong> Payment is routed via RobotVerse-mediated escrow / bank details shared by the Key Account Manager (+91 86109 25352).</p>
+            <p>5. Payment must be completed as per the seller's stated payment terms after admin approval.</p>
+            <p>6. Inspection, delivery, and warranty are governed by the terms listed on this auction page.</p>
+            <p>7. RobotVerse acts as a facilitator; disputes are to be resolved between buyer and seller with platform mediation via the Key Account Manager.</p>
+            <p>8. Anti-sniping: bids placed near close time may extend the auction to allow fair competition.</p>
+            <p>9. Cancellation after admin approval attracts full platform fee + GST liability.</p>
+            <p>10. Violation of bidding rules may result in account suspension.</p>
           </div>
           <div className="flex items-start gap-2 pt-2">
             <Checkbox id="accept-terms" checked={termsChecked} onCheckedChange={(v) => setTermsChecked(!!v)} />
