@@ -103,6 +103,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminCouponsPanel />;
       case "api-keys":
         return <AdminApiKeys />;
+      case "auction-winners":
+        return <AdminAuctionWinners />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
