@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import Footer from '@/components/Footer';
-import { useAuctions, useMyBids } from '@/hooks/useAuctions';
+import { useAuctions, useMyBids, useMyAuctions } from '@/hooks/useAuctions';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AuctionCard from '@/components/auction/AuctionCard';
