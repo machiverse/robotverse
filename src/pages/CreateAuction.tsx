@@ -353,6 +353,26 @@ const CreateAuction: React.FC = () => {
                     <Input type="number" value={form.auto_extend_minutes} onChange={(e) => setForm({ ...form, auto_extend_minutes: e.target.value })} className="bg-muted border-border" />
                   </div>
 
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <Label>Quantity (units to auction)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={form.quantity}
+                      onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                      className="bg-background border-border mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Enter a number greater than 1 to create that many independent auctions, each with its own auction ID, bidding history, timer, winner, and payment. All units are grouped under a shared batch for easy management.
+                      {parseInt(form.quantity) > 1 && (
+                        <span className="block mt-1 text-primary font-medium">
+                          {parseInt(form.quantity)} separate auction listings will be created.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
                     <Label className="cursor-pointer">Set Reserve Price</Label>
                     <Switch checked={form.has_reserve} onCheckedChange={(v) => setForm({ ...form, has_reserve: v })} />
