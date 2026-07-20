@@ -112,9 +112,17 @@ const CreateAuction: React.FC = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('auctions').insert({
+      const qty = Math.max(1, Math.min(50, parseInt(form.quantity) || 1));
+      // Generate a shared batch id client-side so all units are linked.
+      const batchId =
+        (globalThis.crypto as any)?.randomUUID?.() ??
+        // Fallback for older browsers
+        `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
+      const baseTitle = form.auction_title.trim();
+      const rows = Array.from({ length: qty }, (_, i) => ({
         seller_id: user.id,
-        auction_title: form.auction_title.trim(),
+        auction_title: qty > 1 ? `${baseTitle} — Unit ${i + 1} of ${qty}` : baseTitle,
         description: form.description || null,
         robot_id: primaryRobot?.id || null,
         robot_ids: form.robot_ids,
@@ -134,10 +142,20 @@ const CreateAuction: React.FC = () => {
         delivery_terms: form.delivery_terms.trim() || null,
         warranty_period: form.warranty_period.trim() || null,
         terms_and_conditions: form.terms_and_conditions.trim() || null,
-      } as any);
+        batch_id: batchId,
+        unit_number: i + 1,
+        batch_size: qty,
+      }));
+
+      const { error } = await supabase.from('auctions').insert(rows as any);
 
       if (error) throw error;
-      toast({ title: 'Auction created!', description: 'Your auction has been listed.' });
+      toast({
+        title: qty > 1 ? `${qty} auctions created!` : 'Auction created!',
+        description: qty > 1
+          ? `Grouped under a single batch — each unit has its own bidding, timer, and winner.`
+          : 'Your auction has been listed.',
+      });
       navigate('/auctions');
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
