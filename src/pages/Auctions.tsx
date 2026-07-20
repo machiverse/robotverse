@@ -127,6 +127,7 @@ const Auctions: React.FC = () => {
             <TabsTrigger value="live" className="gap-1.5"><Zap className="w-3.5 h-3.5" />Live Auctions</TabsTrigger>
             <TabsTrigger value="upcoming" className="gap-1.5"><Clock className="w-3.5 h-3.5" />Upcoming</TabsTrigger>
             <TabsTrigger value="closed" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Closed</TabsTrigger>
+            {user && <TabsTrigger value="myauctions" className="gap-1.5"><Package className="w-3.5 h-3.5" />My Auctions</TabsTrigger>}
             {user && <TabsTrigger value="mybids" className="gap-1.5"><Gavel className="w-3.5 h-3.5" />My Bids</TabsTrigger>}
           </TabsList>
 
