@@ -39,6 +39,21 @@ const Auctions: React.FC = () => {
   const { data: upcomingAuctions, isLoading: loadingUpcoming } = useAuctions('upcoming');
   const { data: closedAuctions, isLoading: loadingClosed } = useAuctions('ended');
   const { data: myBids, isLoading: loadingBids } = useMyBids();
+  const { data: myAuctions, isLoading: loadingMyAuctions } = useMyAuctions();
+
+  // Group my auctions by batch_id (single-unit auctions get their own group).
+  const myAuctionBatches = React.useMemo(() => {
+    const groups = new Map<string, any[]>();
+    (myAuctions || []).forEach((a: any) => {
+      const key = a.batch_id || a.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(a);
+    });
+    return Array.from(groups.entries()).map(([key, items]) => ({
+      key,
+      items: items.sort((x, y) => (x.unit_number || 0) - (y.unit_number || 0)),
+    }));
+  }, [myAuctions]);
 
   const stats = [
     { label: 'Live Auctions', value: liveAuctions?.length || 0, icon: Zap, color: 'text-emerald-400' },
