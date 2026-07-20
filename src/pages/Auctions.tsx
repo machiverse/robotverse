@@ -135,6 +135,76 @@ const Auctions: React.FC = () => {
           <TabsContent value="upcoming">{renderGrid(upcomingAuctions, loadingUpcoming)}</TabsContent>
           <TabsContent value="closed">{renderGrid(closedAuctions, loadingClosed)}</TabsContent>
           {user && (
+            <TabsContent value="myauctions">
+              {loadingMyAuctions ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              ) : !myAuctionBatches.length ? (
+                <div className="flex flex-col items-center py-16">
+                  <Package className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-1">No auctions yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Create an auction to see it listed here.</p>
+                  <Button variant="outline" onClick={() => navigate('/auctions/create')}>Create Auction</Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {myAuctionBatches.map(({ key, items }) => {
+                    const isBatch = items.length > 1 || (items[0]?.batch_size || 1) > 1;
+                    const first = items[0];
+                    return (
+                      <div key={key} className="border border-border rounded-xl bg-card/40 p-4">
+                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isBatch ? (
+                              <>
+                                <Package className="w-4 h-4 text-primary" />
+                                <span className="font-semibold text-foreground text-sm">
+                                  Batch — {items.length} units
+                                </span>
+                                <Badge variant="outline" className="text-[10px] font-mono">
+                                  Batch ID: {String(key).slice(0, 8)}
+                                </Badge>
+                              </>
+                            ) : (
+                              <span className="font-semibold text-foreground text-sm">{first?.auction_title}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {items.map((a: any) => (
+                            <Card
+                              key={a.id}
+                              className="border border-border hover:border-primary/40 transition-colors cursor-pointer"
+                              onClick={() => navigate(`/auctions/${a.id}`)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                    {(a.robots?.images?.[0] || a.images?.[0]) ? (
+                                      <img src={a.robots?.images?.[0] || a.images?.[0]} className="w-full h-full object-cover" alt="" />
+                                    ) : <Bot className="w-5 h-5 text-muted-foreground m-auto mt-3.5" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">
+                                      {isBatch ? `Unit ${a.unit_number || '?'} of ${a.batch_size || items.length}` : a.auction_title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      ₹{Number(a.current_highest_bid || a.starting_price || 0).toLocaleString('en-IN')} • {a.total_bids || 0} bids
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="capitalize text-[10px]">{a.status}</Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          )}
+          {user && (
             <TabsContent value="mybids">
               {loadingBids ? (
                 <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
