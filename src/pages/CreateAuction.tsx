@@ -33,6 +33,7 @@ const CreateAuction: React.FC = () => {
     auto_extend_minutes: '5',
     has_reserve: false,
     has_buy_now: false,
+    quantity: '1',
     item_location: '',
     inspection_details: '',
     payment_terms: '50% advance on winning, balance before dispatch. Bank transfer (NEFT/RTGS) only.',
