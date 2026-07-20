@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot } from 'lucide-react';
+import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot, Package } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useUrlParam } from '@/hooks/useUrlState';
 import CopySearchLinkButton from '@/components/CopySearchLinkButton';
