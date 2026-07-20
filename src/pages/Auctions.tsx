@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import Footer from '@/components/Footer';
-import { useAuctions, useMyBids } from '@/hooks/useAuctions';
+import { useAuctions, useMyBids, useMyAuctions } from '@/hooks/useAuctions';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import AuctionCard from '@/components/auction/AuctionCard';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot } from 'lucide-react';
+import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot, Package } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useUrlParam } from '@/hooks/useUrlState';
 import CopySearchLinkButton from '@/components/CopySearchLinkButton';
@@ -39,6 +39,21 @@ const Auctions: React.FC = () => {
   const { data: upcomingAuctions, isLoading: loadingUpcoming } = useAuctions('upcoming');
   const { data: closedAuctions, isLoading: loadingClosed } = useAuctions('ended');
   const { data: myBids, isLoading: loadingBids } = useMyBids();
+  const { data: myAuctions, isLoading: loadingMyAuctions } = useMyAuctions();
+
+  // Group my auctions by batch_id (single-unit auctions get their own group).
+  const myAuctionBatches = React.useMemo(() => {
+    const groups = new Map<string, any[]>();
+    (myAuctions || []).forEach((a: any) => {
+      const key = a.batch_id || a.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(a);
+    });
+    return Array.from(groups.entries()).map(([key, items]) => ({
+      key,
+      items: items.sort((x, y) => (x.unit_number || 0) - (y.unit_number || 0)),
+    }));
+  }, [myAuctions]);
 
   const stats = [
     { label: 'Live Auctions', value: liveAuctions?.length || 0, icon: Zap, color: 'text-emerald-400' },
@@ -112,12 +127,83 @@ const Auctions: React.FC = () => {
             <TabsTrigger value="live" className="gap-1.5"><Zap className="w-3.5 h-3.5" />Live Auctions</TabsTrigger>
             <TabsTrigger value="upcoming" className="gap-1.5"><Clock className="w-3.5 h-3.5" />Upcoming</TabsTrigger>
             <TabsTrigger value="closed" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Closed</TabsTrigger>
+            {user && <TabsTrigger value="myauctions" className="gap-1.5"><Package className="w-3.5 h-3.5" />My Auctions</TabsTrigger>}
             {user && <TabsTrigger value="mybids" className="gap-1.5"><Gavel className="w-3.5 h-3.5" />My Bids</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="live">{renderGrid(liveAuctions, loadingLive)}</TabsContent>
           <TabsContent value="upcoming">{renderGrid(upcomingAuctions, loadingUpcoming)}</TabsContent>
           <TabsContent value="closed">{renderGrid(closedAuctions, loadingClosed)}</TabsContent>
+          {user && (
+            <TabsContent value="myauctions">
+              {loadingMyAuctions ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              ) : !myAuctionBatches.length ? (
+                <div className="flex flex-col items-center py-16">
+                  <Package className="w-16 h-16 text-muted-foreground/30 mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-1">No auctions yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Create an auction to see it listed here.</p>
+                  <Button variant="outline" onClick={() => navigate('/auctions/create')}>Create Auction</Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {myAuctionBatches.map(({ key, items }) => {
+                    const isBatch = items.length > 1 || (items[0]?.batch_size || 1) > 1;
+                    const first = items[0];
+                    return (
+                      <div key={key} className="border border-border rounded-xl bg-card/40 p-4">
+                        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isBatch ? (
+                              <>
+                                <Package className="w-4 h-4 text-primary" />
+                                <span className="font-semibold text-foreground text-sm">
+                                  Batch — {items.length} units
+                                </span>
+                                <Badge variant="outline" className="text-[10px] font-mono">
+                                  Batch ID: {String(key).slice(0, 8)}
+                                </Badge>
+                              </>
+                            ) : (
+                              <span className="font-semibold text-foreground text-sm">{first?.auction_title}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {items.map((a: any) => (
+                            <Card
+                              key={a.id}
+                              className="border border-border hover:border-primary/40 transition-colors cursor-pointer"
+                              onClick={() => navigate(`/auctions/${a.id}`)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                    {(a.robots?.images?.[0] || a.images?.[0]) ? (
+                                      <img src={a.robots?.images?.[0] || a.images?.[0]} className="w-full h-full object-cover" alt="" />
+                                    ) : <Bot className="w-5 h-5 text-muted-foreground m-auto mt-3.5" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">
+                                      {isBatch ? `Unit ${a.unit_number || '?'} of ${a.batch_size || items.length}` : a.auction_title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      ₹{Number(a.current_highest_bid || a.starting_price || 0).toLocaleString('en-IN')} • {a.total_bids || 0} bids
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="capitalize text-[10px]">{a.status}</Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          )}
           {user && (
             <TabsContent value="mybids">
               {loadingBids ? (

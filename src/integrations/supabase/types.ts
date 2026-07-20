@@ -314,6 +314,8 @@ export type Database = {
           auction_title: string
           auction_type: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes: number | null
+          batch_id: string | null
+          batch_size: number | null
           buy_now_price: number | null
           created_at: string
           currency: string
@@ -343,6 +345,7 @@ export type Database = {
           terms_and_conditions: string | null
           total_bidders: number | null
           total_bids: number | null
+          unit_number: number | null
           updated_at: string
           warranty_period: string | null
           winner_id: string | null
@@ -353,6 +356,8 @@ export type Database = {
           auction_title: string
           auction_type?: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes?: number | null
+          batch_id?: string | null
+          batch_size?: number | null
           buy_now_price?: number | null
           created_at?: string
           currency?: string
@@ -382,6 +387,7 @@ export type Database = {
           terms_and_conditions?: string | null
           total_bidders?: number | null
           total_bids?: number | null
+          unit_number?: number | null
           updated_at?: string
           warranty_period?: string | null
           winner_id?: string | null
@@ -392,6 +398,8 @@ export type Database = {
           auction_title?: string
           auction_type?: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes?: number | null
+          batch_id?: string | null
+          batch_size?: number | null
           buy_now_price?: number | null
           created_at?: string
           currency?: string
@@ -421,6 +429,7 @@ export type Database = {
           terms_and_conditions?: string | null
           total_bidders?: number | null
           total_bids?: number | null
+          unit_number?: number | null
           updated_at?: string
           warranty_period?: string | null
           winner_id?: string | null

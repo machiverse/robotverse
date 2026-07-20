@@ -33,6 +33,7 @@ const CreateAuction: React.FC = () => {
     auto_extend_minutes: '5',
     has_reserve: false,
     has_buy_now: false,
+    quantity: '1',
     item_location: '',
     inspection_details: '',
     payment_terms: '50% advance on winning, balance before dispatch. Bank transfer (NEFT/RTGS) only.',
@@ -111,9 +112,17 @@ const CreateAuction: React.FC = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('auctions').insert({
+      const qty = Math.max(1, Math.min(50, parseInt(form.quantity) || 1));
+      // Generate a shared batch id client-side so all units are linked.
+      const batchId =
+        (globalThis.crypto as any)?.randomUUID?.() ??
+        // Fallback for older browsers
+        `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
+      const baseTitle = form.auction_title.trim();
+      const rows = Array.from({ length: qty }, (_, i) => ({
         seller_id: user.id,
-        auction_title: form.auction_title.trim(),
+        auction_title: qty > 1 ? `${baseTitle} — Unit ${i + 1} of ${qty}` : baseTitle,
         description: form.description || null,
         robot_id: primaryRobot?.id || null,
         robot_ids: form.robot_ids,
@@ -133,10 +142,20 @@ const CreateAuction: React.FC = () => {
         delivery_terms: form.delivery_terms.trim() || null,
         warranty_period: form.warranty_period.trim() || null,
         terms_and_conditions: form.terms_and_conditions.trim() || null,
-      } as any);
+        batch_id: batchId,
+        unit_number: i + 1,
+        batch_size: qty,
+      }));
+
+      const { error } = await supabase.from('auctions').insert(rows as any);
 
       if (error) throw error;
-      toast({ title: 'Auction created!', description: 'Your auction has been listed.' });
+      toast({
+        title: qty > 1 ? `${qty} auctions created!` : 'Auction created!',
+        description: qty > 1
+          ? `Grouped under a single batch — each unit has its own bidding, timer, and winner.`
+          : 'Your auction has been listed.',
+      });
       navigate('/auctions');
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -332,6 +351,26 @@ const CreateAuction: React.FC = () => {
                   <div>
                     <Label>Auto-Extend (minutes, if last-minute bid)</Label>
                     <Input type="number" value={form.auto_extend_minutes} onChange={(e) => setForm({ ...form, auto_extend_minutes: e.target.value })} className="bg-muted border-border" />
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <Label>Quantity (units to auction)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={form.quantity}
+                      onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                      className="bg-background border-border mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Enter a number greater than 1 to create that many independent auctions, each with its own auction ID, bidding history, timer, winner, and payment. All units are grouped under a shared batch for easy management.
+                      {parseInt(form.quantity) > 1 && (
+                        <span className="block mt-1 text-primary font-medium">
+                          {parseInt(form.quantity)} separate auction listings will be created.
+                        </span>
+                      )}
+                    </p>
                   </div>
 
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
