@@ -33,6 +33,12 @@ export interface Auction {
   admin_status?: string;
   created_at: string;
   updated_at: string;
+  item_location?: string | null;
+  inspection_details?: string | null;
+  payment_terms?: string | null;
+  delivery_terms?: string | null;
+  warranty_period?: string | null;
+  terms_and_conditions?: string | null;
   robots?: {
     name: string;
     model: string;
@@ -40,7 +46,23 @@ export interface Auction {
     images: string[];
     location: string;
     brand: string;
+    description?: string | null;
+    payload_capacity?: number | string | null;
+    reach?: number | string | null;
+    repeatability?: number | string | null;
+    power_consumption?: number | string | null;
+    controller_type?: string | null;
+    operating_environment?: string | null;
+    warranty_info?: string | null;
+    year_manufactured?: number | null;
+    certification_standards?: string[] | null;
+    included_accessories?: string[] | null;
+    applications?: string[] | null;
+    condition?: string | null;
+    state?: string | null;
+    pincode?: string | null;
   } | null;
+
   seller_profile?: {
     company_name: string | null;
     full_name: string | null;
@@ -163,7 +185,7 @@ export function useAuctionDetail(auctionId: string | undefined) {
       if (!auctionId) return null;
       const { data, error } = await supabase
         .from('auctions')
-        .select('*, robots(name, model, robot_type, images, location, brand, description, payload_capacity, reach, applications, condition)')
+        .select('*, robots(name, model, robot_type, images, location, brand, description, payload_capacity, reach, repeatability, power_consumption, controller_type, operating_environment, warranty_info, year_manufactured, certification_standards, included_accessories, applications, condition, state, pincode)')
         .eq('id', auctionId)
         .single();
       if (error) throw error;

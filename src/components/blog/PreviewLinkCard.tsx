@@ -12,19 +12,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { SITE_URL, buildRoboBookPostUrl } from "@/utils/blogSeo";
+import { SITE_URL } from "@/utils/blogSeo";
 
-export function buildPreviewUrl(token: string, slugOrId?: string | null) {
-  if (slugOrId) {
-    return `${buildRoboBookPostUrl(slugOrId)}?preview=${token}`;
-  }
+export function buildPreviewUrl(token: string) {
   return `${SITE_URL}/preview/${token}`;
 }
 
 interface PreviewLinkCardProps {
   token?: string | null;
-  slug?: string | null;
-  postId?: string | null;
   status?: string | null;
   liveUrl?: string | null;
   previewViewCount?: number | null;
@@ -35,8 +30,6 @@ interface PreviewLinkCardProps {
 
 const PreviewLinkCard = ({
   token,
-  slug,
-  postId,
   status,
   liveUrl,
   previewViewCount,
@@ -47,7 +40,7 @@ const PreviewLinkCard = ({
   const [copied, setCopied] = useState(false);
   if (!token) return null;
 
-  const previewUrl = buildPreviewUrl(token, slug || postId || undefined);
+  const previewUrl = buildPreviewUrl(token);
   const isPublished = status === "published";
   const shareTitle = title || "Post preview";
 

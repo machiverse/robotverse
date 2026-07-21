@@ -33,6 +33,13 @@ const CreateAuction: React.FC = () => {
     auto_extend_minutes: '5',
     has_reserve: false,
     has_buy_now: false,
+    quantity: '1',
+    item_location: '',
+    inspection_details: '',
+    payment_terms: '50% advance on winning, balance before dispatch. Bank transfer (NEFT/RTGS) only.',
+    delivery_terms: 'Ex-works. Buyer arranges pickup and logistics within 7 days of full payment.',
+    warranty_period: '',
+    terms_and_conditions: '',
   });
 
   // Fetch seller's robots with full details
@@ -105,9 +112,17 @@ const CreateAuction: React.FC = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('auctions').insert({
+      const qty = Math.max(1, Math.min(50, parseInt(form.quantity) || 1));
+      // Generate a shared batch id client-side so all units are linked.
+      const batchId =
+        (globalThis.crypto as any)?.randomUUID?.() ??
+        // Fallback for older browsers
+        `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
+      const baseTitle = form.auction_title.trim();
+      const rows = Array.from({ length: qty }, (_, i) => ({
         seller_id: user.id,
-        auction_title: form.auction_title.trim(),
+        auction_title: qty > 1 ? `${baseTitle} — Unit ${i + 1} of ${qty}` : baseTitle,
         description: form.description || null,
         robot_id: primaryRobot?.id || null,
         robot_ids: form.robot_ids,
@@ -121,10 +136,26 @@ const CreateAuction: React.FC = () => {
         auto_extend_minutes: parseInt(form.auto_extend_minutes) || 5,
         images: aggregatedImages.length ? aggregatedImages : null,
         status: start <= now ? 'live' as any : 'upcoming' as any,
-      } as any);
+        item_location: form.item_location.trim() || primaryRobot?.location || null,
+        inspection_details: form.inspection_details.trim() || null,
+        payment_terms: form.payment_terms.trim() || null,
+        delivery_terms: form.delivery_terms.trim() || null,
+        warranty_period: form.warranty_period.trim() || null,
+        terms_and_conditions: form.terms_and_conditions.trim() || null,
+        batch_id: batchId,
+        unit_number: i + 1,
+        batch_size: qty,
+      }));
+
+      const { error } = await supabase.from('auctions').insert(rows as any);
 
       if (error) throw error;
-      toast({ title: 'Auction created!', description: 'Your auction has been listed.' });
+      toast({
+        title: qty > 1 ? `${qty} auctions created!` : 'Auction created!',
+        description: qty > 1
+          ? `Grouped under a single batch — each unit has its own bidding, timer, and winner.`
+          : 'Your auction has been listed.',
+      });
       navigate('/auctions');
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -322,6 +353,26 @@ const CreateAuction: React.FC = () => {
                     <Input type="number" value={form.auto_extend_minutes} onChange={(e) => setForm({ ...form, auto_extend_minutes: e.target.value })} className="bg-muted border-border" />
                   </div>
 
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <Label>Quantity (units to auction)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={form.quantity}
+                      onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                      className="bg-background border-border mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Enter a number greater than 1 to create that many independent auctions, each with its own auction ID, bidding history, timer, winner, and payment. All units are grouped under a shared batch for easy management.
+                      {parseInt(form.quantity) > 1 && (
+                        <span className="block mt-1 text-primary font-medium">
+                          {parseInt(form.quantity)} separate auction listings will be created.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
                     <Label className="cursor-pointer">Set Reserve Price</Label>
                     <Switch checked={form.has_reserve} onCheckedChange={(v) => setForm({ ...form, has_reserve: v })} />
@@ -343,6 +394,81 @@ const CreateAuction: React.FC = () => {
                       <Input type="number" value={form.buy_now_price} onChange={(e) => setForm({ ...form, buy_now_price: e.target.value })} placeholder="Instant purchase price" className="bg-muted border-border" />
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Step 3: Commercial & Logistics Details */}
+              <div className="pt-2 border-t border-border">
+                <Label className="text-sm font-semibold mb-3 block">Step 3: Commercial & Logistics Details (Recommended)</Label>
+                <p className="text-xs text-muted-foreground mb-4">Adding these details helps buyers make confident bids and reduces post-auction disputes.</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Item Location (City / Site)</Label>
+                    <Input
+                      value={form.item_location}
+                      onChange={(e) => setForm({ ...form, item_location: e.target.value })}
+                      placeholder="e.g. Pune, Maharashtra — Warehouse #4"
+                      className="bg-muted border-border"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Leave blank to use the selected robot's location.</p>
+                  </div>
+
+                  <div>
+                    <Label>Inspection Details</Label>
+                    <Textarea
+                      value={form.inspection_details}
+                      onChange={(e) => setForm({ ...form, inspection_details: e.target.value })}
+                      placeholder="e.g. On-site inspection allowed Mon–Fri, 10am–5pm. Prior appointment required."
+                      className="bg-muted border-border"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Payment Terms</Label>
+                    <Textarea
+                      value={form.payment_terms}
+                      onChange={(e) => setForm({ ...form, payment_terms: e.target.value })}
+                      className="bg-muted border-border"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Delivery / Shipping Terms</Label>
+                    <Textarea
+                      value={form.delivery_terms}
+                      onChange={(e) => setForm({ ...form, delivery_terms: e.target.value })}
+                      className="bg-muted border-border"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Warranty Period</Label>
+                    <Input
+                      value={form.warranty_period}
+                      onChange={(e) => setForm({ ...form, warranty_period: e.target.value })}
+                      placeholder="e.g. 3 months limited warranty / Sold as-is"
+                      className="bg-muted border-border"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Additional Terms & Conditions</Label>
+                    <Textarea
+                      value={form.terms_and_conditions}
+                      onChange={(e) => setForm({ ...form, terms_and_conditions: e.target.value })}
+                      placeholder="Any additional legal, taxation (GST), or buyer eligibility clauses."
+                      className="bg-muted border-border"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-border">
+
 
                   <Button
                     type="submit"

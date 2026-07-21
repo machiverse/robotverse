@@ -200,6 +200,44 @@ export type Database = {
           },
         ]
       }
+      auction_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after_data: Json | null
+          auction_id: string
+          before_data: Json | null
+          created_at: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after_data?: Json | null
+          auction_id: string
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after_data?: Json | null
+          auction_id?: string
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_audit_log_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auction_bids: {
         Row: {
           auction_id: string
@@ -272,20 +310,30 @@ export type Database = {
       }
       auctions: {
         Row: {
+          admin_status: string | null
           auction_title: string
           auction_type: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes: number | null
+          batch_id: string | null
+          batch_size: number | null
           buy_now_price: number | null
           created_at: string
           currency: string
           current_highest_bid: number | null
+          delivery_terms: string | null
           description: string | null
           end_time: string
+          extensions_count: number
+          first_bid_at: string | null
           highest_bidder_id: string | null
           id: string
           images: string[] | null
+          inspection_details: string | null
           is_featured: boolean | null
+          item_location: string | null
           min_increment: number
+          original_end_time: string | null
+          payment_terms: string | null
           reserve_price: number | null
           robot_id: string | null
           robot_ids: string[] | null
@@ -294,27 +342,40 @@ export type Database = {
           start_time: string
           starting_price: number
           status: Database["public"]["Enums"]["auction_status"]
+          terms_and_conditions: string | null
           total_bidders: number | null
           total_bids: number | null
+          unit_number: number | null
           updated_at: string
+          warranty_period: string | null
           winner_id: string | null
           winner_notified: boolean | null
         }
         Insert: {
+          admin_status?: string | null
           auction_title: string
           auction_type?: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes?: number | null
+          batch_id?: string | null
+          batch_size?: number | null
           buy_now_price?: number | null
           created_at?: string
           currency?: string
           current_highest_bid?: number | null
+          delivery_terms?: string | null
           description?: string | null
           end_time: string
+          extensions_count?: number
+          first_bid_at?: string | null
           highest_bidder_id?: string | null
           id?: string
           images?: string[] | null
+          inspection_details?: string | null
           is_featured?: boolean | null
+          item_location?: string | null
           min_increment?: number
+          original_end_time?: string | null
+          payment_terms?: string | null
           reserve_price?: number | null
           robot_id?: string | null
           robot_ids?: string[] | null
@@ -323,27 +384,40 @@ export type Database = {
           start_time: string
           starting_price?: number
           status?: Database["public"]["Enums"]["auction_status"]
+          terms_and_conditions?: string | null
           total_bidders?: number | null
           total_bids?: number | null
+          unit_number?: number | null
           updated_at?: string
+          warranty_period?: string | null
           winner_id?: string | null
           winner_notified?: boolean | null
         }
         Update: {
+          admin_status?: string | null
           auction_title?: string
           auction_type?: Database["public"]["Enums"]["auction_type"]
           auto_extend_minutes?: number | null
+          batch_id?: string | null
+          batch_size?: number | null
           buy_now_price?: number | null
           created_at?: string
           currency?: string
           current_highest_bid?: number | null
+          delivery_terms?: string | null
           description?: string | null
           end_time?: string
+          extensions_count?: number
+          first_bid_at?: string | null
           highest_bidder_id?: string | null
           id?: string
           images?: string[] | null
+          inspection_details?: string | null
           is_featured?: boolean | null
+          item_location?: string | null
           min_increment?: number
+          original_end_time?: string | null
+          payment_terms?: string | null
           reserve_price?: number | null
           robot_id?: string | null
           robot_ids?: string[] | null
@@ -352,9 +426,12 @@ export type Database = {
           start_time?: string
           starting_price?: number
           status?: Database["public"]["Enums"]["auction_status"]
+          terms_and_conditions?: string | null
           total_bidders?: number | null
           total_bids?: number | null
+          unit_number?: number | null
           updated_at?: string
+          warranty_period?: string | null
           winner_id?: string | null
           winner_notified?: boolean | null
         }
@@ -5686,7 +5763,13 @@ export type Database = {
       }
     }
     Enums: {
-      auction_status: "upcoming" | "live" | "ended" | "sold" | "not_sold"
+      auction_status:
+        | "upcoming"
+        | "live"
+        | "ended"
+        | "sold"
+        | "not_sold"
+        | "cancelled"
       auction_type: "open" | "sealed"
       coupon_applies_to: "all" | "robots" | "categories" | "brands"
       coupon_discount_type: "percentage" | "fixed"
@@ -5725,6 +5808,7 @@ export type Database = {
         | "service_provider"
         | "logistics_provider"
         | "finance_provider"
+        | "spare_parts_seller"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5852,7 +5936,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      auction_status: ["upcoming", "live", "ended", "sold", "not_sold"],
+      auction_status: [
+        "upcoming",
+        "live",
+        "ended",
+        "sold",
+        "not_sold",
+        "cancelled",
+      ],
       auction_type: ["open", "sealed"],
       coupon_applies_to: ["all", "robots", "categories", "brands"],
       coupon_discount_type: ["percentage", "fixed"],
@@ -5894,6 +5985,7 @@ export const Constants = {
         "service_provider",
         "logistics_provider",
         "finance_provider",
+        "spare_parts_seller",
       ],
     },
   },
