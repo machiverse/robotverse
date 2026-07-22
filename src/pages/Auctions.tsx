@@ -24,6 +24,11 @@ import {
   List,
   MapPin,
   TrendingUp,
+  Calendar,
+  IndianRupee,
+  Wrench,
+  ShieldCheck,
+  ChevronRight,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { useUrlParam } from "@/hooks/useUrlState";
@@ -105,7 +110,7 @@ const Auctions: React.FC = () => {
     );
   };
 
-  // List View - Same info as grid card, just horizontal layout
+  // Professional List View - Full width, organized layout
   const renderListView = (auctions: any[] | undefined, loading: boolean) => {
     if (loading)
       return (
@@ -131,106 +136,189 @@ const Auctions: React.FC = () => {
           return (
             <Card
               key={a.id}
-              className="border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+              className="border border-border hover:border-primary hover:shadow-lg hover:shadow-primary/10 transition-all cursor-pointer overflow-hidden"
               onClick={() => navigate(`/auctions/${a.id}`)}
             >
-              <CardContent className="p-5">
-                <div className="flex flex-col md:flex-row gap-4">
-                  {/* Image */}
-                  <div className="md:w-48 h-40 md:h-auto relative bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                    {img ? (
-                      <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Bot className="w-12 h-12 text-muted-foreground/30" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 flex flex-col">
-                    {/* Title & Status */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-[10px] font-mono">
-                            ID: {a.id.substring(0, 8).toUpperCase()}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className={`text-xs capitalize ${
-                              status === "live"
-                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                : status === "upcoming"
-                                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                                  : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                            }`}
-                          >
-                            {status}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground capitalize">{a.auction_type}</span>
+              <CardContent className="p-0">
+                {/* Main Content Row */}
+                <div className="flex flex-col lg:flex-row gap-0">
+                  {/* Left Column: Image + Key Stats (30%) */}
+                  <div className="lg:w-[28%] bg-gradient-to-b from-muted/50 to-muted/30 p-5 flex flex-col">
+                    {/* Image */}
+                    <div className="relative aspect-square rounded-lg overflow-hidden bg-muted mb-4 border border-border">
+                      {img ? (
+                        <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Bot className="w-16 h-16 text-muted-foreground/20" />
                         </div>
-                        <h2 className="text-base font-bold text-foreground line-clamp-2">{a.auction_title}</h2>
+                      )}
+                      {/* Status Badge on Image */}
+                      <div className="absolute top-2 left-2">
+                        <Badge
+                          className={`text-xs font-semibold capitalize ${
+                            status === "live"
+                              ? "bg-emerald-500/80 text-white border-emerald-600"
+                              : status === "upcoming"
+                                ? "bg-blue-500/80 text-white border-blue-600"
+                                : "bg-amber-500/80 text-white border-amber-600"
+                          }`}
+                        >
+                          {status}
+                        </Badge>
                       </div>
                     </div>
 
-                    {/* Specs - Same as AuctionCard */}
-                    {a.robots && (
-                      <div className="flex flex-wrap gap-3 mb-3 text-xs">
-                        {a.robots.brand && (
-                          <span className="text-muted-foreground">
-                            <span className="font-semibold text-foreground">Brand:</span> {a.robots.brand}
-                          </span>
-                        )}
-                        {a.robots.name && (
-                          <span className="text-muted-foreground">
-                            <span className="font-semibold text-foreground">Model:</span> {a.robots.name}
-                          </span>
-                        )}
-                        {a.robots.payload_capacity && (
-                          <span className="text-muted-foreground">
-                            <span className="font-semibold text-foreground">Payload:</span> {a.robots.payload_capacity}{" "}
-                            kg
-                          </span>
-                        )}
-                        {a.robots.reach && (
-                          <span className="text-muted-foreground">
-                            <span className="font-semibold text-foreground">Reach:</span> {a.robots.reach} mm
-                          </span>
-                        )}
+                    {/* Price Section */}
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                          Current Price
+                        </p>
+                        <p className="text-2xl font-bold text-primary">₹{currentPrice.toLocaleString("en-IN")}</p>
                       </div>
-                    )}
 
-                    {/* Location */}
-                    {(a.item_location || a.robots?.location) && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{a.item_location || a.robots?.location || "-"}</span>
-                      </div>
-                    )}
-
-                    {/* Bottom: Price, Bids, Time */}
-                    <div className="mt-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-3 border-t border-border">
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Current Price</p>
-                          <p className="text-lg font-bold text-primary">₹{currentPrice.toLocaleString("en-IN")}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Bids</p>
-                          <p className="text-sm font-semibold flex items-center gap-1">
-                            <TrendingUp className="w-3.5 h-3.5" />
-                            {a.total_bids || 0}
-                          </p>
-                        </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <p className="text-xs text-muted-foreground">Starting</p>
-                          <p className="text-sm font-semibold">₹{a.starting_price.toLocaleString("en-IN")}</p>
+                          <p className="font-semibold text-foreground">₹{a.starting_price.toLocaleString("en-IN")}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Increment</p>
+                          <p className="font-semibold text-foreground">₹{a.min_increment.toLocaleString("en-IN")}</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" className="gap-1.5">
+
+                      <div className="flex items-center gap-2 bg-primary/5 rounded-md p-2">
+                        <TrendingUp className="w-4 h-4 text-primary" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Total Bids</p>
+                          <p className="font-bold text-primary">{a.total_bids || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Details (72%) */}
+                  <div className="lg:w-[72%] p-5 flex-1 flex flex-col">
+                    {/* Header */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] font-mono bg-background">
+                            ID: {a.id.substring(0, 8).toUpperCase()}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground capitalize">{a.auction_type}</span>
+                        </div>
+                      </div>
+                      <h2 className="text-xl font-bold text-foreground line-clamp-2">{a.auction_title}</h2>
+                    </div>
+
+                    {/* Two Column Specs */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 mb-4">
+                      {a.robots?.brand && (
+                        <div className="flex items-start gap-2">
+                          <Package className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Brand</p>
+                            <p className="text-sm font-semibold text-foreground">{a.robots.brand}</p>
+                          </div>
+                        </div>
+                      )}
+                      {a.robots?.name && (
+                        <div className="flex items-start gap-2">
+                          <Bot className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Model</p>
+                            <p className="text-sm font-semibold text-foreground">{a.robots.name}</p>
+                          </div>
+                        </div>
+                      )}
+                      {a.robots?.model && (
+                        <div className="flex items-start gap-2">
+                          <Wrench className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Model No.</p>
+                            <p className="text-sm font-semibold text-foreground">{a.robots.model}</p>
+                          </div>
+                        </div>
+                      )}
+                      {a.robots?.payload_capacity && (
+                        <div className="flex items-start gap-2">
+                          <ShieldCheck className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Payload</p>
+                            <p className="text-sm font-semibold text-foreground">{a.robots.payload_capacity} kg</p>
+                          </div>
+                        </div>
+                      )}
+                      {a.robots?.reach && (
+                        <div className="flex items-start gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Reach</p>
+                            <p className="text-sm font-semibold text-foreground">{a.robots.reach} mm</p>
+                          </div>
+                        </div>
+                      )}
+                      {a.robots?.year_manufactured && (
+                        <div className="flex items-start gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Year</p>
+                            <p className="text-sm font-semibold text-foreground">{a.robots.year_manufactured}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Location Bar */}
+                    {(a.item_location || a.robots?.location) && (
+                      <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2.5 mb-4">
+                        <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Location</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {a.item_location || a.robots?.location}
+                            {a.robots?.state ? `, ${a.robots.state}` : ""}
+                            {a.robots?.pincode ? ` — ${a.robots.pincode}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Footer: CTA + Additional Info */}
+                    <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm">
+                        {a.robots?.condition && (
+                          <div className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-muted-foreground">Condition:</span>
+                            <Badge variant="secondary" className="capitalize text-xs">
+                              {a.robots.condition}
+                            </Badge>
+                          </div>
+                        )}
+                        {a.robots?.robot_type && (
+                          <div className="flex items-center gap-1.5">
+                            <Bot className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-muted-foreground">Type:</span>
+                            <span className="text-foreground font-medium capitalize">{a.robots.robot_type}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 group bg-background hover:bg-primary hover:text-white transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/auctions/${a.id}`);
+                        }}
+                      >
                         View Details
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                       </Button>
                     </div>
                   </div>
