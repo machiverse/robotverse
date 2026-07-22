@@ -528,4 +528,26 @@ const AuctionDetail: React.FC = () => {
   );
 };
 
+// Admin-only edit shortcut — sellers use the CTA above; admins can edit at any status.
+const AdminEditControl: React.FC<{ auctionId: string }> = ({ auctionId }) => {
+  const navigate = useNavigate();
+  const { isAdmin } = useIsAdmin();
+  if (!isAdmin) return null;
+  return (
+    <div className="mt-3 border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
+      <p className="text-xs text-amber-500 font-semibold mb-2 flex items-center gap-1">
+        <Shield className="w-3.5 h-3.5" /> Admin controls
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full gap-1 border-amber-500/40"
+        onClick={() => navigate(`/auctions/${auctionId}/edit`)}
+      >
+        <Pencil className="w-3.5 h-3.5" /> Edit auction (override)
+      </Button>
+    </div>
+  );
+};
+
 export default AuctionDetail;
