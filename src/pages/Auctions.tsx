@@ -110,7 +110,7 @@ const Auctions: React.FC = () => {
     );
   };
 
-  // Professional List View - Full width, organized layout
+  // Professional List View - Image only on left, full info on right
   const renderListView = (auctions: any[] | undefined, loading: boolean) => {
     if (loading)
       return (
@@ -142,10 +142,9 @@ const Auctions: React.FC = () => {
               <CardContent className="p-0">
                 {/* Main Content Row */}
                 <div className="flex flex-col lg:flex-row gap-0">
-                  {/* Left Column: Image + Key Stats (30%) */}
-                  <div className="lg:w-[28%] bg-gradient-to-b from-muted/50 to-muted/30 p-5 flex flex-col">
-                    {/* Image */}
-                    <div className="relative aspect-square rounded-lg overflow-hidden bg-muted mb-4 border border-border">
+                  {/* Left Column: Image ONLY */}
+                  <div className="lg:w-[280px] flex-shrink-0">
+                    <div className="relative h-[200px] lg:h-full bg-muted overflow-hidden">
                       {img ? (
                         <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
                       ) : (
@@ -154,7 +153,7 @@ const Auctions: React.FC = () => {
                         </div>
                       )}
                       {/* Status Badge on Image */}
-                      <div className="absolute top-2 left-2">
+                      <div className="absolute top-3 left-3">
                         <Badge
                           className={`text-xs font-semibold capitalize ${
                             status === "live"
@@ -168,54 +167,39 @@ const Auctions: React.FC = () => {
                         </Badge>
                       </div>
                     </div>
-
-                    {/* Price Section */}
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
-                          Current Price
-                        </p>
-                        <p className="text-2xl font-bold text-primary">₹{currentPrice.toLocaleString("en-IN")}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Starting</p>
-                          <p className="font-semibold text-foreground">₹{a.starting_price.toLocaleString("en-IN")}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Increment</p>
-                          <p className="font-semibold text-foreground">₹{a.min_increment.toLocaleString("en-IN")}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 bg-primary/5 rounded-md p-2">
-                        <TrendingUp className="w-4 h-4 text-primary" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Bids</p>
-                          <p className="font-bold text-primary">{a.total_bids || 0}</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Right Column: Details (72%) */}
-                  <div className="lg:w-[72%] p-5 flex-1 flex flex-col">
-                    {/* Header */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
+                  {/* Right Column: ALL Information (fills remaining width) */}
+                  <div className="flex-1 p-5 flex flex-col">
+                    {/* Top Row: Title + Price */}
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
                           <Badge variant="outline" className="text-[10px] font-mono bg-background">
                             ID: {a.id.substring(0, 8).toUpperCase()}
                           </Badge>
                           <span className="text-xs text-muted-foreground capitalize">{a.auction_type}</span>
                         </div>
+                        <h2 className="text-xl lg:text-2xl font-bold text-foreground line-clamp-2">
+                          {a.auction_title}
+                        </h2>
                       </div>
-                      <h2 className="text-xl font-bold text-foreground line-clamp-2">{a.auction_title}</h2>
+
+                      {/* Price Section */}
+                      <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
+                          Current Price
+                        </p>
+                        <p className="text-2xl font-bold text-primary">₹{currentPrice.toLocaleString("en-IN")}</p>
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span>{a.total_bids || 0} bids</span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Two Column Specs */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 mb-4">
+                    {/* Specs Grid - 4 columns */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                       {a.robots?.brand && (
                         <div className="flex items-start gap-2">
                           <Package className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -272,24 +256,44 @@ const Auctions: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Location Bar */}
-                    {(a.item_location || a.robots?.location) && (
-                      <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2.5 mb-4">
-                        <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Location</p>
+                    {/* Info Bar: Location + Price Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                      {/* Location */}
+                      {(a.item_location || a.robots?.location) && (
+                        <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2.5">
+                          <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Location</p>
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {a.item_location || a.robots?.location}
+                              {a.robots?.state ? `, ${a.robots.state}` : ""}
+                              {a.robots?.pincode ? ` — ${a.robots.pincode}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Starting Price & Increment */}
+                      <div className="flex items-center gap-4 bg-muted/50 rounded-md p-2.5">
+                        <div className="flex-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Starting</p>
                           <p className="text-sm font-semibold text-foreground">
-                            {a.item_location || a.robots?.location}
-                            {a.robots?.state ? `, ${a.robots.state}` : ""}
-                            {a.robots?.pincode ? ` — ${a.robots.pincode}` : ""}
+                            ₹{a.starting_price.toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                        <div className="w-[1px] h-8 bg-border mx-1" />
+                        <div className="flex-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Increment</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            ₹{a.min_increment.toLocaleString("en-IN")}
                           </p>
                         </div>
                       </div>
-                    )}
+                    </div>
 
-                    {/* Footer: CTA + Additional Info */}
+                    {/* Bottom: Condition + CTA */}
                     <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-3 flex-wrap">
                         {a.robots?.condition && (
                           <div className="flex items-center gap-1.5">
                             <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
