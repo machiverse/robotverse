@@ -10,7 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot, Package, Pencil, Grid3X3, List } from "lucide-react";
+import {
+  Gavel,
+  Plus,
+  Zap,
+  Clock,
+  Trophy,
+  ArrowRight,
+  Bot,
+  Package,
+  Pencil,
+  Grid3X3,
+  List,
+  MapPin,
+  TrendingUp,
+} from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { useUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
@@ -21,9 +35,8 @@ const Auctions: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tab, setTab] = useUrlParam<string>("tab", "live");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list"); // Default to list view
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
-  // Periodically finalize any expired auctions (every 2 minutes while page is open)
   useEffect(() => {
     const tick = async () => {
       try {
@@ -48,7 +61,6 @@ const Auctions: React.FC = () => {
   const { data: myBids, isLoading: loadingBids } = useMyBids();
   const { data: myAuctions, isLoading: loadingMyAuctions } = useMyAuctions();
 
-  // Group my auctions by batch_id
   const myAuctionBatches = React.useMemo(() => {
     const groups = new Map<string, any[]>();
     (myAuctions || []).forEach((a: any) => {
@@ -68,7 +80,7 @@ const Auctions: React.FC = () => {
     { label: "Completed", value: closedAuctions?.length || 0, icon: Trophy, color: "text-amber-400" },
   ];
 
-  // Grid View Renderer
+  // Grid View
   const renderGridView = (auctions: any[] | undefined, loading: boolean) => {
     if (loading)
       return (
@@ -93,7 +105,7 @@ const Auctions: React.FC = () => {
     );
   };
 
-  // List View Renderer (Horizontal cards, one per row)
+  // List View - Same info as grid card, just horizontal layout
   const renderListView = (auctions: any[] | undefined, loading: boolean) => {
     if (loading)
       return (
@@ -122,104 +134,103 @@ const Auctions: React.FC = () => {
               className="border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
               onClick={() => navigate(`/auctions/${a.id}`)}
             >
-              <CardContent className="p-0">
-                <div className="flex flex-col md:flex-row gap-0">
-                  {/* Image Section */}
-                  <div className="md:w-64 h-48 md:h-auto relative bg-muted flex-shrink-0 overflow-hidden">
+              <CardContent className="p-5">
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Image */}
+                  <div className="md:w-48 h-40 md:h-auto relative bg-muted rounded-lg overflow-hidden flex-shrink-0">
                     {img ? (
                       <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Bot className="w-16 h-16 text-muted-foreground/30" />
+                        <Bot className="w-12 h-12 text-muted-foreground/30" />
                       </div>
                     )}
-                    <div className="absolute top-2 left-2">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs capitalize ${
-                          status === "live"
-                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                            : status === "upcoming"
-                              ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                              : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                        }`}
-                      >
-                        {status}
-                      </Badge>
-                    </div>
                   </div>
 
-                  {/* Content Section */}
-                  <div className="flex-1 p-5 flex flex-col">
-                    {/* Title & ID */}
-                    <div className="mb-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-[10px] font-mono">
-                          ID: {a.id.substring(0, 8).toUpperCase()}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground capitalize">{a.auction_type}</span>
+                  {/* Content */}
+                  <div className="flex-1 flex flex-col">
+                    {/* Title & Status */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="text-[10px] font-mono">
+                            ID: {a.id.substring(0, 8).toUpperCase()}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs capitalize ${
+                              status === "live"
+                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                : status === "upcoming"
+                                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                  : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                            }`}
+                          >
+                            {status}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground capitalize">{a.auction_type}</span>
+                        </div>
+                        <h2 className="text-base font-bold text-foreground line-clamp-2">{a.auction_title}</h2>
                       </div>
-                      <h2 className="text-lg font-bold text-foreground line-clamp-2">{a.auction_title}</h2>
                     </div>
 
-                    {/* Key Specs */}
+                    {/* Specs - Same as AuctionCard */}
                     {a.robots && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                        <div className="flex items-center gap-2">
-                          <Package className="w-3.5 h-3.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Brand</p>
-                            <p className="font-semibold text-sm truncate">{a.robots.brand || "-"}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Bot className="w-3.5 h-3.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Model</p>
-                            <p className="font-semibold text-sm truncate">{a.robots.name || "-"}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-3.5 h-3.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Payload</p>
-                            <p className="font-semibold text-sm">
-                              {a.robots.payload_capacity ? `${a.robots.payload_capacity} kg` : "-"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">Year</p>
-                            <p className="font-semibold text-sm">{a.robots.year_manufactured || "-"}</p>
-                          </div>
-                        </div>
+                      <div className="flex flex-wrap gap-3 mb-3 text-xs">
+                        {a.robots.brand && (
+                          <span className="text-muted-foreground">
+                            <span className="font-semibold text-foreground">Brand:</span> {a.robots.brand}
+                          </span>
+                        )}
+                        {a.robots.name && (
+                          <span className="text-muted-foreground">
+                            <span className="font-semibold text-foreground">Model:</span> {a.robots.name}
+                          </span>
+                        )}
+                        {a.robots.payload_capacity && (
+                          <span className="text-muted-foreground">
+                            <span className="font-semibold text-foreground">Payload:</span> {a.robots.payload_capacity}{" "}
+                            kg
+                          </span>
+                        )}
+                        {a.robots.reach && (
+                          <span className="text-muted-foreground">
+                            <span className="font-semibold text-foreground">Reach:</span> {a.robots.reach} mm
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* Bottom Row: Price, Bids, CTA */}
-                    <div className="mt-auto pt-4 border-t border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-6">
+                    {/* Location */}
+                    {(a.item_location || a.robots?.location) && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>{a.item_location || a.robots?.location || "-"}</span>
+                      </div>
+                    )}
+
+                    {/* Bottom: Price, Bids, Time */}
+                    <div className="mt-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-3 border-t border-border">
+                      <div className="flex items-center gap-4">
                         <div>
-                          <p className="text-xs text-muted-foreground mb-1">Current Price</p>
-                          <p className="text-xl font-bold text-primary">₹{currentPrice.toLocaleString("en-IN")}</p>
+                          <p className="text-xs text-muted-foreground">Current Price</p>
+                          <p className="text-lg font-bold text-primary">₹{currentPrice.toLocaleString("en-IN")}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground mb-1">Bids</p>
+                          <p className="text-xs text-muted-foreground">Bids</p>
                           <p className="text-sm font-semibold flex items-center gap-1">
-                            <Zap className="w-3.5 h-3.5" />
+                            <TrendingUp className="w-3.5 h-3.5" />
                             {a.total_bids || 0}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground mb-1">Starting</p>
+                          <p className="text-xs text-muted-foreground">Starting</p>
                           <p className="text-sm font-semibold">₹{a.starting_price.toLocaleString("en-IN")}</p>
                         </div>
                       </div>
-                      <Button variant="outline" className="gap-2" size="sm">
+                      <Button variant="outline" size="sm" className="gap-1.5">
                         View Details
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -232,7 +243,6 @@ const Auctions: React.FC = () => {
     );
   };
 
-  // Unified renderer based on viewMode
   const renderContent = (auctions: any[] | undefined, loading: boolean) => {
     return viewMode === "list" ? renderListView(auctions, loading) : renderGridView(auctions, loading);
   };
@@ -241,7 +251,6 @@ const Auctions: React.FC = () => {
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
 
-      {/* Hero */}
       <section
         className="relative overflow-hidden border-b border-border"
         style={{ background: "var(--gradient-hero)" }}
@@ -272,7 +281,6 @@ const Auctions: React.FC = () => {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mt-8 max-w-lg">
             {stats.map((s) => (
               <div key={s.label} className="bg-card/50 border border-border rounded-lg p-3 text-center">
@@ -285,10 +293,8 @@ const Auctions: React.FC = () => {
         </div>
       </section>
 
-      {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={tab} onValueChange={setTab}>
-          {/* Tabs Header with View Toggle */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <TabsList className="bg-card border border-border">
               <TabsTrigger value="live" className="gap-1.5">
@@ -317,7 +323,6 @@ const Auctions: React.FC = () => {
               )}
             </TabsList>
 
-            {/* View Mode Toggle */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground hidden md:inline">View:</span>
               <div className="flex border border-border rounded-md overflow-hidden">
