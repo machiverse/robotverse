@@ -11,7 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Gavel,
@@ -152,8 +159,8 @@ const AuctionDetail: React.FC = () => {
                   <MapPin className="w-5 h-5 mr-2 text-primary" />
                   <span className="text-lg">
                     Location: {auction.item_location || auction.robots?.location}
-                    {auction.robots?.state ? `, ${auction.robots.state}` : ''}
-                    {auction.robots?.pincode ? ` — ${auction.robots.pincode}` : ''}
+                    {auction.robots?.state ? `, ${auction.robots.state}` : ""}
+                    {auction.robots?.pincode ? ` — ${auction.robots.pincode}` : ""}
                   </span>
                 </div>
               )}
@@ -178,19 +185,19 @@ const AuctionDetail: React.FC = () => {
                 (() => {
                   const r = auction.robots!;
                   const rows: Array<[string, React.ReactNode]> = [
-                    ['Manufacturer', r.brand || '-'],
-                    ['Model Name', r.name || '-'],
-                    ['Model Number', r.model || '-'],
-                    ['Robot Type', r.robot_type || '-'],
-                    ['Condition', <span className="capitalize">{r.condition || 'Used'}</span>],
-                    ['Year Manufactured', r.year_manufactured || '-'],
-                    ['Payload Capacity', r.payload_capacity ? `${r.payload_capacity} kg` : '-'],
-                    ['Reach', r.reach ? `${r.reach} mm` : '-'],
-                    ['Repeatability', r.repeatability ? `± ${r.repeatability} mm` : '-'],
-                    ['Power Consumption', r.power_consumption ? `${r.power_consumption} kW` : '-'],
-                    ['Controller Type', r.controller_type || '-'],
-                    ['Operating Environment', r.operating_environment || '-'],
-                    ['Warranty (Item)', r.warranty_info || '-'],
+                    ["Manufacturer", r.brand || "-"],
+                    ["Model Name", r.name || "-"],
+                    ["Model Number", r.model || "-"],
+                    ["Robot Type", r.robot_type || "-"],
+                    ["Condition", <span className="capitalize">{r.condition || "Used"}</span>],
+                    ["Year Manufactured", r.year_manufactured || "-"],
+                    ["Payload Capacity", r.payload_capacity ? `${r.payload_capacity} kg` : "-"],
+                    ["Reach", r.reach ? `${r.reach} mm` : "-"],
+                    ["Repeatability", r.repeatability ? `± ${r.repeatability} mm` : "-"],
+                    ["Power Consumption", r.power_consumption ? `${r.power_consumption} kW` : "-"],
+                    ["Controller Type", r.controller_type || "-"],
+                    ["Operating Environment", r.operating_environment || "-"],
+                    ["Warranty (Item)", r.warranty_info || "-"],
                   ];
                   return (
                     <>
@@ -208,7 +215,9 @@ const AuctionDetail: React.FC = () => {
                           <h4 className="text-base font-semibold mb-2">Applications</h4>
                           <div className="flex flex-wrap gap-2">
                             {r.applications.map((a) => (
-                              <Badge key={a} variant="secondary" className="text-xs">{a}</Badge>
+                              <Badge key={a} variant="secondary" className="text-xs">
+                                {a}
+                              </Badge>
                             ))}
                           </div>
                         </div>
@@ -219,7 +228,9 @@ const AuctionDetail: React.FC = () => {
                           <h4 className="text-base font-semibold mb-2">Certifications & Standards</h4>
                           <div className="flex flex-wrap gap-2">
                             {r.certification_standards.map((c) => (
-                              <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
+                              <Badge key={c} variant="outline" className="text-xs">
+                                {c}
+                              </Badge>
                             ))}
                           </div>
                         </div>
@@ -229,7 +240,9 @@ const AuctionDetail: React.FC = () => {
                         <div>
                           <h4 className="text-base font-semibold mb-2">Included Accessories</h4>
                           <ul className="list-disc list-inside text-sm text-foreground/90 space-y-1">
-                            {r.included_accessories.map((a) => <li key={a}>{a}</li>)}
+                            {r.included_accessories.map((a) => (
+                              <li key={a}>{a}</li>
+                            ))}
                           </ul>
                         </div>
                       ) : null}
@@ -237,7 +250,9 @@ const AuctionDetail: React.FC = () => {
                       {r.description && (
                         <div>
                           <h4 className="text-base font-semibold mb-2">Item Overview</h4>
-                          <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">{r.description}</p>
+                          <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">
+                            {r.description}
+                          </p>
                         </div>
                       )}
                     </>
@@ -257,7 +272,11 @@ const AuctionDetail: React.FC = () => {
               )}
 
               {/* Auction-specific commercial details */}
-              {(auction.inspection_details || auction.payment_terms || auction.delivery_terms || auction.warranty_period || auction.terms_and_conditions) && (
+              {(auction.inspection_details ||
+                auction.payment_terms ||
+                auction.delivery_terms ||
+                auction.warranty_period ||
+                auction.terms_and_conditions) && (
                 <div className="mt-8 space-y-4">
                   <h3 className="text-2xl font-bold border-b border-border pb-3">Auction Terms & Logistics</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,7 +294,9 @@ const AuctionDetail: React.FC = () => {
                     )}
                     {auction.delivery_terms && (
                       <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Delivery / Shipping</p>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                          Delivery / Shipping
+                        </p>
                         <p className="text-sm whitespace-pre-line">{auction.delivery_terms}</p>
                       </div>
                     )}
@@ -406,7 +427,7 @@ const AuctionDetail: React.FC = () => {
                       <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
                       <h3 className="font-semibold text-primary">Your Auction Listing</h3>
                       <p className="text-sm text-muted-foreground mt-1">You cannot bid on your own item.</p>
-                      {derived === 'upcoming' && (auction?.total_bids || 0) === 0 && (
+                      {derived === "upcoming" && (auction?.total_bids || 0) === 0 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -501,13 +522,25 @@ const AuctionDetail: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-64 overflow-y-auto text-sm text-foreground/90 space-y-2 border rounded-md p-4 bg-muted/30">
-            <p>1. All bids placed are legally binding. If you win, you commit to purchase the item at the winning bid price.</p>
+            <p>
+              1. All bids placed are legally binding. If you win, you commit to purchase the item at the winning bid
+              price.
+            </p>
             <p>2. Bids cannot be retracted once submitted. Ensure your bid amount is correct before confirming.</p>
-            <p>3. Winning bids are subject to <strong>admin approval</strong>. On approval, a confirmation email is sent to you and to <strong>support@robotverse.in</strong> with all payment details.</p>
-            <p>4. <strong>Total payable = Winning Bid + 5% Platform Fee + 18% GST on the fee.</strong> Payment is routed via RobotVerse-mediated escrow / bank details shared by the Key Account Manager (+91 86109 25352).</p>
+            <p>
+              3. Winning bids are subject to <strong>admin approval</strong>. On approval, a confirmation email is sent
+              to you and to <strong>support@robotverse.in</strong> with all payment details.
+            </p>
+            <p>
+              4. <strong>Total payable = Winning Bid + 2% Platform Fee + 18% GST on the fee.</strong> Payment is routed
+              via RobotVerse-mediated escrow / bank details shared by the Key Account Manager (+91 86109 25352).
+            </p>
             <p>5. Payment must be completed as per the seller's stated payment terms after admin approval.</p>
             <p>6. Inspection, delivery, and warranty are governed by the terms listed on this auction page.</p>
-            <p>7. RobotVerse acts as a facilitator; disputes are to be resolved between buyer and seller with platform mediation via the Key Account Manager.</p>
+            <p>
+              7. RobotVerse acts as a facilitator; disputes are to be resolved between buyer and seller with platform
+              mediation via the Key Account Manager.
+            </p>
             <p>8. Anti-sniping: bids placed near close time may extend the auction to allow fair competition.</p>
             <p>9. Cancellation after admin approval attracts full platform fee + GST liability.</p>
             <p>10. Violation of bidding rules may result in account suspension.</p>
@@ -519,8 +552,12 @@ const AuctionDetail: React.FC = () => {
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTerms(false)}>Cancel</Button>
-            <Button disabled={!termsChecked} onClick={handleAcceptTerms}>Accept & Place Bid</Button>
+            <Button variant="outline" onClick={() => setShowTerms(false)}>
+              Cancel
+            </Button>
+            <Button disabled={!termsChecked} onClick={handleAcceptTerms}>
+              Accept & Place Bid
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
