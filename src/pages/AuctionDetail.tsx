@@ -1,100 +1,80 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
-import { useAuctionDetail, useAuctionBids, usePlaceBid, useFinalizeAuction } from "@/hooks/useAuctions";
+import { useAuctions } from "@/hooks/useAuctions";
 import { useAuth } from "@/hooks/useAuth";
-import AuctionCountdown from "@/components/auction/AuctionCountdown";
 import AuctionStatusBadge from "@/components/auction/AuctionStatusBadge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Gavel,
-  ArrowLeft,
   Bot,
   MapPin,
-  Users,
   TrendingUp,
-  Shield,
-  Building,
-  User,
   Loader2,
-  Lock,
+  Search,
+  Filter,
+  Grid,
+  List,
+  ArrowUpDown,
+  Calendar,
+  Clock,
+  IndianRupee,
   Eye,
-  EyeOff,
-  AlertCircle,
-  Award,
-  PhoneCall,
-  Mail,
   ChevronRight,
-  CheckCircle2,
-  Pencil,
+  Settings,
+  SlidersHorizontal,
 } from "lucide-react";
-import { getAuctionStatus, isBiddable } from "@/utils/auctionStatus";
-import { getMinNextBid } from "@/utils/bidIncrements";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { getAuctionStatus } from "@/utils/auctionStatus";
 
-const AuctionDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+const AuctionsList: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data, isLoading } = useAuctions();
 
-  const { data: auction, isLoading } = useAuctionDetail(id);
-  const { data: bids } = useAuctionBids(id, auction?.seller_id);
-  const placeBid = usePlaceBid();
-  const finalize = useFinalizeAuction();
-  const [bidAmount, setBidAmount] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("ending_soon");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const formatPrice = (v: number) => `₹${v.toLocaleString("en-IN")}`;
-  const derived = auction ? getAuctionStatus(auction) : "ended";
-  const canBid = auction ? isBiddable(auction) : false;
-  const isSeller = user?.id === auction?.seller_id;
-  const minBid = auction
-    ? getMinNextBid(auction.current_highest_bid || 0, auction.starting_price, auction.min_increment)
-    : 0;
-  const wasExtended = !!(auction as any)?.original_end_time && ((auction as any)?.extensions_count || 0) > 0;
 
-  const userHasBid = bids?.some((b) => b.bidder_name === "You") || false;
-  const userBids = bids?.filter((b) => b.bidder_name === "You") || [];
-  const isHighestBidder = bids?.[0]?.bidder_name === "You";
+  // Filter and sort auctions
+  const filteredAuctions = data?.filter((auction) => {
+    const matchesSearch =
+      auction.auction_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      auction.robots?.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      auction.robots?.name?.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const [showTerms, setShowTerms] = useState(false);
-  const [termsChecked, setTermsChecked] = useState(false);
+    const status = getAuctionStatus(auction);
+    const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-  const submitBid = () => {
-    if (!id || !bidAmount) return;
-    placeBid.mutate({ auctionId: id, bidAmount: parseFloat(bidAmount) });
-    setBidAmount("");
-  };
+    return matchesSearch && matchesStatus;
+  });
 
-  const handleBid = () => {
-    if (!id || !bidAmount) return;
-    const accepted = localStorage.getItem("auction_terms_accepted") === "true";
-    if (!accepted) {
-      setTermsChecked(false);
-      setShowTerms(true);
-      return;
+  const sortedAuctions = filteredAuctions?.sort((a, b) => {
+    const statusA = getAuctionStatus(a);
+    const statusB = getAuctionStatus(b);
+
+    switch (sortBy) {
+      case "ending_soon":
+        return new Date(a.end_time).getTime() - new Date(b.end_time).getTime();
+      case "price_low":
+        return (a.current_highest_bid || a.starting_price) - (b.current_highest_bid || b.starting_price);
+      case "price_high":
+        return (b.current_highest_bid || b.starting_price) - (a.current_highest_bid || a.starting_price);
+      case "newest":
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "most_bids":
+        return (b.total_bids || 0) - (a.total_bids || 0);
+      default:
+        return 0;
     }
-    submitBid();
-  };
-
-  const handleAcceptTerms = () => {
-    localStorage.setItem("auction_terms_accepted", "true");
-    setShowTerms(false);
-    submitBid();
-  };
+  });
 
   if (isLoading) {
     return (
@@ -107,484 +87,350 @@ const AuctionDetail: React.FC = () => {
     );
   }
 
-  if (!auction) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <EnhancedHeader />
-        <div className="flex-1 container mx-auto px-4 flex flex-col items-center justify-center text-center">
-          <Gavel className="w-20 h-20 text-muted-foreground/30 mb-6" />
-          <h2 className="text-2xl font-bold text-foreground mb-4">Auction not found or unavailable</h2>
-          <Button size="lg" onClick={() => navigate("/auctions")}>
-            Return to Marketplace
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const img = auction.robots?.images?.[0] || auction.images?.[0];
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <EnhancedHeader />
 
       <div className="container mx-auto px-4 py-8 flex-1">
-        {/* Breadcrumb / Back Navigation */}
-        <nav className="flex items-center text-sm text-muted-foreground mb-6">
-          <button onClick={() => navigate("/auctions")} className="hover:text-primary transition-colors">
-            Auctions
-          </button>
-          <ChevronRight className="w-4 h-4 mx-2" />
-          <span className="capitalize">{auction.auction_type}</span>
-          <ChevronRight className="w-4 h-4 mx-2" />
-          <span className="text-foreground font-medium truncate max-w-[200px]">{auction.auction_title}</span>
-        </nav>
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-extrabold text-foreground tracking-tight mb-2">Industrial Robot Auctions</h1>
+          <p className="text-muted-foreground text-lg">
+            Browse and bid on verified industrial robots from trusted sellers
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* LEFT COLUMN: Media & Specs (Machineseeker style) */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* Header Section */}
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <AuctionStatusBadge auction={auction} className="px-3 py-1 text-sm rounded-md" />
-                <Badge variant="outline" className="px-3 py-1 text-sm bg-background">
-                  ID: {auction.id.substring(0, 8).toUpperCase()}
-                </Badge>
+        {/* Filters & Search Bar */}
+        <Card className="mb-6 border-border shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              {/* Search */}
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by robot name, brand, or model..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-11"
+                />
               </div>
-              <h1 className="text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight mb-4">
-                {auction.auction_title}
-              </h1>
-              {(auction.item_location || auction.robots?.location) && (
-                <div className="flex items-center text-muted-foreground mb-4">
-                  <MapPin className="w-5 h-5 mr-2 text-primary" />
-                  <span className="text-lg">
-                    Location: {auction.item_location || auction.robots?.location}
-                    {auction.robots?.state ? `, ${auction.robots.state}` : ""}
-                    {auction.robots?.pincode ? ` — ${auction.robots.pincode}` : ""}
-                  </span>
-                </div>
-              )}
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[180px] h-11">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="live">Live</SelectItem>
+                  <SelectItem value="ending_soon">Ending Soon</SelectItem>
+                  <SelectItem value="ended">Ended</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Sort By */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full md:w-[180px] h-11">
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ending_soon">Ending Soon</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="price_low">Price: Low to High</SelectItem>
+                  <SelectItem value="price_high">Price: High to Low</SelectItem>
+                  <SelectItem value="most_bids">Most Bids</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* View Toggle */}
+              <div className="flex border border-border rounded-md overflow-hidden">
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-11 px-3"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="w-4 h-4" />
+                  <span className="ml-2 hidden md:inline">List</span>
+                </Button>
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-11 px-3 border-l border-border"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid className="w-4 h-4" />
+                  <span className="ml-2 hidden md:inline">Grid</span>
+                </Button>
+              </div>
             </div>
 
-            {/* Main Image Gallery */}
-            <div className="bg-white dark:bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-              <div className="aspect-[4/3] md:aspect-[16/9] relative bg-muted flex items-center justify-center">
-                {img ? (
-                  <img src={img} alt={auction.auction_title} className="w-full h-full object-contain p-4" />
-                ) : (
-                  <Bot className="w-32 h-32 text-muted-foreground/20" />
-                )}
-              </div>
+            {/* Results Count */}
+            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                Showing {filteredAuctions?.length || 0} of {data?.length || 0} auctions
+              </span>
+              <Button variant="ghost" size="sm" className="h-8 gap-1">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                More Filters
+              </Button>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Technical Specifications */}
-            <div className="space-y-6">
-              <h3 className="text-2xl font-bold border-b border-border pb-3">Technical Specifications</h3>
+        {/* No Results */}
+        {!filteredAuctions?.length && (
+          <Card className="border-border">
+            <CardContent className="py-16 flex flex-col items-center justify-center text-center">
+              <Gavel className="w-16 h-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">No auctions found</h3>
+              <p className="text-muted-foreground mb-4">
+                Try adjusting your search or filters to find what you're looking for.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                }}
+              >
+                Clear Filters
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-              {auction.robots ? (
-                (() => {
-                  const r = auction.robots!;
-                  const rows: Array<[string, React.ReactNode]> = [
-                    ["Manufacturer", r.brand || "-"],
-                    ["Model Name", r.name || "-"],
-                    ["Model Number", r.model || "-"],
-                    ["Robot Type", r.robot_type || "-"],
-                    ["Condition", <span className="capitalize">{r.condition || "Used"}</span>],
-                    ["Year Manufactured", r.year_manufactured || "-"],
-                    ["Payload Capacity", r.payload_capacity ? `${r.payload_capacity} kg` : "-"],
-                    ["Reach", r.reach ? `${r.reach} mm` : "-"],
-                    ["Repeatability", r.repeatability ? `± ${r.repeatability} mm` : "-"],
-                    ["Power Consumption", r.power_consumption ? `${r.power_consumption} kW` : "-"],
-                    ["Controller Type", r.controller_type || "-"],
-                    ["Operating Environment", r.operating_environment || "-"],
-                    ["Warranty (Item)", r.warranty_info || "-"],
-                  ];
-                  return (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
-                        {rows.map(([k, v]) => (
-                          <div key={k} className="flex justify-between py-2 border-b border-border/50 text-sm">
-                            <span className="text-muted-foreground">{k}</span>
-                            <span className="font-semibold text-right">{v}</span>
+        {/* List View */}
+        {viewMode === "list" && filteredAuctions?.length > 0 && (
+          <div className="space-y-4">
+            {sortedAuctions.map((auction) => {
+              const status = getAuctionStatus(auction);
+              const img = auction.robots?.images?.[0] || auction.images?.[0];
+              const currentPrice = auction.current_highest_bid || auction.starting_price;
+
+              return (
+                <Card
+                  key={auction.id}
+                  className="border-border hover:border-primary/50 transition-colors cursor-pointer group"
+                  onClick={() => navigate(`/auctions/${auction.id}`)}
+                >
+                  <CardContent className="p-0">
+                    <div className="flex flex-col md:flex-row gap-0 md:gap-6">
+                      {/* Image Section */}
+                      <div className="md:w-64 h-48 md:h-auto relative bg-muted flex-shrink-0">
+                        {img ? (
+                          <img src={img} alt={auction.auction_title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Bot className="w-16 h-16 text-muted-foreground/30" />
                           </div>
-                        ))}
+                        )}
+                        <div className="absolute top-2 left-2">
+                          <AuctionStatusBadge auction={auction} className="text-xs" />
+                        </div>
                       </div>
 
-                      {r.applications?.length ? (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Applications</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {r.applications.map((a) => (
-                              <Badge key={a} variant="secondary" className="text-xs">
-                                {a}
+                      {/* Content Section */}
+                      <div className="flex-1 p-4 md:p-6 flex flex-col">
+                        {/* Title & ID */}
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex-1">
+                            <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors mb-1">
+                              {auction.auction_title}
+                            </h2>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-[10px]">
+                                ID: {auction.id.substring(0, 8).toUpperCase()}
                               </Badge>
-                            ))}
+                              <span>•</span>
+                              <span className="capitalize">{auction.auction_type}</span>
+                            </div>
                           </div>
                         </div>
-                      ) : null}
 
-                      {r.certification_standards?.length ? (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Certifications & Standards</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {r.certification_standards.map((c) => (
-                              <Badge key={c} variant="outline" className="text-xs">
-                                {c}
-                              </Badge>
-                            ))}
+                        {/* Key Specs */}
+                        {auction.robots && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                            <div className="flex items-center gap-2 text-xs">
+                              <Bot className="w-3.5 h-3.5 text-muted-foreground" />
+                              <div>
+                                <p className="text-muted-foreground">Brand</p>
+                                <p className="font-semibold text-foreground">{auction.robots.brand || "-"}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                              <div>
+                                <p className="text-muted-foreground">Model</p>
+                                <p className="font-semibold text-foreground">{auction.robots.name || "-"}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <IndianRupee className="w-3.5 h-3.5 text-muted-foreground" />
+                              <div>
+                                <p className="text-muted-foreground">Payload</p>
+                                <p className="font-semibold text-foreground">
+                                  {auction.robots.payload_capacity ? `${auction.robots.payload_capacity} kg` : "-"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                              <div>
+                                <p className="text-muted-foreground">Location</p>
+                                <p className="font-semibold text-foreground truncate max-w-[100px]">
+                                  {auction.robots.location || auction.item_location || "-"}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ) : null}
+                        )}
 
-                      {r.included_accessories?.length ? (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Included Accessories</h4>
-                          <ul className="list-disc list-inside text-sm text-foreground/90 space-y-1">
-                            {r.included_accessories.map((a) => (
-                              <li key={a}>{a}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-
-                      {r.description && (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Item Overview</h4>
-                          <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">
-                            {r.description}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()
-              ) : (
-                <p className="text-muted-foreground">Detailed specifications are currently unavailable.</p>
-              )}
-
-              {auction.description && (
-                <div className="mt-8">
-                  <h4 className="text-lg font-semibold mb-3">Auction Description</h4>
-                  <div className="p-6 bg-muted/30 rounded-lg border border-border/50 text-foreground leading-relaxed whitespace-pre-line">
-                    {auction.description}
-                  </div>
-                </div>
-              )}
-
-              {/* Auction-specific commercial details */}
-              {(auction.inspection_details ||
-                auction.payment_terms ||
-                auction.delivery_terms ||
-                auction.warranty_period ||
-                auction.terms_and_conditions) && (
-                <div className="mt-8 space-y-4">
-                  <h3 className="text-2xl font-bold border-b border-border pb-3">Auction Terms & Logistics</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {auction.inspection_details && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Inspection</p>
-                        <p className="text-sm whitespace-pre-line">{auction.inspection_details}</p>
-                      </div>
-                    )}
-                    {auction.payment_terms && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Payment Terms</p>
-                        <p className="text-sm whitespace-pre-line">{auction.payment_terms}</p>
-                      </div>
-                    )}
-                    {auction.delivery_terms && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                          Delivery / Shipping
-                        </p>
-                        <p className="text-sm whitespace-pre-line">{auction.delivery_terms}</p>
-                      </div>
-                    )}
-                    {auction.warranty_period && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Warranty Period</p>
-                        <p className="text-sm whitespace-pre-line">{auction.warranty_period}</p>
-                      </div>
-                    )}
-                  </div>
-                  {auction.terms_and_conditions && (
-                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Terms & Conditions</p>
-                      <p className="text-sm whitespace-pre-line">{auction.terms_and_conditions}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Extended Auction Alert */}
-            {wasExtended && (
-              <div className="flex items-start gap-3 rounded-lg border border-orange-500/30 bg-orange-500/10 p-4 text-orange-600 dark:text-orange-400">
-                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-semibold">Anti-Sniper Protection Activated</h4>
-                  <p className="text-sm mt-1">
-                    This auction was extended due to a bid placed in the final minutes to allow all bidders a fair
-                    chance.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN: Sticky Bidding Panel & Contact */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="sticky top-24 space-y-6">
-              {/* Main Action Card */}
-              <Card className="border-2 border-primary/20 shadow-lg">
-                <CardHeader className="bg-muted/30 border-b border-border pb-4">
-                  <CardTitle className="text-lg flex justify-between items-center">
-                    <span>Current Price</span>
-                    <span className="text-2xl font-bold text-primary">
-                      {auction.current_highest_bid > 0
-                        ? formatPrice(auction.current_highest_bid)
-                        : formatPrice(auction.starting_price)}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="p-6 space-y-6">
-                  {/* Countdown Timer */}
-                  {(derived === "live" || derived === "ending_soon" || derived === "upcoming") && (
-                    <div className="bg-background rounded-lg border border-border p-4">
-                      <AuctionCountdown
-                        endTime={auction.end_time}
-                        startTime={auction.start_time}
-                        status={derived === "upcoming" ? "upcoming" : "live"}
-                        onComplete={() => id && finalize.mutate(id)}
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 text-sm bg-muted/20 p-4 rounded-lg">
-                    <div>
-                      <p className="text-muted-foreground mb-1">Starting Price</p>
-                      <p className="font-medium">{formatPrice(auction.starting_price)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground mb-1">Min. Increment</p>
-                      <p className="font-medium">{formatPrice(auction.min_increment)}</p>
-                    </div>
-                  </div>
-
-                  {/* Bidding Logic */}
-                  {canBid && !isSeller ? (
-                    user ? (
-                      <div className="space-y-4 pt-2 border-t border-border">
-                        <label className="text-sm font-semibold text-foreground flex items-center justify-between">
-                          <span>Place your max bid</span>
-                          <span className="text-muted-foreground font-normal">Min: {formatPrice(minBid)}</span>
-                        </label>
-                        <div className="flex gap-3">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                              ₹
-                            </span>
-                            <Input
-                              type="number"
-                              placeholder={minBid.toString()}
-                              value={bidAmount}
-                              onChange={(e) => setBidAmount(e.target.value)}
-                              className="pl-8 text-lg font-semibold h-12"
-                              min={minBid}
-                            />
+                        {/* Bottom Row: Price, Bids, Time, CTA */}
+                        <div className="mt-auto pt-4 border-t border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                          {/* Price & Bids */}
+                          <div className="flex items-center gap-6">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Current Price</p>
+                              <p className="text-2xl font-bold text-primary">{formatPrice(currentPrice)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Bids</p>
+                              <p className="text-lg font-semibold text-foreground flex items-center gap-1">
+                                <TrendingUp className="w-4 h-4" />
+                                {auction.total_bids || 0}
+                              </p>
+                            </div>
                           </div>
-                          <Button
-                            size="lg"
-                            className="h-12 px-8 text-md font-bold"
-                            onClick={handleBid}
-                            disabled={placeBid.isPending || !bidAmount || parseFloat(bidAmount) < minBid}
-                          >
-                            {placeBid.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "BID NOW"}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground text-center">
-                          By clicking Bid Now, you commit to buy this item if you are the winning bidder.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4 pt-4 border-t border-border text-center">
-                        <Lock className="w-10 h-10 text-primary/40 mx-auto mb-2" />
-                        <h3 className="font-semibold text-lg">Professional Buyers Only</h3>
-                        <p className="text-sm text-muted-foreground pb-2">
-                          You must be logged in with an approved buyer account to participate in this industrial
-                          auction.
-                        </p>
-                        <Button className="w-full h-12 text-md font-bold" onClick={() => navigate("/auth")}>
-                          Sign In / Register to Bid
-                        </Button>
-                      </div>
-                    )
-                  ) : null}
 
-                  {isSeller && (
-                    <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg text-center">
-                      <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <h3 className="font-semibold text-primary">Your Auction Listing</h3>
-                      <p className="text-sm text-muted-foreground mt-1">You cannot bid on your own item.</p>
-                      {derived === "upcoming" && (auction?.total_bids || 0) === 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-3 gap-1"
-                          onClick={() => navigate(`/auctions/${id}/edit`)}
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Edit listing
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  <AdminEditControl auctionId={id!} />
-                </CardContent>
-              </Card>
-
-              {/* Key Account Manager */}
-              <Card className="border border-border shadow-sm">
-                <CardHeader className="pb-3 border-b border-border/50">
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <User className="w-5 h-5 text-primary" />
-                    Key Account Manager
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    For any questions about this auction, contact your RobotVerse Key Account Manager.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-12 gap-3"
-                    onClick={() => (window.location.href = "tel:+918610925352")}
-                  >
-                    <PhoneCall className="w-4 h-4 text-primary" />
-                    <span className="font-semibold">+91 86109 25352</span>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Bidding History (Simplified for Sidebar) */}
-              {user && (
-                <Card className="border border-border shadow-sm">
-                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5" /> Bid History
-                    </CardTitle>
-                    <Badge variant="secondary">{auction.total_bids || 0} Bids</Badge>
-                  </CardHeader>
-                  <CardContent className="px-0 pb-0 max-h-60 overflow-y-auto">
-                    {bids && bids.length > 0 ? (
-                      <div className="divide-y divide-border">
-                        {bids.map((bid, i) => {
-                          const isYou = bid.bidder_name === "You";
-                          return (
-                            <div
-                              key={bid.id}
-                              className={`p-4 flex justify-between items-center ${i === 0 ? "bg-primary/5" : ""}`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {i === 0 && <Award className="w-4 h-4 text-primary" />}
+                          {/* Time */}
+                          <div className="flex items-center gap-4">
+                            {(status === "live" || status === "ending_soon" || status === "upcoming") && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
                                 <div>
-                                  <p className={`text-sm font-medium ${isYou ? "text-primary" : "text-foreground"}`}>
-                                    {isYou ? "You" : isSeller ? bid.bidder_name : "Bidder ***"}
+                                  <p className="text-xs text-muted-foreground">
+                                    {status === "upcoming" ? "Starts in" : "Ends in"}
                                   </p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {new Date(bid.created_at).toLocaleDateString()}
+                                  <p className="font-semibold text-foreground">
+                                    {new Date(
+                                      status === "upcoming" ? auction.start_time : auction.end_time,
+                                    ).toLocaleString("en-IN", {
+                                      day: "numeric",
+                                      month: "short",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
                                   </p>
                                 </div>
                               </div>
-                              <span className="font-bold">{formatPrice(bid.bid_amount)}</span>
-                            </div>
-                          );
-                        })}
+                            )}
+
+                            <Button
+                              className="gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/auctions/${auction.id}`);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                              View Details
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center p-6">No bids yet.</p>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
-              )}
-            </div>
+              );
+            })}
           </div>
-        </div>
+        )}
+
+        {/* Grid View */}
+        {viewMode === "grid" && filteredAuctions?.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sortedAuctions.map((auction) => {
+              const status = getAuctionStatus(auction);
+              const img = auction.robots?.images?.[0] || auction.images?.[0];
+              const currentPrice = auction.current_highest_bid || auction.starting_price;
+
+              return (
+                <Card
+                  key={auction.id}
+                  className="border-border hover:border-primary/50 transition-all hover:shadow-lg cursor-pointer group"
+                  onClick={() => navigate(`/auctions/${auction.id}`)}
+                >
+                  <CardContent className="p-0">
+                    {/* Image */}
+                    <div className="aspect-[4/3] relative bg-muted overflow-hidden">
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={auction.auction_title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Bot className="w-16 h-16 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2">
+                        <AuctionStatusBadge auction={auction} />
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 space-y-3">
+                      <h3 className="font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                        {auction.auction_title}
+                      </h3>
+
+                      {auction.robots && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {auction.robots.brand}
+                          </Badge>
+                          <span className="truncate">{auction.robots.name}</span>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Current Price</p>
+                          <p className="text-lg font-bold text-primary">{formatPrice(currentPrice)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Bids</p>
+                          <p className="text-sm font-semibold flex items-center gap-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            {auction.total_bids || 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button className="w-full gap-2" variant="outline">
+                        <Eye className="w-4 h-4" />
+                        View Auction
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
+
       <Footer />
-
-      <Dialog open={showTerms} onOpenChange={setShowTerms}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Auction Terms & Conditions</DialogTitle>
-            <DialogDescription>
-              Please review and accept the bidding terms before placing your first bid.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-64 overflow-y-auto text-sm text-foreground/90 space-y-2 border rounded-md p-4 bg-muted/30">
-            <p>
-              1. All bids placed are legally binding. If you win, you commit to purchase the item at the winning bid
-              price.
-            </p>
-            <p>2. Bids cannot be retracted once submitted. Ensure your bid amount is correct before confirming.</p>
-            <p>
-              3. Winning bids are subject to <strong>admin approval</strong>. On approval, a confirmation email is sent
-              to you and to <strong>support@robotverse.in</strong> with all payment details.
-            </p>
-            <p>
-              4. <strong>Total payable = Winning Bid + 2% Platform Fee + 18% GST on the fee.</strong> Payment is routed
-              via RobotVerse-mediated escrow / bank details shared by the Key Account Manager (+91 86109 25352).
-            </p>
-            <p>5. Payment must be completed as per the seller's stated payment terms after admin approval.</p>
-            <p>6. Inspection, delivery, and warranty are governed by the terms listed on this auction page.</p>
-            <p>
-              7. RobotVerse acts as a facilitator; disputes are to be resolved between buyer and seller with platform
-              mediation via the Key Account Manager.
-            </p>
-            <p>8. Anti-sniping: bids placed near close time may extend the auction to allow fair competition.</p>
-            <p>9. Cancellation after admin approval attracts full platform fee + GST liability.</p>
-            <p>10. Violation of bidding rules may result in account suspension.</p>
-          </div>
-          <div className="flex items-start gap-2 pt-2">
-            <Checkbox id="accept-terms" checked={termsChecked} onCheckedChange={(v) => setTermsChecked(!!v)} />
-            <label htmlFor="accept-terms" className="text-sm cursor-pointer">
-              I have read and agree to the auction terms and conditions.
-            </label>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTerms(false)}>
-              Cancel
-            </Button>
-            <Button disabled={!termsChecked} onClick={handleAcceptTerms}>
-              Accept & Place Bid
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
-// Admin-only edit shortcut — sellers use the CTA above; admins can edit at any status.
-const AdminEditControl: React.FC<{ auctionId: string }> = ({ auctionId }) => {
-  const navigate = useNavigate();
-  const { isAdmin } = useIsAdmin();
-  if (!isAdmin) return null;
-  return (
-    <div className="mt-3 border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
-      <p className="text-xs text-amber-500 font-semibold mb-2 flex items-center gap-1">
-        <Shield className="w-3.5 h-3.5" /> Admin controls
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full gap-1 border-amber-500/40"
-        onClick={() => navigate(`/auctions/${auctionId}/edit`)}
-      >
-        <Pencil className="w-3.5 h-3.5" /> Edit auction (override)
-      </Button>
-    </div>
-  );
-};
-
-export default AuctionDetail;
+export default AuctionsList;
