@@ -33,9 +33,11 @@ import {
   Mail,
   ChevronRight,
   CheckCircle2,
+  Pencil,
 } from "lucide-react";
 import { getAuctionStatus, isBiddable } from "@/utils/auctionStatus";
 import { getMinNextBid } from "@/utils/bidIncrements";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 const AuctionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -404,8 +406,19 @@ const AuctionDetail: React.FC = () => {
                       <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
                       <h3 className="font-semibold text-primary">Your Auction Listing</h3>
                       <p className="text-sm text-muted-foreground mt-1">You cannot bid on your own item.</p>
+                      {derived === 'upcoming' && (auction?.total_bids || 0) === 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 gap-1"
+                          onClick={() => navigate(`/auctions/${id}/edit`)}
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> Edit listing
+                        </Button>
+                      )}
                     </div>
                   )}
+                  <AdminEditControl auctionId={id!} />
                 </CardContent>
               </Card>
 
@@ -511,6 +524,28 @@ const AuctionDetail: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// Admin-only edit shortcut — sellers use the CTA above; admins can edit at any status.
+const AdminEditControl: React.FC<{ auctionId: string }> = ({ auctionId }) => {
+  const navigate = useNavigate();
+  const { isAdmin } = useIsAdmin();
+  if (!isAdmin) return null;
+  return (
+    <div className="mt-3 border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
+      <p className="text-xs text-amber-500 font-semibold mb-2 flex items-center gap-1">
+        <Shield className="w-3.5 h-3.5" /> Admin controls
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full gap-1 border-amber-500/40"
+        onClick={() => navigate(`/auctions/${auctionId}/edit`)}
+      >
+        <Pencil className="w-3.5 h-3.5" /> Edit auction (override)
+      </Button>
     </div>
   );
 };

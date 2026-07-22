@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot, Package } from 'lucide-react';
+import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot, Package, Pencil } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useUrlParam } from '@/hooks/useUrlState';
 import CopySearchLinkButton from '@/components/CopySearchLinkButton';
+import AuctionBidsPanel from '@/components/auction/AuctionBidsPanel';
+import { getAuctionStatus } from '@/utils/auctionStatus';
 
 const Auctions: React.FC = () => {
   const navigate = useNavigate();
@@ -170,14 +172,19 @@ const Auctions: React.FC = () => {
                           </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {items.map((a: any) => (
+                          {items.map((a: any) => {
+                            const derived = getAuctionStatus(a);
+                            const canSellerEdit = derived === 'upcoming' && (a.total_bids || 0) === 0;
+                            return (
                             <Card
                               key={a.id}
-                              className="border border-border hover:border-primary/40 transition-colors cursor-pointer"
-                              onClick={() => navigate(`/auctions/${a.id}`)}
+                              className="border border-border hover:border-primary/40 transition-colors"
                             >
                               <CardContent className="p-3">
-                                <div className="flex items-center gap-3">
+                                <div
+                                  className="flex items-center gap-3 cursor-pointer"
+                                  onClick={() => navigate(`/auctions/${a.id}`)}
+                                >
                                   <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                                     {(a.robots?.images?.[0] || a.images?.[0]) ? (
                                       <img src={a.robots?.images?.[0] || a.images?.[0]} className="w-full h-full object-cover" alt="" />
@@ -191,11 +198,23 @@ const Auctions: React.FC = () => {
                                       ₹{Number(a.current_highest_bid || a.starting_price || 0).toLocaleString('en-IN')} • {a.total_bids || 0} bids
                                     </p>
                                   </div>
-                                  <Badge variant="outline" className="capitalize text-[10px]">{a.status}</Badge>
+                                  <Badge variant="outline" className="capitalize text-[10px]">{derived}</Badge>
                                 </div>
+                                {canSellerEdit && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full mt-2 h-7 text-xs gap-1"
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/auctions/${a.id}/edit`); }}
+                                  >
+                                    <Pencil className="w-3 h-3" /> Edit listing
+                                  </Button>
+                                )}
+                                <AuctionBidsPanel auctionId={a.id} sellerId={a.seller_id} totalBids={a.total_bids} />
                               </CardContent>
                             </Card>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
