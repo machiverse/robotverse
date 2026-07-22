@@ -41,6 +41,15 @@ import {
   ChevronRight,
   CheckCircle2,
   Pencil,
+  Calendar,
+  Clock,
+  IndianRupee,
+  Package,
+  FileText,
+  ShieldCheck,
+  Truck,
+  Wrench,
+  Info,
 } from "lucide-react";
 import { getAuctionStatus, isBiddable } from "@/utils/auctionStatus";
 import { getMinNextBid } from "@/utils/bidIncrements";
@@ -140,375 +149,484 @@ const AuctionDetail: React.FC = () => {
           <span className="text-foreground font-medium truncate max-w-[200px]">{auction.auction_title}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* LEFT COLUMN: Media & Specs (Machineseeker style) */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* Header Section */}
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <AuctionStatusBadge auction={auction} className="px-3 py-1 text-sm rounded-md" />
-                <Badge variant="outline" className="px-3 py-1 text-sm bg-background">
+        {/* LIST VIEW LAYOUT - Single Column */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* TOP SECTION: Key Info Cards in Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Status & ID Card */}
+            <Card className="border-border">
+              <CardContent className="p-4 flex items-center gap-3">
+                <AuctionStatusBadge auction={auction} className="px-3 py-1" />
+                <Badge variant="outline" className="bg-background">
                   ID: {auction.id.substring(0, 8).toUpperCase()}
                 </Badge>
-              </div>
-              <h1 className="text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight mb-4">
-                {auction.auction_title}
-              </h1>
-              {(auction.item_location || auction.robots?.location) && (
-                <div className="flex items-center text-muted-foreground mb-4">
-                  <MapPin className="w-5 h-5 mr-2 text-primary" />
-                  <span className="text-lg">
-                    Location: {auction.item_location || auction.robots?.location}
+              </CardContent>
+            </Card>
+
+            {/* Location Card */}
+            <Card className="border-border">
+              <CardContent className="p-4 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Location</p>
+                  <p className="font-semibold text-sm">
+                    {auction.item_location || auction.robots?.location || "-"}
                     {auction.robots?.state ? `, ${auction.robots.state}` : ""}
                     {auction.robots?.pincode ? ` — ${auction.robots.pincode}` : ""}
-                  </span>
+                  </p>
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Main Image Gallery */}
-            <div className="bg-white dark:bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-              <div className="aspect-[4/3] md:aspect-[16/9] relative bg-muted flex items-center justify-center">
+            {/* Auction Type Card */}
+            <Card className="border-border">
+              <CardContent className="p-4 flex items-center gap-2">
+                <Gavel className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Auction Type</p>
+                  <p className="font-semibold text-sm capitalize">{auction.auction_type}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Title Card */}
+          <Card className="border-border">
+            <CardContent className="p-6">
+              <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight">
+                {auction.auction_title}
+              </h1>
+            </CardContent>
+          </Card>
+
+          {/* Main Image */}
+          <Card className="border-border overflow-hidden">
+            <CardContent className="p-0">
+              <div className="aspect-[16/9] relative bg-muted flex items-center justify-center">
                 {img ? (
-                  <img src={img} alt={auction.auction_title} className="w-full h-full object-contain p-4" />
+                  <img src={img} alt={auction.auction_title} className="w-full h-full object-contain p-8" />
                 ) : (
                   <Bot className="w-32 h-32 text-muted-foreground/20" />
                 )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Technical Specifications */}
-            <div className="space-y-6">
-              <h3 className="text-2xl font-bold border-b border-border pb-3">Technical Specifications</h3>
-
-              {auction.robots ? (
-                (() => {
-                  const r = auction.robots!;
-                  const rows: Array<[string, React.ReactNode]> = [
-                    ["Manufacturer", r.brand || "-"],
-                    ["Model Name", r.name || "-"],
-                    ["Model Number", r.model || "-"],
-                    ["Robot Type", r.robot_type || "-"],
-                    ["Condition", <span className="capitalize">{r.condition || "Used"}</span>],
-                    ["Year Manufactured", r.year_manufactured || "-"],
-                    ["Payload Capacity", r.payload_capacity ? `${r.payload_capacity} kg` : "-"],
-                    ["Reach", r.reach ? `${r.reach} mm` : "-"],
-                    ["Repeatability", r.repeatability ? `± ${r.repeatability} mm` : "-"],
-                    ["Power Consumption", r.power_consumption ? `${r.power_consumption} kW` : "-"],
-                    ["Controller Type", r.controller_type || "-"],
-                    ["Operating Environment", r.operating_environment || "-"],
-                    ["Warranty (Item)", r.warranty_info || "-"],
-                  ];
-                  return (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
-                        {rows.map(([k, v]) => (
-                          <div key={k} className="flex justify-between py-2 border-b border-border/50 text-sm">
-                            <span className="text-muted-foreground">{k}</span>
-                            <span className="font-semibold text-right">{v}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {r.applications?.length ? (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Applications</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {r.applications.map((a) => (
-                              <Badge key={a} variant="secondary" className="text-xs">
-                                {a}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {r.certification_standards?.length ? (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Certifications & Standards</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {r.certification_standards.map((c) => (
-                              <Badge key={c} variant="outline" className="text-xs">
-                                {c}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {r.included_accessories?.length ? (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Included Accessories</h4>
-                          <ul className="list-disc list-inside text-sm text-foreground/90 space-y-1">
-                            {r.included_accessories.map((a) => (
-                              <li key={a}>{a}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-
-                      {r.description && (
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Item Overview</h4>
-                          <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">
-                            {r.description}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()
-              ) : (
-                <p className="text-muted-foreground">Detailed specifications are currently unavailable.</p>
-              )}
-
-              {auction.description && (
-                <div className="mt-8">
-                  <h4 className="text-lg font-semibold mb-3">Auction Description</h4>
-                  <div className="p-6 bg-muted/30 rounded-lg border border-border/50 text-foreground leading-relaxed whitespace-pre-line">
-                    {auction.description}
+          {/* Price & Countdown Card */}
+          <Card className="border-2 border-primary/20 shadow-md">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Current Price</p>
+                  <p className="text-3xl font-bold text-primary">
+                    {auction.current_highest_bid > 0
+                      ? formatPrice(auction.current_highest_bid)
+                      : formatPrice(auction.starting_price)}
+                  </p>
+                </div>
+                <div className="flex gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Starting Price</p>
+                    <p className="font-semibold">{formatPrice(auction.starting_price)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Min. Increment</p>
+                    <p className="font-semibold">{formatPrice(auction.min_increment)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Total Bids</p>
+                    <p className="font-semibold flex items-center gap-1">
+                      <TrendingUp className="w-4 h-4" />
+                      {auction.total_bids || 0}
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Auction-specific commercial details */}
-              {(auction.inspection_details ||
-                auction.payment_terms ||
-                auction.delivery_terms ||
-                auction.warranty_period ||
-                auction.terms_and_conditions) && (
-                <div className="mt-8 space-y-4">
-                  <h3 className="text-2xl font-bold border-b border-border pb-3">Auction Terms & Logistics</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {auction.inspection_details && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Inspection</p>
-                        <p className="text-sm whitespace-pre-line">{auction.inspection_details}</p>
+              {/* Countdown Timer */}
+              {(derived === "live" || derived === "ending_soon" || derived === "upcoming") && (
+                <div className="bg-background rounded-lg border border-border p-4">
+                  <AuctionCountdown
+                    endTime={auction.end_time}
+                    startTime={auction.start_time}
+                    status={derived === "upcoming" ? "upcoming" : "live"}
+                    onComplete={() => id && finalize.mutate(id)}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Technical Specifications - List Style */}
+          <Card className="border-border">
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Package className="w-5 h-5 text-primary" />
+                Technical Specifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {auction.robots ? (
+                <div className="divide-y divide-border">
+                  {[
+                    ["Manufacturer", auction.robots.brand || "-"],
+                    ["Model Name", auction.robots.name || "-"],
+                    ["Model Number", auction.robots.model || "-"],
+                    ["Robot Type", auction.robots.robot_type || "-"],
+                    ["Condition", <span className="capitalize">{auction.robots.condition || "Used"}</span>],
+                    ["Year Manufactured", auction.robots.year_manufactured || "-"],
+                    [
+                      "Payload Capacity",
+                      auction.robots.payload_capacity ? `${auction.robots.payload_capacity} kg` : "-",
+                    ],
+                    ["Reach", auction.robots.reach ? `${auction.robots.reach} mm` : "-"],
+                    ["Repeatability", auction.robots.repeatability ? `± ${auction.robots.repeatability} mm` : "-"],
+                    [
+                      "Power Consumption",
+                      auction.robots.power_consumption ? `${auction.robots.power_consumption} kW` : "-",
+                    ],
+                    ["Controller Type", auction.robots.controller_type || "-"],
+                    ["Operating Environment", auction.robots.operating_environment || "-"],
+                    ["Warranty (Item)", auction.robots.warranty_info || "-"],
+                  ].map(([label, value], idx) => (
+                    <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-2 p-4 hover:bg-muted/30">
+                      <span className="text-sm text-muted-foreground font-medium">{label}</span>
+                      <span className="text-sm font-semibold text-foreground md:col-span-2">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground p-4">Detailed specifications are currently unavailable.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Applications */}
+          {auction.robots?.applications?.length && (
+            <Card className="border-border">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-primary" />
+                  Applications
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-2">
+                  {auction.robots.applications.map((a) => (
+                    <Badge key={a} variant="secondary" className="text-sm">
+                      {a}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Certifications */}
+          {auction.robots?.certification_standards?.length && (
+            <Card className="border-border">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-primary" />
+                  Certifications & Standards
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-2">
+                  {auction.robots.certification_standards.map((c) => (
+                    <Badge key={c} variant="outline" className="text-sm">
+                      {c}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Included Accessories */}
+          {auction.robots?.included_accessories?.length && (
+            <Card className="border-border">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="w-5 h-5 text-primary" />
+                  Included Accessories
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <ul className="space-y-2">
+                  {auction.robots.included_accessories.map((a, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-foreground">{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Item Overview */}
+          {auction.robots?.description && (
+            <Card className="border-border">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Info className="w-5 h-5 text-primary" />
+                  Item Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">
+                  {auction.robots.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Auction Description */}
+          {auction.description && (
+            <Card className="border-border">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Auction Description
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-foreground leading-relaxed whitespace-pre-line">
+                  {auction.description}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Auction Terms & Logistics - List Style */}
+          {(auction.inspection_details ||
+            auction.payment_terms ||
+            auction.delivery_terms ||
+            auction.warranty_period ||
+            auction.terms_and_conditions) && (
+            <Card className="border-border">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Auction Terms & Logistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-border">
+                  {auction.inspection_details && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 p-4 hover:bg-muted/30">
+                      <div className="flex items-center gap-2 md:col-span-1">
+                        <Eye className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground">Inspection</span>
                       </div>
-                    )}
-                    {auction.payment_terms && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Payment Terms</p>
-                        <p className="text-sm whitespace-pre-line">{auction.payment_terms}</p>
+                      <p className="text-sm text-foreground md:col-span-3">{auction.inspection_details}</p>
+                    </div>
+                  )}
+                  {auction.payment_terms && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 p-4 hover:bg-muted/30">
+                      <div className="flex items-center gap-2 md:col-span-1">
+                        <IndianRupee className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground">Payment Terms</span>
                       </div>
-                    )}
-                    {auction.delivery_terms && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                          Delivery / Shipping
-                        </p>
-                        <p className="text-sm whitespace-pre-line">{auction.delivery_terms}</p>
+                      <p className="text-sm text-foreground md:col-span-3">{auction.payment_terms}</p>
+                    </div>
+                  )}
+                  {auction.delivery_terms && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 p-4 hover:bg-muted/30">
+                      <div className="flex items-center gap-2 md:col-span-1">
+                        <Truck className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground">Delivery / Shipping</span>
                       </div>
-                    )}
-                    {auction.warranty_period && (
-                      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Warranty Period</p>
-                        <p className="text-sm whitespace-pre-line">{auction.warranty_period}</p>
+                      <p className="text-sm text-foreground md:col-span-3">{auction.delivery_terms}</p>
+                    </div>
+                  )}
+                  {auction.warranty_period && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 p-4 hover:bg-muted/30">
+                      <div className="flex items-center gap-2 md:col-span-1">
+                        <ShieldCheck className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground">Warranty Period</span>
                       </div>
-                    )}
-                  </div>
+                      <p className="text-sm text-foreground md:col-span-3">{auction.warranty_period}</p>
+                    </div>
+                  )}
                   {auction.terms_and_conditions && (
-                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Terms & Conditions</p>
-                      <p className="text-sm whitespace-pre-line">{auction.terms_and_conditions}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 p-4 hover:bg-muted/30">
+                      <div className="flex items-center gap-2 md:col-span-1">
+                        <FileText className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground">Terms & Conditions</span>
+                      </div>
+                      <p className="text-sm text-foreground md:col-span-3">{auction.terms_and_conditions}</p>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Extended Auction Alert */}
-            {wasExtended && (
-              <div className="flex items-start gap-3 rounded-lg border border-orange-500/30 bg-orange-500/10 p-4 text-orange-600 dark:text-orange-400">
-                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          {/* Extended Auction Alert */}
+          {wasExtended && (
+            <Card className="border-orange-500/30 bg-orange-500/10">
+              <CardContent className="p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold">Anti-Sniper Protection Activated</h4>
-                  <p className="text-sm mt-1">
+                  <h4 className="font-semibold text-orange-600 dark:text-orange-400">
+                    Anti-Sniper Protection Activated
+                  </h4>
+                  <p className="text-sm text-orange-600/90 dark:text-orange-400/90 mt-1">
                     This auction was extended due to a bid placed in the final minutes to allow all bidders a fair
                     chance.
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* RIGHT COLUMN: Sticky Bidding Panel & Contact */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="sticky top-24 space-y-6">
-              {/* Main Action Card */}
-              <Card className="border-2 border-primary/20 shadow-lg">
-                <CardHeader className="bg-muted/30 border-b border-border pb-4">
-                  <CardTitle className="text-lg flex justify-between items-center">
-                    <span>Current Price</span>
-                    <span className="text-2xl font-bold text-primary">
-                      {auction.current_highest_bid > 0
-                        ? formatPrice(auction.current_highest_bid)
-                        : formatPrice(auction.starting_price)}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="p-6 space-y-6">
-                  {/* Countdown Timer */}
-                  {(derived === "live" || derived === "ending_soon" || derived === "upcoming") && (
-                    <div className="bg-background rounded-lg border border-border p-4">
-                      <AuctionCountdown
-                        endTime={auction.end_time}
-                        startTime={auction.start_time}
-                        status={derived === "upcoming" ? "upcoming" : "live"}
-                        onComplete={() => id && finalize.mutate(id)}
-                      />
+          {/* Bidding Section */}
+          <Card className="border-2 border-primary/20 shadow-md">
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Gavel className="w-5 h-5 text-primary" />
+                Place Your Bid
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {canBid && !isSeller ? (
+                user ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-semibold text-foreground">Place your max bid</label>
+                      <span className="text-sm text-muted-foreground">Min: {formatPrice(minBid)}</span>
                     </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 text-sm bg-muted/20 p-4 rounded-lg">
-                    <div>
-                      <p className="text-muted-foreground mb-1">Starting Price</p>
-                      <p className="font-medium">{formatPrice(auction.starting_price)}</p>
+                    <div className="flex gap-3">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                          ₹
+                        </span>
+                        <Input
+                          type="number"
+                          placeholder={minBid.toString()}
+                          value={bidAmount}
+                          onChange={(e) => setBidAmount(e.target.value)}
+                          className="pl-8 text-lg font-semibold h-12"
+                          min={minBid}
+                        />
+                      </div>
+                      <Button
+                        size="lg"
+                        className="h-12 px-8 text-md font-bold"
+                        onClick={handleBid}
+                        disabled={placeBid.isPending || !bidAmount || parseFloat(bidAmount) < minBid}
+                      >
+                        {placeBid.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "BID NOW"}
+                      </Button>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground mb-1">Min. Increment</p>
-                      <p className="font-medium">{formatPrice(auction.min_increment)}</p>
-                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      By clicking Bid Now, you commit to buy this item if you are the winning bidder.
+                    </p>
                   </div>
-
-                  {/* Bidding Logic */}
-                  {canBid && !isSeller ? (
-                    user ? (
-                      <div className="space-y-4 pt-2 border-t border-border">
-                        <label className="text-sm font-semibold text-foreground flex items-center justify-between">
-                          <span>Place your max bid</span>
-                          <span className="text-muted-foreground font-normal">Min: {formatPrice(minBid)}</span>
-                        </label>
-                        <div className="flex gap-3">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                              ₹
-                            </span>
-                            <Input
-                              type="number"
-                              placeholder={minBid.toString()}
-                              value={bidAmount}
-                              onChange={(e) => setBidAmount(e.target.value)}
-                              className="pl-8 text-lg font-semibold h-12"
-                              min={minBid}
-                            />
-                          </div>
-                          <Button
-                            size="lg"
-                            className="h-12 px-8 text-md font-bold"
-                            onClick={handleBid}
-                            disabled={placeBid.isPending || !bidAmount || parseFloat(bidAmount) < minBid}
-                          >
-                            {placeBid.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "BID NOW"}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground text-center">
-                          By clicking Bid Now, you commit to buy this item if you are the winning bidder.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4 pt-4 border-t border-border text-center">
-                        <Lock className="w-10 h-10 text-primary/40 mx-auto mb-2" />
-                        <h3 className="font-semibold text-lg">Professional Buyers Only</h3>
-                        <p className="text-sm text-muted-foreground pb-2">
-                          You must be logged in with an approved buyer account to participate in this industrial
-                          auction.
-                        </p>
-                        <Button className="w-full h-12 text-md font-bold" onClick={() => navigate("/auth")}>
-                          Sign In / Register to Bid
-                        </Button>
-                      </div>
-                    )
-                  ) : null}
-
-                  {isSeller && (
-                    <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg text-center">
-                      <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <h3 className="font-semibold text-primary">Your Auction Listing</h3>
-                      <p className="text-sm text-muted-foreground mt-1">You cannot bid on your own item.</p>
-                      {derived === "upcoming" && (auction?.total_bids || 0) === 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-3 gap-1"
-                          onClick={() => navigate(`/auctions/${id}/edit`)}
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Edit listing
-                        </Button>
-                      )}
-                    </div>
+                ) : (
+                  <div className="space-y-4 text-center py-4">
+                    <Lock className="w-10 h-10 text-primary/40 mx-auto mb-2" />
+                    <h3 className="font-semibold text-lg">Professional Buyers Only</h3>
+                    <p className="text-sm text-muted-foreground pb-2">
+                      You must be logged in with an approved buyer account to participate in this industrial auction.
+                    </p>
+                    <Button className="h-12 text-md font-bold" onClick={() => navigate("/auth")}>
+                      Sign In / Register to Bid
+                    </Button>
+                  </div>
+                )
+              ) : isSeller ? (
+                <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg text-center">
+                  <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
+                  <h3 className="font-semibold text-primary">Your Auction Listing</h3>
+                  <p className="text-sm text-muted-foreground mt-1">You cannot bid on your own item.</p>
+                  {derived === "upcoming" && (auction?.total_bids || 0) === 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 gap-1"
+                      onClick={() => navigate(`/auctions/${id}/edit`)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit listing
+                    </Button>
                   )}
-                  <AdminEditControl auctionId={id!} />
-                </CardContent>
-              </Card>
-
-              {/* Key Account Manager */}
-              <Card className="border border-border shadow-sm">
-                <CardHeader className="pb-3 border-b border-border/50">
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <User className="w-5 h-5 text-primary" />
-                    Key Account Manager
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    For any questions about this auction, contact your RobotVerse Key Account Manager.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-12 gap-3"
-                    onClick={() => (window.location.href = "tel:+918610925352")}
-                  >
-                    <PhoneCall className="w-4 h-4 text-primary" />
-                    <span className="font-semibold">+91 86109 25352</span>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Bidding History (Simplified for Sidebar) */}
-              {user && (
-                <Card className="border border-border shadow-sm">
-                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5" /> Bid History
-                    </CardTitle>
-                    <Badge variant="secondary">{auction.total_bids || 0} Bids</Badge>
-                  </CardHeader>
-                  <CardContent className="px-0 pb-0 max-h-60 overflow-y-auto">
-                    {bids && bids.length > 0 ? (
-                      <div className="divide-y divide-border">
-                        {bids.map((bid, i) => {
-                          const isYou = bid.bidder_name === "You";
-                          return (
-                            <div
-                              key={bid.id}
-                              className={`p-4 flex justify-between items-center ${i === 0 ? "bg-primary/5" : ""}`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {i === 0 && <Award className="w-4 h-4 text-primary" />}
-                                <div>
-                                  <p className={`text-sm font-medium ${isYou ? "text-primary" : "text-foreground"}`}>
-                                    {isYou ? "You" : isSeller ? bid.bidder_name : "Bidder ***"}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {new Date(bid.created_at).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className="font-bold">{formatPrice(bid.bid_amount)}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center p-6">No bids yet.</p>
-                    )}
-                  </CardContent>
-                </Card>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">This auction has ended.</p>
               )}
-            </div>
-          </div>
+              <AdminEditControl auctionId={id!} />
+            </CardContent>
+          </Card>
+
+          {/* Bidding History */}
+          {user && (
+            <Card className="border-border">
+              <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Bidding History
+                </CardTitle>
+                <Badge variant="secondary">{auction.total_bids || 0} Bids</Badge>
+              </CardHeader>
+              <CardContent className="p-0">
+                {bids && bids.length > 0 ? (
+                  <div className="divide-y divide-border">
+                    {bids.map((bid, idx) => {
+                      const isYou = bid.bidder_name === "You";
+                      return (
+                        <div
+                          key={bid.id}
+                          className={`grid grid-cols-1 md:grid-cols-4 gap-2 p-4 ${idx === 0 ? "bg-primary/5" : ""}`}
+                        >
+                          <div className="flex items-center gap-2 md:col-span-2">
+                            {idx === 0 && <Award className="w-4 h-4 text-primary" />}
+                            <div>
+                              <p className={`text-sm font-medium ${isYou ? "text-primary" : "text-foreground"}`}>
+                                {isYou ? "You" : isSeller ? bid.bidder_name : "Bidder ***"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(bid.created_at).toLocaleString("en-IN")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="md:col-span-2 flex md:justify-end items-center">
+                            <span className="text-lg font-bold">{formatPrice(bid.bid_amount)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center p-6">No bids yet.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact Card */}
+          <Card className="border-border">
+            <CardHeader className="pb-3 border-b border-border">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" />
+                Key Account Manager
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground mb-3">
+                For any questions about this auction, contact your RobotVerse Key Account Manager.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full justify-start h-12 gap-3"
+                onClick={() => (window.location.href = "tel:+918610925352")}
+              >
+                <PhoneCall className="w-4 h-4 text-primary" />
+                <span className="font-semibold">+91 86109 25352</span>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
       <Footer />
@@ -565,7 +683,7 @@ const AuctionDetail: React.FC = () => {
   );
 };
 
-// Admin-only edit shortcut — sellers use the CTA above; admins can edit at any status.
+// Admin-only edit shortcut
 const AdminEditControl: React.FC<{ auctionId: string }> = ({ auctionId }) => {
   const navigate = useNavigate();
   const { isAdmin } = useIsAdmin();
