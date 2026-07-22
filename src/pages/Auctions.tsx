@@ -29,8 +29,11 @@ import {
   Wrench,
   ShieldCheck,
   ChevronRight,
+  Maximize2,
+  X,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import AuctionBidsPanel from "@/components/auction/AuctionBidsPanel";
@@ -41,6 +44,7 @@ const Auctions: React.FC = () => {
   const { user } = useAuth();
   const [tab, setTab] = useUrlParam<string>("tab", "live");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     const tick = async () => {
@@ -110,7 +114,7 @@ const Auctions: React.FC = () => {
     );
   };
 
-  // Professional List View - Image only on left, full info on right
+  // Compact List View - Excel cell style, small image with enlarge option
   const renderListView = (auctions: any[] | undefined, loading: boolean) => {
     if (loading)
       return (
@@ -127,7 +131,7 @@ const Auctions: React.FC = () => {
         </div>
       );
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {auctions.map((a) => {
           const status = getAuctionStatus(a);
           const img = a.robots?.images?.[0] || a.images?.[0];
@@ -136,31 +140,43 @@ const Auctions: React.FC = () => {
           return (
             <Card
               key={a.id}
-              className="border border-border hover:border-primary hover:shadow-lg hover:shadow-primary/10 transition-all cursor-pointer overflow-hidden"
+              className="border border-border hover:border-primary hover:shadow-md transition-all cursor-pointer"
               onClick={() => navigate(`/auctions/${a.id}`)}
             >
-              <CardContent className="p-0">
-                {/* Main Content Row */}
-                <div className="flex flex-col lg:flex-row gap-0">
-                  {/* Left Column: Image ONLY */}
-                  <div className="lg:w-[280px] flex-shrink-0">
-                    <div className="relative h-[200px] lg:h-full bg-muted overflow-hidden">
+              <CardContent className="p-4">
+                {/* Main Content Row - Compact */}
+                <div className="flex flex-col lg:flex-row gap-3">
+                  {/* Left: Small Thumbnail Image (like Excel cell) */}
+                  <div className="lg:w-[120px] flex-shrink-0">
+                    <div
+                      className="relative w-full h-[90px] bg-muted rounded-md overflow-hidden border border-border cursor-pointer group"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (img) setSelectedImage(img);
+                      }}
+                    >
                       {img ? (
-                        <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
+                        <>
+                          <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
+                          {/* Hover overlay with enlarge icon */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <Maximize2 className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Bot className="w-16 h-16 text-muted-foreground/20" />
+                          <Bot className="w-6 h-6 text-muted-foreground/30" />
                         </div>
                       )}
-                      {/* Status Badge on Image */}
-                      <div className="absolute top-3 left-3">
+                      {/* Status Badge */}
+                      <div className="absolute top-1.5 left-1.5">
                         <Badge
-                          className={`text-xs font-semibold capitalize ${
+                          className={`text-[10px] font-semibold capitalize px-1.5 py-0.5 h-auto ${
                             status === "live"
-                              ? "bg-emerald-500/80 text-white border-emerald-600"
+                              ? "bg-emerald-500/80 text-white"
                               : status === "upcoming"
-                                ? "bg-blue-500/80 text-white border-blue-600"
-                                : "bg-amber-500/80 text-white border-amber-600"
+                                ? "bg-blue-500/80 text-white"
+                                : "bg-amber-500/80 text-white"
                           }`}
                         >
                           {status}
@@ -169,161 +185,90 @@ const Auctions: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Right Column: ALL Information (fills remaining width) */}
-                  <div className="flex-1 p-5 flex flex-col">
+                  {/* Right: All Information - Fills remaining space */}
+                  <div className="flex-1 min-w-0 flex flex-col">
                     {/* Top Row: Title + Price */}
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-[10px] font-mono bg-background">
-                            ID: {a.id.substring(0, 8).toUpperCase()}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Badge variant="outline" className="text-[9px] font-mono h-5 px-1.5">
+                            {a.id.substring(0, 6).toUpperCase()}
                           </Badge>
-                          <span className="text-xs text-muted-foreground capitalize">{a.auction_type}</span>
+                          <span className="text-[10px] text-muted-foreground capitalize">{a.auction_type}</span>
                         </div>
-                        <h2 className="text-xl lg:text-2xl font-bold text-foreground line-clamp-2">
-                          {a.auction_title}
-                        </h2>
+                        <h2 className="text-sm font-bold text-foreground line-clamp-1">{a.auction_title}</h2>
                       </div>
 
-                      {/* Price Section */}
-                      <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">
-                          Current Price
-                        </p>
-                        <p className="text-2xl font-bold text-primary">₹{currentPrice.toLocaleString("en-IN")}</p>
-                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                          <span>{a.total_bids || 0} bids</span>
-                        </div>
+                      {/* Price Box */}
+                      <div className="bg-primary/5 rounded-md p-2 border border-primary/20 flex-shrink-0">
+                        <p className="text-xs text-primary font-bold">₹{currentPrice.toLocaleString("en-IN")}</p>
+                        <p className="text-[9px] text-muted-foreground text-right">{a.total_bids || 0} bids</p>
                       </div>
                     </div>
 
-                    {/* Specs Grid - 4 columns */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    {/* Specs - Compact 4-column grid */}
+                    <div className="grid grid-cols-4 gap-2 mb-2">
                       {a.robots?.brand && (
-                        <div className="flex items-start gap-2">
-                          <Package className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Brand</p>
-                            <p className="text-sm font-semibold text-foreground">{a.robots.brand}</p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Brand</p>
+                          <p className="text-xs font-semibold text-foreground truncate">{a.robots.brand}</p>
                         </div>
                       )}
                       {a.robots?.name && (
-                        <div className="flex items-start gap-2">
-                          <Bot className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Model</p>
-                            <p className="text-sm font-semibold text-foreground">{a.robots.name}</p>
-                          </div>
-                        </div>
-                      )}
-                      {a.robots?.model && (
-                        <div className="flex items-start gap-2">
-                          <Wrench className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Model No.</p>
-                            <p className="text-sm font-semibold text-foreground">{a.robots.model}</p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Model</p>
+                          <p className="text-xs font-semibold text-foreground truncate">{a.robots.name}</p>
                         </div>
                       )}
                       {a.robots?.payload_capacity && (
-                        <div className="flex items-start gap-2">
-                          <ShieldCheck className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Payload</p>
-                            <p className="text-sm font-semibold text-foreground">{a.robots.payload_capacity} kg</p>
-                          </div>
-                        </div>
-                      )}
-                      {a.robots?.reach && (
-                        <div className="flex items-start gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Reach</p>
-                            <p className="text-sm font-semibold text-foreground">{a.robots.reach} mm</p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Payload</p>
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {a.robots.payload_capacity} kg
+                          </p>
                         </div>
                       )}
                       {a.robots?.year_manufactured && (
-                        <div className="flex items-start gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Year</p>
-                            <p className="text-sm font-semibold text-foreground">{a.robots.year_manufactured}</p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Year</p>
+                          <p className="text-xs font-semibold text-foreground">{a.robots.year_manufactured}</p>
                         </div>
                       )}
                     </div>
 
-                    {/* Info Bar: Location + Price Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                      {/* Location */}
-                      {(a.item_location || a.robots?.location) && (
-                        <div className="flex items-center gap-2 bg-muted/50 rounded-md p-2.5">
-                          <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                          <div className="min-w-0">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Location</p>
-                            <p className="text-sm font-semibold text-foreground truncate">
-                              {a.item_location || a.robots?.location}
-                              {a.robots?.state ? `, ${a.robots.state}` : ""}
-                              {a.robots?.pincode ? ` — ${a.robots.pincode}` : ""}
-                            </p>
-                          </div>
+                    {/* Bottom Row: Location + CTA */}
+                    <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-border">
+                      {a.item_location || a.robots?.location ? (
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs text-muted-foreground truncate">
+                            {a.item_location || a.robots?.location}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">
+                            Starting: ₹{a.starting_price.toLocaleString("en-IN")}
+                          </span>
                         </div>
                       )}
 
-                      {/* Starting Price & Increment */}
-                      <div className="flex items-center gap-4 bg-muted/50 rounded-md p-2.5">
-                        <div className="flex-1">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Starting</p>
-                          <p className="text-sm font-semibold text-foreground">
-                            ₹{a.starting_price.toLocaleString("en-IN")}
-                          </p>
-                        </div>
-                        <div className="w-[1px] h-8 bg-border mx-1" />
-                        <div className="flex-1">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Increment</p>
-                          <p className="text-sm font-semibold text-foreground">
-                            ₹{a.min_increment.toLocaleString("en-IN")}
-                          </p>
-                        </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">
+                          Inc: ₹{a.min_increment.toLocaleString("en-IN")}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2.5 text-xs gap-1 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/auctions/${a.id}`);
+                          }}
+                        >
+                          View <ChevronRight className="w-3 h-3" />
+                        </Button>
                       </div>
-                    </div>
-
-                    {/* Bottom: Condition + CTA */}
-                    <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {a.robots?.condition && (
-                          <div className="flex items-center gap-1.5">
-                            <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground">Condition:</span>
-                            <Badge variant="secondary" className="capitalize text-xs">
-                              {a.robots.condition}
-                            </Badge>
-                          </div>
-                        )}
-                        {a.robots?.robot_type && (
-                          <div className="flex items-center gap-1.5">
-                            <Bot className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground">Type:</span>
-                            <span className="text-foreground font-medium capitalize">{a.robots.robot_type}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 group bg-background hover:bg-primary hover:text-white transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/auctions/${a.id}`);
-                        }}
-                      >
-                        View Details
-                        <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -619,6 +564,25 @@ const Auctions: React.FC = () => {
       </main>
 
       <Footer />
+
+      {/* Image Enlarge Dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-background border-0">
+          <div className="relative">
+            {selectedImage && (
+              <img src={selectedImage} alt="Enlarged view" className="w-full h-full object-contain max-h-[85vh]" />
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
