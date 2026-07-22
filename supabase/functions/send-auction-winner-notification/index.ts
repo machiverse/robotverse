@@ -7,8 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PLATFORM_FEE_PCT = 5; // 5% platform fee
-const GST_PCT = 18;         // 18% GST on platform fee
+const PLATFORM_FEE_PCT = 2; // 2% platform fee
+const GST_PCT = 18; // 18% GST on platform fee
 const SUPPORT_EMAIL = "support@robotverse.in";
 
 const handler = async (req: Request): Promise<Response> => {
@@ -18,19 +18,18 @@ const handler = async (req: Request): Promise<Response> => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
     const { auction_id } = await req.json();
     if (!auction_id) {
       return new Response(JSON.stringify({ error: "auction_id required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -61,8 +60,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const winAmount = Number(auction.current_highest_bid || 0);
-    const platformFee = +(winAmount * PLATFORM_FEE_PCT / 100).toFixed(2);
-    const gst = +(platformFee * GST_PCT / 100).toFixed(2);
+    const platformFee = +((winAmount * PLATFORM_FEE_PCT) / 100).toFixed(2);
+    const gst = +((platformFee * GST_PCT) / 100).toFixed(2);
     const totalPayable = +(winAmount + platformFee + gst).toFixed(2);
 
     const fmt = (n: number) => `Rs. ${n.toLocaleString("en-IN")}`;
@@ -156,22 +155,22 @@ const handler = async (req: Request): Promise<Response> => {
     await client.close();
 
     // Persist admin status
-    await admin
-      .from("auctions")
-      .update({ admin_status: "winner_approved" })
-      .eq("id", auction_id);
+    await admin.from("auctions").update({ admin_status: "winner_approved" }).eq("id", auction_id);
 
-    return new Response(JSON.stringify({
-      success: true,
-      recipients,
-      breakdown: { winAmount, platformFee, gst, totalPayable },
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
+    return new Response(
+      JSON.stringify({
+        success: true,
+        recipients,
+        breakdown: { winAmount, platformFee, gst, totalPayable },
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("send-auction-winner-notification error:", msg);
     return new Response(JSON.stringify({ error: msg, success: false }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 };
