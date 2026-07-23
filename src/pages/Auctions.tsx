@@ -1,32 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import EnhancedHeader from '@/components/EnhancedHeader';
-import Footer from '@/components/Footer';
-import { useAuctions, useMyBids, useMyAuctions } from '@/hooks/useAuctions';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import AuctionCard from '@/components/auction/AuctionCard';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Gavel, Plus, Zap, Clock, Trophy, ArrowRight, Bot, Package } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
-import { useUrlParam } from '@/hooks/useUrlState';
-import CopySearchLinkButton from '@/components/CopySearchLinkButton';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import EnhancedHeader from "@/components/EnhancedHeader";
+import Footer from "@/components/Footer";
+import { useAuctions, useMyBids, useMyAuctions } from "@/hooks/useAuctions";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import AuctionCard from "@/components/auction/AuctionCard";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Gavel,
+  Plus,
+  Zap,
+  Clock,
+  Trophy,
+  ArrowRight,
+  Bot,
+  Package,
+  Pencil,
+  Grid3X3,
+  List,
+  MapPin,
+  TrendingUp,
+  Calendar,
+  IndianRupee,
+  Wrench,
+  ShieldCheck,
+  ChevronRight,
+  Maximize2,
+  X,
+} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useUrlParam } from "@/hooks/useUrlState";
+import CopySearchLinkButton from "@/components/CopySearchLinkButton";
+import AuctionBidsPanel from "@/components/auction/AuctionBidsPanel";
+import { getAuctionStatus } from "@/utils/auctionStatus";
 
 const Auctions: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tab, setTab] = useUrlParam<string>('tab', 'live');
+  const [tab, setTab] = useUrlParam<string>("tab", "live");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Periodically finalize any expired auctions (every 2 minutes while page is open)
   useEffect(() => {
     const tick = async () => {
       try {
-        const { error } = await (supabase as any).rpc('finalize_due_auctions');
-        if (error && error.code !== 'PGRST202' && !String(error.message || '').includes('Could not find the function')) {
-          console.warn('finalize_due_auctions:', error.message);
+        const { error } = await (supabase as any).rpc("finalize_due_auctions");
+        if (
+          error &&
+          error.code !== "PGRST202" &&
+          !String(error.message || "").includes("Could not find the function")
+        ) {
+          console.warn("finalize_due_auctions:", error.message);
         }
       } catch {}
     };
@@ -35,13 +64,12 @@ const Auctions: React.FC = () => {
     return () => clearInterval(i);
   }, []);
 
-  const { data: liveAuctions, isLoading: loadingLive } = useAuctions('live');
-  const { data: upcomingAuctions, isLoading: loadingUpcoming } = useAuctions('upcoming');
-  const { data: closedAuctions, isLoading: loadingClosed } = useAuctions('ended');
+  const { data: liveAuctions, isLoading: loadingLive } = useAuctions("live");
+  const { data: upcomingAuctions, isLoading: loadingUpcoming } = useAuctions("upcoming");
+  const { data: closedAuctions, isLoading: loadingClosed } = useAuctions("ended");
   const { data: myBids, isLoading: loadingBids } = useMyBids();
   const { data: myAuctions, isLoading: loadingMyAuctions } = useMyAuctions();
 
-  // Group my auctions by batch_id (single-unit auctions get their own group).
   const myAuctionBatches = React.useMemo(() => {
     const groups = new Map<string, any[]>();
     (myAuctions || []).forEach((a: any) => {
@@ -56,33 +84,214 @@ const Auctions: React.FC = () => {
   }, [myAuctions]);
 
   const stats = [
-    { label: 'Live Auctions', value: liveAuctions?.length || 0, icon: Zap, color: 'text-emerald-400' },
-    { label: 'Upcoming', value: upcomingAuctions?.length || 0, icon: Clock, color: 'text-blue-400' },
-    { label: 'Completed', value: closedAuctions?.length || 0, icon: Trophy, color: 'text-amber-400' },
+    { label: "Live Auctions", value: liveAuctions?.length || 0, icon: Zap, color: "text-emerald-400" },
+    { label: "Upcoming", value: upcomingAuctions?.length || 0, icon: Clock, color: "text-blue-400" },
+    { label: "Completed", value: closedAuctions?.length || 0, icon: Trophy, color: "text-amber-400" },
   ];
 
-  const renderGrid = (auctions: any[] | undefined, loading: boolean) => {
-    if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-    if (!auctions?.length) return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Gavel className="w-16 h-16 text-muted-foreground/30 mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-1">No auctions found</h3>
-        <p className="text-sm text-muted-foreground">Check back later for new listings.</p>
-      </div>
-    );
+  // Grid View
+  const renderGridView = (auctions: any[] | undefined, loading: boolean) => {
+    if (loading)
+      return (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      );
+    if (!auctions?.length)
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Gavel className="w-16 h-16 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-1">No auctions found</h3>
+          <p className="text-sm text-muted-foreground">Check back later for new listings.</p>
+        </div>
+      );
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {auctions.map((a) => <AuctionCard key={a.id} auction={a} />)}
+        {auctions.map((a) => (
+          <AuctionCard key={a.id} auction={a} />
+        ))}
       </div>
     );
+  };
+
+  // Compact List View - Excel cell style, small image with enlarge option
+  const renderListView = (auctions: any[] | undefined, loading: boolean) => {
+    if (loading)
+      return (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      );
+    if (!auctions?.length)
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Gavel className="w-16 h-16 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-1">No auctions found</h3>
+          <p className="text-sm text-muted-foreground">Check back later for new listings.</p>
+        </div>
+      );
+    return (
+      <div className="space-y-3">
+        {auctions.map((a) => {
+          const status = getAuctionStatus(a);
+          const img = a.robots?.images?.[0] || a.images?.[0];
+          const currentPrice = a.current_highest_bid || a.starting_price;
+
+          return (
+            <Card
+              key={a.id}
+              className="border border-border hover:border-primary hover:shadow-md transition-all cursor-pointer"
+              onClick={() => navigate(`/auctions/${a.id}`)}
+            >
+              <CardContent className="p-4">
+                {/* Main Content Row - Compact */}
+                <div className="flex flex-col lg:flex-row gap-3">
+                  {/* Left: Small Thumbnail Image (like Excel cell) */}
+                  <div className="lg:w-[120px] flex-shrink-0">
+                    <div
+                      className="relative w-full h-[90px] bg-muted rounded-md overflow-hidden border border-border cursor-pointer group"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (img) setSelectedImage(img);
+                      }}
+                    >
+                      {img ? (
+                        <>
+                          <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
+                          {/* Hover overlay with enlarge icon */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <Maximize2 className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Bot className="w-6 h-6 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      {/* Status Badge */}
+                      <div className="absolute top-1.5 left-1.5">
+                        <Badge
+                          className={`text-[10px] font-semibold capitalize px-1.5 py-0.5 h-auto ${
+                            status === "live"
+                              ? "bg-emerald-500/80 text-white"
+                              : status === "upcoming"
+                                ? "bg-blue-500/80 text-white"
+                                : "bg-amber-500/80 text-white"
+                          }`}
+                        >
+                          {status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: All Information - Fills remaining space */}
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    {/* Top Row: Title + Price */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Badge variant="outline" className="text-[9px] font-mono h-5 px-1.5">
+                            {a.id.substring(0, 6).toUpperCase()}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground capitalize">{a.auction_type}</span>
+                        </div>
+                        <h2 className="text-sm font-bold text-foreground line-clamp-1">{a.auction_title}</h2>
+                      </div>
+
+                      {/* Price Box */}
+                      <div className="bg-primary/5 rounded-md p-2 border border-primary/20 flex-shrink-0">
+                        <p className="text-xs text-primary font-bold">₹{currentPrice.toLocaleString("en-IN")}</p>
+                        <p className="text-[9px] text-muted-foreground text-right">{a.total_bids || 0} bids</p>
+                      </div>
+                    </div>
+
+                    {/* Specs - Compact 4-column grid */}
+                    <div className="grid grid-cols-4 gap-2 mb-2">
+                      {a.robots?.brand && (
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Brand</p>
+                          <p className="text-xs font-semibold text-foreground truncate">{a.robots.brand}</p>
+                        </div>
+                      )}
+                      {a.robots?.name && (
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Model</p>
+                          <p className="text-xs font-semibold text-foreground truncate">{a.robots.name}</p>
+                        </div>
+                      )}
+                      {a.robots?.payload_capacity && (
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Payload</p>
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {a.robots.payload_capacity} kg
+                          </p>
+                        </div>
+                      )}
+                      {a.robots?.year_manufactured && (
+                        <div className="min-w-0">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Year</p>
+                          <p className="text-xs font-semibold text-foreground">{a.robots.year_manufactured}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Row: Location + CTA */}
+                    <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-border">
+                      {a.item_location || a.robots?.location ? (
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs text-muted-foreground truncate">
+                            {a.item_location || a.robots?.location}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">
+                            Starting: ₹{a.starting_price.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">
+                          Inc: ₹{a.min_increment.toLocaleString("en-IN")}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2.5 text-xs gap-1 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/auctions/${a.id}`);
+                          }}
+                        >
+                          View <ChevronRight className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderContent = (auctions: any[] | undefined, loading: boolean) => {
+    return viewMode === "list" ? renderListView(auctions, loading) : renderGridView(auctions, loading);
   };
 
   return (
     <div className="min-h-screen bg-background">
       <EnhancedHeader />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border" style={{ background: 'var(--gradient-hero)' }}>
+      <section
+        className="relative overflow-hidden border-b border-border"
+        style={{ background: "var(--gradient-hero)" }}
+      >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(200_100%_50%/0.06),transparent_50%)]" />
         <div className="container mx-auto px-4 py-10 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -91,7 +300,9 @@ const Auctions: React.FC = () => {
                 <Badge className="bg-primary/10 text-primary border border-primary/20 text-xs">NEW MODULE</Badge>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Robot Auction</span>
+                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Robot Auction
+                </span>
               </h1>
               <p className="text-muted-foreground max-w-lg">
                 India's first B2B auction platform for industrial robots, automation equipment, and bulk inventory.
@@ -100,14 +311,13 @@ const Auctions: React.FC = () => {
             <div className="flex gap-3 flex-wrap">
               <CopySearchLinkButton />
               {user && (
-                <Button onClick={() => navigate('/auctions/create')} className="gap-2">
+                <Button onClick={() => navigate("/auctions/create")} className="gap-2">
                   <Plus className="w-4 h-4" /> Create Auction
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mt-8 max-w-lg">
             {stats.map((s) => (
               <div key={s.label} className="bg-card/50 border border-border rounded-lg p-3 text-center">
@@ -120,30 +330,79 @@ const Auctions: React.FC = () => {
         </div>
       </section>
 
-      {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="bg-card border border-border mb-6">
-            <TabsTrigger value="live" className="gap-1.5"><Zap className="w-3.5 h-3.5" />Live Auctions</TabsTrigger>
-            <TabsTrigger value="upcoming" className="gap-1.5"><Clock className="w-3.5 h-3.5" />Upcoming</TabsTrigger>
-            <TabsTrigger value="closed" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Closed</TabsTrigger>
-            {user && <TabsTrigger value="myauctions" className="gap-1.5"><Package className="w-3.5 h-3.5" />My Auctions</TabsTrigger>}
-            {user && <TabsTrigger value="mybids" className="gap-1.5"><Gavel className="w-3.5 h-3.5" />My Bids</TabsTrigger>}
-          </TabsList>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <TabsList className="bg-card border border-border">
+              <TabsTrigger value="live" className="gap-1.5">
+                <Zap className="w-3.5 h-3.5" />
+                Live
+              </TabsTrigger>
+              <TabsTrigger value="upcoming" className="gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Upcoming
+              </TabsTrigger>
+              <TabsTrigger value="closed" className="gap-1.5">
+                <Trophy className="w-3.5 h-3.5" />
+                Closed
+              </TabsTrigger>
+              {user && (
+                <TabsTrigger value="myauctions" className="gap-1.5">
+                  <Package className="w-3.5 h-3.5" />
+                  My Auctions
+                </TabsTrigger>
+              )}
+              {user && (
+                <TabsTrigger value="mybids" className="gap-1.5">
+                  <Gavel className="w-3.5 h-3.5" />
+                  My Bids
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          <TabsContent value="live">{renderGrid(liveAuctions, loadingLive)}</TabsContent>
-          <TabsContent value="upcoming">{renderGrid(upcomingAuctions, loadingUpcoming)}</TabsContent>
-          <TabsContent value="closed">{renderGrid(closedAuctions, loadingClosed)}</TabsContent>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground hidden md:inline">View:</span>
+              <div className="flex border border-border rounded-md overflow-hidden">
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-9 px-3"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="w-4 h-4" />
+                  <span className="ml-1.5 hidden sm:inline text-xs">List</span>
+                </Button>
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-9 px-3 border-l border-border"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                  <span className="ml-1.5 hidden sm:inline text-xs">Grid</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <TabsContent value="live">{renderContent(liveAuctions, loadingLive)}</TabsContent>
+          <TabsContent value="upcoming">{renderContent(upcomingAuctions, loadingUpcoming)}</TabsContent>
+          <TabsContent value="closed">{renderContent(closedAuctions, loadingClosed)}</TabsContent>
+
           {user && (
             <TabsContent value="myauctions">
               {loadingMyAuctions ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
               ) : !myAuctionBatches.length ? (
                 <div className="flex flex-col items-center py-16">
                   <Package className="w-16 h-16 text-muted-foreground/30 mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-1">No auctions yet</h3>
                   <p className="text-sm text-muted-foreground mb-4">Create an auction to see it listed here.</p>
-                  <Button variant="outline" onClick={() => navigate('/auctions/create')}>Create Auction</Button>
+                  <Button variant="outline" onClick={() => navigate("/auctions/create")}>
+                    Create Auction
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -170,32 +429,64 @@ const Auctions: React.FC = () => {
                           </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {items.map((a: any) => (
-                            <Card
-                              key={a.id}
-                              className="border border-border hover:border-primary/40 transition-colors cursor-pointer"
-                              onClick={() => navigate(`/auctions/${a.id}`)}
-                            >
-                              <CardContent className="p-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                                    {(a.robots?.images?.[0] || a.images?.[0]) ? (
-                                      <img src={a.robots?.images?.[0] || a.images?.[0]} className="w-full h-full object-cover" alt="" />
-                                    ) : <Bot className="w-5 h-5 text-muted-foreground m-auto mt-3.5" />}
+                          {items.map((a: any) => {
+                            const derived = getAuctionStatus(a);
+                            const canSellerEdit = derived === "upcoming" && (a.total_bids || 0) === 0;
+                            return (
+                              <Card
+                                key={a.id}
+                                className="border border-border hover:border-primary/40 transition-colors"
+                              >
+                                <CardContent className="p-3">
+                                  <div
+                                    className="flex items-center gap-3 cursor-pointer"
+                                    onClick={() => navigate(`/auctions/${a.id}`)}
+                                  >
+                                    <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                                      {a.robots?.images?.[0] || a.images?.[0] ? (
+                                        <img
+                                          src={a.robots?.images?.[0] || a.images?.[0]}
+                                          className="w-full h-full object-cover"
+                                          alt=""
+                                        />
+                                      ) : (
+                                        <Bot className="w-5 h-5 text-muted-foreground m-auto mt-3.5" />
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-foreground truncate">
+                                        {isBatch
+                                          ? `Unit ${a.unit_number || "?"} of ${a.batch_size || items.length}`
+                                          : a.auction_title}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        ₹
+                                        {Number(a.current_highest_bid || a.starting_price || 0).toLocaleString("en-IN")}{" "}
+                                        • {a.total_bids || 0} bids
+                                      </p>
+                                    </div>
+                                    <Badge variant="outline" className="capitalize text-[10px]">
+                                      {derived}
+                                    </Badge>
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-foreground truncate">
-                                      {isBatch ? `Unit ${a.unit_number || '?'} of ${a.batch_size || items.length}` : a.auction_title}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      ₹{Number(a.current_highest_bid || a.starting_price || 0).toLocaleString('en-IN')} • {a.total_bids || 0} bids
-                                    </p>
-                                  </div>
-                                  <Badge variant="outline" className="capitalize text-[10px]">{a.status}</Badge>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
+                                  {canSellerEdit && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full mt-2 h-7 text-xs gap-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/auctions/${a.id}/edit`);
+                                      }}
+                                    >
+                                      <Pencil className="w-3 h-3" /> Edit listing
+                                    </Button>
+                                  )}
+                                  <AuctionBidsPanel auctionId={a.id} sellerId={a.seller_id} totalBids={a.total_bids} />
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -204,36 +495,62 @@ const Auctions: React.FC = () => {
               )}
             </TabsContent>
           )}
+
           {user && (
             <TabsContent value="mybids">
               {loadingBids ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
               ) : !myBids?.length ? (
                 <div className="flex flex-col items-center py-16">
                   <Gavel className="w-16 h-16 text-muted-foreground/30 mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-1">No bids yet</h3>
                   <p className="text-sm text-muted-foreground mb-4">Browse live auctions to start bidding.</p>
-                  <Button variant="outline" onClick={() => setTab('live')}>View Live Auctions</Button>
+                  <Button variant="outline" onClick={() => setTab("live")}>
+                    View Live Auctions
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {myBids.map((bid: any) => (
-                    <Card key={bid.id} className="border border-border bg-card hover:border-primary/30 transition-colors cursor-pointer" onClick={() => navigate(`/auctions/${bid.auction_id}`)}>
+                    <Card
+                      key={bid.id}
+                      className="border border-border bg-card hover:border-primary/30 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/auctions/${bid.auction_id}`)}
+                    >
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                             {bid.auctions?.robots?.images?.[0] || bid.auctions?.images?.[0] ? (
-                              <img src={bid.auctions?.robots?.images?.[0] || bid.auctions?.images?.[0]} className="w-full h-full object-cover" alt="" />
-                            ) : <Bot className="w-6 h-6 text-muted-foreground m-auto mt-4" />}
+                              <img
+                                src={bid.auctions?.robots?.images?.[0] || bid.auctions?.images?.[0]}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                            ) : (
+                              <Bot className="w-6 h-6 text-muted-foreground m-auto mt-4" />
+                            )}
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{bid.auctions?.auction_title || 'Auction'}</p>
-                            <p className="text-sm text-muted-foreground">Your bid: <span className="text-primary font-semibold">₹{bid.bid_amount?.toLocaleString('en-IN')}</span></p>
+                            <p className="font-medium text-foreground">{bid.auctions?.auction_title || "Auction"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Your bid:{" "}
+                              <span className="text-primary font-semibold">
+                                ₹{bid.bid_amount?.toLocaleString("en-IN")}
+                              </span>
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          {bid.is_winning_bid && <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Winning</Badge>}
-                          <Badge variant="outline" className="capitalize">{bid.auctions?.status}</Badge>
+                          {bid.is_winning_bid && (
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                              Winning
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="capitalize">
+                            {bid.auctions?.status}
+                          </Badge>
                           <ArrowRight className="w-4 h-4 text-muted-foreground" />
                         </div>
                       </CardContent>
@@ -247,6 +564,25 @@ const Auctions: React.FC = () => {
       </main>
 
       <Footer />
+
+      {/* Image Enlarge Dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-background border-0">
+          <div className="relative">
+            {selectedImage && (
+              <img src={selectedImage} alt="Enlarged view" className="w-full h-full object-contain max-h-[85vh]" />
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
