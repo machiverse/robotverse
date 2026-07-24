@@ -34,7 +34,12 @@ Deno.serve(async (req) => {
     const { action, ...payload } = await req.json()
 
     if (action === 'create') {
-      const { email, password, full_name, company_name, mobile_number, location, account_type, user_type, status: userStatus } = payload
+      const {
+        email, password, full_name, company_name, mobile_number,
+        location, city, full_address, pincode,
+        account_type, user_type, user_roles,
+        seller_model_type, status: userStatus,
+      } = payload
 
       if (!email || !password) {
         return new Response(JSON.stringify({ error: 'Email and password are required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -48,30 +53,52 @@ Deno.serve(async (req) => {
         user_metadata: { full_name },
       })
 
-      if (createError) {
-        return new Response(JSON.stringify({ error: createError.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      if (createError || !newUser?.user) {
+        console.error('createUser error:', createError)
+        const msg = createError?.message || (createError ? JSON.stringify(createError) : 'Failed to create user')
+        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
 
       // Update profile with full details
+      const roles = Array.isArray(user_roles) && user_roles.length > 0 ? user_roles : [user_type || 'buyer']
+      const profileUpdate: Record<string, any> = {
+        full_name,
+        email,
+        company_name,
+        mobile_number,
+        phone: mobile_number,
+        location,
+        city,
+        full_address,
+        pincode,
+        account_type: account_type || 'buyer',
+        user_type: user_type || 'buyer',
+        user_roles: roles,
+        seller_model_type,
+        registration_complete: true,
+        updated_at: new Date().toISOString(),
+      }
+      // Strip undefined so we don't overwrite with nulls
+      Object.keys(profileUpdate).forEach((k) => profileUpdate[k] === undefined && delete profileUpdate[k])
+
       const { error: profileError } = await adminClient
         .from('profiles')
-        .update({
-          full_name,
-          email,
-          company_name,
-          mobile_number,
-          phone: mobile_number,
-          location,
-          account_type: account_type || 'buyer',
-          user_type: user_type || 'buyer',
-          user_roles: [user_type || 'buyer'],
-          registration_complete: true,
-          updated_at: new Date().toISOString(),
-        })
+        .update(profileUpdate)
         .eq('user_id', newUser.user.id)
 
       if (profileError) {
         console.error('Profile update error:', profileError)
+        return new Response(JSON.stringify({ error: `Profile update failed: ${profileError.message}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      // Sync user_roles table (for has_role RPC / RLS)
+      try {
+        const roleRows = roles.map((r: string) => ({ user_id: newUser.user.id, role: r }))
+        if (roleRows.length > 0) {
+          await adminClient.from('user_roles').upsert(roleRows, { onConflict: 'user_id,role' })
+        }
+      } catch (e) {
+        console.error('user_roles sync error:', e)
       }
 
       // If status is inactive, ban the user
