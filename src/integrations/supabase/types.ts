@@ -242,7 +242,12 @@ export type Database = {
         Row: {
           auction_id: string
           bid_amount: number
+          bidder_company: string | null
+          bidder_email: string | null
           bidder_id: string
+          bidder_location: string | null
+          bidder_name: string | null
+          bidder_phone: string | null
           created_at: string
           id: string
           is_auto_bid: boolean | null
@@ -252,7 +257,12 @@ export type Database = {
         Insert: {
           auction_id: string
           bid_amount: number
+          bidder_company?: string | null
+          bidder_email?: string | null
           bidder_id: string
+          bidder_location?: string | null
+          bidder_name?: string | null
+          bidder_phone?: string | null
           created_at?: string
           id?: string
           is_auto_bid?: boolean | null
@@ -262,7 +272,12 @@ export type Database = {
         Update: {
           auction_id?: string
           bid_amount?: number
+          bidder_company?: string | null
+          bidder_email?: string | null
           bidder_id?: string
+          bidder_location?: string | null
+          bidder_name?: string | null
+          bidder_phone?: string | null
           created_at?: string
           id?: string
           is_auto_bid?: boolean | null
