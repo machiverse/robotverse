@@ -460,6 +460,60 @@ export type Database = {
           },
         ]
       }
+      bid_email_log: {
+        Row: {
+          auction_id: string
+          bid_amount: number | null
+          bid_id: string | null
+          created_at: string
+          email_type: string
+          error_message: string | null
+          highest_bid_amount: number | null
+          id: string
+          recipient_email: string
+          recipient_user_id: string | null
+          retry_count: number
+          sent_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          auction_id: string
+          bid_amount?: number | null
+          bid_id?: string | null
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          highest_bid_amount?: number | null
+          id?: string
+          recipient_email: string
+          recipient_user_id?: string | null
+          retry_count?: number
+          sent_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          auction_id?: string
+          bid_amount?: number | null
+          bid_id?: string | null
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          highest_bid_amount?: number | null
+          id?: string
+          recipient_email?: string
+          recipient_user_id?: string | null
+          retry_count?: number
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blog_comments: {
         Row: {
           blog_id: string
