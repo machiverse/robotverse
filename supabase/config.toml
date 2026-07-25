@@ -72,3 +72,6 @@ verify_jwt = false
 
 [functions.api-keys-manage]
 verify_jwt = false
+
+[functions.send-bid-notifications]
+verify_jwt = false
