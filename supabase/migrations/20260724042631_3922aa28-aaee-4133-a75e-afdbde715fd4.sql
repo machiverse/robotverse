@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can view all auction bids" ON public.auction_bids FOR SELECT USING (public.is_admin_user());
