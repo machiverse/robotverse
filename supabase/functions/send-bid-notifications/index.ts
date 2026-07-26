@@ -90,12 +90,12 @@ function outbidHtml(o: {
   </div>`;
 }
 
-async function sendEmail(client: SmtpClient, from: string, to: string, subject: string, html: string) {
+async function sendEmail(client: SMTPClient, from: string, to: string, subject: string, html: string) {
   await client.send({
     from,
     to,
     subject,
-    content: "Please view this email in an HTML-compatible client.",
+    content: "auto",
     html,
   });
 }
