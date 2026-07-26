@@ -186,17 +186,23 @@ serve(async (req) => {
     }
 
     // SMTP setup
-    const smtpHost = Deno.env.get("SMTP_HOST") || "";
+    const smtpHost = Deno.env.get("SMTP_HOST") || "smtppro.zoho.in";
     const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "465");
     const smtpUser = Deno.env.get("SMTP_USER") || "";
     const smtpPass = Deno.env.get("SMTP_PASS") || "";
-    const smtpFrom = Deno.env.get("SMTP_FROM") || smtpUser;
+    const smtpFrom = `"RobotVerse" <${Deno.env.get("SMTP_FROM") || smtpUser || "support@robotverse.in"}>`;
 
-    if (!smtpHost || !smtpUser || !smtpPass) throw new Error("SMTP credentials not configured");
+    if (!smtpUser || !smtpPass) throw new Error("SMTP credentials not configured");
 
     const doSend = async () => {
-      const client = new SmtpClient();
-      await client.connectTLS({ hostname: smtpHost, port: smtpPort, username: smtpUser, password: smtpPass });
+      const client = new SMTPClient({
+        connection: {
+          hostname: smtpHost,
+          port: smtpPort,
+          tls: true,
+          auth: { username: smtpUser, password: smtpPass },
+        },
+      });
 
       // Confirmation email
       if (winnerEmail) {
