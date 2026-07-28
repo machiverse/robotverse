@@ -417,33 +417,35 @@ export default function AdminAllBids() {
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
                 {selectedAuction && <th className="text-left px-3 py-2 font-medium">Rank</th>}
-                <th className="text-left px-3 py-2 font-medium">Bid At</th>
-                {!selectedAuction && <th className="text-left px-3 py-2 font-medium">Auction</th>}
-                <th className="text-left px-3 py-2 font-medium">Bidder</th>
+                <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("created_at")}>Bid At{sortIndicator("created_at")}</th>
+                {!selectedAuction && <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("auction_title")}>Auction{sortIndicator("auction_title")}</th>}
+                <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("bidder_name")}>Bidder{sortIndicator("bidder_name")}</th>
                 <th className="text-left px-3 py-2 font-medium">Company</th>
                 <th className="text-left px-3 py-2 font-medium">Contact</th>
                 <th className="text-left px-3 py-2 font-medium">Location</th>
-                <th className="text-right px-3 py-2 font-medium">Amount</th>
-                <th className="text-left px-3 py-2 font-medium">Notification</th>
+                <th className="text-right px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("bid_amount")}>Amount{sortIndicator("bid_amount")}</th>
+                <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("email_status")}>Notification{sortIndicator("email_status")}</th>
                 <th className="text-left px-3 py-2 font-medium">Flags</th>
               </tr>
             </thead>
             <tbody>
-              {displayRows.length === 0 ? (
+              {pagedRows.length === 0 ? (
                 <tr><td colSpan={selectedAuction ? 9 : 9} className="px-3 py-8 text-center text-muted-foreground">No bids match the current filters.</td></tr>
-              ) : displayRows.map((r, idx) => {
+              ) : pagedRows.map((r, idx) => {
                 const name = r.bidder_name || r.profile?.full_name || "Unknown";
                 const company = r.bidder_company || r.profile?.company_name || "—";
                 const email = r.bidder_email || r.profile?.email || "";
                 const phone = r.bidder_phone || r.profile?.phone || "";
                 const loc = r.bidder_location || r.profile?.location || "—";
                 const isWinner = r.auction?.winner_id === r.bidder_id;
+                const globalIdx = (currentPage - 1) * pageSize + idx;
                 return (
                   <tr key={r.id} className="border-t border-border/60 hover:bg-muted/30">
                     {selectedAuction && (
-                      <td className="px-3 py-2 font-semibold text-muted-foreground">#{idx + 1}</td>
+                      <td className="px-3 py-2 font-semibold text-muted-foreground">#{globalIdx + 1}</td>
                     )}
                     <td className="px-3 py-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+
                     {!selectedAuction && (
                       <td className="px-3 py-2 max-w-[220px]">
                         <button
