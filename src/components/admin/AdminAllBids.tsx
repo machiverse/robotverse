@@ -220,11 +220,34 @@ export default function AdminAllBids() {
     });
   }, [rows, q, auctionFilter, highestFilter, emailFilter, selectedAuction]);
 
-  // In drill-down view, sort by amount desc; in main view keep chronological.
+  // Sort per selected key/dir (drill-down still defaults to amount desc if user hasn't changed sort)
   const displayRows = useMemo(() => {
-    if (!selectedAuction) return filtered;
-    return [...filtered].sort((a, b) => Number(b.bid_amount) - Number(a.bid_amount));
-  }, [filtered, selectedAuction]);
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let av: any, bv: any;
+      switch (sortKey) {
+        case "bid_amount": av = Number(a.bid_amount); bv = Number(b.bid_amount); break;
+        case "bidder_name": av = (a.bidder_name || a.profile?.full_name || "").toLowerCase(); bv = (b.bidder_name || b.profile?.full_name || "").toLowerCase(); break;
+        case "auction_title": av = (a.auction?.auction_title || "").toLowerCase(); bv = (b.auction?.auction_title || "").toLowerCase(); break;
+        case "email_status": av = a.email_status || ""; bv = b.email_status || ""; break;
+        case "created_at":
+        default: av = +new Date(a.created_at); bv = +new Date(b.created_at); break;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(displayRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = useMemo(
+    () => displayRows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [displayRows, currentPage, pageSize]
+  );
+
 
   const exportCsv = () => {
     const header = ["Bid At","Auction","Auction ID","Bidder","Company","Email","Phone","Location","Amount (INR)","Auto Bid","Max Auto","Winner","Highest","Auction Status","Email Status","Email Types"];
