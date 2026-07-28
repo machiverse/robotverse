@@ -67,14 +67,47 @@ const emailBadge = (s?: string) => {
   }
 };
 
+type SortKey = "created_at" | "bid_amount" | "bidder_name" | "auction_title" | "email_status";
+type SortDir = "asc" | "desc";
+
+const LS_KEY = "adminAllBids.prefs.v1";
+
+const loadPrefs = () => {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+};
+
 export default function AdminAllBids() {
+  const initial = loadPrefs();
   const [rows, setRows] = useState<BidRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [auctionFilter, setAuctionFilter] = useState<string>("all");
-  const [highestFilter, setHighestFilter] = useState<string>("all"); // all | highest | outbid | winner
-  const [emailFilter, setEmailFilter] = useState<string>("all"); // all | sent | failed | pending | none
+  const [highestFilter, setHighestFilter] = useState<string>("all");
+  const [emailFilter, setEmailFilter] = useState<string>("all");
   const [selectedAuction, setSelectedAuction] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>(initial.sortKey || "created_at");
+  const [sortDir, setSortDir] = useState<SortDir>(initial.sortDir || "desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(initial.pageSize || 25);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ sortKey, sortDir, pageSize }));
+    } catch {}
+  }, [sortKey, sortDir, pageSize]);
+
+  useEffect(() => { setPage(1); }, [q, auctionFilter, highestFilter, emailFilter, selectedAuction, sortKey, sortDir, pageSize]);
+
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir(k === "bid_amount" || k === "created_at" ? "desc" : "asc"); }
+  };
+  const sortIndicator = (k: SortKey) => sortKey === k ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+
 
   const load = async () => {
     setLoading(true);
