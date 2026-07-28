@@ -106,6 +106,8 @@ const AdminDashboardLayout = React.memo(({
         return <AdminApiKeys />;
       case "auction-winners":
         return <AdminAuctionWinners />;
+      case "auction-bids":
+        return <AdminAllBids />;
       default:
         return <AdminOverview dashboardStats={dashboardStats} onRefresh={onRefresh} />;
     }
