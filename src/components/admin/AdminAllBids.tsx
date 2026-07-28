@@ -67,14 +67,47 @@ const emailBadge = (s?: string) => {
   }
 };
 
+type SortKey = "created_at" | "bid_amount" | "bidder_name" | "auction_title" | "email_status";
+type SortDir = "asc" | "desc";
+
+const LS_KEY = "adminAllBids.prefs.v1";
+
+const loadPrefs = () => {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+};
+
 export default function AdminAllBids() {
+  const initial = loadPrefs();
   const [rows, setRows] = useState<BidRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [auctionFilter, setAuctionFilter] = useState<string>("all");
-  const [highestFilter, setHighestFilter] = useState<string>("all"); // all | highest | outbid | winner
-  const [emailFilter, setEmailFilter] = useState<string>("all"); // all | sent | failed | pending | none
+  const [highestFilter, setHighestFilter] = useState<string>("all");
+  const [emailFilter, setEmailFilter] = useState<string>("all");
   const [selectedAuction, setSelectedAuction] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>(initial.sortKey || "created_at");
+  const [sortDir, setSortDir] = useState<SortDir>(initial.sortDir || "desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(initial.pageSize || 25);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ sortKey, sortDir, pageSize }));
+    } catch {}
+  }, [sortKey, sortDir, pageSize]);
+
+  useEffect(() => { setPage(1); }, [q, auctionFilter, highestFilter, emailFilter, selectedAuction, sortKey, sortDir, pageSize]);
+
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir(k === "bid_amount" || k === "created_at" ? "desc" : "asc"); }
+  };
+  const sortIndicator = (k: SortKey) => sortKey === k ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+
 
   const load = async () => {
     setLoading(true);
@@ -187,11 +220,34 @@ export default function AdminAllBids() {
     });
   }, [rows, q, auctionFilter, highestFilter, emailFilter, selectedAuction]);
 
-  // In drill-down view, sort by amount desc; in main view keep chronological.
+  // Sort per selected key/dir (drill-down still defaults to amount desc if user hasn't changed sort)
   const displayRows = useMemo(() => {
-    if (!selectedAuction) return filtered;
-    return [...filtered].sort((a, b) => Number(b.bid_amount) - Number(a.bid_amount));
-  }, [filtered, selectedAuction]);
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let av: any, bv: any;
+      switch (sortKey) {
+        case "bid_amount": av = Number(a.bid_amount); bv = Number(b.bid_amount); break;
+        case "bidder_name": av = (a.bidder_name || a.profile?.full_name || "").toLowerCase(); bv = (b.bidder_name || b.profile?.full_name || "").toLowerCase(); break;
+        case "auction_title": av = (a.auction?.auction_title || "").toLowerCase(); bv = (b.auction?.auction_title || "").toLowerCase(); break;
+        case "email_status": av = a.email_status || ""; bv = b.email_status || ""; break;
+        case "created_at":
+        default: av = +new Date(a.created_at); bv = +new Date(b.created_at); break;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(displayRows.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = useMemo(
+    () => displayRows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [displayRows, currentPage, pageSize]
+  );
+
 
   const exportCsv = () => {
     const header = ["Bid At","Auction","Auction ID","Bidder","Company","Email","Phone","Location","Amount (INR)","Auto Bid","Max Auto","Winner","Highest","Auction Status","Email Status","Email Types"];
@@ -361,33 +417,35 @@ export default function AdminAllBids() {
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
                 {selectedAuction && <th className="text-left px-3 py-2 font-medium">Rank</th>}
-                <th className="text-left px-3 py-2 font-medium">Bid At</th>
-                {!selectedAuction && <th className="text-left px-3 py-2 font-medium">Auction</th>}
-                <th className="text-left px-3 py-2 font-medium">Bidder</th>
+                <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("created_at")}>Bid At{sortIndicator("created_at")}</th>
+                {!selectedAuction && <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("auction_title")}>Auction{sortIndicator("auction_title")}</th>}
+                <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("bidder_name")}>Bidder{sortIndicator("bidder_name")}</th>
                 <th className="text-left px-3 py-2 font-medium">Company</th>
                 <th className="text-left px-3 py-2 font-medium">Contact</th>
                 <th className="text-left px-3 py-2 font-medium">Location</th>
-                <th className="text-right px-3 py-2 font-medium">Amount</th>
-                <th className="text-left px-3 py-2 font-medium">Notification</th>
+                <th className="text-right px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("bid_amount")}>Amount{sortIndicator("bid_amount")}</th>
+                <th className="text-left px-3 py-2 font-medium cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort("email_status")}>Notification{sortIndicator("email_status")}</th>
                 <th className="text-left px-3 py-2 font-medium">Flags</th>
               </tr>
             </thead>
             <tbody>
-              {displayRows.length === 0 ? (
+              {pagedRows.length === 0 ? (
                 <tr><td colSpan={selectedAuction ? 9 : 9} className="px-3 py-8 text-center text-muted-foreground">No bids match the current filters.</td></tr>
-              ) : displayRows.map((r, idx) => {
+              ) : pagedRows.map((r, idx) => {
                 const name = r.bidder_name || r.profile?.full_name || "Unknown";
                 const company = r.bidder_company || r.profile?.company_name || "—";
                 const email = r.bidder_email || r.profile?.email || "";
                 const phone = r.bidder_phone || r.profile?.phone || "";
                 const loc = r.bidder_location || r.profile?.location || "—";
                 const isWinner = r.auction?.winner_id === r.bidder_id;
+                const globalIdx = (currentPage - 1) * pageSize + idx;
                 return (
                   <tr key={r.id} className="border-t border-border/60 hover:bg-muted/30">
                     {selectedAuction && (
-                      <td className="px-3 py-2 font-semibold text-muted-foreground">#{idx + 1}</td>
+                      <td className="px-3 py-2 font-semibold text-muted-foreground">#{globalIdx + 1}</td>
                     )}
                     <td className="px-3 py-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+
                     {!selectedAuction && (
                       <td className="px-3 py-2 max-w-[220px]">
                         <button
@@ -427,8 +485,32 @@ export default function AdminAllBids() {
               })}
             </tbody>
           </table>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border/60 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Rows per page</span>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50, 100, 200].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-muted-foreground">
+                {displayRows.length === 0 ? "0" : `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, displayRows.length)}`} of {displayRows.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage(1)}>« First</Button>
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Prev</Button>
+              <span className="px-2 text-muted-foreground">Page {currentPage} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>Next</Button>
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage(totalPages)}>Last »</Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
     </div>
   );
 }
