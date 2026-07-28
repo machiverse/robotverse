@@ -23,6 +23,7 @@ import AdminCouponsPanel from "./admin/AdminCouponsPanel";
 import AdminUserRequests from "./admin/AdminUserRequests";
 import AdminApiKeys from "./admin/AdminApiKeys";
 import AdminAuctionWinners from "./admin/AdminAuctionWinners";
+import AdminAllBids from "./admin/AdminAllBids";
 
 interface AdminDashboardLayoutProps {
   userProfile: any;
