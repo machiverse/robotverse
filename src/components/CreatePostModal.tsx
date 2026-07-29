@@ -36,7 +36,7 @@ import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import MediaPreview from "@/components/MediaPreview";
 import RichTextEditor from "@/components/RichTextEditor";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 
 interface CreatePostModalProps {
   onPostCreated?: () => void;

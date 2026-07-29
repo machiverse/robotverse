@@ -1,6 +1,6 @@
 // src/pages/Robots.tsx
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "@/lib/router-compat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthReady } from "@/hooks/useAuthReady";

@@ -493,7 +493,7 @@ const LogisticsProviderDashboard = ({ userProfile }: LogisticsProviderDashboardP
         {enhancedStatsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
+            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-xs">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">

@@ -101,7 +101,7 @@ const CRMDashboard = ({ sellerId, itemType }: CRMDashboardProps) => {
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         {statCards.map((stat) => (
-          <Card key={stat.title} className="border-muted/60 bg-card shadow-sm transition-shadow hover:shadow-md">
+          <Card key={stat.title} className="border-muted/60 bg-card shadow-xs transition-shadow hover:shadow-md">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">

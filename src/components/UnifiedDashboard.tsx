@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 
 // Import dashboard components
 import BuyerDashboard from "@/components/dashboards/BuyerDashboard";

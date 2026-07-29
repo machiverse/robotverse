@@ -84,7 +84,7 @@ const ImprovedRobotCard: React.FC<ImprovedRobotCardProps> = ({
           <Button
             size="sm"
             variant="secondary"
-            className="w-8 h-8 p-0 bg-background/80 backdrop-blur-sm"
+            className="w-8 h-8 p-0 bg-background/80 backdrop-blur-xs"
             onClick={(e) => {
               e.stopPropagation();
               onLike?.();
@@ -95,7 +95,7 @@ const ImprovedRobotCard: React.FC<ImprovedRobotCardProps> = ({
           <Button
             size="sm"
             variant="secondary"
-            className="w-8 h-8 p-0 bg-background/80 backdrop-blur-sm"
+            className="w-8 h-8 p-0 bg-background/80 backdrop-blur-xs"
             onClick={(e) => {
               e.stopPropagation();
               onShare?.();
@@ -116,7 +116,7 @@ const ImprovedRobotCard: React.FC<ImprovedRobotCardProps> = ({
 
         {/* Multiple images indicator */}
         {robot.images && robot.images.length > 1 && (
-          <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-muted-foreground">
+          <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-xs rounded-full px-2 py-1 text-xs text-muted-foreground">
             +{robot.images.length - 1} more
           </div>
         )}

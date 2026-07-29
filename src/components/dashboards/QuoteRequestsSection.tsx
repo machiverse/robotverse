@@ -30,7 +30,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { useContactUnlock } from '@/hooks/useContactUnlock';
 import CreateQuotationModal from '@/components/crm/CreateQuotationModal';
 
@@ -650,19 +650,19 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
                       <div className="grid grid-cols-2 gap-4 opacity-50">
                         <div>
                           <p className="text-sm text-muted-foreground">Name</p>
-                          <p className="font-medium blur-sm">••••••••••</p>
+                          <p className="font-medium blur-xs">••••••••••</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium blur-sm">•••••@••••.•••</p>
+                          <p className="font-medium blur-xs">•••••@••••.•••</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Company</p>
-                          <p className="font-medium blur-sm">••••••••••</p>
+                          <p className="font-medium blur-xs">••••••••••</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-medium blur-sm">•••••-•••••</p>
+                          <p className="font-medium blur-xs">•••••-•••••</p>
                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-border">

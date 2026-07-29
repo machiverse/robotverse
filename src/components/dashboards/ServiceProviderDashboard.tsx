@@ -319,7 +319,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
               { title: "Average Rating", val: dashboardStats.averageRating, icon: Star, variant: "secondary", color: "text-yellow-600" },
               ...(isCommissionSeller ? [{ title: "Commission", val: "6%", icon: Handshake, variant: "secondary", color: "text-amber-600" }] : []),
             ].map(({ title, val, icon: Icon, variant, color }, idx) => (
-              <Card key={idx} className={`border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow ${title === 'Commission' ? 'border-amber-200 dark:border-amber-800' : ''}`}>
+              <Card key={idx} className={`border border-border rounded-lg shadow-xs hover:shadow-md transition-shadow ${title === 'Commission' ? 'border-amber-200 dark:border-amber-800' : ''}`}>
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div>
@@ -420,7 +420,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                   {serviceRequests.length === 0 ? (
                     <p className="text-center text-muted-foreground py-24 text-lg">No service requests</p>
                   ) : (
-                    <Table className="shadow-sm rounded-lg overflow-hidden border border-gray-200">
+                    <Table className="shadow-xs rounded-lg overflow-hidden border border-gray-200">
                       <TableHeader className="bg-gray-50">
                         <TableRow>
                           <TableHead>Client</TableHead>
@@ -474,7 +474,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
             </TabsContent>
             {/* Services Tab */}
             <TabsContent value="services">
-              <Card className="mt-6 border border-gray-200 rounded-lg shadow-sm">
+              <Card className="mt-6 border border-gray-200 rounded-lg shadow-xs">
                 <CardHeader className="px-6 py-4">
                   <CardTitle className="text-2xl flex items-center gap-2">
                     <Wrench className="w-6 h-6 text-primary" aria-hidden="true" /> Your Services
@@ -497,7 +497,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                         return (
                           <Card
                             key={service.id}
-                            className="border border-gray-200 rounded-lg shadow-sm transition-shadow hover:shadow-lg"
+                            className="border border-gray-200 rounded-lg shadow-xs transition-shadow hover:shadow-lg"
                             aria-label={`Service: ${service.name}`}
                           >
                             <CardContent className="p-5">

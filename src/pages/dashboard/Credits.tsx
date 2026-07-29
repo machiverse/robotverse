@@ -8,7 +8,7 @@ import { CreditTransactionHistory } from '@/components/credits/CreditTransaction
 import { SellerDashboardOverview } from '@/components/credits/SellerDashboardOverview';
 import { DashboardSettingsLayout } from '@/components/dashboard/DashboardSettingsLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from '@/lib/router-compat';
 
 const Credits = () => {
   const { user, loading } = useAuth();

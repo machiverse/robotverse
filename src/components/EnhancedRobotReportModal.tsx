@@ -706,7 +706,7 @@ export function EnhancedRobotReportModal({ isOpen, onClose, robotData }: RobotRe
                     <CardContent className="p-0">
                       <div className="h-[75vh] overflow-y-auto border border-border rounded-lg bg-gradient-to-b from-background to-muted/20">
                         <div className="p-6">
-                          <div className="flex items-center justify-between mb-4 sticky top-0 bg-background/95 backdrop-blur-sm border-b pb-2">
+                          <div className="flex items-center justify-between mb-4 sticky top-0 bg-background/95 backdrop-blur-xs border-b pb-2">
                             <Badge variant="outline" className="text-xs">
                               <Brain className="w-3 h-3 mr-1" />
                               AI Analysis Report

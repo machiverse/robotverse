@@ -16,7 +16,7 @@ const Footer = () => {
               <img
                 src={robotverseLogo}
                 alt="RobotVerse"
-                className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm"
+                className="h-10 w-10 object-cover rounded-lg border border-border shadow-xs"
               />
               <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">RobotVerse</span>
             </div>

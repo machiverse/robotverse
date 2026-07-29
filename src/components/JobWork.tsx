@@ -81,7 +81,7 @@ const JobWork = () => {
   const [selectedLocation, setSelectedLocation] = useState("all");
 
   const JobCard = ({ job }: { job: typeof sampleJobs[0] }) => (
-    <Card className="bg-card/80 backdrop-blur-sm border-border hover:scale-[1.02] transition-all duration-300">
+    <Card className="bg-card/80 backdrop-blur-xs border-border hover:scale-[1.02] transition-all duration-300">
       <CardHeader>
         <div className="flex justify-between items-start mb-2">
           <Badge variant="secondary" className="text-xs">
@@ -134,7 +134,7 @@ const JobWork = () => {
   );
 
   const PostJobForm = () => (
-    <Card className="bg-card/80 backdrop-blur-sm border-border max-w-2xl mx-auto">
+    <Card className="bg-card/80 backdrop-blur-xs border-border max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl">Post a Job</CardTitle>
       </CardHeader>
@@ -221,7 +221,7 @@ const JobWork = () => {
 
         {/* Tab Navigation */}
         <div className="flex justify-center mb-8">
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-1">
+          <div className="bg-card/50 backdrop-blur-xs border border-border rounded-lg p-1">
             <Button
               variant={activeTab === "browse" ? "default" : "ghost"}
               onClick={() => setActiveTab("browse")}
@@ -244,7 +244,7 @@ const JobWork = () => {
         {activeTab === "browse" ? (
           <>
             {/* Search and Filters */}
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6 mb-8">
+            <div className="bg-card/50 backdrop-blur-xs border border-border rounded-lg p-6 mb-8">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Input
                   placeholder="Search jobs..."

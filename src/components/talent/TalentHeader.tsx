@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "@/lib/router-compat";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -80,7 +80,7 @@ const TalentHeader = () => {
         <div className="flex items-center justify-between h-14 gap-4">
           {/* Brand */}
           <Link to="/robot-talent" className="flex items-center gap-2.5 shrink-0">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-sm">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-xs">
               <Bot className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="hidden sm:block">
@@ -98,7 +98,7 @@ const TalentHeader = () => {
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                   isActive(item.href, item.exact)
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
@@ -116,7 +116,7 @@ const TalentHeader = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search jobs, skills..."
-              className="w-full rounded-lg border border-border bg-muted/50 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-lg border border-border bg-muted/50 py-2 pl-9 pr-4 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/50"
             />
           </form>
 

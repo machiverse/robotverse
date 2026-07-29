@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "@/lib/router-compat";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";

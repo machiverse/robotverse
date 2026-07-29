@@ -50,7 +50,7 @@ import {
   Heart
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useViewTracking } from '@/hooks/useViewTracking';
@@ -596,7 +596,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
         {enhancedStatsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-sm">
+            <Card key={index} className="hover:shadow-lg transition-all duration-200 border-0 shadow-xs">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router-compat";
 import { ChevronRight, ChevronDown, Globe, Bot, Cog, Truck, Banknote, BookOpen, Wrench, Shield, HelpCircle, Monitor, Code, Cpu } from "lucide-react";
 import { ROBOT_TYPES, SERVICE_TYPES, LOGISTICS_TYPES, FINANCE_TYPES, ROBOBOOK_CATEGORIES, ROBOBOOK_CATEGORY_LABELS } from "@/constants/navigationMenus";
 import { SPARE_PARTS_TAXONOMY } from "@/constants/sparePartsCategories";
@@ -28,7 +28,7 @@ const TreeNode = ({ label, href, children, icon, level = 0, defaultOpen = false,
       <div
         className={cn(
           "flex items-center gap-2 py-2 px-3 rounded-lg transition-all duration-200 group cursor-pointer",
-          level === 0 && "bg-card border border-border hover:border-primary/30 hover:shadow-sm mb-1",
+          level === 0 && "bg-card border border-border hover:border-primary/30 hover:shadow-xs mb-1",
           level === 1 && "hover:bg-accent/50 ml-2",
           level === 2 && "hover:bg-accent/30 ml-4",
           level === 3 && "hover:bg-accent/20 ml-6",

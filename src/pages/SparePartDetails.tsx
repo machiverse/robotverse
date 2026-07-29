@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "@/lib/router-compat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -375,7 +375,7 @@ const SparePartDetails = () => {
                             <button
                               key={idx}
                               onClick={() => setCurrentImageIndex(idx)}
-                              className={`aspect-square rounded-lg overflow-hidden border-2 transition-all shadow-sm ${
+                              className={`aspect-square rounded-lg overflow-hidden border-2 transition-all shadow-xs ${
                                 idx === currentImageIndex
                                   ? "border-primary ring-2 ring-primary/50 shadow-primary/25"
                                   : "border-transparent hover:border-primary/50 hover:shadow-md"

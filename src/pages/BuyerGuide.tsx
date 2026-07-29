@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Search, Shield, CreditCard, Truck, Wrench } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router-compat";
 import { SEOHead } from "@/components/SEOHead";
 
 const BuyerGuide = () => {

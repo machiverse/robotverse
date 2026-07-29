@@ -3,7 +3,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { Key, Shield, Zap, Webhook } from 'lucide-react';
 
 const BASE = 'https://cmahwgetrqczytnijbuk.supabase.co/functions/v1/api-v1';

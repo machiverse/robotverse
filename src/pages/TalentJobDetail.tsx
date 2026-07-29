@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "@/lib/router-compat";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import TalentPageWrapper from "@/components/talent/TalentPageWrapper";
@@ -45,7 +45,7 @@ const TalentJobDetail = () => {
 
   return (
     <TalentPageWrapper title={job.title} subtitle={`${job.category || ''} · ${job.city || ''}`} maxWidth="max-w-3xl">
-      <Card className="border-border shadow-sm">
+      <Card className="border-border shadow-xs">
         <CardHeader className="border-b bg-muted/30">
           <div className="flex items-start justify-between gap-4">
             <div>

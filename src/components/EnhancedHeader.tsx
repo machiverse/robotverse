@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@/lib/router-compat";
 import { Button } from "@/components/ui/button";
 import {
   Bot,
@@ -88,7 +88,7 @@ const DropdownMenu = ({ isOpen, onClose, children, className }: DropdownMenuProp
         className,
       )}
     >
-      <div className="bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-sm">
+      <div className="bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-xs">
         {children}
       </div>
     </div>
@@ -350,7 +350,7 @@ const EnhancedHeader = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search robots, spare parts, services..."
-              className="w-full rounded-xl border-2 border-border bg-muted/30 py-3 pl-12 pr-5 text-sm focus:outline-none focus:border-primary focus:bg-background focus:shadow-[var(--shadow-md)] transition-all placeholder:text-muted-foreground/70"
+              className="w-full rounded-xl border-2 border-border bg-muted/30 py-3 pl-12 pr-5 text-sm focus:outline-hidden focus:border-primary focus:bg-background focus:shadow-[var(--shadow-md)] transition-all placeholder:text-muted-foreground/70"
             />
             <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 bg-muted px-2 py-1 rounded-md border border-border">
               ⌘K
@@ -1306,7 +1306,7 @@ const EnhancedHeader = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full rounded-full border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-full border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
           </form>

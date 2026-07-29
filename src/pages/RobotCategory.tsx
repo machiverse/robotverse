@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "@/lib/router-compat";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
@@ -359,7 +359,7 @@ const RobotCategory = () => {
                     <Button
                       size="icon"
                       variant="secondary"
-                      className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                      className="h-8 w-8 bg-background/80 backdrop-blur-xs"
                       onClick={(e) => handleAddToWatchlist(robot, e)}
                     >
                       <Heart className={`w-4 h-4 ${watchlistItems.has(robot.id) ? 'fill-red-500 text-red-500' : ''}`} />

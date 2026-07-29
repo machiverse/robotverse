@@ -1,0 +1,31 @@
+{
+  "customizations": [
+    { "token": "--background/--foreground and full HSL shadcn palette (dark robot theme values)", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--primary-glow", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--header-bg", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--header-border", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--nav-bg", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--nav-hover", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--gradient-primary", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--gradient-hero", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--gradient-card", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--gradient-header", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--shadow-sm/md/lg/xl/header/dropdown/neon/glow custom shadow set", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--transition-smooth", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "--sidebar-* palette (background/foreground/primary/accent/border/ring)", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": ".dark override block", "source": "src/index.css", "reappliedIn": "src/styles.css" },
+    { "token": "bg-gradient-primary utility", "source": "tailwind.config.ts backgroundImage", "reappliedIn": "src/styles.css" },
+    { "token": "bg-gradient-hero utility", "source": "tailwind.config.ts backgroundImage", "reappliedIn": "src/styles.css" },
+    { "token": "bg-gradient-card utility", "source": "tailwind.config.ts backgroundImage", "reappliedIn": "src/styles.css" },
+    { "token": "shadow-neon utility", "source": "tailwind.config.ts boxShadow", "reappliedIn": "src/styles.css" },
+    { "token": "shadow-glow utility", "source": "tailwind.config.ts boxShadow", "reappliedIn": "src/styles.css" },
+    { "token": "primary-glow color utility (primary.glow)", "source": "tailwind.config.ts colors", "reappliedIn": "src/styles.css" },
+    { "token": "container config (center, 2rem padding, 1400px 2xl)", "source": "tailwind.config.ts", "reappliedIn": "src/styles.css" },
+    { "token": "accordion-down/accordion-up keyframes + animations", "source": "tailwind.config.ts", "reappliedIn": "src/styles.css" },
+    { "token": "body font-feature-settings + overflow-x hidden, html overflow-x hidden", "source": "src/index.css @layer base", "reappliedIn": "src/styles.css" },
+    { "token": ".nav-item / .nav-item::after / .nav-item.active component utilities", "source": "src/index.css @layer components", "reappliedIn": "src/styles.css" },
+    { "token": ".dropdown-professional / .dropdown-item / hover-bridge ::before", "source": "src/index.css @layer components", "reappliedIn": "src/styles.css" },
+    { "token": ".card-professional", "source": "src/index.css @layer components", "reappliedIn": "src/styles.css" },
+    { "token": "responsive-images.css utility sheet (imported)", "source": "src/styles/responsive-images.css via src/index.css", "reappliedIn": "src/styles.css" }
+  ]
+}

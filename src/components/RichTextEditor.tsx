@@ -233,7 +233,7 @@ const RichTextEditor = ({ value, onChange, placeholder, className }: RichTextEdi
           onBlur={() => setIsFocused(false)}
           className={cn(
             "prose prose-sm max-w-none dark:prose-invert",
-            "min-h-[200px] w-full px-3 py-2 text-sm focus:outline-none",
+            "min-h-[200px] w-full px-3 py-2 text-sm focus:outline-hidden",
             "[&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6",
             "[&_h2]:text-2xl [&_h2]:font-bold [&_h2]:my-3",
             "[&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic",

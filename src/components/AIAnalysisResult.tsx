@@ -101,7 +101,7 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
 
   // If popup mode, add overlay styles
   const overlayClassName = popup
-    ? "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-2"
+    ? "fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center px-2"
     : "";
 
   return (
