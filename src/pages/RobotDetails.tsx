@@ -1556,7 +1556,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
       {robot && (
         <div className="container mx-auto px-4 pb-16">
           <AEOContentBlock
-            summary={`${robot.brand || ""} ${robot.model || robot.name} is a ${robot.condition === "new" ? "new" : "used"} ${robot.robot_type || "industrial"} robot listed on RobotVerse${robot.location ? ` in ${robot.location}` : ""}, India.${robot.payload_capacity ? ` It offers a ${robot.payload_capacity} kg payload capacity.` : ""}${robot.reach ? ` Maximum reach is ${robot.reach} mm.` : ""}${robot.axes ? ` It has ${robot.axes} axes.` : ""} Buyers can request a quotation, arrange inspection, and add financing and logistics through RobotVerse.`}
+            summary={`${robot.brand || ""} ${robot.model || robot.name} is a ${robot.condition === "new" ? "new" : "used"} ${robot.robot_type || "industrial"} robot listed on RobotVerse${robot.location ? ` in ${robot.location}` : ""}, India.${robot.payload_capacity ? ` It offers a ${robot.payload_capacity} kg payload capacity.` : ""}${robot.reach ? ` Maximum reach is ${robot.reach} mm.` : ""}${(robot as any).axes ? ` It has ${(robot as any).axes} axes.` : ""} Buyers can request a quotation, arrange inspection, and add financing and logistics through RobotVerse.`}
             highlights={[
               robot.brand && { title: "Brand", text: String(robot.brand) },
               robot.model && { title: "Model", text: String(robot.model) },
