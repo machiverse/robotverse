@@ -12,7 +12,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import RobotUpload from "@/components/RobotUpload";
 

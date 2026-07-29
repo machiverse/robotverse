@@ -229,7 +229,7 @@ const LiveStats = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {Array(6).fill(0).map((_, i) => (
-              <Card key={i} className="bg-card/80 backdrop-blur-xs border-border animate-pulse">
+              <Card key={i} className="bg-card/80 backdrop-blur-sm border-border animate-pulse">
                 <CardContent className="p-4 text-center">
                   <div className="w-12 h-12 bg-muted rounded-full mx-auto mb-3"></div>
                   <div className="h-6 bg-muted rounded mb-2"></div>
@@ -298,7 +298,7 @@ const LiveStats = () => {
               <TooltipProvider key={item.key}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Card className="bg-card/90 backdrop-blur-xs border-border hover:scale-105 hover:shadow-xl transition-all duration-300 cursor-help">
+                    <Card className="bg-card/90 backdrop-blur-sm border-border hover:scale-105 hover:shadow-xl transition-all duration-300 cursor-help">
                       <CardContent className="p-6 text-center">
                         <div className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${item.gradient} flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
                           <Icon className="w-7 h-7 text-white" />
@@ -359,7 +359,7 @@ const LiveStats = () => {
 
         {/* Enhanced Footer */}
         <div className="text-center mt-16">
-          <div className="bg-white/50 backdrop-blur-xs rounded-2xl p-6 max-w-4xl mx-auto border">
+          <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 max-w-4xl mx-auto border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
               <div className="flex items-center justify-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>

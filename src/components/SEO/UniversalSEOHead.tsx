@@ -4,7 +4,7 @@
  */
 
 import { useEffect } from 'react';
-import { useLocation } from '@/lib/router-compat';
+import { useLocation } from 'react-router-dom';
 import {
   PAGE_KEYWORD_MAP,
   generateOptimizedTitle,

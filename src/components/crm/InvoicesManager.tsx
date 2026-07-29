@@ -212,7 +212,7 @@ const InvoicesManager = ({ sellerId }: InvoicesManagerProps) => {
             return (
               <div
                 key={invoice.id}
-                className="bg-card border-muted/60 flex flex-col rounded-lg border p-4 text-sm shadow-xs transition-shadow hover:shadow-md"
+                className="bg-card border-muted/60 flex flex-col rounded-lg border p-4 text-sm shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1 space-y-1">

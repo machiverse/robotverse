@@ -1,5 +1,5 @@
 import { useState, Fragment, useEffect } from "react";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   Search,
@@ -293,7 +293,7 @@ const AggregatedViewRow = ({ view, onConvertToLead, isConverting, convertingId }
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <Card className="overflow-hidden border-border/50 bg-card shadow-xs transition-all hover:shadow-md hover:border-primary/20">
+    <Card className="overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20">
       <div className="flex items-stretch">
         {/* Left accent bar */}
         <div className={`w-1 shrink-0 ${isAnonymous ? "bg-muted-foreground/30" : "bg-primary"}`} />
@@ -425,7 +425,7 @@ const LeadRow = ({
 
   return (
     <Card
-      className="group overflow-hidden border-border/50 bg-card shadow-xs transition-all hover:shadow-md hover:border-primary/20 cursor-pointer"
+      className="group overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/20 cursor-pointer"
       onClick={() => onRowClick(lead)}
     >
       <div className="flex items-stretch">
@@ -672,7 +672,7 @@ const LeadRow = ({
                     onUnlock(lead);
                   }}
                   disabled={!canUnlock || unlockingId === lead.id}
-                  className="h-9 px-4 font-medium shadow-xs"
+                  className="h-9 px-4 font-medium shadow-sm"
                 >
                   {unlockingId === lead.id ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

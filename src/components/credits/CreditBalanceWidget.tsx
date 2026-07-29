@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useSellerCredits } from '@/hooks/useSellerCredits';
 import { formatAmount } from '@/utils/currency';
-import { Link } from '@/lib/router-compat';
+import { Link } from 'react-router-dom';
 
 interface CreditBalanceWidgetProps {
   compact?: boolean;

@@ -64,7 +64,7 @@ const DraggableLeadCard = ({ lead, onLeadClick }: DraggableLeadCardProps) => {
     <Card
       ref={setNodeRef}
       style={style}
-      className="group cursor-pointer border border-border/40 bg-card p-3.5 shadow-xs transition-all duration-200 hover:border-primary/30 hover:shadow-md"
+      className="group cursor-pointer border border-border/40 bg-card p-3.5 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md"
       onClick={() => onLeadClick(lead)}
     >
       <div className="flex items-start gap-2.5">

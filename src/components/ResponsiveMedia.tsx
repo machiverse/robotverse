@@ -133,7 +133,7 @@ const ResponsiveMedia = ({
       {/* Custom Video Controls Overlay */}
       {!isPlaying && !loading && (
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-          <div className="bg-white/95 backdrop-blur-xs rounded-full p-4 shadow-lg group-hover:scale-110 transition-transform cursor-pointer">
+          <div className="bg-white/95 backdrop-blur-sm rounded-full p-4 shadow-lg group-hover:scale-110 transition-transform cursor-pointer">
             <Play className="h-8 w-8 text-primary fill-primary" />
           </div>
         </div>

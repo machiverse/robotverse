@@ -7,7 +7,7 @@ import { Heart, Eye, Trash2, ArrowRight, Package, Bot, Wrench } from 'lucide-rea
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 
 interface WatchlistItem {
   id: string;

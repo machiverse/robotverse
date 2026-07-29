@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useParams, Link } from "@/lib/router-compat";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -458,7 +458,7 @@ const BlogEditor = () => {
                   ))}
                 </div>
                 <Card className="bg-muted/30 p-4 sm:p-6">
-                  <div className={cn("mx-auto bg-background rounded-lg shadow-xs border p-6", previewWidth)}>
+                  <div className={cn("mx-auto bg-background rounded-lg shadow-sm border p-6", previewWidth)}>
                     {formData.image_url && (
                       <img
                         src={formData.image_url}

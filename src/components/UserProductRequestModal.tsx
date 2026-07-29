@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProductRequests } from '@/hooks/useUserProductRequests';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 import { Bot, Package, Wrench, Send, Loader2, Search, AlertCircle, LogIn } from 'lucide-react';
 
 interface UserProductRequestModalProps {

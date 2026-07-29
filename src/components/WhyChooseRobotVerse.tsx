@@ -24,7 +24,7 @@ import {
   CreditCard
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "@/lib/router-compat";
+import { Link } from "react-router-dom";
 
 interface RealStatsData {
   totalUsers: number;
@@ -288,7 +288,7 @@ const WhyChooseRobotVerse = () => {
           {statsCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <Card key={index} className="bg-card/80 backdrop-blur-xs border-border hover:shadow-lg transition-all duration-200">
+              <Card key={index} className="bg-card/80 backdrop-blur-sm border-border hover:shadow-lg transition-all duration-200">
                 <CardContent className="p-3 md:p-4 lg:p-6 text-center">
                   <Icon className={`w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 md:mb-3 ${stat.color}`} />
                   <div className={`text-xl md:text-2xl lg:text-3xl font-bold mb-1 md:mb-2 font-mono ${stat.color}`}>
@@ -308,7 +308,7 @@ const WhyChooseRobotVerse = () => {
             {services.map((service, index) => {
               const Icon = service.icon;
               return (
-                <div key={index} className="text-center p-4 md:p-6 bg-card/50 backdrop-blur-xs rounded-lg border border-border hover:bg-card/70 transition-all duration-200">
+                <div key={index} className="text-center p-4 md:p-6 bg-card/50 backdrop-blur-sm rounded-lg border border-border hover:bg-card/70 transition-all duration-200">
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center mx-auto mb-3 md:mb-4">
                     <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
@@ -355,7 +355,7 @@ const WhyChooseRobotVerse = () => {
 
         {/* Real-time Status */}
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-4 text-sm text-muted-foreground bg-card/30 backdrop-blur-xs px-6 py-3 rounded-full border border-border/50">
+          <div className="inline-flex items-center gap-4 text-sm text-muted-foreground bg-card/30 backdrop-blur-sm px-6 py-3 rounded-full border border-border/50">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>Real-time updates</span>

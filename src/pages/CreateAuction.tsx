@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';

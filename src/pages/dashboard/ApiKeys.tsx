@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Copy, Key, Trash2, ExternalLink, Plus, Menu } from 'lucide-react';
-import { Link, Navigate, useNavigate } from '@/lib/router-compat';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 

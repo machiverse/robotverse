@@ -8,7 +8,7 @@ import { Menu } from "lucide-react";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate } from "react-router-dom";
 
 const DashboardPage = () => {
   // Force refresh to clear cached UserTypeSelector references

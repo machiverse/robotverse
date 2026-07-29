@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 import { Bot, Plus, Trash2, MessageSquare, Clock, PanelLeftOpen, PanelLeftClose, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -94,7 +94,7 @@ const AIAssistant = () => {
         <div className={cn("flex items-center gap-2 p-3 border-b border-border/30", !sidebarOpen && "md:justify-center")}>
           {sidebarOpen ? (
             <>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-sm">
                 <Bot className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ const AIAssistant = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-lg bg-background/80 backdrop-blur-xs border border-border/40 shadow-xs"
+              className="h-9 w-9 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40 shadow-sm"
               onClick={() => setSidebarOpen(true)}
             >
               <PanelLeftOpen className="w-4 h-4" />

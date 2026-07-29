@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "@/lib/router-compat";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -890,7 +890,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content - Tabs */}
           <div className="lg:col-span-2">
-            <Card className="shadow-xs border">
+            <Card className="shadow-sm border">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
                 <div className="border-b px-2">
                   <TabsList className="h-14 bg-transparent gap-1">
@@ -1250,7 +1250,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
           {/* Right Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* AI Analysis Card */}
-            <Card className="border shadow-xs">
+            <Card className="border shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Brain className="w-5 h-5 text-primary" />
@@ -1329,7 +1329,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
 
             {/* Seller Stats Card */}
             {(robot.profiles?.completed_sales > 0 || robot.profiles?.total_reviews > 0) && (
-              <Card className="border shadow-xs">
+              <Card className="border shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Seller Performance</CardTitle>
                 </CardHeader>
@@ -1357,7 +1357,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
             )}
 
             {/* Quick Stats Card */}
-            <Card className="border shadow-xs">
+            <Card className="border shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Quick Stats</CardTitle>
               </CardHeader>
@@ -1390,7 +1390,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
 
             {/* Generate Report */}
             {user && (
-              <Card className="border shadow-xs">
+              <Card className="border shadow-sm">
                 <CardContent className="p-4">
                   <Button
                     onClick={() => setShowReportModal(true)}
@@ -1411,7 +1411,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
       {/* Reviews Section - Separate Card */}
       <section className="container mx-auto px-4 pb-8">
         <div className="max-w-5xl mx-auto">
-          <Card className="border shadow-xs">
+          <Card className="border shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-primary" />

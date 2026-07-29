@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "@/lib/router-compat";
+import { useParams, useNavigate } from "react-router-dom";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
 import { useAuctionDetail, useAuctionBids, usePlaceBid, useFinalizeAuction } from "@/hooks/useAuctions";
@@ -167,7 +167,7 @@ const AuctionDetail: React.FC = () => {
             </div>
 
             {/* Main Image Gallery */}
-            <div className="bg-white dark:bg-card border border-border rounded-xl overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-card border border-border rounded-xl overflow-hidden shadow-sm">
               <div className="aspect-[4/3] md:aspect-[16/9] relative bg-muted flex items-center justify-center">
                 {img ? (
                   <img src={img} alt={auction.auction_title} className="w-full h-full object-contain p-4" />
@@ -444,7 +444,7 @@ const AuctionDetail: React.FC = () => {
               </Card>
 
               {/* Key Account Manager */}
-              <Card className="border border-border shadow-xs">
+              <Card className="border border-border shadow-sm">
                 <CardHeader className="pb-3 border-b border-border/50">
                   <CardTitle className="text-base font-bold flex items-center gap-2">
                     <User className="w-5 h-5 text-primary" />
@@ -468,7 +468,7 @@ const AuctionDetail: React.FC = () => {
 
               {/* Bidding History (Simplified for Sidebar) */}
               {user && (
-                <Card className="border border-border shadow-xs">
+                <Card className="border border-border shadow-sm">
                   <CardHeader className="pb-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-base font-bold flex items-center gap-2">
                       <TrendingUp className="w-5 h-5" /> Bid History

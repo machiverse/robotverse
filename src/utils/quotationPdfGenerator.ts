@@ -1,5 +1,4 @@
-// jspdf is browser-only; import it dynamically so SSR bundling doesn't pull it in.
-import type jsPDF from 'jspdf';
+import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 
 export interface QuotationPDFData {
@@ -58,8 +57,7 @@ const formatCurrency = (amount: number, currency: string = 'INR'): string => {
 };
 
 export const generateQuotationPDF = async (data: QuotationPDFData): Promise<jsPDF> => {
-  const { default: JsPDF } = await import('jspdf');
-  const pdf = new JsPDF({
+  const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',

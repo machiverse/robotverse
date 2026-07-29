@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Cpu, Wrench, Factory, Truck, Banknote, Lightbulb, LayoutList, AlignJustify, ExternalLink } from "lucide-react";
@@ -172,13 +172,13 @@ const SectionCard: React.FC<{ section: ParsedSection }> = ({ section }) => (
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shadow-lg">
+            <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shadow-lg">
               {section.icon}
             </div>
             <span className="font-bold text-sm text-white drop-shadow-lg">{section.label}</span>
           </div>
           {section.count > 0 && (
-            <Badge className="bg-white/20 backdrop-blur-xs text-white border-white/30 text-[10px] px-1.5 h-5">
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-[10px] px-1.5 h-5">
               {section.count} found
             </Badge>
           )}
@@ -190,7 +190,7 @@ const SectionCard: React.FC<{ section: ParsedSection }> = ({ section }) => (
     <div className="p-4">
       {!section.image && (
         <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/20">
-          <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-xs">
+          <div className="w-7 h-7 rounded-lg bg-background/80 flex items-center justify-center shadow-sm">
             {section.icon}
           </div>
           <span className="font-bold text-sm text-foreground">{section.label}</span>
@@ -246,7 +246,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
             onClick={() => setViewMode("tabs")}
             className={cn(
               "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
-              viewMode === "tabs" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+              viewMode === "tabs" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <LayoutList className="w-3 h-3" />
@@ -256,7 +256,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
             onClick={() => setViewMode("full")}
             className={cn(
               "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
-              viewMode === "full" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+              viewMode === "full" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <AlignJustify className="w-3 h-3" />
@@ -272,7 +272,7 @@ const ResultTabsView: React.FC<ResultTabsViewProps> = ({ content, resultCounts, 
               <TabsTrigger
                 key={section.key}
                 value={section.key}
-                className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs whitespace-nowrap"
+                className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm whitespace-nowrap"
               >
                 {section.icon}
                 <span className="hidden sm:inline">{section.label}</span>

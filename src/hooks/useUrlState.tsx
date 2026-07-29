@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "@/lib/router-compat";
+import { useSearchParams } from "react-router-dom";
 
 /**
  * useUrlParam - keep a single query-string parameter in sync with React state.

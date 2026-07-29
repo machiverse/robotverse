@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "@/lib/router-compat";
+import { useSearchParams } from "react-router-dom";
 import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { supabase } from "@/integrations/supabase/client";
@@ -396,7 +396,7 @@ const Community = () => {
 
 
           {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-4 bg-card p-6 rounded-lg shadow-xs border">
+          <div className="flex flex-col md:flex-row gap-4 bg-card p-6 rounded-lg shadow-sm border">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -501,7 +501,7 @@ const Community = () => {
             <div className="space-y-6">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="bg-card rounded-xl border p-6 space-y-4 shadow-xs">
+                  <div className="bg-card rounded-xl border p-6 space-y-4 shadow-sm">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-muted rounded-full"></div>
                       <div className="space-y-2">

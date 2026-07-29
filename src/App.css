@@ -1,0 +1,5 @@
+/* Global app styles - no layout constraints on #root */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}

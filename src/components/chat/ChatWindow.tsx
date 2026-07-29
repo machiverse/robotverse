@@ -267,7 +267,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
 
                       {/* Message bubble - WhatsApp Style */}
                       <div
-                        className={`rounded-lg px-3 py-2 shadow-xs transition-all ${
+                        className={`rounded-lg px-3 py-2 shadow-sm transition-all ${
                           isOwnMessage 
                             ? "bg-[hsl(var(--primary))] text-primary-foreground rounded-br-none" 
                             : "bg-card text-foreground rounded-bl-none border border-border/50"

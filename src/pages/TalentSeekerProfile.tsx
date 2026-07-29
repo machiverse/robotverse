@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate } from "react-router-dom";
 import TalentPageWrapper from "@/components/talent/TalentPageWrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ const TalentSeekerProfile = () => {
 
   return (
     <TalentPageWrapper title={existingProfile ? "Edit Profile" : "Create Profile"} subtitle="Build your robotics professional profile" maxWidth="max-w-2xl">
-      <Card className="border-border shadow-xs">
+      <Card className="border-border shadow-sm">
         <CardHeader className="border-b bg-muted/30">
           <CardTitle className="text-lg">Professional Details</CardTitle>
         </CardHeader>

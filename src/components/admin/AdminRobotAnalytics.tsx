@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, TrendingUp, RefreshCw, ExternalLink } from 'lucide-react';
 import { useGlobalViewTracking } from '@/hooks/useGlobalViewTracking';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 
 interface TopRobotView {
   robot_id: string;

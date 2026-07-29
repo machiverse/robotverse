@@ -1,7 +1,7 @@
 import { Bot, Package, Settings, Truck, CreditCard, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@/lib/router-compat";
+import { Link } from "react-router-dom";
 
 const ProfessionalCategories = () => {
   const categories = [
@@ -110,7 +110,7 @@ const ProfessionalCategories = () => {
         </div>
 
         <div className="text-center mt-12">
-          <div className="bg-card/50 backdrop-blur-xs rounded-2xl p-6 border border-border/50">
+          <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-6 border border-border/50">
             <h3 className="text-2xl font-semibold mb-3 text-foreground">
               Ready to Get Started?
             </h3>

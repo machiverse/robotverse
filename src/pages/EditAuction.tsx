@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from '@/lib/router-compat';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import { useAuth } from '@/hooks/useAuth';

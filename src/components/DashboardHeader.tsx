@@ -29,7 +29,7 @@ import {
   FileText,
   Shield
 } from 'lucide-react';
-import { useNavigate } from '@/lib/router-compat';
+import { useNavigate } from 'react-router-dom';
 import { DashboardProfile } from './DashboardProfile';
 import { useAuth } from '@/hooks/useAuth';
 

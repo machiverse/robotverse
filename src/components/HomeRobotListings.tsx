@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -273,7 +273,7 @@ const HomeRobotListings = () => {
                         className="pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5"
                       >
                         <Card
-                          className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden border-border/60 hover:border-primary/40 bg-card/80 backdrop-blur-xs"
+                          className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden border-border/60 hover:border-primary/40 bg-card/80 backdrop-blur-sm"
                           onClick={() => navigate(`/robots/${robot.id}`)}
                         >
                           {/* Robot Image */}
@@ -308,8 +308,8 @@ const HomeRobotListings = () => {
 
                   {robotsOfType.length > 4 && (
                     <>
-                      <CarouselPrevious className="hidden md:flex -left-4 bg-background/80 backdrop-blur-xs border-border hover:bg-background" />
-                      <CarouselNext className="hidden md:flex -right-4 bg-background/80 backdrop-blur-xs border-border hover:bg-background" />
+                      <CarouselPrevious className="hidden md:flex -left-4 bg-background/80 backdrop-blur-sm border-border hover:bg-background" />
+                      <CarouselNext className="hidden md:flex -right-4 bg-background/80 backdrop-blur-sm border-border hover:bg-background" />
                     </>
                   )}
                 </Carousel>

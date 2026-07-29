@@ -229,7 +229,7 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
     const points = formatSection(content);
     
     return (
-      <Card className={`${bgColor} ${borderColor} shadow-xs hover:shadow-md transition-shadow`}>
+      <Card className={`${bgColor} ${borderColor} shadow-sm hover:shadow-md transition-shadow`}>
         <CardHeader className="pb-3">
           <CardTitle className={`flex items-center gap-3 ${textColor}`}>
             {icon}

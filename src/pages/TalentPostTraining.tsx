@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "@/lib/router-compat";
+import { useNavigate } from "react-router-dom";
 import TalentPageWrapper from "@/components/talent/TalentPageWrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ const TalentPostTraining = () => {
 
   return (
     <TalentPageWrapper title="Add Training Program" subtitle="Create a new training course for robotics professionals" maxWidth="max-w-2xl">
-      <Card className="border-border shadow-xs">
+      <Card className="border-border shadow-sm">
         <CardHeader className="border-b bg-muted/30">
           <CardTitle className="text-lg">Training Details</CardTitle>
         </CardHeader>
