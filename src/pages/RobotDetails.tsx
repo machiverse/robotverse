@@ -83,6 +83,9 @@ import { useRobotSEO } from "@/hooks/useRobotSEO";
 import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import { SEOHead } from "@/components/SEOHead";
 import { generateProductSchema } from "@/utils/seoSchemas";
+import { AEOContentBlock } from "@/components/SEO/AEOContentBlock";
+import { generateRobotFAQs } from "@/utils/seo/programmaticSEO";
+import { generateBreadcrumbSchema } from "@/utils/seo/modernSchemas";
 import { useRobotComparison } from "@/contexts/RobotComparisonContext";
 
 interface Robot {
