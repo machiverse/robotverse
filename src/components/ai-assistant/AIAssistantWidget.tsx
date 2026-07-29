@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Bot, X, Maximize2, Minimize2, PanelLeftOpen, PanelLeftClose, Plus, Trash2, MessageSquare, Sparkles, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import { useAIAssistantContext } from "@/contexts/AIAssistantContext";
 import { cn } from "@/lib/utils";
 import AIAssistantChat from "./AIAssistantChat";
@@ -35,7 +35,7 @@ const AIAssistantWidget: React.FC = () => {
             <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" style={{ animationDuration: '3s' }} />
           </div>
           {/* Online indicator */}
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-400 rounded-full border-[2.5px] border-background shadow-sm" />
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-400 rounded-full border-[2.5px] border-background shadow-xs" />
           {/* Tooltip */}
           <span className="absolute bottom-full right-0 mb-2 px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg pointer-events-none">
             Ask RobotVerse AI ✨
@@ -49,7 +49,7 @@ const AIAssistantWidget: React.FC = () => {
           {/* Backdrop for maximized */}
           {isMaximized && (
             <div
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-fade-in"
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs animate-fade-in"
               onClick={() => setIsMaximized(false)}
             />
           )}

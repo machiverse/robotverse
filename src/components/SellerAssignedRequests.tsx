@@ -139,7 +139,7 @@ const SellerAssignedRequests = ({ categoryFilter }: SellerAssignedRequestsProps)
           { label: 'Accepted', value: counts.accepted, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
           { label: 'Quotes Sent', value: counts.quote_submitted, icon: Send, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950/30' },
         ].map(stat => (
-          <Card key={stat.label} className="border-muted/60 shadow-sm">
+          <Card key={stat.label} className="border-muted/60 shadow-xs">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -342,7 +342,7 @@ const SellerAssignedRequests = ({ categoryFilter }: SellerAssignedRequestsProps)
             return (
               <div className="space-y-4">
                 <div className={`flex items-center gap-3 p-4 rounded-lg ${typeConf.bg}`}>
-                  <div className={`rounded-lg p-2.5 bg-background shadow-sm`}>
+                  <div className={`rounded-lg p-2.5 bg-background shadow-xs`}>
                     <TypeIcon className={`w-6 h-6 ${typeConf.color}`} />
                   </div>
                   <div>

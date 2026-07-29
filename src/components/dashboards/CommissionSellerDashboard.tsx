@@ -169,7 +169,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((stat) => (
-          <Card key={stat.title} className="border-muted/60 shadow-sm">
+          <Card key={stat.title} className="border-muted/60 shadow-xs">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">

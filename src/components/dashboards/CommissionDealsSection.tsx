@@ -315,7 +315,7 @@ const CommissionDealsSection = () => {
           { title: "Expected Comm.", value: `₹${expectedCommission.toLocaleString("en-IN")}`, icon: Target, color: "text-blue-600", bg: "bg-blue-50", sub: "If all close" },
           { title: "Net Payout", value: `₹${netPayout.toLocaleString("en-IN")}`, icon: FileCheck, color: "text-emerald-700", bg: "bg-emerald-100", sub: "After commission" },
         ].map((stat) => (
-          <Card key={stat.title} className="border-border/60 shadow-sm">
+          <Card key={stat.title} className="border-border/60 shadow-xs">
             <CardContent className="p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-0.5 min-w-0">

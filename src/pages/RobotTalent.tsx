@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import { useQuery } from "@tanstack/react-query";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import Footer from "@/components/Footer";
@@ -96,7 +96,7 @@ const RobotTalent = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,hsl(270_100%_60%/0.06),transparent_40%)]" />
         <div className="container mx-auto px-4 py-10 md:py-14 relative">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge className="bg-primary/15 text-primary border-primary/25 mb-4 text-xs font-medium backdrop-blur-sm">
+            <Badge className="bg-primary/15 text-primary border-primary/25 mb-4 text-xs font-medium backdrop-blur-xs">
               <Zap className="h-3 w-3 mr-1" /> India's #1 Robotics Talent Platform
             </Badge>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 leading-tight">
@@ -151,7 +151,7 @@ const RobotTalent = () => {
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 max-w-3xl mx-auto">
             {STATS.map((stat) => (
-              <div key={stat.label} className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-3 text-center hover:border-primary/30 transition-colors">
+              <div key={stat.label} className="bg-card/80 backdrop-blur-xs border border-border rounded-xl p-3 text-center hover:border-primary/30 transition-colors">
                 <stat.icon className="h-5 w-5 text-primary mx-auto mb-1" />
                 <p className="text-xl font-bold text-foreground">{stat.value}</p>
                 <p className="text-[11px] text-muted-foreground">{stat.label}</p>
@@ -172,7 +172,7 @@ const RobotTalent = () => {
                 onClick={() => setActiveSection(tab.key)}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   activeSection === tab.key
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >

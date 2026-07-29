@@ -24,8 +24,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// jspdf/html2canvas are browser-only; imported dynamically at point of use for SSR safety.
 
 interface ProfessionalRobotReportModalProps {
   isOpen: boolean;
@@ -260,7 +259,11 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
       
       document.body.appendChild(pdfContainer);
       
-      // Generate PDF using html2canvas and jsPDF
+      // Generate PDF using html2canvas and jsPDF (dynamic imports — browser-only libs)
+      const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
       const canvas = await html2canvas(pdfContainer, {
         scale: 2,
         useCORS: true,
@@ -269,7 +272,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
       });
       
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
+      const pdf = new JsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
@@ -363,7 +366,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                 <div className="space-y-6">
                   {/* Robot Image */}
                   {robotData.images?.[0] && (
-                    <Card className="border-2 shadow-sm overflow-hidden">
+                    <Card className="border-2 shadow-xs overflow-hidden">
                       <CardContent className="p-0">
                         <div className="relative w-full aspect-video bg-muted">
                           <img 
@@ -377,7 +380,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                   )}
 
                   {/* Robot Overview Card */}
-                  <Card className="border-2 shadow-sm">
+                  <Card className="border-2 shadow-xs">
                     <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
                       <CardTitle className="flex items-center gap-2 text-primary">
                         <Building className="w-6 h-6" />
@@ -465,7 +468,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
 
                   {/* Description Card */}
                   {robotData.description && (
-                    <Card className="border-2 shadow-sm">
+                    <Card className="border-2 shadow-xs">
                       <CardHeader className="bg-gradient-to-r from-blue-500/5 to-blue-500/10">
                         <CardTitle className="flex items-center gap-2 text-blue-700">
                           <FileText className="w-6 h-6" />
@@ -483,7 +486,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                   )}
 
                   {/* Technical Specifications Card */}
-                  <Card className="border-2 shadow-sm">
+                  <Card className="border-2 shadow-xs">
                     <CardHeader className="bg-gradient-to-r from-orange-500/5 to-orange-500/10">
                       <CardTitle className="flex items-center gap-2 text-orange-700">
                         <Zap className="w-6 h-6" />
@@ -552,7 +555,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
 
                   {/* Applications */}
                   {robotData.applications?.length > 0 && (
-                    <Card className="border-2 shadow-sm">
+                    <Card className="border-2 shadow-xs">
                       <CardHeader className="bg-gradient-to-r from-green-500/5 to-green-500/10">
                         <CardTitle className="flex items-center gap-2 text-green-700">
                           <Package className="w-6 h-6" />

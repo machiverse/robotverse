@@ -62,7 +62,7 @@ const CRMTasksView = ({ crmData }: CRMTasksViewProps) => {
 
       <div className="space-y-2">
         {filteredTasks.map((task) => (
-          <Card key={task.id} className="hover:shadow-sm transition-shadow">
+          <Card key={task.id} className="hover:shadow-xs transition-shadow">
             <CardContent className="p-4 flex items-center gap-4">
               <Checkbox 
                 checked={task.status === 'completed'} 

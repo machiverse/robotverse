@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "@/lib/router-compat";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -154,7 +154,7 @@ const EnhancedHero = () => {
               e.preventDefault();
               handleSearch();
             }}
-            className="bg-card/80 backdrop-blur-sm border border-border rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 mb-6 md:mb-8 max-w-4xl"
+            className="bg-card/80 backdrop-blur-xs border border-border rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 mb-6 md:mb-8 max-w-4xl"
           >
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
               {/* Search Input */}

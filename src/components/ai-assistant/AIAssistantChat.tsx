@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAIAssistantContext, AIMessage, ResultCounts } from "@/contexts/AIAssistantContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import { cn } from "@/lib/utils";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
 
@@ -108,7 +108,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
     >
       {/* Header - hidden in fullPage mode since parent provides branding */}
       {!fullPage && (
-        <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
+        <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-xs mt-8">
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
@@ -221,7 +221,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
                 </p>
                 <Button
                   size="sm"
-                  className="h-8 text-xs rounded-lg px-4 shadow-sm"
+                  className="h-8 text-xs rounded-lg px-4 shadow-xs"
                   onClick={() => setShowRequestModal(true)}
                 >
                   <FileSearch className="w-3.5 h-3.5 mr-1.5" />
@@ -251,7 +251,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
       />
 
       {/* Input */}
-      <div className={cn("p-3 sm:p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm", fullPage && "px-4 sm:px-6 lg:px-0")}>
+      <div className={cn("p-3 sm:p-4 border-t border-border/30 bg-background/80 backdrop-blur-xs", fullPage && "px-4 sm:px-6 lg:px-0")}>
         <div className={cn("flex gap-2 items-center", fullPage && "max-w-3xl mx-auto")}>
           <div className="flex-1 relative">
             <Input
@@ -327,7 +327,7 @@ const EmptyState: React.FC<{
         <button
           key={prompt.query}
           onClick={() => onPromptClick(prompt.query)}
-          className="flex items-center gap-2.5 text-left text-sm px-4 py-3 rounded-xl border border-border/50 bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-foreground group shadow-sm hover:shadow-md"
+          className="flex items-center gap-2.5 text-left text-sm px-4 py-3 rounded-xl border border-border/50 bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-foreground group shadow-xs hover:shadow-md"
         >
           <span className="text-lg">{prompt.icon}</span>
           <span className="group-hover:text-primary transition-colors">{prompt.text}</span>
@@ -342,10 +342,10 @@ const EmptyState: React.FC<{
 const AssistantThinking = () => {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-sm">
+      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-xs">
         <Bot className="w-4 h-4 text-primary-foreground" />
       </div>
-      <div className="bg-card border border-border/40 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
+      <div className="bg-card border border-border/40 rounded-2xl rounded-tl-sm px-5 py-4 shadow-xs">
         <div className="flex flex-col gap-2 text-muted-foreground text-xs">
           <div className="flex items-center gap-3">
             <div className="flex gap-1">
@@ -437,13 +437,13 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
       )}
     >
       {!isUser && (
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 mt-1 shadow-sm">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 mt-1 shadow-xs">
           <Bot className="w-4 h-4 text-primary-foreground" />
         </div>
       )}
       <div
         className={cn(
-          "rounded-2xl shadow-sm relative",
+          "rounded-2xl shadow-xs relative",
           isUser
             ? "max-w-[85%] sm:max-w-[75%] bg-gradient-to-br from-primary to-primary/85 text-primary-foreground px-3 sm:px-4 py-3 rounded-tr-sm"
             : "bg-card border border-border/40 text-foreground px-3 sm:px-5 py-3 sm:py-4 rounded-tl-sm max-w-[95%] sm:max-w-[92%]",

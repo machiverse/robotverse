@@ -1,5 +1,5 @@
 import React, { Fragment, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 import {
   FileQuestion,
   ShoppingCart,
@@ -612,7 +612,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                           role="button"
                           tabIndex={0}
                           aria-label={`Open lead details for ${lead.buyer_name ?? "buyer"}`}
-                          className="group cursor-pointer overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                          className="group cursor-pointer overflow-hidden border-border/50 bg-card shadow-xs transition-all hover:border-primary/20 hover:shadow-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/60"
                           onClick={() => openLeadDetails(lead)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -779,7 +779,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                         handleUnlock(lead);
                                       }}
                                       disabled={(!isCommissionSeller && !canUnlock) || unlocking === lead.id}
-                                      className={`h-8 px-3 text-xs font-medium shadow-sm ${isCommissionSeller ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                                      className={`h-8 px-3 text-xs font-medium shadow-xs ${isCommissionSeller ? 'bg-green-600 hover:bg-green-700' : ''}`}
                                     >
                                       {unlocking === lead.id ? (
                                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

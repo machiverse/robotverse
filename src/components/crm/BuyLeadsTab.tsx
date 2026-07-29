@@ -505,7 +505,7 @@ const BuyLeadsTab = ({
           {filteredLeads.map((lead) => (
             <Card
               key={lead.buyer_id ?? Math.random().toString(36)}
-              className="overflow-hidden border-border/50 bg-card shadow-sm transition-all hover:border-primary/20 hover:shadow-md"
+              className="overflow-hidden border-border/50 bg-card shadow-xs transition-all hover:border-primary/20 hover:shadow-md"
             >
               <div className="flex items-stretch">
                 <div className="w-1 shrink-0 bg-amber-500" />

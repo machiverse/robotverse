@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "@/lib/router-compat";
 import { supabase } from "@/integrations/supabase/client";
 import LandingPageLayout from "@/components/landing/LandingPageLayout";
 import { Card } from "@/components/ui/card";

@@ -113,7 +113,7 @@ const BlogRichEditor = ({ value, onChange, placeholder, userId, className }: Blo
     editorProps: {
       attributes: {
         class:
-          "prose prose-lg dark:prose-invert max-w-none min-h-[400px] px-4 py-3 focus:outline-none",
+          "prose prose-lg dark:prose-invert max-w-none min-h-[400px] px-4 py-3 focus:outline-hidden",
       },
       handleDrop(_view, event) {
         const files = Array.from(event.dataTransfer?.files || []).filter((f) =>

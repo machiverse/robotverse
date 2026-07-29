@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useContactUnlock } from "@/hooks/useContactUnlock";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router-compat";
 
 interface SellerProfile {
   full_name?: string;
@@ -187,7 +187,7 @@ export const LockedContactCard = ({
                   <Building className="w-4 h-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">Company</p>
-                    <p className="font-medium blur-sm">••••••••••••</p>
+                    <p className="font-medium blur-xs">••••••••••••</p>
                   </div>
                 </div>
               )}
@@ -196,7 +196,7 @@ export const LockedContactCard = ({
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">Mobile</p>
-                    <p className="font-medium blur-sm">•••••-•••••</p>
+                    <p className="font-medium blur-xs">•••••-•••••</p>
                   </div>
                 </div>
               )}
@@ -205,7 +205,7 @@ export const LockedContactCard = ({
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">Email</p>
-                    <p className="font-medium blur-sm">•••••@••••.•••</p>
+                    <p className="font-medium blur-xs">•••••@••••.•••</p>
                   </div>
                 </div>
               )}

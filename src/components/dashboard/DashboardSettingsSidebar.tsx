@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { NavLink, useLocation, useSearchParams } from '@/lib/router-compat';
 import { Crown, LogOut, CreditCard, History, ShoppingCart, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -56,7 +56,7 @@ export const DashboardSettingsSidebar = () => {
   };
 
   return (
-    <aside className="w-72 min-h-screen bg-card border-r border-border flex flex-col shadow-sm">
+    <aside className="w-72 min-h-screen bg-card border-r border-border flex flex-col shadow-xs">
       {/* User Profile Header */}
       <div className="p-6 border-b border-border bg-gradient-to-br from-primary/5 to-transparent">
         <div className="flex items-center gap-4">
@@ -98,7 +98,7 @@ export const DashboardSettingsSidebar = () => {
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group',
                     'hover:bg-accent/50 hover:text-accent-foreground',
-                    isActive && 'bg-primary/10 text-primary shadow-sm border border-primary/20'
+                    isActive && 'bg-primary/10 text-primary shadow-xs border border-primary/20'
                   )}
                 >
                   <div className={cn(

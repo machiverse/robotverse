@@ -8,7 +8,7 @@ import { useSubscriptionLimits } from '@/hooks/useSubscriptionLimits';
 import { useSellerCredits } from '@/hooks/useSellerCredits';
 import { formatAmount } from '@/utils/currency';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router-compat';
 
 const planBadgeVariants: Record<string, string> = {
   free: 'bg-muted text-muted-foreground border-border',

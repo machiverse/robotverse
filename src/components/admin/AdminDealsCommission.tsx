@@ -120,7 +120,7 @@ const AdminDealsCommission = () => {
           { title: "Active Deals", value: activeDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
           { title: "Pending Verification", value: pendingVerification, icon: ShieldCheck, color: pendingVerification > 0 ? "text-orange-600" : "text-muted-foreground", bg: pendingVerification > 0 ? "bg-orange-50 dark:bg-orange-950/30" : "bg-muted/30" },
         ].map((stat) => (
-          <Card key={stat.title} className="border-muted/60 shadow-sm">
+          <Card key={stat.title} className="border-muted/60 shadow-xs">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">

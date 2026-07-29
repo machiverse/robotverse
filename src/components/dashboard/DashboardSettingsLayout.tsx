@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { DashboardSettingsSidebar } from './DashboardSettingsSidebar';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/lib/router-compat';
 import { Button } from '@/components/ui/button';
 
 interface DashboardSettingsLayoutProps {
@@ -25,7 +25,7 @@ export const DashboardSettingsLayout = ({
         
         <main className="flex-1 min-h-[calc(100vh-4rem)]">
           {/* Back to Dashboard & Page Header */}
-          <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="border-b border-border bg-card/50 backdrop-blur-xs sticky top-0 z-10">
             <div className="px-6 py-4">
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground hover:text-foreground">
