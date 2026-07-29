@@ -874,6 +874,23 @@ const SparePartDetails = () => {
               </TabsContent>
             </Tabs>
           </div>
+
+          {/* AEO: machine-readable overview, highlights and FAQs for AI crawlers */}
+          <AEOContentBlock
+            summary={`${sparePart.brand || ""} ${sparePart.name}${sparePart.part_number ? ` (${sparePart.part_number})` : ""} is a ${String(sparePart.condition || "new").toLowerCase()} robot spare part listed on RobotVerse, India's industrial robotics marketplace.${sparePart.main_category ? ` Category: ${sparePart.main_category}.` : ""} Buyers can request a quotation, confirm compatibility with their robot model, and arrange shipping across India.`}
+            highlights={[
+              sparePart.brand && { title: "Brand", text: String(sparePart.brand) },
+              sparePart.part_number && { title: "Part number", text: String(sparePart.part_number) },
+              sparePart.main_category && { title: "Category", text: String(sparePart.main_category) },
+              sparePart.condition && { title: "Condition", text: String(sparePart.condition) },
+            ].filter(Boolean) as { title: string; text: string }[]}
+            faq={generateSparePartFAQs(sparePart)}
+            jsonld={generateBreadcrumbSchema([
+              { name: "Home", url: "https://robotverse.in/" },
+              { name: "Robot Spare Parts", url: "https://robotverse.in/parts" },
+              { name: sparePart.name, url: `https://robotverse.in/parts/${sparePart.id}` },
+            ])}
+          />
         </div>
       </div>
     </>
