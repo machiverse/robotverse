@@ -1551,6 +1551,32 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
           robot={robot}
         />
       )}
+
+      {/* AEO: machine-readable overview, highlights and FAQs for AI crawlers */}
+      {robot && (
+        <div className="container mx-auto px-4 pb-16">
+          <AEOContentBlock
+            summary={`${robot.brand || ""} ${robot.model || robot.name} is a ${robot.condition === "new" ? "new" : "used"} ${robot.robot_type || "industrial"} robot listed on RobotVerse${robot.location ? ` in ${robot.location}` : ""}, India.${robot.payload_capacity ? ` It offers a ${robot.payload_capacity} kg payload capacity.` : ""}${robot.reach ? ` Maximum reach is ${robot.reach} mm.` : ""}${robot.axes ? ` It has ${robot.axes} axes.` : ""} Buyers can request a quotation, arrange inspection, and add financing and logistics through RobotVerse.`}
+            highlights={[
+              robot.brand && { title: "Brand", text: String(robot.brand) },
+              robot.model && { title: "Model", text: String(robot.model) },
+              robot.payload_capacity && { title: "Payload", text: `${robot.payload_capacity} kg` },
+              robot.reach && { title: "Reach", text: `${robot.reach} mm` },
+              robot.condition && { title: "Condition", text: String(robot.condition) },
+              robot.location && { title: "Location", text: String(robot.location) },
+            ].filter(Boolean) as { title: string; text: string }[]}
+            faq={generateRobotFAQs(robot)}
+            jsonld={generateBreadcrumbSchema([
+              { name: "Home", url: "https://robotverse.in/" },
+              { name: "Industrial Robots", url: "https://robotverse.in/robots" },
+              ...(robot.brand
+                ? [{ name: String(robot.brand), url: `https://robotverse.in/robots/brand/${String(robot.brand).toLowerCase()}` }]
+                : []),
+              { name: robot.model || robot.name, url: `https://robotverse.in/robots/${robot.id}` },
+            ])}
+          />
+        </div>
+      )}
     </div>
   );
 };
