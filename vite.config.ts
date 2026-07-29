@@ -24,7 +24,6 @@ function browserOnlyLibs(): Plugin {
     enforce: "pre",
     resolveId(id) {
       if (!BROWSER_ONLY.has(id)) return null;
-      console.error("[browser-only-libs] hit", id, (this as { environment?: { name?: string } }).environment?.name);
       const envName = (this as { environment?: { name?: string } }).environment?.name;
       if (envName && envName !== "client") return browserOnlyStub;
       return null;
