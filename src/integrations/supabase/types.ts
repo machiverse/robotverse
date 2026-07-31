@@ -473,6 +473,7 @@ export type Database = {
           recipient_email: string
           recipient_user_id: string | null
           retry_count: number
+          robot_id: string | null
           sent_at: string | null
           status: string
           subject: string
@@ -490,6 +491,7 @@ export type Database = {
           recipient_email: string
           recipient_user_id?: string | null
           retry_count?: number
+          robot_id?: string | null
           sent_at?: string | null
           status?: string
           subject: string
@@ -507,6 +509,7 @@ export type Database = {
           recipient_email?: string
           recipient_user_id?: string | null
           retry_count?: number
+          robot_id?: string | null
           sent_at?: string | null
           status?: string
           subject?: string
