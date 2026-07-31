@@ -191,8 +191,12 @@ serve(async (req) => {
 
     if (!smtpUser || !smtpPass) throw new Error("SMTP credentials not configured");
 
-    const newClient = () =>
-      new SMTPClient({
+    // One shared connection for all emails in this invocation.
+    // Opening a fresh TLS connection per email blows the edge CPU budget.
+    let sharedClient: SMTPClient | null = null;
+    const getClient = async () => {
+      if (sharedClient) return sharedClient;
+      sharedClient = new SMTPClient({
         connection: {
           hostname: smtpHost,
           port: smtpPort,
@@ -200,6 +204,14 @@ serve(async (req) => {
           auth: { username: smtpUser, password: smtpPass },
         },
       });
+      return sharedClient;
+    };
+    const closeClient = async () => {
+      if (!sharedClient) return;
+      try { await sharedClient.close(); } catch (_) { /* ignore */ }
+      sharedClient = null;
+    };
+
 
     // Insert a log row; returns null if this exact notification already exists (dedupe)
     const claimLog = async (row: Record<string, unknown>) => {
