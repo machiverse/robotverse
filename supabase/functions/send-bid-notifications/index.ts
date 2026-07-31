@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { SimpleSMTP } from "../_shared/smtp.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -187,19 +187,26 @@ serve(async (req) => {
     const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "465");
     const smtpUser = Deno.env.get("SMTP_USER") || "";
     const smtpPass = Deno.env.get("SMTP_PASS") || "";
-    const smtpFrom = `"RobotVerse Auction" <${Deno.env.get("SMTP_FROM") || smtpUser || SUPPORT_EMAIL}>`;
+    const smtpFromEmail = Deno.env.get("SMTP_FROM") || smtpUser || SUPPORT_EMAIL;
+    const smtpFrom = `"RobotVerse Auction" <${smtpFromEmail}>`;
 
     if (!smtpUser || !smtpPass) throw new Error("SMTP credentials not configured");
 
-    const newClient = () =>
-      new SMTPClient({
-        connection: {
-          hostname: smtpHost,
-          port: smtpPort,
-          tls: true,
-          auth: { username: smtpUser, password: smtpPass },
-        },
-      });
+    // One shared connection for all emails in this invocation.
+    let sharedClient: SimpleSMTP | null = null;
+    const getClient = async () => {
+      if (sharedClient) return sharedClient;
+      const c = new SimpleSMTP({ hostname: smtpHost, port: smtpPort, username: smtpUser, password: smtpPass });
+      await c.connect();
+      sharedClient = c;
+      return sharedClient;
+    };
+    const closeClient = async () => {
+      if (!sharedClient) return;
+      try { await sharedClient.close(); } catch (_) { /* ignore */ }
+      sharedClient = null;
+    };
+
 
     // Insert a log row; returns null if this exact notification already exists (dedupe)
     const claimLog = async (row: Record<string, unknown>) => {
@@ -215,14 +222,13 @@ serve(async (req) => {
       return data?.id ?? null;
     };
 
-    // Send with retry (3 attempts, exponential backoff)
+    // Send over the shared connection; on failure reconnect once and retry.
     const sendWithRetry = async (to: string, subject: string, html: string, logId: string | null) => {
       let lastErr = "";
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        const client = newClient();
+      for (let attempt = 1; attempt <= 2; attempt++) {
         try {
-          await client.send({ from: smtpFrom, to, subject, content: "auto", html });
-          try { await client.close(); } catch (_) { /* ignore */ }
+          const client = await getClient();
+          await client.send({ from: smtpFrom, fromEmail: smtpFromEmail, to, subject, html });
           if (logId) {
             await admin
               .from("bid_email_log")
@@ -232,24 +238,20 @@ serve(async (req) => {
           return true;
         } catch (e) {
           lastErr = e instanceof Error ? e.message : String(e);
-          try { await client.close(); } catch (_) { /* ignore */ }
           console.error(`send attempt ${attempt} to ${to} failed: ${lastErr}`);
-          if (logId) {
-            await admin
-              .from("bid_email_log")
-              .update({ status: "retrying", retry_count: attempt, error_message: lastErr })
-              .eq("id", logId);
-          }
-          if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 2000));
+          await closeClient(); // force a fresh connection on retry
         }
       }
+
       if (logId) {
-        await admin.from("bid_email_log").update({ status: "failed", error_message: lastErr }).eq("id", logId);
+        await admin.from("bid_email_log").update({ status: "failed", error_message: lastErr, retry_count: 2 }).eq("id", logId);
       }
       return false;
     };
 
+
     const doSend = async () => {
+     try {
       // Confirmation email to the new highest bidder
       if (winnerEmail) {
         const subject = "Your Bid Has Been Successfully Placed - RobotVerse Live Auction";
@@ -315,6 +317,9 @@ serve(async (req) => {
           logId,
         );
       }
+     } finally {
+      await closeClient();
+     }
     };
 
     // Run in background so pg_net call returns quickly
