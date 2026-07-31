@@ -187,23 +187,18 @@ serve(async (req) => {
     const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "465");
     const smtpUser = Deno.env.get("SMTP_USER") || "";
     const smtpPass = Deno.env.get("SMTP_PASS") || "";
-    const smtpFrom = `"RobotVerse Auction" <${Deno.env.get("SMTP_FROM") || smtpUser || SUPPORT_EMAIL}>`;
+    const smtpFromEmail = Deno.env.get("SMTP_FROM") || smtpUser || SUPPORT_EMAIL;
+    const smtpFrom = `"RobotVerse Auction" <${smtpFromEmail}>`;
 
     if (!smtpUser || !smtpPass) throw new Error("SMTP credentials not configured");
 
     // One shared connection for all emails in this invocation.
-    // Opening a fresh TLS connection per email blows the edge CPU budget.
-    let sharedClient: SMTPClient | null = null;
+    let sharedClient: SimpleSMTP | null = null;
     const getClient = async () => {
       if (sharedClient) return sharedClient;
-      sharedClient = new SMTPClient({
-        connection: {
-          hostname: smtpHost,
-          port: smtpPort,
-          tls: true,
-          auth: { username: smtpUser, password: smtpPass },
-        },
-      });
+      const c = new SimpleSMTP({ hostname: smtpHost, port: smtpPort, username: smtpUser, password: smtpPass });
+      await c.connect();
+      sharedClient = c;
       return sharedClient;
     };
     const closeClient = async () => {
@@ -233,7 +228,7 @@ serve(async (req) => {
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
           const client = await getClient();
-          await client.send({ from: smtpFrom, to, subject, content: "auto", html });
+          await client.send({ from: smtpFrom, fromEmail: smtpFromEmail, to, subject, html });
           if (logId) {
             await admin
               .from("bid_email_log")
@@ -247,6 +242,7 @@ serve(async (req) => {
           await closeClient(); // force a fresh connection on retry
         }
       }
+
       if (logId) {
         await admin.from("bid_email_log").update({ status: "failed", error_message: lastErr, retry_count: 2 }).eq("id", logId);
       }
