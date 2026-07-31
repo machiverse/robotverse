@@ -321,6 +321,9 @@ serve(async (req) => {
           logId,
         );
       }
+     } finally {
+      await closeClient();
+     }
     };
 
     // Run in background so pg_net call returns quickly
