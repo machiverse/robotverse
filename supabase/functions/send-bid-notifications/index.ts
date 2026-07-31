@@ -38,7 +38,7 @@ function confirmationHtml(o: {
         <h1 style="margin:0;font-size:22px">Your Bid Has Been Successfully Placed</h1>
       </div>
       <div style="padding:24px;color:#111827;font-size:14px;line-height:1.6">
-        <p>Hi ${o.bidderName || "Bidder"},</p>
+        <p>Dear ${o.bidderName || "Bidder"},</p>
         <p>Congratulations — you are currently the highest bidder on <strong>${o.robotName}</strong>.</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0">
           <tr><td style="padding:8px;background:#f3f4f6"><strong>Robot</strong></td><td style="padding:8px">${o.robotName}</td></tr>
@@ -51,7 +51,7 @@ function confirmationHtml(o: {
         <div style="text-align:center;margin:24px 0">
           <a href="${o.auctionUrl}" style="background:#059669;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">View Auction</a>
         </div>
-        <p style="color:#6b7280;font-size:12px">Stay tuned — other participants may place higher bids before the auction ends.</p>
+        <p style="color:#6b7280;font-size:12px">Thank you,<br/>RobotVerse Auction Team<br/>${SUPPORT_EMAIL}</p>
       </div>
     </div>
   </div>`;
@@ -63,41 +63,32 @@ function outbidHtml(o: {
   highestBid: number;
   previousBid: number;
   endTime: string;
-  timeLeft: string;
+  auctionUrl: string;
 }) {
   return `
   <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f9fafb;padding:24px">
     <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.05)">
       <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;padding:24px">
-        <h1 style="margin:0;font-size:22px">You've Been Outbid — Increase Your Bid</h1>
+        <h1 style="margin:0;font-size:22px">You Have Been Outbid - RobotVerse Live Auction</h1>
       </div>
-      <div style="padding:24px;color:#111827;font-size:14px;line-height:1.6">
-        <p>Hi ${o.bidderName || "Bidder"},</p>
-        <p>Another participant has placed a higher bid than yours on <strong>${o.robotName}</strong>. Increase your bid now to stay in the lead before the auction ends.</p>
+      <div style="padding:24px;color:#111827;font-size:14px;line-height:1.7">
+        <p>Dear ${o.bidderName || "Bidder"},</p>
+        <p>Another participant has placed a higher bid for the following auction item:</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0">
           <tr><td style="padding:8px;background:#f3f4f6"><strong>Robot</strong></td><td style="padding:8px">${o.robotName}</td></tr>
-          <tr><td style="padding:8px;background:#f3f4f6"><strong>Your Previous Bid</strong></td><td style="padding:8px">${fmtInr(o.previousBid)}</td></tr>
+          <tr><td style="padding:8px;background:#f3f4f6"><strong>Your Last Bid</strong></td><td style="padding:8px">${fmtInr(o.previousBid)}</td></tr>
           <tr><td style="padding:8px;background:#f3f4f6"><strong>Current Highest Bid</strong></td><td style="padding:8px;color:#dc2626;font-weight:bold">${fmtInr(o.highestBid)}</td></tr>
-          <tr><td style="padding:8px;background:#f3f4f6"><strong>Auction Ends</strong></td><td style="padding:8px">${o.endTime}</td></tr>
-          <tr><td style="padding:8px;background:#f3f4f6"><strong>Time Remaining</strong></td><td style="padding:8px">${o.timeLeft}</td></tr>
         </table>
+        <p>Your bid is no longer the highest.</p>
+        <p>To remain in the auction, place a higher bid before the auction closes.</p>
+        <p><strong>Auction Ends:</strong> ${o.endTime}</p>
         <div style="text-align:center;margin:24px 0">
-          <a href="${AUCTIONS_URL}" style="background:#dc2626;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Increase My Bid</a>
+          <a href="${o.auctionUrl}" style="background:#dc2626;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Submit Your Next Bid</a>
         </div>
-        <p style="color:#6b7280;font-size:12px">Don't miss out — the auction is still live.</p>
+        <p style="color:#6b7280;font-size:12px">Thank you,<br/>RobotVerse Auction Team<br/>${SUPPORT_EMAIL}</p>
       </div>
     </div>
   </div>`;
-}
-
-async function sendEmail(client: SMTPClient, from: string, to: string, subject: string, html: string) {
-  await client.send({
-    from,
-    to,
-    subject,
-    content: "auto",
-    html,
-  });
 }
 
 serve(async (req) => {
@@ -144,6 +135,7 @@ serve(async (req) => {
     const robotName =
       [auction.robots?.brand, auction.robots?.name, auction.robots?.model].filter(Boolean).join(" ") ||
       auction.auction_title;
+    const robotId = auction.robot_id ?? null;
     const endIso = auction.end_time;
     const endHuman = new Date(endIso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
     const bidHuman = new Date(newBid.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
@@ -177,6 +169,11 @@ serve(async (req) => {
       }
     }
 
+    // Only notify bidders actually surpassed by the new highest bid
+    for (const [uid, info] of [...outbidMap]) {
+      if (info.prevBid >= highest) outbidMap.delete(uid);
+    }
+
     // Fill missing emails from auth
     for (const [uid, info] of outbidMap) {
       if (!info.email) {
@@ -190,12 +187,12 @@ serve(async (req) => {
     const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "465");
     const smtpUser = Deno.env.get("SMTP_USER") || "";
     const smtpPass = Deno.env.get("SMTP_PASS") || "";
-    const smtpFrom = `"RobotVerse" <${Deno.env.get("SMTP_FROM") || smtpUser || "support@robotverse.in"}>`;
+    const smtpFrom = `"RobotVerse Auction" <${Deno.env.get("SMTP_FROM") || smtpUser || SUPPORT_EMAIL}>`;
 
     if (!smtpUser || !smtpPass) throw new Error("SMTP credentials not configured");
 
-    const doSend = async () => {
-      const client = new SMTPClient({
+    const newClient = () =>
+      new SMTPClient({
         connection: {
           hostname: smtpHost,
           port: smtpPort,
@@ -204,78 +201,120 @@ serve(async (req) => {
         },
       });
 
-      // Confirmation email
-      if (winnerEmail) {
-        const subject = "Your Bid Has Been Successfully Placed";
-        const html = confirmationHtml({
-          bidderName: newBid.bidder_name || "Bidder",
-          robotName,
-          auctionId: auction.id,
-          bidAmount: highest,
-          bidTime: bidHuman,
-          endTime: endHuman,
-          timeLeft,
-          auctionUrl,
-        });
-        const { data: logRow } = await admin
-          .from("bid_email_log")
-          .insert({
-            auction_id,
-            bid_id,
-            recipient_user_id: newBid.bidder_id,
-            recipient_email: winnerEmail,
-            email_type: "bid_confirmation",
-            subject,
-            bid_amount: highest,
-            highest_bid_amount: highest,
-          })
-          .select("id")
-          .single();
+    // Insert a log row; returns null if this exact notification already exists (dedupe)
+    const claimLog = async (row: Record<string, unknown>) => {
+      const { data, error } = await admin
+        .from("bid_email_log")
+        .insert(row)
+        .select("id")
+        .maybeSingle();
+      if (error) {
+        console.log("log insert skipped (likely duplicate):", error.message);
+        return null;
+      }
+      return data?.id ?? null;
+    };
+
+    // Send with retry (3 attempts, exponential backoff)
+    const sendWithRetry = async (to: string, subject: string, html: string, logId: string | null) => {
+      let lastErr = "";
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const client = newClient();
         try {
-          await sendEmail(client, smtpFrom, winnerEmail, subject, html);
-          if (logRow) await admin.from("bid_email_log").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", logRow.id);
+          await client.send({ from: smtpFrom, to, subject, content: "auto", html });
+          try { await client.close(); } catch (_) { /* ignore */ }
+          if (logId) {
+            await admin
+              .from("bid_email_log")
+              .update({ status: "sent", sent_at: new Date().toISOString(), retry_count: attempt - 1, error_message: null })
+              .eq("id", logId);
+          }
+          return true;
         } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          if (logRow) await admin.from("bid_email_log").update({ status: "failed", error_message: msg }).eq("id", logRow.id);
+          lastErr = e instanceof Error ? e.message : String(e);
+          try { await client.close(); } catch (_) { /* ignore */ }
+          console.error(`send attempt ${attempt} to ${to} failed: ${lastErr}`);
+          if (logId) {
+            await admin
+              .from("bid_email_log")
+              .update({ status: "retrying", retry_count: attempt, error_message: lastErr })
+              .eq("id", logId);
+          }
+          if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 2000));
+        }
+      }
+      if (logId) {
+        await admin.from("bid_email_log").update({ status: "failed", error_message: lastErr }).eq("id", logId);
+      }
+      return false;
+    };
+
+    const doSend = async () => {
+      // Confirmation email to the new highest bidder
+      if (winnerEmail) {
+        const subject = "Your Bid Has Been Successfully Placed - RobotVerse Live Auction";
+        const logId = await claimLog({
+          auction_id,
+          robot_id: robotId,
+          bid_id,
+          recipient_user_id: newBid.bidder_id,
+          recipient_email: winnerEmail,
+          email_type: "bid_confirmation",
+          subject,
+          bid_amount: highest,
+          highest_bid_amount: highest,
+          status: "pending",
+        });
+        if (logId) {
+          await sendWithRetry(
+            winnerEmail,
+            subject,
+            confirmationHtml({
+              bidderName: newBid.bidder_name || "Bidder",
+              robotName,
+              auctionId: auction.id,
+              bidAmount: highest,
+              bidTime: bidHuman,
+              endTime: endHuman,
+              timeLeft,
+              auctionUrl,
+            }),
+            logId,
+          );
         }
       }
 
       // Outbid emails
       for (const [uid, info] of outbidMap) {
         if (!info.email) continue;
-        const subject = "You've Been Outbid - Increase Your Bid";
-        const html = outbidHtml({
-          bidderName: info.name || "Bidder",
-          robotName,
-          highestBid: highest,
-          previousBid: info.prevBid,
-          endTime: endHuman,
-          timeLeft,
+        const subject = "You Have Been Outbid - RobotVerse Live Auction";
+        const logId = await claimLog({
+          auction_id,
+          robot_id: robotId,
+          bid_id,
+          recipient_user_id: uid,
+          recipient_email: info.email,
+          email_type: "outbid_notification",
+          subject,
+          bid_amount: info.prevBid,
+          highest_bid_amount: highest,
+          status: "pending",
         });
-        const { data: logRow } = await admin
-          .from("bid_email_log")
-          .insert({
-            auction_id,
-            bid_id,
-            recipient_user_id: uid,
-            recipient_email: info.email,
-            email_type: "outbid_notification",
-            subject,
-            bid_amount: info.prevBid,
-            highest_bid_amount: highest,
-          })
-          .select("id")
-          .single();
-        try {
-          await sendEmail(client, smtpFrom, info.email, subject, html);
-          if (logRow) await admin.from("bid_email_log").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", logRow.id);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          if (logRow) await admin.from("bid_email_log").update({ status: "failed", error_message: msg }).eq("id", logRow.id);
-        }
+        if (!logId) continue; // duplicate — already notified for this bid event
+        await sendWithRetry(
+          info.email,
+          subject,
+          outbidHtml({
+            bidderName: info.name || "Bidder",
+            robotName,
+            highestBid: highest,
+            previousBid: info.prevBid,
+            endTime: endHuman,
+            auctionUrl,
+          }),
+          logId,
+        );
       }
-
-      await client.close();
     };
 
     // Run in background so pg_net call returns quickly
