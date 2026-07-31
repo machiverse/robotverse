@@ -255,6 +255,7 @@ serve(async (req) => {
 
 
     const doSend = async () => {
+     try {
       // Confirmation email to the new highest bidder
       if (winnerEmail) {
         const subject = "Your Bid Has Been Successfully Placed - RobotVerse Live Auction";
