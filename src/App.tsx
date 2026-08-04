@@ -220,10 +220,18 @@ const App = () => (
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />
               <Route path="/auctions/:id/edit" element={<EditAuction />} />
+              <Route path="/whatsapp-bot" element={<WhatsAppBotLayout />}>
+                <Route index element={<WhatsAppDashboard />} />
+                <Route path="conversations" element={<WhatsAppConversations />} />
+                <Route path="knowledge-base" element={<WhatsAppKnowledgeBase />} />
+                <Route path="broadcast" element={<WhatsAppBroadcast />} />
+                <Route path="settings" element={<WhatsAppSettings />} />
+              </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AIAssistantWidget />
+            <WhatsAppWidget />
             </AIAssistantProvider>
           </BrowserRouter>
         </TooltipProvider>
