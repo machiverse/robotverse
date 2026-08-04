@@ -231,7 +231,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AIAssistantWidget />
-            <WhatsAppWidget />
+
             </AIAssistantProvider>
           </BrowserRouter>
         </TooltipProvider>
