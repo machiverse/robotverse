@@ -92,7 +92,6 @@ import WhatsAppConversations from "./pages/whatsapp/WhatsAppConversations";
 import WhatsAppKnowledgeBase from "./pages/whatsapp/WhatsAppKnowledgeBase";
 import WhatsAppBroadcast from "./pages/whatsapp/WhatsAppBroadcast";
 import WhatsAppSettings from "./pages/whatsapp/WhatsAppSettings";
-import WhatsAppWidget from "./components/whatsapp/WhatsAppWidget";
 
 const queryClient = new QueryClient({
   defaultOptions: {

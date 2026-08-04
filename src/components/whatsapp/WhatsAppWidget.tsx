@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 
-const WA_PHONE = "917639841220";
+const WA_PHONE = "918825515952";
 
 const QUICK_REPLIES = ["Browse robots", "Spare parts", "Book a service", "Talk to a human"];
 
