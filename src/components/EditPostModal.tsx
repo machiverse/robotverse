@@ -232,7 +232,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     return errors;
   };
 
-  const handleSubmit = async (mode: 'draft' | 'publish' | 'schedule' = 'publish') => {
+  const handleSubmit = async (mode: 'draft' | 'publish' | 'schedule' | 'save' = 'publish') => {
     const errors = validateForm();
     if (errors.length > 0) {
       toast.error(errors[0]);
@@ -252,6 +252,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       }
       scheduleIso = dt.toISOString();
     }
+
 
     try {
       setIsSubmitting(true);
