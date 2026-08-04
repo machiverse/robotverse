@@ -307,12 +307,14 @@ function buildDatabaseContext(
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  // Require authenticated caller
+  // Require authenticated caller (or an internal service-role call, e.g. the WhatsApp bot)
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-  {
+  const bearer = authHeader.replace('Bearer ', '').trim();
+  const isInternal = bearer === (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '__none__');
+  if (!isInternal) {
     const _authClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
