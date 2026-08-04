@@ -175,7 +175,7 @@ async function handleIncoming(msg: any, contactName: string | undefined, cfg: Wa
     return;
   }
 
-  // Welcome flow for new / expired sessions
+  // Welcome flow for new / expired sessions — greet, then still answer the message
   if (isNew || expired) {
     await send(settings.welcome_message);
     try {
@@ -184,7 +184,9 @@ async function handleIncoming(msg: any, contactName: string | undefined, cfg: Wa
     } catch (err) {
       console.error("menu list failed:", err);
     }
-    if (isNew && !MENU_PROMPTS[msg.interactive?.list_reply?.id ?? ""]) return;
+    // Only a bare greeting needs no further answer
+    const bareGreeting = /^(hi+|hey+|hello+|namaste|start|menu|hii|good (morning|afternoon|evening))[\s!.]*$/i.test(text.trim());
+    if (bareGreeting) return;
   }
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
