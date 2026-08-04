@@ -634,12 +634,17 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save as Draft
             </Button>
+            <Button variant="secondary" onClick={() => handleSubmit('save')} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isScheduled ? 'Save (Keep Scheduled)' : 'Save Changes'}
+            </Button>
             {scheduledAt && (
               <Button variant="secondary" onClick={() => handleSubmit('schedule')} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {isScheduled ? 'Reschedule' : 'Schedule Post'}
               </Button>
             )}
+
             <Button onClick={() => handleSubmit('publish')} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {(post as any).status === 'draft' || (post as any).is_draft || (post as any).status === 'scheduled' ? 'Publish Now' : 'Update Post'}
