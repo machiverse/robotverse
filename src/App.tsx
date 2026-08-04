@@ -86,6 +86,13 @@ import Auctions from "./pages/Auctions";
 import AuctionDetail from "./pages/AuctionDetail";
 import CreateAuction from "./pages/CreateAuction";
 import EditAuction from "./pages/EditAuction";
+import WhatsAppBotLayout from "./pages/whatsapp/WhatsAppBotLayout";
+import WhatsAppDashboard from "./pages/whatsapp/WhatsAppDashboard";
+import WhatsAppConversations from "./pages/whatsapp/WhatsAppConversations";
+import WhatsAppKnowledgeBase from "./pages/whatsapp/WhatsAppKnowledgeBase";
+import WhatsAppBroadcast from "./pages/whatsapp/WhatsAppBroadcast";
+import WhatsAppSettings from "./pages/whatsapp/WhatsAppSettings";
+import WhatsAppWidget from "./components/whatsapp/WhatsAppWidget";
 
 const queryClient = new QueryClient({
   defaultOptions: {
