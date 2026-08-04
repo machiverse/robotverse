@@ -143,7 +143,11 @@ async function handleIncoming(msg: any, contactName: string | undefined, cfg: Wa
     .eq("id", session.id);
 
   const send = async (body: string, type = "text") => {
-    await sendTextMessage(cfg, from, body);
+    try {
+      await sendTextMessage(cfg, from, body);
+    } catch (err) {
+      console.error("sendTextMessage failed:", err);
+    }
     await logMessage({ session_id: session.id, phone: from, direction: "out", body, msg_type: type });
   };
 
