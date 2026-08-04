@@ -86,6 +86,13 @@ import Auctions from "./pages/Auctions";
 import AuctionDetail from "./pages/AuctionDetail";
 import CreateAuction from "./pages/CreateAuction";
 import EditAuction from "./pages/EditAuction";
+import WhatsAppBotLayout from "./pages/whatsapp/WhatsAppBotLayout";
+import WhatsAppDashboard from "./pages/whatsapp/WhatsAppDashboard";
+import WhatsAppConversations from "./pages/whatsapp/WhatsAppConversations";
+import WhatsAppKnowledgeBase from "./pages/whatsapp/WhatsAppKnowledgeBase";
+import WhatsAppBroadcast from "./pages/whatsapp/WhatsAppBroadcast";
+import WhatsAppSettings from "./pages/whatsapp/WhatsAppSettings";
+import WhatsAppWidget from "./components/whatsapp/WhatsAppWidget";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -213,10 +220,18 @@ const App = () => (
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />
               <Route path="/auctions/:id/edit" element={<EditAuction />} />
+              <Route path="/whatsapp-bot" element={<WhatsAppBotLayout />}>
+                <Route index element={<WhatsAppDashboard />} />
+                <Route path="conversations" element={<WhatsAppConversations />} />
+                <Route path="knowledge-base" element={<WhatsAppKnowledgeBase />} />
+                <Route path="broadcast" element={<WhatsAppBroadcast />} />
+                <Route path="settings" element={<WhatsAppSettings />} />
+              </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
             <AIAssistantWidget />
+            <WhatsAppWidget />
             </AIAssistantProvider>
           </BrowserRouter>
         </TooltipProvider>
