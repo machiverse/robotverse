@@ -174,13 +174,20 @@ async function overRateLimit(phone: string, limit: number) {
 
 async function handle(incoming: { phone: string; text: string; name?: string; id?: string }) {
   const { phone, text, name } = incoming;
+  const senderPhone = phone; // immutable per-invocation conversation identifier
+  console.log(`📥 inbound from +${senderPhone}: "${text.slice(0, 120)}"`);
   const settings = await getSettings();
-  const { session, isNew, expired } = await upsertSession(phone, name);
+  const { session, isNew, expired } = await upsertSession(senderPhone, name);
   if (!session) return;
+  if (session.phone && session.phone.replace(/\D/g, "") !== senderPhone) {
+    console.error(`session/phone mismatch (session ${session.id} = ${session.phone}, sender ${senderPhone}) — aborting`);
+    return;
+  }
+  console.log(`🧵 conversation ${session.id} ↔ +${senderPhone}`);
 
   await admin.from("whatsapp_messages").insert({
     session_id: session.id,
-    phone,
+    phone: senderPhone,
     direction: "in",
     body: text,
     msg_type: "text",
@@ -198,15 +205,17 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
     .eq("id", session.id);
 
   const send = async (body: string) => {
+    console.log(`🤖 reply for conversation ${session.id} → +${senderPhone}: "${body.slice(0, 120)}"`);
     try {
-      await sendWhatsApp(phone, body);
+      await sendWhatsApp(senderPhone, body);
     } catch (err) {
-      console.error("send failed:", err);
+      console.error(`send failed for +${senderPhone}:`, err);
     }
     await admin
       .from("whatsapp_messages")
-      .insert({ session_id: session.id, phone, direction: "out", body, msg_type: "text" });
+      .insert({ session_id: session.id, phone: senderPhone, direction: "out", body, msg_type: "text" });
   };
+
 
   if (session.human_mode) {
     console.log(`${phone} is in human mode — no auto reply`);
