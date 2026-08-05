@@ -389,26 +389,39 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
 
 
   if (category || ["marketplace", "product", "comparison"].includes(analysis.intent) || analysis.specificProduct) {
-    reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: requirement }]);
+    try {
+      console.log("🔎 querying RobotVerse AI marketplace brain…");
+      reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: requirement }]);
+      console.log(`✅ marketplace brain replied (${reply?.length ?? 0} chars)`);
+    } catch (err) {
+      console.error("callWebsiteAssistant failed:", err);
+      reply = null;
+    }
   }
 
   if (!reply) {
-    const { data: kb } = await admin
-      .from("whatsapp_kb")
-      .select("entry_key, category, title, content, keywords")
-      .eq("is_active", true);
-    const matched = searchKnowledge((kb ?? []) as KbEntry[], analysis.intent, analysis.keywords);
-    reply = await generateResponse({
-      userMessage: userText,
-      analysis,
-      knowledgeContext: matched.map((m) => `• ${m.title} [${m.category}]: ${m.content}`).join("\n"),
-      conversationHistory: history,
-      apiKey: LOVABLE_API_KEY,
-      model: settings.model,
-      temperature: settings.temperature,
-      maxTokens: settings.max_tokens,
-    });
+    try {
+      const { data: kb } = await admin
+        .from("whatsapp_kb")
+        .select("entry_key, category, title, content, keywords")
+        .eq("is_active", true);
+      const matched = searchKnowledge((kb ?? []) as KbEntry[], analysis.intent, analysis.keywords);
+      reply = await generateResponse({
+        userMessage: userText,
+        analysis,
+        knowledgeContext: matched.map((m) => `• ${m.title} [${m.category}]: ${m.content}`).join("\n"),
+        conversationHistory: history,
+        apiKey: LOVABLE_API_KEY,
+        model: settings.model,
+        temperature: settings.temperature,
+        maxTokens: settings.max_tokens,
+      });
+    } catch (err) {
+      console.error("generateResponse failed:", err);
+      reply = null;
+    }
   }
+
 
   await send(reply || settings.fallback_message);
 
