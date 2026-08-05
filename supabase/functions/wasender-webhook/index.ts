@@ -27,6 +27,9 @@ const SESSION_TTL_MIN = 60;
 
 async function sendWhatsApp(to: string, text: string) {
   if (!WASENDER_API_KEY) throw new Error("WASENDER_API_KEY not configured");
+  const recipient = String(to || "").replace(/\D/g, "");
+  if (!/^\d{8,15}$/.test(recipient)) throw new Error(`refusing to send — invalid recipient "${to}"`);
+  console.log(`➡️ sending reply to +${recipient} (${text.length} chars)`);
   for (const chunk of splitLongMessage(text)) {
     for (let attempt = 0; attempt < 3; attempt++) {
       const res = await fetch(WASENDER_URL, {
@@ -35,7 +38,7 @@ async function sendWhatsApp(to: string, text: string) {
           Authorization: `Bearer ${WASENDER_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ to, text: chunk }),
+        body: JSON.stringify({ to: `+${recipient}`, text: chunk }),
       });
       if (res.ok) break;
       const raw = await res.text();
@@ -72,18 +75,44 @@ async function getSettings() {
   };
 }
 
+/** Valid E.164-ish WhatsApp MSISDN: 8–15 digits. */
+function isValidPhone(p: string): boolean {
+  return /^\d{8,15}$/.test(p);
+}
+
 /** Extracts phone + text from the various WasenderAPI webhook shapes. */
 function parseIncoming(body: any): { phone: string; text: string; name?: string; id?: string; fromMe: boolean } | null {
   const d = body?.data ?? body;
-  const msg = d?.messages ?? d?.message ?? d;
-  if (!msg) return null;
+  // `messages` can be an object OR an array (Baileys upsert) — always take the first entry
+  let msg = d?.messages ?? d?.message ?? d;
+  if (Array.isArray(msg)) msg = msg[0];
+  if (!msg || typeof msg !== "object") return null;
 
   const key = msg.key ?? d.key ?? {};
   const fromMe = !!(key.fromMe ?? msg.fromMe);
-  const jid: string = key.remoteJid ?? msg.remoteJid ?? msg.from ?? d.from ?? "";
-  if (!jid || jid.includes("@g.us") || jid.includes("status@")) return null; // skip groups/status
-  const phone = String(jid).split("@")[0].replace(/\D/g, "");
-  if (!phone) return null;
+
+  // Prefer the REAL phone-number JID. `remoteJid` can be a privacy LID
+  // (e.g. "123456789@lid") which is NOT a phone number — sending to it would
+  // deliver the reply to a completely different/unknown chat.
+  const candidates = [
+    key.senderPn,
+    key.remoteJidAlt,
+    msg.senderPn,
+    msg.remoteJidAlt,
+    key.remoteJid,
+    msg.remoteJid,
+    msg.from,
+    d.from,
+  ].filter((v) => typeof v === "string" && v.length > 0) as string[];
+
+  const jid = candidates.find((c) => !c.includes("@lid")) ?? candidates[0] ?? "";
+  if (!jid || jid.includes("@g.us") || jid.includes("@broadcast") || jid.includes("status@")) return null;
+
+  const phone = String(jid).split(/[@:]/)[0].replace(/\D/g, "");
+  if (!isValidPhone(phone)) {
+    console.error("rejecting message — unusable sender id:", jid, "candidates:", JSON.stringify(candidates));
+    return null;
+  }
 
   const m = msg.message ?? msg;
   const text: string =
@@ -98,6 +127,7 @@ function parseIncoming(body: any): { phone: string; text: string; name?: string;
 
   return { phone, text: String(text || "").trim(), name: msg.pushName ?? d.pushName, id: key.id ?? msg.id, fromMe };
 }
+
 
 async function upsertSession(phone: string, name?: string) {
   const { data: existing } = await admin
@@ -144,13 +174,20 @@ async function overRateLimit(phone: string, limit: number) {
 
 async function handle(incoming: { phone: string; text: string; name?: string; id?: string }) {
   const { phone, text, name } = incoming;
+  const senderPhone = phone; // immutable per-invocation conversation identifier
+  console.log(`📥 inbound from +${senderPhone}: "${text.slice(0, 120)}"`);
   const settings = await getSettings();
-  const { session, isNew, expired } = await upsertSession(phone, name);
+  const { session, isNew, expired } = await upsertSession(senderPhone, name);
   if (!session) return;
+  if (session.phone && session.phone.replace(/\D/g, "") !== senderPhone) {
+    console.error(`session/phone mismatch (session ${session.id} = ${session.phone}, sender ${senderPhone}) — aborting`);
+    return;
+  }
+  console.log(`🧵 conversation ${session.id} ↔ +${senderPhone}`);
 
   await admin.from("whatsapp_messages").insert({
     session_id: session.id,
-    phone,
+    phone: senderPhone,
     direction: "in",
     body: text,
     msg_type: "text",
@@ -168,15 +205,17 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
     .eq("id", session.id);
 
   const send = async (body: string) => {
+    console.log(`🤖 reply for conversation ${session.id} → +${senderPhone}: "${body.slice(0, 120)}"`);
     try {
-      await sendWhatsApp(phone, body);
+      await sendWhatsApp(senderPhone, body);
     } catch (err) {
-      console.error("send failed:", err);
+      console.error(`send failed for +${senderPhone}:`, err);
     }
     await admin
       .from("whatsapp_messages")
-      .insert({ session_id: session.id, phone, direction: "out", body, msg_type: "text" });
+      .insert({ session_id: session.id, phone: senderPhone, direction: "out", body, msg_type: "text" });
   };
+
 
   if (session.human_mode) {
     console.log(`${phone} is in human mode — no auto reply`);
