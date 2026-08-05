@@ -25,12 +25,23 @@ const WASENDER_URL = "https://wasenderapi.com/api/send-message";
 const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 const SESSION_TTL_MIN = 60;
 
+// Trial plans allow ~1 message/minute, so keep every reply to a single WhatsApp message.
+const MAX_REPLY_CHARS = 3200;
+function trimReply(text: string) {
+  const t = (text || "").trim();
+  if (t.length <= MAX_REPLY_CHARS) return t;
+  const cut = t.slice(0, MAX_REPLY_CHARS);
+  const stop = Math.max(cut.lastIndexOf("\n\n"), cut.lastIndexOf("\n"), cut.lastIndexOf(". "));
+  return `${cut.slice(0, stop > 800 ? stop : MAX_REPLY_CHARS).trim()}\n\n…more matches here 👉 https://robotverse.in/robots`;
+}
+
 async function sendWhatsApp(to: string, text: string) {
   if (!WASENDER_API_KEY) throw new Error("WASENDER_API_KEY not configured");
   const recipient = String(to || "").replace(/\D/g, "");
   if (!/^\d{8,15}$/.test(recipient)) throw new Error(`refusing to send — invalid recipient "${to}"`);
   console.log(`➡️ sending reply to +${recipient} (${text.length} chars)`);
-  for (const chunk of splitLongMessage(text)) {
+  for (const chunk of splitLongMessage(trimReply(text))) {
+
     for (let attempt = 0; attempt < 3; attempt++) {
       const res = await fetch(WASENDER_URL, {
         method: "POST",
