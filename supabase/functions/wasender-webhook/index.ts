@@ -311,8 +311,16 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
   }
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const analysis = await analyzeMessage(userText, LOVABLE_API_KEY);
+  let analysis;
+  try {
+    analysis = await analyzeMessage(userText, LOVABLE_API_KEY);
+  } catch (err) {
+    console.error("analyzeMessage failed:", err);
+    analysis = { intent: "other", keywords: [], sentiment: "neutral", specificProduct: null } as any;
+  }
+  console.log(`🧠 intent=${analysis.intent}`);
   await admin.from("whatsapp_sessions").update({ current_intent: analysis.intent }).eq("id", session.id);
+
 
   // Requirement gathering — combine everything the user has told us in this session
   const priorUserText = history.filter((h) => h.role === "user").map((h) => h.content).join(" ");
