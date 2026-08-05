@@ -81,3 +81,7 @@ verify_jwt = false
 
 [functions.whatsapp-admin]
 verify_jwt = false
+
+[functions.wasender-webhook]
+verify_jwt = false
+
