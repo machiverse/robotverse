@@ -25,12 +25,23 @@ const WASENDER_URL = "https://wasenderapi.com/api/send-message";
 const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 const SESSION_TTL_MIN = 60;
 
+// Trial plans allow ~1 message/minute, so keep every reply to a single WhatsApp message.
+const MAX_REPLY_CHARS = 3200;
+function trimReply(text: string) {
+  const t = (text || "").trim();
+  if (t.length <= MAX_REPLY_CHARS) return t;
+  const cut = t.slice(0, MAX_REPLY_CHARS);
+  const stop = Math.max(cut.lastIndexOf("\n\n"), cut.lastIndexOf("\n"), cut.lastIndexOf(". "));
+  return `${cut.slice(0, stop > 800 ? stop : MAX_REPLY_CHARS).trim()}\n\n…more matches here 👉 https://robotverse.in/robots`;
+}
+
 async function sendWhatsApp(to: string, text: string) {
   if (!WASENDER_API_KEY) throw new Error("WASENDER_API_KEY not configured");
   const recipient = String(to || "").replace(/\D/g, "");
   if (!/^\d{8,15}$/.test(recipient)) throw new Error(`refusing to send — invalid recipient "${to}"`);
   console.log(`➡️ sending reply to +${recipient} (${text.length} chars)`);
-  for (const chunk of splitLongMessage(text)) {
+  for (const chunk of splitLongMessage(trimReply(text))) {
+
     for (let attempt = 0; attempt < 3; attempt++) {
       const res = await fetch(WASENDER_URL, {
         method: "POST",
@@ -311,8 +322,16 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
   }
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const analysis = await analyzeMessage(userText, LOVABLE_API_KEY);
+  let analysis;
+  try {
+    analysis = await analyzeMessage(userText, LOVABLE_API_KEY);
+  } catch (err) {
+    console.error("analyzeMessage failed:", err);
+    analysis = { intent: "other", keywords: [], sentiment: "neutral", specificProduct: null } as any;
+  }
+  console.log(`🧠 intent=${analysis.intent}`);
   await admin.from("whatsapp_sessions").update({ current_intent: analysis.intent }).eq("id", session.id);
+
 
   // Requirement gathering — combine everything the user has told us in this session
   const priorUserText = history.filter((h) => h.role === "user").map((h) => h.content).join(" ");
@@ -381,26 +400,39 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
 
 
   if (category || ["marketplace", "product", "comparison"].includes(analysis.intent) || analysis.specificProduct) {
-    reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: requirement }]);
+    try {
+      console.log("🔎 querying RobotVerse AI marketplace brain…");
+      reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: requirement }]);
+      console.log(`✅ marketplace brain replied (${reply?.length ?? 0} chars)`);
+    } catch (err) {
+      console.error("callWebsiteAssistant failed:", err);
+      reply = null;
+    }
   }
 
   if (!reply) {
-    const { data: kb } = await admin
-      .from("whatsapp_kb")
-      .select("entry_key, category, title, content, keywords")
-      .eq("is_active", true);
-    const matched = searchKnowledge((kb ?? []) as KbEntry[], analysis.intent, analysis.keywords);
-    reply = await generateResponse({
-      userMessage: userText,
-      analysis,
-      knowledgeContext: matched.map((m) => `• ${m.title} [${m.category}]: ${m.content}`).join("\n"),
-      conversationHistory: history,
-      apiKey: LOVABLE_API_KEY,
-      model: settings.model,
-      temperature: settings.temperature,
-      maxTokens: settings.max_tokens,
-    });
+    try {
+      const { data: kb } = await admin
+        .from("whatsapp_kb")
+        .select("entry_key, category, title, content, keywords")
+        .eq("is_active", true);
+      const matched = searchKnowledge((kb ?? []) as KbEntry[], analysis.intent, analysis.keywords);
+      reply = await generateResponse({
+        userMessage: userText,
+        analysis,
+        knowledgeContext: matched.map((m) => `• ${m.title} [${m.category}]: ${m.content}`).join("\n"),
+        conversationHistory: history,
+        apiKey: LOVABLE_API_KEY,
+        model: settings.model,
+        temperature: settings.temperature,
+        maxTokens: settings.max_tokens,
+      });
+    } catch (err) {
+      console.error("generateResponse failed:", err);
+      reply = null;
+    }
   }
+
 
   await send(reply || settings.fallback_message);
 
@@ -453,13 +485,9 @@ serve(async (req) => {
     }
   })();
 
-  // @ts-ignore EdgeRuntime exists in Supabase Edge Functions
-  if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
-    // @ts-ignore
-    EdgeRuntime.waitUntil(work);
-  } else {
-    await work;
-  }
+  // Process inline (not via waitUntil) so the reply is always generated before we ACK.
+  await work;
+
 
   return new Response(JSON.stringify({ received: true }), {
     status: 200,
