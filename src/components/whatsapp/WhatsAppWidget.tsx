@@ -3,7 +3,19 @@ import { MessageCircle, Send, X } from "lucide-react";
 
 const WA_PHONE = "918825515952";
 
-const QUICK_REPLIES = ["Browse robots", "Spare parts", "Book a service", "Talk to a human"];
+const QUICK_REPLIES = [
+  "I need a robot",
+  "Cobot / SCARA",
+  "Welding application",
+  "Palletizing / handling",
+  "In Chennai",
+  "In Pune",
+  "Budget 5-15 lakh",
+  "Spare parts",
+  "Book a service",
+  "Talk to a human",
+];
+
 
 const WELCOME = `👋 Hello! I'm the RobotVerse AI Assistant.
 
