@@ -307,24 +307,25 @@ function buildDatabaseContext(
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  // Require authenticated caller (or an internal service-role call, e.g. the WhatsApp bot)
+  // Public marketplace assistant: accept internal service-role calls, signed-in users,
+  // and anonymous visitors (anon key / no valid session) as guests.
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-  const bearer = authHeader.replace('Bearer ', '').trim();
-  const isInternal = bearer === (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '__none__');
-  if (!isInternal) {
-    const _authClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: _userData, error: _userErr } = await _authClient.auth.getUser();
-    if (_userErr || !_userData?.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  const bearer = authHeader?.replace('Bearer ', '').trim() ?? '';
+  const isInternal = bearer.length > 0 && bearer === (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '__none__');
+  if (!isInternal && bearer) {
+    try {
+      const _authClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: `Bearer ${bearer}` } } }
+      );
+      const { data: _userData } = await _authClient.auth.getUser();
+      if (!_userData?.user) console.log('Assistant called as guest (no user session)');
+    } catch (_e) {
+      console.log('Assistant guest fallback');
     }
   }
+
 
 
   try {
