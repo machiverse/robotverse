@@ -453,13 +453,9 @@ serve(async (req) => {
     }
   })();
 
-  // @ts-ignore EdgeRuntime exists in Supabase Edge Functions
-  if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
-    // @ts-ignore
-    EdgeRuntime.waitUntil(work);
-  } else {
-    await work;
-  }
+  // Process inline (not via waitUntil) so the reply is always generated before we ACK.
+  await work;
+
 
   return new Response(JSON.stringify({ received: true }), {
     status: 200,
