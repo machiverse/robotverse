@@ -28,20 +28,33 @@ const SESSION_TTL_MIN = 60;
 async function sendWhatsApp(to: string, text: string) {
   if (!WASENDER_API_KEY) throw new Error("WASENDER_API_KEY not configured");
   for (const chunk of splitLongMessage(text)) {
-    const res = await fetch(WASENDER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${WASENDER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ to, text: chunk }),
-    });
-    if (!res.ok) {
-      console.error("wasender send failed", res.status, await res.text());
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await fetch(WASENDER_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WASENDER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ to, text: chunk }),
+      });
+      if (res.ok) break;
+      const raw = await res.text();
+      // Free/trial plans rate-limit sends (1 msg/min) — wait and retry instead of dropping the reply
+      if (res.status === 429 && attempt < 2) {
+        let wait = 45;
+        try {
+          wait = Number(JSON.parse(raw)?.retry_after) || 45;
+        } catch { /* keep default */ }
+        console.log(`wasender rate limited, retrying in ${wait}s`);
+        await new Promise((r) => setTimeout(r, (wait + 2) * 1000));
+        continue;
+      }
+      console.error("wasender send failed", res.status, raw);
       throw new Error(`wasender send failed (${res.status})`);
     }
   }
 }
+
 
 async function getSettings() {
   const { data } = await admin.from("whatsapp_settings").select("*").eq("id", true).maybeSingle();
