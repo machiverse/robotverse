@@ -72,18 +72,44 @@ async function getSettings() {
   };
 }
 
+/** Valid E.164-ish WhatsApp MSISDN: 8–15 digits. */
+function isValidPhone(p: string): boolean {
+  return /^\d{8,15}$/.test(p);
+}
+
 /** Extracts phone + text from the various WasenderAPI webhook shapes. */
 function parseIncoming(body: any): { phone: string; text: string; name?: string; id?: string; fromMe: boolean } | null {
   const d = body?.data ?? body;
-  const msg = d?.messages ?? d?.message ?? d;
-  if (!msg) return null;
+  // `messages` can be an object OR an array (Baileys upsert) — always take the first entry
+  let msg = d?.messages ?? d?.message ?? d;
+  if (Array.isArray(msg)) msg = msg[0];
+  if (!msg || typeof msg !== "object") return null;
 
   const key = msg.key ?? d.key ?? {};
   const fromMe = !!(key.fromMe ?? msg.fromMe);
-  const jid: string = key.remoteJid ?? msg.remoteJid ?? msg.from ?? d.from ?? "";
-  if (!jid || jid.includes("@g.us") || jid.includes("status@")) return null; // skip groups/status
-  const phone = String(jid).split("@")[0].replace(/\D/g, "");
-  if (!phone) return null;
+
+  // Prefer the REAL phone-number JID. `remoteJid` can be a privacy LID
+  // (e.g. "123456789@lid") which is NOT a phone number — sending to it would
+  // deliver the reply to a completely different/unknown chat.
+  const candidates = [
+    key.senderPn,
+    key.remoteJidAlt,
+    msg.senderPn,
+    msg.remoteJidAlt,
+    key.remoteJid,
+    msg.remoteJid,
+    msg.from,
+    d.from,
+  ].filter((v) => typeof v === "string" && v.length > 0) as string[];
+
+  const jid = candidates.find((c) => !c.includes("@lid")) ?? candidates[0] ?? "";
+  if (!jid || jid.includes("@g.us") || jid.includes("@broadcast") || jid.includes("status@")) return null;
+
+  const phone = String(jid).split(/[@:]/)[0].replace(/\D/g, "");
+  if (!isValidPhone(phone)) {
+    console.error("rejecting message — unusable sender id:", jid, "candidates:", JSON.stringify(candidates));
+    return null;
+  }
 
   const m = msg.message ?? msg;
   const text: string =
@@ -98,6 +124,7 @@ function parseIncoming(body: any): { phone: string; text: string; name?: string;
 
   return { phone, text: String(text || "").trim(), name: msg.pushName ?? d.pushName, id: key.id ?? msg.id, fromMe };
 }
+
 
 async function upsertSession(phone: string, name?: string) {
   const { data: existing } = await admin
