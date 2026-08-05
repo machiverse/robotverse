@@ -352,7 +352,7 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
       .eq("is_active", true);
     const matched = searchKnowledge((kb ?? []) as KbEntry[], analysis.intent, analysis.keywords);
     reply = await generateResponse({
-      userMessage: text,
+      userMessage: userText,
       analysis,
       knowledgeContext: matched.map((m) => `• ${m.title} [${m.category}]: ${m.content}`).join("\n"),
       conversationHistory: history,
