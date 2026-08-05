@@ -328,11 +328,8 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
         category === "spare parts"
           ? "• Robot brand & model (e.g. ABB IRB 6640)\n• Which part do you need?\n• New or refurbished?"
           : "• Type of service (installation / AMC / repair / programming)\n• Robot brand & model";
-      if (!hasBrand && !hasModel && !alreadyAsked("city")) {
-        await send(`🔎 Got it — *${category}*.\n\nPlease share:\n${slotQuestions}`);
-      }
-      if (!hasLocation && !alreadyAsked("city")) {
-        await send(renderMenu("city"));
+      if (!alreadyAsked("city")) {
+        await send(renderMenu("city", `🔎 Got it — *${category}*.\n\nPlease share:\n${slotQuestions}`));
         return;
       }
     }
@@ -341,7 +338,8 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
 
   // Step 3 — enough detail: analyse the database and answer
   let reply: string | null = null;
-  const requirement = priorUserText ? `${priorUserText}\n${text}`.trim() : text;
+  const requirement = priorUserText ? `${priorUserText}\n${userText}`.trim() : userText;
+
 
   if (category || ["marketplace", "product", "comparison"].includes(analysis.intent) || analysis.specificProduct) {
     reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: requirement }]);
