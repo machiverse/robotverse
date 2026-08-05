@@ -74,7 +74,7 @@ import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
 import { GlobalEmailVerificationHandler } from "./components/GlobalEmailVerificationHandler";
 import AIAssistant from "./pages/AIAssistant";
-import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
+import WhatsAppChatButton from "./components/whatsapp/WhatsAppChatButton";
 import { AIAssistantProvider } from "./contexts/AIAssistantContext";
 import RobotTalent from "./pages/RobotTalent";
 import TalentJobDetail from "./pages/TalentJobDetail";
@@ -229,7 +229,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <AIAssistantWidget />
+            <WhatsAppChatButton />
 
             </AIAssistantProvider>
           </BrowserRouter>
