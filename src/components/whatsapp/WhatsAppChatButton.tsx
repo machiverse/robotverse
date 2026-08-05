@@ -1,6 +1,6 @@
 import React from "react";
 
-const WA_NUMBER = "918825515952";
+const WA_NUMBER = "917639841220";
 const WA_PREFILL =
   "Hi RobotVerse AI, I'm looking for industrial robots / spare parts / services. Can you help me?";
 

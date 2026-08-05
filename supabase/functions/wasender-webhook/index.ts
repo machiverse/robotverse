@@ -1,4 +1,4 @@
-// RobotVerse WhatsApp bot via WasenderAPI (number +91 88255 15952)
+// RobotVerse WhatsApp bot via WasenderAPI (number +91 76398 41220)
 // Receives WasenderAPI webhooks, runs the SAME RobotVerse AI assistant brain, replies on WhatsApp.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
