@@ -27,8 +27,20 @@ const SESSION_TTL_MIN = 60;
 
 async function sendWhatsApp(to: string, text: string) {
   if (!WASENDER_API_KEY) throw new Error("WASENDER_API_KEY not configured");
+  const recipient = String(to || "").replace(/\D/g, "");
+  if (!/^\d{8,15}$/.test(recipient)) throw new Error(`refusing to send — invalid recipient "${to}"`);
+  console.log(`➡️ sending reply to +${recipient} (${text.length} chars)`);
   for (const chunk of splitLongMessage(text)) {
     for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await fetch(WASENDER_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WASENDER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ to: `+${recipient}`, text: chunk }),
+      });
+
       const res = await fetch(WASENDER_URL, {
         method: "POST",
         headers: {
