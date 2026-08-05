@@ -190,7 +190,80 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
 
   const bareGreeting = /^(hi+|hey+|hello+|namaste|start|menu|hii|good (morning|afternoon|evening))[\s!.]*$/i.test(text);
   const askRequirement =
-    `${settings.welcome_message}\n\n*What is your requirement?*\n\n1️⃣ Robot (new / used)\n2️⃣ Spare parts\n3️⃣ Service / AMC / integration\n4️⃣ Pricing, selling or something else\n\nJust reply in your own words — e.g. "used FANUC welding robot in Chennai".`;
+    `${settings.welcome_message}\n\n*What is your requirement?*\n\n1️⃣ Robot (new / used)\n2️⃣ Spare parts\n3️⃣ Service / AMC / integration\n4️⃣ Pricing, selling or something else\n\nReply with a number, or type it in your own words — e.g. "used FANUC welding robot in Chennai".`;
+
+  // ---- Quick-reply menus: numbered options the user can answer with just a digit ----
+  const MENUS: Record<string, { mark: string; title: string; options: string[] }> = {
+    main: {
+      mark: "*What is your requirement?*",
+      title: "",
+      options: ["robot", "spare parts", "service AMC integration", "pricing selling other"],
+    },
+    type: {
+      mark: "🤖 *Robot type?*",
+      title: "🤖 *Robot type?*",
+      options: [
+        "articulated industrial robot",
+        "collaborative robot (cobot)",
+        "SCARA robot",
+        "delta / pick and place robot",
+        "AMR / AGV mobile robot",
+        "not sure — suggest for me",
+      ],
+    },
+    application: {
+      mark: "🎯 *Application?*",
+      title: "🎯 *Application?*",
+      options: [
+        "welding",
+        "material handling / palletizing",
+        "machine tending / CNC",
+        "pick and place / packaging",
+        "painting / dispensing",
+        "assembly / inspection",
+      ],
+    },
+    city: {
+      mark: "📍 *Your city?*",
+      title: "📍 *Your city?*",
+      options: ["Chennai", "Bangalore", "Pune", "Mumbai", "Delhi NCR", "Hyderabad", "Coimbatore", "other city in India"],
+    },
+    budget: {
+      mark: "💰 *Budget range?*",
+      title: "💰 *Budget range?*",
+      options: [
+        "budget under 5 lakh",
+        "budget 5 to 15 lakh",
+        "budget 15 to 30 lakh",
+        "budget 30 lakh to 1 crore",
+        "budget above 1 crore",
+        "budget not decided yet",
+      ],
+    },
+  };
+
+  const renderMenu = (key: keyof typeof MENUS, lead?: string) => {
+    const m = MENUS[key];
+    const digits = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"];
+    const list = m.options.map((o, i) => `${digits[i]} ${o}`).join("\n");
+    return `${lead ? `${lead}\n\n` : ""}${m.title}\n${list}\n\n_Reply with just the number — or type your own answer._`;
+  };
+
+  const history = await recentHistory(phone);
+
+  // Expand a bare digit reply into the option text of the menu we last sent
+  let userText = text;
+  const numeric = text.trim().match(/^([1-8])[\s.)]*$/);
+  if (numeric) {
+    const lastMenu = [...history].reverse().find(
+      (h) => h.role === "assistant" && Object.values(MENUS).some((m) => h.content.includes(m.mark)),
+    );
+    const menu = lastMenu
+      ? Object.values(MENUS).find((m) => lastMenu.content.includes(m.mark))
+      : MENUS.main;
+    const picked = menu?.options[Number(numeric[1]) - 1];
+    if (picked) userText = picked;
+  }
 
   // Bot only ever replies to an inbound message — never sends on its own.
   if (bareGreeting) {
@@ -198,54 +271,75 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
     return;
   }
 
-  const history = await recentHistory(phone);
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const analysis = await analyzeMessage(text, LOVABLE_API_KEY);
+  const analysis = await analyzeMessage(userText, LOVABLE_API_KEY);
   await admin.from("whatsapp_sessions").update({ current_intent: analysis.intent }).eq("id", session.id);
 
   // Requirement gathering — combine everything the user has told us in this session
-  const CLARIFY_MARK = "🔎 Got it";
   const priorUserText = history.filter((h) => h.role === "user").map((h) => h.content).join(" ");
-  const combined = `${priorUserText} ${text}`.toLowerCase();
+  const combined = `${priorUserText} ${userText}`.toLowerCase();
 
   const category =
     /spare|part|gripper|servo|motor|cable|teach pendant|controller board/.test(combined) ? "spare parts"
     : /service|amc|repair|maintenance|install|integrat|program/.test(combined) ? "service"
-    : /robot|cobot|arm|palletiz|weld|paint|pick|assembly|cnc|machine tend/.test(combined) ? "robot"
+    : /robot|cobot|arm|palletiz|weld|paint|pick|assembly|cnc|machine tend|scara|delta|amr|agv/.test(combined) ? "robot"
     : null;
 
   const hasBrand = /fanuc|abb|kuka|yaskawa|motoman|universal robots|ur\d|denso|kawasaki|nachi|staubli|epson|mitsubishi|omron|doosan|hyundai|techman|estun|dobot/.test(combined);
   const hasModel = /\b(irb|m-?\d|r-?\d|lr mate|ur\d{1,2}|gp\d|hc\d|kr\s?\d)/.test(combined);
+  const hasType = /articulated|cobot|collaborative|scara|delta|amr|agv|mobile robot|suggest for me/.test(combined);
   const hasApplication = /weld|palletiz|paint|pick|pack|assembly|handling|machine tend|deburr|dispens|inspect|cnc|inject/.test(combined);
-  const hasLocation = /\b(chennai|bangalore|bengaluru|pune|mumbai|delhi|ncr|noida|gurgaon|hyderabad|coimbatore|ahmedabad|kolkata|jaipur|nashik|rajkot|india|tamil nadu|karnataka|maharashtra|gujarat)\b/.test(combined);
-  const hasBudget = /(budget|lakh|lac|crore|₹|rs\.?\s?\d|\d+\s?(k|lakh))/.test(combined);
+  const hasLocation = /\b(chennai|bangalore|bengaluru|pune|mumbai|delhi|ncr|noida|gurgaon|hyderabad|coimbatore|ahmedabad|kolkata|jaipur|nashik|rajkot|india|tamil nadu|karnataka|maharashtra|gujarat|other city)\b/.test(combined);
+  const hasBudget = /(budget|lakh|lac|crore|₹|rs\.?\s?\d|\d+\s?(k|lakh)|not decided)/.test(combined);
   const hasPayload = /\d+\s?kg/.test(combined);
-  const detailCount = [hasBrand || hasModel, hasApplication, hasLocation, hasBudget || hasPayload].filter(Boolean).length;
+  const detailCount = [hasBrand || hasModel || hasType, hasApplication, hasLocation, hasBudget || hasPayload].filter(Boolean).length;
 
-  const alreadyClarified = history.some((h) => h.role === "assistant" && h.content.includes(CLARIFY_MARK));
   const platformIntent = ["pricing", "selling", "support", "company", "account"].includes(analysis.intent);
+  const alreadyAsked = (key: keyof typeof MENUS) =>
+    history.some((h) => h.role === "assistant" && h.content.includes(MENUS[key].mark));
 
   // Step 1 — no clear category yet: ask what they need
-  if (!category && !platformIntent && !analysis.specificProduct && text.length < 25) {
+  if (!category && !platformIntent && !analysis.specificProduct && userText.length < 25) {
     await send(askRequirement);
     return;
   }
 
-  // Step 2 — category known but too vague: ask ONE round of qualifying questions
-  if (category && !platformIntent && detailCount < 2 && !alreadyClarified) {
-    const questions =
-      category === "spare parts"
-        ? "• Robot brand & model (e.g. ABB IRB 6640)\n• Which part do you need?\n• Your city\n• New or refurbished?"
-        : category === "service"
-          ? "• Type of service (installation / AMC / repair / programming)\n• Robot brand & model\n• Your city / plant location"
-          : "• Brand preference (FANUC, ABB, KUKA, Yaskawa…)\n• Application (welding, palletizing, machine tending…)\n• Payload & reach (e.g. 20 kg)\n• Your city and budget range";
-    await send(`${CLARIFY_MARK} — you're looking for *${category}*.\n\nTo pull the exact matches from our database, please share:\n${questions}\n\nYou can send it all in one message.`);
-    return;
+  // Step 2 — category known but too vague: ask ONE slot at a time with quick-reply buttons
+  if (category && !platformIntent && detailCount < 3) {
+    if (category === "robot") {
+      if (!hasType && !hasBrand && !hasModel && !alreadyAsked("type")) {
+        await send(renderMenu("type", "🔎 Got it — you're looking for a *robot*."));
+        return;
+      }
+      if (!hasApplication && !alreadyAsked("application")) {
+        await send(renderMenu("application"));
+        return;
+      }
+      if (!hasLocation && !alreadyAsked("city")) {
+        await send(renderMenu("city"));
+        return;
+      }
+      if (!hasBudget && !hasPayload && !alreadyAsked("budget")) {
+        await send(renderMenu("budget"));
+        return;
+      }
+    } else {
+      const slotQuestions =
+        category === "spare parts"
+          ? "• Robot brand & model (e.g. ABB IRB 6640)\n• Which part do you need?\n• New or refurbished?"
+          : "• Type of service (installation / AMC / repair / programming)\n• Robot brand & model";
+      if (!alreadyAsked("city")) {
+        await send(renderMenu("city", `🔎 Got it — *${category}*.\n\nPlease share:\n${slotQuestions}`));
+        return;
+      }
+    }
   }
+
 
   // Step 3 — enough detail: analyse the database and answer
   let reply: string | null = null;
-  const requirement = priorUserText ? `${priorUserText}\n${text}`.trim() : text;
+  const requirement = priorUserText ? `${priorUserText}\n${userText}`.trim() : userText;
+
 
   if (category || ["marketplace", "product", "comparison"].includes(analysis.intent) || analysis.specificProduct) {
     reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: requirement }]);
@@ -258,7 +352,7 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
       .eq("is_active", true);
     const matched = searchKnowledge((kb ?? []) as KbEntry[], analysis.intent, analysis.keywords);
     reply = await generateResponse({
-      userMessage: text,
+      userMessage: userText,
       analysis,
       knowledgeContext: matched.map((m) => `• ${m.title} [${m.category}]: ${m.content}`).join("\n"),
       conversationHistory: history,
