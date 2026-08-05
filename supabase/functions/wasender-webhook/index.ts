@@ -189,26 +189,66 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
   }
 
   const bareGreeting = /^(hi+|hey+|hello+|namaste|start|menu|hii|good (morning|afternoon|evening))[\s!.]*$/i.test(text);
-  const welcome = `${settings.welcome_message}\n\nYou can ask things like:\n• used FANUC welding robot 20kg in Chennai\n• spare parts for ABB IRB 6640\n• robot service providers in Pune\n• pricing / selling on RobotVerse`;
+  const askRequirement =
+    `${settings.welcome_message}\n\n*What is your requirement?*\n\n1️⃣ Robot (new / used)\n2️⃣ Spare parts\n3️⃣ Service / AMC / integration\n4️⃣ Pricing, selling or something else\n\nJust reply in your own words — e.g. "used FANUC welding robot in Chennai".`;
 
-  // Only greetings get a standalone welcome — real questions get ONE combined message
-  // (trial plans allow 1 send/min, so a separate welcome would swallow the actual answer).
+  // Bot only ever replies to an inbound message — never sends on its own.
   if (bareGreeting) {
-    await send(isNew || expired ? welcome : "Hi! 👋 Tell me what you're looking for — a robot, spare part, service or pricing info.");
+    await send(askRequirement);
     return;
   }
-  const prefix = isNew || expired ? `${welcome}\n\n──────────\n` : "";
 
+  const history = await recentHistory(phone);
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const analysis = await analyzeMessage(text, LOVABLE_API_KEY);
   await admin.from("whatsapp_sessions").update({ current_intent: analysis.intent }).eq("id", session.id);
 
-  const history = await recentHistory(phone);
-  let reply: string | null = null;
+  // Requirement gathering — combine everything the user has told us in this session
+  const CLARIFY_MARK = "🔎 Got it";
+  const priorUserText = history.filter((h) => h.role === "user").map((h) => h.content).join(" ");
+  const combined = `${priorUserText} ${text}`.toLowerCase();
 
-  // Marketplace / product questions use the SAME website AI assistant brain
-  if (["marketplace", "product", "comparison"].includes(analysis.intent) || analysis.specificProduct) {
-    reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: text }]);
+  const category =
+    /spare|part|gripper|servo|motor|cable|teach pendant|controller board/.test(combined) ? "spare parts"
+    : /service|amc|repair|maintenance|install|integrat|program/.test(combined) ? "service"
+    : /robot|cobot|arm|palletiz|weld|paint|pick|assembly|cnc|machine tend/.test(combined) ? "robot"
+    : null;
+
+  const hasBrand = /fanuc|abb|kuka|yaskawa|motoman|universal robots|ur\d|denso|kawasaki|nachi|staubli|epson|mitsubishi|omron|doosan|hyundai|techman|estun|dobot/.test(combined);
+  const hasModel = /\b(irb|m-?\d|r-?\d|lr mate|ur\d{1,2}|gp\d|hc\d|kr\s?\d)/.test(combined);
+  const hasApplication = /weld|palletiz|paint|pick|pack|assembly|handling|machine tend|deburr|dispens|inspect|cnc|inject/.test(combined);
+  const hasLocation = /\b(chennai|bangalore|bengaluru|pune|mumbai|delhi|ncr|noida|gurgaon|hyderabad|coimbatore|ahmedabad|kolkata|jaipur|nashik|rajkot|india|tamil nadu|karnataka|maharashtra|gujarat)\b/.test(combined);
+  const hasBudget = /(budget|lakh|lac|crore|₹|rs\.?\s?\d|\d+\s?(k|lakh))/.test(combined);
+  const hasPayload = /\d+\s?kg/.test(combined);
+  const detailCount = [hasBrand || hasModel, hasApplication, hasLocation, hasBudget || hasPayload].filter(Boolean).length;
+
+  const alreadyClarified = history.some((h) => h.role === "assistant" && h.content.includes(CLARIFY_MARK));
+  const platformIntent = ["pricing", "selling", "support", "company", "account"].includes(analysis.intent);
+
+  // Step 1 — no clear category yet: ask what they need
+  if (!category && !platformIntent && !analysis.specificProduct && text.length < 25) {
+    await send(askRequirement);
+    return;
+  }
+
+  // Step 2 — category known but too vague: ask ONE round of qualifying questions
+  if (category && !platformIntent && detailCount < 2 && !alreadyClarified) {
+    const questions =
+      category === "spare parts"
+        ? "• Robot brand & model (e.g. ABB IRB 6640)\n• Which part do you need?\n• Your city\n• New or refurbished?"
+        : category === "service"
+          ? "• Type of service (installation / AMC / repair / programming)\n• Robot brand & model\n• Your city / plant location"
+          : "• Brand preference (FANUC, ABB, KUKA, Yaskawa…)\n• Application (welding, palletizing, machine tending…)\n• Payload & reach (e.g. 20 kg)\n• Your city and budget range";
+    await send(`${CLARIFY_MARK} — you're looking for *${category}*.\n\nTo pull the exact matches from our database, please share:\n${questions}\n\nYou can send it all in one message.`);
+    return;
+  }
+
+  // Step 3 — enough detail: analyse the database and answer
+  let reply: string | null = null;
+  const requirement = priorUserText ? `${priorUserText}\n${text}`.trim() : text;
+
+  if (category || ["marketplace", "product", "comparison"].includes(analysis.intent) || analysis.specificProduct) {
+    reply = await callWebsiteAssistant(SUPABASE_URL, SERVICE_KEY, [...history, { role: "user", content: requirement }]);
   }
 
   if (!reply) {
@@ -229,7 +269,8 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
     });
   }
 
-  await send(prefix + (reply || settings.fallback_message));
+  await send(reply || settings.fallback_message);
+
 
 
   const shouldHandoff =
