@@ -189,15 +189,15 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
   }
 
   const bareGreeting = /^(hi+|hey+|hello+|namaste|start|menu|hii|good (morning|afternoon|evening))[\s!.]*$/i.test(text);
-  if (isNew || expired) {
-    await send(
-      `${settings.welcome_message}\n\nYou can ask things like:\n• used FANUC welding robot 20kg in Chennai\n• spare parts for ABB IRB 6640\n• robot service providers in Pune\n• pricing / selling on RobotVerse`,
-    );
-    if (bareGreeting) return;
-  } else if (bareGreeting) {
-    await send("Hi! 👋 Tell me what you're looking for — a robot, spare part, service or pricing info.");
+  const welcome = `${settings.welcome_message}\n\nYou can ask things like:\n• used FANUC welding robot 20kg in Chennai\n• spare parts for ABB IRB 6640\n• robot service providers in Pune\n• pricing / selling on RobotVerse`;
+
+  // Only greetings get a standalone welcome — real questions get ONE combined message
+  // (trial plans allow 1 send/min, so a separate welcome would swallow the actual answer).
+  if (bareGreeting) {
+    await send(isNew || expired ? welcome : "Hi! 👋 Tell me what you're looking for — a robot, spare part, service or pricing info.");
     return;
   }
+  const prefix = isNew || expired ? `${welcome}\n\n──────────\n` : "";
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const analysis = await analyzeMessage(text, LOVABLE_API_KEY);
@@ -229,7 +229,8 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
     });
   }
 
-  await send(reply || settings.fallback_message);
+  await send(prefix + (reply || settings.fallback_message));
+
 
   const shouldHandoff =
     settings.handoff_trigger === "always_on_request"
