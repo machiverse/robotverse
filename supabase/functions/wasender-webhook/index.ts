@@ -40,15 +40,6 @@ async function sendWhatsApp(to: string, text: string) {
         },
         body: JSON.stringify({ to: `+${recipient}`, text: chunk }),
       });
-
-      const res = await fetch(WASENDER_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WASENDER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ to, text: chunk }),
-      });
       if (res.ok) break;
       const raw = await res.text();
       // Free/trial plans rate-limit sends (1 msg/min) — wait and retry instead of dropping the reply
