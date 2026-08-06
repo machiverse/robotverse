@@ -130,7 +130,12 @@ const MyRobots = () => {
           <Plus className="h-4 w-4 mr-2" />
           Add New Robot
         </Button>
+        <Button variant="outline" onClick={() => setShowBulkDialog(true)} className="whitespace-normal min-w-fit w-auto">
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Bulk Upload (CSV / Excel)
+        </Button>
       </div>
+
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
