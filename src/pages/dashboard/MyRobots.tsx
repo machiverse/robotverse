@@ -290,6 +290,17 @@ const MyRobots = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk Upload Dialog */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Robots (CSV / Excel)</DialogTitle>
+          </DialogHeader>
+          <BulkRobotUpload onSuccess={fetchRobots} />
+        </DialogContent>
+      </Dialog>
+
+
       {/* Edit Robot Dialog */}
       <Dialog open={!!editingRobot} onOpenChange={(open) => !open && setEditingRobot(null)}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
