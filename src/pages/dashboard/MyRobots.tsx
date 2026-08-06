@@ -119,14 +119,16 @@ const MyRobots = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">My Robots</h1>
           <p className="text-muted-foreground">
             Manage your robot listings and track performance
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
+        <div className="flex flex-wrap gap-3">
+        <Button onClick={() => setShowAddDialog(true)} className="whitespace-normal min-w-fit w-auto">
+
           <Plus className="h-4 w-4 mr-2" />
           Add New Robot
         </Button>
