@@ -15,6 +15,8 @@ import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import RobotUpload from "@/components/RobotUpload";
+import BulkRobotUpload from "@/components/BulkRobotUpload";
+
 
 const MyRobots = () => {
   const { user } = useAuth();
