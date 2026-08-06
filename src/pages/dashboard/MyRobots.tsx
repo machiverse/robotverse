@@ -26,6 +26,8 @@ const MyRobots = () => {
   const [robots, setRobots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+
   const [editingRobot, setEditingRobot] = useState<any | null>(null);
   const [deletingRobot, setDeletingRobot] = useState<any | null>(null);
   const [stats, setStats] = useState({
