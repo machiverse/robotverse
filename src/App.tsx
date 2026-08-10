@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -122,6 +122,13 @@ const AppLoadingFallback = () => (
   </div>
 );
 
+// SEO: canonicalise duplicate article/community paths, preserving the :id param
+const RedirectWithId = ({ base }: { base: string }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`${base}/${id ?? ""}`} replace />;
+};
+
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -165,15 +172,16 @@ const App = () => (
             <Route path="/financing" element={<Financing />} />
             <Route path="/financing/:id" element={<FinancingDetails />} />
             <Route path="/robobook" element={<Blogs />} />
-            <Route path="/community" element={<Blogs />} />
+            <Route path="/community" element={<Navigate to="/robobook" replace />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
             <Route path="/robobook/:id" element={<CommunityPostDetails />} />
-            <Route path="/community/:id" element={<CommunityPostDetails />} />
+            <Route path="/community/:id" element={<RedirectWithId base="/robobook" />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
             <Route path="/preview/:token" element={<PostPreview />} />
-            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/blogs/:id" element={<RedirectWithId base="/blog" />} />
             <Route path="/blog/:id" element={<BlogDetails />} />
+
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
@@ -203,6 +211,9 @@ const App = () => (
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />
             <Route path="/cookies" element={<Cookies />} />
+            {/* Public, crawlable privacy path (/dashboard/* is disallowed in robots.txt) */}
+            <Route path="/privacy" element={<Privacy />} />
+
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
               <Route path="/chat" element={<Chat />} />
