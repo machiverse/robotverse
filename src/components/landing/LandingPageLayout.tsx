@@ -16,6 +16,7 @@ interface SeoMeta {
   title: string;
   description: string;
   canonical: string;
+  noIndex?: boolean;
   ogImage?: string;
   jsonld?: Record<string, unknown> | unknown[];
   summary?: string;
@@ -79,7 +80,10 @@ export function LandingPageLayout({
         {seo.keywords && seo.keywords.length > 0 && (
           <meta name="keywords" content={seo.keywords.join(", ")} />
         )}
-        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+        <meta
+          name="robots"
+          content={`${seo.noIndex ? "noindex" : "index"}, follow, max-image-preview:large, max-snippet:-1`}
+        />
         <link rel="canonical" href={canonicalAbs} />
         <meta property="og:title" content={seo.title} />
         <meta property="og:description" content={seo.description} />

@@ -37,6 +37,8 @@ export default function CityRobots() {
     title: `Industrial Robots for Sale in ${cityLabel} | RobotVerse`,
     description: `Buy and sell used industrial robots in ${cityLabel}. Browse ${items.length}+ verified listings from local sellers — ABB, FANUC, KUKA, Yaskawa and more.`,
     canonical: `/robots/city/${city.toLowerCase()}`,
+    // Thin-content guard: don't index landing pages with fewer than 3 listings
+    noIndex: items.length < 3,
     keywords: [
       `industrial robots ${cityLabel}`,
       `used robots ${cityLabel}`,

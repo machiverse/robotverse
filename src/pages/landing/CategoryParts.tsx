@@ -37,6 +37,8 @@ export default function CategoryParts() {
     title: `Robot ${catLabel} — Spare Parts & Replacements | RobotVerse`,
     description: `Industrial robot ${catLabel.toLowerCase()} from verified sellers in India. ${items.length}+ live listings with part numbers, OEM cross-reference, and warranty.`,
     canonical: `/parts/category/${cat.toLowerCase()}`,
+    // Thin-content guard: don't index landing pages with fewer than 3 listings
+    noIndex: items.length < 3,
     keywords: [`robot ${catLabel}`, `industrial ${catLabel}`, `${catLabel} for sale`, `${catLabel} India`],
     summary: `Browse every ${catLabel.toLowerCase()} listed on RobotVerse across ABB, FANUC, KUKA, Yaskawa, Mitsubishi, and Universal Robots. Search by part number or compatible robot.`,
     highlights: [

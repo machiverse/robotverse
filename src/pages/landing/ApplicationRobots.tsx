@@ -60,6 +60,8 @@ export default function ApplicationRobots() {
     title: `${label} Robots for Sale in India | Industrial ${label} Robots | RobotVerse`,
     description: `Buy ${label.toLowerCase()} industrial robots in India. Compare ${items.length}+ verified ${label.toLowerCase()} robot listings — FANUC, ABB, KUKA, Yaskawa and more, with full specs and direct seller contact.`,
     canonical: `/robots/application/${slug}`,
+    // Thin-content guard: don't index landing pages with fewer than 3 listings
+    noIndex: items.length < 3,
     keywords: [
       `${label} robots`,
       `${label} robot India`,

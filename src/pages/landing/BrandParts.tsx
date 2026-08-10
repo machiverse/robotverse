@@ -37,6 +37,8 @@ export default function BrandParts() {
     title: `${brandLabel} Robot Spare Parts in India | RobotVerse`,
     description: `Buy genuine and refurbished ${brandLabel} robot spare parts. Servo motors, encoders, controllers, teach pendants, and cables — ${items.length}+ live listings.`,
     canonical: `/parts/brand/${brand.toLowerCase()}`,
+    // Thin-content guard: don't index landing pages with fewer than 3 listings
+    noIndex: items.length < 3,
     keywords: [`${brandLabel} spare parts`, `${brandLabel} servo motor`, `${brandLabel} controller`, `${brandLabel} teach pendant`],
     summary: `RobotVerse aggregates ${brandLabel} robot spare parts from verified sellers across India — controllers, motors, drives, cables, and consumables with part-number search.`,
     highlights: [
