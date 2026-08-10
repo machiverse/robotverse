@@ -211,6 +211,9 @@ const App = () => (
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />
             <Route path="/cookies" element={<Cookies />} />
+            {/* Public, crawlable privacy path (/dashboard/* is disallowed in robots.txt) */}
+            <Route path="/privacy" element={<Privacy />} />
+
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
               <Route path="/chat" element={<Chat />} />
