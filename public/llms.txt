@@ -20,7 +20,7 @@ RobotVerse lists new, used and refurbished industrial robots from brands such as
 - [Brand robot pages](/robots/brand/fanuc): Brand-scoped listings, e.g. `/robots/brand/{brand}`.
 - [Used brand robots](/robots/fanuc/used): Condition-scoped brand pages, e.g. `/robots/{brand}/used`.
 - [Application robots](/robots/application/welding): Application-scoped listings, e.g. `/robots/application/{application}`.
-- [Robot comparison](/robot-comparison): Side-by-side specification comparison of robots.
+- [Robot comparison](/robots/compare): Side-by-side specification comparison of robots.
 - [AI assistant](/ai-assistant): Natural-language search across robots, parts and services.
 
 ## Company
@@ -34,7 +34,7 @@ RobotVerse lists new, used and refurbished industrial robots from brands such as
 ## Optional
 
 - [Terms](/terms)
-- [Privacy](/dashboard/privacy)
+- [Privacy](/privacy)
 - [Cookies](/cookies)
 - [Accessibility](/accessibility)
 - [API documentation](/api-docs): REST API for partners consuming RobotVerse catalog data.
