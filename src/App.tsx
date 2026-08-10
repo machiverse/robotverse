@@ -165,15 +165,16 @@ const App = () => (
             <Route path="/financing" element={<Financing />} />
             <Route path="/financing/:id" element={<FinancingDetails />} />
             <Route path="/robobook" element={<Blogs />} />
-            <Route path="/community" element={<Blogs />} />
+            <Route path="/community" element={<Navigate to="/robobook" replace />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
             <Route path="/robobook/:id" element={<CommunityPostDetails />} />
-            <Route path="/community/:id" element={<CommunityPostDetails />} />
+            <Route path="/community/:id" element={<RedirectWithId base="/robobook" />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
             <Route path="/preview/:token" element={<PostPreview />} />
-            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/blogs/:id" element={<RedirectWithId base="/blog" />} />
             <Route path="/blog/:id" element={<BlogDetails />} />
+
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
