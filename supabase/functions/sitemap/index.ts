@@ -4,6 +4,9 @@
 //   ?kind=urls    -> standard urlset built from seo_metadata
 //   ?kind=images  -> image sitemap (image:image entries from og_image / twitter_image)
 //   ?kind=news    -> Google News sitemap (last 48h of blogs + community_posts)
+// Note: bot-facing HTML snapshots for these URLs are served by the sibling
+// `prerender` function: /functions/v1/prerender?path=<url-encoded path>
+
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
