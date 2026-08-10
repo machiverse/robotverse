@@ -22,8 +22,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <UniversalSEOHead
         pageType="home"
-        title="Buy & Sell Industrial Robots India | RobotVerse Marketplace"
-        description="India's #1 marketplace for industrial robots. Buy verified FANUC, ABB, KUKA, Yaskawa robots with warranty. Spare parts, services, financing & logistics. 150+ robots available."
+        title="RobotVerse | Buy & Sell Used Industrial Robots in India - FANUC, ABB, KUKA, Yaskawa"
+        description="India's marketplace for new, used, and refurbished industrial robots, spare parts, financing, logistics, and automation services. Browse verified FANUC, ABB, KUKA, and Yaskawa robots by brand, payload, reach, and application."
         keywords={[
           "industrial robots marketplace India",
           "buy industrial robots online",
@@ -41,8 +41,8 @@ const Index = () => {
           "robot financing India",
           "robot logistics India",
         ]}
-        ogTitle="RobotVerse - India's Largest Industrial Robot Marketplace"
-        ogDescription="Buy & sell verified industrial robots, spare parts, and automation equipment. Connect with 200+ sellers across India. Get financing & logistics support."
+        ogTitle="RobotVerse | Buy & Sell Used Industrial Robots in India - FANUC, ABB, KUKA, Yaskawa"
+        ogDescription="India's marketplace for new, used, and refurbished industrial robots, spare parts, financing, logistics, and automation services. Browse verified FANUC, ABB, KUKA, and Yaskawa robots by brand, payload, reach, and application."
         schemas={homeSchemas}
       />
       <EnhancedHeader />
