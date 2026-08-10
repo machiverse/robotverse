@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RobotComparisonProvider } from "@/contexts/RobotComparisonContext";
 import { useChatNotifications } from "@/hooks/useChatNotifications";
@@ -74,7 +74,7 @@ import Pricing from "./pages/Pricing";
 import { AutoSignInPopup } from "./components/AutoSignInPopup";
 import { GlobalEmailVerificationHandler } from "./components/GlobalEmailVerificationHandler";
 import AIAssistant from "./pages/AIAssistant";
-import AIAssistantWidget from "./components/ai-assistant/AIAssistantWidget";
+import WhatsAppChatButton from "./components/whatsapp/WhatsAppChatButton";
 import { AIAssistantProvider } from "./contexts/AIAssistantContext";
 import RobotTalent from "./pages/RobotTalent";
 import TalentJobDetail from "./pages/TalentJobDetail";
@@ -86,6 +86,12 @@ import Auctions from "./pages/Auctions";
 import AuctionDetail from "./pages/AuctionDetail";
 import CreateAuction from "./pages/CreateAuction";
 import EditAuction from "./pages/EditAuction";
+import WhatsAppBotLayout from "./pages/whatsapp/WhatsAppBotLayout";
+import WhatsAppDashboard from "./pages/whatsapp/WhatsAppDashboard";
+import WhatsAppConversations from "./pages/whatsapp/WhatsAppConversations";
+import WhatsAppKnowledgeBase from "./pages/whatsapp/WhatsAppKnowledgeBase";
+import WhatsAppBroadcast from "./pages/whatsapp/WhatsAppBroadcast";
+import WhatsAppSettings from "./pages/whatsapp/WhatsAppSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -115,6 +121,13 @@ const AppLoadingFallback = () => (
     Loading...
   </div>
 );
+
+// SEO: canonicalise duplicate article/community paths, preserving the :id param
+const RedirectWithId = ({ base }: { base: string }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`${base}/${id ?? ""}`} replace />;
+};
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -159,15 +172,16 @@ const App = () => (
             <Route path="/financing" element={<Financing />} />
             <Route path="/financing/:id" element={<FinancingDetails />} />
             <Route path="/robobook" element={<Blogs />} />
-            <Route path="/community" element={<Blogs />} />
+            <Route path="/community" element={<Navigate to="/robobook" replace />} />
             <Route path="/blogs" element={<Navigate to="/robobook" replace />} />
             <Route path="/robobook/:id" element={<CommunityPostDetails />} />
-            <Route path="/community/:id" element={<CommunityPostDetails />} />
+            <Route path="/community/:id" element={<RedirectWithId base="/robobook" />} />
             <Route path="/robobook/create" element={<BlogEditor />} />
             <Route path="/robobook/:id/edit" element={<BlogEditor />} />
             <Route path="/preview/:token" element={<PostPreview />} />
-            <Route path="/blogs/:id" element={<BlogDetails />} />
+            <Route path="/blogs/:id" element={<RedirectWithId base="/blog" />} />
             <Route path="/blog/:id" element={<BlogDetails />} />
+
             <Route path="/marketplace/robots" element={<Robots />} />
             <Route path="/marketplace/parts" element={<Parts />} />
             <Route path="/marketplace/services" element={<Services />} />
@@ -197,6 +211,9 @@ const App = () => (
             <Route path="/seller-guide" element={<SellerGuide />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />
             <Route path="/cookies" element={<Cookies />} />
+            {/* Public, crawlable privacy path (/dashboard/* is disallowed in robots.txt) */}
+            <Route path="/privacy" element={<Privacy />} />
+
             <Route path="/sitemap" element={<Sitemap />} />
             <Route path="/accessibility" element={<Accessibility />} />
               <Route path="/chat" element={<Chat />} />
@@ -213,10 +230,18 @@ const App = () => (
               <Route path="/auctions/:id" element={<AuctionDetail />} />
               <Route path="/auctions/create" element={<CreateAuction />} />
               <Route path="/auctions/:id/edit" element={<EditAuction />} />
+              <Route path="/whatsapp-bot" element={<WhatsAppBotLayout />}>
+                <Route index element={<WhatsAppDashboard />} />
+                <Route path="conversations" element={<WhatsAppConversations />} />
+                <Route path="knowledge-base" element={<WhatsAppKnowledgeBase />} />
+                <Route path="broadcast" element={<WhatsAppBroadcast />} />
+                <Route path="settings" element={<WhatsAppSettings />} />
+              </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <AIAssistantWidget />
+            <WhatsAppChatButton />
+
             </AIAssistantProvider>
           </BrowserRouter>
         </TooltipProvider>

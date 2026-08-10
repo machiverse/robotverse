@@ -37,6 +37,8 @@ export default function BrandRobots() {
     title: `${brandLabel} Industrial Robots for Sale in India | RobotVerse`,
     description: `Buy used and refurbished ${brandLabel} industrial robots in India. Compare ${items.length}+ verified ${brandLabel} listings with full specs, photos, and seller details.`,
     canonical: `/robots/brand/${brand.toLowerCase()}`,
+    // Thin-content guard: don't index landing pages with fewer than 3 listings
+    noIndex: items.length < 3,
     keywords: [
       `${brandLabel} robots`,
       `used ${brandLabel} robots`,

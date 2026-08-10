@@ -39,6 +39,8 @@ export default function CityServices() {
     title: `${typeLabel} for Industrial Robots in ${cityLabel} | RobotVerse`,
     description: `Find verified ${typeLabel.toLowerCase()} providers for industrial robots in ${cityLabel}. ${items.length}+ certified partners with reviews and quote-request workflow.`,
     canonical: `/services/${city.toLowerCase()}/${type.toLowerCase()}`,
+    // Thin-content guard: don't index landing pages with fewer than 3 listings
+    noIndex: items.length < 3,
     keywords: [
       `${typeLabel} ${cityLabel}`,
       `robot ${typeLabel.toLowerCase()} ${cityLabel}`,

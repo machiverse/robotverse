@@ -232,7 +232,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
     return errors;
   };
 
-  const handleSubmit = async (mode: 'draft' | 'publish' | 'schedule' = 'publish') => {
+  const handleSubmit = async (mode: 'draft' | 'publish' | 'schedule' | 'save' = 'publish') => {
     const errors = validateForm();
     if (errors.length > 0) {
       toast.error(errors[0]);
@@ -252,6 +252,7 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       }
       scheduleIso = dt.toISOString();
     }
+
 
     try {
       setIsSubmitting(true);
@@ -282,7 +283,12 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         },
       ];
 
-      const status = mode === 'draft' ? 'draft' : mode === 'schedule' ? 'scheduled' : 'published';
+      const currentStatus = (post as any).status || 'published';
+      const status =
+        mode === 'draft' ? 'draft' :
+        mode === 'schedule' ? 'scheduled' :
+        mode === 'save' ? currentStatus :
+        'published';
       const updateData: any = {
         post_type: postType,
         title: title.trim() || null,
@@ -295,9 +301,16 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
         edited_at: new Date().toISOString(),
         edit_history: editHistory,
         status,
-        is_draft: mode === 'draft',
-        scheduled_publish_at: mode === 'schedule' ? scheduleIso : null,
+        is_draft: status === 'draft',
       };
+      if (mode === 'schedule') {
+        updateData.scheduled_publish_at = scheduleIso;
+      } else if (mode === 'save') {
+        // keep the existing schedule untouched
+        updateData.scheduled_publish_at = (post as any).scheduled_publish_at ?? null;
+      } else {
+        updateData.scheduled_publish_at = null;
+      }
       if (mode === 'publish') {
         updateData.published_at = new Date().toISOString();
       }
@@ -313,8 +326,10 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
       toast.success(
         mode === 'draft' ? 'Draft saved!' :
         mode === 'schedule' ? `Post scheduled for ${new Date(scheduleIso!).toLocaleString()}` :
+        mode === 'save' ? 'Changes saved!' :
         'Post published!'
       );
+
       onOpenChange(false);
       onPostUpdated?.();
     } catch (error: any) {
@@ -619,12 +634,17 @@ const EditPostModal = ({ post, open, onOpenChange, onPostUpdated }: EditPostModa
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save as Draft
             </Button>
+            <Button variant="secondary" onClick={() => handleSubmit('save')} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isScheduled ? 'Save (Keep Scheduled)' : 'Save Changes'}
+            </Button>
             {scheduledAt && (
               <Button variant="secondary" onClick={() => handleSubmit('schedule')} disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {isScheduled ? 'Reschedule' : 'Schedule Post'}
               </Button>
             )}
+
             <Button onClick={() => handleSubmit('publish')} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {(post as any).status === 'draft' || (post as any).is_draft || (post as any).status === 'scheduled' ? 'Publish Now' : 'Update Post'}

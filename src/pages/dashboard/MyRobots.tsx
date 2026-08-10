@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Plus, Edit, Eye, MoreHorizontal, Loader2, Trash2 } from "lucide-react";
+import { Bot, Plus, Edit, Eye, MoreHorizontal, Loader2, Trash2, FileSpreadsheet } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -15,6 +15,8 @@ import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import RobotUpload from "@/components/RobotUpload";
+import BulkRobotUpload from "@/components/BulkRobotUpload";
+
 
 const MyRobots = () => {
   const { user } = useAuth();
@@ -24,6 +26,8 @@ const MyRobots = () => {
   const [robots, setRobots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+
   const [editingRobot, setEditingRobot] = useState<any | null>(null);
   const [deletingRobot, setDeletingRobot] = useState<any | null>(null);
   const [stats, setStats] = useState({
@@ -115,18 +119,27 @@ const MyRobots = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">My Robots</h1>
           <p className="text-muted-foreground">
             Manage your robot listings and track performance
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
+        <div className="flex flex-wrap gap-3">
+        <Button onClick={() => setShowAddDialog(true)} className="whitespace-normal min-w-fit w-auto">
+
           <Plus className="h-4 w-4 mr-2" />
           Add New Robot
         </Button>
+        <Button variant="outline" onClick={() => setShowBulkDialog(true)} className="whitespace-normal min-w-fit w-auto">
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Bulk Upload (CSV / Excel)
+        </Button>
+        </div>
       </div>
+
+
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -289,6 +302,17 @@ const MyRobots = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Robots (CSV / Excel)</DialogTitle>
+          </DialogHeader>
+          <BulkRobotUpload onSuccess={fetchRobots} />
+        </DialogContent>
+      </Dialog>
+
 
       {/* Edit Robot Dialog */}
       <Dialog open={!!editingRobot} onOpenChange={(open) => !open && setEditingRobot(null)}>
