@@ -122,6 +122,13 @@ const AppLoadingFallback = () => (
   </div>
 );
 
+// SEO: canonicalise duplicate article/community paths, preserving the :id param
+const RedirectWithId = ({ base }: { base: string }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`${base}/${id ?? ""}`} replace />;
+};
+
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
