@@ -99,13 +99,9 @@ const ResponsiveImage = forwardRef<HTMLImageElement, ResponsiveImageProps>(
         case 'portrait':
           return 'aspect-[4/5]'; // Slightly taller for better vertical image display
         case 'auto':
-          if (naturalAspectRatio !== null) {
-            // Better handling for vertical images - use taller ratio for vertical images
-            return naturalAspectRatio > 1.2 ? 'aspect-video' : 'aspect-[4/5]';
-          }
-          return 'aspect-[4/5]'; // Better fallback for robot images
+          return 'aspect-[4/3]'; // Consistent 4:3 ratio for all listing cards
         default:
-          return 'aspect-[4/5]';
+          return 'aspect-[4/3]';
       }
     };
 

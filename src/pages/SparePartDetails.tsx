@@ -333,6 +333,8 @@ const SparePartDetails = () => {
                       {/* Main Image - Bigger Size */}
                       <div className="relative aspect-[4/3] bg-muted rounded-xl overflow-hidden group shadow-lg">
                         <ResponsiveImage
+                          aspectRatio="custom"
+                          containerClassName="w-full h-full"
                           src={currentImage}
                           alt={sparePart.name}
                           className="w-full h-full object-contain scale-105 group-hover:scale-110 transition-transform duration-300"
@@ -382,6 +384,8 @@ const SparePartDetails = () => {
                               }`}
                             >
                               <ResponsiveImage
+                                aspectRatio="custom"
+                                containerClassName="w-full h-full"
                                 src={img}
                                 alt={sparePart.name}
                                 className="w-full h-full object-cover hover:scale-110 transition-transform duration-200"
@@ -756,6 +760,8 @@ const SparePartDetails = () => {
                                   <div className="aspect-video bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl mb-4 overflow-hidden group-hover:scale-105 transition-transform duration-300">
                                     {robot.images?.[0] ? (
                                       <ResponsiveImage
+                                        aspectRatio="custom"
+                                        containerClassName="w-full h-full"
                                         src={robot.images[0]}
                                         alt={robot.name}
                                         className="w-full h-full object-contain"
