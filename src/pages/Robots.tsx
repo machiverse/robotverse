@@ -949,13 +949,12 @@ const Robots = () => {
                               <ResponsiveImage
                                 src={robot.images[0]}
                                 alt={robot.name}
-                                aspectRatio="auto"
                                 objectFit="cover"
                                 hoverEffect
-                                containerClassName="h-64 w-full"
+                                containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full h-64 flex items-center justify-center bg-muted rounded-lg">
+                              <div className="w-full aspect-[4/3] flex items-center justify-center bg-muted rounded-lg">
                                 <Bot className="w-12 h-12 text-muted-foreground" />
                               </div>
                             )}
@@ -1135,18 +1134,18 @@ const Robots = () => {
                             navigate(`/robots/${robot.id}`);
                           }}
                         >
-                          <div className="w-40 h-40 flex-shrink-0">
+                          <div className="w-40 flex-shrink-0">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}
                                 alt={robot.name}
-                                aspectRatio="auto"
+                                aspectRatio="square"
                                 objectFit="cover"
                                 hoverEffect
-                                containerClassName="w-full h-full"
+                                containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-muted rounded-l-lg">
+                              <div className="w-full aspect-square flex items-center justify-center bg-muted rounded-l-lg">
                                 <Bot className="w-10 h-10 text-muted-foreground" />
                               </div>
                             )}

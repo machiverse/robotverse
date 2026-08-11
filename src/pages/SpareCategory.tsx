@@ -334,7 +334,7 @@ const SpareCategory = () => {
                 className="group bg-card border-border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
                 onClick={() => navigate(`/parts/${part.id}`)}
               >
-                <div className="relative aspect-square overflow-hidden">
+                <div className="relative aspect-[4/3] overflow-hidden">
                   <ResponsiveImage
                     src={part.images?.[0] || "/placeholder.svg"}
                     alt={part.name}

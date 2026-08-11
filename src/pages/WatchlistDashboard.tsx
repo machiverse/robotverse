@@ -483,7 +483,7 @@ const WatchlistItemCard = ({
       <CardContent>
         {/* Image */}
         {((item.robot?.images?.[0]) || (item.sparePart?.images?.[0])) && (
-          <div className="aspect-video mb-4 overflow-hidden rounded-lg">
+          <div className="aspect-[4/3] mb-4 overflow-hidden rounded-lg">
             <ResponsiveImage
               src={item.robot?.images?.[0] || item.sparePart?.images?.[0] || ''}
               alt={data?.name || ''}
