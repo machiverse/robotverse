@@ -243,11 +243,6 @@ ${knowledgeContext || "(no specific knowledge entry matched)"}`;
 
 export const FALLBACK_RESPONSES: Record<string, string> = {
   greeting:
-    "👋 Welcome to RobotVerse! I'm the same AI assistant that powers our website chatbot — now on WhatsApp!\n\nI can help you with:\n• 🤖 Robots & cobots\n• 🔧 Spare parts & EOAT\n• 🏭 Services & integrators\n• 🔨 Live auctions\n• 🚚 Logistics & 💰 financing\n• 📋 Quotes, plans & pricing\n\nWhat are you looking for?",
-  pricing:
-    "💰 *RobotVerse Pricing*\n\n• *Browsing & quotes* — free for buyers\n• *Credits* — unlock hidden contact details (10 for robots, 5 for spare parts)\n• *Seller subscriptions* — tiered listing limits and features\n• *Commission model* — 6% on closed deals instead of a subscription\n\nSee live plans: " + SITE + "/pricing\n\nAre you buying or selling? I'll point you to the right plan 🎯",
-export const FALLBACK_RESPONSES: Record<string, string> = {
-  greeting:
     "Hey there! 👋 Welcome to RobotVerse!\n\nI'm your go-to person for anything industrial robots — whether you're looking to buy, sell, find parts, or get a service done.\n\nSo what brings you here today?",
   pricing:
     "Great question on pricing! 💰\n\nBrowsing and requesting quotes is totally free for buyers. If you want to unlock seller contact details, that uses credits — 10 for robots, 5 for spare parts.\n\nSellers can pick a subscription plan or go with our 6% commission model — whatever works better for your business.\n\nCheck out the details here: " + SITE + "/pricing\n\nAre you looking to buy or sell? I'll point you the right way 😊",
