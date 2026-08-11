@@ -291,6 +291,8 @@ const WatchlistSection = ({
                   {(data?.images?.[0]) && (
                     <div className={`${compact ? 'w-10 h-10' : 'w-12 h-12'} overflow-hidden rounded-lg flex-shrink-0`}>
                       <ResponsiveImage
+                        aspectRatio="custom"
+                        containerClassName="w-full h-full"
                         src={data.images[0]}
                         alt={data.name || ''}
                         width={compact ? 40 : 48}

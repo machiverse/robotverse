@@ -633,6 +633,8 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                 {robot?.images && robot.images.length > 0 ? (
                   <>
                     <ResponsiveImage
+                      aspectRatio="custom"
+                      containerClassName="w-full h-full"
                       src={robot.images[currentImageIndex]}
                       alt={`${robot.name} - Image ${currentImageIndex + 1}`}
                       className="max-w-full max-h-full object-contain cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
