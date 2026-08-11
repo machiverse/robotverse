@@ -206,7 +206,7 @@ const SellerRobots: React.FC = () => {
                 onClick={() => navigate(`/robots/${robot.id}`)}
               >
                 <CardHeader>
-                  <div className="aspect-video rounded-lg overflow-hidden bg-muted relative mb-4">
+                  <div className="aspect-[4/3] rounded-lg overflow-hidden bg-muted relative mb-4">
                     {robot.images && robot.images.length > 0 ? (
                       <img
                         src={robot.images[0]}
