@@ -277,7 +277,7 @@ const HomeRobotListings = () => {
                           onClick={() => navigate(`/robots/${robot.id}`)}
                         >
                           {/* Robot Image */}
-                          <div className="relative aspect-square overflow-hidden bg-muted">
+                          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                             {robot.images && robot.images.length > 0 ? (
                               <img
                                 src={robot.images[0]}

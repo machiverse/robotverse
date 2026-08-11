@@ -351,6 +351,8 @@ const RobotCategory = () => {
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <ResponsiveImage
+                    aspectRatio="custom"
+                    containerClassName="w-full h-full"
                     src={robot.images?.[0] || "/placeholder.svg"}
                     alt={`${robot.name} ${robot.model}`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

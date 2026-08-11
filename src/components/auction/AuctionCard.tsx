@@ -26,7 +26,7 @@ const AuctionCard: React.FC<{ auction: Auction }> = ({ auction }) => {
       className="group border border-border hover:border-primary/40 bg-card hover:bg-card/80 transition-all duration-300 cursor-pointer overflow-hidden"
       onClick={() => navigate(`/auctions/${auction.id}`)}
     >
-      <div className="aspect-[16/10] bg-muted relative overflow-hidden">
+      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
         {img ? (
           <img src={img} alt={auction.auction_title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (

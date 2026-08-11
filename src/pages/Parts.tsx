@@ -817,7 +817,7 @@ const Parts = () => {
                   className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
                   onClick={() => navigate(`/parts/${part.id}`)}
                 >
-                  <div className="relative aspect-square overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden">
                     <img
                       src={part.image}
                       alt={part.name}
@@ -903,7 +903,7 @@ const Parts = () => {
                   onClick={() => navigate(`/parts/${part.id}`)}
                 >
                   <div className="flex flex-col sm:flex-row">
-                    <div className="relative w-full sm:w-48 h-48 flex-shrink-0">
+                    <div className="relative w-full sm:w-48 aspect-square flex-shrink-0">
                       <img
                         src={part.image}
                         alt={part.name}
