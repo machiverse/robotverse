@@ -78,7 +78,7 @@ async function getSettings() {
     max_tokens: data?.max_tokens ?? 800,
     welcome_message:
       data?.welcome_message ??
-      "👋 Welcome to RobotVerse! I'm your AI assistant — ask me about robots, spare parts, services or pricing.",
+      "Hey! 👋 Welcome to RobotVerse — India's marketplace for industrial robots, parts, and services. I'm here to help you find exactly what you need!",
     fallback_message: data?.fallback_message ?? FALLBACK_RESPONSES.other,
     auto_reply: data?.auto_reply ?? true,
     handoff_trigger: data?.handoff_trigger ?? "negative_sentiment",
@@ -240,7 +240,7 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
 
   const bareGreeting = /^(hi+|hey+|hello+|namaste|start|menu|hii|good (morning|afternoon|evening))[\s!.]*$/i.test(text);
   const askRequirement =
-    `${settings.welcome_message}\n\n*What is your requirement?*\n\n1️⃣ Robot (new / used)\n2️⃣ Spare parts\n3️⃣ Service / AMC / integration\n4️⃣ Pricing, selling or something else\n\nReply with a number, or type it in your own words — e.g. "used FANUC welding robot in Chennai".`;
+    `${settings.welcome_message}\n\nWhat are you looking for today?\n\n1️⃣ A robot (new or used)\n2️⃣ Spare parts\n3️⃣ Service / AMC / integration\n4️⃣ Something else (pricing, selling, etc.)\n\nJust reply with a number, or tell me in your own words — like "I need a used welding robot near Pune" 😊`;
 
   // ---- Quick-reply menus: numbered options the user can answer with just a digit ----
   const MENUS: Record<string, { mark: string; title: string; options: string[] }> = {
@@ -296,7 +296,7 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
     const m = MENUS[key];
     const digits = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"];
     const list = m.options.map((o, i) => `${digits[i]} ${o}`).join("\n");
-    return `${lead ? `${lead}\n\n` : ""}${m.title}\n${list}\n\n_Reply with just the number — or type your own answer._`;
+    return `${lead ? `${lead}\n\n` : ""}${m.title}\n${list}\n\n_Just pick a number or tell me in your own words!_`;
   };
 
   const history = await recentHistory(phone);
@@ -366,7 +366,7 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
   if (category && !platformIntent && detailCount < 3) {
     if (category === "robot") {
       if (!hasType && !hasBrand && !hasModel && !alreadyAsked("type")) {
-        await send(renderMenu("type", "🔎 Got it — you're looking for a *robot*."));
+        await send(renderMenu("type", "Nice, let's find you the right robot! 🤖"));
         return;
       }
       if (!hasApplication && !alreadyAsked("application")) {
@@ -387,7 +387,7 @@ async function handle(incoming: { phone: string; text: string; name?: string; id
           ? "• Robot brand & model (e.g. ABB IRB 6640)\n• Which part do you need?\n• New or refurbished?"
           : "• Type of service (installation / AMC / repair / programming)\n• Robot brand & model";
       if (!alreadyAsked("city")) {
-        await send(renderMenu("city", `🔎 Got it — *${category}*.\n\nPlease share:\n${slotQuestions}`));
+        await send(renderMenu("city", `Got it — *${category}*! A few quick details will help me find exactly what you need:\n${slotQuestions}`));
         return;
       }
     }
