@@ -246,24 +246,29 @@ export const FALLBACK_RESPONSES: Record<string, string> = {
     "👋 Welcome to RobotVerse! I'm the same AI assistant that powers our website chatbot — now on WhatsApp!\n\nI can help you with:\n• 🤖 Robots & cobots\n• 🔧 Spare parts & EOAT\n• 🏭 Services & integrators\n• 🔨 Live auctions\n• 🚚 Logistics & 💰 financing\n• 📋 Quotes, plans & pricing\n\nWhat are you looking for?",
   pricing:
     "💰 *RobotVerse Pricing*\n\n• *Browsing & quotes* — free for buyers\n• *Credits* — unlock hidden contact details (10 for robots, 5 for spare parts)\n• *Seller subscriptions* — tiered listing limits and features\n• *Commission model* — 6% on closed deals instead of a subscription\n\nSee live plans: " + SITE + "/pricing\n\nAre you buying or selling? I'll point you to the right plan 🎯",
+export const FALLBACK_RESPONSES: Record<string, string> = {
+  greeting:
+    "Hey there! 👋 Welcome to RobotVerse!\n\nI'm your go-to person for anything industrial robots — whether you're looking to buy, sell, find parts, or get a service done.\n\nSo what brings you here today?",
+  pricing:
+    "Great question on pricing! 💰\n\nBrowsing and requesting quotes is totally free for buyers. If you want to unlock seller contact details, that uses credits — 10 for robots, 5 for spare parts.\n\nSellers can pick a subscription plan or go with our 6% commission model — whatever works better for your business.\n\nCheck out the details here: " + SITE + "/pricing\n\nAre you looking to buy or sell? I'll point you the right way 😊",
   features:
-    "⚡ *What RobotVerse Does*\n\n• 🤖 New & used robots and cobots from FANUC, ABB, KUKA, Yaskawa, UR and more\n• 🔧 Spare parts & EOAT with cross-brand compatibility matching\n• 🏭 Verified integrators, programming, AMC & maintenance\n• 🔨 Live robot auctions with outbid alerts\n• 🚚 Logistics + 💰 financing (loans, EMI, subsidy schemes)\n• 📊 Seller dashboard with leads, CRM and quotations\n• 🤝 AI assistant on web and WhatsApp\n\nWhich area should I open up for you?",
+    "So here's what RobotVerse is all about —\n\nWe've got new and used robots from all the big names (FANUC, ABB, KUKA, UR, you name it), plus spare parts, verified integrators, live auctions, logistics, and even financing options. All in one place.\n\nSellers get a full dashboard with leads, CRM, and quotation tools.\n\nWhat part of this sounds most useful to you?",
   product:
-    "🤖 *RobotVerse Marketplace*\n\n1️⃣ *Robots* — articulated, SCARA, delta, gantry, cobots, AGV/AMR — " + SITE + "/robots\n2️⃣ *Spare Parts & EOAT* — " + SITE + "/parts\n3️⃣ *Services* — integrators & maintenance — " + SITE + "/services\n4️⃣ *Auctions* — " + SITE + "/auctions\n\nTell me the application, payload and city and I'll find the best matches 😊",
+    "We've got quite a lineup! 🤖\n\nYou can browse robots (articulated, SCARA, cobots, delta — the works) at " + SITE + "/robots, spare parts at " + SITE + "/parts, services at " + SITE + "/services, and live auctions at " + SITE + "/auctions.\n\nTell me what you're after — the application, rough payload, and your city — and I'll find you the best matches.",
   demo:
-    "🎯 *Book a Walkthrough*\n\nHappy to show you RobotVerse for your plant or dealership.\n\nJust share:\n• Your name\n• Company\n• What you want to automate (or buy/sell)\n\nOur team will set up a personalised session — Mon-Sat, 10am-7pm IST 📞",
+    "Absolutely, happy to set up a walkthrough for you! 🎯\n\nJust share your name, company, and what you're looking to do (buy, sell, automate something specific?) — and our team will arrange a personalised session.\n\nWe're available Mon–Sat, 10am–7pm IST.",
   integration:
-    "🔗 *Integrations & API*\n\n• *REST API* — marketplace data for ERP, CRM, AI apps and automation tools\n• *Webhooks* — real-time events\n• *API keys* — created from your dashboard, activated after admin approval\n\nDocs: " + SITE + "/api-docs\n\nWhat system are you connecting? ⚡",
+    "We've got a REST API and webhooks if you want to plug RobotVerse into your ERP, CRM, or any automation setup. 🔗\n\nAPI keys are created from your dashboard — just needs a quick admin approval.\n\nDocs are here: " + SITE + "/api-docs\n\nWhat system are you trying to connect?",
   support:
-    "🛠️ *Support*\n\nTell me what's going on and I'll help right away.\n\nYou can also reach us:\n📧 support@robotverse.in\n📞 Key Account Manager: +91 86109 25352\n🌐 " + SITE + "/contact\n\nWe usually reply within a couple of hours 🙏",
+    "No worries, I'm here to help! 🙌\n\nTell me what's going on and I'll sort it out. Or if you'd rather talk to a human:\n\n📧 support@robotverse.in\n📞 +91 86109 25352\n\nWe usually get back within a couple of hours.",
   comparison:
-    "⚖️ *Why RobotVerse?*\n\n✅ Built for Indian manufacturing — English, Hindi & Hinglish\n✅ Robots, parts, services, auctions, logistics and finance in one place\n✅ Verified sellers and integrators, privacy-first contact handling\n✅ AI assistant that searches live listings\n✅ Free to browse and request quotes\n\nWant me to compare specific robots or brands? 🤔",
+    "Good thinking — here's why people pick RobotVerse:\n\nIt's built specifically for Indian manufacturing, supports English, Hindi and Hinglish, and puts robots, parts, services, auctions, logistics AND financing under one roof. Plus everything's verified and contact details are privacy-first.\n\nWant me to compare specific robots or brands for you? 🤔",
   how_it_works:
-    "🔄 *How RobotVerse Works*\n\n1️⃣ *Create an account* — " + SITE + "/auth\n2️⃣ *Search or ask me* — robots, parts, services, auctions\n3️⃣ *Request a quote* or unlock contact with credits\n4️⃣ *Add logistics & financing* from the same platform\n5️⃣ *Sellers* list items and manage leads in the CRM\n\nWhat would you like to do first? 🎯",
+    "It's pretty straightforward!\n\nSign up at " + SITE + "/auth, search for what you need (or just ask me!), request a quote or unlock contacts with credits, and add logistics/financing from the same platform.\n\nSellers can list items and manage everything from a built-in CRM.\n\nWhat would you like to do first?",
   marketplace:
-    "🤖 I can search live RobotVerse listings for you.\n\nTell me:\n• *Application* (welding, palletizing, pick & place, assembly…)\n• *Payload* in kg\n• *City / state*\n• *Budget* (optional)\n\nExample: _\"used 6-axis welding robot 20kg near Chennai under 10 lakh\"_",
+    "I can search our live listings for you right now! 🔎\n\nJust tell me:\n• What's the application? (welding, palletizing, pick & place…)\n• Payload you need (in kg)\n• Your city\n• Budget range (if you have one)\n\nOr just describe it naturally — like \"used welding robot 20kg near Chennai under 10 lakh\"",
   other:
-    "Thanks for your message! 😊\n\nI can help you with:\n• 🤖 Robots & cobots\n• 🔧 Spare parts & EOAT\n• 🏭 Services & integrators\n• 🔨 Auctions\n• 🚚 Logistics & 💰 financing\n• 📋 Quotes, plans & pricing\n\nWhat would you like to explore?",
+    "Thanks for reaching out! 😊\n\nI can help you find robots, spare parts, services, check out auctions, or figure out logistics and financing.\n\nWhat are you looking for?",
 };
 
 /** Converts the website assistant's markdown into WhatsApp-friendly text. */
