@@ -93,6 +93,17 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
   },
 ];
 
+const STAT_META: Record<string, { label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = {
+  listings: { label: "Active listings", icon: TrendingUp },
+  locations: { label: "Locations available", icon: MapPin },
+  suppliers: { label: "Suppliers", icon: Users },
+  providers: { label: "Service providers", icon: Settings },
+  services: { label: "Logistics services", icon: Truck },
+  products: { label: "Loan products", icon: CreditCard },
+  opportunities: { label: "Job opportunities", icon: Briefcase },
+  coverage: { label: "Coverage areas", icon: MapPin },
+};
+
 const MarketplaceCategories = () => {
   const [categoriesData, setCategoriesData] = useState(marketplaceCategoriesInitial);
 
@@ -176,74 +187,74 @@ const MarketplaceCategories = () => {
     fetchStats();
   }, []);
 
+  const [primary, ...rest] = categoriesData;
+
+  const renderStats = (category: MarketplaceCategory, dense = false) => (
+    <div className={dense ? "space-y-2" : "space-y-3"}>
+      {Object.entries(category.stats).map(([key, value]) => {
+        const meta = STAT_META[key];
+        const StatIcon = meta?.icon;
+        return (
+          <div key={key} className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 min-w-0">
+              {StatIcon && <StatIcon className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />}
+              <span className="text-sm text-muted-foreground truncate">{meta?.label ?? key}</span>
+            </div>
+            <Badge variant="secondary" className="text-xs tabular" aria-label={`${value} ${key}`}>
+              {typeof value === "number" ? value.toLocaleString() : value}
+            </Badge>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-muted/20 to-background">
+    <section className="py-10 md:py-14 bg-muted/20">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-4 text-center text-primary">
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
           Everything You Need in One Marketplace
         </h2>
-        <p className="text-center text-base md:text-lg text-muted-foreground mb-8 md:mb-12 max-w-3xl mx-auto px-4">
+        <p className="text-base text-muted-foreground mb-6 md:mb-8">
           Buy robots and access all supporting services seamlessly
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-          {categoriesData.map((category) => {
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-5">
+          {/* Primary path: Industrial Robots */}
+          {primary && (
+            <Link
+              to={primary.href}
+              aria-label={primary.title}
+              className="lg:col-span-2 lg:row-span-2"
+            >
+              <Card className="h-full bg-card border border-border hover:border-primary/50 hover:bg-accent/40 transition-colors duration-150 cursor-pointer">
+                <CardContent className="p-6 md:p-8 flex flex-col h-full">
+                  <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center mb-5">
+                    <primary.icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold mb-2 text-foreground">{primary.title}</h3>
+                  <p className="text-sm md:text-base text-muted-foreground mb-6 max-w-md">
+                    {primary.description}
+                  </p>
+                  <div className="mt-auto max-w-sm">{renderStats(primary)}</div>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+
+          {/* Supporting categories 2x2 */}
+          {rest.map((category) => {
             const Icon = category.icon;
             return (
-              <Link
-                key={category.id}
-                to={category.href}
-                aria-label={category.title}
-                tabIndex={0}
-                className="group"
-              >
-                <Card className="border border-border/50 bg-card p-6 text-center hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-0">
-                    <div
-                      className={`w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
-                    >
-                      <Icon className="w-8 h-8 text-primary-foreground" aria-hidden="true" />
+              <Link key={category.id} to={category.href} aria-label={category.title}>
+                <Card className="h-full bg-card border border-border hover:border-primary/50 hover:bg-accent/40 transition-colors duration-150 cursor-pointer">
+                  <CardContent className="p-5">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center mb-4">
+                      <Icon className="w-5 h-5 text-primary" aria-hidden="true" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-3 text-foreground">{category.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-6">{category.description}</p>
-
-                    <div className="space-y-3">
-                      {Object.entries(category.stats).map(([key, value]) => (
-                        <div key={key} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            {key === "listings" && <TrendingUp className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "locations" && <MapPin className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "suppliers" && <Users className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "providers" && <Settings className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "services" && <Truck className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "products" && <CreditCard className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "opportunities" && <Briefcase className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            {key === "coverage" && <MapPin className="w-4 h-4 text-primary" aria-hidden="true" />}
-                            <span className="text-sm text-muted-foreground capitalize">
-                              {key === "listings"
-                                ? "Active listings"
-                                : key === "locations"
-                                ? "Locations available"
-                                : key === "suppliers"
-                                ? "Suppliers"
-                                : key === "providers"
-                                ? "Service providers"
-                                : key === "services"
-                                ? "Logistics services"
-                                : key === "products"
-                                ? "Loan products"
-                                : key === "opportunities"
-                                ? "Job opportunities"
-                                : key === "coverage"
-                                ? "Coverage areas"
-                                : key}
-                            </span>
-                          </div>
-                          <Badge variant="secondary" className="text-xs" aria-label={`${value} ${key}`}>
-                            {typeof value === "number" ? value.toLocaleString() : value}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
+                    <h3 className="text-base font-semibold mb-1 text-foreground">{category.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-4">{category.description}</p>
+                    {renderStats(category, true)}
                   </CardContent>
                 </Card>
               </Link>
