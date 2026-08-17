@@ -34,11 +34,11 @@ interface LeadsPipelineProps {
 }
 
 const PIPELINE_STAGES: { status: Lead["status"]; label: string; color: string; bgLight: string; dot: string; textColor: string }[] = [
-  { status: "new",          label: "New",         color: "bg-blue-500",    bgLight: "bg-blue-50 dark:bg-blue-950/30",    dot: "bg-blue-500", textColor: "text-blue-700 dark:text-blue-300" },
+  { status: "new",          label: "New",         color: "bg-primary",    bgLight: "bg-primary/10 dark:bg-primary/30",    dot: "bg-primary", textColor: "text-primary dark:text-primary" },
   { status: "contacted",    label: "Contacted",   color: "bg-amber-500",   bgLight: "bg-amber-50 dark:bg-amber-950/30",  dot: "bg-amber-500", textColor: "text-amber-700 dark:text-amber-300" },
-  { status: "quoted",       label: "Quoted",      color: "bg-violet-500",  bgLight: "bg-violet-50 dark:bg-violet-950/30", dot: "bg-violet-500", textColor: "text-violet-700 dark:text-violet-300" },
+  { status: "quoted",       label: "Quoted",      color: "bg-primary",  bgLight: "bg-primary/10 dark:bg-primary/30", dot: "bg-primary", textColor: "text-primary dark:text-primary" },
   { status: "negotiating",  label: "Negotiation", color: "bg-orange-500",  bgLight: "bg-orange-50 dark:bg-orange-950/30", dot: "bg-orange-500", textColor: "text-orange-700 dark:text-orange-300" },
-  { status: "closed_won",   label: "Won",         color: "bg-emerald-500", bgLight: "bg-emerald-50 dark:bg-emerald-950/30", dot: "bg-emerald-500", textColor: "text-emerald-700 dark:text-emerald-300" },
+  { status: "closed_won",   label: "Won",         color: "bg-success", bgLight: "bg-success/10 dark:bg-success/30", dot: "bg-success", textColor: "text-success dark:text-success" },
   { status: "closed_lost",  label: "Lost",        color: "bg-red-500",     bgLight: "bg-red-50 dark:bg-red-950/30",      dot: "bg-red-500", textColor: "text-red-700 dark:text-red-300" },
 ];
 
@@ -82,8 +82,8 @@ const DraggableLeadCard = ({ lead, onLeadClick }: DraggableLeadCardProps) => {
           {/* Header with avatar and name */}
           <div className="mb-2 flex items-center gap-2.5">
             {lead.is_unlocked ? (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-success/10 dark:bg-success/50">
+                <span className="text-xs font-bold text-success dark:text-success">
                   {(lead.buyer_name || "U").charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -129,7 +129,7 @@ const DraggableLeadCard = ({ lead, onLeadClick }: DraggableLeadCardProps) => {
           {/* Footer with price and date */}
           <div className="mt-3 flex items-center justify-between border-t border-border/30 pt-2">
             {lead.product_price ? (
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="text-xs font-bold text-success dark:text-success">
                 ₹{lead.product_price.toLocaleString()}
               </span>
             ) : (
@@ -153,7 +153,7 @@ const LeadCardOverlay = ({ lead }: { lead: Lead }) => (
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2">
           {lead.is_unlocked ? (
-            <Unlock className="h-3 w-3 text-emerald-600" />
+            <Unlock className="h-3 w-3 text-success" />
           ) : (
             <Lock className="h-3 w-3 text-muted-foreground" />
           )}

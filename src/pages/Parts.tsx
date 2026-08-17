@@ -507,7 +507,7 @@ const Parts = () => {
 
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
           Genuine Robot Spare Parts & Accessories
         </h1>
         <p className="text-muted-foreground">
@@ -824,7 +824,7 @@ const Parts = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                     />
-                    <Badge className="absolute top-2 right-2 bg-green-500/90">
+                    <Badge className="absolute top-2 right-2 bg-success/90">
                       {part.availability}
                     </Badge>
                   </div>
@@ -910,7 +910,7 @@ const Parts = () => {
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      <Badge className="absolute top-2 left-2 bg-green-500/90">
+                      <Badge className="absolute top-2 left-2 bg-success/90">
                         {part.availability}
                       </Badge>
                     </div>

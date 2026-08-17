@@ -86,7 +86,7 @@ const STATUS_CONFIG: Record<
   Lead["status"],
   { label: string; color: string; bgColor: string }
 > = {
-  new: { label: "New", color: "text-blue-700", bgColor: "bg-blue-100" },
+  new: { label: "New", color: "text-primary", bgColor: "bg-primary/10" },
   contacted: {
     label: "Contacted",
     color: "text-yellow-700",
@@ -94,13 +94,13 @@ const STATUS_CONFIG: Record<
   },
   qualified: {
     label: "Qualified",
-    color: "text-green-700",
-    bgColor: "bg-green-100",
+    color: "text-success",
+    bgColor: "bg-success/10",
   },
   quoted: {
     label: "Quoted",
-    color: "text-purple-700",
-    bgColor: "bg-purple-100",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
   },
   negotiating: {
     label: "Negotiating",
@@ -109,8 +109,8 @@ const STATUS_CONFIG: Record<
   },
   closed_won: {
     label: "Won",
-    color: "text-emerald-700",
-    bgColor: "bg-emerald-100",
+    color: "text-success",
+    bgColor: "bg-success/10",
   },
   closed_lost: {
     label: "Lost",
@@ -124,7 +124,7 @@ const PRIORITY_CONFIG: Record<
   { label: string; color: string }
 > = {
   low: { label: "Low", color: "text-gray-600" },
-  medium: { label: "Medium", color: "text-blue-600" },
+  medium: { label: "Medium", color: "text-primary" },
   high: { label: "High", color: "text-orange-600" },
   urgent: { label: "Urgent", color: "text-red-600" },
 };
@@ -466,7 +466,7 @@ const LeadDetailModal = ({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-green-200 text-green-600 hover:bg-green-50"
+                    className="border-success/30 text-success hover:bg-success/10"
                     onClick={handleWhatsApp}
                     disabled={!lead.buyer_phone}
                   >

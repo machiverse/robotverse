@@ -24,16 +24,16 @@ const planIcons: Record<string, React.ReactNode> = {
 
 const planColors: Record<string, string> = {
   free: 'border-border bg-muted/30',
-  basic: 'border-blue-500/30 bg-blue-500/5',
+  basic: 'border-primary/30/30 bg-primary/5',
   standard: 'border-amber-500/30 bg-amber-500/5',
-  premium: 'border-purple-500/30 bg-purple-500/5'
+  premium: 'border-primary/30/30 bg-primary/5'
 };
 
 const planBadgeColors: Record<string, string> = {
   free: 'bg-muted text-muted-foreground border-border',
-  basic: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  basic: 'bg-primary/10 text-primary border-primary/30/20',
   standard: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  premium: 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+  premium: 'bg-primary/10 text-primary border-primary/30/20'
 };
 
 // Listing limits per plan
@@ -107,15 +107,15 @@ export const SubscriptionPlans = ({ onSubscribeComplete }: SubscriptionPlansProp
     <div className="space-y-6">
       {/* Grandfathered User Notice */}
       {isGrandfathered && (
-        <Card className="border-green-500/30 bg-green-500/5">
+        <Card className="border-success/30/30 bg-success/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-green-500/10">
-                <Check className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-full bg-success/10">
+                <Check className="h-5 w-5 text-success" />
               </div>
               <div>
-                <h3 className="font-semibold text-green-700">Legacy Account Benefits</h3>
-                <p className="text-sm text-green-600">
+                <h3 className="font-semibold text-success">Legacy Account Benefits</h3>
+                <p className="text-sm text-success">
                   As a member registered before Feb 1, 2026, you enjoy unlimited listings regardless of plan. 
                   Subscribe to get monthly credits for unlocking buyer details.
                 </p>
@@ -146,7 +146,7 @@ export const SubscriptionPlans = ({ onSubscribeComplete }: SubscriptionPlansProp
         />
         <Label htmlFor="billing-toggle" className={isAnnual ? 'font-semibold' : 'text-muted-foreground'}>
           Annual
-          <Badge variant="secondary" className="ml-2 text-xs bg-green-500/10 text-green-600 border-green-500/20">Save 17%</Badge>
+          <Badge variant="secondary" className="ml-2 text-xs bg-success/10 text-success border-success/30/20">Save 17%</Badge>
         </Label>
       </div>
 
@@ -169,7 +169,7 @@ export const SubscriptionPlans = ({ onSubscribeComplete }: SubscriptionPlansProp
             >
               {plan.plan_type === 'standard' && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-amber-500 text-white">Most Popular</Badge>
+                  <Badge className="bg-amber-500 text-primary-foreground">Most Popular</Badge>
                 </div>
               )}
 
@@ -213,7 +213,7 @@ export const SubscriptionPlans = ({ onSubscribeComplete }: SubscriptionPlansProp
                 <ul className="space-y-1.5 text-xs text-left">
                   {features.slice(0, 5).map((feature, index) => (
                     <li key={index} className="flex items-start gap-2">
-                      <Check className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                      <Check className="h-3 w-3 text-success mt-0.5 shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}

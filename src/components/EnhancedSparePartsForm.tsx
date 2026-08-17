@@ -1254,7 +1254,7 @@ const EnhancedSparePartsForm = ({ editingPart, onSuccess }: EnhancedSparePartsFo
                 )}
 
                 {bulkResult && (
-                  <Alert className={bulkResult.errors.length === 0 ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}>
+                  <Alert className={bulkResult.errors.length === 0 ? "border-success/30 bg-success/10" : "border-yellow-200 bg-yellow-50"}>
                     <CheckCircle2 className="h-4 w-4" />
                     <AlertDescription>
                       <div className="space-y-2">

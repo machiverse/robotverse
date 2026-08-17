@@ -62,7 +62,7 @@ const availableRoles: UserRole[] = [
     description: 'Purchase robots, parts, and services from verified sellers',
     icon: ShoppingCart,
     category: 'buyer',
-    gradient: 'from-blue-500 to-cyan-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Beginner',
     marketDemand: 'High',
     avgRevenue: 'Cost Savings',
@@ -77,7 +77,7 @@ const availableRoles: UserRole[] = [
     description: 'Sell industrial robots and automation equipment',
     icon: Bot,
     category: 'seller',
-    gradient: 'from-green-500 to-emerald-600',
+    gradient: 'from-success to-success',
     difficulty: 'Intermediate',
     marketDemand: 'High',
     avgRevenue: '₹2-5L/month',
@@ -92,7 +92,7 @@ const availableRoles: UserRole[] = [
     description: 'Supply robot parts and components to the market',
     icon: Package,
     category: 'seller',
-    gradient: 'from-purple-500 to-violet-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Intermediate',
     marketDemand: 'High',
     avgRevenue: '₹1-3L/month',
@@ -122,7 +122,7 @@ const availableRoles: UserRole[] = [
     description: 'Handle transportation and shipping of robots',
     icon: Truck,
     category: 'provider',
-    gradient: 'from-indigo-500 to-blue-600',
+    gradient: 'from-primary to-primary',
     difficulty: 'Advanced',
     marketDemand: 'High',
     avgRevenue: '₹50K-1.5L/month',
@@ -149,7 +149,7 @@ const availableRoles: UserRole[] = [
 ];
 
 const difficultyColors = {
-  'Beginner': 'bg-green-100 text-green-800',
+  'Beginner': 'bg-success/10 text-success',
   'Intermediate': 'bg-yellow-100 text-yellow-800',
   'Advanced': 'bg-red-100 text-red-800'
 };
@@ -157,7 +157,7 @@ const difficultyColors = {
 const demandColors = {
   'High': 'bg-red-100 text-red-800',
   'Medium': 'bg-yellow-100 text-yellow-800',
-  'Growing': 'bg-green-100 text-green-800'
+  'Growing': 'bg-success/10 text-success'
 };
 
 const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommendations = true }: RoleSelectorProps) => {
@@ -272,7 +272,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Enhanced Header */}
       <div className="text-center space-y-4">
-        <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
           Choose Your RobotVerse Role
         </h2>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -281,36 +281,36 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
         
         {/* Progress & Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+          <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center mb-2">
-                <CheckCircle className="w-6 h-6 text-blue-600 mr-2" />
-                <span className="text-2xl font-bold text-blue-800">{tempSelectedRoles.length}</span>
+                <CheckCircle className="w-6 h-6 text-primary mr-2" />
+                <span className="text-2xl font-bold text-primary">{tempSelectedRoles.length}</span>
               </div>
-              <p className="text-sm text-blue-700 font-medium">Selected Roles</p>
+              <p className="text-sm text-primary font-medium">Selected Roles</p>
               <Progress value={completionScore} className="mt-2 h-2" />
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <Card className="bg-gradient-to-r from-success to-success border-success/30">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center mb-2">
-                <DollarSign className="w-6 h-6 text-green-600 mr-2" />
-                <span className="text-2xl font-bold text-green-800">
+                <DollarSign className="w-6 h-6 text-success mr-2" />
+                <span className="text-2xl font-bold text-success">
                   {totalRevenuePotential > 0 ? `₹${(totalRevenuePotential/100000).toFixed(1)}L` : '₹0'}
                 </span>
               </div>
-              <p className="text-sm text-green-700 font-medium">Revenue Potential</p>
+              <p className="text-sm text-success font-medium">Revenue Potential</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+          <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center mb-2">
-                <Users className="w-6 h-6 text-purple-600 mr-2" />
-                <span className="text-2xl font-bold text-purple-800">20K+</span>
+                <Users className="w-6 h-6 text-primary mr-2" />
+                <span className="text-2xl font-bold text-primary">20K+</span>
               </div>
-              <p className="text-sm text-purple-700 font-medium">Community Members</p>
+              <p className="text-sm text-primary font-medium">Community Members</p>
             </CardContent>
           </Card>
         </div>
@@ -318,13 +318,13 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
 
       {/* AI Recommendations */}
       {showRecommendations && recommendedRoles.length > 0 && (
-        <Alert className="border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+        <Alert className="border-primary/30 bg-gradient-to-r from-primary to-primary">
           <Brain className="w-4 h-4" />
           <AlertDescription>
             <div className="flex items-center justify-between">
               <div>
-                <strong className="text-blue-700">🤖 AI Recommendations:</strong>
-                <span className="text-blue-600 ml-2">
+                <strong className="text-primary">🤖 AI Recommendations:</strong>
+                <span className="text-primary ml-2">
                   Based on your profile, we recommend {recommendedRoles.length} roles for optimal success.
                 </span>
               </div>
@@ -387,7 +387,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
       {categoryRoles.buyer.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <h3 className="text-2xl font-bold text-blue-600">🛒 Buyer Roles</h3>
+            <h3 className="text-2xl font-bold text-primary">🛒 Buyer Roles</h3>
             <Badge variant="secondary">{categoryRoles.buyer.length} available</Badge>
           </div>
           <div className="grid grid-cols-1 gap-4">
@@ -407,7 +407,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
       {categoryRoles.seller.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <h3 className="text-2xl font-bold text-green-600">💼 Seller Roles</h3>
+            <h3 className="text-2xl font-bold text-success">💼 Seller Roles</h3>
             <Badge variant="secondary">{categoryRoles.seller.length} available</Badge>
             <Badge variant="outline" className="text-xs">Select Multiple</Badge>
           </div>
@@ -429,7 +429,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
       {categoryRoles.provider.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <h3 className="text-2xl font-bold text-purple-600">🔧 Service Providers</h3>
+            <h3 className="text-2xl font-bold text-primary">🔧 Service Providers</h3>
             <Badge variant="secondary">{categoryRoles.provider.length} available</Badge>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -468,7 +468,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
         <Card className="bg-gradient-to-r from-muted/30 to-muted/10 border-2 border-dashed">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-5 h-5 text-success" />
               Selected Roles ({tempSelectedRoles.length})
             </CardTitle>
           </CardHeader>
@@ -490,15 +490,15 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-blue-600" />
+                <Target className="w-4 h-4 text-primary" />
                 <span>Coverage: {new Set(tempSelectedRoles.map(r => r.category)).size}/3 categories</span>
               </div>
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-green-600" />
+                <TrendingUp className="w-4 h-4 text-success" />
                 <span>Revenue Potential: ₹{(totalRevenuePotential/100000).toFixed(1)}L/month</span>
               </div>
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-600" />
+                <Users className="w-4 h-4 text-primary" />
                 <span>Market Access: Multi-segment</span>
               </div>
             </div>
@@ -513,7 +513,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
             onClick={handleConfirm}
             disabled={tempSelectedRoles.length === 0}
             size="lg"
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-12 py-3 text-lg"
+            className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary px-12 py-3 text-lg"
           >
             <CheckCircle className="w-5 h-5 mr-2" />
             Continue with {tempSelectedRoles.length} role{tempSelectedRoles.length !== 1 ? 's' : ''}
@@ -558,7 +558,7 @@ const RoleCard = ({ role, isSelected, isRecommended, onToggle, compact = false }
       {/* Recommended Badge */}
       {isRecommended && (
         <div className="absolute -top-2 -right-2 z-10">
-          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs px-2 py-1">
+          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-primary-foreground text-xs px-2 py-1">
             <Star className="w-3 h-3 mr-1" />
             Recommended
           </Badge>
@@ -570,7 +570,7 @@ const RoleCard = ({ role, isSelected, isRecommended, onToggle, compact = false }
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between mb-3">
             <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${role.gradient} flex items-center justify-center shadow-lg`}>
-              <Icon className="w-6 h-6 text-white" />
+              <Icon className="w-6 h-6 text-primary-foreground" />
             </div>
             <div className="flex items-center gap-2">
               {isSelected && <CheckCircle className="w-5 h-5 text-primary" />}
@@ -595,7 +595,7 @@ const RoleCard = ({ role, isSelected, isRecommended, onToggle, compact = false }
                 className="mt-1 scale-110"
               />
               <div className={`w-16 h-16 rounded-xl bg-gradient-to-r ${role.gradient} flex items-center justify-center shadow-lg`}>
-                <Icon className="w-8 h-8 text-white" />
+                <Icon className="w-8 h-8 text-primary-foreground" />
               </div>
               <div className="flex-1 space-y-2">
                 <h4 className="text-xl font-bold">{role.title}</h4>
@@ -621,7 +621,7 @@ const RoleCard = ({ role, isSelected, isRecommended, onToggle, compact = false }
             </Badge>
           </div>
           <div className="text-right">
-            <p className="text-sm font-semibold text-green-600">{role.avgRevenue}</p>
+            <p className="text-sm font-semibold text-success">{role.avgRevenue}</p>
             <p className="text-xs text-muted-foreground">{role.userCount} users</p>
           </div>
         </div>
@@ -650,7 +650,7 @@ const RoleCard = ({ role, isSelected, isRecommended, onToggle, compact = false }
             <div className="space-y-1">
               {role.advantages.slice(0, 3).map((advantage, index) => (
                 <div key={index} className="text-xs text-muted-foreground flex items-center">
-                  <div className="w-1 h-1 bg-green-500 rounded-full mr-2" />
+                  <div className="w-1 h-1 bg-success rounded-full mr-2" />
                   {advantage}
                 </div>
               ))}

@@ -54,19 +54,19 @@ const BuyerGuide = () => {
                 <CardContent>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Use our advanced filters to narrow down by brand, type, and specifications</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Compare multiple options side by side</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Read detailed descriptions and technical specifications</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Review seller ratings and previous buyer feedback</span>
                     </li>
                   </ul>
@@ -83,19 +83,19 @@ const BuyerGuide = () => {
                 <CardContent>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Examine all provided photos carefully</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Ask for maintenance records and service history</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Request additional photos or videos if needed</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Consider arranging an inspection for high-value purchases</span>
                     </li>
                   </ul>
@@ -112,19 +112,19 @@ const BuyerGuide = () => {
                 <CardContent>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Communicate directly with verified sellers</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Use our secure payment system for protection</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Review all terms and conditions before purchase</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Coordinate shipping and delivery logistics</span>
                     </li>
                   </ul>
@@ -263,7 +263,7 @@ const BuyerGuide = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="font-medium mb-3 flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-green-500" />
+                    <Shield className="h-4 w-4 text-success" />
                     Purchase Protection
                   </h3>
                   <ul className="text-sm space-y-2 text-muted-foreground">
@@ -275,7 +275,7 @@ const BuyerGuide = () => {
                 </div>
                 <div>
                   <h3 className="font-medium mb-3 flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-green-500" />
+                    <Shield className="h-4 w-4 text-success" />
                     Quality Assurance
                   </h3>
                   <ul className="text-sm space-y-2 text-muted-foreground">

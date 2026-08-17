@@ -320,8 +320,8 @@ const ServiceDetails = () => {
                       </div>
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-                      <div className="p-2 rounded-lg bg-green-500/10">
-                        <Shield className="w-5 h-5 text-green-500" />
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <Shield className="w-5 h-5 text-success" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Verification</p>
@@ -358,7 +358,7 @@ const ServiceDetails = () => {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-foreground truncate">{service.provider}</p>
-                        <div className="flex items-center gap-1 text-xs text-green-600">
+                        <div className="flex items-center gap-1 text-xs text-success">
                           <Shield className="w-3 h-3" />
                           <span>Verified</span>
                         </div>

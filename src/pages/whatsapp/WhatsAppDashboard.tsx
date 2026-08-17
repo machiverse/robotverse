@@ -123,7 +123,7 @@ const WhatsAppDashboard = () => {
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
                 <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
-                <p className="mt-1 text-xs text-emerald-600">▲ {trend}</p>
+                <p className="mt-1 text-xs text-success">▲ {trend}</p>
               </div>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#25D366]/12">
                 <Icon className="h-5 w-5 text-[#128C7E]" />
@@ -197,7 +197,7 @@ const WhatsAppDashboard = () => {
                           <span className="inline-flex items-center gap-2">
                             <span
                               className={`h-2.5 w-2.5 rounded-full ${
-                                Date.now() - new Date(s.last_seen).getTime() < 3600000 ? "bg-emerald-500" : "bg-slate-300"
+                                Date.now() - new Date(s.last_seen).getTime() < 3600000 ? "bg-success" : "bg-slate-300"
                               }`}
                             />
                             {s.human_mode ? "human" : s.status}

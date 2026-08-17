@@ -289,7 +289,7 @@ const UserRequestsManagement = () => {
                 <p className="text-sm text-muted-foreground">Total Requests</p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
-              <MessageSquare className="w-8 h-8 text-blue-600" />
+              <MessageSquare className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -311,9 +311,9 @@ const UserRequestsManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p>
+                <p className="text-2xl font-bold text-primary">{stats.inProgress}</p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-blue-600" />
+              <AlertTriangle className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -323,9 +323,9 @@ const UserRequestsManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Responded</p>
-                <p className="text-2xl font-bold text-green-600">{stats.responded}</p>
+                <p className="text-2xl font-bold text-success">{stats.responded}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-success" />
             </div>
           </CardContent>
         </Card>

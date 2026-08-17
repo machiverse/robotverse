@@ -84,8 +84,8 @@ const Auctions: React.FC = () => {
   }, [myAuctions]);
 
   const stats = [
-    { label: "Live Auctions", value: liveAuctions?.length || 0, icon: Zap, color: "text-emerald-400" },
-    { label: "Upcoming", value: upcomingAuctions?.length || 0, icon: Clock, color: "text-blue-400" },
+    { label: "Live Auctions", value: liveAuctions?.length || 0, icon: Zap, color: "text-success" },
+    { label: "Upcoming", value: upcomingAuctions?.length || 0, icon: Clock, color: "text-primary" },
     { label: "Completed", value: closedAuctions?.length || 0, icon: Trophy, color: "text-amber-400" },
   ];
 
@@ -159,8 +159,8 @@ const Auctions: React.FC = () => {
                         <>
                           <img src={img} alt={a.auction_title} className="w-full h-full object-cover" />
                           {/* Hover overlay with enlarge icon */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                            <Maximize2 className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors flex items-center justify-center">
+                            <Maximize2 className="w-5 h-5 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         </>
                       ) : (
@@ -173,10 +173,10 @@ const Auctions: React.FC = () => {
                         <Badge
                           className={`text-[10px] font-semibold capitalize px-1.5 py-0.5 h-auto ${
                             status === "live"
-                              ? "bg-emerald-500/80 text-white"
+                              ? "bg-success/80 text-primary-foreground"
                               : status === "upcoming"
-                                ? "bg-blue-500/80 text-white"
-                                : "bg-amber-500/80 text-white"
+                                ? "bg-primary/80 text-primary-foreground"
+                                : "bg-amber-500/80 text-primary-foreground"
                           }`}
                         >
                           {status}
@@ -544,7 +544,7 @@ const Auctions: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           {bid.is_winning_bid && (
-                            <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            <Badge className="bg-success/20 text-success border border-success/30/30">
                               Winning
                             </Badge>
                           )}
@@ -575,7 +575,7 @@ const Auctions: React.FC = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 h-8 w-8 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              className="absolute top-2 right-2 h-8 w-8 bg-foreground/50 hover:bg-foreground/70 text-primary-foreground rounded-full"
               onClick={() => setSelectedImage(null)}
             >
               <X className="w-4 h-4" />

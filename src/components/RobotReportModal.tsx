@@ -273,9 +273,9 @@ export function RobotReportModal({ isOpen, onClose, robotData }: RobotReportModa
                 {/* Description Card */}
                 {robotData.description && (
                   <Card className="border-2">
-                    <CardHeader className="bg-gradient-to-r from-blue-500/5 to-blue-500/10">
+                    <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
                       <CardTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                        <FileText className="w-5 h-5 text-primary" />
                         Description
                       </CardTitle>
                     </CardHeader>

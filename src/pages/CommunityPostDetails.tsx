@@ -462,7 +462,7 @@ const CommunityPostDetails = () => {
                         type="video"
                       />
                       {post.video_duration && (
-                        <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <div className="absolute bottom-2 right-2 bg-foreground/70 text-primary-foreground px-2 py-1 rounded text-xs flex items-center gap-1">
                           <Play className="h-3 w-3" />
                           {formatDuration(post.video_duration)}
                         </div>

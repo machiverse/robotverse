@@ -200,9 +200,9 @@ const ButtonTrackingDashboard: React.FC = () => {
 
   const getButtonTypeColor = (type: string) => {
     const colors = {
-      contact: "bg-blue-100 text-blue-800",
-      navigation: "bg-green-100 text-green-800",
-      analysis: "bg-purple-100 text-purple-800",
+      contact: "bg-primary/10 text-primary",
+      navigation: "bg-success/10 text-success",
+      analysis: "bg-primary/10 text-primary",
       social: "bg-orange-100 text-orange-800",
     };
     return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
@@ -243,7 +243,7 @@ const ButtonTrackingDashboard: React.FC = () => {
               <p className="text-sm font-medium text-muted-foreground">Total Clicks</p>
               <p className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</p>
             </div>
-            <MousePointer className="h-8 w-8 text-blue-600" />
+            <MousePointer className="h-8 w-8 text-primary" />
           </CardContent>
         </Card>
         {/* Unique Users */}
@@ -253,7 +253,7 @@ const ButtonTrackingDashboard: React.FC = () => {
               <p className="text-sm font-medium text-muted-foreground">Unique Users</p>
               <p className="text-2xl font-bold">{stats.uniqueUsers.toLocaleString()}</p>
             </div>
-            <Users className="h-8 w-8 text-green-600" />
+            <Users className="h-8 w-8 text-success" />
           </CardContent>
         </Card>
         {/* Top Button */}
@@ -264,7 +264,7 @@ const ButtonTrackingDashboard: React.FC = () => {
               <p className="text-lg font-bold">{stats.topButtons[0]?.button_name || 'N/A'}</p>
               <p className="text-sm text-muted-foreground">{stats.topButtons[0]?.count || 0} clicks</p>
             </div>
-            <Activity className="h-8 w-8 text-purple-600" />
+            <Activity className="h-8 w-8 text-primary" />
           </CardContent>
         </Card>
         {/* Most Contacted */}

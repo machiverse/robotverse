@@ -102,7 +102,7 @@ const PostInteractionButtons = ({
         size="sm" 
         onClick={handleComment}
         disabled={disabled}
-        className="h-9 px-3 rounded-full hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-all hover:scale-105"
+        className="h-9 px-3 rounded-full hover:text-primary hover:bg-primary/10 dark:hover:bg-primary transition-all hover:scale-105"
       >
         <MessageCircle className="h-4 w-4 mr-1" />
         <span className="font-medium">{commentCount}</span>
@@ -113,7 +113,7 @@ const PostInteractionButtons = ({
         size="sm"
         onClick={handleShare}
         disabled={isSharing || disabled}
-        className="h-9 px-3 rounded-full hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-950 transition-all hover:scale-105"
+        className="h-9 px-3 rounded-full hover:text-success hover:bg-success/10 dark:hover:bg-success transition-all hover:scale-105"
       >
         <Share2 className="h-4 w-4 mr-1" />
         <span className="font-medium">{shareCount}</span>

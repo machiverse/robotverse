@@ -167,7 +167,7 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
                         <div
                           key={idx}
                           className={`w-2 h-2 rounded-full transition-all ${
-                            idx === current ? 'bg-primary' : 'bg-white/50'
+                            idx === current ? 'bg-primary' : 'bg-card/50'
                           }`}
                         />
                       ))}

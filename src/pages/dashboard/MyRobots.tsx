@@ -110,9 +110,9 @@ const MyRobots = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-700';
+      case 'active': return 'bg-success/10 text-success';
       case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'sold': return 'bg-blue-100 text-blue-700';
+      case 'sold': return 'bg-primary/10 text-primary';
       default: return 'bg-gray-100 text-gray-700';
     }
   };

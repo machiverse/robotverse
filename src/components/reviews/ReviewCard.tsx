@@ -57,7 +57,7 @@ export function ReviewCard({ review, showItemType = false }: ReviewCardProps) {
           </Badge>
         )}
         {review.is_verified && (
-          <Badge variant="outline" className="text-xs text-green-400 border-green-400/30">
+          <Badge variant="outline" className="text-xs text-success border-success/30/30">
             ✓ Verified
           </Badge>
         )}

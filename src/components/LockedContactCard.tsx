@@ -287,12 +287,12 @@ export const LockedContactCard = ({
 
   // Unlocked state - show full contact info
   return (
-    <Card className={`border-2 border-green-500/30 bg-gradient-to-br from-green-50/50 to-green-100/30 dark:from-green-950/20 dark:to-green-900/10 ${className}`}>
+    <Card className={`border-2 border-success/30/30 bg-gradient-to-br from-success/50 to-success/30 dark:from-success/20 dark:to-success/10 ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Unlock className="w-5 h-5 text-green-600" />
+          <Unlock className="w-5 h-5 text-success" />
           Seller Contact
-          <Badge variant="outline" className="text-green-600 border-green-500 ml-auto">
+          <Badge variant="outline" className="text-success border-success/30 ml-auto">
             Unlocked
           </Badge>
         </CardTitle>

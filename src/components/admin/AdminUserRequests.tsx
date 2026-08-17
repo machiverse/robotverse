@@ -196,15 +196,15 @@ const AdminUserRequests = () => {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg"><Bot className="w-5 h-5 text-blue-600" /></div>
+          <div className="p-2 bg-primary/10 rounded-lg"><Bot className="w-5 h-5 text-primary" /></div>
           <div><p className="text-2xl font-bold">{robotRequests.length}</p><p className="text-xs text-muted-foreground">Robot Requests</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
-          <div className="p-2 bg-green-100 rounded-lg"><Package className="w-5 h-5 text-green-600" /></div>
+          <div className="p-2 bg-success/10 rounded-lg"><Package className="w-5 h-5 text-success" /></div>
           <div><p className="text-2xl font-bold">{spareRequests.length}</p><p className="text-xs text-muted-foreground">Spare Part Requests</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
-          <div className="p-2 bg-purple-100 rounded-lg"><Wrench className="w-5 h-5 text-purple-600" /></div>
+          <div className="p-2 bg-primary/10 rounded-lg"><Wrench className="w-5 h-5 text-primary" /></div>
           <div><p className="text-2xl font-bold">{serviceRequests.length}</p><p className="text-xs text-muted-foreground">Service Requests</p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">

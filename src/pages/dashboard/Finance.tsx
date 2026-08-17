@@ -85,10 +85,10 @@ const Finance = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-700';
-      case 'approved': return 'bg-green-100 text-green-700';
+      case 'active': return 'bg-success/10 text-success';
+      case 'approved': return 'bg-success/10 text-success';
       case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'under_review': return 'bg-blue-100 text-blue-700';
+      case 'under_review': return 'bg-primary/10 text-primary';
       case 'rejected': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -305,7 +305,7 @@ const Finance = () => {
                         </DropdownMenuItem>
                         {application.status === 'pending' && (
                           <>
-                            <DropdownMenuItem className="text-green-600">
+                            <DropdownMenuItem className="text-success">
                               Approve
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive">

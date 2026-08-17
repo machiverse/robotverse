@@ -194,7 +194,7 @@ const FinancingCategory = () => {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{item.product_name || item.scheme_name}</CardTitle>
-                    {item.is_government_scheme && <Badge className="bg-green-500/10 text-green-500">Govt.</Badge>}
+                    {item.is_government_scheme && <Badge className="bg-success/10 text-success">Govt.</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">{item.profiles?.company_name || 'Finance Provider'}</p>
                 </CardHeader>
@@ -223,7 +223,7 @@ const FinancingCategory = () => {
                     <div className="space-y-1">
                       {item.features.slice(0, 3).map((feature: string, i: number) => (
                         <div key={i} className="flex items-center text-sm text-muted-foreground">
-                          <CheckCircle className="w-3 h-3 mr-2 text-green-500" />
+                          <CheckCircle className="w-3 h-3 mr-2 text-success" />
                           <span className="truncate">{feature}</span>
                         </div>
                       ))}

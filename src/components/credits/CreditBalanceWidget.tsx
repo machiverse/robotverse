@@ -73,10 +73,10 @@ export const CreditBalanceWidget = ({ compact = false, showBuyButton = true }: C
         )}
 
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="text-center p-2 bg-green-500/10 rounded-lg">
-            <TrendingUp className="h-4 w-4 text-green-500 mx-auto mb-1" />
+          <div className="text-center p-2 bg-success/10 rounded-lg">
+            <TrendingUp className="h-4 w-4 text-success mx-auto mb-1" />
             <p className="text-xs text-muted-foreground">Total Earned</p>
-            <p className="font-semibold text-green-600">{credits?.total_earned || 0}</p>
+            <p className="font-semibold text-success">{credits?.total_earned || 0}</p>
           </div>
           <div className="text-center p-2 bg-red-500/10 rounded-lg">
             <TrendingDown className="h-4 w-4 text-red-500 mx-auto mb-1" />

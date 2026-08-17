@@ -253,7 +253,7 @@ const Financing = () => {
 
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
           Flexible Robot Financing
         </h1>
         <p className="text-muted-foreground">

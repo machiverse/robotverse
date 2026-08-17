@@ -318,9 +318,9 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
                         title="Market Overview"
                         content={analysisData.marketOverview}
                         icon={<BarChart3 className="w-5 h-5" />}
-                        bgColor="bg-blue-50"
-                        borderColor="border-blue-200"
-                        textColor="text-blue-900"
+                        bgColor="bg-primary/10"
+                        borderColor="border-primary/30"
+                        textColor="text-primary"
                       />
                     )}
                     
@@ -340,9 +340,9 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
                         title="Target Markets"
                         content={analysisData.targetMarkets}
                         icon={<Users className="w-5 h-5" />}
-                        bgColor="bg-purple-50"
-                        borderColor="border-purple-200"
-                        textColor="text-purple-900"
+                        bgColor="bg-primary/10"
+                        borderColor="border-primary/30"
+                        textColor="text-primary"
                       />
                     )}
                     
@@ -351,9 +351,9 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
                         title="Price Analysis"
                         content={analysisData.priceAnalysis}
                         icon={<DollarSign className="w-5 h-5" />}
-                        bgColor="bg-green-50"
-                        borderColor="border-green-200"
-                        textColor="text-green-900"
+                        bgColor="bg-success/10"
+                        borderColor="border-success/30"
+                        textColor="text-success"
                       />
                     )}
                     
@@ -384,9 +384,9 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
                         title="Investment Outlook"
                         content={analysisData.investmentOutlook}
                         icon={<TrendingUp className="w-5 h-5" />}
-                        bgColor="bg-emerald-50"
-                        borderColor="border-emerald-200"
-                        textColor="text-emerald-900"
+                        bgColor="bg-success/10"
+                        borderColor="border-success/30"
+                        textColor="text-success"
                       />
                     )}
                     
@@ -395,9 +395,9 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
                         title="Business Opportunities"
                         content={analysisData.businessOpportunities}
                         icon={<Lightbulb className="w-5 h-5" />}
-                        bgColor="bg-cyan-50"
-                        borderColor="border-cyan-200"
-                        textColor="text-cyan-900"
+                        bgColor="bg-primary/10"
+                        borderColor="border-primary/30"
+                        textColor="text-primary"
                       />
                     )}
                   </div>

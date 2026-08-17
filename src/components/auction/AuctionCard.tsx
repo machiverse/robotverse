@@ -71,7 +71,7 @@ const AuctionCard: React.FC<{ auction: Auction }> = ({ auction }) => {
           {auction.buy_now_price && (
             <div className="text-right">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Buy Now</p>
-              <p className="text-sm font-semibold text-emerald-400">{formatPrice(auction.buy_now_price)}</p>
+              <p className="text-sm font-semibold text-success">{formatPrice(auction.buy_now_price)}</p>
             </div>
           )}
         </div>

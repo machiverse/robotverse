@@ -205,7 +205,7 @@ const LogisticsCategory = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Badge variant="secondary">{service.service_type}</Badge>
-                    {service.tracking_available && <Badge className="bg-green-500/10 text-green-500">Tracking</Badge>}
+                    {service.tracking_available && <Badge className="bg-success/10 text-success">Tracking</Badge>}
                   </div>
 
                   {service.base_price && (

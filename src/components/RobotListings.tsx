@@ -391,11 +391,11 @@ const RobotListings = () => {
   // Color for condition badge
   const getConditionColor = (condition: string) => {
     const colors = {
-      new: "bg-green-100 text-green-800",
-      like_new: "bg-blue-100 text-blue-800",
+      new: "bg-success/10 text-success",
+      like_new: "bg-primary/10 text-primary",
       good: "bg-yellow-100 text-yellow-800",
       fair: "bg-orange-100 text-orange-800",
-      refurbished: "bg-purple-100 text-purple-800",
+      refurbished: "bg-primary/10 text-primary",
     };
     return colors[condition as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
@@ -548,23 +548,23 @@ const RobotListings = () => {
         <div className="container mx-auto px-4">
           {/* Title and Stats */}
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
               Robot Marketplace
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Discover cutting-edge industrial robots from verified sellers worldwide
             </p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
-              <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+              <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-800">{marketStats.totalListings}</div>
-                  <div className="text-sm text-blue-600">Active Listings</div>
+                  <div className="text-2xl font-bold text-primary">{marketStats.totalListings}</div>
+                  <div className="text-sm text-primary">Active Listings</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <Card className="bg-gradient-to-r from-success to-success border-success/30">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-green-800">₹{(marketStats.minPrice / 100000).toFixed(1)}L</div>
-                  <div className="text-sm text-green-600">Min Price</div>
+                  <div className="text-2xl font-bold text-success">₹{(marketStats.minPrice / 100000).toFixed(1)}L</div>
+                  <div className="text-sm text-success">Min Price</div>
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
@@ -579,10 +579,10 @@ const RobotListings = () => {
                   <div className="text-sm text-red-600">Max Price</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+              <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-800">{marketStats.topBrands.length}</div>
-                  <div className="text-sm text-purple-600">Top Brands</div>
+                  <div className="text-2xl font-bold text-primary">{marketStats.topBrands.length}</div>
+                  <div className="text-sm text-primary">Top Brands</div>
                 </CardContent>
               </Card>
             </div>
@@ -853,7 +853,7 @@ const RobotListings = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                      className="h-8 w-8 p-0 bg-card/80 hover:bg-card"
                       onClick={(e) => handleShare(robot, e)}
                     >
                       <Share2 className="w-4 h-4 text-gray-600" />
@@ -862,7 +862,7 @@ const RobotListings = () => {
                   {/* Training Badge */}
                   {robot.training_included && (
                     <div className="absolute bottom-2 left-2">
-                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                      <Badge variant="secondary" className="text-xs bg-success/10 text-success">
                         Training
                       </Badge>
                     </div>
@@ -943,7 +943,7 @@ const RobotListings = () => {
                         </span>
                       </div>
                       <div className="flex items-center">
-                        <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
+                        <CheckCircle className="w-3 h-3 mr-1 text-success" />
                         <span>Verified</span>
                       </div>
                     </div>
@@ -1020,7 +1020,7 @@ const RobotListings = () => {
                       {aiAnalysisLoading && aiAnalysisRobotId === robot.id ? (
                         <span className="flex items-center justify-center space-x-1">
                           <svg
-                            className="animate-spin h-4 w-4 text-white"
+                            className="animate-spin h-4 w-4 text-primary-foreground"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -1051,7 +1051,7 @@ const RobotListings = () => {
 
                     {/* Show AI Analysis result below card if available */}
                     {aiAnalysisResult && aiAnalysisRobotId === robot.id && (
-                      <Card className="mt-3 p-4 bg-blue-50 rounded-md border border-blue-200">
+                      <Card className="mt-3 p-4 bg-primary/10 rounded-md border border-primary/30">
                         <h4 className="font-semibold mb-2">AI Analysis Summary</h4>
                         <p>{aiAnalysisResult.analysis.summary}</p>
                         {aiAnalysisResult.analysis.suitability && (
@@ -1094,7 +1094,7 @@ const RobotListings = () => {
             <Button
               size="lg"
               onClick={() => navigate("/robots")}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
             >
               View All {marketStats.totalListings} Robots
             </Button>
@@ -1104,7 +1104,7 @@ const RobotListings = () => {
     </section>
       {/* AI Analysis Result Dialog */}
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
-        <DialogContent className="bg-white text-gray-900 max-w-3xl max-h-[80vh] overflow-y-auto p-6">
+        <DialogContent className="bg-card text-gray-900 max-w-3xl max-h-[80vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle>Robot AI Analysis</DialogTitle>
             <DialogClose asChild>

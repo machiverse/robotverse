@@ -20,15 +20,15 @@ interface SellerAssignedRequestsProps {
 }
 
 const TYPE_CONFIG = {
-  robot: { icon: Bot, label: 'Robot', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-l-blue-500' },
-  spare_part: { icon: Package, label: 'Spare Part', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-l-emerald-500' },
-  service: { icon: Wrench, label: 'Service', color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-l-purple-500' },
+  robot: { icon: Bot, label: 'Robot', color: 'text-primary', bg: 'bg-primary/10 dark:bg-primary/30', border: 'border-l-blue-500' },
+  spare_part: { icon: Package, label: 'Spare Part', color: 'text-success', bg: 'bg-success/10 dark:bg-success/30', border: 'border-l-emerald-500' },
+  service: { icon: Wrench, label: 'Service', color: 'text-primary', bg: 'bg-primary/10 dark:bg-primary/30', border: 'border-l-purple-500' },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: any; color: string }> = {
   pending: { label: 'Pending Review', variant: 'secondary', icon: Clock, color: 'text-amber-600' },
-  accepted: { label: 'Accepted', variant: 'outline', icon: CheckCircle, color: 'text-blue-600' },
-  quote_submitted: { label: 'Quote Sent', variant: 'default', icon: Send, color: 'text-emerald-600' },
+  accepted: { label: 'Accepted', variant: 'outline', icon: CheckCircle, color: 'text-primary' },
+  quote_submitted: { label: 'Quote Sent', variant: 'default', icon: Send, color: 'text-success' },
   declined: { label: 'Declined', variant: 'destructive', icon: AlertCircle, color: 'text-destructive' },
 };
 
@@ -134,10 +134,10 @@ const SellerAssignedRequests = ({ categoryFilter }: SellerAssignedRequestsProps)
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { label: 'Total Requests', value: counts.all, icon: Inbox, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+          { label: 'Total Requests', value: counts.all, icon: Inbox, color: 'text-primary', bg: 'bg-primary/10 dark:bg-primary/30' },
           { label: 'Pending Review', value: counts.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
-          { label: 'Accepted', value: counts.accepted, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-          { label: 'Quotes Sent', value: counts.quote_submitted, icon: Send, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950/30' },
+          { label: 'Accepted', value: counts.accepted, icon: CheckCircle, color: 'text-success', bg: 'bg-success/10 dark:bg-success/30' },
+          { label: 'Quotes Sent', value: counts.quote_submitted, icon: Send, color: 'text-primary', bg: 'bg-primary/10 dark:bg-primary/30' },
         ].map(stat => (
           <Card key={stat.label} className="border-muted/60 shadow-sm">
             <CardContent className="p-4">
@@ -280,9 +280,9 @@ const SellerAssignedRequests = ({ categoryFilter }: SellerAssignedRequestsProps)
 
                           {/* Quote info if already submitted */}
                           {a.status === 'quote_submitted' && a.quotation_amount && (
-                            <div className="flex items-center gap-3 text-sm bg-emerald-50 dark:bg-emerald-950/20 rounded-md px-3 py-2 border border-emerald-200 dark:border-emerald-800">
-                              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                              <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                            <div className="flex items-center gap-3 text-sm bg-success/10 dark:bg-success/20 rounded-md px-3 py-2 border border-success/30 dark:border-success/30">
+                              <CheckCircle className="w-4 h-4 text-success shrink-0" />
+                              <span className="text-success dark:text-success font-medium">
                                 Quoted: ₹{Number(a.quotation_amount).toLocaleString('en-IN')}
                               </span>
                             </div>
@@ -302,7 +302,7 @@ const SellerAssignedRequests = ({ categoryFilter }: SellerAssignedRequestsProps)
 
                           {a.status === 'pending' && (
                             <>
-                              <Button size="sm" onClick={() => handleAccept(a.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                              <Button size="sm" onClick={() => handleAccept(a.id)} className="bg-success hover:bg-success text-primary-foreground">
                                 <CheckCircle className="w-3.5 h-3.5 mr-1" /> Accept
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => handleDecline(a.id)} className="text-destructive border-destructive/30 hover:bg-destructive/10">

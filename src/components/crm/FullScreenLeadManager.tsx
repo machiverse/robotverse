@@ -61,8 +61,8 @@ const TAB_SENT_QUOTES: LeadTab = "sent_quotes";
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
   new: {
     label: "New",
-    color: "text-blue-700",
-    bg: "bg-blue-100 dark:bg-blue-900/30",
+    color: "text-primary",
+    bg: "bg-primary/10 dark:bg-primary/30",
   },
   contacted: {
     label: "Contacted",
@@ -71,8 +71,8 @@ const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: 
   },
   quoted: {
     label: "Quoted",
-    color: "text-purple-700",
-    bg: "bg-purple-100 dark:bg-purple-900/30",
+    color: "text-primary",
+    bg: "bg-primary/10 dark:bg-primary/30",
   },
   negotiating: {
     label: "Negotiating",
@@ -81,8 +81,8 @@ const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: 
   },
   closed_won: {
     label: "Won",
-    color: "text-green-700",
-    bg: "bg-green-100 dark:bg-green-900/30",
+    color: "text-success",
+    bg: "bg-success/10 dark:bg-success/30",
   },
   closed_lost: {
     label: "Lost",
@@ -93,7 +93,7 @@ const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: 
 
 const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string }> = {
   low: { label: "Low", color: "text-gray-600" },
-  medium: { label: "Medium", color: "text-blue-600" },
+  medium: { label: "Medium", color: "text-primary" },
   high: { label: "High", color: "text-orange-600" },
   urgent: { label: "Urgent", color: "text-red-600" },
 };
@@ -110,11 +110,11 @@ const getCreditsNeeded = (leadItemType: string): number => {
 
 const getStatusAccentColor = (status: Lead["status"]): string => {
   const map: Record<Lead["status"], string> = {
-    new: "bg-blue-500",
+    new: "bg-primary",
     contacted: "bg-yellow-500",
-    quoted: "bg-purple-500",
+    quoted: "bg-primary",
     negotiating: "bg-orange-500",
-    closed_won: "bg-green-500",
+    closed_won: "bg-success",
     closed_lost: "bg-red-500",
   };
   return map[status] ?? "bg-muted";
@@ -398,9 +398,9 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
             </div>
           )}
           {isCommissionSeller && (
-            <div className="flex items-center gap-2 rounded-lg bg-green-100 dark:bg-green-900/30 px-3 py-1.5 text-xs">
-              <Unlock className="h-4 w-4 text-green-600" />
-              <span className="font-medium text-green-700 dark:text-green-300">Commission Model — Free Access</span>
+            <div className="flex items-center gap-2 rounded-lg bg-success/10 dark:bg-success/30 px-3 py-1.5 text-xs">
+              <Unlock className="h-4 w-4 text-success" />
+              <span className="font-medium text-success dark:text-success">Commission Model — Free Access</span>
             </div>
           )}
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close lead manager" type="button">
@@ -426,8 +426,8 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
 
           <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-indigo-100 p-2 dark:bg-indigo-900/30">
-                <FileQuestion className="h-5 w-5 text-indigo-600" />
+              <div className="rounded-full bg-primary/10 p-2 dark:bg-primary/30">
+                <FileQuestion className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-[11px] font-medium uppercase text-muted-foreground">Quote Requests</p>
@@ -438,8 +438,8 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
 
           <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/30">
-                <User className="h-5 w-5 text-green-600" />
+              <div className="rounded-full bg-success/10 p-2 dark:bg-success/30">
+                <User className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-[11px] font-medium uppercase text-muted-foreground">Total Leads</p>
@@ -450,8 +450,8 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
 
           <Card className="border-muted/60 bg-card px-3 py-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30">
-                <Unlock className="h-5 w-5 text-purple-600" />
+              <div className="rounded-full bg-primary/10 p-2 dark:bg-primary/30">
+                <Unlock className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-[11px] font-medium uppercase text-muted-foreground">Unlocked</p>
@@ -629,11 +629,11 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                 <div className="flex items-center gap-3">
                                   <div
                                     className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                                      lead.is_unlocked ? "bg-green-100 dark:bg-green-900/40" : "bg-muted"
+                                      lead.is_unlocked ? "bg-success/10 dark:bg-success/40" : "bg-muted"
                                     }`}
                                   >
                                     {lead.is_unlocked ? (
-                                      <span className="text-base font-semibold text-green-600">
+                                      <span className="text-base font-semibold text-success">
                                         {(lead.buyer_name || "L").charAt(0).toUpperCase()}
                                       </span>
                                     ) : (
@@ -779,7 +779,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                         handleUnlock(lead);
                                       }}
                                       disabled={(!isCommissionSeller && !canUnlock) || unlocking === lead.id}
-                                      className={`h-8 px-3 text-xs font-medium shadow-sm ${isCommissionSeller ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                                      className={`h-8 px-3 text-xs font-medium shadow-sm ${isCommissionSeller ? 'bg-success hover:bg-success' : ''}`}
                                     >
                                       {unlocking === lead.id ? (
                                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -811,7 +811,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                           e.stopPropagation();
                                           handleWhatsApp(lead);
                                         }}
-                                        className="h-8 px-3 text-xs font-medium border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                        className="h-8 px-3 text-xs font-medium border-success/30 bg-success/10 text-success hover:bg-success/10"
                                       >
                                         <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                                         WhatsApp Platform
@@ -852,7 +852,7 @@ const FullScreenLeadManager = ({ onClose, categoryFilter, isCommissionSeller, in
                                           e.stopPropagation();
                                           handleWhatsApp(lead);
                                         }}
-                                        className="h-8 px-3 text-xs font-medium border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                        className="h-8 px-3 text-xs font-medium border-success/30 bg-success/10 text-success hover:bg-success/10"
                                       >
                                         <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                                         WhatsApp

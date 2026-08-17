@@ -51,9 +51,9 @@ interface SentQuotationsTabProps {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   draft: { label: "Draft", color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", icon: FileText },
-  sent: { label: "Sent", color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-100 dark:bg-blue-900/30", icon: Send },
-  viewed: { label: "Viewed", color: "text-purple-700 dark:text-purple-300", bg: "bg-purple-100 dark:bg-purple-900/30", icon: Eye },
-  accepted: { label: "Accepted", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-900/30", icon: CheckCircle },
+  sent: { label: "Sent", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/30", icon: Send },
+  viewed: { label: "Viewed", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/30", icon: Eye },
+  accepted: { label: "Accepted", color: "text-success dark:text-success", bg: "bg-success/10 dark:bg-success/30", icon: CheckCircle },
   rejected: { label: "Rejected", color: "text-red-700 dark:text-red-300", bg: "bg-red-100 dark:bg-red-900/30", icon: XCircle },
   negotiation: { label: "Negotiation", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/30", icon: Pencil },
 };
@@ -144,10 +144,10 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { title: "Total Quotations", value: quotations.length, icon: FileSpreadsheet, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
-          { title: "Total Value", value: `₹${totalValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { title: "Total Quotations", value: quotations.length, icon: FileSpreadsheet, color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
+          { title: "Total Value", value: `₹${totalValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-success", bg: "bg-success/10 dark:bg-success/30" },
           { title: "Pending Response", value: pendingCount, icon: Clock, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
-          { title: "Acceptance Rate", value: `${acceptanceRate}%`, icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30" },
+          { title: "Acceptance Rate", value: `${acceptanceRate}%`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
         ].map((stat) => (
           <Card key={stat.title} className="border-muted/60">
             <CardContent className="p-3">
@@ -383,7 +383,7 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
                       </div>
                     )}
                     {selectedQuotation.discount_amount && selectedQuotation.discount_amount > 0 && (
-                      <div className="flex justify-between text-sm text-emerald-600">
+                      <div className="flex justify-between text-sm text-success">
                         <span>Discount</span>
                         <span>-₹{Number(selectedQuotation.discount_amount).toLocaleString("en-IN")}</span>
                       </div>
@@ -406,27 +406,27 @@ const SentQuotationsTab = ({ compact = false }: SentQuotationsTabProps) => {
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Timeline</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 text-sm">
-                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <div className="w-2 h-2 rounded-full bg-primary" />
                         <span className="text-muted-foreground">Created</span>
                         <span className="ml-auto text-xs">{format(new Date(selectedQuotation.created_at), "PPP p")}</span>
                       </div>
                       {selectedQuotation.sent_at && (
                         <div className="flex items-center gap-3 text-sm">
-                          <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                          <div className="w-2 h-2 rounded-full bg-primary" />
                           <span className="text-muted-foreground">Sent</span>
                           <span className="ml-auto text-xs">{format(new Date(selectedQuotation.sent_at), "PPP p")}</span>
                         </div>
                       )}
                       {selectedQuotation.viewed_at && (
                         <div className="flex items-center gap-3 text-sm">
-                          <div className="w-2 h-2 rounded-full bg-purple-500" />
+                          <div className="w-2 h-2 rounded-full bg-primary" />
                           <span className="text-muted-foreground">Viewed by Buyer</span>
                           <span className="ml-auto text-xs">{format(new Date(selectedQuotation.viewed_at), "PPP p")}</span>
                         </div>
                       )}
                       {selectedQuotation.accepted_at && (
                         <div className="flex items-center gap-3 text-sm">
-                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <div className="w-2 h-2 rounded-full bg-success" />
                           <span className="text-muted-foreground">Accepted</span>
                           <span className="ml-auto text-xs">{format(new Date(selectedQuotation.accepted_at), "PPP p")}</span>
                         </div>

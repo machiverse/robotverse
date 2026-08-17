@@ -18,16 +18,16 @@ const planIcons: Record<string, React.ReactNode> = {
 
 const planColors: Record<string, string> = {
   free: 'border-muted bg-muted/20',
-  basic: 'border-blue-500/30 bg-blue-500/5',
+  basic: 'border-primary/30/30 bg-primary/5',
   standard: 'border-amber-500/30 bg-amber-500/5',
-  premium: 'border-purple-500/30 bg-purple-500/5'
+  premium: 'border-primary/30/30 bg-primary/5'
 };
 
 const planBadgeColors: Record<string, string> = {
   free: 'bg-muted text-muted-foreground',
-  basic: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  basic: 'bg-primary/10 text-primary border-primary/30/20',
   standard: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  premium: 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+  premium: 'bg-primary/10 text-primary border-primary/30/20'
 };
 
 const subscriptionPlans = [
@@ -148,7 +148,7 @@ const Pricing = () => {
               />
               <Label htmlFor="pricing-toggle" className={isAnnual ? 'font-semibold' : 'text-muted-foreground'}>
                 Annual
-                <Badge variant="secondary" className="ml-2 text-xs bg-green-500/10 text-green-600 border-green-500/20">Save 17%</Badge>
+                <Badge variant="secondary" className="ml-2 text-xs bg-success/10 text-success border-success/30/20">Save 17%</Badge>
               </Label>
             </div>
           </div>
@@ -167,7 +167,7 @@ const Pricing = () => {
                 >
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-amber-500 text-white">Most Popular</Badge>
+                      <Badge className="bg-amber-500 text-primary-foreground">Most Popular</Badge>
                     </div>
                   )}
 
@@ -199,7 +199,7 @@ const Pricing = () => {
                     <ul className="space-y-2 text-sm text-left">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
                           <span>{feature}</span>
                         </li>
                       ))}

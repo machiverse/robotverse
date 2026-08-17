@@ -90,8 +90,8 @@ const Logistics = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'delivered': return 'bg-green-100 text-green-700';
-      case 'in_transit': return 'bg-blue-100 text-blue-700';
+      case 'delivered': return 'bg-success/10 text-success';
+      case 'in_transit': return 'bg-primary/10 text-primary';
       case 'pending': return 'bg-yellow-100 text-yellow-700';
       case 'delayed': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';

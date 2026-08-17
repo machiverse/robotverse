@@ -69,17 +69,17 @@ interface LeadsManagerProps {
 }
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string }> = {
-  new: { label: "New", color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-900/30" },
+  new: { label: "New", color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
   contacted: { label: "Contacted", color: "text-yellow-700", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
-  quoted: { label: "Quoted", color: "text-purple-700", bg: "bg-purple-100 dark:bg-purple-900/30" },
+  quoted: { label: "Quoted", color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
   negotiating: { label: "Negotiating", color: "text-orange-700", bg: "bg-orange-100 dark:bg-orange-900/30" },
-  closed_won: { label: "Won", color: "text-green-700", bg: "bg-green-100 dark:bg-green-900/30" },
+  closed_won: { label: "Won", color: "text-success", bg: "bg-success/10 dark:bg-success/30" },
   closed_lost: { label: "Lost", color: "text-red-700", bg: "bg-red-100 dark:bg-red-900/30" },
 };
 
 const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string }> = {
   low: { label: "Low", color: "text-gray-600" },
-  medium: { label: "Medium", color: "text-blue-600" },
+  medium: { label: "Medium", color: "text-primary" },
   high: { label: "High", color: "text-orange-600" },
   urgent: { label: "Urgent", color: "text-red-600" },
 };
@@ -122,8 +122,8 @@ const StatsHeader = ({
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Card className="border-muted/60 bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900/30">
-              <Eye className="h-5 w-5 text-blue-600" />
+            <div className="rounded-full bg-primary/10 p-2 dark:bg-primary/30">
+              <Eye className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-xs font-medium uppercase text-muted-foreground">Total views</p>
@@ -134,8 +134,8 @@ const StatsHeader = ({
 
         <Card className="border-muted/60 bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/30">
-              <User className="h-5 w-5 text-green-600" />
+            <div className="rounded-full bg-success/10 p-2 dark:bg-success/30">
+              <User className="h-5 w-5 text-success" />
             </div>
             <div>
               <p className="text-xs font-medium uppercase text-muted-foreground">Total leads</p>
@@ -146,8 +146,8 @@ const StatsHeader = ({
 
         <Card className="border-muted/60 bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-indigo-100 p-2 dark:bg-indigo-900/30">
-              <FileQuestion className="h-5 w-5 text-indigo-600" />
+            <div className="rounded-full bg-primary/10 p-2 dark:bg-primary/30">
+              <FileQuestion className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-xs font-medium uppercase text-muted-foreground">Quote requests</p>
@@ -158,8 +158,8 @@ const StatsHeader = ({
 
         <Card className="border-muted/60 bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900/30">
-              <Unlock className="h-5 w-5 text-purple-600" />
+            <div className="rounded-full bg-primary/10 p-2 dark:bg-primary/30">
+              <Unlock className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-xs font-medium uppercase text-muted-foreground">Unlocked leads</p>
@@ -413,11 +413,11 @@ const LeadRow = ({
 
   const getStatusAccentColor = (status: Lead["status"]) => {
     const colors = {
-      new: "bg-blue-500",
+      new: "bg-primary",
       contacted: "bg-yellow-500",
-      quoted: "bg-purple-500",
+      quoted: "bg-primary",
       negotiating: "bg-orange-500",
-      closed_won: "bg-green-500",
+      closed_won: "bg-success",
       closed_lost: "bg-red-500",
     };
     return colors[status] || "bg-muted";
@@ -437,10 +437,10 @@ const LeadRow = ({
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex items-center gap-3">
               <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${lead.is_unlocked ? "bg-green-100 dark:bg-green-900/40" : "bg-muted"}`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${lead.is_unlocked ? "bg-success/10 dark:bg-success/40" : "bg-muted"}`}
               >
                 {lead.is_unlocked ? (
-                  <span className="text-base font-semibold text-green-600">
+                  <span className="text-base font-semibold text-success">
                     {(lead.buyer_name || "L").charAt(0).toUpperCase()}
                   </span>
                 ) : (
@@ -610,7 +610,7 @@ const LeadRow = ({
                   <span className="text-xs text-muted-foreground">{lead.product_model}</span>
                 )}
                 {lead.product_price && (
-                  <span className="font-semibold text-green-600 text-sm">₹{lead.product_price.toLocaleString()}</span>
+                  <span className="font-semibold text-success text-sm">₹{lead.product_price.toLocaleString()}</span>
                 )}
               </div>
             </div>
@@ -618,17 +618,17 @@ const LeadRow = ({
 
           {/* Quotation info row */}
           {lead.quotation_count && lead.quotation_count > 0 && (
-            <div className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
-              <FileSpreadsheet className="h-4 w-4 text-violet-600" />
+            <div className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-primary/10 dark:bg-primary/20 border border-primary/30 dark:border-primary/30">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
               <div className="flex items-center gap-2 flex-wrap text-sm">
-                <span className="font-medium text-violet-700 dark:text-violet-300">
+                <span className="font-medium text-primary dark:text-primary">
                   {lead.latest_quotation_number}
                 </span>
-                <Badge variant="outline" className="text-xs capitalize border-violet-300 text-violet-600">
+                <Badge variant="outline" className="text-xs capitalize border-primary/30 text-primary">
                   {lead.latest_quotation_status}
                 </Badge>
                 {lead.latest_quotation_amount && (
-                  <span className="font-semibold text-violet-700 dark:text-violet-300">
+                  <span className="font-semibold text-primary dark:text-primary">
                     ₹{lead.latest_quotation_amount.toLocaleString()}
                   </span>
                 )}
@@ -649,7 +649,7 @@ const LeadRow = ({
                 {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true })}
               </span>
               {lead.latest_quotation_date && (
-                <span className="inline-flex items-center gap-1.5 text-violet-600">
+                <span className="inline-flex items-center gap-1.5 text-primary">
                   <FileSpreadsheet className="h-3.5 w-3.5" />
                   Quoted {format(new Date(lead.latest_quotation_date), "MMM d")}
                 </span>
@@ -701,7 +701,7 @@ const LeadRow = ({
                       e.stopPropagation();
                       onWhatsApp(lead);
                     }}
-                    className="h-8 px-3 text-xs font-medium border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
+                    className="h-8 px-3 text-xs font-medium border-success/30 bg-success/10 text-success hover:bg-success/10 dark:bg-success/20 dark:border-success/30"
                   >
                     <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                     WhatsApp

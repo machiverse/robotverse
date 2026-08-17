@@ -22,8 +22,8 @@ export function SellerStatsDisplay({ completedSales = 0, averageRating = 0, tota
         )}
         {completedSales > 0 && (
           <div className="flex items-center gap-1">
-            <ShoppingBag className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="font-semibold text-emerald-400">{completedSales} sales</span>
+            <ShoppingBag className="h-3.5 w-3.5 text-success" />
+            <span className="font-semibold text-success">{completedSales} sales</span>
           </div>
         )}
       </div>
@@ -40,10 +40,10 @@ export function SellerStatsDisplay({ completedSales = 0, averageRating = 0, tota
         </div>
       )}
       {completedSales > 0 && (
-        <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-          <ShoppingBag className="h-4 w-4 text-emerald-400" />
-          <span className="font-bold text-sm text-emerald-400">{completedSales}</span>
-          <span className="text-xs text-emerald-300/70">completed sales</span>
+        <div className="flex items-center gap-1.5 bg-success/10 border border-success/30/20 px-3 py-1.5 rounded-full">
+          <ShoppingBag className="h-4 w-4 text-success" />
+          <span className="font-bold text-sm text-success">{completedSales}</span>
+          <span className="text-xs text-success/70">completed sales</span>
         </div>
       )}
     </div>

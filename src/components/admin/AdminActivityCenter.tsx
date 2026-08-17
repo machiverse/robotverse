@@ -209,10 +209,10 @@ const AdminActivityCenter = () => {
 
   const getItemTypeIcon = (type: string) => {
     switch (type) {
-      case "robots": return <Bot className="h-4 w-4 text-blue-500" />;
+      case "robots": return <Bot className="h-4 w-4 text-primary" />;
       case "spare_parts": return <Package className="h-4 w-4 text-orange-500" />;
-      case "services": return <Settings className="h-4 w-4 text-purple-500" />;
-      case "logistics_services": return <Truck className="h-4 w-4 text-green-500" />;
+      case "services": return <Settings className="h-4 w-4 text-primary" />;
+      case "logistics_services": return <Truck className="h-4 w-4 text-success" />;
       case "loan_products": return <CreditCard className="h-4 w-4 text-yellow-500" />;
       default: return <Eye className="h-4 w-4 text-muted-foreground" />;
     }
@@ -220,10 +220,10 @@ const AdminActivityCenter = () => {
 
   const getItemTypeBadgeColor = (type: string) => {
     switch (type) {
-      case "robots": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      case "robots": return "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary";
       case "spare_parts": return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
-      case "services": return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
-      case "logistics_services": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      case "services": return "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary";
+      case "logistics_services": return "bg-success/10 text-success dark:bg-success/30 dark:text-success";
       case "loan_products": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
       default: return "bg-muted text-muted-foreground";
     }
@@ -345,7 +345,7 @@ const AdminActivityCenter = () => {
                 <p className="text-xs text-muted-foreground">Total Views</p>
                 <p className="text-2xl font-bold">{stats.totalViews}</p>
               </div>
-              <Eye className="h-6 w-6 text-blue-500" />
+              <Eye className="h-6 w-6 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -355,9 +355,9 @@ const AdminActivityCenter = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Today's Views</p>
-                <p className="text-2xl font-bold text-green-600">{stats.todayViews}</p>
+                <p className="text-2xl font-bold text-success">{stats.todayViews}</p>
               </div>
-              <TrendingUp className="h-6 w-6 text-green-500" />
+              <TrendingUp className="h-6 w-6 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -369,7 +369,7 @@ const AdminActivityCenter = () => {
                 <p className="text-xs text-muted-foreground">Messages</p>
                 <p className="text-2xl font-bold">{stats.totalMessages}</p>
               </div>
-              <MessageSquare className="h-6 w-6 text-purple-500" />
+              <MessageSquare className="h-6 w-6 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -379,9 +379,9 @@ const AdminActivityCenter = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground">Today's Msgs</p>
-                <p className="text-2xl font-bold text-green-600">{stats.todayMessages}</p>
+                <p className="text-2xl font-bold text-success">{stats.todayMessages}</p>
               </div>
-              <Clock className="h-6 w-6 text-cyan-500" />
+              <Clock className="h-6 w-6 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -478,8 +478,8 @@ const AdminActivityCenter = () => {
                     .map((item, idx) => (
                       <div key={idx} className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                         <div className="p-2 rounded-full bg-muted">
-                          {item.type === "view" && <Eye className="h-4 w-4 text-blue-500" />}
-                          {item.type === "message" && <MessageSquare className="h-4 w-4 text-purple-500" />}
+                          {item.type === "view" && <Eye className="h-4 w-4 text-primary" />}
+                          {item.type === "message" && <MessageSquare className="h-4 w-4 text-primary" />}
                           {item.type === "notification" && <Bell className="h-4 w-4 text-orange-500" />}
                         </div>
                         <div className="flex-1 min-w-0">

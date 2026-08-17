@@ -178,13 +178,13 @@ const BuyerInquiriesSection = ({ sellerId, itemType }: BuyerInquiriesSectionProp
 
   const getInquiryTypeBadge = (buttonType: string) => {
     const variants: Record<string, { color: string; label: string }> = {
-      'inquiry': { color: 'bg-blue-100 text-blue-800', label: 'Inquiry' },
-      'contact': { color: 'bg-green-100 text-green-800', label: 'Contact' },
-      'quote_request': { color: 'bg-purple-100 text-purple-800', label: 'Quote Request' },
+      'inquiry': { color: 'bg-primary/10 text-primary', label: 'Inquiry' },
+      'contact': { color: 'bg-success/10 text-success', label: 'Contact' },
+      'quote_request': { color: 'bg-primary/10 text-primary', label: 'Quote Request' },
       'chat_start': { color: 'bg-orange-100 text-orange-800', label: 'Chat' },
-      'robot_view': { color: 'bg-cyan-100 text-cyan-800', label: 'View' },
-      'spare_part_view': { color: 'bg-cyan-100 text-cyan-800', label: 'View' },
-      'service_view': { color: 'bg-cyan-100 text-cyan-800', label: 'View' },
+      'robot_view': { color: 'bg-primary/10 text-primary', label: 'View' },
+      'spare_part_view': { color: 'bg-primary/10 text-primary', label: 'View' },
+      'service_view': { color: 'bg-primary/10 text-primary', label: 'View' },
     };
 
     const config = variants[buttonType] || { color: 'bg-gray-100 text-gray-800', label: buttonType };
@@ -196,7 +196,7 @@ const BuyerInquiriesSection = ({ sellerId, itemType }: BuyerInquiriesSectionProp
       case 'pending':
         return <Badge variant="secondary" className="flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</Badge>;
       case 'approved':
-        return <Badge variant="default" className="bg-green-600 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Approved</Badge>;
+        return <Badge variant="default" className="bg-success flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="w-3 h-3" /> Rejected</Badge>;
       default:
@@ -259,7 +259,7 @@ const BuyerInquiriesSection = ({ sellerId, itemType }: BuyerInquiriesSectionProp
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {hasAccess ? (
-                            <Unlock className="w-4 h-4 text-green-600" />
+                            <Unlock className="w-4 h-4 text-success" />
                           ) : (
                             <Lock className="w-4 h-4 text-muted-foreground" />
                           )}

@@ -427,7 +427,7 @@ const SparePartDetails = () => {
                           {sparePart.main_category}
                         </Badge>
                         {sparePart.is_international && (
-                          <Badge variant="default" className="text-lg px-4 py-2 bg-blue-500 hover:bg-blue-600">
+                          <Badge variant="default" className="text-lg px-4 py-2 bg-primary hover:bg-primary">
                             International
                           </Badge>
                         )}
@@ -499,9 +499,9 @@ const SparePartDetails = () => {
                         </div>
                       )}
                       {sparePart.profiles?.completed_sales > 0 && (
-                        <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-                          <Package className="h-4 w-4 text-emerald-400" />
-                          <span className="font-bold text-sm text-emerald-400">{sparePart.profiles.completed_sales} sales</span>
+                        <div className="flex items-center gap-1.5 bg-success/10 border border-success/30/20 px-3 py-1.5 rounded-full">
+                          <Package className="h-4 w-4 text-success" />
+                          <span className="font-bold text-sm text-success">{sparePart.profiles.completed_sales} sales</span>
                         </div>
                       )}
                     </div>
@@ -628,15 +628,15 @@ const SparePartDetails = () => {
 
                   {/* International Shipping section - commented out
                   {sparePart.is_international && (
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-8 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-lg">
+                    <div className="bg-gradient-to-r from-primary to-primary dark:from-primary dark:to-primary p-8 rounded-2xl border border-primary/30 dark:border-primary/30 shadow-lg">
                       <h4 className="flex items-center gap-2 font-bold text-xl mb-6">
-                        <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <Truck className="w-5 h-5 text-primary dark:text-primary" />
                         International Shipping Available
                       </h4>
                       <div className="grid md:grid-cols-2 gap-6">
                         {sparePart.shipping_amount > 0 && (
                           <div className="flex items-center gap-3">
-                            <span className="w-2.5 h-2.5 bg-blue-600 rounded-full" />
+                            <span className="w-2.5 h-2.5 bg-primary rounded-full" />
                             <span className="font-semibold">Shipping Cost</span>
                             <span className="text-muted-foreground">
                               {sparePart.currency} {sparePart.shipping_amount.toLocaleString()}
@@ -645,7 +645,7 @@ const SparePartDetails = () => {
                         )}
                         {sparePart.duty_amount > 0 && (
                           <div className="flex items-center gap-3">
-                            <span className="w-2.5 h-2.5 bg-blue-600 rounded-full" />
+                            <span className="w-2.5 h-2.5 bg-primary rounded-full" />
                             <span className="font-semibold">Import Duty</span>
                             <span className="text-muted-foreground">
                               {sparePart.currency} {sparePart.duty_amount.toLocaleString()}

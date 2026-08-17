@@ -136,7 +136,7 @@ const WhatsAppKnowledgeBase = () => {
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2">{[0, 1, 2, 3].map((i) => <div key={i} className="h-36 animate-pulse rounded-xl bg-muted" />)}</div>
       ) : filtered.length === 0 ? (
-        <p className="rounded-xl border bg-white p-8 text-center text-sm text-muted-foreground">No entries match your filters.</p>
+        <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No entries match your filters.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((e) => (

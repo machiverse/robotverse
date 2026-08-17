@@ -279,10 +279,10 @@ const CommissionDealsSection = () => {
     .reduce((sum, d) => sum + (d.quote_value * 0.06), 0);
 
   const statusColors: Record<string, string> = {
-    lead_generated: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    lead_generated: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
     quote_sent: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-    negotiation: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-    deal_won: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    negotiation: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
+    deal_won: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
     deal_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
@@ -307,13 +307,13 @@ const CommissionDealsSection = () => {
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {[
-          { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-blue-600", bg: "bg-blue-50", sub: `${activeQuotes} active` },
-          { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", sub: "Completed" },
-          { title: "All Deals Value", value: `₹${allDealsValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-blue-600", bg: "bg-blue-50", sub: "Total pipeline" },
-          { title: "Won Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50", sub: "Confirmed revenue" },
+          { title: "Total Deals", value: totalDeals, icon: Handshake, color: "text-primary", bg: "bg-primary/10", sub: `${activeQuotes} active` },
+          { title: "Deals Won", value: dealsWon, icon: CheckCircle, color: "text-success", bg: "bg-success/10", sub: "Completed" },
+          { title: "All Deals Value", value: `₹${allDealsValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-primary", bg: "bg-primary/10", sub: "Total pipeline" },
+          { title: "Won Deal Value", value: `₹${totalDealValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "text-success", bg: "bg-success/10", sub: "Confirmed revenue" },
           { title: "Commission 6%", value: `₹${totalCommission.toLocaleString("en-IN")}`, icon: CreditCard, color: "text-amber-600", bg: "bg-amber-50", sub: "On won deals" },
-          { title: "Expected Comm.", value: `₹${expectedCommission.toLocaleString("en-IN")}`, icon: Target, color: "text-blue-600", bg: "bg-blue-50", sub: "If all close" },
-          { title: "Net Payout", value: `₹${netPayout.toLocaleString("en-IN")}`, icon: FileCheck, color: "text-emerald-700", bg: "bg-emerald-100", sub: "After commission" },
+          { title: "Expected Comm.", value: `₹${expectedCommission.toLocaleString("en-IN")}`, icon: Target, color: "text-primary", bg: "bg-primary/10", sub: "If all close" },
+          { title: "Net Payout", value: `₹${netPayout.toLocaleString("en-IN")}`, icon: FileCheck, color: "text-success", bg: "bg-success/10", sub: "After commission" },
         ].map((stat) => (
           <Card key={stat.title} className="border-border/60 shadow-sm">
             <CardContent className="p-3">
@@ -350,12 +350,12 @@ const CommissionDealsSection = () => {
             {/* Won Deal Value */}
             <div className="p-6 flex flex-col justify-between">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-md">
-                  <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <div className="p-1.5 bg-success/10 dark:bg-success/30 rounded-md">
+                  <CheckCircle className="h-4 w-4 text-success dark:text-success" />
                 </div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Won Deal Value</p>
               </div>
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+              <p className="text-3xl font-bold text-success dark:text-success">
                 ₹{totalDealValue.toLocaleString("en-IN")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">{dealsWon} deals completed</p>
@@ -378,29 +378,29 @@ const CommissionDealsSection = () => {
             {/* Expected Commission */}
             <div className="p-6 flex flex-col justify-between">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
-                  <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <div className="p-1.5 bg-primary/10 dark:bg-primary/30 rounded-md">
+                  <Target className="h-4 w-4 text-primary dark:text-primary" />
                 </div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Expected Commission</p>
               </div>
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              <p className="text-3xl font-bold text-primary dark:text-primary">
                 ₹{expectedCommission.toLocaleString("en-IN")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">If all active deals close</p>
             </div>
 
             {/* Net Payout */}
-            <div className="p-6 flex flex-col justify-between bg-emerald-50/50 dark:bg-emerald-950/20">
+            <div className="p-6 flex flex-col justify-between bg-success/10/50 dark:bg-success/20">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-md">
-                  <FileCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+                <div className="p-1.5 bg-success/10 dark:bg-success/30 rounded-md">
+                  <FileCheck className="h-4 w-4 text-success dark:text-success" />
                 </div>
-                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">Net Payout</p>
+                <p className="text-xs font-medium text-success dark:text-success uppercase tracking-wider">Net Payout</p>
               </div>
-              <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+              <p className="text-3xl font-bold text-success dark:text-success">
                 ₹{netPayout.toLocaleString("en-IN")}
               </p>
-              <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">After 5% deduction</p>
+              <p className="text-xs text-success/70 dark:text-success/70 mt-1">After 5% deduction</p>
             </div>
           </div>
         </CardContent>
@@ -477,7 +477,7 @@ const CommissionDealsSection = () => {
                         </TableCell>
                         <TableCell>
                           {qtInfo.isFromQuote ? (
-                            <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs">
+                            <Badge className="bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary text-xs">
                               <FileText className="h-3 w-3 mr-1" />
                               {qtInfo.quotationNumber}
                             </Badge>
@@ -489,7 +489,7 @@ const CommissionDealsSection = () => {
                           <Badge className={statusColors[deal.deal_status] || ""}>{deal.deal_status.replace(/_/g, " ")}</Badge>
                         </TableCell>
                         <TableCell>
-                          {deal.admin_verified ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
+                          {deal.admin_verified ? <CheckCircle className="h-4 w-4 text-success" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(deal.created_at), "dd MMM yyyy")}
@@ -520,7 +520,7 @@ const CommissionDealsSection = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                                className="gap-1.5 text-xs border-success/30 text-success hover:bg-success/10 dark:border-success/30 dark:text-success dark:hover:bg-success/30"
                                 onClick={() => {
                                   const commission = deal.quote_value > 0 ? (deal.quote_value * 0.06) : 0;
                                   toast({
@@ -563,7 +563,7 @@ const CommissionDealsSection = () => {
                                   {/* Quotation Header */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                      <FileCheck className="h-5 w-5 text-indigo-600" />
+                                      <FileCheck className="h-5 w-5 text-primary" />
                                       <h4 className="font-semibold text-sm">Quotation: {qtDetails.quotation_number}</h4>
                                       <Badge variant="outline" className="text-xs capitalize">{qtDetails.status}</Badge>
                                     </div>
@@ -638,7 +638,7 @@ const CommissionDealsSection = () => {
                                        {(qtDetails.discount_amount ?? 0) > 0 && (
                                          <div className="flex justify-between text-muted-foreground">
                                            <span>Discount</span>
-                                           <span className="font-mono text-green-600">-₹{Number(qtDetails.discount_amount).toLocaleString()}</span>
+                                           <span className="font-mono text-success">-₹{Number(qtDetails.discount_amount).toLocaleString()}</span>
                                          </div>
                                        )}
                                        {(qtDetails.tax_amount ?? 0) > 0 && (
@@ -660,10 +660,10 @@ const CommissionDealsSection = () => {
                                      </div>
 
                                      {/* RobotVerse Commission Card */}
-                                     <div className="w-full md:w-80 rounded-lg border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 space-y-3">
+                                     <div className="w-full md:w-80 rounded-lg border-2 border-success/30 dark:border-success/30 bg-success/10/50 dark:bg-success/20 p-4 space-y-3">
                                        <div className="flex items-center gap-2">
-                                         <IndianRupee className="h-4 w-4 text-emerald-600" />
-                                         <h5 className="font-semibold text-sm text-emerald-800 dark:text-emerald-300">RobotVerse Platform Commission</h5>
+                                         <IndianRupee className="h-4 w-4 text-success" />
+                                         <h5 className="font-semibold text-sm text-success dark:text-success">RobotVerse Platform Commission</h5>
                                        </div>
                                        <div className="space-y-1.5 text-sm">
                                          <div className="flex justify-between text-muted-foreground">
@@ -678,7 +678,7 @@ const CommissionDealsSection = () => {
                                            <span>Commission Rate</span>
                                            <span className="font-mono">5%</span>
                                          </div>
-                                         <div className="flex justify-between font-bold text-emerald-700 dark:text-emerald-400 border-t border-emerald-200 dark:border-emerald-800 pt-1.5">
+                                         <div className="flex justify-between font-bold text-success dark:text-success border-t border-success/30 dark:border-success/30 pt-1.5">
                                            <span>Commission Amount</span>
                                            <span className="font-mono">₹{(Number(qtDetails.total_amount || 0) * 0.06).toLocaleString()}</span>
                                          </div>
@@ -686,7 +686,7 @@ const CommissionDealsSection = () => {
                                        {deal.deal_status === "deal_won" && (
                                          <Button
                                            size="sm"
-                                           className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                           className="w-full gap-2 bg-success hover:bg-success text-primary-foreground"
                                            onClick={(e) => {
                                              e.stopPropagation();
                                              toast({

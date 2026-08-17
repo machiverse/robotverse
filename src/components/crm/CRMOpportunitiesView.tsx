@@ -31,11 +31,11 @@ interface CRMOpportunitiesViewProps {
 }
 
 const STAGE_CONFIG = {
-  qualification: { label: "Qualification", color: "bg-blue-100 text-blue-700", probability: 10 },
+  qualification: { label: "Qualification", color: "bg-primary/10 text-primary", probability: 10 },
   needs_analysis: { label: "Needs Analysis", color: "bg-yellow-100 text-yellow-700", probability: 25 },
-  proposal: { label: "Proposal", color: "bg-purple-100 text-purple-700", probability: 50 },
+  proposal: { label: "Proposal", color: "bg-primary/10 text-primary", probability: 50 },
   negotiation: { label: "Negotiation", color: "bg-orange-100 text-orange-700", probability: 75 },
-  closed_won: { label: "Closed Won", color: "bg-green-100 text-green-700", probability: 100 },
+  closed_won: { label: "Closed Won", color: "bg-success/10 text-success", probability: 100 },
   closed_lost: { label: "Closed Lost", color: "bg-red-100 text-red-700", probability: 0 },
 };
 
@@ -187,8 +187,8 @@ const CRMOpportunitiesView = ({ crmData }: CRMOpportunitiesViewProps) => {
                       </div>
                       <div className="mt-3 space-y-2">
                         <div className="flex items-center gap-2 text-xs">
-                          <DollarSign className="h-3 w-3 text-green-600" />
-                          <span className="font-medium text-green-600">
+                          <DollarSign className="h-3 w-3 text-success" />
+                          <span className="font-medium text-success">
                             ₹{((opp.expected_value || 0) / 100000).toFixed(1)}L
                           </span>
                           <span className="text-muted-foreground">({opp.probability}%)</span>

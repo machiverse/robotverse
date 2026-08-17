@@ -29,14 +29,14 @@ const CRMReportsView = ({ crmData, sellerCRM }: CRMReportsViewProps) => {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Pipeline Value</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-green-600">₹{(stats.pipelineValue / 100000).toFixed(1)}L</p>
+            <p className="text-3xl font-bold text-success">₹{(stats.pipelineValue / 100000).toFixed(1)}L</p>
             <p className="text-xs text-muted-foreground mt-1">Weighted: ₹{(stats.weightedPipeline / 100000).toFixed(1)}L</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Won Revenue</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-emerald-600">₹{(stats.wonRevenue / 100000).toFixed(1)}L</p>
+            <p className="text-3xl font-bold text-success">₹{(stats.wonRevenue / 100000).toFixed(1)}L</p>
             <p className="text-xs text-muted-foreground mt-1">{wonOpps.length} deals closed</p>
           </CardContent>
         </Card>
@@ -78,7 +78,7 @@ const CRMReportsView = ({ crmData, sellerCRM }: CRMReportsViewProps) => {
                   <span className="text-sm">{cat}</span>
                   <div className="flex items-center gap-2">
                     <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-green-500" style={{ width: `${Math.random() * 80 + 20}%` }} />
+                      <div className="h-full bg-success" style={{ width: `${Math.random() * 80 + 20}%` }} />
                     </div>
                     <span className="text-xs text-muted-foreground w-16">₹{(Math.random() * 50).toFixed(1)}L</span>
                   </div>

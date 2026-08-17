@@ -155,7 +155,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
   };
 
   const getCreditScoreColor = (score: number) => {
-    if (score >= 750) return 'text-green-600';
+    if (score >= 750) return 'text-success';
     if (score >= 650) return 'text-yellow-600';
     return 'text-red-600';
   };
@@ -207,21 +207,21 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       value: dashboardStats.totalApplications,
       icon: FileText,
       trend: 'This month',
-      color: 'text-blue-600'
+      color: 'text-primary'
     },
     {
       title: 'Approved Loans',
       value: dashboardStats.approvedLoans,
       icon: CheckCircle,
       trend: 'Pending disbursement',
-      color: 'text-green-600'
+      color: 'text-success'
     },
     {
       title: 'Total Disbursed',
       value: `₹${(dashboardStats.totalDisbursed / 10000000).toFixed(1)}Cr`,
       icon: DollarSign,
       trend: 'This month',
-      color: 'text-purple-600'
+      color: 'text-primary'
     },
     {
       title: 'Active Portfolio',
@@ -242,7 +242,7 @@ const FinanceProviderDashboard = ({ userProfile }: FinanceProviderDashboardProps
       value: viewStats?.totalViews || 0,
       icon: Eye,
       trend: 'Product engagement',
-      color: 'text-blue-600'
+      color: 'text-primary'
     }
   ];
 

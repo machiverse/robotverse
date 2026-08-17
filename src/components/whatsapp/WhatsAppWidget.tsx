@@ -81,18 +81,18 @@ const WhatsAppWidget = () => {
           open ? "pointer-events-auto scale-100 opacity-100" : "pointer-events-none translate-y-3 scale-95 opacity-0"
         }`}
       >
-        <div className="flex items-center gap-3 bg-gradient-to-br from-[#25D366] to-[#128C7E] px-4 py-3 text-white">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 font-bold">RV</span>
+        <div className="flex items-center gap-3 bg-gradient-to-br from-[#25D366] to-[#128C7E] px-4 py-3 text-primary-foreground">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-card/20 font-bold">RV</span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">RobotVerse AI</p>
-            <p className="flex items-center gap-1.5 text-xs text-white/90">
-              <span className="h-2 w-2 rounded-full bg-white" /> Online • replies instantly
+            <p className="flex items-center gap-1.5 text-xs text-primary-foreground/90">
+              <span className="h-2 w-2 rounded-full bg-card" /> Online • replies instantly
             </p>
           </div>
           <button
             onClick={() => setOpen(false)}
             aria-label="Close chat"
-            className="ml-auto rounded-full p-1 transition-colors hover:bg-white/20"
+            className="ml-auto rounded-full p-1 transition-colors hover:bg-card/20"
           >
             <X className="h-4 w-4" />
           </button>
@@ -128,7 +128,7 @@ const WhatsAppWidget = () => {
           <button
             onClick={() => openWhatsApp(input)}
             aria-label="Send on WhatsApp"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white transition-colors hover:bg-[#128C7E]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-primary-foreground transition-colors hover:bg-[#128C7E]"
           >
             <Send className="h-4 w-4" />
           </button>
@@ -141,7 +141,7 @@ const WhatsAppWidget = () => {
         onClick={() => setOpen((v) => !v)}
         aria-label="Chat on WhatsApp"
         aria-expanded={open}
-        className="fixed bottom-6 right-4 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_8px_24px_rgba(37,211,102,0.45)] transition-transform hover:scale-110 sm:right-6"
+        className="fixed bottom-6 right-4 z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-primary-foreground shadow-[0_8px_24px_rgba(37,211,102,0.45)] transition-transform hover:scale-110 sm:right-6"
       >
         {unread && !open && (
           <span className="absolute -right-1 -top-1 flex h-5 w-5 animate-pulse items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground">

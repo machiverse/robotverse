@@ -401,10 +401,10 @@ const CitiesCoveredMap = () => {
                     <div className="text-center px-2 py-1 min-w-[140px]">
                       <p className="font-bold text-sm text-foreground">{pin.city}</p>
                       <div
-                        className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                        className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold text-primary-foreground"
                         style={{ backgroundColor: CATEGORIES.find((c) => c.key === pin.category)?.color }}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/60 inline-block" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-card/60 inline-block" />
                         {getCategoryLabel(pin.category)}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -438,10 +438,10 @@ const CitiesCoveredMap = () => {
                       <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />RS
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide text-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1" />SP
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary mr-1" />SP
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wide text-center">
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1" />IS
+                      <span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />IS
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -461,12 +461,12 @@ const CitiesCoveredMap = () => {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 text-sm font-semibold">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
                           {city.spare_parts_eoat}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-sm font-semibold">
+                        <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full bg-success/10 text-success text-sm font-semibold">
                           {city.integrator_service}
                         </span>
                       </TableCell>

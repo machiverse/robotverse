@@ -373,7 +373,7 @@ const Community = () => {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">RoboBook</h1>
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">RoboBook</h1>
               <p className="text-lg text-muted-foreground mt-2">
                 Learn, share, and connect - your knowledge hub for industrial robotics and automation technology
               </p>

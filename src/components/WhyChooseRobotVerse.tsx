@@ -160,19 +160,19 @@ const WhyChooseRobotVerse = () => {
       icon: Package,
       title: "One-Stop Platform",
       description: "Purchase robots, spare parts, get services, arrange logistics, and secure financing - all from a single trusted marketplace.",
-      gradient: "from-purple-500 to-violet-600"
+      gradient: "from-primary to-primary"
     },
     {
       icon: Shield,
       title: "Verified Sellers & Partners",
       description: "Every seller, service provider, logistics partner, and financier is thoroughly verified for your peace of mind.",
-      gradient: "from-green-500 to-emerald-600"
+      gradient: "from-success to-success"
     },
     {
       icon: Cpu,
       title: "Smart AI Matching",
       description: "Our AI connects you with the perfect robot, the right spare parts, and the best service providers for your needs.",
-      gradient: "from-blue-500 to-cyan-600"
+      gradient: "from-primary to-primary"
     },
     {
       icon: Zap,
@@ -210,19 +210,19 @@ const WhyChooseRobotVerse = () => {
       icon: Users,
       label: "Trusted Users",
       value: realStats.totalUsers.toString(),
-      color: "text-blue-600"
+      color: "text-primary"
     },
     {
       icon: CheckCircle,
       label: "Active Listings",
       value: realStats.activeListings.toString(),
-      color: "text-green-600"
+      color: "text-success"
     },
     {
       icon: MapPin,
       label: "Cities Covered",
       value: realStats.citiesCovered.toString(),
-      color: "text-purple-600"
+      color: "text-primary"
     },
     {
       icon: TrendingUp,
@@ -248,7 +248,7 @@ const WhyChooseRobotVerse = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12 lg:mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
             Complete End-to-End Solution for Buyers
           </h2>
           <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto mb-4 md:mb-6 px-4">
@@ -273,7 +273,7 @@ const WhyChooseRobotVerse = () => {
               <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/50">
                 <CardContent className="p-4 md:p-6 text-center">
                   <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                    <Icon className="w-6 h-6 md:w-8 md:h-8 text-primary-foreground" />
                   </div>
                   <h3 className="text-base md:text-lg font-semibold mb-2 md:mb-3 text-foreground">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
@@ -310,7 +310,7 @@ const WhyChooseRobotVerse = () => {
               return (
                 <div key={index} className="text-center p-4 md:p-6 bg-card/50 backdrop-blur-sm rounded-lg border border-border hover:bg-card/70 transition-all duration-200">
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center mx-auto mb-3 md:mb-4">
-                    <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                    <Icon className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
                   </div>
                   <h4 className="text-sm md:text-base font-semibold mb-2 text-foreground">{service.title}</h4>
                   <p className="text-xs md:text-sm text-muted-foreground">{service.description}</p>
@@ -321,18 +321,18 @@ const WhyChooseRobotVerse = () => {
         </div>
 
         {/* Call to Action */}
-        <div className="text-center bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-xl md:rounded-2xl p-6 md:p-8 border border-primary/20">
+        <div className="text-center bg-gradient-to-r from-primary/10 to-primary/10 rounded-xl md:rounded-2xl p-6 md:p-8 border border-primary/20">
           <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-foreground">Start Your Automation Journey Today</h3>
           <p className="text-base md:text-lg text-muted-foreground mb-4 md:mb-6 px-4">
             Join {realStats.totalUsers.toLocaleString()}+ businesses buying robots with complete end-to-end support
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mb-6 md:mb-8 text-xs sm:text-sm">
             <div className="text-muted-foreground">
-              <span className="font-semibold text-green-600">{realStats.activeListings}</span> active listings
+              <span className="font-semibold text-success">{realStats.activeListings}</span> active listings
             </div>
             <div className="hidden sm:block w-px h-4 bg-border"></div>
             <div className="text-muted-foreground">
-              <span className="font-semibold text-blue-600">{realStats.verifiedUsers}</span> verified users
+              <span className="font-semibold text-primary">{realStats.verifiedUsers}</span> verified users
             </div>
             <div className="hidden sm:block w-px h-4 bg-border"></div>
             <div className="text-muted-foreground">
@@ -341,7 +341,7 @@ const WhyChooseRobotVerse = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
             <Link to="/robots" className="w-full sm:w-auto">
-              <Button size="lg" className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 w-full sm:w-auto h-10 md:h-11 text-sm md:text-base">
+              <Button size="lg" className="bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 w-full sm:w-auto h-10 md:h-11 text-sm md:text-base">
                 Browse Robots Now
               </Button>
             </Link>
@@ -357,7 +357,7 @@ const WhyChooseRobotVerse = () => {
         <div className="mt-12 text-center">
           <div className="inline-flex items-center gap-4 text-sm text-muted-foreground bg-card/30 backdrop-blur-sm px-6 py-3 rounded-full border border-border/50">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
               <span>Real-time updates</span>
             </div>
             <div className="w-px h-4 bg-border"></div>

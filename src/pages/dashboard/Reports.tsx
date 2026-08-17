@@ -265,7 +265,7 @@ const Reports = () => {
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     report.status === 'Ready' 
-                      ? 'bg-green-100 text-green-700' 
+                      ? 'bg-success/10 text-success' 
                       : 'bg-yellow-100 text-yellow-700'
                   }`}>
                     {report.status}

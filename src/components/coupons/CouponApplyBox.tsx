@@ -68,11 +68,11 @@ export default function CouponApplyBox({ sellerId, robotId, amount, onApplied, o
 
       {result && (
         <div className="text-sm space-y-1 pt-1 border-t">
-          <p className="text-emerald-600 flex items-center gap-1 text-xs">
+          <p className="text-success flex items-center gap-1 text-xs">
             <Check className="w-3 h-3" /> Coupon "{result.code}" applied
           </p>
           <div className="flex justify-between"><span className="text-muted-foreground">Original</span><span>₹{Number(amount).toLocaleString("en-IN")}</span></div>
-          <div className="flex justify-between text-emerald-600"><span>Discount</span><span>− ₹{Number(result.discount_amount).toLocaleString("en-IN")}</span></div>
+          <div className="flex justify-between text-success"><span>Discount</span><span>− ₹{Number(result.discount_amount).toLocaleString("en-IN")}</span></div>
           <div className="flex justify-between font-semibold"><span>Final Price</span><span>₹{Number(result.final_price).toLocaleString("en-IN")}</span></div>
         </div>
       )}

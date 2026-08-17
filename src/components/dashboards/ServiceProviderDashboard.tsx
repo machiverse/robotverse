@@ -255,7 +255,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
 
   function getUrgencyBadge(status: string) {
     const variants = {
-      low: "bg-green-100 text-green-800",
+      low: "bg-success/10 text-success",
       medium: "bg-yellow-100 text-yellow-800",
       high: "bg-red-100 text-red-800",
     };
@@ -311,11 +311,11 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
 
           <div className={`grid grid-cols-1 md:grid-cols-3 ${isCommissionSeller ? 'lg:grid-cols-7' : 'lg:grid-cols-6'} gap-6`}>
             {[ 
-              { title: "Service Views", val: viewStats.viewsByCategory.services || 0, icon: Eye, variant: "secondary", color: "text-purple-600" },
-              { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-blue-600" },
+              { title: "Service Views", val: viewStats.viewsByCategory.services || 0, icon: Eye, variant: "secondary", color: "text-primary" },
+              { title: "Total Services", val: dashboardStats.totalServices, icon: Wrench, variant: "secondary", color: "text-primary" },
               { title: "Active Requests", val: dashboardStats.activeRequests, icon: Clock, variant: "secondary", color: "text-orange-600" },
-              { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-green-600" },
-              { title: "Monthly Revenue", val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, variant: "secondary", color: "text-purple-600" },
+              { title: "Completed Jobs", val: dashboardStats.completedJobs, icon: CheckCircle, variant: "outline", color: "text-success" },
+              { title: "Monthly Revenue", val: `₹${dashboardStats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, variant: "secondary", color: "text-primary" },
               { title: "Average Rating", val: dashboardStats.averageRating, icon: Star, variant: "secondary", color: "text-yellow-600" },
               ...(isCommissionSeller ? [{ title: "Commission", val: "6%", icon: Handshake, variant: "secondary", color: "text-amber-600" }] : []),
             ].map(({ title, val, icon: Icon, variant, color }, idx) => (
@@ -451,7 +451,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                             <TableCell className="space-x-2">
                               <Button 
                                 size="sm" 
-                                className="bg-green-600 text-white hover:bg-green-700"
+                                className="bg-success text-primary-foreground hover:bg-success"
                                 aria-label={`Accept request ${req.id}`}
                                 onClick={() => alert(`Accept request ${req.id}`)}>
                                 Accept
@@ -507,7 +507,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                                   <Button
                                     size="sm" variant="ghost" aria-label={`Edit ${service.name}`}
                                     onClick={() => openEditModal(service)}
-                                    className="text-blue-600 hover:text-blue-800"
+                                    className="text-primary hover:text-primary"
                                   >
                                     <Edit className="w-5 h-5" />
                                   </Button>

@@ -87,17 +87,17 @@ const getNotificationLabel = (type: string): string => {
 };
 
 const getNotificationLabelColor = (type: string): string => {
-  if (type.includes("robot")) return "bg-blue-500/10 text-blue-600";
+  if (type.includes("robot")) return "bg-primary/10 text-primary";
   if (type.includes("spare") || type.includes("part")) return "bg-orange-500/10 text-orange-600";
-  if (type.includes("service")) return "bg-purple-500/10 text-purple-600";
-  if (type.includes("logistics")) return "bg-green-500/10 text-green-600";
+  if (type.includes("service")) return "bg-primary/10 text-primary";
+  if (type.includes("logistics")) return "bg-success/10 text-success";
   if (type.includes("financ")) return "bg-yellow-500/10 text-yellow-700";
   if (type.includes("like")) return "bg-red-500/10 text-red-600";
-  if (type.includes("comment")) return "bg-cyan-500/10 text-cyan-600";
-  if (type.includes("quote_accepted")) return "bg-green-500/10 text-green-600";
+  if (type.includes("comment")) return "bg-primary/10 text-primary";
+  if (type.includes("quote_accepted")) return "bg-success/10 text-success";
   if (type.includes("quote_rejected")) return "bg-red-500/10 text-red-600";
-  if (type.includes("quote")) return "bg-indigo-500/10 text-indigo-600";
-  if (type.includes("lead")) return "bg-emerald-500/10 text-emerald-600";
+  if (type.includes("quote")) return "bg-primary/10 text-primary";
+  if (type.includes("lead")) return "bg-success/10 text-success";
   return "bg-muted text-muted-foreground";
 };
 
@@ -107,7 +107,7 @@ const getNotificationIcon = (type: string) => {
     case "robots_view":
     case "robot_inquiry":
     case "robot_quote":
-      return <Bot className="h-4 w-4 text-blue-500" />;
+      return <Bot className="h-4 w-4 text-primary" />;
     case "spare_part_view":
     case "spare_parts_view":
     case "spare_part_inquiry":
@@ -117,11 +117,11 @@ const getNotificationIcon = (type: string) => {
     case "services_view":
     case "service_inquiry":
     case "service_quote":
-      return <Settings className="h-4 w-4 text-purple-500" />;
+      return <Settings className="h-4 w-4 text-primary" />;
     case "logistics_view":
     case "logistics_inquiry":
     case "logistics_quote":
-      return <Truck className="h-4 w-4 text-green-500" />;
+      return <Truck className="h-4 w-4 text-success" />;
     case "financing_view":
     case "finance_inquiry":
     case "finance_application":
@@ -131,25 +131,25 @@ const getNotificationIcon = (type: string) => {
       return <Heart className="h-4 w-4 text-red-500" />;
     case "robobook_comment":
     case "post_comment":
-      return <MessageCircle className="h-4 w-4 text-cyan-500" />;
+      return <MessageCircle className="h-4 w-4 text-primary" />;
     case "product_view":
       return <Eye className="h-4 w-4 text-gray-500" />;
     case "quote_received":
     case "quote_request":
-      return <FileText className="h-4 w-4 text-indigo-500" />;
+      return <FileText className="h-4 w-4 text-primary" />;
     case "quote_accepted":
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
+      return <CheckCircle className="h-4 w-4 text-success" />;
     case "quote_rejected":
       return <XCircle className="h-4 w-4 text-red-500" />;
     case "quote_negotiation":
       return <MessageSquare className="h-4 w-4 text-amber-500" />;
     case "lead_new":
     case "lead_update":
-      return <Users className="h-4 w-4 text-emerald-500" />;
+      return <Users className="h-4 w-4 text-success" />;
     case "buyer_access_request":
       return <AlertCircle className="h-4 w-4 text-amber-500" />;
     case "buyer_access_approved":
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
+      return <CheckCircle className="h-4 w-4 text-success" />;
     default:
       return <Bell className="h-4 w-4 text-muted-foreground" />;
   }
@@ -618,8 +618,8 @@ export const NotificationCenter = () => {
                       className="p-4 cursor-pointer hover:bg-accent transition-colors"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-full bg-blue-500/10">
-                          <MessageSquare className="h-4 w-4 text-blue-500" />
+                        <div className="p-2 rounded-full bg-primary/10">
+                          <MessageSquare className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
@@ -702,8 +702,8 @@ export const NotificationCenter = () => {
                       className="p-4 cursor-pointer hover:bg-accent transition-colors"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-full bg-blue-500/10">
-                          <MessageSquare className="h-4 w-4 text-blue-500" />
+                        <div className="p-2 rounded-full bg-primary/10">
+                          <MessageSquare className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">

@@ -124,7 +124,7 @@ const WhatsAppConversations = () => {
   return (
     <div className="grid gap-4 lg:grid-cols-10">
       {/* List */}
-      <div className="rounded-xl border bg-white shadow-sm lg:col-span-3">
+      <div className="rounded-xl border bg-card shadow-sm lg:col-span-3">
         <div className="border-b p-3">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -156,7 +156,7 @@ const WhatsAppConversations = () => {
       </div>
 
       {/* Detail */}
-      <div className="flex min-h-[60vh] flex-col rounded-xl border bg-white shadow-sm lg:col-span-7">
+      <div className="flex min-h-[60vh] flex-col rounded-xl border bg-card shadow-sm lg:col-span-7">
         {!active ? (
           <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
             Select a conversation to view the chat.
@@ -194,12 +194,12 @@ const WhatsAppConversations = () => {
             )}
 
             <div className="flex-1 space-y-3 overflow-y-auto bg-[#e5ddd5]/50 p-4" style={{ maxHeight: "56vh" }}>
-              {loadingThread && <div className="h-16 animate-pulse rounded bg-white/70" />}
+              {loadingThread && <div className="h-16 animate-pulse rounded bg-card/70" />}
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] whitespace-pre-line rounded-lg px-3 py-2 text-sm shadow-sm ${
-                      m.direction === "out" ? "bg-[#dcf8c6] text-slate-900" : "bg-white text-slate-900"
+                      m.direction === "out" ? "bg-[#dcf8c6] text-slate-900" : "bg-card text-slate-900"
                     }`}
                   >
                     {m.body}
@@ -218,7 +218,7 @@ const WhatsAppConversations = () => {
                 onChange={(e) => setReply(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendReply()}
                 placeholder="Reply as a human agent..."
-                className="bg-white"
+                className="bg-card"
               />
               <Button
                 onClick={sendReply}

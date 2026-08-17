@@ -326,7 +326,7 @@ const AdminChatMonitoring = () => {
                               {msg.sender_name || msg.sender_email}
                             </div>
                             <div className="flex items-center gap-2">
-                              {msg.is_read && <CheckCircle className="h-3 w-3 text-green-500" />}
+                              {msg.is_read && <CheckCircle className="h-3 w-3 text-success" />}
                               {msg.is_blocked && <XCircle className="h-3 w-3 text-red-500" />}
                             </div>
                           </div>
