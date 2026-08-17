@@ -485,7 +485,7 @@ const AdminControlCenter = () => {
 
       {/* Stats Grid - 2 Rows of 8 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-        <Card className="bg-gradient-to-br from-primary to-primary dark:from-primary/50 dark:to-primary/30 border-primary/30 dark:border-primary/30">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -497,7 +497,7 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-success to-success dark:from-success/50 dark:to-success/30 border-success/30 dark:border-success/30">
+        <Card className="bg-success/5 border-success/30 dark:border-success/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -509,7 +509,7 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary to-primary dark:from-primary/50 dark:to-primary/30 border-primary/30 dark:border-primary/30">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -521,7 +521,7 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/30 border-orange-200 dark:border-orange-800">
+        <Card className="bg-warning/5 border-orange-200 dark:border-orange-800">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -533,7 +533,7 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary to-primary dark:from-primary/50 dark:to-primary/30 border-primary/30 dark:border-primary/30">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -545,7 +545,7 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30 border-red-200 dark:border-red-800">
+        <Card className="bg-destructive/5 border-red-200 dark:border-red-800">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -557,7 +557,7 @@ const AdminControlCenter = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary to-primary dark:from-primary/50 dark:to-primary/30 border-primary/30 dark:border-primary/30">
+        <Card className="bg-primary/5 border-primary/30 dark:border-primary/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>

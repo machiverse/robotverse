@@ -124,7 +124,7 @@ const LogisticsFinanceShowcase = () => {
     <section className="py-16 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+          <h2 className="text-4xl font-bold mb-4 text-primary">
             Logistics & Finance Partners
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -137,7 +137,7 @@ const LogisticsFinanceShowcase = () => {
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-primary to-primary flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
                   <Truck className="w-5 h-5 text-primary-foreground" />
                 </div>
                 Logistics Services
@@ -190,7 +190,7 @@ const LogisticsFinanceShowcase = () => {
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-success to-success flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-success flex items-center justify-center">
                   <CreditCard className="w-5 h-5 text-primary-foreground" />
                 </div>
                 Finance Products

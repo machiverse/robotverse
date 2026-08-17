@@ -179,7 +179,7 @@ const MarketplaceCategories = () => {
   return (
     <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-muted/20 to-background">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-4 text-center bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-4 text-center text-primary">
           Everything You Need in One Marketplace
         </h2>
         <p className="text-center text-base md:text-lg text-muted-foreground mb-8 md:mb-12 max-w-3xl mx-auto px-4">

@@ -272,7 +272,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Enhanced Header */}
       <div className="text-center space-y-4">
-        <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+        <h2 className="text-4xl font-bold text-primary">
           Choose Your RobotVerse Role
         </h2>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -281,7 +281,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
         
         {/* Progress & Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
+          <Card className="bg-primary/5 border-primary/30">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center mb-2">
                 <CheckCircle className="w-6 h-6 text-primary mr-2" />
@@ -292,7 +292,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-success to-success border-success/30">
+          <Card className="bg-success/5 border-success/30">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center mb-2">
                 <DollarSign className="w-6 h-6 text-success mr-2" />
@@ -304,7 +304,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
+          <Card className="bg-primary/5 border-primary/30">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center mb-2">
                 <Users className="w-6 h-6 text-primary mr-2" />
@@ -318,7 +318,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
 
       {/* AI Recommendations */}
       {showRecommendations && recommendedRoles.length > 0 && (
-        <Alert className="border-primary/30 bg-gradient-to-r from-primary to-primary">
+        <Alert className="border-primary/30 bg-primary/5">
           <Brain className="w-4 h-4" />
           <AlertDescription>
             <div className="flex items-center justify-between">
@@ -550,7 +550,7 @@ const RoleCard = ({ role, isSelected, isRecommended, onToggle, compact = false }
     <Card 
       className={`cursor-pointer transition-all duration-200 hover:shadow-lg relative ${
         isSelected 
-          ? 'ring-2 ring-primary shadow-lg scale-[1.02] bg-gradient-to-br from-primary/5 to-primary/10' 
+          ? 'ring-2 ring-primary shadow-lg scale-[1.02] bg-primary/5' 
           : 'hover:bg-muted/30'
       }`}
       onClick={() => onToggle(role)}

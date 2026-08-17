@@ -271,7 +271,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 ring-2 ring-background">
             <AvatarImage src={post.profiles?.avatar_url} />
-            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20">
+            <AvatarFallback className="bg-primary/5">
               <User className="h-5 w-5 text-primary" />
             </AvatarFallback>
           </Avatar>
@@ -307,7 +307,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
             </Badge>
           )}
           {post.status === 'published' && (
-            <Badge variant="outline" className="border-success/30/40 bg-success/10 text-success dark:text-success">
+            <Badge variant="outline" className="border-success/30 bg-success/10 text-success dark:text-success">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               <span className="text-xs font-medium">Published</span>
             </Badge>

@@ -614,7 +614,7 @@ const QuoteRequestsSection = ({ sellerId, itemType, isCommissionSeller }: QuoteR
                   </h3>
                   
                   {isUnlocked ? (
-                    <div className="grid grid-cols-2 gap-4 bg-success/10/50 dark:bg-success/20 p-4 rounded-lg border border-success/30 dark:border-success/30">
+                    <div className="grid grid-cols-2 gap-4 bg-success/10 dark:bg-success/20 p-4 rounded-lg border border-success/30 dark:border-success/30">
                       <div>
                         <p className="text-sm text-muted-foreground">Name</p>
                         <p className="font-medium">{selectedRequest.user_name}</p>

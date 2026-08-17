@@ -288,7 +288,7 @@ const Services = () => {
 
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold mb-2 text-primary">
           Professional Robot Services
         </h1>
         <p className="text-muted-foreground">
@@ -516,7 +516,7 @@ const Services = () => {
                         {service.providerProfile.avatar_url ? (
                           <AvatarImage src={service.providerProfile.avatar_url} alt={service.provider} />
                         ) : (
-                          <AvatarFallback className="bg-gradient-to-br from-primary to-primary text-primary-foreground font-semibold text-sm">
+                          <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                             {service.provider.charAt(0)}
                           </AvatarFallback>
                         )}

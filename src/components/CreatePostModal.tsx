@@ -478,7 +478,7 @@ const CreatePostModal = ({ onPostCreated }: CreatePostModalProps) => {
               {!mediaFile ? (
                 <div className="border-2 border-dashed border-primary/25 rounded-xl p-8 bg-gradient-to-br from-primary/5 to-accent/5 hover:from-primary/10 hover:to-accent/10 transition-all">
                   <div className="text-center">
-                    <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <div className="bg-primary/5 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                       <Upload className="h-8 w-8 text-primary" />
                     </div>
                     <h4 className="font-semibold text-foreground mb-2">Upload High-Quality Media</h4>

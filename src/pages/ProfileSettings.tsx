@@ -382,7 +382,7 @@ const ProfileSettings = () => {
         <div className={cn(
           "mb-8 p-4 rounded-xl border-2 transition-colors",
           profileCompletion >= 80 
-            ? "border-success/30/30 bg-success/5" 
+            ? "border-success/30 bg-success/5" 
             : "border-amber-500/30 bg-amber-500/5"
         )}>
           <div className="flex items-center justify-between gap-4">

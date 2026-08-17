@@ -29,7 +29,7 @@ const AIAssistantWidget: React.FC = () => {
           className="fixed bottom-6 right-6 z-50 group"
           aria-label="Open RobotVerse AI Assistant"
         >
-          <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 hover:scale-110 flex items-center justify-center">
+          <div className="relative w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 hover:scale-110 flex items-center justify-center">
             <Bot className="w-6 h-6" />
             {/* Pulse ring */}
             <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" style={{ animationDuration: '3s' }} />

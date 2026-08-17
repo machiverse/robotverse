@@ -12,9 +12,9 @@ import { useNavigate } from 'react-router-dom';
 
 const planBadgeVariants: Record<string, string> = {
   free: 'bg-muted text-muted-foreground border-border',
-  basic: 'bg-primary/10 text-primary border-primary/30/20',
+  basic: 'bg-primary/10 text-primary border-primary/30',
   standard: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  premium: 'bg-primary/10 text-primary border-primary/30/20'
+  premium: 'bg-primary/10 text-primary border-primary/30'
 };
 
 const planIcons: Record<string, React.ReactNode> = {
@@ -89,7 +89,7 @@ export const SellerDashboardOverview = () => {
   return (
     <div className="space-y-6">
       {/* Account Status Banner */}
-      <Card className={isGrandfathered ? 'border-success/30/30 bg-success/5' : 'border-primary/20'}>
+      <Card className={isGrandfathered ? 'border-success/30 bg-success/5' : 'border-primary/20'}>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -105,7 +105,7 @@ export const SellerDashboardOverview = () => {
                     {planType.toUpperCase()}
                   </Badge>
                   {isGrandfathered && (
-                    <Badge variant="outline" className="bg-success/10 text-success border-success/30/20">
+                    <Badge variant="outline" className="bg-success/10 text-success border-success/30">
                       GRANDFATHERED
                     </Badge>
                   )}
@@ -241,7 +241,7 @@ export const SellerDashboardOverview = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-3">
-            <div className={`p-3 rounded-lg border ${hasLeadManagerAccess ? 'border-success/30/30 bg-success/5' : 'border-border bg-muted/50'}`}>
+            <div className={`p-3 rounded-lg border ${hasLeadManagerAccess ? 'border-success/30 bg-success/5' : 'border-border bg-muted/50'}`}>
               <div className="flex items-center gap-2">
                 <Crown className={`h-4 w-4 ${hasLeadManagerAccess ? 'text-success' : 'text-muted-foreground'}`} />
                 <span className="font-medium text-sm">Lead Manager (CRM)</span>
@@ -251,7 +251,7 @@ export const SellerDashboardOverview = () => {
               </p>
             </div>
             
-            <div className={`p-3 rounded-lg border ${currentPlan?.has_advanced_analytics ? 'border-success/30/30 bg-success/5' : 'border-border bg-muted/50'}`}>
+            <div className={`p-3 rounded-lg border ${currentPlan?.has_advanced_analytics ? 'border-success/30 bg-success/5' : 'border-border bg-muted/50'}`}>
               <div className="flex items-center gap-2">
                 <TrendingUp className={`h-4 w-4 ${currentPlan?.has_advanced_analytics ? 'text-success' : 'text-muted-foreground'}`} />
                 <span className="font-medium text-sm">Advanced Analytics</span>

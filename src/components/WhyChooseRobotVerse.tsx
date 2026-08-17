@@ -248,7 +248,7 @@ const WhyChooseRobotVerse = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12 lg:mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 text-primary">
             Complete End-to-End Solution for Buyers
           </h2>
           <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto mb-4 md:mb-6 px-4">
@@ -309,7 +309,7 @@ const WhyChooseRobotVerse = () => {
               const Icon = service.icon;
               return (
                 <div key={index} className="text-center p-4 md:p-6 bg-card/50 backdrop-blur-sm rounded-lg border border-border hover:bg-card/70 transition-all duration-200">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center mx-auto mb-3 md:mb-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-3 md:mb-4">
                     <Icon className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
                   </div>
                   <h4 className="text-sm md:text-base font-semibold mb-2 text-foreground">{service.title}</h4>
@@ -321,7 +321,7 @@ const WhyChooseRobotVerse = () => {
         </div>
 
         {/* Call to Action */}
-        <div className="text-center bg-gradient-to-r from-primary/10 to-primary/10 rounded-xl md:rounded-2xl p-6 md:p-8 border border-primary/20">
+        <div className="text-center bg-primary/5 rounded-xl md:rounded-2xl p-6 md:p-8 border border-primary/20">
           <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4 text-foreground">Start Your Automation Journey Today</h3>
           <p className="text-base md:text-lg text-muted-foreground mb-4 md:mb-6 px-4">
             Join {realStats.totalUsers.toLocaleString()}+ businesses buying robots with complete end-to-end support

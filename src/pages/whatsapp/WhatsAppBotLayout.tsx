@@ -66,11 +66,11 @@ const WhatsAppBotLayout = () => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-foreground text-muted-foreground transition-transform duration-300 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-foreground text-background/70 transition-transform duration-300 lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center gap-3 border-b border-border/50/10 px-5 py-5">
+        <div className="flex items-center gap-3 border-b border-background/10 px-5 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#25D366]">
             <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
@@ -95,7 +95,7 @@ const WhatsAppBotLayout = () => {
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-[#25D366] text-primary-foreground shadow"
-                    : "hover:bg-[#25D366]/15 hover:text-primary-foreground",
+                    : "hover:bg-[#25D366]/15 hover:text-background",
                 )
               }
             >
@@ -105,7 +105,7 @@ const WhatsAppBotLayout = () => {
           ))}
         </nav>
 
-        <div className="border-t border-border/50/10 px-5 py-4 text-xs text-muted-foreground">
+        <div className="border-t border-background/10 px-5 py-4 text-xs text-background/60">
           <p>{WHATSAPP_BOT_VERSION}</p>
           <p className="mt-1">Powered by RobotVerse</p>
         </div>

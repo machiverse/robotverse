@@ -259,7 +259,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onClose 
                       {/* Avatar - only show for first message in group from other person */}
                       {!isOwnMessage && (
                         <div className={`w-8 h-8 flex-shrink-0 ${showAvatar ? "opacity-100" : "opacity-0"}`}>
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 flex items-center justify-center text-xs font-semibold text-primary">
+                          <div className="w-8 h-8 rounded-full bg-primary/5 border border-primary/30 flex items-center justify-center text-xs font-semibold text-primary">
                             {otherPartyName.charAt(0).toUpperCase()}
                           </div>
                         </div>

@@ -593,7 +593,7 @@ const DatabaseTableManager = () => {
           </DialogHeader>
           {creatingRecord && (
             <div className="space-y-3">
-              <div className="bg-success/10 border border-success/30/30 p-3 rounded-lg">
+              <div className="bg-success/10 border border-success/30 p-3 rounded-lg">
                 <p className="text-sm text-success dark:text-success">
                   Fill in the required fields. Auto-generated fields (id, created_at, updated_at) will be skipped.
                 </p>

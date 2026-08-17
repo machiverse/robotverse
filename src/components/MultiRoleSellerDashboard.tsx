@@ -483,7 +483,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
   if (!hasRobotSeller && !hasPartsSeller && !hasServiceProvider) {
     return (
       <div className="space-y-6">
-        <Card className="border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50">
+        <Card className="border-yellow-200 bg-warning/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-700">
               <AlertCircle className="w-6 h-6" />
@@ -543,7 +543,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
       {/* Enhanced Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-primary">
             Multi-Role Seller Dashboard
           </h1>
           <p className="text-muted-foreground text-lg">

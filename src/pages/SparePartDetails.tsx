@@ -410,7 +410,7 @@ const SparePartDetails = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <CardTitle className="text-2xl lg:text-3xl mb-2 font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                      <CardTitle className="text-2xl lg:text-3xl mb-2 font-bold text-primary">
                         {sparePart.name}
                       </CardTitle>
                       <div className="flex flex-wrap gap-2 mb-4">
@@ -438,7 +438,7 @@ const SparePartDetails = () => {
 
                   {/* Price - Same color as product name */}
                   <div className="flex items-baseline gap-2 mt-4">
-                    <span className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent tracking-tight">
+                    <span className="text-4xl lg:text-5xl font-black text-primary tracking-tight">
                       {sparePart.currency} {sparePart.price?.toLocaleString()}
                     </span>
                     {sparePart.quantity > 1 && (
@@ -499,7 +499,7 @@ const SparePartDetails = () => {
                         </div>
                       )}
                       {sparePart.profiles?.completed_sales > 0 && (
-                        <div className="flex items-center gap-1.5 bg-success/10 border border-success/30/20 px-3 py-1.5 rounded-full">
+                        <div className="flex items-center gap-1.5 bg-success/10 border border-success/30 px-3 py-1.5 rounded-full">
                           <Package className="h-4 w-4 text-success" />
                           <span className="font-bold text-sm text-success">{sparePart.profiles.completed_sales} sales</span>
                         </div>
@@ -628,7 +628,7 @@ const SparePartDetails = () => {
 
                   {/* International Shipping section - commented out
                   {sparePart.is_international && (
-                    <div className="bg-gradient-to-r from-primary to-primary dark:from-primary dark:to-primary p-8 rounded-2xl border border-primary/30 dark:border-primary/30 shadow-lg">
+                    <div className="bg-primary/5 p-8 rounded-2xl border border-primary/30 dark:border-primary/30 shadow-lg">
                       <h4 className="flex items-center gap-2 font-bold text-xl mb-6">
                         <Truck className="w-5 h-5 text-primary dark:text-primary" />
                         International Shipping Available

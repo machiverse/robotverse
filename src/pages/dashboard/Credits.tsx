@@ -58,7 +58,7 @@ const Credits = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-success/10 via-success/5 to-transparent border-success/30/20">
+          <Card className="bg-gradient-to-br from-success/10 via-success/5 to-transparent border-success/30">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-3 rounded-xl bg-success/20">
                 <Shield className="h-6 w-6 text-success" />
@@ -69,7 +69,7 @@ const Credits = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/30/20">
+          <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/30">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-3 rounded-xl bg-primary/20">
                 <Sparkles className="h-6 w-6 text-primary" />

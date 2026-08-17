@@ -548,38 +548,38 @@ const RobotListings = () => {
         <div className="container mx-auto px-4">
           {/* Title and Stats */}
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold mb-4 text-primary">
               Robot Marketplace
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Discover cutting-edge industrial robots from verified sellers worldwide
             </p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto mt-8">
-              <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
+              <Card className="bg-primary/5 border-primary/30">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-primary">{marketStats.totalListings}</div>
                   <div className="text-sm text-primary">Active Listings</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-success to-success border-success/30">
+              <Card className="bg-success/5 border-success/30">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-success">₹{(marketStats.minPrice / 100000).toFixed(1)}L</div>
                   <div className="text-sm text-success">Min Price</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+              <Card className="bg-warning/5 border-yellow-200">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-yellow-800">₹{(marketStats.avgPrice / 100000).toFixed(1)}L</div>
                   <div className="text-sm text-yellow-600">Avg Price</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-red-50 to-rose-50 border-red-200">
+              <Card className="bg-destructive/5 border-red-200">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-red-800">₹{(marketStats.maxPrice / 100000).toFixed(1)}L</div>
                   <div className="text-sm text-red-600">Max Price</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
+              <Card className="bg-primary/5 border-primary/30">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-primary">{marketStats.topBrands.length}</div>
                   <div className="text-sm text-primary">Top Brands</div>

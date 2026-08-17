@@ -137,7 +137,7 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-warning">
             Commission Seller Dashboard
           </h1>
           <p className="text-sm text-muted-foreground">

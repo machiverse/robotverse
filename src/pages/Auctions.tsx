@@ -300,7 +300,7 @@ const Auctions: React.FC = () => {
                 <Badge className="bg-primary/10 text-primary border border-primary/20 text-xs">NEW MODULE</Badge>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <span className="text-primary">
                   Robot Auction
                 </span>
               </h1>
@@ -544,7 +544,7 @@ const Auctions: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           {bid.is_winning_bid && (
-                            <Badge className="bg-success/20 text-success border border-success/30/30">
+                            <Badge className="bg-success/20 text-success border border-success/30">
                               Winning
                             </Badge>
                           )}

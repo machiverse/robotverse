@@ -323,7 +323,7 @@ const CitiesCoveredMap = () => {
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
             Serving Industrial Hubs{" "}
-            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <span className="text-primary">
               Across India
             </span>
           </h2>

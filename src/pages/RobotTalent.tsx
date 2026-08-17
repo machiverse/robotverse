@@ -100,7 +100,7 @@ const RobotTalent = () => {
               <Zap className="h-3 w-3 mr-1" /> India's #1 Robotics Talent Platform
             </Badge>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 leading-tight">
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Find Your Dream Job in</span><br />
+              <span className="text-primary">Find Your Dream Job in</span><br />
               <span className="text-foreground">Industrial Robotics</span>
             </h1>
             <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-xl mx-auto">
@@ -221,7 +221,7 @@ const RobotTalent = () => {
       <section className="border-t border-border py-10" style={{ background: 'hsl(var(--card))' }}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Why Robot Talent?</h2>
+            <h2 className="text-2xl font-bold text-primary">Why Robot Talent?</h2>
             <p className="text-sm text-muted-foreground mt-1">The only hiring platform built for industrial robotics & automation</p>
           </div>
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">

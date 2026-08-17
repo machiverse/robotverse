@@ -44,11 +44,11 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 
 const SECTION_PATTERNS: { regex: RegExp; key: string; label: string; icon: React.ReactNode; countKey?: keyof ResultCounts; color: string }[] = [
-  { regex: /###\s*🤖\s*Top Matching Robots/i, key: "robots", label: "Robots", icon: <Bot className="w-3.5 h-3.5" />, countKey: "robots", color: "from-primary/15 to-primary/5 border-primary/30/20" },
+  { regex: /###\s*🤖\s*Top Matching Robots/i, key: "robots", label: "Robots", icon: <Bot className="w-3.5 h-3.5" />, countKey: "robots", color: "from-primary/15 to-primary/5 border-primary/30" },
   { regex: /###\s*🔧\s*(EOAT|Spare Parts)/i, key: "eoat", label: "EOAT & Parts", icon: <Wrench className="w-3.5 h-3.5" />, countKey: "spareParts", color: "from-orange-500/15 to-orange-500/5 border-orange-500/20" },
-  { regex: /###\s*🏭\s*(Application Builder|System Integrator|Service)/i, key: "integrators", label: "Integrators", icon: <Factory className="w-3.5 h-3.5" />, countKey: "services", color: "from-success/15 to-success/5 border-success/30/20" },
-  { regex: /###\s*💻\s*(Software|Programming)/i, key: "software", label: "Software", icon: <Cpu className="w-3.5 h-3.5" />, color: "from-primary/15 to-primary/5 border-primary/30/20" },
-  { regex: /###\s*🚚\s*(Logistics|Transport)/i, key: "logistics", label: "Logistics", icon: <Truck className="w-3.5 h-3.5" />, countKey: "logistics", color: "from-success/15 to-success/5 border-success/30/20" },
+  { regex: /###\s*🏭\s*(Application Builder|System Integrator|Service)/i, key: "integrators", label: "Integrators", icon: <Factory className="w-3.5 h-3.5" />, countKey: "services", color: "from-success/15 to-success/5 border-success/30" },
+  { regex: /###\s*💻\s*(Software|Programming)/i, key: "software", label: "Software", icon: <Cpu className="w-3.5 h-3.5" />, color: "from-primary/15 to-primary/5 border-primary/30" },
+  { regex: /###\s*🚚\s*(Logistics|Transport)/i, key: "logistics", label: "Logistics", icon: <Truck className="w-3.5 h-3.5" />, countKey: "logistics", color: "from-success/15 to-success/5 border-success/30" },
   { regex: /###\s*💰\s*(Financ|Loan)/i, key: "financing", label: "Financing", icon: <Banknote className="w-3.5 h-3.5" />, color: "from-yellow-500/15 to-yellow-500/5 border-yellow-500/20" },
   { regex: /###\s*💡\s*(AI Analysis|Recommendation|Best Match)/i, key: "analysis", label: "Best Match", icon: <Lightbulb className="w-3.5 h-3.5" />, color: "from-primary/15 to-primary/5 border-primary/20" },
 ];
@@ -178,7 +178,7 @@ const SectionCard: React.FC<{ section: ParsedSection }> = ({ section }) => (
             <span className="font-bold text-sm text-primary-foreground drop-shadow-lg">{section.label}</span>
           </div>
           {section.count > 0 && (
-            <Badge className="bg-card/20 backdrop-blur-sm text-primary-foreground border-border/50/30 text-[10px] px-1.5 h-5">
+            <Badge className="bg-card/20 backdrop-blur-sm text-primary-foreground border-border/50 text-[10px] px-1.5 h-5">
               {section.count} found
             </Badge>
           )}

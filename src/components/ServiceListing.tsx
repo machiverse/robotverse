@@ -463,11 +463,11 @@ const ServiceListing = ({ editingService, onSuccess }: ServiceListingProps = {})
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <Card className="border-0 shadow-sm bg-gradient-to-r from-primary to-primary">
+      <Card className="border-0 shadow-sm bg-primary/5">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent flex items-center gap-2">
+              <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
                 <Settings className="w-6 h-6 text-primary" />
                 Create Professional Service Listing
               </CardTitle>
