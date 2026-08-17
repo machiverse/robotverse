@@ -135,6 +135,6 @@ All colors MUST be HSL.
   }
   
   .card-professional {
-    @apply bg-card border border-border rounded-xl shadow-md transition-all duration-200 hover:shadow-lg;
+    @apply bg-card border border-border rounded-[10px] transition-colors duration-150 hover:border-muted-foreground/30;
   }
 }
