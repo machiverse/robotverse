@@ -236,7 +236,7 @@ const MarketplaceCategories = () => {
                   <p className="text-sm md:text-base text-muted-foreground mb-6 max-w-md">
                     {primary.description}
                   </p>
-                  <div className="mt-auto max-w-sm">{renderStats(primary)}</div>
+                  <div className="max-w-sm">{renderStats(primary)}</div>
                 </CardContent>
               </Card>
             </Link>
