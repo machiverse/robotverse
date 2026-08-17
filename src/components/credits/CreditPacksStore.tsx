@@ -82,7 +82,7 @@ export const CreditPacksStore = ({ onPurchaseComplete }: CreditPacksStoreProps) 
 
               <CardContent className="text-center">
                 <div className="mb-3">
-                  <span className="text-3xl font-bold text-primary">{pack.credits_amount}</span>
+                  <span className="text-3xl font-bold text-primary tabular">{pack.credits_amount}</span>
                   {pack.bonus_credits > 0 && (
                     <span className="text-lg text-success font-semibold ml-1">+{pack.bonus_credits}</span>
                   )}

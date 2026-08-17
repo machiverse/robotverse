@@ -234,8 +234,8 @@ const WhyChooseRobotVerse = () => {
 
   if (loading) {
     return (
-      <section className="py-20 bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto px-4 text-center">
+      <section className="py-10 md:py-14 bg-background">
+        <div className="container mx-auto px-4 max-w-5xl text-center">
           <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Loading marketplace insights...</p>
         </div>
@@ -244,8 +244,8 @@ const WhyChooseRobotVerse = () => {
   }
 
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto px-4">
+    <section className="py-12 md:py-16 lg:py-10 md:py-14 bg-background">
+      <div className="container mx-auto px-4 max-w-5xl">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12 lg:mb-16">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 text-primary">

@@ -188,7 +188,7 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
                     
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-bold text-primary">
-                        {robot.price ? formatPrice(robot.price, robot.currency) : 'POA'}
+                        <span className="tabular">{robot.price ? formatPrice(robot.price, robot.currency) : 'POA'}</span>
                       </span>
                       <div className="flex items-center text-muted-foreground text-xs">
                         {robot.profiles?.company_name ? (

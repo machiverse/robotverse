@@ -856,7 +856,7 @@ const Parts = () => {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-primary">
+                      <span className="font-bold text-primary tabular">
                         {formatPrice(part.price)}
                       </span>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">

@@ -161,11 +161,36 @@ const HomeRobotListings = () => {
 
   if (loading) {
     return (
-      <section className="py-16 bg-gradient-to-br from-background to-muted/20">
+      <section className="py-20 md:py-28 bg-background">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">Loading robots...</span>
+          <div className="mb-8 space-y-3">
+            <div className="h-8 w-64 rounded-md bg-muted animate-pulse" />
+            <div className="h-5 w-96 max-w-full rounded-md bg-muted animate-pulse" />
+          </div>
+          <div className="space-y-12">
+            {[0, 1].map((section) => (
+              <div key={section}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="space-y-2">
+                    <div className="h-6 w-52 rounded-md bg-muted animate-pulse" />
+                    <div className="h-4 w-32 rounded-md bg-muted animate-pulse" />
+                  </div>
+                  <div className="h-9 w-24 rounded-md bg-muted animate-pulse" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="rounded-lg border border-border bg-card overflow-hidden">
+                      <div className="aspect-[4/3] bg-muted animate-pulse" />
+                      <div className="p-4 space-y-2">
+                        <div className="h-4 w-full rounded bg-muted animate-pulse" />
+                        <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+                        <div className="h-5 w-1/2 rounded bg-muted animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -176,12 +201,22 @@ const HomeRobotListings = () => {
 
   if (robotTypes.length === 0) {
     return (
-      <section className="py-16 bg-gradient-to-br from-background to-muted/20">
-        <div className="container mx-auto px-4 text-center">
-          <Bot className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">No Robots Available</h2>
-          <p className="text-muted-foreground mb-4">Check back soon for new listings!</p>
-          <Button onClick={() => navigate("/dashboard")}>List Your Robot</Button>
+      <section className="py-20 md:py-28 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-xl mx-auto rounded-lg border border-border bg-card p-8 text-center">
+            <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">No robots listed yet</h2>
+            <p className="text-muted-foreground mb-6">
+              There are no available robot listings right now. Sellers can publish inventory from the
+              dashboard, and new listings appear here immediately.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button onClick={() => navigate("/dashboard")}>List Your Robot</Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/parts")}>
+                Browse Spare Parts
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
     );
@@ -190,7 +225,7 @@ const HomeRobotListings = () => {
   const overallStats = getOverallStats();
 
   return (
-    <section className="py-16 bg-gradient-to-br from-background to-muted/20">
+    <section className="py-20 md:py-28 bg-background">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center mb-8">
@@ -203,26 +238,26 @@ const HomeRobotListings = () => {
 
           {/* Overall Stats */}
           <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
-            <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold">
+            <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold tabular">
               {overallStats.count} Robots
             </span>
-            <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium">
+            <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium tabular">
               {overallStats.typeCount} Categories
             </span>
             {overallStats.brandCount > 0 && (
-              <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium">
+              <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium tabular">
                 {overallStats.brandCount} Brands
               </span>
             )}
             {overallStats.minPrice > 0 && (
               <>
-                <span className="px-3 py-1.5 rounded-lg bg-success/10 text-success dark:text-success font-medium">
+                <span className="px-3 py-1.5 rounded-lg bg-success/10 text-success dark:text-success font-medium tabular">
                   Min: ₹{overallStats.minPrice.toLocaleString('en-IN')}
                 </span>
-                <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-medium">
+                <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-medium tabular">
                   Avg: ₹{overallStats.avgPrice.toLocaleString('en-IN')}
                 </span>
-                <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium">
+                <span className="px-3 py-1.5 rounded-lg bg-warning/10 text-warning font-medium tabular">
                   Max: ₹{overallStats.maxPrice.toLocaleString('en-IN')}
                 </span>
               </>
@@ -243,7 +278,7 @@ const HomeRobotListings = () => {
                   <div className="space-y-1">
                     <h3 className="text-2xl font-bold text-foreground">{getTypeLabel(robotType)}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {robotsOfType.length} {robotsOfType.length === 1 ? "robot" : "robots"} available
+                      <span className="tabular">{robotsOfType.length}</span>{" "}{robotsOfType.length === 1 ? "robot" : "robots"} available
                     </p>
                   </div>
                   <Button
@@ -273,7 +308,7 @@ const HomeRobotListings = () => {
                         className="pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5"
                       >
                         <Card
-                          className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden border-border/60 hover:border-primary/40 bg-card/80 backdrop-blur-sm"
+                          className="group cursor-pointer transition-colors duration-150 overflow-hidden border border-border hover:border-primary/50 bg-card"
                           onClick={() => navigate(`/robots/${robot.id}`)}
                         >
                           {/* Robot Image */}
@@ -297,7 +332,7 @@ const HomeRobotListings = () => {
                             <h4 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
                               {robot.name}
                             </h4>
-                            <p className="text-base font-bold text-primary">
+                            <p className="text-base font-bold text-primary tabular">
                               {formatPrice(robot.price, robot.currency)}
                             </p>
                           </CardContent>
@@ -323,9 +358,9 @@ const HomeRobotListings = () => {
           <Button
             size="lg"
             onClick={() => navigate("/robots")}
-            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            
           >
-            View All {robots.length} Robots
+            View All <span className="tabular mx-1">{robots.length}</span> Robots
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>

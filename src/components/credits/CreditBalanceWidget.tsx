@@ -51,7 +51,7 @@ export const CreditBalanceWidget = ({ compact = false, showBuyButton = true }: C
             <p className="text-sm text-muted-foreground mb-1">Available Credits</p>
             <div className="flex items-center gap-2">
               <Coins className="h-8 w-8 text-primary" />
-              <span className="text-4xl font-bold text-primary">{balance}</span>
+              <span className="text-4xl font-bold text-primary tabular">{balance}</span>
             </div>
           </div>
           {currentPlan && (
