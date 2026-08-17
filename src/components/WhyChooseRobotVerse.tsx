@@ -270,7 +270,7 @@ const WhyChooseRobotVerse = () => {
           {keyFeatures.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-primary/50">
+              <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/50">
                 <CardContent className="p-4 md:p-6 text-center">
                   <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />

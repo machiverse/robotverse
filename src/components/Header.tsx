@@ -53,7 +53,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <img src={robotverseLogo} alt="RobotVerse Logo" className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm" />
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-primary">
               RobotVerse
             </span>
           </Link>
@@ -107,7 +107,7 @@ const Header = () => {
 
                 {/* Dropdown Menu */}
                 {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
+                  <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
                     {/* User Info Header */}
                     <div className="px-4 py-3 border-b border-border bg-muted/30">
                       <p className="font-semibold text-foreground truncate">
@@ -150,7 +150,7 @@ const Header = () => {
               </div>
             ) : (
               <Link to="/auth">
-                <Button variant="neon" size="sm">
+                <Button variant="outline" size="sm">
                   <User className="w-4 h-4" />
                   Sign In
                 </Button>
@@ -236,7 +236,7 @@ const Header = () => {
                   </div>
                 ) : (
                   <Link to="/auth">
-                    <Button variant="neon" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full">
                       <User className="w-4 h-4" />
                       Sign In
                     </Button>

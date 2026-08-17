@@ -298,7 +298,7 @@ const LiveStats = () => {
               <TooltipProvider key={item.key}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Card className="bg-card/90 backdrop-blur-sm border-border hover:scale-105 hover:shadow-xl transition-all duration-300 cursor-help">
+                    <Card className="bg-card/90 backdrop-blur-sm border-border hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-help">
                       <CardContent className="p-6 text-center">
                         <div className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${item.gradient} flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
                           <Icon className="w-7 h-7 text-white" />

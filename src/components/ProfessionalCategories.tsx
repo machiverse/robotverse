@@ -72,7 +72,7 @@ const ProfessionalCategories = () => {
             const Icon = category.icon;
             return (
               <Link key={index} to={category.link}>
-                <Card className="group hover:shadow-xl transition-all duration-300 border-border/50 hover:border-primary/50 h-full">
+                <Card className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/50 h-full">
                   <CardContent className="p-4 md:p-6">
                     <div className={`w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}>
                       <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />

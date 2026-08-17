@@ -290,7 +290,7 @@ const Auctions: React.FC = () => {
 
       <section
         className="relative overflow-hidden border-b border-border"
-        style={{ background: "var(--gradient-hero)" }}
+        style={{ background: "hsl(var(--muted))" }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(200_100%_50%/0.06),transparent_50%)]" />
         <div className="container mx-auto px-4 py-10 relative z-10">

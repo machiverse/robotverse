@@ -937,7 +937,7 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                          className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);

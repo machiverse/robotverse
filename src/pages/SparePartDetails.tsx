@@ -753,7 +753,7 @@ const SparePartDetails = () => {
                             {compatibleRobots.map((robot) => (
                               <Card
                                 key={robot.id}
-                                className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-2 border-border/50 group"
+                                className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-2 border-border/50 group"
                                 onClick={() => navigate(`/robots/${robot.id}`)}
                               >
                                 <CardContent className="p-6">

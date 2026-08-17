@@ -376,7 +376,7 @@ const CitiesCoveredMap = () => {
         {/* Map + Table */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Map */}
-          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-border shadow-xl bg-card" style={{ height: 500 }}>
+          <div className="lg:col-span-3 rounded-2xl overflow-hidden border border-border shadow-lg bg-card" style={{ height: 500 }}>
             <MapContainer
               center={[22.5, 78.9]}
               zoom={5}
@@ -421,7 +421,7 @@ const CitiesCoveredMap = () => {
           </div>
 
           {/* Table */}
-          <div className="lg:col-span-2 rounded-2xl border border-border shadow-xl bg-card overflow-hidden" style={{ height: 500 }}>
+          <div className="lg:col-span-2 rounded-2xl border border-border shadow-lg bg-card overflow-hidden" style={{ height: 500 }}>
             <div className="p-4 border-b border-border bg-primary/5">
               <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />

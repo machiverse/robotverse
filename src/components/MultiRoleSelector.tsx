@@ -87,7 +87,7 @@ const MultiRoleSelector = ({ selectedRoles, onRolesChange, className }: MultiRol
                 key={role.id} 
                 className={`cursor-pointer transition-all duration-300 ${
                   isSelected 
-                    ? 'border-primary bg-primary/5 shadow-glow' 
+                    ? 'border-primary bg-primary/5 shadow-md' 
                     : 'border-border hover:border-primary/50'
                 }`}
                 onClick={() => handleRoleToggle(role.id, !isSelected)}

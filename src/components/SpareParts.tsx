@@ -438,7 +438,7 @@ const SpareParts = () => {
               }}
             >
               <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-primary hover:text-primary-glow font-semibold">
+              <p className="text-primary hover:text-primary font-semibold">
                 Click to upload images
               </p>
               <p className="text-muted-foreground">or drag and drop here</p>

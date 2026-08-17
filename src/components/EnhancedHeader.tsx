@@ -88,7 +88,7 @@ const DropdownMenu = ({ isOpen, onClose, children, className }: DropdownMenuProp
         className,
       )}
     >
-      <div className="bg-popover border border-border rounded-xl shadow-xl ring-1 ring-border/50 backdrop-blur-sm">
+      <div className="bg-popover border border-border rounded-xl shadow-lg ring-1 ring-border/50 backdrop-blur-sm">
         {children}
       </div>
     </div>
@@ -332,7 +332,7 @@ const EnhancedHeader = () => {
             <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <div className="hidden sm:block">
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent tracking-tight">
+            <span className="text-xl font-bold text-primary tracking-tight">
               RobotVerse
             </span>
             <p className="text-[10px] text-muted-foreground font-medium -mt-0.5 tracking-wide">
@@ -529,7 +529,7 @@ const EnhancedHeader = () => {
 
               {/* Profile Dropdown Menu */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
                   {/* User Info Header */}
                   <div className="px-4 py-3 border-b border-border bg-muted/30">
                     <div className="flex items-center gap-3">

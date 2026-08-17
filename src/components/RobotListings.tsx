@@ -814,7 +814,7 @@ const RobotListings = () => {
             {filteredRobots.slice(0, displayCount).map((robot) => (
               <Card
                 key={robot.id}
-                className={`group hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer ${
+                className={`group hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer ${
                   viewMode === "list" ? "flex" : ""
                 }`}
                 onClick={() => navigate(`/robots/${robot.id}`)}

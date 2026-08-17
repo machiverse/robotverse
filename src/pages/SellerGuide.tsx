@@ -30,7 +30,7 @@ const SellerGuide = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+            <h1 className="text-4xl font-bold text-primary mb-4">
               Seller Guide
             </h1>
             <p className="text-lg text-muted-foreground">

@@ -548,7 +548,7 @@ const RoleCard = ({ role, isSelected, isRecommended, onToggle, compact = false }
   
   return (
     <Card 
-      className={`cursor-pointer transition-all duration-200 hover:shadow-xl relative ${
+      className={`cursor-pointer transition-all duration-200 hover:shadow-lg relative ${
         isSelected 
           ? 'ring-2 ring-primary shadow-lg scale-[1.02] bg-gradient-to-br from-primary/5 to-primary/10' 
           : 'hover:bg-muted/30'

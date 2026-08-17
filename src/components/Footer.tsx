@@ -18,7 +18,7 @@ const Footer = () => {
                 alt="RobotVerse"
                 className="h-10 w-10 object-cover rounded-lg border border-border shadow-sm"
               />
-              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">RobotVerse</span>
+              <span className="text-xl font-bold text-primary">RobotVerse</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               The ultimate marketplace for industrial robots, spare parts, and professional services. Connecting buyers,

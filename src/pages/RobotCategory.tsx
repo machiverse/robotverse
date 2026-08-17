@@ -244,8 +244,8 @@ const RobotCategory = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="relative bg-gradient-hero border-b border-border">
-        <div className="absolute inset-0 bg-gradient-primary opacity-10"></div>
+      <div className="relative bg-muted border-b border-border">
+        <div className="absolute inset-0 bg-primary opacity-10"></div>
         <div className="relative container mx-auto px-4 py-12">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">

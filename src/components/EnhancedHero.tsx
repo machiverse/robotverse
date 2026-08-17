@@ -126,7 +126,7 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative min-h-[600px] md:min-h-screen flex items-center bg-gradient-hero overflow-hidden pt-24 pb-12 md:pt-32 md:pb-16">
+    <section className="relative min-h-[600px] md:min-h-screen flex items-center bg-muted overflow-hidden pt-24 pb-12 md:pt-32 md:pb-16">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
@@ -215,7 +215,7 @@ const EnhancedHero = () => {
             {/* Search Button */}
             <Button
               type="submit"
-              className="w-full mt-3 md:mt-4 h-10 md:h-12 text-sm md:text-base bg-primary hover:bg-primary-glow"
+              className="w-full mt-3 md:mt-4 h-10 md:h-12 text-sm md:text-base bg-primary hover:bg-primary/90"
               aria-label="Perform search"
               disabled={loading}
             >
@@ -226,7 +226,7 @@ const EnhancedHero = () => {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-8 md:mb-12">
             <Button
-              variant="hero"
+              variant="default"
               size="lg"
               className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
               asChild

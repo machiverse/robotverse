@@ -196,7 +196,7 @@ const MarketplaceCategories = () => {
                 tabIndex={0}
                 className="group"
               >
-                <Card className="border border-border/50 bg-card p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer">
+                <Card className="border border-border/50 bg-card p-6 text-center hover:shadow-lg transition-all duration-300 cursor-pointer">
                   <CardContent className="p-0">
                     <div
                       className={`w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
