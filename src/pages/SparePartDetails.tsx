@@ -410,7 +410,7 @@ const SparePartDetails = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <CardTitle className="text-2xl lg:text-3xl mb-2 font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                      <CardTitle className="text-2xl lg:text-3xl mb-2 font-bold text-primary">
                         {sparePart.name}
                       </CardTitle>
                       <div className="flex flex-wrap gap-2 mb-4">
@@ -438,7 +438,7 @@ const SparePartDetails = () => {
 
                   {/* Price - Same color as product name */}
                   <div className="flex items-baseline gap-2 mt-4">
-                    <span className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent tracking-tight">
+                    <span className="text-4xl lg:text-5xl font-black text-primary tracking-tight">
                       {sparePart.currency} {sparePart.price?.toLocaleString()}
                     </span>
                     {sparePart.quantity > 1 && (

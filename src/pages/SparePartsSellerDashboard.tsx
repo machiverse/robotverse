@@ -322,7 +322,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             {isCommissionSeller ? (
-              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              <span className="text-warning">
                 Spare Parts Dashboard (Commission)
               </span>
             ) : (

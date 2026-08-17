@@ -269,7 +269,7 @@ const LiveStats = () => {
         {/* Enhanced Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-4 mb-6">
-            <h2 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+            <h2 className="text-5xl font-bold text-primary">
               Live Marketplace Stats
             </h2>
             <Button

@@ -549,7 +549,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-primary">
             Robot Seller Dashboard
           </h1>
           <p className="text-muted-foreground">

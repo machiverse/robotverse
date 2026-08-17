@@ -277,7 +277,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
             <div>
               <h1 className="text-2xl font-bold">
                 {isCommissionSeller ? (
-                  <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                  <span className="text-warning">
                     Service Provider Dashboard (Commission)
                   </span>
                 ) : (

@@ -298,7 +298,7 @@ const ServiceCategorySelector = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-2xl bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+          <DialogTitle className="text-2xl text-primary">
             Select Your Service Categories
           </DialogTitle>
           <CardDescription className="text-base">

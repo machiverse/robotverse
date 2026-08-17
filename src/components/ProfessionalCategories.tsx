@@ -59,7 +59,7 @@ const ProfessionalCategories = () => {
     <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-primary">
             Professional Categories
           </h2>
           <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto px-4">

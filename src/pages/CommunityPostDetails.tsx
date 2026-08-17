@@ -433,7 +433,7 @@ const CommunityPostDetails = () => {
 
               {/* Title */}
               {post.title && (
-                <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold mb-4 text-primary">
                   {post.title}
                 </h1>
               )}

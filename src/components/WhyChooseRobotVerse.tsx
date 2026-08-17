@@ -248,7 +248,7 @@ const WhyChooseRobotVerse = () => {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12 lg:mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 text-primary">
             Complete End-to-End Solution for Buyers
           </h2>
           <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto mb-4 md:mb-6 px-4">

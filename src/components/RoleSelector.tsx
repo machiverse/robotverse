@@ -272,7 +272,7 @@ const RoleSelector = ({ onRoleSelect, selectedRoles, userProfile, showRecommenda
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Enhanced Header */}
       <div className="text-center space-y-4">
-        <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+        <h2 className="text-4xl font-bold text-primary">
           Choose Your RobotVerse Role
         </h2>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">

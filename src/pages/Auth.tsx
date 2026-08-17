@@ -1381,7 +1381,7 @@ const Auth = () => {
             <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
               <Bot className="w-10 h-10 text-primary-foreground" />
             </div>
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+            <CardTitle className="text-4xl font-bold text-primary">
               {isForgotPassword 
                 ? 'Reset Password' 
                 : isSignUp 

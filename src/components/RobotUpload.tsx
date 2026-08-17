@@ -950,7 +950,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent flex items-center gap-2">
+              <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
                 <Bot className="w-6 h-6 text-primary" />
                 {editMode ? 'Edit Robot Listing' : 'Create Professional Robot Listing'}
               </CardTitle>
