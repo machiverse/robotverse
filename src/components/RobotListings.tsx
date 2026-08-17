@@ -907,7 +907,7 @@ const RobotListings = () => {
                       </div>
                       {robot.state && <div className="text-xs text-muted-foreground">State: {robot.state}</div>}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center text-lg font-bold text-primary">
+                        <div className="flex items-center text-lg font-bold text-primary tabular">
                           {formatPrice(robot.price, robot.currency)}
                         </div>
                         {robot.payload_capacity && (
