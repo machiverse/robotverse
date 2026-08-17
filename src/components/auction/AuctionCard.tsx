@@ -64,20 +64,20 @@ const AuctionCard: React.FC<{ auction: Auction }> = ({ auction }) => {
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
               {auction.current_highest_bid > 0 ? 'Current Bid' : 'Starting Price'}
             </p>
-            <p className="text-lg font-bold text-primary">
+            <p className="text-lg font-bold text-primary tabular">
               {formatPrice(auction.current_highest_bid > 0 ? auction.current_highest_bid : auction.starting_price)}
             </p>
           </div>
           {auction.buy_now_price && (
             <div className="text-right">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Buy Now</p>
-              <p className="text-sm font-semibold text-success">{formatPrice(auction.buy_now_price)}</p>
+              <p className="text-sm font-semibold text-success tabular">{formatPrice(auction.buy_now_price)}</p>
             </div>
           )}
         </div>
 
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground pt-1 border-t border-border">
-          <span className="flex items-center gap-1"><Gavel className="w-3 h-3" />{auction.total_bids} bids</span>
+          <span className="flex items-center gap-1"><Gavel className="w-3 h-3" /><span className="tabular">{auction.total_bids}</span> bids</span>
           <span className="flex items-center gap-1"><Users className="w-3 h-3" />{auction.total_bidders}</span>
           <span className="flex items-center gap-1 truncate max-w-[120px]">
             {auction.seller_profile?.company_name ? <Building className="w-3 h-3" /> : <User className="w-3 h-3" />}

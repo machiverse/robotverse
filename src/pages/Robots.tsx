@@ -1029,11 +1029,11 @@ const Robots = () => {
                             {/* Specs - Payload Capacity */}
                             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                               <div>
-                                <p className="font-medium text-foreground">{robot.payload_capacity || "N/A"}</p>
+                                <p className="font-medium text-foreground tabular">{robot.payload_capacity || "N/A"}</p>
                                 <p>kg Payload</p>
                               </div>
                               <div>
-                                <p className="font-medium text-foreground">{robot.reach || "N/A"}</p>
+                                <p className="font-medium text-foreground tabular">{robot.reach || "N/A"}</p>
                                 <p>mm Reach</p>
                               </div>
                             </div>
@@ -1044,7 +1044,7 @@ const Robots = () => {
                                 <MapPin className="w-3 h-3 mr-1" />
                                 <span className="line-clamp-1">{robot.location || "Location not specified"}</span>
                               </div>
-                              <div className="text-sm font-bold text-primary">
+                              <div className="text-sm font-bold text-primary tabular">
                                 {formatPrice(robot.price, robot.currency)}
                               </div>
                             </div>

@@ -87,8 +87,8 @@ const ViewCountDisplay = ({ targetType, targetId, className = "" }: ViewCountDis
   return (
     <div className={`flex items-center gap-1 ${className}`}>
       <Eye className="w-4 h-4 text-foreground" />
-      <Badge variant="secondary" className="text-xs font-medium bg-background/90 backdrop-blur-sm text-foreground border border-border/50">
-        {viewCount} views
+      <Badge variant="secondary" className="text-xs font-medium bg-background/90 text-foreground border border-border/50">
+        <span className="tabular">{viewCount}</span> views
       </Badge>
     </div>
   );

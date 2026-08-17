@@ -724,7 +724,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
 
               {/* Price */}
               <div className="space-y-1">
-                <p className="text-2xl lg:text-3xl font-bold text-primary">
+                <p className="text-2xl lg:text-3xl font-bold text-primary tabular">
                   {robot.price ? formatPrice(robot.price, robot.currency) : "Price on Request"}
                 </p>
                 {outsideIndia && importDuty && (
@@ -1092,7 +1092,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                             )}
                             <h4 className="font-semibold mb-1">{part.name || part.part_name}</h4>
                             <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{part.description || "No description"}</p>
-                            {part.price && <p className="text-lg font-bold text-primary mb-3">{part.currency === "USD" ? "$" : "₹"}{part.price.toLocaleString()}</p>}
+                            {part.price && <p className="text-lg font-bold text-primary mb-3 tabular">{part.currency === "USD" ? "$" : "₹"}{part.price.toLocaleString()}</p>}
                             <Button variant="outline" className="w-full" size="sm" onClick={() => navigate(`/parts/${part.id}`)}><FileText className="w-3 h-3 mr-1" /> Get Quote</Button>
                           </CardContent>
                         </Card>
