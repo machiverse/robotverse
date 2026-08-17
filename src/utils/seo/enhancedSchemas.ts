@@ -4,7 +4,7 @@
  */
 
 const BASE_URL = "https://www.robotverse.in";
-const LOGO_URL = `${BASE_URL}/robotverse-logo.png`;
+const LOGO_URL = `${BASE_URL}/robotverse-logo.jpg`;
 
 type FAQItem = { question: string; answer: string };
 type BreadcrumbItem = { name: string; url: string };

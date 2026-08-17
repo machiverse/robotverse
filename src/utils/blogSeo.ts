@@ -83,7 +83,7 @@ export function buildArticleSchema(blog: {
       name: "RobotVerse",
       logo: {
         "@type": "ImageObject",
-        url: `${SITE_URL}/robotverse-logo.png`,
+        url: `${SITE_URL}/robotverse-logo.jpg`,
       },
     },
     datePublished: blog.published_at || blog.created_at || undefined,

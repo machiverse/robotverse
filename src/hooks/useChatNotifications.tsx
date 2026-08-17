@@ -83,7 +83,7 @@ export const useChatNotifications = () => {
               showNotificationWithSound(
                 `New message from ${senderName}`,
                 `${newMessage.message_content.substring(0, 100)}${newMessage.message_content.length > 100 ? '...' : ''}`,
-                '/robotverse-logo.png'
+                '/robotverse-logo.jpg'
               );
             }
           }

@@ -16,8 +16,8 @@ import {
 } from '@/utils/seo/masterSEO';
 
 const BASE_URL = 'https://www.robotverse.in';
-const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.jpg`;
-const LOGO_URL = `${BASE_URL}/robotverse-logo.png`;
+const DEFAULT_OG_IMAGE = `${BASE_URL}/robotverse-logo.jpg`;
+const LOGO_URL = `${BASE_URL}/robotverse-logo.jpg`;
 
 interface UniversalSEOHeadProps {
   // Page type for automatic keyword/meta generation

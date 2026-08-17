@@ -343,7 +343,7 @@ export const generateRoboBookSEO = (post: any): SEOMetadata => {
       "name": "RobotVerse",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://www.robotverse.in/robotverse-logo.png"
+        "url": "https://www.robotverse.in/robotverse-logo.jpg"
       }
     }
   };
@@ -639,7 +639,7 @@ export const generateHomeSEO = (): SEOMetadata => {
     keywords,
     ogTitle: title,
     ogDescription: description,
-    ogImage: '/og-image.jpg',
+    ogImage: '/robotverse-logo.jpg',
     twitterCard: 'summary_large_image',
     canonicalUrl: 'https://www.robotverse.in',
     slug: '',
