@@ -40,7 +40,7 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
       listings: 0,
       locations: 0,
     },
-    gradient: "from-blue-500 to-cyan-600",
+    gradient: "from-primary to-primary",
     href: "/robots",
   },
   {
@@ -52,7 +52,7 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
       listings: 0,
       suppliers: 0,
     },
-    gradient: "from-green-500 to-emerald-600",
+    gradient: "from-success to-success",
     href: "/parts",
   },
   {
@@ -64,7 +64,7 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
       providers: 0,
       locations: 0,
     },
-    gradient: "from-purple-500 to-violet-600",
+    gradient: "from-primary to-primary",
     href: "/services",
   },
   {
@@ -88,7 +88,7 @@ const marketplaceCategoriesInitial: MarketplaceCategory[] = [
       products: 0,
       providers: 0,
     },
-    gradient: "from-indigo-500 to-purple-600",
+    gradient: "from-primary to-primary",
     href: "/services",
   },
 ];
@@ -179,7 +179,7 @@ const MarketplaceCategories = () => {
   return (
     <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-muted/20 to-background">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-4 text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-4 text-center bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
           Everything You Need in One Marketplace
         </h2>
         <p className="text-center text-base md:text-lg text-muted-foreground mb-8 md:mb-12 max-w-3xl mx-auto px-4">
@@ -196,12 +196,12 @@ const MarketplaceCategories = () => {
                 tabIndex={0}
                 className="group"
               >
-                <Card className="border border-border/50 bg-card p-6 text-center hover:shadow-xl transition-all duration-300 cursor-pointer">
+                <Card className="border border-border/50 bg-card p-6 text-center hover:shadow-lg transition-all duration-300 cursor-pointer">
                   <CardContent className="p-0">
                     <div
                       className={`w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-r ${category.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
                     >
-                      <Icon className="w-8 h-8 text-white" aria-hidden="true" />
+                      <Icon className="w-8 h-8 text-primary-foreground" aria-hidden="true" />
                     </div>
                     <h3 className="text-lg font-semibold mb-3 text-foreground">{category.title}</h3>
                     <p className="text-sm text-muted-foreground mb-6">{category.description}</p>

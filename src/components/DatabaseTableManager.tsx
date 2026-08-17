@@ -361,7 +361,7 @@ const DatabaseTableManager = () => {
                 <Button size="sm" variant="outline" onClick={handleExportCSV}>
                   <Download className="w-3.5 h-3.5 mr-1" /> CSV
                 </Button>
-                <Button size="sm" onClick={openCreateDialog} className="bg-green-600 hover:bg-green-700 text-white">
+                <Button size="sm" onClick={openCreateDialog} className="bg-success hover:bg-success text-primary-foreground">
                   <Plus className="w-3.5 h-3.5 mr-1" /> Create
                 </Button>
               </div>
@@ -430,7 +430,7 @@ const DatabaseTableManager = () => {
                             <div className="flex gap-1">
                               <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
                                 onClick={() => { setViewingRecord(record); setIsViewDialogOpen(true); }}>
-                                <Eye className="w-3.5 h-3.5 text-blue-600" />
+                                <Eye className="w-3.5 h-3.5 text-primary" />
                               </Button>
                               <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
                                 onClick={() => { setEditingRecord({ ...record }); setIsEditDialogOpen(true); }}>
@@ -475,7 +475,7 @@ const DatabaseTableManager = () => {
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-blue-600" />
+              <Eye className="w-4 h-4 text-primary" />
               View Record — <span className="capitalize">{selectedTable.replace(/_/g, ' ')}</span>
             </DialogTitle>
           </DialogHeader>
@@ -587,14 +587,14 @@ const DatabaseTableManager = () => {
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-4 h-4 text-green-600" />
+              <Plus className="w-4 h-4 text-success" />
               Create Record — <span className="capitalize">{selectedTable.replace(/_/g, ' ')}</span>
             </DialogTitle>
           </DialogHeader>
           {creatingRecord && (
             <div className="space-y-3">
-              <div className="bg-green-500/10 border border-green-500/30 p-3 rounded-lg">
-                <p className="text-sm text-green-700 dark:text-green-400">
+              <div className="bg-success/10 border border-success/30/30 p-3 rounded-lg">
+                <p className="text-sm text-success dark:text-success">
                   Fill in the required fields. Auto-generated fields (id, created_at, updated_at) will be skipped.
                 </p>
               </div>
@@ -615,7 +615,7 @@ const DatabaseTableManager = () => {
               
               <div className="flex justify-end gap-2 pt-3 border-t">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleCreateRecord(selectedTable, creatingRecord)}>
+                <Button className="bg-success hover:bg-success text-primary-foreground" onClick={() => handleCreateRecord(selectedTable, creatingRecord)}>
                   Create Record
                 </Button>
               </div>

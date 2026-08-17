@@ -208,7 +208,7 @@ const ServicesManagement = () => {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <div className="text-sm font-medium">Active</div>
-                      <Badge className="bg-green-100 text-green-700">Available</Badge>
+                      <Badge className="bg-success/10 text-success">Available</Badge>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => setEditingService(service)}>
                       <Edit className="h-4 w-4 mr-1" />

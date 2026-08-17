@@ -30,7 +30,7 @@ const SellerGuide = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+            <h1 className="text-4xl font-bold text-primary mb-4">
               Seller Guide
             </h1>
             <p className="text-lg text-muted-foreground">
@@ -54,19 +54,19 @@ const SellerGuide = () => {
                 <CardContent>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Take high-quality photos from multiple angles</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Provide detailed technical specifications</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Include maintenance history and documentation</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Write a compelling description highlighting key features</span>
                     </li>
                   </ul>
@@ -83,19 +83,19 @@ const SellerGuide = () => {
                 <CardContent>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Research comparable listings for market pricing</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Consider age, condition, and original purchase price</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Factor in any included accessories or software</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Set competitive but fair pricing</span>
                     </li>
                   </ul>
@@ -112,19 +112,19 @@ const SellerGuide = () => {
                 <CardContent>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Respond to buyer inquiries within 24 hours</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Coordinate with our logistics partners for shipping</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Ensure proper packaging and documentation</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5" />
                       <span className="text-sm">Provide installation support if applicable</span>
                     </li>
                   </ul>

@@ -12,9 +12,9 @@ import { useNavigate } from 'react-router-dom';
 
 const planBadgeVariants: Record<string, string> = {
   free: 'bg-muted text-muted-foreground border-border',
-  basic: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  basic: 'bg-primary/10 text-primary border-primary/30/20',
   standard: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  premium: 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+  premium: 'bg-primary/10 text-primary border-primary/30/20'
 };
 
 const planIcons: Record<string, React.ReactNode> = {
@@ -61,7 +61,7 @@ export const SellerDashboardOverview = () => {
   const renderLimit = (limit: number, used: number, remaining: number) => {
     if (limit === -1) {
       return (
-        <div className="flex items-center gap-1 text-sm text-green-600">
+        <div className="flex items-center gap-1 text-sm text-success">
           <Infinity className="h-4 w-4" />
           <span>Unlimited</span>
         </div>
@@ -89,12 +89,12 @@ export const SellerDashboardOverview = () => {
   return (
     <div className="space-y-6">
       {/* Account Status Banner */}
-      <Card className={isGrandfathered ? 'border-green-500/30 bg-green-500/5' : 'border-primary/20'}>
+      <Card className={isGrandfathered ? 'border-success/30/30 bg-success/5' : 'border-primary/20'}>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-full ${isGrandfathered ? 'bg-green-500/10' : planBadgeVariants[planType]}`}>
-                {isGrandfathered ? <Shield className="h-5 w-5 text-green-600" /> : planIcons[planType]}
+              <div className={`p-2 rounded-full ${isGrandfathered ? 'bg-success/10' : planBadgeVariants[planType]}`}>
+                {isGrandfathered ? <Shield className="h-5 w-5 text-success" /> : planIcons[planType]}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export const SellerDashboardOverview = () => {
                     {planType.toUpperCase()}
                   </Badge>
                   {isGrandfathered && (
-                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                    <Badge variant="outline" className="bg-success/10 text-success border-success/30/20">
                       GRANDFATHERED
                     </Badge>
                   )}
@@ -130,7 +130,7 @@ export const SellerDashboardOverview = () => {
           </div>
           
           {isGrandfathered && (
-            <p className="text-sm text-green-700 mt-3 bg-green-500/10 p-2 rounded">
+            <p className="text-sm text-success mt-3 bg-success/10 p-2 rounded">
               ✨ As a legacy member (registered before Feb 1, 2026), you enjoy unlimited listings and full platform access.
             </p>
           )}
@@ -171,7 +171,7 @@ export const SellerDashboardOverview = () => {
           </CardHeader>
           <CardContent>
             {isGrandfathered ? (
-              <div className="text-3xl font-bold text-green-600 flex items-center gap-2">
+              <div className="text-3xl font-bold text-success flex items-center gap-2">
                 <Infinity className="h-6 w-6" />
                 <span className="text-lg">Unlimited</span>
               </div>
@@ -194,7 +194,7 @@ export const SellerDashboardOverview = () => {
           </CardHeader>
           <CardContent>
             {isGrandfathered ? (
-              <div className="text-3xl font-bold text-green-600 flex items-center gap-2">
+              <div className="text-3xl font-bold text-success flex items-center gap-2">
                 <Infinity className="h-6 w-6" />
                 <span className="text-lg">Unlimited</span>
               </div>
@@ -217,7 +217,7 @@ export const SellerDashboardOverview = () => {
           </CardHeader>
           <CardContent>
             {isGrandfathered ? (
-              <div className="text-3xl font-bold text-green-600 flex items-center gap-2">
+              <div className="text-3xl font-bold text-success flex items-center gap-2">
                 <Infinity className="h-6 w-6" />
                 <span className="text-lg">Unlimited</span>
               </div>
@@ -241,9 +241,9 @@ export const SellerDashboardOverview = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-3">
-            <div className={`p-3 rounded-lg border ${hasLeadManagerAccess ? 'border-green-500/30 bg-green-500/5' : 'border-border bg-muted/50'}`}>
+            <div className={`p-3 rounded-lg border ${hasLeadManagerAccess ? 'border-success/30/30 bg-success/5' : 'border-border bg-muted/50'}`}>
               <div className="flex items-center gap-2">
-                <Crown className={`h-4 w-4 ${hasLeadManagerAccess ? 'text-green-600' : 'text-muted-foreground'}`} />
+                <Crown className={`h-4 w-4 ${hasLeadManagerAccess ? 'text-success' : 'text-muted-foreground'}`} />
                 <span className="font-medium text-sm">Lead Manager (CRM)</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -251,9 +251,9 @@ export const SellerDashboardOverview = () => {
               </p>
             </div>
             
-            <div className={`p-3 rounded-lg border ${currentPlan?.has_advanced_analytics ? 'border-green-500/30 bg-green-500/5' : 'border-border bg-muted/50'}`}>
+            <div className={`p-3 rounded-lg border ${currentPlan?.has_advanced_analytics ? 'border-success/30/30 bg-success/5' : 'border-border bg-muted/50'}`}>
               <div className="flex items-center gap-2">
-                <TrendingUp className={`h-4 w-4 ${currentPlan?.has_advanced_analytics ? 'text-green-600' : 'text-muted-foreground'}`} />
+                <TrendingUp className={`h-4 w-4 ${currentPlan?.has_advanced_analytics ? 'text-success' : 'text-muted-foreground'}`} />
                 <span className="font-medium text-sm">Advanced Analytics</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">

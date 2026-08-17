@@ -511,8 +511,8 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       value: dashboardStats.totalRobots,
       icon: Bot,
       trend: `${dashboardStats.activeListings} active`,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
       change: '+5%'
     },
     {
@@ -520,8 +520,8 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       value: `₹${dashboardStats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       trend: `Avg: ₹${dashboardStats.avgPrice.toLocaleString()}`,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-success',
+      bgColor: 'bg-success/10',
       change: '+12%'
     },
     {
@@ -529,8 +529,8 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
   value: viewStats?.viewsByCategory?.robots ?? 0,
   icon: Eye,
   trend: 'Views on your robot listings',
-  color: 'text-purple-600',
-  bgColor: 'bg-purple-50',
+  color: 'text-primary',
+  bgColor: 'bg-primary/10',
   change: viewsLoading ? '...' : '+8%'
     },
     {
@@ -549,7 +549,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
             Robot Seller Dashboard
           </h1>
           <p className="text-muted-foreground">
@@ -583,7 +583,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           </Button>
           <Button 
             onClick={handleAddRobot}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add New Robot
@@ -606,7 +606,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                       <Badge variant="secondary" className="text-xs">
                         {stat.trend}
                       </Badge>
-                      <Badge variant="outline" className="text-xs text-green-600">
+                      <Badge variant="outline" className="text-xs text-success">
                         {stat.change}
                       </Badge>
                     </div>
@@ -757,7 +757,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                   <div className="space-y-2">
                     <Button 
                       onClick={handleAddRobot}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600"
+                      className="bg-gradient-to-r from-primary to-primary"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Your First Robot
@@ -921,7 +921,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                           <CardContent className="p-4">
                             <div className="relative">
                               <Checkbox
-                                className="absolute top-2 left-2 z-10 bg-white"
+                                className="absolute top-2 left-2 z-10 bg-card"
                                 checked={selectedRobots.includes(robot.id)}
                                 onCheckedChange={(checked) => {
                                   if (checked) {
@@ -998,52 +998,52 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           <div className="space-y-6">
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg">
+              <Card className="bg-gradient-to-br from-success to-success text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-emerald-100 text-sm font-medium">Total Revenue</p>
+                      <p className="text-success text-sm font-medium">Total Revenue</p>
                       <p className="text-3xl font-bold mt-1">₹{dashboardStats.totalRevenue.toLocaleString()}</p>
-                      <p className="text-emerald-200 text-xs mt-2">From {dashboardStats.totalRobots} listings</p>
+                      <p className="text-success text-xs mt-2">From {dashboardStats.totalRobots} listings</p>
                     </div>
-                    <div className="bg-white/20 p-3 rounded-xl">
+                    <div className="bg-card/20 p-3 rounded-xl">
                       <DollarSign className="w-8 h-8" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+              <Card className="bg-gradient-to-br from-primary to-primary text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-blue-100 text-sm font-medium">Average Price</p>
+                      <p className="text-primary text-sm font-medium">Average Price</p>
                       <p className="text-3xl font-bold mt-1">₹{Math.round(dashboardStats.avgPrice).toLocaleString()}</p>
-                      <p className="text-blue-200 text-xs mt-2">Per robot listing</p>
+                      <p className="text-primary text-xs mt-2">Per robot listing</p>
                     </div>
-                    <div className="bg-white/20 p-3 rounded-xl">
+                    <div className="bg-card/20 p-3 rounded-xl">
                       <TrendingUp className="w-8 h-8" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+              <Card className="bg-gradient-to-br from-primary to-primary text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-purple-100 text-sm font-medium">Robot Views</p>
+                      <p className="text-primary text-sm font-medium">Robot Views</p>
                       <p className="text-3xl font-bold mt-1">{viewStats.viewsByCategory.robots || 0}</p>
-                      <p className="text-purple-200 text-xs mt-2">Views on robot listings</p>
+                      <p className="text-primary text-xs mt-2">Views on robot listings</p>
                     </div>
-                    <div className="bg-white/20 p-3 rounded-xl">
+                    <div className="bg-card/20 p-3 rounded-xl">
                       <Eye className="w-8 h-8" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1051,7 +1051,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                       <p className="text-3xl font-bold mt-1">{dashboardStats.activeListings}</p>
                       <p className="text-orange-200 text-xs mt-2">Available now</p>
                     </div>
-                    <div className="bg-white/20 p-3 rounded-xl">
+                    <div className="bg-card/20 p-3 rounded-xl">
                       <Package className="w-8 h-8" />
                     </div>
                   </div>
@@ -1063,32 +1063,32 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Views Analytics Card */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-background to-muted/30">
-                <CardHeader className="border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+                <CardHeader className="border-b bg-gradient-to-r from-primary/10 to-primary/10">
                   <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Eye className="w-5 h-5 text-purple-600" />
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Eye className="w-5 h-5 text-primary" />
                     </div>
                     Views Analytics
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-primary to-primary dark:from-primary/20 dark:to-primary/20">
                       <div>
-                        <p className="font-medium text-purple-700 dark:text-purple-300">Robot Views</p>
-                        <p className="text-2xl font-bold text-purple-600">{viewStats.viewsByCategory.robots || 0}</p>
+                        <p className="font-medium text-primary dark:text-primary">Robot Views</p>
+                        <p className="text-2xl font-bold text-primary">{viewStats.viewsByCategory.robots || 0}</p>
                       </div>
-                      <Bot className="w-10 h-10 text-purple-500" />
+                      <Bot className="w-10 h-10 text-primary" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center">
-                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">This Week</p>
-                        <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{Math.floor((viewStats.viewsByCategory.robots || 0) * 0.3)}</p>
+                      <div className="p-3 rounded-lg bg-primary/10 dark:bg-primary/20 text-center">
+                        <p className="text-xs text-primary dark:text-primary font-medium">This Week</p>
+                        <p className="text-xl font-bold text-primary dark:text-primary">{Math.floor((viewStats.viewsByCategory.robots || 0) * 0.3)}</p>
                       </div>
-                      <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-center">
-                        <p className="text-xs text-green-600 dark:text-green-400 font-medium">This Month</p>
-                        <p className="text-xl font-bold text-green-700 dark:text-green-300">{viewStats.viewsByCategory.robots || 0}</p>
+                      <div className="p-3 rounded-lg bg-success/10 dark:bg-success/20 text-center">
+                        <p className="text-xs text-success dark:text-success font-medium">This Month</p>
+                        <p className="text-xl font-bold text-success dark:text-success">{viewStats.viewsByCategory.robots || 0}</p>
                       </div>
                     </div>
 
@@ -1101,7 +1101,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                         <div className="space-y-2 max-h-36 overflow-y-auto">
                           {viewStats.recentViews.slice(0, 5).map((view, index) => (
                             <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                              <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
                               <span className="text-sm capitalize flex-1">{view.target_type.replace('_', ' ')}</span>
                               <span className="text-xs text-muted-foreground">
                                 {new Date(view.created_at).toLocaleDateString()}
@@ -1111,9 +1111,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-4 p-6 text-center border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-xl bg-purple-50/50 dark:bg-purple-900/10">
-                        <Eye className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-                        <p className="text-sm font-medium text-purple-600 dark:text-purple-400">No views yet</p>
+                      <div className="mt-4 p-6 text-center border-2 border-dashed border-primary/30 dark:border-primary/30 rounded-xl bg-primary/10/50 dark:bg-primary/10">
+                        <Eye className="w-8 h-8 mx-auto mb-2 text-primary" />
+                        <p className="text-sm font-medium text-primary dark:text-primary">No views yet</p>
                         <p className="text-xs text-muted-foreground mt-1">Upload products to start tracking</p>
                       </div>
                     )}
@@ -1123,10 +1123,10 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
               {/* Performance Insights Card */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-background to-muted/30">
-                <CardHeader className="border-b bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+                <CardHeader className="border-b bg-gradient-to-r from-success/10 to-success/10">
                   <CardTitle className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <Activity className="w-5 h-5 text-emerald-600" />
+                    <div className="p-2 bg-success/10 rounded-lg">
+                      <Activity className="w-5 h-5 text-success" />
                     </div>
                     Performance Insights
                   </CardTitle>
@@ -1136,26 +1136,26 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">Listing Completion</span>
-                        <span className="text-sm font-bold text-emerald-600">
+                        <span className="text-sm font-bold text-success">
                           {dashboardStats.totalRobots > 0 ? Math.min(100, Math.round((dashboardStats.activeListings / dashboardStats.totalRobots) * 100)) : 0}%
                         </span>
                       </div>
                       <Progress 
                         value={dashboardStats.totalRobots > 0 ? (dashboardStats.activeListings / dashboardStats.totalRobots) * 100 : 0} 
-                        className="h-2 bg-emerald-100"
+                        className="h-2 bg-success/10"
                       />
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">View to Inquiry Rate</span>
-                        <span className="text-sm font-bold text-blue-600">
+                        <span className="text-sm font-bold text-primary">
                           {viewStats.viewsByCategory.robots > 0 ? Math.round((dashboardStats.inquiries / viewStats.viewsByCategory.robots) * 100) : 0}%
                         </span>
                       </div>
                       <Progress 
                         value={viewStats.viewsByCategory.robots > 0 ? (dashboardStats.inquiries / viewStats.viewsByCategory.robots) * 100 : 0}
-                        className="h-2 bg-blue-100"
+                        className="h-2 bg-primary/10"
                       />
                     </div>
 
@@ -1205,9 +1205,9 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </div>
               
               {/* Quick Actions */}
-              <Card className="shadow-lg border-0 bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+              <Card className="shadow-lg border-0 bg-gradient-to-br from-primary to-primary text-primary-foreground">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
+                  <CardTitle className="flex items-center gap-2 text-primary-foreground">
                     <Zap className="w-5 h-5" />
                     Quick Actions
                   </CardTitle>
@@ -1215,7 +1215,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 <CardContent className="space-y-3">
                   <Button 
                     variant="secondary" 
-                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
+                    className="w-full justify-start bg-card/20 hover:bg-card/30 text-primary-foreground border-0"
                     onClick={() => navigate('/robots')}
                   >
                     <Bot className="w-4 h-4 mr-2" />
@@ -1223,7 +1223,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                   </Button>
                   <Button 
                     variant="secondary" 
-                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
+                    className="w-full justify-start bg-card/20 hover:bg-card/30 text-primary-foreground border-0"
                     onClick={() => navigate('/parts')}
                   >
                     <Package className="w-4 h-4 mr-2" />
@@ -1231,7 +1231,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                   </Button>
                   <Button 
                     variant="secondary" 
-                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
+                    className="w-full justify-start bg-card/20 hover:bg-card/30 text-primary-foreground border-0"
                     onClick={() => navigate('/watchlist')}
                   >
                     <Eye className="w-4 h-4 mr-2" />
@@ -1239,7 +1239,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                   </Button>
                   <Button 
                     variant="secondary" 
-                    className="w-full justify-start bg-white/20 hover:bg-white/30 text-white border-0"
+                    className="w-full justify-start bg-card/20 hover:bg-card/30 text-primary-foreground border-0"
                     onClick={() => setShowAddForm(true)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -1306,7 +1306,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Add Robot Form Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
           <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
@@ -1332,7 +1332,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
       {/* Edit Robot Form Modal */}
       {showEditForm && editingRobot && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
           <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">

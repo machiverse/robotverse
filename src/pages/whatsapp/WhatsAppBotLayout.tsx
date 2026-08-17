@@ -62,20 +62,20 @@ const WhatsAppBotLayout = () => {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-[#f8fafc]">
+    <div className="flex min-h-screen w-full bg-muted">
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#0f172a] text-slate-300 transition-transform duration-300 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-foreground text-muted-foreground transition-transform duration-300 lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+        <div className="flex items-center gap-3 border-b border-border/50/10 px-5 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#25D366]">
-            <Bot className="h-5 w-5 text-white" />
+            <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <p className="font-semibold leading-tight text-white">RobotVerse</p>
+            <p className="font-semibold leading-tight text-primary-foreground">RobotVerse</p>
             <p className="text-xs text-[#25D366]">WhatsApp Bot</p>
           </div>
           <button className="ml-auto lg:hidden" onClick={() => setOpen(false)} aria-label="Close menu">
@@ -94,8 +94,8 @@ const WhatsAppBotLayout = () => {
                 cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-[#25D366] text-white shadow"
-                    : "hover:bg-[#25D366]/15 hover:text-white",
+                    ? "bg-[#25D366] text-primary-foreground shadow"
+                    : "hover:bg-[#25D366]/15 hover:text-primary-foreground",
                 )
               }
             >
@@ -105,23 +105,23 @@ const WhatsAppBotLayout = () => {
           ))}
         </nav>
 
-        <div className="border-t border-white/10 px-5 py-4 text-xs text-slate-400">
+        <div className="border-t border-border/50/10 px-5 py-4 text-xs text-muted-foreground">
           <p>{WHATSAPP_BOT_VERSION}</p>
           <p className="mt-1">Powered by RobotVerse</p>
         </div>
       </aside>
 
       {open && (
-        <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
+        <div className="fixed inset-0 z-30 bg-foreground/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
       )}
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b bg-white px-4 py-3 lg:px-8">
+        <header className="flex items-center gap-3 border-b bg-card px-4 py-3 lg:px-8">
           <button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </button>
-          <h1 className="truncate text-sm font-semibold text-slate-700">
+          <h1 className="truncate text-sm font-semibold text-muted-foreground">
             {NAV.find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))?.label ?? "WhatsApp Bot"}
           </h1>
           <span className="ml-auto hidden rounded-full bg-[#25D366]/10 px-3 py-1 text-xs font-medium text-[#128C7E] sm:block">

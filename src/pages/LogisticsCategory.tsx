@@ -139,8 +139,8 @@ const LogisticsCategory = () => {
         </nav>
       </div>
 
-      <div className="relative bg-gradient-hero border-b border-border">
-        <div className="absolute inset-0 bg-gradient-primary opacity-10"></div>
+      <div className="relative bg-muted border-b border-border">
+        <div className="absolute inset-0 bg-primary opacity-10"></div>
         <div className="relative container mx-auto px-4 py-12">
           <div className="text-center max-w-4xl mx-auto">
             <div className="flex items-center justify-center mb-4">
@@ -205,7 +205,7 @@ const LogisticsCategory = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Badge variant="secondary">{service.service_type}</Badge>
-                    {service.tracking_available && <Badge className="bg-green-500/10 text-green-500">Tracking</Badge>}
+                    {service.tracking_available && <Badge className="bg-success/10 text-success">Tracking</Badge>}
                   </div>
 
                   {service.base_price && (

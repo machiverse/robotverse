@@ -27,21 +27,21 @@ const STAT_CONFIG = [
     icon: Users,
     label: "Trusted Users",
     description: "Total verified user accounts from profiles table",
-    gradient: "from-green-500 to-emerald-600",
+    gradient: "from-success to-success",
   },
   {
     key: "robotSellers" as keyof StatsData,
     icon: Bot,
     label: "Robot Sellers",
     description: "Companies and individuals offering industrial robots for sale",
-    gradient: "from-blue-500 to-cyan-600",
+    gradient: "from-primary to-primary",
   },
   {
     key: "partsSellers" as keyof StatsData,
     icon: Package,
     label: "Parts Sellers",
     description: "Verified sellers providing spare parts and components",
-    gradient: "from-purple-500 to-violet-600",
+    gradient: "from-primary to-primary",
   },
   {
     key: "serviceProviders" as keyof StatsData,
@@ -55,7 +55,7 @@ const STAT_CONFIG = [
     icon: Truck,
     label: "Logistics Partners",
     description: "Verified logistics and shipping partners for robotics delivery",
-    gradient: "from-indigo-500 to-blue-600",
+    gradient: "from-primary to-primary",
   },
   {
     key: "financeProviders" as keyof StatsData,
@@ -247,9 +247,9 @@ const LiveStats = () => {
     <section className="py-16 bg-gradient-to-br from-background to-muted/20">
       <div className="container mx-auto px-4">
         {/* Real Data Confirmation */}
-        <Alert className="border-green-200 bg-green-50 mb-8">
+        <Alert className="border-success/30 bg-success/10 mb-8">
           <CheckCircle className="w-4 h-4" />
-          <AlertDescription className="text-green-700">
+          <AlertDescription className="text-success">
             <strong>✅ Live Real-Time Data</strong> - Statistics calculated from actual user profiles and roles.
             <br />
             <small>Auto-refreshes every 2 minutes • Last Updated: {lastUpdated?.toLocaleTimeString()}</small>
@@ -269,7 +269,7 @@ const LiveStats = () => {
         {/* Enhanced Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-4 mb-6">
-            <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 className="text-5xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
               Live Marketplace Stats
             </h2>
             <Button
@@ -298,10 +298,10 @@ const LiveStats = () => {
               <TooltipProvider key={item.key}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Card className="bg-card/90 backdrop-blur-sm border-border hover:scale-105 hover:shadow-xl transition-all duration-300 cursor-help">
+                    <Card className="bg-card/90 backdrop-blur-sm border-border hover:scale-105 hover:shadow-lg transition-all duration-300 cursor-help">
                       <CardContent className="p-6 text-center">
                         <div className={`w-14 h-14 rounded-2xl bg-gradient-to-r ${item.gradient} flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                          <Icon className="w-7 h-7 text-white" />
+                          <Icon className="w-7 h-7 text-primary-foreground" />
                         </div>
                         
                         <div className="text-3xl font-bold text-foreground mb-2 tabular-nums">
@@ -318,15 +318,15 @@ const LiveStats = () => {
                         
                         {/* Enhanced live indicator */}
                         {value > 0 && !refreshing && (
-                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
-                            <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-success/10 text-success text-xs font-medium">
+                            <div className="w-2 h-2 bg-success rounded-full mr-2 animate-pulse"></div>
                             Live
                           </div>
                         )}
                         
                         {value === 0 && !refreshing && (
-                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs">
+                            <div className="w-2 h-2 bg-secondary rounded-full mr-2"></div>
                             No Data
                           </div>
                         )}
@@ -359,18 +359,18 @@ const LiveStats = () => {
 
         {/* Enhanced Footer */}
         <div className="text-center mt-16">
-          <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 max-w-4xl mx-auto border">
+          <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-6 max-w-4xl mx-auto border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
               <div className="flex items-center justify-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-success rounded-full animate-pulse"></div>
                 <span>Auto-refreshes every 2 minutes</span>
               </div>
               <div className="flex items-center justify-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-primary rounded-full"></div>
                 <span>Real-time marketplace data</span>
               </div>
               <div className="flex items-center justify-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-primary rounded-full"></div>
                 <span>Verified user roles only</span>
               </div>
             </div>

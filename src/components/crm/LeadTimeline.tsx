@@ -57,14 +57,14 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
-  call: "bg-green-100 text-green-600 dark:bg-green-900/30",
-  email: "bg-blue-100 text-blue-600 dark:bg-blue-900/30",
-  meeting: "bg-purple-100 text-purple-600 dark:bg-purple-900/30",
-  note: "bg-slate-100 text-slate-600 dark:bg-slate-800",
+  call: "bg-success/10 text-success dark:bg-success/30",
+  email: "bg-primary/10 text-primary dark:bg-primary/30",
+  meeting: "bg-primary/10 text-primary dark:bg-primary/30",
+  note: "bg-muted text-muted-foreground dark:bg-foreground",
   follow_up: "bg-amber-100 text-amber-600 dark:bg-amber-900/30",
-  invoice_sent: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30",
-  status_change: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30",
-  chat: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30",
+  invoice_sent: "bg-success/10 text-success dark:bg-success/30",
+  status_change: "bg-primary/10 text-primary dark:bg-primary/30",
+  chat: "bg-primary/10 text-primary dark:bg-primary/30",
 };
 
 const QUOTATION_STATUS_ICONS: Record<string, React.ReactNode> = {
@@ -146,7 +146,7 @@ const LeadTimeline = ({ leadId, sellerId, activities, leadCreatedAt, leadSource 
         title: `Quotation Created: ${quotation.quotation_number}`,
         description: `Amount: ₹${quotation.total_amount.toLocaleString()}`,
         icon: <FileSpreadsheet className="h-4 w-4" />,
-        iconColor: "bg-violet-100 text-violet-600 dark:bg-violet-900/30",
+        iconColor: "bg-primary/10 text-primary dark:bg-primary/30",
         metadata: { quotation_number: quotation.quotation_number, amount: quotation.total_amount },
       });
 
@@ -158,7 +158,7 @@ const LeadTimeline = ({ leadId, sellerId, activities, leadCreatedAt, leadSource 
           timestamp: quotation.sent_at,
           title: `Quotation Sent: ${quotation.quotation_number}`,
           icon: <Send className="h-4 w-4" />,
-          iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-900/30",
+          iconColor: "bg-primary/10 text-primary dark:bg-primary/30",
         });
       }
 
@@ -170,7 +170,7 @@ const LeadTimeline = ({ leadId, sellerId, activities, leadCreatedAt, leadSource 
           timestamp: quotation.viewed_at,
           title: `Quotation Viewed: ${quotation.quotation_number}`,
           icon: <Eye className="h-4 w-4" />,
-          iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-900/30",
+          iconColor: "bg-primary/10 text-primary dark:bg-primary/30",
         });
       }
 
@@ -183,7 +183,7 @@ const LeadTimeline = ({ leadId, sellerId, activities, leadCreatedAt, leadSource 
           title: `Quotation Accepted: ${quotation.quotation_number}`,
           description: `Deal value: ₹${quotation.total_amount.toLocaleString()}`,
           icon: <CheckCircle className="h-4 w-4" />,
-          iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30",
+          iconColor: "bg-success/10 text-success dark:bg-success/30",
         });
       }
 

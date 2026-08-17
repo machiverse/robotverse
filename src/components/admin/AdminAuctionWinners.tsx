@@ -98,7 +98,7 @@ function BiddersList({ auctionId, winnerId }: { auctionId: string; winnerId: str
                         {b.profile?.full_name || "Unknown bidder"}
                       </span>
                       {isWinner && (
-                        <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/30 text-[10px]">
+                        <Badge className="bg-success/20 text-success border-success/30/30 text-[10px]">
                           <Trophy className="w-3 h-3 mr-0.5" /> Winner
                         </Badge>
                       )}
@@ -191,7 +191,7 @@ export default function AdminAuctionWinners() {
                 <p className="text-xs text-muted-foreground">Ended: {new Date(a.end_time).toLocaleString()} · {a.total_bids ?? 0} bids</p>
               </div>
               {approved
-                ? <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30"><CheckCircle2 className="h-3 w-3 mr-1" /> Approved</Badge>
+                ? <Badge className="bg-success/15 text-success border-success/30/30"><CheckCircle2 className="h-3 w-3 mr-1" /> Approved</Badge>
                 : <Badge variant="secondary">Pending</Badge>}
             </CardHeader>
             <CardContent className="space-y-3">

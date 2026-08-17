@@ -585,7 +585,7 @@ const LogisticsServiceForm = ({ onSuccess, onCancel, editingService }: Logistics
             {selectedCoverageAreas.length > 0 && (
               <div className="bg-muted/30 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  <CheckCircle2 className="w-4 h-4 text-success" />
                   <span className="text-sm font-medium">Selected Areas ({selectedCoverageAreas.length})</span>
                 </div>
                 <div className="flex flex-wrap gap-1">

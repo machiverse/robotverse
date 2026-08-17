@@ -36,7 +36,7 @@ const CRMAccountsView = ({ crmData }: CRMAccountsViewProps) => {
           <Card key={account.id} className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <div className="rounded-full bg-blue-100 p-2"><Building2 className="h-5 w-5 text-blue-600" /></div>
+                <div className="rounded-full bg-primary/10 p-2"><Building2 className="h-5 w-5 text-primary" /></div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{account.account_name}</p>
                   <Badge variant="outline" className="mt-1 capitalize">{account.account_type}</Badge>

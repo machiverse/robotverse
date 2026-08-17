@@ -528,7 +528,7 @@ const BuyLeadsTab = ({
                       size="sm"
                       onClick={() => handleBuyLead(lead)}
                       disabled={purchasingId === lead.buyer_id}
-                      className={`h-9 px-4 text-xs font-medium ${isCommissionSeller ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+                      className={`h-9 px-4 text-xs font-medium ${isCommissionSeller ? 'bg-success hover:bg-success' : 'bg-amber-600 hover:bg-amber-700'}`}
                     >
                       {purchasingId === lead.buyer_id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

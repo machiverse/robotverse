@@ -75,17 +75,17 @@ interface LeadDetailViewProps {
 }
 
 const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: string; dot: string }> = {
-  new: { label: "New", color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-100 dark:bg-blue-900/50", dot: "bg-blue-500" },
+  new: { label: "New", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/50", dot: "bg-primary" },
   contacted: { label: "Contacted", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/50", dot: "bg-amber-500" },
-  quoted: { label: "Quoted", color: "text-violet-700 dark:text-violet-300", bg: "bg-violet-100 dark:bg-violet-900/50", dot: "bg-violet-500" },
+  quoted: { label: "Quoted", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/50", dot: "bg-primary" },
   negotiating: { label: "Negotiating", color: "text-orange-700 dark:text-orange-300", bg: "bg-orange-100 dark:bg-orange-900/50", dot: "bg-orange-500" },
-  closed_won: { label: "Won", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-100 dark:bg-emerald-900/50", dot: "bg-emerald-500" },
+  closed_won: { label: "Won", color: "text-success dark:text-success", bg: "bg-success/10 dark:bg-success/50", dot: "bg-success" },
   closed_lost: { label: "Lost", color: "text-red-700 dark:text-red-300", bg: "bg-red-100 dark:bg-red-900/50", dot: "bg-red-500" },
 };
 
 const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string; bg: string }> = {
-  low: { label: "Low", color: "text-slate-600 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
-  medium: { label: "Medium", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/30" },
+  low: { label: "Low", color: "text-muted-foreground dark:text-muted-foreground", bg: "bg-muted dark:bg-foreground" },
+  medium: { label: "Medium", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
   high: { label: "High", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/30" },
   urgent: { label: "Urgent", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/30" },
 };
@@ -109,13 +109,13 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
-  call: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-  email: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-  meeting: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-  note: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+  call: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
+  email: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
+  meeting: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
+  note: "bg-muted text-muted-foreground dark:bg-foreground dark:text-muted-foreground",
   follow_up: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
-  invoice_sent: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
-  status_change: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400",
+  invoice_sent: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
+  status_change: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
 };
 
 const LeadDetailView = ({
@@ -349,7 +349,7 @@ const LeadDetailView = ({
                     size="sm"
                     variant="outline"
                     onClick={handleWhatsApp}
-                    className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/50 dark:text-green-400"
+                    className="border-success/30 bg-success/10 text-success hover:bg-success/10 dark:border-success/30 dark:bg-success/50 dark:text-success"
                   >
                     <FaWhatsapp className="mr-1.5 h-4 w-4" />
                     WhatsApp Platform
@@ -366,7 +366,7 @@ const LeadDetailView = ({
                     variant="outline"
                     onClick={handleWhatsApp}
                     disabled={!lead.buyer_phone}
-                    className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/50 dark:text-green-400"
+                    className="border-success/30 bg-success/10 text-success hover:bg-success/10 dark:border-success/30 dark:bg-success/50 dark:text-success"
                   >
                     <FaWhatsapp className="mr-1.5 h-4 w-4" />
                     WhatsApp
@@ -500,8 +500,8 @@ const LeadDetailView = ({
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="rounded-xl border bg-card p-5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                            <DollarSign className="h-5 w-5 text-emerald-600" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 dark:bg-success/30">
+                            <DollarSign className="h-5 w-5 text-success" />
                           </div>
                           <div>
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Value</p>
@@ -514,8 +514,8 @@ const LeadDetailView = ({
                       
                       <div className="rounded-xl border bg-card p-5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                            <Target className="h-5 w-5 text-blue-600" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/30">
+                            <Target className="h-5 w-5 text-primary" />
                           </div>
                           <div>
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lead Source</p>
@@ -767,8 +767,8 @@ const LeadDetailView = ({
                           onClick={handleCall}
                           className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted"
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                            <Phone className="h-4 w-4 text-green-600" />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10 dark:bg-success/30">
+                            <Phone className="h-4 w-4 text-success" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{PLATFORM_PHONE_DISPLAY}</p>
@@ -781,8 +781,8 @@ const LeadDetailView = ({
                           onClick={handleWhatsApp}
                           className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted"
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                            <FaWhatsapp className="h-4 w-4 text-green-600" />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10 dark:bg-success/30">
+                            <FaWhatsapp className="h-4 w-4 text-success" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{PLATFORM_PHONE_DISPLAY}</p>
@@ -802,7 +802,7 @@ const LeadDetailView = ({
                           size="sm"
                           variant="outline"
                           onClick={handleWhatsApp}
-                          className="w-full border-green-200 bg-green-50 text-green-700"
+                          className="w-full border-success/30 bg-success/10 text-success"
                         >
                           <FaWhatsapp className="mr-1.5 h-4 w-4" />
                           WhatsApp Platform
@@ -831,8 +831,8 @@ const LeadDetailView = ({
                             onClick={handleCall}
                             className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted"
                           >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                              <Phone className="h-4 w-4 text-green-600" />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10 dark:bg-success/30">
+                              <Phone className="h-4 w-4 text-success" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium">{lead.buyer_phone}</p>
@@ -847,8 +847,8 @@ const LeadDetailView = ({
                             onClick={handleEmail}
                             className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted"
                           >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                              <Mail className="h-4 w-4 text-blue-600" />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/30">
+                              <Mail className="h-4 w-4 text-primary" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium">{lead.buyer_email}</p>
@@ -860,8 +860,8 @@ const LeadDetailView = ({
                         
                         {lead.buyer_location && (
                           <div className="flex items-center gap-3 rounded-lg p-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
-                              <MapPin className="h-4 w-4 text-purple-600" />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/30">
+                              <MapPin className="h-4 w-4 text-primary" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium">{lead.buyer_location}</p>
@@ -882,7 +882,7 @@ const LeadDetailView = ({
                           variant="outline"
                           onClick={handleWhatsApp}
                           disabled={!lead.buyer_phone}
-                          className="w-full border-green-200 bg-green-50 text-green-700"
+                          className="w-full border-success/30 bg-success/10 text-success"
                         >
                           <FaWhatsapp className="mr-1.5 h-4 w-4" />
                           WhatsApp

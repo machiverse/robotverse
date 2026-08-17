@@ -91,7 +91,7 @@ const RobotTalent = () => {
       <EnhancedHeader />
 
       {/* Hero Section - Dark theme matching Robots/Spare Parts */}
-      <section className="relative overflow-hidden border-b border-border" style={{ background: 'var(--gradient-hero)' }}>
+      <section className="relative overflow-hidden border-b border-border" style={{ background: 'hsl(var(--muted))' }}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(200_100%_50%/0.08),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,hsl(270_100%_60%/0.06),transparent_40%)]" />
         <div className="container mx-auto px-4 py-10 md:py-14 relative">
@@ -108,7 +108,7 @@ const RobotTalent = () => {
             </p>
 
             {/* Search Bar */}
-            <form onSubmit={handleHeroSearch} className="bg-card rounded-xl p-2 shadow-xl border border-border flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
+            <form onSubmit={handleHeroSearch} className="bg-card rounded-xl p-2 shadow-lg border border-border flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -218,7 +218,7 @@ const RobotTalent = () => {
       </main>
 
       {/* Why Robot Talent */}
-      <section className="border-t border-border py-10" style={{ background: 'var(--gradient-card)' }}>
+      <section className="border-t border-border py-10" style={{ background: 'hsl(var(--card))' }}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Why Robot Talent?</h2>

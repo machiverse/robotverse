@@ -266,8 +266,8 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
 
         {success ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-              <Check className="w-8 h-8 text-green-500" />
+            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+              <Check className="w-8 h-8 text-success" />
             </div>
             <h3 className="text-xl font-semibold">Quote Request Sent!</h3>
             <p className="text-muted-foreground text-center">
@@ -432,7 +432,7 @@ const RobotQuoteModal = ({ isOpen, onClose, robot }: RobotQuoteModalProps) => {
                     <span>{robot.currency || '₹'} {subtotal.toLocaleString('en-IN')}</span>
                   </div>
                   {coupon && (
-                    <div className="flex justify-between text-emerald-600">
+                    <div className="flex justify-between text-success">
                       <span>Coupon "{coupon.code}"</span>
                       <span>− {robot.currency || '₹'} {discount.toLocaleString('en-IN')}</span>
                     </div>

@@ -29,13 +29,13 @@ const AIAssistantWidget: React.FC = () => {
           className="fixed bottom-6 right-6 z-50 group"
           aria-label="Open RobotVerse AI Assistant"
         >
-          <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-110 flex items-center justify-center">
+          <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 hover:scale-110 flex items-center justify-center">
             <Bot className="w-6 h-6" />
             {/* Pulse ring */}
             <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" style={{ animationDuration: '3s' }} />
           </div>
           {/* Online indicator */}
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-400 rounded-full border-[2.5px] border-background shadow-sm" />
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-success rounded-full border-[2.5px] border-background shadow-sm" />
           {/* Tooltip */}
           <span className="absolute bottom-full right-0 mb-2 px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg pointer-events-none">
             Ask RobotVerse AI ✨
@@ -49,7 +49,7 @@ const AIAssistantWidget: React.FC = () => {
           {/* Backdrop for maximized */}
           {isMaximized && (
             <div
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-fade-in"
+              className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm animate-fade-in"
               onClick={() => setIsMaximized(false)}
             />
           )}

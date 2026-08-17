@@ -19,9 +19,9 @@ interface CRMQuotationsViewProps {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  sent: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  viewed: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  accepted: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  sent: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
+  viewed: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
+  accepted: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
   rejected: "bg-destructive/10 text-destructive",
   expired: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
 };
@@ -202,7 +202,7 @@ const CRMQuotationsView = ({ crmData }: CRMQuotationsViewProps) => {
                 <p className="text-sm text-muted-foreground">Accepted</p>
                 <p className="text-2xl font-bold">{quotations.filter(q => q.status === 'accepted').length}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-emerald-500/30" />
+              <DollarSign className="h-8 w-8 text-success/30" />
             </div>
           </CardContent>
         </Card>

@@ -34,8 +34,8 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
       change: stats.newLeads,
       changeLabel: "new this week",
       icon: Users,
-      color: "text-blue-600",
-      bg: "bg-blue-50 dark:bg-blue-950/30",
+      color: "text-primary",
+      bg: "bg-primary/10 dark:bg-primary/30",
       trend: "up",
     },
     {
@@ -44,8 +44,8 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
       change: `₹${(stats.pipelineValue / 100000).toFixed(1)}L`,
       changeLabel: "pipeline value",
       icon: Target,
-      color: "text-purple-600",
-      bg: "bg-purple-50 dark:bg-purple-950/30",
+      color: "text-primary",
+      bg: "bg-primary/10 dark:bg-primary/30",
       trend: "neutral",
     },
     {
@@ -54,8 +54,8 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
       change: `${stats.conversionRate.toFixed(1)}%`,
       changeLabel: "conversion rate",
       icon: DollarSign,
-      color: "text-green-600",
-      bg: "bg-green-50 dark:bg-green-950/30",
+      color: "text-success",
+      bg: "bg-success/10 dark:bg-success/30",
       trend: "up",
     },
     {
@@ -74,8 +74,8 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
       change: stats.pendingQuotations,
       changeLabel: "pending",
       icon: FileText,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50 dark:bg-indigo-950/30",
+      color: "text-primary",
+      bg: "bg-primary/10 dark:bg-primary/30",
       trend: "neutral",
     },
     {
@@ -110,11 +110,11 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
   };
 
   const STAGE_COLORS: Record<string, string> = {
-    qualification: "bg-blue-100 text-blue-700",
+    qualification: "bg-primary/10 text-primary",
     needs_analysis: "bg-yellow-100 text-yellow-700",
-    proposal: "bg-purple-100 text-purple-700",
+    proposal: "bg-primary/10 text-primary",
     negotiation: "bg-orange-100 text-orange-700",
-    closed_won: "bg-green-100 text-green-700",
+    closed_won: "bg-success/10 text-success",
     closed_lost: "bg-red-100 text-red-700",
   };
 
@@ -133,7 +133,7 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
                   <p className="text-2xl font-bold">{stat.value}</p>
                   {stat.change !== undefined && (
                     <div className="flex items-center gap-1 text-xs">
-                      {stat.trend === "up" && <ArrowUpRight className="h-3 w-3 text-green-600" />}
+                      {stat.trend === "up" && <ArrowUpRight className="h-3 w-3 text-success" />}
                       {stat.trend === "down" && <ArrowDownRight className="h-3 w-3 text-red-600" />}
                       <span className={stat.trend === "down" ? "text-red-600" : "text-muted-foreground"}>
                         {stat.change} {stat.changeLabel}
@@ -186,12 +186,12 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
                         <div className={`rounded-full p-1.5 ${
                           task.priority === 'urgent' ? 'bg-red-100' :
                           task.priority === 'high' ? 'bg-orange-100' :
-                          'bg-blue-100'
+                          'bg-primary/10'
                         }`}>
                           <Clock className={`h-4 w-4 ${
                             task.priority === 'urgent' ? 'text-red-600' :
                             task.priority === 'high' ? 'text-orange-600' :
-                            'text-blue-600'
+                            'text-primary'
                           }`} />
                         </div>
                         <div>
@@ -228,13 +228,13 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
                     className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="rounded-full bg-purple-100 p-1.5">
-                        <Target className="h-4 w-4 text-purple-600" />
+                      <div className="rounded-full bg-primary/10 p-1.5">
+                        <Target className="h-4 w-4 text-primary" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">{opp.opportunity_name}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className={STAGE_COLORS[opp.stage] || "bg-gray-100 text-gray-700"}>
+                          <Badge className={STAGE_COLORS[opp.stage] || "bg-muted text-muted-foreground"}>
                             {opp.stage.replace('_', ' ')}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
@@ -244,7 +244,7 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-green-600">
+                      <p className="text-sm font-semibold text-success">
                         ₹{((opp.expected_value || 0) / 100000).toFixed(1)}L
                       </p>
                       {opp.expected_close_date && (

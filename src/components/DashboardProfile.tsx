@@ -313,7 +313,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
   ];
 
   const getCompletionColor = (completion: number) => {
-    if (completion >= 80) return 'text-green-600';
+    if (completion >= 80) return 'text-success';
     if (completion >= 60) return 'text-yellow-600';
     return 'text-red-600';
   };
@@ -323,7 +323,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
             Profile Management
           </h1>
           <p className="text-muted-foreground">
@@ -343,7 +343,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
             </Button>
             <Button onClick={handleSave} disabled={loading} className="flex items-center gap-2">
               {loading ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                <div className="animate-spin w-4 h-4 border-2 border-border/50 border-t-transparent rounded-full" />
               ) : (
                 <Save className="w-4 h-4" />
               )}
@@ -354,7 +354,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
       </div>
 
       {/* Profile Completion Alert */}
-      <Alert className={`border-2 ${profileCompletion >= 80 ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}`}>
+      <Alert className={`border-2 ${profileCompletion >= 80 ? 'border-success/30 bg-success/10' : 'border-yellow-200 bg-yellow-50'}`}>
         <Activity className="w-4 h-4" />
         <AlertDescription>
           <div className="flex items-center justify-between">
@@ -406,7 +406,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
                   <label className="cursor-pointer">
                     <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors">
                       {avatarLoading ? (
-                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                        <div className="animate-spin w-4 h-4 border-2 border-border/50 border-t-transparent rounded-full" />
                       ) : (
                         <Camera className="w-4 h-4" />
                       )}
@@ -586,7 +586,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
                     <label className="cursor-pointer">
                       <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors">
                         {logoLoading ? (
-                          <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                          <div className="animate-spin w-3 h-3 border-2 border-border/50 border-t-transparent rounded-full" />
                         ) : (
                           <Camera className="w-3 h-3" />
                         )}
@@ -634,7 +634,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
                 <p className="text-sm py-2 px-3 bg-muted rounded-md flex items-center gap-2">
                   <Globe className="w-4 h-4" />
                   {userProfile?.website ? (
-                    <a href={userProfile.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    <a href={userProfile.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                       {userProfile.website}
                     </a>
                   ) : (
@@ -662,7 +662,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
               ) : (
                 <p className="text-sm py-2 px-3 bg-muted rounded-md">
                   {userProfile?.linkedin_url ? (
-                    <a href={userProfile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    <a href={userProfile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                       LinkedIn Profile
                     </a>
                   ) : (
@@ -754,7 +754,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-3 p-3 border rounded-lg">
-              <Calendar className="w-8 h-8 text-blue-600" />
+              <Calendar className="w-8 h-8 text-primary" />
               <div>
                 <p className="font-semibold">Member Since</p>
                 <p className="text-sm text-muted-foreground">
@@ -763,7 +763,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 border rounded-lg">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-success" />
               <div>
                 <p className="font-semibold">Profile Status</p>
                 <p className="text-sm text-muted-foreground">
@@ -772,7 +772,7 @@ export function DashboardProfile({ userProfile, onProfileUpdate }: DashboardProf
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 border rounded-lg">
-              <Shield className="w-8 h-8 text-purple-600" />
+              <Shield className="w-8 h-8 text-primary" />
               <div>
                 <p className="font-semibold">Verification</p>
                 <p className="text-sm text-muted-foreground">

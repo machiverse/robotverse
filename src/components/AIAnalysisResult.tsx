@@ -101,7 +101,7 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
 
   // If popup mode, add overlay styles
   const overlayClassName = popup
-    ? "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-2"
+    ? "fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm flex items-center justify-center px-2"
     : "";
 
   return (
@@ -157,7 +157,7 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
           {suitabilityPoints.length > 0 && (
             <>
               <SectionBullets
-                icon={<CheckCircle className="h-4 w-4 text-green-600" />}
+                icon={<CheckCircle className="h-4 w-4 text-success" />}
                 title="Product Suitability"
                 points={suitabilityPoints}
               />
@@ -168,7 +168,7 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
           {technicalPoints.length > 0 && (
             <>
               <SectionBullets
-                icon={<Settings className="h-4 w-4 text-blue-600" />}
+                icon={<Settings className="h-4 w-4 text-primary" />}
                 title="Technical Insights"
                 points={technicalPoints}
               />
@@ -179,7 +179,7 @@ const AIAnalysisResult: React.FC<AIAnalysisResultProps> = ({
           {industryPoints.length > 0 && (
             <>
               <SectionBullets
-                icon={<Lightbulb className="h-4 w-4 text-purple-600" />}
+                icon={<Lightbulb className="h-4 w-4 text-primary" />}
                 title="Suggested Industries & Applications"
                 points={industryPoints}
               />

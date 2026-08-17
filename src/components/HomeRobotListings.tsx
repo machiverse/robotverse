@@ -216,10 +216,10 @@ const HomeRobotListings = () => {
             )}
             {overallStats.minPrice > 0 && (
               <>
-                <span className="px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 font-medium">
+                <span className="px-3 py-1.5 rounded-lg bg-success/10 text-success dark:text-success font-medium">
                   Min: ₹{overallStats.minPrice.toLocaleString('en-IN')}
                 </span>
-                <span className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                <span className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-medium">
                   Avg: ₹{overallStats.avgPrice.toLocaleString('en-IN')}
                 </span>
                 <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium">

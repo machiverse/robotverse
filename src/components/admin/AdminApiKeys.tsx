@@ -90,7 +90,7 @@ export default function AdminApiKeys() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold">{r.name}</span>
               {r.status === 'pending' && <Badge variant="outline" className="border-amber-500 text-amber-600">Pending</Badge>}
-              {r.status === 'approved' && <Badge className="bg-emerald-600 hover:bg-emerald-600">Approved</Badge>}
+              {r.status === 'approved' && <Badge className="bg-success hover:bg-success">Approved</Badge>}
               {r.status === 'rejected' && <Badge variant="destructive">Rejected</Badge>}
               {r.is_partner && <Badge variant="secondary">Partner{r.partner_name ? ` · ${r.partner_name}` : ''}</Badge>}
               {r.revoked_at && <Badge variant="destructive">Revoked</Badge>}

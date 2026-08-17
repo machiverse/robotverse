@@ -179,9 +179,9 @@ const Help = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-yellow-100 text-yellow-700';
-      case 'in_progress': return 'bg-blue-100 text-blue-700';
-      case 'resolved': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'in_progress': return 'bg-primary/10 text-primary';
+      case 'resolved': return 'bg-success/10 text-success';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -190,8 +190,8 @@ const Help = () => {
       case 'urgent': return 'bg-red-100 text-red-700';
       case 'high': return 'bg-orange-100 text-orange-700';
       case 'medium': return 'bg-yellow-100 text-yellow-700';
-      case 'low': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'low': return 'bg-success/10 text-success';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 

@@ -170,11 +170,11 @@ const WatchlistSection = ({
   const getItemIcon = (itemType: string) => {
     switch (itemType) {
       case 'robot':
-        return <Bot className="w-4 h-4 text-blue-600" />;
+        return <Bot className="w-4 h-4 text-primary" />;
       case 'spare_part':
-        return <Package className="w-4 h-4 text-green-600" />;
+        return <Package className="w-4 h-4 text-success" />;
       case 'service':
-        return <Wrench className="w-4 h-4 text-purple-600" />;
+        return <Wrench className="w-4 h-4 text-primary" />;
       default:
         return <Heart className="w-4 h-4" />;
     }
@@ -200,9 +200,9 @@ const WatchlistSection = ({
       case 'medium':
         return 'bg-yellow-500';
       case 'low':
-        return 'bg-green-500';
+        return 'bg-success';
       default:
-        return 'bg-gray-500';
+        return 'bg-secondary';
     }
   };
 

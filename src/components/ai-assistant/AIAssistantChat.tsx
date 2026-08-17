@@ -102,7 +102,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
         "flex flex-col overflow-hidden",
         fullPage
           ? "h-full w-full bg-background"
-          : "h-[480px] w-full max-w-[380px] rounded-2xl border border-border/50 bg-gradient-to-b from-card to-background shadow-xl",
+          : "h-[480px] w-full max-w-[380px] rounded-2xl border border-border/50 bg-gradient-to-b from-card to-background shadow-lg",
         className,
       )}
     >
@@ -315,7 +315,7 @@ const EmptyState: React.FC<{
         <Sparkles className="w-8 h-8 text-primary" />
       </div>
       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary border-2 border-card flex items-center justify-center">
-        <MessageSquare className="w-2.5 h-2.5 text-white" />
+        <MessageSquare className="w-2.5 h-2.5 text-primary-foreground" />
       </div>
     </div>
     <div className="text-center space-y-1.5">

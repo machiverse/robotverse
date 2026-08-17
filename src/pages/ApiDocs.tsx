@@ -13,11 +13,11 @@ function CodeBlock({ children }: { children: React.ReactNode }) {
 }
 
 function Endpoint({ method, path, desc, example }: { method: string; path: string; desc: string; example?: string }) {
-  const colors: Record<string, string> = { GET: 'bg-blue-500', POST: 'bg-green-600', PATCH: 'bg-amber-500', DELETE: 'bg-red-600' };
+  const colors: Record<string, string> = { GET: 'bg-primary', POST: 'bg-success', PATCH: 'bg-amber-500', DELETE: 'bg-red-600' };
   return (
     <div className="border rounded-lg p-4 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <Badge className={colors[method] + ' text-white'}>{method}</Badge>
+        <Badge className={colors[method] + ' text-primary-foreground'}>{method}</Badge>
         <code className="font-mono text-sm">{path}</code>
       </div>
       <p className="text-sm text-muted-foreground">{desc}</p>

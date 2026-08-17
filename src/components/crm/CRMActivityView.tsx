@@ -19,12 +19,12 @@ const ACTIVITY_ICONS: Record<string, any> = {
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
-  call: "bg-blue-100 text-blue-600",
-  email: "bg-purple-100 text-purple-600",
-  whatsapp: "bg-green-100 text-green-600",
+  call: "bg-primary/10 text-primary",
+  email: "bg-primary/10 text-primary",
+  whatsapp: "bg-success/10 text-success",
   meeting: "bg-orange-100 text-orange-600",
-  quotation_sent: "bg-indigo-100 text-indigo-600",
-  note: "bg-gray-100 text-gray-600",
+  quotation_sent: "bg-primary/10 text-primary",
+  note: "bg-muted text-muted-foreground",
 };
 
 const CRMActivityView = ({ crmData }: CRMActivityViewProps) => {

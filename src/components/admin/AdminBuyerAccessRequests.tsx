@@ -217,7 +217,7 @@ const AdminBuyerAccessRequests = () => {
       case 'pending':
         return <Badge variant="secondary" className="flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</Badge>;
       case 'approved':
-        return <Badge className="bg-green-600 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Approved</Badge>;
+        return <Badge className="bg-success flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="w-3 h-3" /> Rejected</Badge>;
       default:
@@ -329,7 +329,7 @@ const AdminBuyerAccessRequests = () => {
                             <Button
                               size="sm"
                               variant="default"
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-success hover:bg-success"
                               onClick={() => handleApprove(request)}
                               disabled={processingId === request.id}
                             >

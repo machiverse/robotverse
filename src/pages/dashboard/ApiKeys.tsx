@@ -186,7 +186,7 @@ export default function ApiKeys() {
                               <span className="font-semibold">{k.name}</span>
                               {isPending && <Badge variant="outline" className="border-amber-500 text-amber-600">Pending admin approval</Badge>}
                               {isRejected && <Badge variant="destructive">Rejected</Badge>}
-                              {isApproved && !k.revoked_at && <Badge className="bg-emerald-600 hover:bg-emerald-600">Approved</Badge>}
+                              {isApproved && !k.revoked_at && <Badge className="bg-success hover:bg-success">Approved</Badge>}
                               {k.is_partner && <Badge variant="secondary">Partner</Badge>}
                               {k.revoked_at && <Badge variant="destructive">Revoked</Badge>}
                               {k.scopes.map(s => <Badge key={s} variant="outline">{s}</Badge>)}

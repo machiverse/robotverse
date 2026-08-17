@@ -12,11 +12,11 @@ const AdminAnalytics = React.memo(({ dashboardStats, users }: AdminAnalyticsProp
     const totalUsers = dashboardStats.users.total;
     
     const userDistribution = [
-      { label: 'Buyers', count: dashboardStats.users.buyers, color: 'text-green-600' },
-      { label: 'Sellers', count: dashboardStats.users.sellers, color: 'text-purple-600' },
+      { label: 'Buyers', count: dashboardStats.users.buyers, color: 'text-success' },
+      { label: 'Sellers', count: dashboardStats.users.sellers, color: 'text-primary' },
       { label: 'Service Providers', count: dashboardStats.users.serviceProviders, color: 'text-orange-600' },
-      { label: 'Logistics Providers', count: dashboardStats.users.logistics, color: 'text-cyan-600' },
-      { label: 'Finance Providers', count: dashboardStats.users.finance, color: 'text-emerald-600' },
+      { label: 'Logistics Providers', count: dashboardStats.users.logistics, color: 'text-primary' },
+      { label: 'Finance Providers', count: dashboardStats.users.finance, color: 'text-success' },
     ];
 
     const platformMetrics = [
@@ -93,7 +93,7 @@ const AdminAnalytics = React.memo(({ dashboardStats, users }: AdminAnalyticsProp
                   <span className={`font-semibold ${
                     metric.type === 'currency' ? 'text-primary' : 
                     metric.type === 'percentage' ? 'text-primary' : 
-                    'text-green-600'
+                    'text-success'
                   }`}>
                     {metric.value}
                   </span>

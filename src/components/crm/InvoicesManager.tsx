@@ -16,26 +16,26 @@ interface InvoicesManagerProps {
 const STATUS_CONFIG: Record<Invoice["status"], { label: string; color: string; bg: string; icon: any }> = {
   draft: {
     label: "Draft",
-    color: "text-gray-700",
-    bg: "bg-gray-100 dark:bg-gray-800",
+    color: "text-muted-foreground",
+    bg: "bg-muted dark:bg-foreground",
     icon: FileText,
   },
   sent: {
     label: "Sent",
-    color: "text-blue-700",
-    bg: "bg-blue-100 dark:bg-blue-900/30",
+    color: "text-primary",
+    bg: "bg-primary/10 dark:bg-primary/30",
     icon: Send,
   },
   viewed: {
     label: "Viewed",
-    color: "text-purple-700",
-    bg: "bg-purple-100 dark:bg-purple-900/30",
+    color: "text-primary",
+    bg: "bg-primary/10 dark:bg-primary/30",
     icon: Eye,
   },
   paid: {
     label: "Paid",
-    color: "text-green-700",
-    bg: "bg-green-100 dark:bg-green-900/30",
+    color: "text-success",
+    bg: "bg-success/10 dark:bg-success/30",
     icon: CheckCircle,
   },
   cancelled: {
@@ -268,7 +268,7 @@ const InvoicesManager = ({ sellerId }: InvoicesManagerProps) => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-green-600"
+                      className="text-success"
                       onClick={() => handleMarkPaid(invoice.id)}
                     >
                       <CheckCircle className="mr-1 h-3 w-3" />

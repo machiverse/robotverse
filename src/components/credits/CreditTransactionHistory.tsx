@@ -15,10 +15,10 @@ const transactionIcons: Record<string, React.ReactNode> = {
 };
 
 const transactionColors: Record<string, string> = {
-  purchase: 'bg-green-500/10 text-green-600',
-  subscription_credit: 'bg-blue-500/10 text-blue-600',
+  purchase: 'bg-success/10 text-success',
+  subscription_credit: 'bg-primary/10 text-primary',
   lead_unlock: 'bg-amber-500/10 text-amber-600',
-  refund: 'bg-purple-500/10 text-purple-600',
+  refund: 'bg-primary/10 text-primary',
   bonus: 'bg-pink-500/10 text-pink-600',
   expired: 'bg-red-500/10 text-red-600'
 };
@@ -92,7 +92,7 @@ export const CreditTransactionHistory = ({ limit, showHeader = true }: CreditTra
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-semibold ${tx.credits_amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`font-semibold ${tx.credits_amount > 0 ? 'text-success' : 'text-red-600'}`}>
                       {tx.credits_amount > 0 ? '+' : ''}{tx.credits_amount}
                     </p>
                     <Badge variant="outline" className="text-xs">

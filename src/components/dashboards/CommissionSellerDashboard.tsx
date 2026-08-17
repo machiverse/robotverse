@@ -126,9 +126,9 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
   }
 
   const statsCards = [
-    { title: "Total Robots", value: dashboardStats.totalRobots, icon: Bot, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30", sub: `${dashboardStats.activeListings} active` },
-    { title: "Total Revenue", value: `₹${dashboardStats.totalRevenue.toLocaleString("en-IN")}`, icon: DollarSign, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30", sub: "Listing value" },
-    { title: "Robot Views", value: viewStats?.viewsByCategory?.robots ?? 0, icon: Eye, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30", sub: viewsLoading ? "Loading..." : "Total views" },
+    { title: "Total Robots", value: dashboardStats.totalRobots, icon: Bot, color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30", sub: `${dashboardStats.activeListings} active` },
+    { title: "Total Revenue", value: `₹${dashboardStats.totalRevenue.toLocaleString("en-IN")}`, icon: DollarSign, color: "text-success", bg: "bg-success/10 dark:bg-success/30", sub: "Listing value" },
+    { title: "Robot Views", value: viewStats?.viewsByCategory?.robots ?? 0, icon: Eye, color: "text-primary", bg: "bg-primary/10 dark:bg-primary/30", sub: viewsLoading ? "Loading..." : "Total views" },
     { title: "Commission Model", value: "6%", icon: Handshake, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", sub: "On completed deals" },
   ];
 
@@ -389,15 +389,15 @@ const CommissionSellerDashboard = ({ userProfile }: CommissionSellerDashboardPro
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Listing Limit</span>
-                  <span className="font-medium text-green-600">Unlimited</span>
+                  <span className="font-medium text-success">Unlimited</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Credits Required</span>
-                  <span className="font-medium text-green-600">None</span>
+                  <span className="font-medium text-success">None</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Subscription Fee</span>
-                  <span className="font-medium text-green-600">None</span>
+                  <span className="font-medium text-success">None</span>
                 </div>
               </div>
             </CardContent>

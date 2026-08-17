@@ -226,17 +226,17 @@ const RobotComparison = () => {
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="p-4 font-medium">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-green-500" />
+                      <DollarSign className="w-4 h-4 text-success" />
                       Price
                     </div>
                   </td>
                   {selectedRobots.map((robot) => (
                     <td key={robot.id} className="p-4 text-center">
-                      <div className={`text-lg font-bold ${lowestPrice?.id === robot.id ? 'text-green-500' : ''}`}>
+                      <div className={`text-lg font-bold ${lowestPrice?.id === robot.id ? 'text-success' : ''}`}>
                         {formatPrice(robot.price, robot.currency)}
                       </div>
                       {lowestPrice?.id === robot.id && robot.price && (
-                        <Badge variant="outline" className="mt-1 text-green-600 border-green-600 text-xs">
+                        <Badge variant="outline" className="mt-1 text-success border-success/30 text-xs">
                           Best Value
                         </Badge>
                       )}
@@ -248,17 +248,17 @@ const RobotComparison = () => {
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="p-4 font-medium">
                     <div className="flex items-center gap-2">
-                      <Scale className="w-4 h-4 text-blue-500" />
+                      <Scale className="w-4 h-4 text-primary" />
                       Payload Capacity
                     </div>
                   </td>
                   {selectedRobots.map((robot) => (
                     <td key={robot.id} className="p-4 text-center">
                       {robot.payload_capacity ? (
-                        <div className={`font-semibold ${bestPayload?.id === robot.id ? 'text-blue-500' : ''}`}>
+                        <div className={`font-semibold ${bestPayload?.id === robot.id ? 'text-primary' : ''}`}>
                           {robot.payload_capacity} kg
                           {bestPayload?.id === robot.id && (
-                            <Badge variant="outline" className="ml-2 text-blue-600 border-blue-600 text-xs">
+                            <Badge variant="outline" className="ml-2 text-primary border-primary/30 text-xs">
                               Highest
                             </Badge>
                           )}
@@ -300,17 +300,17 @@ const RobotComparison = () => {
                 <tr className="hover:bg-muted/30 transition-colors">
                   <td className="p-4 font-medium">
                     <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-purple-500" />
+                      <Target className="w-4 h-4 text-primary" />
                       Repeatability
                     </div>
                   </td>
                   {selectedRobots.map((robot) => (
                     <td key={robot.id} className="p-4 text-center">
                       {robot.repeatability ? (
-                        <div className={`font-semibold ${bestPrecision?.id === robot.id ? 'text-purple-500' : ''}`}>
+                        <div className={`font-semibold ${bestPrecision?.id === robot.id ? 'text-primary' : ''}`}>
                           ±{robot.repeatability} mm
                           {bestPrecision?.id === robot.id && (
-                            <Badge variant="outline" className="ml-2 text-purple-600 border-purple-600 text-xs">
+                            <Badge variant="outline" className="ml-2 text-primary border-primary/30 text-xs">
                               Most Precise
                             </Badge>
                           )}
@@ -396,7 +396,7 @@ const RobotComparison = () => {
 
         {/* AI Analysis Section */}
         <Card className="overflow-hidden border-2">
-          <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 p-6 border-b">
+          <div className="bg-gradient-to-r from-primary/10 via-primary/10 to-primary/10 p-6 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -455,28 +455,28 @@ const RobotComparison = () => {
                 {(aiAnalysis.winner_for_precision || aiAnalysis.winner_for_payload || aiAnalysis.winner_for_value) && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {aiAnalysis.winner_for_precision && (
-                      <div className="bg-purple-500/10 rounded-xl p-4 border border-purple-500/20">
+                      <div className="bg-primary/10 rounded-xl p-4 border border-primary/30/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <Trophy className="w-5 h-5 text-purple-500" />
-                          <span className="text-sm font-medium text-purple-600">Best Precision</span>
+                          <Trophy className="w-5 h-5 text-primary" />
+                          <span className="text-sm font-medium text-primary">Best Precision</span>
                         </div>
                         <p className="font-semibold">{aiAnalysis.winner_for_precision}</p>
                       </div>
                     )}
                     {aiAnalysis.winner_for_payload && (
-                      <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
+                      <div className="bg-primary/10 rounded-xl p-4 border border-primary/30/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <Trophy className="w-5 h-5 text-blue-500" />
-                          <span className="text-sm font-medium text-blue-600">Best Payload</span>
+                          <Trophy className="w-5 h-5 text-primary" />
+                          <span className="text-sm font-medium text-primary">Best Payload</span>
                         </div>
                         <p className="font-semibold">{aiAnalysis.winner_for_payload}</p>
                       </div>
                     )}
                     {aiAnalysis.winner_for_value && (
-                      <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/20">
+                      <div className="bg-success/10 rounded-xl p-4 border border-success/30/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <Trophy className="w-5 h-5 text-green-500" />
-                          <span className="text-sm font-medium text-green-600">Best Value</span>
+                          <Trophy className="w-5 h-5 text-success" />
+                          <span className="text-sm font-medium text-success">Best Value</span>
                         </div>
                         <p className="font-semibold">{aiAnalysis.winner_for_value}</p>
                       </div>
@@ -512,8 +512,8 @@ const RobotComparison = () => {
                             {/* Strengths */}
                             <div>
                               <div className="flex items-center gap-2 mb-2">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span className="text-sm font-medium text-green-600">Strengths</span>
+                                <CheckCircle className="w-4 h-4 text-success" />
+                                <span className="text-sm font-medium text-success">Strengths</span>
                               </div>
                               <ul className="space-y-1.5 pl-6">
                                 {analysis?.strengths?.map((s, idx) => (
@@ -546,8 +546,8 @@ const RobotComparison = () => {
                             {/* Best Use Cases */}
                             <div>
                               <div className="flex items-center gap-2 mb-2">
-                                <Target className="w-4 h-4 text-blue-500" />
-                                <span className="text-sm font-medium text-blue-600">Ideal For</span>
+                                <Target className="w-4 h-4 text-primary" />
+                                <span className="text-sm font-medium text-primary">Ideal For</span>
                               </div>
                               <div className="flex flex-wrap gap-1.5 pl-6">
                                 {analysis?.best_use_cases?.map((uc, idx) => (
@@ -586,7 +586,7 @@ const RobotComparison = () => {
                 )}
 
                 {/* Recommendation */}
-                <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-xl p-6 border-2 border-primary/20">
+                <div className="bg-gradient-to-r from-primary/10 via-primary/10 to-primary/10 rounded-xl p-6 border-2 border-primary/20">
                   <div className="flex items-start gap-3 mb-3">
                     <Award className="w-6 h-6 text-primary flex-shrink-0" />
                     <h3 className="font-semibold text-lg">Expert Recommendation</h3>

@@ -117,7 +117,7 @@ export function PasswordUpdateModal({ open, onOpenChange }: PasswordUpdateModalP
     
     if (strength <= 2) return { level: 'weak', color: 'bg-red-500', text: 'Weak' };
     if (strength <= 4) return { level: 'medium', color: 'bg-yellow-500', text: 'Medium' };
-    return { level: 'strong', color: 'bg-green-500', text: 'Strong' };
+    return { level: 'strong', color: 'bg-success', text: 'Strong' };
   };
 
   const passwordStrength = getPasswordStrength(formData.newPassword);
@@ -196,7 +196,7 @@ export function PasswordUpdateModal({ open, onOpenChange }: PasswordUpdateModalP
             {formData.newPassword && (
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div 
                       className={`h-full transition-all duration-300 ${passwordStrength.color}`}
                       style={{ width: `${(passwordStrength.level === 'weak' ? 33 : passwordStrength.level === 'medium' ? 66 : 100)}%` }}
@@ -204,7 +204,7 @@ export function PasswordUpdateModal({ open, onOpenChange }: PasswordUpdateModalP
                   </div>
                   <span className={`text-xs font-medium ${
                     passwordStrength.level === 'weak' ? 'text-red-500' : 
-                    passwordStrength.level === 'medium' ? 'text-yellow-500' : 'text-green-500'
+                    passwordStrength.level === 'medium' ? 'text-yellow-500' : 'text-success'
                   }`}>
                     {passwordStrength.text}
                   </span>
@@ -275,7 +275,7 @@ export function PasswordUpdateModal({ open, onOpenChange }: PasswordUpdateModalP
               disabled={loading || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword}
             >
               {loading ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                <div className="animate-spin w-4 h-4 border-2 border-border/50 border-t-transparent rounded-full mr-2" />
               ) : null}
               {loading ? 'Updating...' : 'Update Password'}
             </Button>

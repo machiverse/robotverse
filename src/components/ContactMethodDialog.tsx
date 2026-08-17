@@ -59,11 +59,11 @@ export const ContactMethodDialog = ({
         <div className="space-y-3 py-4">
           <Button
             variant="outline"
-            className="w-full h-auto py-4 flex items-start gap-3 hover:bg-green-50 hover:border-green-500 dark:hover:bg-green-950"
+            className="w-full h-auto py-4 flex items-start gap-3 hover:bg-success/10 hover:border-success/30 dark:hover:bg-success"
             onClick={handleWhatsApp}
             disabled={!sellerPhone}
           >
-            <MessageCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+            <MessageCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
             <div className="text-left">
               <div className="font-semibold text-foreground">WhatsApp</div>
               <div className="text-sm text-muted-foreground">
@@ -74,11 +74,11 @@ export const ContactMethodDialog = ({
 
           <Button
             variant="outline"
-            className="w-full h-auto py-4 flex items-start gap-3 hover:bg-blue-50 hover:border-blue-500 dark:hover:bg-blue-950"
+            className="w-full h-auto py-4 flex items-start gap-3 hover:bg-primary/10 hover:border-primary/30 dark:hover:bg-primary"
             onClick={handleEmail}
             disabled={!sellerEmail}
           >
-            <Mail className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <Mail className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div className="text-left">
               <div className="font-semibold text-foreground">Email</div>
               <div className="text-sm text-muted-foreground">

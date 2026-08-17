@@ -591,7 +591,7 @@ const Robots = () => {
 
       {/* Top title */}
       <div className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
           {selectedRobotType !== "all" ? `${selectedRobotType} - Industrial Robots` : "Industrial Robots Marketplace"}
         </h1>
         <p className="text-muted-foreground">
@@ -779,7 +779,7 @@ const Robots = () => {
                     onClick={() => setOnlyWithOffers(!onlyWithOffers)}
                     className={`w-full flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
                       onlyWithOffers
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30"
+                        ? "border-success/30 bg-success/10 text-success dark:bg-success/30"
                         : "border-input hover:bg-muted/50"
                     }`}
                   >
@@ -937,7 +937,7 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
+                          className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);
@@ -974,7 +974,7 @@ const Robots = () => {
                             {/* Coupon available */}
                             {robotsWithOffers.has(robot.id) && (
                               <div className="absolute bottom-2 left-2">
-                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                <Badge className="bg-success hover:bg-success text-primary-foreground text-[10px] gap-1">
                                   <Tag className="w-3 h-3" />
                                   Coupon available
                                 </Badge>
@@ -987,7 +987,7 @@ const Robots = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
+                                className="h-8 w-8 p-0 bg-card/80 hover:bg-card"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const url = `${window.location.origin}/robots/${robot.id}`;
@@ -1009,7 +1009,7 @@ const Robots = () => {
                                   }
                                 }}
                               >
-                                <Share2 className="w-4 h-4 text-gray-600" />
+                                <Share2 className="w-4 h-4 text-muted-foreground" />
                               </Button>
                             </div>
                           </div>
@@ -1052,7 +1052,7 @@ const Robots = () => {
                             {/* Availability */}
                             <div className="flex items-center justify-end text-xs text-muted-foreground border-t pt-2">
                               <div className="flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3 text-green-500" />
+                                <CheckCircle className="w-3 h-3 text-success" />
                                 <span>{robot.availability || "Available"}</span>
                               </div>
                             </div>
@@ -1181,7 +1181,7 @@ const Robots = () => {
                                   </Badge>
                                 )}
                                 {robotsWithOffers.has(robot.id) && (
-                                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] gap-1">
+                                  <Badge className="bg-success hover:bg-success text-primary-foreground text-[10px] gap-1">
                                     <Tag className="w-3 h-3" />
                                     Coupon available
                                   </Badge>

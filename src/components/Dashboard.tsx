@@ -107,7 +107,7 @@ const DashboardContent = () => {
         {data.stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="bg-gradient-card border-border">
+            <Card key={index} className="bg-card border-border">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -128,7 +128,7 @@ const DashboardContent = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card className="bg-gradient-card border-border mb-8">
+      <Card className="bg-card border-border mb-8">
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
           <CardDescription>Frequently used features</CardDescription>
@@ -153,7 +153,7 @@ const DashboardContent = () => {
       </Card>
 
       {/* Recent Activity */}
-      <Card className="bg-gradient-card border-border">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
           <CardDescription>Your latest actions and updates</CardDescription>

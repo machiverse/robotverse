@@ -162,7 +162,7 @@ const CRMSidebar = ({ activeView, setActiveView, stats }: CRMSidebarProps) => {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Won Revenue</span>
-                <span className="font-medium text-green-600">₹{(stats.wonRevenue / 100000).toFixed(1)}L</span>
+                <span className="font-medium text-success">₹{(stats.wonRevenue / 100000).toFixed(1)}L</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Conversion</span>

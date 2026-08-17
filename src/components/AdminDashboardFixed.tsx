@@ -308,7 +308,7 @@ const AdminDashboardFixed = React.memo(({ userProfile }: AdminDashboardProps) =>
             <p className="text-red-600 mb-4">{error}</p>
             <button
               onClick={fetchAllData}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary"
             >
               Retry
             </button>

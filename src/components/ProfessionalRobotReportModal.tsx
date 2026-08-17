@@ -418,12 +418,12 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                             </div>
                             <Badge variant="secondary" className="text-sm">{robotData.robot_type}</Badge>
                           </div>
-                          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                          <div className="p-4 bg-success/10 border border-success/30 rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
-                              <DollarSign className="w-4 h-4 text-emerald-600" />
-                              <span className="font-medium text-sm text-emerald-700">Price</span>
+                              <DollarSign className="w-4 h-4 text-success" />
+                              <span className="font-medium text-sm text-success">Price</span>
                             </div>
-                            <p className="font-bold text-xl text-emerald-800">{formatPrice(robotData.price, robotData.currency)}</p>
+                            <p className="font-bold text-xl text-success">{formatPrice(robotData.price, robotData.currency)}</p>
                           </div>
                           <div className="p-4 bg-card border border-border rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
@@ -466,8 +466,8 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                   {/* Description Card */}
                   {robotData.description && (
                     <Card className="border-2 shadow-sm">
-                      <CardHeader className="bg-gradient-to-r from-blue-500/5 to-blue-500/10">
-                        <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+                        <CardTitle className="flex items-center gap-2 text-primary">
                           <FileText className="w-6 h-6" />
                           Product Description
                         </CardTitle>
@@ -553,8 +553,8 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                   {/* Applications */}
                   {robotData.applications?.length > 0 && (
                     <Card className="border-2 shadow-sm">
-                      <CardHeader className="bg-gradient-to-r from-green-500/5 to-green-500/10">
-                        <CardTitle className="flex items-center gap-2 text-green-700">
+                      <CardHeader className="bg-gradient-to-r from-success/5 to-success/10">
+                        <CardTitle className="flex items-center gap-2 text-success">
                           <Package className="w-6 h-6" />
                           Applications
                         </CardTitle>

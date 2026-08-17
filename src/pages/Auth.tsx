@@ -1230,8 +1230,8 @@ const Auth = () => {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl bg-card/90 backdrop-blur-lg border-border shadow-2xl">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <FileText className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <FileText className="w-8 h-8 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">Terms & Conditions Agreement</CardTitle>
             <CardDescription>
@@ -1276,7 +1276,7 @@ const Auth = () => {
               </Button>
               <Button 
                 onClick={handleAgreementAccept}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="flex-1 bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
               >
                 ✅ Accept & Continue
               </Button>
@@ -1297,8 +1297,8 @@ const Auth = () => {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-card/90 backdrop-blur-lg border-border shadow-2xl">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Mail className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-r from-success to-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Mail className="w-8 h-8 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
             <CardDescription>
@@ -1307,7 +1307,7 @@ const Auth = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="bg-muted/50 p-4 rounded-lg border text-center">
-              <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+              <CheckCircle className="w-12 h-12 text-success mx-auto mb-3" />
               <p className="text-sm font-medium mb-2">Verification Email Sent!</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 We've sent a verification email to <strong>{email}</strong>. 
@@ -1327,7 +1327,7 @@ const Auth = () => {
                   setShowEmailConfirmationModal(false);
                   setIsSignUp(false); // Switch to sign in mode
                 }}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary"
               >
                 ✉️ I've Verified - Let me Sign In
               </Button>
@@ -1378,10 +1378,10 @@ const Auth = () => {
 
         <Card className="bg-card/90 backdrop-blur-lg border-border shadow-2xl">
           <CardHeader className="text-center">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <Bot className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 bg-gradient-to-r from-primary to-primary rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <Bot className="w-10 h-10 text-primary-foreground" />
             </div>
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
               {isForgotPassword 
                 ? 'Reset Password' 
                 : isSignUp 
@@ -1666,7 +1666,7 @@ const Auth = () => {
                       <SelectContent>
                         <SelectItem value="buyer" className="h-12">
                           <div className="flex items-center gap-3">
-                            <ShoppingCart className="w-5 h-5 text-blue-600" />
+                            <ShoppingCart className="w-5 h-5 text-primary" />
                             <div>
                               <div className="font-medium">Buyer</div>
                               <div className="text-xs text-muted-foreground">Browse and purchase robots</div>
@@ -1675,7 +1675,7 @@ const Auth = () => {
                         </SelectItem>
                         <SelectItem value="seller" className="h-12">
                           <div className="flex items-center gap-3">
-                            <Building className="w-5 h-5 text-green-600" />
+                            <Building className="w-5 h-5 text-success" />
                             <div>
                               <div className="font-medium">Seller</div>
                               <div className="text-xs text-muted-foreground">Sell robots, parts, or services</div>
@@ -1693,7 +1693,7 @@ const Auth = () => {
                         </SelectItem>
                         <SelectItem value="finance" className="h-12">
                           <div className="flex items-center gap-3">
-                            <CreditCard className="w-5 h-5 text-purple-600" />
+                            <CreditCard className="w-5 h-5 text-primary" />
                             <div>
                               <div className="font-medium">Finance Provider</div>
                               <div className="text-xs text-muted-foreground">Offer financial services</div>
@@ -1727,7 +1727,7 @@ const Auth = () => {
                           onCheckedChange={(checked) => handleSellerRoleChange('robot_seller', !!checked)}
                         />
                         <div className="flex items-center gap-3 flex-1">
-                          <Bot className="w-5 h-5 text-blue-600" />
+                          <Bot className="w-5 h-5 text-primary" />
                           <div>
                             <Label htmlFor="robot_seller" className="font-medium cursor-pointer">Robot Seller</Label>
                             <p className="text-xs text-muted-foreground">Sell industrial robots and automation equipment</p>
@@ -1742,7 +1742,7 @@ const Auth = () => {
                           onCheckedChange={(checked) => handleSellerRoleChange('spare_parts_seller', !!checked)}
                         />
                         <div className="flex items-center gap-3 flex-1">
-                          <Package className="w-5 h-5 text-green-600" />
+                          <Package className="w-5 h-5 text-success" />
                           <div>
                             <Label htmlFor="spare_parts_seller" className="font-medium cursor-pointer">Spare Parts Seller</Label>
                             <p className="text-xs text-muted-foreground">Sell robot components and spare parts</p>
@@ -1757,7 +1757,7 @@ const Auth = () => {
                           onCheckedChange={(checked) => handleSellerRoleChange('service_provider', !!checked)}
                         />
                         <div className="flex items-center gap-3 flex-1">
-                          <Settings className="w-5 h-5 text-purple-600" />
+                          <Settings className="w-5 h-5 text-primary" />
                           <div>
                             <Label htmlFor="service_provider" className="font-medium cursor-pointer">Service Provider</Label>
                             <p className="text-xs text-muted-foreground">Provide installation, maintenance, and repair services</p>
@@ -2020,12 +2020,12 @@ const Auth = () => {
               {/* Submit Button */}
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-lg" 
+                className="w-full h-12 bg-gradient-to-r from-primary to-primary hover:from-primary hover:to-primary text-lg font-semibold shadow-lg" 
                 disabled={loading}
               >
                 {loading ? (
                   <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-border/50"></div>
                      <span>
                       {isForgotPassword 
                         ? 'Sending Reset Link...' 

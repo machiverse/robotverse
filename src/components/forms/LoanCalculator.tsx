@@ -125,25 +125,25 @@ const LoanCalculator = ({
               </CardContent>
             </Card>
 
-            <Card className="bg-green-50 border-green-200">
+            <Card className="bg-success/10 border-success/30">
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  <TrendingUp className="w-5 h-5 text-success" />
                 </div>
                 <p className="text-sm text-muted-foreground">Total Interest</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-xl font-bold text-success">
                   {formatCurrency(results.totalInterest)}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-primary/10 border-primary/30">
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <p className="text-sm text-muted-foreground">Total Amount</p>
-                <p className="text-xl font-bold text-blue-600">
+                <p className="text-xl font-bold text-primary">
                   {formatCurrency(results.totalAmount)}
                 </p>
               </CardContent>
