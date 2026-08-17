@@ -126,15 +126,15 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative min-h-[600px] md:min-h-screen flex items-center bg-muted overflow-hidden pt-24 pb-12 md:pt-32 md:pb-16">
+    <section className="relative min-h-[560px] md:min-h-[560px] flex items-center bg-muted overflow-hidden pt-24 pb-12 md:pt-32 md:pb-16">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
           src={heroContent.image}
           alt={heroContent.title}
-          className="w-full h-full object-cover rounded-lg opacity-30"
+          className="w-full h-full object-cover opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30" />
       </div>
 
       {/* Content */}
@@ -154,9 +154,9 @@ const EnhancedHero = () => {
               e.preventDefault();
               handleSearch();
             }}
-            className="bg-card/80 backdrop-blur-sm border border-border rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 mb-6 md:mb-8 max-w-4xl"
+            className="bg-card border border-border shadow-md rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 mb-6 md:mb-8 max-w-4xl"
           >
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4">
               {/* Search Input */}
               <div className="md:col-span-2 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
@@ -210,37 +210,29 @@ const EnhancedHero = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Search Button */}
-            <Button
-              type="submit"
-              className="w-full mt-3 md:mt-4 h-10 md:h-12 text-sm md:text-base bg-primary hover:bg-primary/90"
-              aria-label="Perform search"
-              disabled={loading}
-            >
-              <Search className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Search
-            </Button>
+              {/* Search Button */}
+              <Button
+                type="submit"
+                className="w-full h-10 md:h-12 text-sm md:text-base"
+                aria-label="Perform search"
+              >
+                <Search className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Search
+              </Button>
+            </div>
           </form>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-8 md:mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-8 md:mb-10">
             <Button
               variant="default"
               size="lg"
               className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
               asChild
-              disabled={loading}
             >
               <Link to="/robots">Explore Robots</Link>
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-base md:text-lg px-6 md:px-8 py-3 md:py-4 h-auto"
-              asChild
-              disabled={loading}
-            >
+            <Button variant="link" size="sm" className="text-sm text-foreground" asChild>
               <Link to="/auth">Start Selling</Link>
             </Button>
           </div>
