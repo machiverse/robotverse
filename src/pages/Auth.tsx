@@ -1230,7 +1230,7 @@ const Auth = () => {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl bg-card/90 backdrop-blur-lg border-border shadow-2xl">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
               <FileText className="w-8 h-8 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">Terms & Conditions Agreement</CardTitle>
@@ -1297,7 +1297,7 @@ const Auth = () => {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-card/90 backdrop-blur-lg border-border shadow-2xl">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-success/5 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-16 h-16 bg-success rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Mail className="w-8 h-8 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
@@ -1378,7 +1378,7 @@ const Auth = () => {
 
         <Card className="bg-card/90 backdrop-blur-lg border-border shadow-2xl">
           <CardHeader className="text-center">
-            <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
               <Bot className="w-10 h-10 text-primary-foreground" />
             </div>
             <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">

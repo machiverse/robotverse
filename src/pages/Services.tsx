@@ -516,7 +516,7 @@ const Services = () => {
                         {service.providerProfile.avatar_url ? (
                           <AvatarImage src={service.providerProfile.avatar_url} alt={service.provider} />
                         ) : (
-                          <AvatarFallback className="bg-primary/5 text-primary-foreground font-semibold text-sm">
+                          <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                             {service.provider.charAt(0)}
                           </AvatarFallback>
                         )}

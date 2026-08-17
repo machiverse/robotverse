@@ -998,7 +998,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           <div className="space-y-6">
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-success/5 text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-success text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1013,7 +1013,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-primary/5 text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-primary text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1028,7 +1028,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-primary/5 text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-primary text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1043,7 +1043,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-warning/5 text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-warning text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1205,7 +1205,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </div>
               
               {/* Quick Actions */}
-              <Card className="shadow-lg border-0 bg-primary/5 text-primary-foreground">
+              <Card className="shadow-lg border-0 bg-primary text-primary-foreground">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary-foreground">
                     <Zap className="w-5 h-5" />

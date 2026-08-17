@@ -111,7 +111,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
         <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center shadow-md">
+              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md">
                 <Bot className="w-4.5 h-4.5 text-primary-foreground" />
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-card" />
@@ -342,7 +342,7 @@ const EmptyState: React.FC<{
 const AssistantThinking = () => {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center shrink-0 shadow-sm">
+      <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm">
         <Bot className="w-4 h-4 text-primary-foreground" />
       </div>
       <div className="bg-card border border-border/40 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
@@ -437,7 +437,7 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
       )}
     >
       {!isUser && (
-        <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center shrink-0 mt-1 shadow-sm">
+        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0 mt-1 shadow-sm">
           <Bot className="w-4 h-4 text-primary-foreground" />
         </div>
       )}
@@ -445,7 +445,7 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
         className={cn(
           "rounded-2xl shadow-sm relative",
           isUser
-            ? "max-w-[85%] sm:max-w-[75%] bg-primary/5 text-primary-foreground px-3 sm:px-4 py-3 rounded-tr-sm"
+            ? "max-w-[85%] sm:max-w-[75%] bg-primary text-primary-foreground px-3 sm:px-4 py-3 rounded-tr-sm"
             : "bg-card border border-border/40 text-foreground px-3 sm:px-5 py-3 sm:py-4 rounded-tl-sm max-w-[95%] sm:max-w-[92%]",
         )}
       >

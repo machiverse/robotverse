@@ -309,7 +309,7 @@ const WhyChooseRobotVerse = () => {
               const Icon = service.icon;
               return (
                 <div key={index} className="text-center p-4 md:p-6 bg-card/50 backdrop-blur-sm rounded-lg border border-border hover:bg-card/70 transition-all duration-200">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/5 flex items-center justify-center mx-auto mb-3 md:mb-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-3 md:mb-4">
                     <Icon className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
                   </div>
                   <h4 className="text-sm md:text-base font-semibold mb-2 text-foreground">{service.title}</h4>
