@@ -294,7 +294,7 @@ const CitiesCoveredMap = () => {
 
   if (loading) {
     return (
-      <section className="py-20 bg-muted/20">
+      <section className="py-10 md:py-14 bg-background">
         <div className="container mx-auto px-4 flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <span className="ml-3 text-muted-foreground font-medium">Loading coverage map...</span>
@@ -308,7 +308,7 @@ const CitiesCoveredMap = () => {
   const getCategoryLabel = (key: CategoryKey) => CATEGORIES.find((c) => c.key === key)?.label || key;
 
   return (
-    <section className="py-20 bg-muted/20 relative overflow-hidden">
+    <section className="py-10 md:py-14 bg-background relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
