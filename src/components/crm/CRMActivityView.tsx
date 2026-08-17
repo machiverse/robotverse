@@ -24,7 +24,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
   whatsapp: "bg-success/10 text-success",
   meeting: "bg-orange-100 text-orange-600",
   quotation_sent: "bg-primary/10 text-primary",
-  note: "bg-gray-100 text-gray-600",
+  note: "bg-muted text-muted-foreground",
 };
 
 const CRMActivityView = ({ crmData }: CRMActivityViewProps) => {

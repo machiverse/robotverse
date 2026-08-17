@@ -50,7 +50,7 @@ interface SentQuotationsTabProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  draft: { label: "Draft", color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", icon: FileText },
+  draft: { label: "Draft", color: "text-muted-foreground dark:text-muted-foreground", bg: "bg-muted dark:bg-foreground", icon: FileText },
   sent: { label: "Sent", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/30", icon: Send },
   viewed: { label: "Viewed", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/30", icon: Eye },
   accepted: { label: "Accepted", color: "text-success dark:text-success", bg: "bg-success/10 dark:bg-success/30", icon: CheckCircle },

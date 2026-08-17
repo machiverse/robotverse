@@ -84,7 +84,7 @@ const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: 
 };
 
 const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string; bg: string }> = {
-  low: { label: "Low", color: "text-slate-600 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
+  low: { label: "Low", color: "text-muted-foreground dark:text-muted-foreground", bg: "bg-muted dark:bg-foreground" },
   medium: { label: "Medium", color: "text-primary dark:text-primary", bg: "bg-primary/10 dark:bg-primary/30" },
   high: { label: "High", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/30" },
   urgent: { label: "Urgent", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/30" },
@@ -112,7 +112,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
   call: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
   email: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
   meeting: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",
-  note: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+  note: "bg-muted text-muted-foreground dark:bg-foreground dark:text-muted-foreground",
   follow_up: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
   invoice_sent: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
   status_change: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary",

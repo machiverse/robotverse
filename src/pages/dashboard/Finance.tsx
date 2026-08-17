@@ -90,7 +90,7 @@ const Finance = () => {
       case 'pending': return 'bg-yellow-100 text-yellow-700';
       case 'under_review': return 'bg-primary/10 text-primary';
       case 'rejected': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 

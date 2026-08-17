@@ -205,7 +205,7 @@ const ButtonTrackingDashboard: React.FC = () => {
       analysis: "bg-primary/10 text-primary",
       social: "bg-orange-100 text-orange-800",
     };
-    return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[type as keyof typeof colors] || "bg-muted text-foreground";
   };
 
   if (loading) {

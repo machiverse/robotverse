@@ -397,7 +397,7 @@ const RobotListings = () => {
       fair: "bg-orange-100 text-orange-800",
       refurbished: "bg-primary/10 text-primary",
     };
-    return colors[condition as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[condition as keyof typeof colors] || "bg-muted text-foreground";
   };
 
   // Unique filter options
@@ -856,7 +856,7 @@ const RobotListings = () => {
                       className="h-8 w-8 p-0 bg-card/80 hover:bg-card"
                       onClick={(e) => handleShare(robot, e)}
                     >
-                      <Share2 className="w-4 h-4 text-gray-600" />
+                      <Share2 className="w-4 h-4 text-muted-foreground" />
                     </Button>
                   </div>
                   {/* Training Badge */}
@@ -1104,14 +1104,14 @@ const RobotListings = () => {
     </section>
       {/* AI Analysis Result Dialog */}
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>
-        <DialogContent className="bg-card text-gray-900 max-w-3xl max-h-[80vh] overflow-y-auto p-6">
+        <DialogContent className="bg-card text-foreground max-w-3xl max-h-[80vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle>Robot AI Analysis</DialogTitle>
             <DialogClose asChild>
-              <button className="absolute top-3 right-3 rounded p-1 hover:bg-gray-200">✕</button>
+              <button className="absolute top-3 right-3 rounded p-1 hover:bg-muted">✕</button>
             </DialogClose>
           </DialogHeader>
-          <DialogDescription className="mt-4 whitespace-pre-wrap text-gray-900">
+          <DialogDescription className="mt-4 whitespace-pre-wrap text-foreground">
             {aiDialogLoading && (
               <div className="flex items-center gap-2">
                 <Loader2 className="animate-spin w-6 h-6" /> Loading AI analysis...

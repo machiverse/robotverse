@@ -119,7 +119,7 @@ const PartsManagement = () => {
       case 'in_stock': return 'bg-success/10 text-success';
       case 'low_stock': return 'bg-yellow-100 text-yellow-700';
       case 'out_of_stock': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 

@@ -133,7 +133,7 @@ const getNotificationIcon = (type: string) => {
     case "post_comment":
       return <MessageCircle className="h-4 w-4 text-primary" />;
     case "product_view":
-      return <Eye className="h-4 w-4 text-gray-500" />;
+      return <Eye className="h-4 w-4 text-muted-foreground" />;
     case "quote_received":
     case "quote_request":
       return <FileText className="h-4 w-4 text-primary" />;

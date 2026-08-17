@@ -420,8 +420,8 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                   {serviceRequests.length === 0 ? (
                     <p className="text-center text-muted-foreground py-24 text-lg">No service requests</p>
                   ) : (
-                    <Table className="shadow-sm rounded-lg overflow-hidden border border-gray-200">
-                      <TableHeader className="bg-gray-50">
+                    <Table className="shadow-sm rounded-lg overflow-hidden border border-border">
+                      <TableHeader className="bg-muted">
                         <TableRow>
                           <TableHead>Client</TableHead>
                           <TableHead>Service Type</TableHead>
@@ -434,7 +434,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                       </TableHeader>
                       <TableBody>
                         {serviceRequests.map((req: any) => (
-                          <TableRow key={req.id} className="hover:bg-gray-100 cursor-pointer" tabIndex={0} role="button" aria-label={`Request from ${req.client_name}`}>
+                          <TableRow key={req.id} className="hover:bg-muted cursor-pointer" tabIndex={0} role="button" aria-label={`Request from ${req.client_name}`}>
                             <TableCell>{req.client_name || "N/A"}</TableCell>
                             <TableCell className="capitalize">{req.service_type || "N/A"}</TableCell>
                             <TableCell>{req.scheduled_date || "N/A"}</TableCell>
@@ -474,7 +474,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
             </TabsContent>
             {/* Services Tab */}
             <TabsContent value="services">
-              <Card className="mt-6 border border-gray-200 rounded-lg shadow-sm">
+              <Card className="mt-6 border border-border rounded-lg shadow-sm">
                 <CardHeader className="px-6 py-4">
                   <CardTitle className="text-2xl flex items-center gap-2">
                     <Wrench className="w-6 h-6 text-primary" aria-hidden="true" /> Your Services
@@ -497,7 +497,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                         return (
                           <Card
                             key={service.id}
-                            className="border border-gray-200 rounded-lg shadow-sm transition-shadow hover:shadow-lg"
+                            className="border border-border rounded-lg shadow-sm transition-shadow hover:shadow-lg"
                             aria-label={`Service: ${service.name}`}
                           >
                             <CardContent className="p-5">
@@ -520,7 +520,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                                   </Button>
                                 </div>
                               </div>
-                              <p className="mb-4 text-gray-600 text-sm min-h-[3rem]">{service.description}</p>
+                              <p className="mb-4 text-muted-foreground text-sm min-h-[3rem]">{service.description}</p>
                               <div className="mb-3 flex flex-wrap gap-2">
                                 {serviceTypes.map((type) => (
                                   <Badge key={type} variant="outline" className="text-xs font-medium">
@@ -541,7 +541,7 @@ const ServiceProviderDashboard = ({ userProfile, isCommissionSeller }: { userPro
                               </div>
                               <div className="flex justify-between items-center mt-6">
                                 <span className="font-semibold text-lg text-primary">{service.price_range}</span>
-                                <div className="flex items-center space-x-1 text-gray-500 text-sm">
+                                <div className="flex items-center space-x-1 text-muted-foreground text-sm">
                                   <MapPin className="w-4 h-4" aria-hidden="true" />
                                   <span>{service.location || "N/A"}</span>
                                 </div>

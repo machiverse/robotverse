@@ -1009,7 +1009,7 @@ const Robots = () => {
                                   }
                                 }}
                               >
-                                <Share2 className="w-4 h-4 text-gray-600" />
+                                <Share2 className="w-4 h-4 text-muted-foreground" />
                               </Button>
                             </div>
                           </div>

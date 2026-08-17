@@ -94,7 +94,7 @@ const Logistics = () => {
       case 'in_transit': return 'bg-primary/10 text-primary';
       case 'pending': return 'bg-yellow-100 text-yellow-700';
       case 'delayed': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 

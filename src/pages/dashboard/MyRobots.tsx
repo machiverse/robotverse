@@ -113,7 +113,7 @@ const MyRobots = () => {
       case 'active': return 'bg-success/10 text-success';
       case 'pending': return 'bg-yellow-100 text-yellow-700';
       case 'sold': return 'bg-primary/10 text-primary';
-      default: return 'bg-gray-100 text-gray-700';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 

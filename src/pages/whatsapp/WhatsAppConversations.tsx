@@ -199,11 +199,11 @@ const WhatsAppConversations = () => {
                 <div key={m.id} className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] whitespace-pre-line rounded-lg px-3 py-2 text-sm shadow-sm ${
-                      m.direction === "out" ? "bg-[#dcf8c6] text-slate-900" : "bg-card text-slate-900"
+                      m.direction === "out" ? "bg-[#dcf8c6] text-foreground" : "bg-card text-foreground"
                     }`}
                   >
                     {m.body}
-                    <span className="mt-1 block text-[10px] text-slate-500">
+                    <span className="mt-1 block text-[10px] text-muted-foreground">
                       {new Date(m.created_at).toLocaleString("en-IN")}
                     </span>
                   </div>

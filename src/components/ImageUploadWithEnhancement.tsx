@@ -134,7 +134,7 @@ export const ImageUploadWithEnhancement: React.FC<ImageUploadWithEnhancementProp
       case 'enhancing':
         return <Sparkles className="w-4 h-4 text-primary animate-pulse" />
       default:
-        return <Upload className="w-4 h-4 text-gray-600" />
+        return <Upload className="w-4 h-4 text-muted-foreground" />
     }
   }
 

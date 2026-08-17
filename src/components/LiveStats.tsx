@@ -325,8 +325,8 @@ const LiveStats = () => {
                         )}
                         
                         {value === 0 && !refreshing && (
-                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs">
+                            <div className="w-2 h-2 bg-secondary rounded-full mr-2"></div>
                             No Data
                           </div>
                         )}

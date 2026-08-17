@@ -55,7 +55,7 @@ const WhatsAppSettings = () => {
 
   return (
     <div className="space-y-4">
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="h-4 w-4 text-[#128C7E]" /> Meta WhatsApp connection
@@ -89,7 +89,7 @@ const WhatsAppSettings = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">AI behaviour</CardTitle>
         </CardHeader>
@@ -173,7 +173,7 @@ const WhatsAppSettings = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Website widget embed code</CardTitle>
         </CardHeader>

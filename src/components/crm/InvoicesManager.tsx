@@ -16,8 +16,8 @@ interface InvoicesManagerProps {
 const STATUS_CONFIG: Record<Invoice["status"], { label: string; color: string; bg: string; icon: any }> = {
   draft: {
     label: "Draft",
-    color: "text-gray-700",
-    bg: "bg-gray-100 dark:bg-gray-800",
+    color: "text-muted-foreground",
+    bg: "bg-muted dark:bg-foreground",
     icon: FileText,
   },
   sent: {

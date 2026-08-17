@@ -181,7 +181,7 @@ const Help = () => {
       case 'open': return 'bg-yellow-100 text-yellow-700';
       case 'in_progress': return 'bg-primary/10 text-primary';
       case 'resolved': return 'bg-success/10 text-success';
-      default: return 'bg-gray-100 text-gray-700';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -191,7 +191,7 @@ const Help = () => {
       case 'high': return 'bg-orange-100 text-orange-700';
       case 'medium': return 'bg-yellow-100 text-yellow-700';
       case 'low': return 'bg-success/10 text-success';
-      default: return 'bg-gray-100 text-gray-700';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 

@@ -572,7 +572,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4 flex-1">
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search parts..."
                   value={searchQuery}
@@ -613,7 +613,7 @@ const SparePartsSellerDashboard = ({ userProfile, isCommissionSeller }: { userPr
           {filteredParts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Package className="w-12 h-12 text-gray-400 mb-4" />
+            <Package className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No spare parts found</h3>
             <p className="text-muted-foreground mb-4">
               {searchQuery || filterStatus !== 'all' 

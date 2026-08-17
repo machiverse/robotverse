@@ -118,11 +118,11 @@ const WhatsAppDashboard = () => {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, trend }) => (
-          <Card key={label} className="border-slate-200 shadow-sm">
+          <Card key={label} className="border-border shadow-sm">
             <CardContent className="flex items-center justify-between p-5">
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-                <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+                <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
                 <p className="mt-1 text-xs text-success">▲ {trend}</p>
               </div>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#25D366]/12">
@@ -133,7 +133,7 @@ const WhatsAppDashboard = () => {
         ))}
       </div>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-base">Quick Actions</CardTitle>
           <div className="flex flex-wrap gap-2">
@@ -154,7 +154,7 @@ const WhatsAppDashboard = () => {
         </CardHeader>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Recent Conversations</CardTitle>
         </CardHeader>
@@ -168,7 +168,7 @@ const WhatsAppDashboard = () => {
               {/* Desktop table */}
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase text-muted-foreground">
+                  <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
                     <tr>
                       <th className="px-5 py-3">Phone</th>
                       <th className="px-5 py-3">Last Message</th>
@@ -179,7 +179,7 @@ const WhatsAppDashboard = () => {
                   </thead>
                   <tbody>
                     {sessions.map((s) => (
-                      <tr key={s.id} className="border-t hover:bg-slate-50/70">
+                      <tr key={s.id} className="border-t hover:bg-muted/70">
                         <td className="px-5 py-3 font-medium">
                           <Link to={`/whatsapp-bot/conversations?phone=${s.phone}`} className="hover:underline">
                             +{s.phone}
@@ -197,7 +197,7 @@ const WhatsAppDashboard = () => {
                           <span className="inline-flex items-center gap-2">
                             <span
                               className={`h-2.5 w-2.5 rounded-full ${
-                                Date.now() - new Date(s.last_seen).getTime() < 3600000 ? "bg-success" : "bg-slate-300"
+                                Date.now() - new Date(s.last_seen).getTime() < 3600000 ? "bg-success" : "bg-muted"
                               }`}
                             />
                             {s.human_mode ? "human" : s.status}

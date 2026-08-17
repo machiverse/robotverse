@@ -360,7 +360,7 @@ const AdminControlCenter = () => {
       case "comment": return <MessageSquare className="h-4 w-4 text-primary" />;
       case "chat_started": return <Send className="h-4 w-4 text-primary" />;
       case "access_request": return <UserPlus className="h-4 w-4 text-yellow-500" />;
-      case "view": return <Eye className="h-4 w-4 text-gray-500" />;
+      case "view": return <Eye className="h-4 w-4 text-muted-foreground" />;
       default: return <Activity className="h-4 w-4 text-muted-foreground" />;
     }
   };

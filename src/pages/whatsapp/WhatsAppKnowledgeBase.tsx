@@ -140,11 +140,11 @@ const WhatsAppKnowledgeBase = () => {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((e) => (
-            <Card key={e.id} className="border-slate-200 shadow-sm">
+            <Card key={e.id} className="border-border shadow-sm">
               <CardContent className="space-y-3 p-5">
                 <div className="flex items-start gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900">{e.title}</p>
+                    <p className="truncate font-semibold text-foreground">{e.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {e.category.replace("_", " ")} • updated {relativeTime(e.updated_at)}
                     </p>

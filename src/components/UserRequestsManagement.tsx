@@ -335,9 +335,9 @@ const UserRequestsManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Closed</p>
-                <p className="text-2xl font-bold text-gray-600">{stats.closed}</p>
+                <p className="text-2xl font-bold text-muted-foreground">{stats.closed}</p>
               </div>
-              <XCircle className="w-8 h-8 text-gray-600" />
+              <XCircle className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>

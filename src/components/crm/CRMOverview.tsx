@@ -234,7 +234,7 @@ const CRMOverview = ({ crmData, sellerCRM }: CRMOverviewProps) => {
                       <div>
                         <p className="text-sm font-medium">{opp.opportunity_name}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge className={STAGE_COLORS[opp.stage] || "bg-gray-100 text-gray-700"}>
+                          <Badge className={STAGE_COLORS[opp.stage] || "bg-muted text-muted-foreground"}>
                             {opp.stage.replace('_', ' ')}
                           </Badge>
                           <span className="text-xs text-muted-foreground">

@@ -57,7 +57,7 @@ const WhatsAppBroadcast = () => {
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="border-slate-200 shadow-sm lg:col-span-2">
+      <Card className="border-border shadow-sm lg:col-span-2">
         <CardHeader>
           <CardTitle className="text-base">Compose broadcast</CardTitle>
         </CardHeader>
@@ -93,7 +93,7 @@ const WhatsAppBroadcast = () => {
       </Card>
 
       <div className="space-y-4">
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Users className="h-4 w-4" /> Recipients
@@ -127,7 +127,7 @@ const WhatsAppBroadcast = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Recent broadcasts</CardTitle>
           </CardHeader>

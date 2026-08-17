@@ -202,7 +202,7 @@ const WatchlistSection = ({
       case 'low':
         return 'bg-success';
       default:
-        return 'bg-gray-500';
+        return 'bg-secondary';
     }
   };
 

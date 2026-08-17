@@ -123,7 +123,7 @@ const PRIORITY_CONFIG: Record<
   NonNullable<Lead["priority"]>,
   { label: string; color: string }
 > = {
-  low: { label: "Low", color: "text-gray-600" },
+  low: { label: "Low", color: "text-muted-foreground" },
   medium: { label: "Medium", color: "text-primary" },
   high: { label: "High", color: "text-orange-600" },
   urgent: { label: "Urgent", color: "text-red-600" },

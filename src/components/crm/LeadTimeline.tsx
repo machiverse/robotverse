@@ -60,7 +60,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
   call: "bg-success/10 text-success dark:bg-success/30",
   email: "bg-primary/10 text-primary dark:bg-primary/30",
   meeting: "bg-primary/10 text-primary dark:bg-primary/30",
-  note: "bg-slate-100 text-slate-600 dark:bg-slate-800",
+  note: "bg-muted text-muted-foreground dark:bg-foreground",
   follow_up: "bg-amber-100 text-amber-600 dark:bg-amber-900/30",
   invoice_sent: "bg-success/10 text-success dark:bg-success/30",
   status_change: "bg-primary/10 text-primary dark:bg-primary/30",

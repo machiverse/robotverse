@@ -92,7 +92,7 @@ const STATUS_CONFIG: Record<Lead["status"], { label: string; color: string; bg: 
 };
 
 const PRIORITY_CONFIG: Record<Lead["priority"], { label: string; color: string }> = {
-  low: { label: "Low", color: "text-gray-600" },
+  low: { label: "Low", color: "text-muted-foreground" },
   medium: { label: "Medium", color: "text-primary" },
   high: { label: "High", color: "text-orange-600" },
   urgent: { label: "Urgent", color: "text-red-600" },

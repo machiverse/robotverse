@@ -464,7 +464,7 @@ const SpareParts = () => {
                   return (
                     <div
                       key={idx}
-                      className="relative group rounded-lg overflow-hidden border border-gray-300"
+                      className="relative group rounded-lg overflow-hidden border border-border"
                     >
                       <img
                         src={objectUrl}

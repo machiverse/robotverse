@@ -187,7 +187,7 @@ const BuyerInquiriesSection = ({ sellerId, itemType }: BuyerInquiriesSectionProp
       'service_view': { color: 'bg-primary/10 text-primary', label: 'View' },
     };
 
-    const config = variants[buttonType] || { color: 'bg-gray-100 text-gray-800', label: buttonType };
+    const config = variants[buttonType] || { color: 'bg-muted text-foreground', label: buttonType };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 

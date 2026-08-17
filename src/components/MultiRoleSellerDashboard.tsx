@@ -452,7 +452,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
       completed: { variant: 'outline' as const, label: 'Completed', color: 'text-success' },
       cancelled: { variant: 'destructive' as const, label: 'Cancelled', color: 'text-red-600' },
       available: { variant: 'default' as const, label: 'Available', color: 'text-success' },
-      sold: { variant: 'secondary' as const, label: 'Sold', color: 'text-gray-600' },
+      sold: { variant: 'secondary' as const, label: 'Sold', color: 'text-muted-foreground' },
       active: { variant: 'default' as const, label: 'Active', color: 'text-primary' }
     };
     
@@ -990,7 +990,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
                       {/* Search and Filter */}
                       <div className="flex items-center gap-4">
                         <div className="relative flex-1 max-w-sm">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                           <Input
                             placeholder="Search parts..."
                             value={searchQuery}
