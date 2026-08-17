@@ -93,17 +93,17 @@ export function relativeTime(iso: string) {
 }
 
 export const INTENT_COLORS: Record<string, string> = {
-  pricing: "bg-amber-100 text-amber-800",
-  features: "bg-blue-100 text-blue-800",
-  demo: "bg-purple-100 text-purple-800",
-  support: "bg-rose-100 text-rose-800",
-  integration: "bg-cyan-100 text-cyan-800",
-  comparison: "bg-indigo-100 text-indigo-800",
-  greeting: "bg-emerald-100 text-emerald-800",
-  product: "bg-teal-100 text-teal-800",
-  how_it_works: "bg-sky-100 text-sky-800",
+  pricing: "bg-warning/10 text-warning",
+  features: "bg-primary/10 text-primary",
+  demo: "bg-primary/10 text-primary",
+  support: "bg-destructive/10 text-destructive",
+  integration: "bg-primary/10 text-primary",
+  comparison: "bg-primary/10 text-primary",
+  greeting: "bg-success/10 text-success",
+  product: "bg-success/10 text-success",
+  how_it_works: "bg-primary/10 text-primary",
   marketplace: "bg-[#25D366]/15 text-[#128C7E]",
-  other: "bg-slate-100 text-slate-700",
+  other: "bg-muted text-muted-foreground",
 };
 
 export function buildWidgetSnippet(phone = "917639841220") {
