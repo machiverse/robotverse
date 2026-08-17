@@ -757,7 +757,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                   <div className="space-y-2">
                     <Button 
                       onClick={handleAddRobot}
-                      className="bg-gradient-to-r from-primary to-primary"
+                      className="bg-primary/5"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Your First Robot
@@ -998,7 +998,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
           <div className="space-y-6">
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-success to-success text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-success/5 text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1013,7 +1013,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-primary to-primary text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-primary/5 text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1028,7 +1028,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-primary to-primary text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-primary/5 text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1043,7 +1043,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-primary-foreground border-0 shadow-lg">
+              <Card className="bg-warning/5 text-primary-foreground border-0 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1063,7 +1063,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Views Analytics Card */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-background to-muted/30">
-                <CardHeader className="border-b bg-gradient-to-r from-primary/10 to-primary/10">
+                <CardHeader className="border-b bg-primary/5">
                   <CardTitle className="flex items-center gap-2">
                     <div className="p-2 bg-primary/10 rounded-lg">
                       <Eye className="w-5 h-5 text-primary" />
@@ -1073,7 +1073,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-primary to-primary dark:from-primary/20 dark:to-primary/20">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5">
                       <div>
                         <p className="font-medium text-primary dark:text-primary">Robot Views</p>
                         <p className="text-2xl font-bold text-primary">{viewStats.viewsByCategory.robots || 0}</p>
@@ -1123,7 +1123,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
 
               {/* Performance Insights Card */}
               <Card className="shadow-lg border-0 bg-gradient-to-br from-background to-muted/30">
-                <CardHeader className="border-b bg-gradient-to-r from-success/10 to-success/10">
+                <CardHeader className="border-b bg-success/5">
                   <CardTitle className="flex items-center gap-2">
                     <div className="p-2 bg-success/10 rounded-lg">
                       <Activity className="w-5 h-5 text-success" />
@@ -1160,7 +1160,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mt-4">
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20">
+                      <div className="p-4 rounded-xl bg-warning/5">
                         <div className="flex items-center gap-2 mb-2">
                           <Star className="w-4 h-4 text-amber-500" />
                           <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Top Performer</span>
@@ -1169,7 +1169,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                           {dashboardStats.topPerforming?.name || 'No data'}
                         </p>
                       </div>
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-900/20 dark:to-rose-800/20">
+                      <div className="p-4 rounded-xl bg-destructive/5">
                         <div className="flex items-center gap-2 mb-2">
                           <Calendar className="w-4 h-4 text-rose-500" />
                           <span className="text-xs font-medium text-rose-700 dark:text-rose-400">Sold This Month</span>
@@ -1186,7 +1186,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <Card className="shadow-lg border-0">
-                  <CardHeader className="border-b bg-gradient-to-r from-red-500/10 to-pink-500/10">
+                  <CardHeader className="border-b bg-destructive/5">
                     <CardTitle className="flex items-center gap-2">
                       <div className="p-2 bg-red-100 rounded-lg">
                         <Heart className="w-5 h-5 text-red-500" />
@@ -1205,7 +1205,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
               </div>
               
               {/* Quick Actions */}
-              <Card className="shadow-lg border-0 bg-gradient-to-br from-primary to-primary text-primary-foreground">
+              <Card className="shadow-lg border-0 bg-primary/5 text-primary-foreground">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary-foreground">
                     <Zap className="w-5 h-5" />

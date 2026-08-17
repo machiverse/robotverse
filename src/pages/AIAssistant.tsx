@@ -94,7 +94,7 @@ const AIAssistant = () => {
         <div className={cn("flex items-center gap-2 p-3 border-b border-border/30", !sidebarOpen && "md:justify-center")}>
           {sidebarOpen ? (
             <>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center shadow-sm">
                 <Bot className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="flex-1 min-w-0">

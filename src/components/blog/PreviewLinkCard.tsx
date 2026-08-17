@@ -71,7 +71,7 @@ const PreviewLinkCard = ({
   };
 
   return (
-    <Card className={`border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 ${className || ""}`}>
+    <Card className={`border-primary/20 bg-primary/5 ${className || ""}`}>
       <CardContent className="p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">

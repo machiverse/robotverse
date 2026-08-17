@@ -300,7 +300,7 @@ const LeadDetailView = ({
               
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12 border-2 border-primary/20">
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-sm font-semibold text-primary">
+                  <AvatarFallback className="bg-primary/5 text-sm font-semibold text-primary">
                     {lead.is_unlocked ? getInitials(lead.buyer_name) : "?"}
                   </AvatarFallback>
                 </Avatar>
@@ -468,7 +468,7 @@ const LeadDetailView = ({
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                            <div className="h-full w-full flex items-center justify-center bg-primary/5">
                               <Package className="h-8 w-8 text-primary" />
                             </div>
                           )}

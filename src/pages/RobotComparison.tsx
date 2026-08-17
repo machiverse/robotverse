@@ -396,7 +396,7 @@ const RobotComparison = () => {
 
         {/* AI Analysis Section */}
         <Card className="overflow-hidden border-2">
-          <div className="bg-gradient-to-r from-primary/10 via-primary/10 to-primary/10 p-6 border-b">
+          <div className="bg-primary/5 p-6 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -586,7 +586,7 @@ const RobotComparison = () => {
                 )}
 
                 {/* Recommendation */}
-                <div className="bg-gradient-to-r from-primary/10 via-primary/10 to-primary/10 rounded-xl p-6 border-2 border-primary/20">
+                <div className="bg-primary/5 rounded-xl p-6 border-2 border-primary/20">
                   <div className="flex items-start gap-3 mb-3">
                     <Award className="w-6 h-6 text-primary flex-shrink-0" />
                     <h3 className="font-semibold text-lg">Expert Recommendation</h3>

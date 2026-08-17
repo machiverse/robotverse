@@ -108,10 +108,10 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
     >
       {/* Header - hidden in fullPage mode since parent provides branding */}
       {!fullPage && (
-        <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
+        <div className="flex items-center justify-between px-3 sm:px-5 py-3 bg-primary/5 border-b border-border/40 backdrop-blur-sm mt-8">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+              <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center shadow-md">
                 <Bot className="w-4.5 h-4.5 text-primary-foreground" />
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-card" />
@@ -209,7 +209,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({ fullPage = false, cla
 
         {/* Submit Request CTA when no results found */}
         {hasLowResults && (
-          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 animate-fade-in">
+          <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 animate-fade-in">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
                 <FileSearch className="w-5 h-5 text-primary" />
@@ -311,7 +311,7 @@ const EmptyState: React.FC<{
 }> = ({ onPromptClick, fullPage }) => (
   <div className="flex flex-col items-center justify-center h-full gap-5 py-10">
     <div className="relative">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20">
+      <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/20">
         <Sparkles className="w-8 h-8 text-primary" />
       </div>
       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary border-2 border-card flex items-center justify-center">
@@ -342,7 +342,7 @@ const EmptyState: React.FC<{
 const AssistantThinking = () => {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-sm">
+      <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center shrink-0 shadow-sm">
         <Bot className="w-4 h-4 text-primary-foreground" />
       </div>
       <div className="bg-card border border-border/40 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
@@ -379,7 +379,7 @@ const AssistantThinking = () => {
 const LoginRequiredBanner: React.FC<{ remainingFree: number }> = ({ remainingFree }) => {
   const navigate = useNavigate();
   return (
-    <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-destructive/10 to-destructive/5 border border-destructive/20 text-center">
+    <div className="mt-4 p-4 rounded-xl bg-destructive/5 border border-destructive/20 text-center">
       <p className="text-sm text-foreground font-semibold mb-1">Free queries exhausted</p>
       <p className="text-xs text-muted-foreground mb-3">
         Sign in for unlimited AI assistance and advanced product matching
@@ -437,7 +437,7 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
       )}
     >
       {!isUser && (
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 mt-1 shadow-sm">
+        <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center shrink-0 mt-1 shadow-sm">
           <Bot className="w-4 h-4 text-primary-foreground" />
         </div>
       )}
@@ -445,7 +445,7 @@ const MessageBubble: React.FC<{ message: AIMessage; resultCounts?: ResultCounts 
         className={cn(
           "rounded-2xl shadow-sm relative",
           isUser
-            ? "max-w-[85%] sm:max-w-[75%] bg-gradient-to-br from-primary to-primary/85 text-primary-foreground px-3 sm:px-4 py-3 rounded-tr-sm"
+            ? "max-w-[85%] sm:max-w-[75%] bg-primary/5 text-primary-foreground px-3 sm:px-4 py-3 rounded-tr-sm"
             : "bg-card border border-border/40 text-foreground px-3 sm:px-5 py-3 sm:py-4 rounded-tl-sm max-w-[95%] sm:max-w-[92%]",
         )}
       >

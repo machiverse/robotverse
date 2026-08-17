@@ -483,7 +483,7 @@ const MultiRoleSellerDashboard = ({ userProfile }: MultiRoleSellerDashboardProps
   if (!hasRobotSeller && !hasPartsSeller && !hasServiceProvider) {
     return (
       <div className="space-y-6">
-        <Card className="border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50">
+        <Card className="border-yellow-200 bg-warning/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-700">
               <AlertCircle className="w-6 h-6" />

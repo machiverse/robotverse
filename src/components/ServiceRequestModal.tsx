@@ -256,7 +256,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
           <div className="lg:col-span-1 space-y-7">
             {/* Service Info Card */}
             <Card className="rounded-xl overflow-hidden border border-border shadow">
-              <CardHeader className="bg-gradient-to-r from-primary to-primary p-4">
+              <CardHeader className="bg-primary/5 p-4">
                 <CardTitle className="flex items-center text-lg font-bold text-primary-foreground">
                   <Settings className="w-5 h-5 mr-2 text-primary-foreground" />
                   Service Details
@@ -300,7 +300,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
 
             {/* Provider Info Card */}
             <Card className="rounded-xl overflow-hidden border border-border shadow">
-              <CardHeader className="bg-gradient-to-r from-success to-success p-4">
+              <CardHeader className="bg-success/5 p-4">
                 <CardTitle className="flex items-center text-lg font-bold text-primary-foreground">
                   <User className="w-5 h-5 mr-2" />
                   Service Provider
@@ -308,7 +308,7 @@ const ServiceRequestModal = ({ open, onOpenChange, service }: ServiceRequestModa
               </CardHeader>
               <CardContent className="p-6 space-y-4 bg-card">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
+                  <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary-foreground font-bold text-lg">
                     {service.provider.charAt(0)}
                   </div>
                   <div>

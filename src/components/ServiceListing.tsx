@@ -463,7 +463,7 @@ const ServiceListing = ({ editingService, onSuccess }: ServiceListingProps = {})
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <Card className="border-0 shadow-sm bg-gradient-to-r from-primary to-primary">
+      <Card className="border-0 shadow-sm bg-primary/5">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

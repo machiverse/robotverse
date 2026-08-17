@@ -409,7 +409,7 @@ const CommunityPostDetails = () => {
               <div className="flex items-center gap-3 mb-6">
                 <Avatar className="h-12 w-12 ring-2 ring-background">
                   <AvatarImage src={post.profiles?.avatar_url} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20">
+                  <AvatarFallback className="bg-primary/5">
                     <User className="h-6 w-6 text-primary" />
                   </AvatarFallback>
                 </Avatar>

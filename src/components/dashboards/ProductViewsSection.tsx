@@ -527,7 +527,7 @@ const ProductViewsSection = ({ sellerId, itemType, onLeadConverted }: ProductVie
 
   return (
     <Card className="border-0 shadow-lg bg-card overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+      <CardHeader className="bg-primary/5 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">

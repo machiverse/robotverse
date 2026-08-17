@@ -628,7 +628,7 @@ const SparePartDetails = () => {
 
                   {/* International Shipping section - commented out
                   {sparePart.is_international && (
-                    <div className="bg-gradient-to-r from-primary to-primary dark:from-primary dark:to-primary p-8 rounded-2xl border border-primary/30 dark:border-primary/30 shadow-lg">
+                    <div className="bg-primary/5 p-8 rounded-2xl border border-primary/30 dark:border-primary/30 shadow-lg">
                       <h4 className="flex items-center gap-2 font-bold text-xl mb-6">
                         <Truck className="w-5 h-5 text-primary dark:text-primary" />
                         International Shipping Available

@@ -132,7 +132,7 @@ export function DashboardHeader({ userProfile, onProfileUpdate }: DashboardHeade
   }
 
   return (
-    <Card className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10">
+    <Card className="bg-primary/5">
       <CardContent className="p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           {/* Company Info */}

@@ -62,7 +62,7 @@ export const DashboardSettingsSidebar = () => {
         <div className="flex items-center gap-4">
           <Avatar className="h-14 w-14 ring-2 ring-primary/30 shadow-lg">
             <AvatarImage src="" />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-lg">
+            <AvatarFallback className="bg-primary/5 text-primary-foreground font-bold text-lg">
               {getInitials(user?.email || '')}
             </AvatarFallback>
           </Avatar>

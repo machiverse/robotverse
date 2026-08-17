@@ -271,7 +271,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 ring-2 ring-background">
             <AvatarImage src={post.profiles?.avatar_url} />
-            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20">
+            <AvatarFallback className="bg-primary/5">
               <User className="h-5 w-5 text-primary" />
             </AvatarFallback>
           </Avatar>

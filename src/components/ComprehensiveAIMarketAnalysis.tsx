@@ -253,7 +253,7 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="flex justify-between items-center p-6 pb-4 border-b shrink-0 bg-gradient-to-r from-primary/5 to-primary/10">
+        <DialogHeader className="flex justify-between items-center p-6 pb-4 border-b shrink-0 bg-primary/5">
           <div>
             <DialogTitle className="text-3xl font-bold flex items-center gap-3 text-primary">
               <Brain className="w-8 h-8" /> 
@@ -409,7 +409,7 @@ export function ComprehensiveAIMarketAnalysis({ isOpen, onClose, robotData }: Co
                         title="Strategic Recommendations"
                         content={analysisData.recommendations}
                         icon={<Building2 className="w-6 h-6" />}
-                        bgColor="bg-gradient-to-br from-primary/5 to-primary/10"
+                        bgColor="bg-primary/5"
                         borderColor="border-primary/20"
                         textColor="text-primary"
                       />

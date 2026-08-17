@@ -378,7 +378,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
 
                   {/* Robot Overview Card */}
                   <Card className="border-2 shadow-sm">
-                    <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+                    <CardHeader className="bg-primary/5">
                       <CardTitle className="flex items-center gap-2 text-primary">
                         <Building className="w-6 h-6" />
                         Robot Overview
@@ -466,7 +466,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                   {/* Description Card */}
                   {robotData.description && (
                     <Card className="border-2 shadow-sm">
-                      <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+                      <CardHeader className="bg-primary/5">
                         <CardTitle className="flex items-center gap-2 text-primary">
                           <FileText className="w-6 h-6" />
                           Product Description
@@ -484,7 +484,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
 
                   {/* Technical Specifications Card */}
                   <Card className="border-2 shadow-sm">
-                    <CardHeader className="bg-gradient-to-r from-orange-500/5 to-orange-500/10">
+                    <CardHeader className="bg-warning/5">
                       <CardTitle className="flex items-center gap-2 text-orange-700">
                         <Zap className="w-6 h-6" />
                         Technical Specifications
@@ -553,7 +553,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                   {/* Applications */}
                   {robotData.applications?.length > 0 && (
                     <Card className="border-2 shadow-sm">
-                      <CardHeader className="bg-gradient-to-r from-success/5 to-success/10">
+                      <CardHeader className="bg-success/5">
                         <CardTitle className="flex items-center gap-2 text-success">
                           <Package className="w-6 h-6" />
                           Applications
@@ -573,7 +573,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
 
                   {/* AI Analysis Report Card */}
                   <Card className="border-2 border-primary/20 shadow-lg">
-                    <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
+                    <CardHeader className="bg-primary/5">
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-primary">
                           <Brain className="w-6 h-6" />
@@ -594,7 +594,7 @@ export function ProfessionalRobotReportModal({ isOpen, onClose, robotData }: Pro
                             Advanced AI analysis with market insights and professional recommendations
                           </p>
                         </div>
-                        <div className="bg-gradient-to-br from-primary/5 to-background p-6 rounded-lg border border-primary/10">
+                        <div className="bg-primary/5 p-6 rounded-lg border border-primary/10">
                           <div className="prose prose-sm max-w-none text-foreground">
                             {formatReportForDisplay(reportData.report)}
                           </div>

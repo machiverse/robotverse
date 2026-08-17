@@ -309,7 +309,7 @@ const ServiceCategorySelector = ({
         <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {/* Progress & Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
+            <Card className="bg-primary/5 border-primary/30">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -325,7 +325,7 @@ const ServiceCategorySelector = ({
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-success to-success border-success/30">
+            <Card className="bg-success/5 border-success/30">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -338,7 +338,7 @@ const ServiceCategorySelector = ({
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-primary to-primary border-primary/30">
+            <Card className="bg-primary/5 border-primary/30">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>

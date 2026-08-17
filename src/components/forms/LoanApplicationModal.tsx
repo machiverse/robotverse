@@ -156,7 +156,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
           <div className="lg:col-span-1 space-y-6">
             {/* Robot Details Card */}
 {robotDetails && (
-  <Card className="bg-gradient-to-br from-primary via-primary to-primary border-0 shadow-lg rounded-2xl">
+  <Card className="bg-primary/5 border-0 shadow-lg rounded-2xl">
     <CardHeader className="flex items-center gap-2 pb-0">
       <Bot className="w-6 h-6 text-primary" />
       <CardTitle className="text-primary-foreground text-xl font-bold tracking-wide">Equipment Details</CardTitle>
@@ -191,7 +191,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
 
 {/* Finance Partner (Professional) */}
 {financeProvider && (
-  <Card className="bg-gradient-to-br from-success via-success to-success border-0 shadow-lg rounded-2xl mt-8">
+  <Card className="bg-success/5 border-0 shadow-lg rounded-2xl mt-8">
     <CardHeader className="flex items-center gap-2 pb-0">
       <Building2 className="w-6 h-6 text-success" />
       <CardTitle className="text-primary-foreground text-xl font-bold tracking-wide">Finance Partner</CardTitle>
@@ -208,7 +208,7 @@ const LoanApplicationModal = ({ open, onOpenChange, robotDetails, financeProvide
 
 {/* Quick EMI Estimate (Professional) */}
 {robotDetails && (
-  <Card className="bg-gradient-to-br from-orange-800 via-orange-700 to-orange-900 border-0 shadow-lg rounded-2xl mt-8">
+  <Card className="bg-warning/5 border-0 shadow-lg rounded-2xl mt-8">
     <CardHeader className="flex items-center gap-2 pb-0">
       <Calculator className="w-6 h-6 text-orange-300" />
       <CardTitle className="text-primary-foreground text-xl font-bold tracking-wide">Quick EMI Estimate</CardTitle>
