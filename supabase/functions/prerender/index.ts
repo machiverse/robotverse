@@ -17,7 +17,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const SITE_URL = (Deno.env.get("PUBLIC_SITE_URL") ?? "https://www.robotverse.in").replace(/\/$/, "");
-const DEFAULT_OG = `${SITE_URL}/og-image.jpg`;
+const DEFAULT_OG = `${SITE_URL}/robotverse-logo.jpg`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

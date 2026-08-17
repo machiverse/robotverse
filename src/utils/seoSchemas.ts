@@ -5,7 +5,7 @@ export const generateOrganizationSchema = () => ({
   "@type": "Organization",
   "name": "RobotVerse",
   "url": window.location.origin,
-  "logo": `${window.location.origin}/robotverse-logo.png`,
+  "logo": `${window.location.origin}/robotverse-logo.jpg`,
   "description": "India's largest marketplace for industrial robots and automation equipment",
   "address": {
     "@type": "PostalAddress",
@@ -203,13 +203,13 @@ export const generateArticleSchema = (article: {
   },
   "datePublished": article.datePublished,
   "dateModified": article.dateModified || article.datePublished,
-  "image": article.image || `${window.location.origin}/og-image.jpg`,
+  "image": article.image || `${window.location.origin}/robotverse-logo.jpg`,
   "publisher": {
     "@type": "Organization",
     "name": "RobotVerse",
     "logo": {
       "@type": "ImageObject",
-      "url": `${window.location.origin}/robotverse-logo.png`
+      "url": `${window.location.origin}/robotverse-logo.jpg`
     }
   }
 });
