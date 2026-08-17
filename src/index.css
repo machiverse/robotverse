@@ -78,6 +78,21 @@ All colors MUST be HSL.
   html {
     overflow-x: hidden;
   }
+
+  h1 {
+    letter-spacing: -0.03em;
+  }
+
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @layer components {
