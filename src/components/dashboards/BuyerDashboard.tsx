@@ -156,7 +156,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'new': case 'pending': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-      case 'quoted': case 'responded': return 'bg-success/20 text-success border-success/30/30';
+      case 'quoted': case 'responded': return 'bg-success/20 text-success border-success/30';
       case 'closed': return 'bg-muted text-muted-foreground';
       default: return 'bg-primary/20 text-primary border-primary/30';
     }
@@ -262,7 +262,7 @@ const BuyerDashboard = ({ userProfile }: BuyerDashboardProps) => {
                     <p className="text-2xl font-bold text-amber-400">{stats.pendingQuotes}</p>
                     <p className="text-xs text-amber-400/80">Pending</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-success/10 border border-success/30/20 text-center">
+                  <div className="p-3 rounded-lg bg-success/10 border border-success/30 text-center">
                     <p className="text-2xl font-bold text-success">{stats.respondedQuotes}</p>
                     <p className="text-xs text-success/80">Responded</p>
                   </div>

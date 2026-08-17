@@ -714,7 +714,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                   variant="outline"
                   className={`shrink-0 px-3 py-1.5 text-sm font-medium ${
                     robot.availability === "in_stock" || robot.availability === "available"
-                      ? "bg-success/10 text-success border-success/30/30"
+                      ? "bg-success/10 text-success border-success/30"
                       : "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
                   }`}
                 >
@@ -952,7 +952,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                       <h4 className="font-semibold mb-3">Certifications</h4>
                       <div className="flex flex-wrap gap-2">
                         {robot.certification_standards.map((cert, index) => (
-                          <Badge key={index} variant="outline" className="border-success/30/30 text-success">
+                          <Badge key={index} variant="outline" className="border-success/30 text-success">
                             <Check className="w-3 h-3 mr-1" />
                             {cert}
                           </Badge>
@@ -976,7 +976,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                   )}
 
                   {robot.warranty_info && (
-                    <div className="p-4 bg-success/5 border border-success/30/20 rounded-lg">
+                    <div className="p-4 bg-success/5 border border-success/30 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <Shield className="w-5 h-5 text-success" />
                         <h4 className="font-semibold text-success">Warranty</h4>
@@ -1346,7 +1346,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     </div>
                   )}
                   {robot.profiles?.completed_sales > 0 && (
-                    <div className="flex items-center gap-2 p-3 bg-success/10 border border-success/30/20 rounded-lg">
+                    <div className="flex items-center gap-2 p-3 bg-success/10 border border-success/30 rounded-lg">
                       <Package className="w-5 h-5 text-success" />
                       <div>
                         <p className="font-bold text-success">{robot.profiles.completed_sales} completed sales</p>

@@ -64,7 +64,7 @@ const FollowUpReminders = ({ sellerId }: FollowUpRemindersProps) => {
         label: "Tomorrow",
       },
       upcoming: {
-        bg: "border-primary/30 bg-primary/10/60 dark:bg-primary/20",
+        bg: "border-primary/30 bg-primary/10 dark:bg-primary/20",
         badge: "bg-primary/10 text-primary",
         icon: Calendar,
         label: "Upcoming",

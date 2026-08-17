@@ -70,7 +70,7 @@ const WhatsAppBotLayout = () => {
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center gap-3 border-b border-border/50/10 px-5 py-5">
+        <div className="flex items-center gap-3 border-b border-border/50 px-5 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#25D366]">
             <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
@@ -105,7 +105,7 @@ const WhatsAppBotLayout = () => {
           ))}
         </nav>
 
-        <div className="border-t border-border/50/10 px-5 py-4 text-xs text-muted-foreground">
+        <div className="border-t border-border/50 px-5 py-4 text-xs text-muted-foreground">
           <p>{WHATSAPP_BOT_VERSION}</p>
           <p className="mt-1">Powered by RobotVerse</p>
         </div>

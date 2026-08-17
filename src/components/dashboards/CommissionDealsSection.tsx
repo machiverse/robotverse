@@ -390,7 +390,7 @@ const CommissionDealsSection = () => {
             </div>
 
             {/* Net Payout */}
-            <div className="p-6 flex flex-col justify-between bg-success/10/50 dark:bg-success/20">
+            <div className="p-6 flex flex-col justify-between bg-success/10 dark:bg-success/20">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-1.5 bg-success/10 dark:bg-success/30 rounded-md">
                   <FileCheck className="h-4 w-4 text-success dark:text-success" />
@@ -660,7 +660,7 @@ const CommissionDealsSection = () => {
                                      </div>
 
                                      {/* RobotVerse Commission Card */}
-                                     <div className="w-full md:w-80 rounded-lg border-2 border-success/30 dark:border-success/30 bg-success/10/50 dark:bg-success/20 p-4 space-y-3">
+                                     <div className="w-full md:w-80 rounded-lg border-2 border-success/30 dark:border-success/30 bg-success/10 dark:bg-success/20 p-4 space-y-3">
                                        <div className="flex items-center gap-2">
                                          <IndianRupee className="h-4 w-4 text-success" />
                                          <h5 className="font-semibold text-sm text-success dark:text-success">RobotVerse Platform Commission</h5>

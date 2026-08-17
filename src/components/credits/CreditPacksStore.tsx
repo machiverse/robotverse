@@ -99,7 +99,7 @@ export const CreditPacksStore = ({ onPurchaseComplete }: CreditPacksStoreProps) 
                 </div>
 
                 {pack.bonus_credits > 0 && (
-                  <Badge variant="secondary" className="mt-2 bg-success/10 text-success border-success/30/20">
+                  <Badge variant="secondary" className="mt-2 bg-success/10 text-success border-success/30">
                     +{pack.bonus_credits} Bonus Credits
                   </Badge>
                 )}

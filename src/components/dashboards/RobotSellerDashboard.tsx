@@ -1111,7 +1111,7 @@ const RobotSellerDashboard = ({ userProfile }: RobotSellerDashboardProps) => {
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-4 p-6 text-center border-2 border-dashed border-primary/30 dark:border-primary/30 rounded-xl bg-primary/10/50 dark:bg-primary/10">
+                      <div className="mt-4 p-6 text-center border-2 border-dashed border-primary/30 dark:border-primary/30 rounded-xl bg-primary/10 dark:bg-primary/10">
                         <Eye className="w-8 h-8 mx-auto mb-2 text-primary" />
                         <p className="text-sm font-medium text-primary dark:text-primary">No views yet</p>
                         <p className="text-xs text-muted-foreground mt-1">Upload products to start tracking</p>

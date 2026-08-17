@@ -364,7 +364,7 @@ const Analytics = () => {
           <CardContent>
             <div className="space-y-4">
               {analytics.robotsCount > 0 && (
-                <div className="flex items-start gap-3 p-4 rounded-xl border border-primary/30 bg-primary/10/50 dark:border-primary/30 dark:bg-primary/20">
+                <div className="flex items-start gap-3 p-4 rounded-xl border border-primary/30 bg-primary/10 dark:border-primary/30 dark:bg-primary/20">
                   <Bot className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <p className="font-medium text-primary dark:text-primary">Robot Listings</p>
@@ -388,7 +388,7 @@ const Analytics = () => {
               )}
 
               {analytics.servicesCount > 0 && (
-                <div className="flex items-start gap-3 p-4 rounded-xl border border-success/30 bg-success/10/50 dark:border-success/30 dark:bg-success/20">
+                <div className="flex items-start gap-3 p-4 rounded-xl border border-success/30 bg-success/10 dark:border-success/30 dark:bg-success/20">
                   <Wrench className="h-5 w-5 text-success mt-0.5" />
                   <div>
                     <p className="font-medium text-success dark:text-success">Service Offerings</p>

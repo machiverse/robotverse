@@ -24,16 +24,16 @@ const planIcons: Record<string, React.ReactNode> = {
 
 const planColors: Record<string, string> = {
   free: 'border-border bg-muted/30',
-  basic: 'border-primary/30/30 bg-primary/5',
+  basic: 'border-primary/30 bg-primary/5',
   standard: 'border-amber-500/30 bg-amber-500/5',
-  premium: 'border-primary/30/30 bg-primary/5'
+  premium: 'border-primary/30 bg-primary/5'
 };
 
 const planBadgeColors: Record<string, string> = {
   free: 'bg-muted text-muted-foreground border-border',
-  basic: 'bg-primary/10 text-primary border-primary/30/20',
+  basic: 'bg-primary/10 text-primary border-primary/30',
   standard: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  premium: 'bg-primary/10 text-primary border-primary/30/20'
+  premium: 'bg-primary/10 text-primary border-primary/30'
 };
 
 // Listing limits per plan
@@ -107,7 +107,7 @@ export const SubscriptionPlans = ({ onSubscribeComplete }: SubscriptionPlansProp
     <div className="space-y-6">
       {/* Grandfathered User Notice */}
       {isGrandfathered && (
-        <Card className="border-success/30/30 bg-success/5">
+        <Card className="border-success/30 bg-success/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-full bg-success/10">
@@ -146,7 +146,7 @@ export const SubscriptionPlans = ({ onSubscribeComplete }: SubscriptionPlansProp
         />
         <Label htmlFor="billing-toggle" className={isAnnual ? 'font-semibold' : 'text-muted-foreground'}>
           Annual
-          <Badge variant="secondary" className="ml-2 text-xs bg-success/10 text-success border-success/30/20">Save 17%</Badge>
+          <Badge variant="secondary" className="ml-2 text-xs bg-success/10 text-success border-success/30">Save 17%</Badge>
         </Label>
       </div>
 

@@ -57,7 +57,7 @@ interface AuctionSummary {
 const emailBadge = (s?: string) => {
   switch (s) {
     case "sent":
-      return <Badge className="bg-success/15 text-success border-success/30/30 text-[10px]"><MailCheck className="w-3 h-3 mr-0.5" />Sent</Badge>;
+      return <Badge className="bg-success/15 text-success border-success/30 text-[10px]"><MailCheck className="w-3 h-3 mr-0.5" />Sent</Badge>;
     case "failed":
       return <Badge className="bg-red-500/15 text-red-500 border-red-500/30 text-[10px]"><MailX className="w-3 h-3 mr-0.5" />Failed</Badge>;
     case "pending":
@@ -475,7 +475,7 @@ export default function AdminAllBids() {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-1">
-                        {isWinner && <Badge className="bg-success/20 text-success border-success/30/30 text-[10px]"><Trophy className="w-3 h-3 mr-0.5" />Winner</Badge>}
+                        {isWinner && <Badge className="bg-success/20 text-success border-success/30 text-[10px]"><Trophy className="w-3 h-3 mr-0.5" />Winner</Badge>}
                         {r.is_winning_bid && !isWinner && <Badge variant="outline" className="text-[10px]">Highest</Badge>}
                         {r.is_auto_bid && <Badge variant="secondary" className="text-[10px]">Auto</Badge>}
                       </div>

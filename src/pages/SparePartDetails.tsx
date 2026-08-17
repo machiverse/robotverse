@@ -499,7 +499,7 @@ const SparePartDetails = () => {
                         </div>
                       )}
                       {sparePart.profiles?.completed_sales > 0 && (
-                        <div className="flex items-center gap-1.5 bg-success/10 border border-success/30/20 px-3 py-1.5 rounded-full">
+                        <div className="flex items-center gap-1.5 bg-success/10 border border-success/30 px-3 py-1.5 rounded-full">
                           <Package className="h-4 w-4 text-success" />
                           <span className="font-bold text-sm text-success">{sparePart.profiles.completed_sales} sales</span>
                         </div>

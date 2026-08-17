@@ -455,7 +455,7 @@ const RobotComparison = () => {
                 {(aiAnalysis.winner_for_precision || aiAnalysis.winner_for_payload || aiAnalysis.winner_for_value) && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {aiAnalysis.winner_for_precision && (
-                      <div className="bg-primary/10 rounded-xl p-4 border border-primary/30/20">
+                      <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
                         <div className="flex items-center gap-2 mb-2">
                           <Trophy className="w-5 h-5 text-primary" />
                           <span className="text-sm font-medium text-primary">Best Precision</span>
@@ -464,7 +464,7 @@ const RobotComparison = () => {
                       </div>
                     )}
                     {aiAnalysis.winner_for_payload && (
-                      <div className="bg-primary/10 rounded-xl p-4 border border-primary/30/20">
+                      <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
                         <div className="flex items-center gap-2 mb-2">
                           <Trophy className="w-5 h-5 text-primary" />
                           <span className="text-sm font-medium text-primary">Best Payload</span>
@@ -473,7 +473,7 @@ const RobotComparison = () => {
                       </div>
                     )}
                     {aiAnalysis.winner_for_value && (
-                      <div className="bg-success/10 rounded-xl p-4 border border-success/30/20">
+                      <div className="bg-success/10 rounded-xl p-4 border border-success/30">
                         <div className="flex items-center gap-2 mb-2">
                           <Trophy className="w-5 h-5 text-success" />
                           <span className="text-sm font-medium text-success">Best Value</span>

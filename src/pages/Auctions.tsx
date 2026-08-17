@@ -544,7 +544,7 @@ const Auctions: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           {bid.is_winning_bid && (
-                            <Badge className="bg-success/20 text-success border border-success/30/30">
+                            <Badge className="bg-success/20 text-success border border-success/30">
                               Winning
                             </Badge>
                           )}

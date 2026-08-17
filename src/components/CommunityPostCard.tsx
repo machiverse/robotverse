@@ -307,7 +307,7 @@ const CommunityPostCard = ({ post, onLikeUpdate, onCommentUpdate, onPostDeleted 
             </Badge>
           )}
           {post.status === 'published' && (
-            <Badge variant="outline" className="border-success/30/40 bg-success/10 text-success dark:text-success">
+            <Badge variant="outline" className="border-success/30 bg-success/10 text-success dark:text-success">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               <span className="text-xs font-medium">Published</span>
             </Badge>
