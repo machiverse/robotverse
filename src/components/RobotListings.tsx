@@ -814,15 +814,16 @@ const RobotListings = () => {
             {filteredRobots.slice(0, displayCount).map((robot) => (
               <Card
                 key={robot.id}
-                className={`group hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer ${
+                className={`group relative transition-colors duration-150 overflow-hidden cursor-pointer border border-border hover:border-muted-foreground/40 shadow-none ${
                   viewMode === "list" ? "flex" : ""
                 }`}
                 onClick={() => navigate(`/robots/${robot.id}`)}
               >
+                <OemRail brand={robot.brand} />
                 {/* Robot Image */}
                  <div
-                  className={`relative overflow-hidden rounded-lg ${
-                    viewMode === "list" ? "w-48" : ""
+                  className={`relative overflow-hidden bg-background border-b border-border ${
+                    viewMode === "list" ? "w-48 border-b-0 border-r" : ""
                   }`}
                  >
                    {robot.images && robot.images.length > 0 ? (
@@ -836,12 +837,13 @@ const RobotListings = () => {
                        className="transition-transform duration-300 w-full h-full"
                      />
                    ) : (
-                     <div className={`w-full flex items-center justify-center bg-muted rounded-lg ${
+                     <div className={`w-full flex items-center justify-center bg-background ${
                        viewMode === "list" ? "aspect-square" : "aspect-[4/3]"
                      }`}>
                        <Bot className="w-16 h-16 text-muted-foreground" />
                      </div>
                    )}
+
                   {/* Condition Badge */}
                   <div className="absolute top-2 left-2">
                     <Badge className={getConditionColor(robot.condition || "used")}>
@@ -877,7 +879,9 @@ const RobotListings = () => {
                         {robot.name}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <OemDot brand={robot.brand} />
                         <span className="font-medium">{robot.brand || "Unknown Brand"}</span>
+
                         {robot.model && (
                           <>
                             <span>•</span>
