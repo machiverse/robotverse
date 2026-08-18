@@ -1023,10 +1023,12 @@ const Robots = () => {
                               <h3 className="font-bold text-sm mb-1 line-clamp-2 group-hover:text-primary transition-colors">
                                 {robot.name}
                               </h3>
-                              <p className="text-xs text-muted-foreground line-clamp-1">
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground line-clamp-1">
+                                <OemDot brand={robot.brand} />
                                 {robot.brand || "Unknown Brand"}
                                 {robot.model && <span> · {robot.model}</span>}
                               </p>
+
                             </div>
 
                             {/* Specs - Payload Capacity */}
