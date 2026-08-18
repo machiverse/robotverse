@@ -698,9 +698,13 @@ const Robots = () => {
                     <SelectContent>
                       {manufacturers.map((m) => (
                         <SelectItem key={m.value} value={m.value}>
-                          {m.label}
+                          <span className="flex items-center gap-2">
+                            {m.value !== "all" && <OemDot brand={m.label} />}
+                            {m.label}
+                          </span>
                         </SelectItem>
                       ))}
+
                     </SelectContent>
                   </Select>
                 </div>
