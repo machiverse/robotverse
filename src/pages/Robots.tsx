@@ -938,14 +938,15 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
+                          className="relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer group"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);
                           }}
                         >
+                          <OemRail brand={robot.brand} />
                           {/* Image */}
-                          <div className="relative overflow-hidden rounded-lg">
+                          <div className="relative overflow-hidden bg-background border-b border-border">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}
@@ -955,7 +956,8 @@ const Robots = () => {
                                 containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full aspect-[4/3] flex items-center justify-center bg-muted rounded-lg">
+                              <div className="w-full aspect-[4/3] flex items-center justify-center bg-background">
+
                                 <Bot className="w-12 h-12 text-muted-foreground" />
                               </div>
                             )}
