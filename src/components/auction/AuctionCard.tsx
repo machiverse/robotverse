@@ -24,15 +24,17 @@ const AuctionCard: React.FC<{ auction: Auction }> = ({ auction }) => {
 
   return (
     <Card
-      className="group border border-border hover:border-primary/40 bg-card hover:bg-card/80 transition-all duration-300 cursor-pointer overflow-hidden"
+      className="group relative border border-border hover:border-muted-foreground/40 bg-card transition-colors duration-150 cursor-pointer overflow-hidden shadow-none"
       onClick={() => navigate(`/auctions/${auction.id}`)}
     >
-      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+      <OemRail brand={auction.robots?.brand || auction.robots?.model || auction.auction_title} />
+      <div className="aspect-[4/3] bg-background border-b border-border relative overflow-hidden">
         {img ? (
           <img src={img} alt={auction.auction_title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="flex items-center justify-center w-full h-full"><Bot className="w-12 h-12 text-muted-foreground" /></div>
         )}
+
         <div className="absolute top-3 left-3 flex gap-2">
           <AuctionStatusBadge auction={auction} />
           {auction.auction_type === 'sealed' && (
