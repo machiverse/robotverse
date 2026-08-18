@@ -1133,13 +1133,14 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="hover:shadow-md transition cursor-pointer flex"
+                          className="group relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer flex"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);
                           }}
                         >
-                          <div className="w-40 flex-shrink-0">
+                          <OemRail brand={robot.brand} />
+                          <div className="w-40 flex-shrink-0 bg-background border-r border-border">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}
@@ -1150,7 +1151,7 @@ const Robots = () => {
                                 containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full aspect-square flex items-center justify-center bg-muted rounded-l-lg">
+                              <div className="w-full aspect-square flex items-center justify-center bg-background">
                                 <Bot className="w-10 h-10 text-muted-foreground" />
                               </div>
                             )}
@@ -1159,10 +1160,12 @@ const Robots = () => {
                             <div className="flex justify-between gap-4">
                               <div className="space-y-1">
                                 <h3 className="font-semibold text-base line-clamp-2">{robot.name}</h3>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <OemDot brand={robot.brand} />
                                   {robot.brand || "Unknown Brand"}
                                   {robot.model && <span> · {robot.model}</span>}
                                 </p>
+
                                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
                                   <span>{robot.robot_type || "Robot"}</span>
                                   <span>· {robot.payload_capacity || "N/A"} kg</span>
