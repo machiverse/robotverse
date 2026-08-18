@@ -1,5 +1,6 @@
 // src/pages/Robots.tsx
 import { useState, useEffect, useMemo } from "react";
+import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -697,9 +698,13 @@ const Robots = () => {
                     <SelectContent>
                       {manufacturers.map((m) => (
                         <SelectItem key={m.value} value={m.value}>
-                          {m.label}
+                          <span className="flex items-center gap-2">
+                            {m.value !== "all" && <OemDot brand={m.label} />}
+                            {m.label}
+                          </span>
                         </SelectItem>
                       ))}
+
                     </SelectContent>
                   </Select>
                 </div>
@@ -937,14 +942,15 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
+                          className="relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer group"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);
                           }}
                         >
+                          <OemRail brand={robot.brand} />
                           {/* Image */}
-                          <div className="relative overflow-hidden rounded-lg">
+                          <div className="relative overflow-hidden bg-background border-b border-border">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}
@@ -954,7 +960,8 @@ const Robots = () => {
                                 containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full aspect-[4/3] flex items-center justify-center bg-muted rounded-lg">
+                              <div className="w-full aspect-[4/3] flex items-center justify-center bg-background">
+
                                 <Bot className="w-12 h-12 text-muted-foreground" />
                               </div>
                             )}
@@ -1020,10 +1027,12 @@ const Robots = () => {
                               <h3 className="font-bold text-sm mb-1 line-clamp-2 group-hover:text-primary transition-colors">
                                 {robot.name}
                               </h3>
-                              <p className="text-xs text-muted-foreground line-clamp-1">
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground line-clamp-1">
+                                <OemDot brand={robot.brand} />
                                 {robot.brand || "Unknown Brand"}
                                 {robot.model && <span> · {robot.model}</span>}
                               </p>
+
                             </div>
 
                             {/* Specs - Payload Capacity */}
@@ -1128,13 +1137,14 @@ const Robots = () => {
                       {robotsGroup.map((robot: any) => (
                         <Card
                           key={robot.id}
-                          className="hover:shadow-md transition cursor-pointer flex"
+                          className="group relative overflow-hidden border border-border hover:border-muted-foreground/40 shadow-none transition-colors duration-150 cursor-pointer flex"
                           onClick={async () => {
                             await trackItemView("robots", robot.id);
                             navigate(`/robots/${robot.id}`);
                           }}
                         >
-                          <div className="w-40 flex-shrink-0">
+                          <OemRail brand={robot.brand} />
+                          <div className="w-40 flex-shrink-0 bg-background border-r border-border">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}
@@ -1145,7 +1155,7 @@ const Robots = () => {
                                 containerClassName="w-full"
                               />
                             ) : (
-                              <div className="w-full aspect-square flex items-center justify-center bg-muted rounded-l-lg">
+                              <div className="w-full aspect-square flex items-center justify-center bg-background">
                                 <Bot className="w-10 h-10 text-muted-foreground" />
                               </div>
                             )}
@@ -1154,10 +1164,12 @@ const Robots = () => {
                             <div className="flex justify-between gap-4">
                               <div className="space-y-1">
                                 <h3 className="font-semibold text-base line-clamp-2">{robot.name}</h3>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <OemDot brand={robot.brand} />
                                   {robot.brand || "Unknown Brand"}
                                   {robot.model && <span> · {robot.model}</span>}
                                 </p>
+
                                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
                                   <span>{robot.robot_type || "Robot"}</span>
                                   <span>· {robot.payload_capacity || "N/A"} kg</span>

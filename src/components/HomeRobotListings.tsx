@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -308,11 +309,12 @@ const HomeRobotListings = () => {
                         className="pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5"
                       >
                         <Card
-                          className="group cursor-pointer transition-colors duration-150 overflow-hidden border border-border hover:border-primary/50 bg-card"
+                          className="group relative cursor-pointer transition-colors duration-150 overflow-hidden border border-border hover:border-muted-foreground/40 bg-card shadow-none"
                           onClick={() => navigate(`/robots/${robot.id}`)}
                         >
+                          <OemRail brand={robot.brand} />
                           {/* Robot Image */}
-                          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                          <div className="relative aspect-[4/3] overflow-hidden bg-background border-b border-border">
                             {robot.images && robot.images.length > 0 ? (
                               <img
                                 src={robot.images[0]}
@@ -332,10 +334,17 @@ const HomeRobotListings = () => {
                             <h4 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
                               {robot.name}
                             </h4>
+                            {robot.brand && (
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <OemDot brand={robot.brand} />
+                                {robot.brand}
+                              </p>
+                            )}
                             <p className="text-base font-bold text-primary tabular">
                               {formatPrice(robot.price, robot.currency)}
                             </p>
                           </CardContent>
+
                         </Card>
                       </CarouselItem>
                     ))}
