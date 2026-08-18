@@ -64,6 +64,27 @@ All colors MUST be HSL.
   }
 }
 
+/* =========================================================================
+   OEM MANUFACTURER COLOUR LAYER — NOT interface tokens.
+   These encode the physical colour-coding of robot OEMs (FANUC yellow, ABB
+   red, KUKA orange, Yaskawa blue) and may ONLY be rendered as a shape:
+   a 3px card rail or a 7px brand dot. Never a background behind text, never
+   on a button/control/status badge, never a gradient, never text colour.
+   src/lib/oemColors.ts is the source of truth for the brand mapping.
+   ========================================================================= */
+:root {
+  --oem-fanuc: #e8b400;
+  --oem-abb: #c8321e;
+  --oem-kuka: #e85d14;
+  --oem-yaskawa: #0b4da2;
+  --oem-cobot: #0e7c7b;
+  --oem-kawasaki: #2e7d32;
+  --oem-nachi: #5a6b7c;
+  --oem-white: #9aa5b1;
+  --oem-other: #c4cbd3;
+}
+
+
 @layer base {
   * {
     @apply border-border;
