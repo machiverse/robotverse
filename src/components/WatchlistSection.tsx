@@ -275,9 +275,11 @@ const WatchlistSection = ({
               return (
                 <div 
                   key={item.id} 
-                  className={`flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors group cursor-pointer ${compact ? 'p-2' : ''}`}
+                  className={`relative overflow-hidden flex items-center space-x-3 p-3 pl-4 border border-border rounded-lg hover:border-muted-foreground/40 hover:bg-muted/50 transition-colors group cursor-pointer ${compact ? 'p-2 pl-3' : ''}`}
                   onClick={() => navigate(getItemUrl(item))}
                 >
+                  {item.item_type === 'robot' && <OemRail brand={data?.brand} />}
+
                   {/* Item Icon & Priority */}
                   <div className="flex items-center gap-2">
                     <div className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} bg-primary/20 rounded-full flex items-center justify-center`}>
