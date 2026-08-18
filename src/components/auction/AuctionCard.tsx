@@ -1,4 +1,5 @@
 import React from 'react';
+import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';

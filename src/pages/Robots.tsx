@@ -1,5 +1,6 @@
 // src/pages/Robots.tsx
 import { useState, useEffect, useMemo } from "react";
+import { OemRail, OemDot } from '@/components/oem/OemAccents';
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
