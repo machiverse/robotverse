@@ -150,7 +150,7 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
               <CarouselItem key={robot.id}>
                 <div className="space-y-3">
                   {/* Flexible container for complete robot visibility */}
-                  <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-muted relative flex items-center justify-center p-4">
+                  <div className="aspect-[4/3] w-full rounded-lg overflow-hidden bg-background border border-border relative flex items-center justify-center p-4">
                     {robot.images && robot.images.length > 0 ? (
                       <img
                         src={robot.images[0]}
@@ -211,9 +211,11 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
                     </div>
 
                     {robot.model && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">
+                      <p className="flex items-center gap-1.5 text-xs text-muted-foreground line-clamp-1">
+                        <OemDot brand={`${robot.name} ${robot.model}`} />
                         Model: {robot.model}
                       </p>
+
                     )}
                   </div>
                 </div>
