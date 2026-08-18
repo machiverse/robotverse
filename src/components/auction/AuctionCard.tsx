@@ -59,8 +59,12 @@ const AuctionCard: React.FC<{ auction: Auction }> = ({ auction }) => {
           {auction.auction_title}
         </h3>
         {auction.robots && (
-          <p className="text-xs text-muted-foreground line-clamp-1">{auction.robots.robot_type} • {auction.robots.brand || auction.robots.model}</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground line-clamp-1">
+            <OemDot brand={auction.robots.brand || auction.robots.model} />
+            {auction.robots.robot_type} • {auction.robots.brand || auction.robots.model}
+          </p>
         )}
+
 
         <div className="flex items-center justify-between">
           <div>
