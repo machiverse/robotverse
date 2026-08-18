@@ -115,9 +115,11 @@ const CategoryRobotCarousel: React.FC<CategoryRobotCarouselProps> = ({
 
   return (
     <Card 
-      className="group border border-border hover:border-primary/50 hover:shadow-lg hover:bg-muted/30 transition-all duration-300 cursor-pointer overflow-hidden"
+      className="group relative border border-border hover:border-muted-foreground/40 hover:bg-muted/30 transition-colors duration-150 cursor-pointer overflow-hidden shadow-none"
       onClick={handleCardClick}
     >
+      <OemRail brand={robots[current]?.name ?? category} />
+
       {/* Category Header */}
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
