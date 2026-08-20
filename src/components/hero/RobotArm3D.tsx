@@ -106,6 +106,8 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
   }, [parallax]);
 
   const MAX = (4 * Math.PI) / 180;
+  /** Yaw the whole rig so the shoulder/elbow bend plane faces the camera. */
+  const BASE_YAW = -1.05;
 
   useFrame((_, delta) => {
     clock.current += Math.min(delta, 0.1) * 1000;
@@ -124,13 +126,13 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
     if (rig.current) {
       pointer.current.x = lerp(pointer.current.x, target.current.x, 0.04);
       pointer.current.y = lerp(pointer.current.y, target.current.y, 0.04);
-      rig.current.rotation.y = pointer.current.x * MAX;
+      rig.current.rotation.y = BASE_YAW + pointer.current.x * MAX;
       rig.current.rotation.x = -pointer.current.y * MAX * 0.5;
     }
   });
 
   return (
-    <group ref={rig} position={[0, -1.1, 0]} scale={0.95}>
+    <group ref={rig} position={[0, -1.1, 0]} rotation={[0, -1.05, 0]} scale={0.95}>
       {/* Base plinth */}
       <mesh position={[0, 0.09, 0]} castShadow>
         <cylinderGeometry args={[0.62, 0.72, 0.18, 32]} />
@@ -254,7 +256,7 @@ const RobotArm3D = () => {
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [3.9, 1.0, 5.6], fov: 38 }}
+        camera={{ position: [3.4, 1.5, 5.8], fov: 38 }}
       >
         <ambientLight intensity={isDark ? 0.55 : 0.7} />
         <directionalLight position={[-4, 6, 4]} intensity={1.7} />
