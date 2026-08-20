@@ -22,22 +22,23 @@ interface Pose {
 
 /** One pick-and-place cycle. move = travel ms, hold = dwell ms at the pose. */
 const TIMELINE: Array<{ pose: Pose; move: number; hold: number }> = [
-  { pose: { j1: 0, j2: 0.34, j3: 1.5, j4: 0, j5: 0.5, grip: 0 }, move: 900, hold: 400 },
-  // reach down to the pick point
-  { pose: { j1: -0.85, j2: 0.72, j3: 1.72, j4: -0.2, j5: 0.72, grip: 0 }, move: 1100, hold: 400 },
-  // grab
-  { pose: { j1: -0.85, j2: 0.76, j3: 1.76, j4: -0.2, j5: 0.74, grip: 1 }, move: 320, hold: 400 },
+  // home / ready
+  { pose: { j1: 0, j2: -0.35, j3: 1.85, j4: 0, j5: 1.35, grip: 0 }, move: 900, hold: 400 },
+  // reach out and down to the pick point
+  { pose: { j1: -0.8, j2: -0.05, j3: 2.15, j4: -0.2, j5: 1.15, grip: 0 }, move: 1100, hold: 380 },
+  // close the gripper
+  { pose: { j1: -0.8, j2: 0.0, j3: 2.2, j4: -0.2, j5: 1.12, grip: 1 }, move: 320, hold: 400 },
   // lift clear
-  { pose: { j1: -0.85, j2: 0.28, j3: 1.34, j4: -0.1, j5: 0.45, grip: 1 }, move: 800, hold: 260 },
+  { pose: { j1: -0.8, j2: -0.4, j3: 1.8, j4: -0.1, j5: 1.38, grip: 1 }, move: 800, hold: 260 },
   // swing across to the place point
-  { pose: { j1: 0.95, j2: 0.28, j3: 1.36, j4: 0.35, j5: 0.45, grip: 1 }, move: 1300, hold: 380 },
+  { pose: { j1: 0.9, j2: -0.4, j3: 1.82, j4: 0.35, j5: 1.38, grip: 1 }, move: 1300, hold: 380 },
   // lower into place
-  { pose: { j1: 0.95, j2: 0.7, j3: 1.7, j4: 0.35, j5: 0.72, grip: 1 }, move: 900, hold: 300 },
+  { pose: { j1: 0.9, j2: -0.05, j3: 2.12, j4: 0.35, j5: 1.16, grip: 1 }, move: 900, hold: 300 },
   // release
-  { pose: { j1: 0.95, j2: 0.7, j3: 1.7, j4: 0.35, j5: 0.72, grip: 0 }, move: 320, hold: 400 },
-  // retract and return home
-  { pose: { j1: 0.5, j2: 0.24, j3: 1.4, j4: 0.1, j5: 0.5, grip: 0 }, move: 800, hold: 240 },
-  { pose: { j1: 0, j2: 0.34, j3: 1.5, j4: 0, j5: 0.5, grip: 0 }, move: 1000, hold: 400 },
+  { pose: { j1: 0.9, j2: -0.05, j3: 2.12, j4: 0.35, j5: 1.16, grip: 0 }, move: 320, hold: 400 },
+  // retract, then home
+  { pose: { j1: 0.45, j2: -0.42, j3: 1.75, j4: 0.1, j5: 1.4, grip: 0 }, move: 800, hold: 240 },
+  { pose: { j1: 0, j2: -0.35, j3: 1.85, j4: 0, j5: 1.35, grip: 0 }, move: 1000, hold: 400 },
 ];
 
 const CYCLE = TIMELINE.reduce((sum, s) => sum + s.move + s.hold, 0);
@@ -115,7 +116,7 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
 
     if (turret.current) turret.current.rotation.y = p.j1;
     if (shoulder.current) shoulder.current.rotation.x = p.j2;
-    if (elbow.current) elbow.current.rotation.x = -p.j3;
+    if (elbow.current) elbow.current.rotation.x = p.j3;
     if (wristRoll.current) wristRoll.current.rotation.y = p.j4;
     if (wristPitch.current) wristPitch.current.rotation.x = p.j5;
 
