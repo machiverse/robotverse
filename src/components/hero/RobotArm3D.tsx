@@ -133,7 +133,7 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
   });
 
   return (
-    <group ref={rig} position={[0, -0.75, 0]} rotation={[0, -1.05, 0]} scale={0.9}>
+    <group ref={rig} position={[0, -0.75, 0]} rotation={[0, -1.05, 0]} scale={0.55}>
       {/* Base plinth */}
       <mesh position={[0, 0.09, 0]} castShadow>
         <cylinderGeometry args={[0.62, 0.72, 0.18, 32]} />
