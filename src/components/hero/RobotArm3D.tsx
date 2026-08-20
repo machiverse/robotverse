@@ -22,22 +22,22 @@ interface Pose {
 
 /** One pick-and-place cycle. move = travel ms, hold = dwell ms at the pose. */
 const TIMELINE: Array<{ pose: Pose; move: number; hold: number }> = [
-  { pose: { j1: 0, j2: -0.15, j3: 0.7, j4: 0, j5: 0.2, grip: 0 }, move: 900, hold: 400 },
+  { pose: { j1: 0, j2: 0.34, j3: 1.5, j4: 0, j5: 0.5, grip: 0 }, move: 900, hold: 400 },
   // reach down to the pick point
-  { pose: { j1: -0.85, j2: 0.42, j3: 0.98, j4: -0.2, j5: 0.42, grip: 0 }, move: 1100, hold: 400 },
+  { pose: { j1: -0.85, j2: 0.72, j3: 1.72, j4: -0.2, j5: 0.72, grip: 0 }, move: 1100, hold: 400 },
   // grab
-  { pose: { j1: -0.85, j2: 0.46, j3: 1.02, j4: -0.2, j5: 0.45, grip: 1 }, move: 320, hold: 400 },
+  { pose: { j1: -0.85, j2: 0.76, j3: 1.76, j4: -0.2, j5: 0.74, grip: 1 }, move: 320, hold: 400 },
   // lift clear
-  { pose: { j1: -0.85, j2: -0.05, j3: 0.6, j4: -0.1, j5: 0.2, grip: 1 }, move: 800, hold: 260 },
+  { pose: { j1: -0.85, j2: 0.28, j3: 1.34, j4: -0.1, j5: 0.45, grip: 1 }, move: 800, hold: 260 },
   // swing across to the place point
-  { pose: { j1: 0.95, j2: -0.05, j3: 0.62, j4: 0.35, j5: 0.2, grip: 1 }, move: 1300, hold: 380 },
+  { pose: { j1: 0.95, j2: 0.28, j3: 1.36, j4: 0.35, j5: 0.45, grip: 1 }, move: 1300, hold: 380 },
   // lower into place
-  { pose: { j1: 0.95, j2: 0.4, j3: 0.96, j4: 0.35, j5: 0.44, grip: 1 }, move: 900, hold: 300 },
+  { pose: { j1: 0.95, j2: 0.7, j3: 1.7, j4: 0.35, j5: 0.72, grip: 1 }, move: 900, hold: 300 },
   // release
-  { pose: { j1: 0.95, j2: 0.4, j3: 0.96, j4: 0.35, j5: 0.44, grip: 0 }, move: 320, hold: 400 },
+  { pose: { j1: 0.95, j2: 0.7, j3: 1.7, j4: 0.35, j5: 0.72, grip: 0 }, move: 320, hold: 400 },
   // retract and return home
-  { pose: { j1: 0.5, j2: -0.2, j3: 0.72, j4: 0.1, j5: 0.18, grip: 0 }, move: 800, hold: 240 },
-  { pose: { j1: 0, j2: -0.15, j3: 0.7, j4: 0, j5: 0.2, grip: 0 }, move: 1000, hold: 400 },
+  { pose: { j1: 0.5, j2: 0.24, j3: 1.4, j4: 0.1, j5: 0.5, grip: 0 }, move: 800, hold: 240 },
+  { pose: { j1: 0, j2: 0.34, j3: 1.5, j4: 0, j5: 0.5, grip: 0 }, move: 1000, hold: 400 },
 ];
 
 const CYCLE = TIMELINE.reduce((sum, s) => sum + s.move + s.hold, 0);
@@ -130,7 +130,7 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
   });
 
   return (
-    <group ref={rig} position={[0, -1.35, 0]} scale={0.92}>
+    <group ref={rig} position={[0, -1.1, 0]} scale={0.95}>
       {/* Base plinth */}
       <mesh position={[0, 0.09, 0]} castShadow>
         <cylinderGeometry args={[0.62, 0.72, 0.18, 32]} />
@@ -159,13 +159,13 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
             <Housing />
           </mesh>
           {/* upper arm */}
-          <mesh position={[0, 0.62, 0]}>
-            <boxGeometry args={[0.34, 1.24, 0.36]} />
+          <mesh position={[0, 0.5, 0]}>
+            <boxGeometry args={[0.34, 1.0, 0.36]} />
             <Body />
           </mesh>
 
           {/* J3 elbow */}
-          <group ref={elbow} position={[0, 1.24, 0]}>
+          <group ref={elbow} position={[0, 1.0, 0]}>
             <mesh rotation={[0, 0, Math.PI / 2]}>
               <cylinderGeometry args={[0.17, 0.17, 0.5, 24]} />
               <Housing />
@@ -182,13 +182,13 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
               />
             </mesh>
             {/* forearm */}
-            <mesh position={[0, 0.5, 0]}>
-              <boxGeometry args={[0.26, 1.0, 0.28]} />
+            <mesh position={[0, 0.42, 0]}>
+              <boxGeometry args={[0.26, 0.85, 0.28]} />
               <Body />
             </mesh>
 
             {/* J4 wrist roll */}
-            <group ref={wristRoll} position={[0, 1.0, 0]}>
+            <group ref={wristRoll} position={[0, 0.85, 0]}>
               <mesh>
                 <cylinderGeometry args={[0.14, 0.14, 0.2, 20]} />
                 <Housing />
@@ -254,7 +254,7 @@ const RobotArm3D = () => {
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [3.4, 1.1, 5.2], fov: 36 }}
+        camera={{ position: [3.9, 1.0, 5.6], fov: 38 }}
       >
         <ambientLight intensity={isDark ? 0.55 : 0.7} />
         <directionalLight position={[-4, 6, 4]} intensity={1.7} />
@@ -262,7 +262,7 @@ const RobotArm3D = () => {
         <directionalLight position={[3, 2.5, -4]} intensity={isDark ? 0.8 : 0.45} color={ACCENT} />
         <Arm parallax={parallax} />
         <ContactShadows
-          position={[0, -1.36, 0]}
+          position={[0, -1.11, 0]}
           opacity={isDark ? 0.55 : 0.28}
           scale={7}
           blur={2.6}
