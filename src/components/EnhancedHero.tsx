@@ -124,7 +124,7 @@ const EnhancedHero = () => {
   };
 
   return (
-    <section className="relative overflow-hidden bg-background pt-20 pb-10 lg:pt-24 lg:pb-16">
+    <section className="relative flex min-h-[640px] items-center overflow-hidden bg-background pt-20 pb-16 lg:min-h-[700px] lg:pt-24 lg:pb-20">
       {/* The one gradient on the page: a very subtle radial behind the arm. */}
       <div
         aria-hidden="true"
@@ -135,14 +135,15 @@ const EnhancedHero = () => {
         }}
       />
 
-      <div className="container relative z-10 mx-auto px-4">
+      <div className="container relative z-10 mx-auto w-full px-4">
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-6">
           {/* 3D stage — above the copy on small screens, right-bleeding on lg+ */}
-          <div className="order-2 lg:order-2 lg:col-span-7">
-            <div className="h-[320px] w-full lg:h-[520px] lg:-mr-[max(0px,calc((100vw-100%)/2))]">
+          <div className="order-2 self-stretch lg:order-2 lg:col-span-7 lg:mr-[calc(50%-50vw)]">
+            <div className="h-full min-h-[320px] w-full lg:min-h-[520px]">
               <RobotArmStage />
             </div>
           </div>
+
 
           {/* Copy + search */}
           <div className="order-1 lg:order-1 lg:col-span-5">
