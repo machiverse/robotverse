@@ -71,12 +71,32 @@ function poseAt(ms: number): Pose {
 /* Materials                                                           */
 /* ------------------------------------------------------------------ */
 
-const BODY = "#2d5f92";
-const HOUSING = "#4a7cb0";
+const BODY_DARK = "#2d5f92";
+/** Light mode sits on near-white — darken the body so the silhouette reads. */
+const BODY_LIGHT = "#1b3a5f";
+const HOUSING_DARK = "#4a7cb0";
+const HOUSING_LIGHT = "#35618f";
 const ACCENT = "#4a9eff";
 
-const Body = () => <meshStandardMaterial color={BODY} metalness={0.55} roughness={0.38} />;
-const Housing = () => <meshStandardMaterial color={HOUSING} metalness={0.55} roughness={0.38} />;
+const SkinContext = createContext(true);
+
+const Body = () => {
+  const dark = useContext(SkinContext);
+  return (
+    <meshStandardMaterial color={dark ? BODY_DARK : BODY_LIGHT} metalness={0.55} roughness={0.38} />
+  );
+};
+const Housing = () => {
+  const dark = useContext(SkinContext);
+  return (
+    <meshStandardMaterial
+      color={dark ? HOUSING_DARK : HOUSING_LIGHT}
+      metalness={0.55}
+      roughness={0.38}
+    />
+  );
+};
+
 
 /* ------------------------------------------------------------------ */
 /* Rig                                                                 */
