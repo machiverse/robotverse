@@ -128,7 +128,7 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
 
   const MAX = (4 * Math.PI) / 180;
   /** Yaw the whole rig so the shoulder/elbow bend plane faces the camera. */
-  const BASE_YAW = -1.05;
+  const BASE_YAW = -0.62;
 
   useFrame((_, delta) => {
     clock.current += Math.min(delta, 0.1) * 1000;
