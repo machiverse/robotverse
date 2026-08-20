@@ -257,7 +257,7 @@ const RobotArm3D = () => {
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [2.6, 1.15, 4.4], fov: 36 }}
+        camera={{ position: [1.95, 0.85, 3.35], fov: 34 }}
       >
         <ambientLight intensity={isDark ? 0.75 : 0.85} />
         <directionalLight position={[-4, 6, 4]} intensity={1.7} />
