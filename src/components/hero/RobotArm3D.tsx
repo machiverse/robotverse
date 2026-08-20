@@ -277,22 +277,24 @@ const RobotArm3D = () => {
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [2.6, 1.15, 4.4], fov: 34 }}
+        camera={{ position: [2.9, 0.9, 3.4], fov: 38 }}
       >
-        <ambientLight intensity={isDark ? 0.75 : 0.85} />
-        <directionalLight position={[-4, 6, 4]} intensity={1.7} />
-        <directionalLight position={[0, 3, 6]} intensity={isDark ? 0.6 : 0.35} />
-        <directionalLight position={[3, 2.5, -4]} intensity={isDark ? 0.8 : 0.45} color={ACCENT} />
-        <Arm parallax={parallax} />
-        <ContactShadows
-          position={[0, -0.76, 0]}
-          opacity={isDark ? 0.55 : 0.28}
-          scale={7}
-          blur={2.6}
-          far={3}
-          resolution={512}
-          color="#0a1a2c"
-        />
+        <SkinContext.Provider value={isDark}>
+          <ambientLight intensity={isDark ? 0.75 : 0.85} />
+          <directionalLight position={[-4, 6, 4]} intensity={1.7} />
+          <directionalLight position={[0, 3, 6]} intensity={isDark ? 0.6 : 0.35} />
+          <directionalLight position={[3, 2.5, -4]} intensity={isDark ? 0.8 : 0.45} color={ACCENT} />
+          <Arm parallax={parallax} />
+          <ContactShadows
+            position={[0, -0.76, 0]}
+            opacity={isDark ? 0.55 : 0.4}
+            scale={7}
+            blur={2.6}
+            far={3}
+            resolution={512}
+            color="#0a1a2c"
+          />
+        </SkinContext.Provider>
       </Canvas>
     </div>
   );
