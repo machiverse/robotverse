@@ -23,22 +23,22 @@ interface Pose {
 /** One pick-and-place cycle. move = travel ms, hold = dwell ms at the pose. */
 const TIMELINE: Array<{ pose: Pose; move: number; hold: number }> = [
   // home / ready
-  { pose: { j1: 0, j2: -0.35, j3: 1.85, j4: 0, j5: 1.35, grip: 0 }, move: 900, hold: 400 },
+  { pose: { j1: 0, j2: -0.35, j3: 1.85, j4: 0, j5: 1.7, grip: 0 }, move: 900, hold: 400 },
   // reach out and down to the pick point
-  { pose: { j1: -0.8, j2: -0.05, j3: 2.15, j4: -0.2, j5: 1.15, grip: 0 }, move: 1100, hold: 380 },
+  { pose: { j1: -0.8, j2: -0.05, j3: 2.15, j4: -0.2, j5: 1.5, grip: 0 }, move: 1100, hold: 380 },
   // close the gripper
-  { pose: { j1: -0.8, j2: 0.0, j3: 2.2, j4: -0.2, j5: 1.12, grip: 1 }, move: 320, hold: 400 },
+  { pose: { j1: -0.8, j2: 0.0, j3: 2.2, j4: -0.2, j5: 1.47, grip: 1 }, move: 320, hold: 400 },
   // lift clear
-  { pose: { j1: -0.8, j2: -0.4, j3: 1.8, j4: -0.1, j5: 1.38, grip: 1 }, move: 800, hold: 260 },
+  { pose: { j1: -0.8, j2: -0.4, j3: 1.8, j4: -0.1, j5: 1.73, grip: 1 }, move: 800, hold: 260 },
   // swing across to the place point
-  { pose: { j1: 0.9, j2: -0.4, j3: 1.82, j4: 0.35, j5: 1.38, grip: 1 }, move: 1300, hold: 380 },
+  { pose: { j1: 0.9, j2: -0.4, j3: 1.82, j4: 0.35, j5: 1.73, grip: 1 }, move: 1300, hold: 380 },
   // lower into place
-  { pose: { j1: 0.9, j2: -0.05, j3: 2.12, j4: 0.35, j5: 1.16, grip: 1 }, move: 900, hold: 300 },
+  { pose: { j1: 0.9, j2: -0.05, j3: 2.12, j4: 0.35, j5: 1.51, grip: 1 }, move: 900, hold: 300 },
   // release
-  { pose: { j1: 0.9, j2: -0.05, j3: 2.12, j4: 0.35, j5: 1.16, grip: 0 }, move: 320, hold: 400 },
+  { pose: { j1: 0.9, j2: -0.05, j3: 2.12, j4: 0.35, j5: 1.51, grip: 0 }, move: 320, hold: 400 },
   // retract, then home
-  { pose: { j1: 0.45, j2: -0.42, j3: 1.75, j4: 0.1, j5: 1.4, grip: 0 }, move: 800, hold: 240 },
-  { pose: { j1: 0, j2: -0.35, j3: 1.85, j4: 0, j5: 1.35, grip: 0 }, move: 1000, hold: 400 },
+  { pose: { j1: 0.45, j2: -0.42, j3: 1.75, j4: 0.1, j5: 1.75, grip: 0 }, move: 800, hold: 240 },
+  { pose: { j1: 0, j2: -0.35, j3: 1.85, j4: 0, j5: 1.7, grip: 0 }, move: 1000, hold: 400 },
 ];
 
 const CYCLE = TIMELINE.reduce((sum, s) => sum + s.move + s.hold, 0);
@@ -71,8 +71,8 @@ function poseAt(ms: number): Pose {
 /* Materials                                                           */
 /* ------------------------------------------------------------------ */
 
-const BODY = "#26537f";
-const HOUSING = "#3c6da3";
+const BODY = "#2d5f92";
+const HOUSING = "#4a7cb0";
 const ACCENT = "#4a9eff";
 
 const Body = () => <meshStandardMaterial color={BODY} metalness={0.55} roughness={0.38} />;
@@ -133,7 +133,7 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
   });
 
   return (
-    <group ref={rig} position={[0, -1.1, 0]} rotation={[0, -1.05, 0]} scale={0.95}>
+    <group ref={rig} position={[0, -1.1, 0]} rotation={[0, -1.05, 0]} scale={1.02}>
       {/* Base plinth */}
       <mesh position={[0, 0.09, 0]} castShadow>
         <cylinderGeometry args={[0.62, 0.72, 0.18, 32]} />
@@ -257,9 +257,9 @@ const RobotArm3D = () => {
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [3.4, 1.5, 5.8], fov: 38 }}
+        camera={{ position: [2.6, 1.15, 4.4], fov: 36 }}
       >
-        <ambientLight intensity={isDark ? 0.55 : 0.7} />
+        <ambientLight intensity={isDark ? 0.75 : 0.85} />
         <directionalLight position={[-4, 6, 4]} intensity={1.7} />
         <directionalLight position={[0, 3, 6]} intensity={isDark ? 0.6 : 0.35} />
         <directionalLight position={[3, 2.5, -4]} intensity={isDark ? 0.8 : 0.45} color={ACCENT} />
