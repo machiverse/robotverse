@@ -138,14 +138,14 @@ const EnhancedHero = () => {
       <div className="container relative z-10 mx-auto px-4">
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-6">
           {/* 3D stage — above the copy on small screens, right-bleeding on lg+ */}
-          <div className="order-1 lg:order-2 lg:col-span-7">
+          <div className="order-2 lg:order-2 lg:col-span-7">
             <div className="h-[320px] w-full lg:h-[520px] lg:-mr-[max(0px,calc((100vw-100%)/2))]">
               <RobotArmStage />
             </div>
           </div>
 
           {/* Copy + search */}
-          <div className="order-2 lg:order-1 lg:col-span-5">
+          <div className="order-1 lg:order-1 lg:col-span-5">
             <h1
               className="rv-hero-enter text-5xl font-semibold leading-[1.05] tracking-[-0.03em] text-foreground lg:text-[64px]"
               style={enter(0)}

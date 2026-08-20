@@ -29,6 +29,8 @@ class CanvasBoundary extends Component<{ children: React.ReactNode }, { failed: 
 const supports3D = () => {
   try {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+    // Small screens get the static poster — no WebGL cost on phones.
+    if (window.innerWidth < 768) return false;
     const cores = navigator.hardwareConcurrency;
     if (typeof cores === "number" && cores <= 4) return false;
     const canvas = document.createElement("canvas");
