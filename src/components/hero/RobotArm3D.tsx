@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import type { Group, Mesh } from "three";
@@ -71,12 +71,32 @@ function poseAt(ms: number): Pose {
 /* Materials                                                           */
 /* ------------------------------------------------------------------ */
 
-const BODY = "#2d5f92";
-const HOUSING = "#4a7cb0";
+const BODY_DARK = "#2d5f92";
+/** Light mode sits on near-white — darken the body so the silhouette reads. */
+const BODY_LIGHT = "#1b3a5f";
+const HOUSING_DARK = "#4a7cb0";
+const HOUSING_LIGHT = "#35618f";
 const ACCENT = "#4a9eff";
 
-const Body = () => <meshStandardMaterial color={BODY} metalness={0.55} roughness={0.38} />;
-const Housing = () => <meshStandardMaterial color={HOUSING} metalness={0.55} roughness={0.38} />;
+const SkinContext = createContext(true);
+
+const Body = () => {
+  const dark = useContext(SkinContext);
+  return (
+    <meshStandardMaterial color={dark ? BODY_DARK : BODY_LIGHT} metalness={0.55} roughness={0.38} />
+  );
+};
+const Housing = () => {
+  const dark = useContext(SkinContext);
+  return (
+    <meshStandardMaterial
+      color={dark ? HOUSING_DARK : HOUSING_LIGHT}
+      metalness={0.55}
+      roughness={0.38}
+    />
+  );
+};
+
 
 /* ------------------------------------------------------------------ */
 /* Rig                                                                 */
@@ -108,7 +128,7 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
 
   const MAX = (4 * Math.PI) / 180;
   /** Yaw the whole rig so the shoulder/elbow bend plane faces the camera. */
-  const BASE_YAW = -1.05;
+  const BASE_YAW = -0.62;
 
   useFrame((_, delta) => {
     clock.current += Math.min(delta, 0.1) * 1000;
@@ -133,21 +153,21 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
   });
 
   return (
-    <group ref={rig} position={[0, -0.75, 0]} rotation={[0, -1.05, 0]} scale={0.9}>
+    <group ref={rig} position={[0, -0.75, 0]} rotation={[0, -0.62, 0]} scale={1.15}>
       {/* Base plinth */}
-      <mesh position={[0, 0.09, 0]} castShadow>
-        <cylinderGeometry args={[0.62, 0.72, 0.18, 32]} />
+      <mesh position={[0, 0.07, 0]} castShadow>
+        <cylinderGeometry args={[0.44, 0.52, 0.14, 32]} />
         <Housing />
       </mesh>
-      <mesh position={[0, 0.26, 0]}>
-        <cylinderGeometry args={[0.5, 0.56, 0.18, 32]} />
+      <mesh position={[0, 0.21, 0]}>
+        <cylinderGeometry args={[0.36, 0.4, 0.14, 32]} />
         <Body />
       </mesh>
 
       {/* J1 turret */}
-      <group ref={turret} position={[0, 0.35, 0]}>
-        <mesh position={[0, 0.16, 0]}>
-          <cylinderGeometry args={[0.42, 0.46, 0.32, 28]} />
+      <group ref={turret} position={[0, 0.28, 0]}>
+        <mesh position={[0, 0.14, 0]}>
+          <cylinderGeometry args={[0.32, 0.35, 0.28, 28]} />
           <Housing />
         </mesh>
         <mesh position={[0, 0.42, 0]}>
@@ -257,22 +277,24 @@ const RobotArm3D = () => {
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [2.6, 1.15, 4.4], fov: 34 }}
+        camera={{ position: [2.9, 0.9, 3.4], fov: 38 }}
       >
-        <ambientLight intensity={isDark ? 0.75 : 0.85} />
-        <directionalLight position={[-4, 6, 4]} intensity={1.7} />
-        <directionalLight position={[0, 3, 6]} intensity={isDark ? 0.6 : 0.35} />
-        <directionalLight position={[3, 2.5, -4]} intensity={isDark ? 0.8 : 0.45} color={ACCENT} />
-        <Arm parallax={parallax} />
-        <ContactShadows
-          position={[0, -0.76, 0]}
-          opacity={isDark ? 0.55 : 0.28}
-          scale={7}
-          blur={2.6}
-          far={3}
-          resolution={512}
-          color="#0a1a2c"
-        />
+        <SkinContext.Provider value={isDark}>
+          <ambientLight intensity={isDark ? 0.75 : 0.85} />
+          <directionalLight position={[-4, 6, 4]} intensity={1.7} />
+          <directionalLight position={[0, 3, 6]} intensity={isDark ? 0.6 : 0.35} />
+          <directionalLight position={[3, 2.5, -4]} intensity={isDark ? 0.8 : 0.45} color={ACCENT} />
+          <Arm parallax={parallax} />
+          <ContactShadows
+            position={[0, -0.76, 0]}
+            opacity={isDark ? 0.55 : 0.4}
+            scale={7}
+            blur={2.6}
+            far={3}
+            resolution={512}
+            color="#0a1a2c"
+          />
+        </SkinContext.Provider>
       </Canvas>
     </div>
   );
