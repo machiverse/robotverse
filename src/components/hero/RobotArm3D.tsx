@@ -133,7 +133,7 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
   });
 
   return (
-    <group ref={rig} position={[0, -1.1, 0]} rotation={[0, -1.05, 0]} scale={1.02}>
+    <group ref={rig} position={[0, -0.75, 0]} rotation={[0, -1.05, 0]} scale={0.9}>
       {/* Base plinth */}
       <mesh position={[0, 0.09, 0]} castShadow>
         <cylinderGeometry args={[0.62, 0.72, 0.18, 32]} />
@@ -257,7 +257,7 @@ const RobotArm3D = () => {
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         frameloop={visible ? "always" : "never"}
-        camera={{ position: [2.3, 1.0, 3.95], fov: 34 }}
+        camera={{ position: [2.6, 1.15, 4.4], fov: 34 }}
       >
         <ambientLight intensity={isDark ? 0.75 : 0.85} />
         <directionalLight position={[-4, 6, 4]} intensity={1.7} />
@@ -265,7 +265,7 @@ const RobotArm3D = () => {
         <directionalLight position={[3, 2.5, -4]} intensity={isDark ? 0.8 : 0.45} color={ACCENT} />
         <Arm parallax={parallax} />
         <ContactShadows
-          position={[0, -1.11, 0]}
+          position={[0, -0.76, 0]}
           opacity={isDark ? 0.55 : 0.28}
           scale={7}
           blur={2.6}
