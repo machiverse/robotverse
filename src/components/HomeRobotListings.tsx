@@ -314,7 +314,7 @@ const HomeRobotListings = () => {
                         >
                           <OemRail brand={robot.brand} />
                           {/* Robot Image */}
-                          <div className="relative aspect-[4/3] overflow-hidden bg-background border-b border-border">
+                          <div className="relative aspect-[4/3] overflow-hidden bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))]">
                             {robot.images && robot.images.length > 0 ? (
                               <img
                                 src={robot.images[0]}
