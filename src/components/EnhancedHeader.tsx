@@ -38,6 +38,8 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import UserProductRequestModal from "@/components/UserProductRequestModal";
+import ThemeToggle from "@/components/ThemeToggle";
+
 
 const menuIcons: Record<string, React.ElementType> = {
   "Robot Parts": Cpu,
@@ -323,23 +325,23 @@ const EnhancedHeader = () => {
       <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group">
-          <div className="relative">
+          <div className="relative dark:bg-[hsl(210_20%_96%)] dark:p-1 rounded-xl">
             <img
               src={robotverseLogo}
               alt="RobotVerse Logo"
-              className="h-11 w-11 object-contain bg-card rounded-xl border-2 border-primary/20 shadow-md transition-transform duration-200 group-hover:scale-105"
+              className="h-11 w-11 object-contain bg-card dark:bg-transparent rounded-xl border-2 border-primary/20 dark:border-transparent shadow-md transition-transform duration-200 group-hover:scale-105"
             />
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <div className="hidden sm:block">
-            <span className="text-xl font-bold text-primary tracking-tight">
+            <span className="text-xl font-bold text-foreground tracking-tight">
               RobotVerse
             </span>
-            <p className="text-[10px] text-muted-foreground font-medium -mt-0.5 tracking-wide">
+            <p className="text-[10px] text-muted-foreground font-medium -mt-0.5 tracking-[0.06em]">
               INDUSTRIAL ROBOTICS MARKETPLACE
             </p>
           </div>
         </Link>
+
 
         {/* Centered Search Bar */}
         <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-8">
@@ -505,7 +507,11 @@ const EnhancedHeader = () => {
           {/* Notification Center */}
           <NotificationCenter />
 
+          {/* Theme toggle — immediately left of Sign In */}
+          <ThemeToggle />
+
           {/* Dashboard / Auth */}
+
           {user ? (
             <div className="relative hidden sm:block" ref={profileDropdownRef}>
               <button

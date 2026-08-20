@@ -28,7 +28,7 @@ const AuctionCard: React.FC<{ auction: Auction }> = ({ auction }) => {
       onClick={() => navigate(`/auctions/${auction.id}`)}
     >
       <OemRail brand={auction.robots?.brand || auction.robots?.model || auction.auction_title} />
-      <div className="aspect-[4/3] bg-background border-b border-border relative overflow-hidden">
+      <div className="aspect-[4/3] bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))] relative overflow-hidden">
         {img ? (
           <img src={img} alt={auction.auction_title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (

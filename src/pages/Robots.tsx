@@ -950,7 +950,7 @@ const Robots = () => {
                         >
                           <OemRail brand={robot.brand} />
                           {/* Image */}
-                          <div className="relative overflow-hidden bg-background border-b border-border">
+                          <div className="relative overflow-hidden bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))]">
                             {robot.images && robot.images.length > 0 ? (
                               <ResponsiveImage
                                 src={robot.images[0]}

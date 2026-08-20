@@ -817,7 +817,7 @@ const Parts = () => {
                   className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
                   onClick={() => navigate(`/parts/${part.id}`)}
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-muted border-b border-border">
                     <img
                       src={part.image}
                       alt={part.name}

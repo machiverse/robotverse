@@ -61,8 +61,70 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 215 28% 12%;
     --sidebar-border: 214 20% 90%;
     --sidebar-ring: 210 72% 30%;
+
+    color-scheme: light;
+  }
+
+  /* =======================================================================
+     DARK THEME — a purpose-built navy ramp (not an inversion of the light
+     palette). Elevation is expressed by raising lightness; the accent is
+     desaturated and lifted; neutrals carry a navy hue.
+     ======================================================================= */
+  .dark {
+    --background: 214 32% 7%;
+    --foreground: 210 20% 93%;
+
+    --card: 214 30% 10%;
+    --card-foreground: 210 20% 93%;
+
+    --popover: 214 28% 13%;
+    --popover-foreground: 210 20% 93%;
+
+    --muted: 214 26% 14%;
+    --muted-foreground: 213 14% 64%;
+
+    --border: 214 22% 19%;
+    --input: 214 24% 16%;
+
+    --primary: 208 76% 60%;
+    --primary-foreground: 214 40% 8%;
+
+    --secondary: 214 26% 15%;
+    --secondary-foreground: 210 20% 93%;
+
+    --ring: 208 76% 60%;
+
+    --accent: 214 26% 17%;
+    --accent-foreground: 210 20% 93%;
+
+    --success: 152 44% 50%;
+    --warning: 36 76% 58%;
+    --destructive: 0 62% 58%;
+    --destructive-foreground: 214 40% 8%;
+
+    --header-bg: 214 30% 9%;
+    --header-border: 214 22% 18%;
+    --nav-bg: 214 30% 9%;
+    --nav-hover: 208 76% 60%;
+
+    --shadow-sm: 0 1px 2px hsl(214 40% 2% / 0.5), 0 1px 3px hsl(214 40% 2% / 0.35);
+    --shadow-md: 0 2px 4px hsl(214 40% 2% / 0.5), 0 4px 12px hsl(214 40% 2% / 0.4);
+    --shadow-lg: 0 4px 8px hsl(214 40% 2% / 0.5), 0 12px 32px hsl(214 40% 2% / 0.45);
+    --shadow-header: 0 1px 0 hsl(214 22% 22% / 1);
+
+    --sidebar-background: 214 30% 9%;
+    --sidebar-foreground: 210 20% 93%;
+    --sidebar-primary: 208 76% 60%;
+    --sidebar-primary-foreground: 214 40% 8%;
+    --sidebar-accent: 214 26% 15%;
+    --sidebar-accent-foreground: 210 20% 93%;
+    --sidebar-border: 214 22% 18%;
+    --sidebar-ring: 208 76% 60%;
+
+    color-scheme: dark;
   }
 }
+
 
 /* =========================================================================
    OEM MANUFACTURER COLOUR LAYER — NOT interface tokens.
@@ -82,6 +144,63 @@ All colors MUST be HSL.
   --oem-nachi: #5a6b7c;
   --oem-white: #9aa5b1;
   --oem-other: #c4cbd3;
+}
+
+/* Dark-mode OEM ramp: lifted so each brand stays recognisable and visible on a
+   near-black navy surface. Same variable names — same rail/dot-only rule. */
+.dark {
+  --oem-fanuc: #ffc61a;
+  --oem-abb: #f0563d;
+  --oem-kuka: #ff7a33;
+  --oem-yaskawa: #4a90e2;
+  --oem-cobot: #22a8a6;
+  --oem-kawasaki: #52b356;
+  --oem-nachi: #8b9aab;
+  --oem-white: #b6c0cb;
+  --oem-other: #7d8894;
+}
+
+/* Dark mode: light map tiles are inverted to a muted dark treatment. */
+.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip,
+.dark .leaflet-control-zoom a {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+}
+
+/* Hero copy entrance — fade + 8px rise, staggered, once on mount. */
+@keyframes rv-hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rv-hero-enter {
+  opacity: 0;
+  animation: rv-hero-rise 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes rv-hero-rise {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .rv-hero-enter {
+    animation: rv-hero-rise 300ms linear forwards;
+  }
 }
 
 

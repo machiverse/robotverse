@@ -823,7 +823,7 @@ const RobotListings = () => {
                 <OemRail brand={robot.brand} />
                 {/* Robot Image */}
                  <div
-                  className={`relative overflow-hidden bg-background border-b border-border ${
+                  className={`relative overflow-hidden bg-muted border-b border-border dark:shadow-[inset_0_0_0_1px_hsl(var(--border))] ${
                     viewMode === "list" ? "w-48 border-b-0 border-r" : ""
                   }`}
                  >
