@@ -153,21 +153,21 @@ const Arm = ({ parallax }: { parallax: boolean }) => {
   });
 
   return (
-    <group ref={rig} position={[0, -0.75, 0]} rotation={[0, -1.05, 0]} scale={0.9}>
+    <group ref={rig} position={[0, -0.75, 0]} rotation={[0, -0.62, 0]} scale={1.15}>
       {/* Base plinth */}
-      <mesh position={[0, 0.09, 0]} castShadow>
-        <cylinderGeometry args={[0.62, 0.72, 0.18, 32]} />
+      <mesh position={[0, 0.07, 0]} castShadow>
+        <cylinderGeometry args={[0.44, 0.52, 0.14, 32]} />
         <Housing />
       </mesh>
-      <mesh position={[0, 0.26, 0]}>
-        <cylinderGeometry args={[0.5, 0.56, 0.18, 32]} />
+      <mesh position={[0, 0.21, 0]}>
+        <cylinderGeometry args={[0.36, 0.4, 0.14, 32]} />
         <Body />
       </mesh>
 
       {/* J1 turret */}
-      <group ref={turret} position={[0, 0.35, 0]}>
-        <mesh position={[0, 0.16, 0]}>
-          <cylinderGeometry args={[0.42, 0.46, 0.32, 28]} />
+      <group ref={turret} position={[0, 0.28, 0]}>
+        <mesh position={[0, 0.14, 0]}>
+          <cylinderGeometry args={[0.32, 0.35, 0.28, 28]} />
           <Housing />
         </mesh>
         <mesh position={[0, 0.42, 0]}>
