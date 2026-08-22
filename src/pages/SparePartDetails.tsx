@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 
 import ViewCountDisplay from "@/components/ViewCountDisplay";
+import SparePartQuoteModal from "@/components/forms/SparePartQuoteModal";
+import { RequestQuoteButton, LeadTimeInfoBox, isPriceAvailable, isNewCondition } from "@/components/pricing/PriceElements";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
 import { ChatButton } from "@/components/chat/ChatButton";
@@ -91,6 +93,15 @@ const SparePartDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+
+  const handleRequestQuoteClick = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    setShowQuoteModal(true);
+  };
   const { toast } = useToast();
   const { trackButtonClick } = useButtonTracking();
   const { trackItemView } = useUniversalViewTracking();
@@ -437,14 +448,32 @@ const SparePartDetails = () => {
                   </div>
 
                   {/* Price - Same color as product name */}
-                  <div className="flex items-baseline gap-2 mt-4">
-                    <span className="text-4xl lg:text-5xl font-black text-primary tracking-tight">
-                      {sparePart.currency} {sparePart.price?.toLocaleString()}
-                    </span>
-                    {sparePart.quantity > 1 && (
-                      <span className="text-sm text-muted-foreground">{sparePart.quantity} available</span>
-                    )}
-                  </div>
+                  {isPriceAvailable(sparePart.price) ? (
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl lg:text-5xl font-black text-primary tracking-tight">
+                          {sparePart.currency} {sparePart.price?.toLocaleString()}
+                        </span>
+                        {sparePart.quantity > 1 && (
+                          <span className="text-sm text-muted-foreground">{sparePart.quantity} available</span>
+                        )}
+                      </div>
+                      <LeadTimeInfoBox condition={sparePart.condition} />
+                      {isNewCondition(sparePart.condition) && (
+                        <RequestQuoteButton
+                          variant="outline"
+                          size="default"
+                          label="Request Custom Quote"
+                          onClick={handleRequestQuoteClick}
+                          className="sm:w-auto"
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-4 max-w-sm">
+                      <RequestQuoteButton onClick={handleRequestQuoteClick} />
+                    </div>
+                  )}
 
                   {/* Part Number */}
                   {sparePart.part_number && (
@@ -704,7 +733,9 @@ const SparePartDetails = () => {
                     <div className="flex justify-between border-b border-border/50 py-4 px-6 font-bold">
                       <span className="text-lg">Price</span>
                       <span className="text-muted-foreground text-lg">
-                        {sparePart.currency} {sparePart.price?.toLocaleString()}
+                        {isPriceAvailable(sparePart.price)
+                          ? `${sparePart.currency} ${sparePart.price?.toLocaleString()}`
+                          : "On request"}
                       </span>
                     </div>
                   </div>
