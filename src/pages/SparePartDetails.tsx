@@ -930,6 +930,25 @@ const SparePartDetails = () => {
           />
         </div>
       </div>
+
+      <SparePartQuoteModal
+        isOpen={showQuoteModal}
+        onClose={() => setShowQuoteModal(false)}
+        part={{
+          id: sparePart.id,
+          name: sparePart.name,
+          partNumber: sparePart.part_number || "",
+          price: sparePart.price || 0,
+          sellerId: sparePart.seller_id,
+          seller: {
+            full_name: (sparePart as any).profiles?.full_name,
+            company_name: (sparePart as any).profiles?.company_name,
+            email: (sparePart as any).profiles?.email,
+          },
+        }}
+        userEmail={user?.email || ""}
+        userName={user?.user_metadata?.full_name || ""}
+      />
     </>
   );
 };
