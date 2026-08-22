@@ -20,6 +20,7 @@ interface Robot {
   currency: Currency;
   images: string[];
   brand?: string;
+  condition?: string;
 }
 
 const robotTypeConfig: Record<string, { label: string }> = {
