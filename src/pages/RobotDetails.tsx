@@ -69,6 +69,7 @@ import {
 } from "lucide-react";
 
 import ViewCountDisplay from "@/components/ViewCountDisplay";
+import { RequestQuoteButton, LeadTimeInfoBox, isPriceAvailable, isNewCondition } from "@/components/pricing/PriceElements";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
@@ -216,6 +217,14 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showRobotQuoteModal, setShowRobotQuoteModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const handleRequestQuoteClick = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    setShowRobotQuoteModal(true);
+  };
 
   const viewCountedRef = useRef<string | null>(null);
   const { seoElements, generateSEO } = useRobotSEO();
