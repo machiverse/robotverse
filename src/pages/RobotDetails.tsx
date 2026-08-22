@@ -69,6 +69,7 @@ import {
 } from "lucide-react";
 
 import ViewCountDisplay from "@/components/ViewCountDisplay";
+import { RequestQuoteButton, LeadTimeInfoBox, isPriceAvailable, isNewCondition } from "@/components/pricing/PriceElements";
 import EnhancedHeader from "@/components/EnhancedHeader";
 import ProfessionalRobotReportModal from "@/components/ProfessionalRobotReportModal";
 import { ComprehensiveAIMarketAnalysis } from "@/components/ComprehensiveAIMarketAnalysis";
@@ -216,6 +217,14 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showRobotQuoteModal, setShowRobotQuoteModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const handleRequestQuoteClick = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    setShowRobotQuoteModal(true);
+  };
 
   const viewCountedRef = useRef<string | null>(null);
   const { seoElements, generateSEO } = useRobotSEO();
@@ -723,14 +732,29 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
               </div>
 
               {/* Price */}
-              <div className="space-y-1">
-                <p className="text-2xl lg:text-3xl font-bold text-primary tabular">
-                  {robot.price ? formatPrice(robot.price, robot.currency) : "Price on Request"}
-                </p>
-                {outsideIndia && importDuty && (
-                  <p className="text-sm text-muted-foreground">
-                    + Est. Import Duty: {formatPrice(importDuty, robot.currency)}
-                  </p>
+              <div className="space-y-2">
+                {isPriceAvailable(robot.price) ? (
+                  <>
+                    <p className="text-2xl lg:text-3xl font-bold text-primary tabular">
+                      {formatPrice(robot.price, robot.currency)}
+                    </p>
+                    {outsideIndia && importDuty && (
+                      <p className="text-sm text-muted-foreground">
+                        + Est. Import Duty: {formatPrice(importDuty, robot.currency)}
+                      </p>
+                    )}
+                    <LeadTimeInfoBox condition={robot.condition} />
+                    {isNewCondition(robot.condition) && (
+                      <RequestQuoteButton
+                        variant="outline"
+                        size="default"
+                        label="Request Custom Quote"
+                        onClick={handleRequestQuoteClick}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <RequestQuoteButton onClick={handleRequestQuoteClick} />
                 )}
                 <div className="pt-1">
                   <CouponBadge sellerId={robot.seller_id} robotId={robot.id} />

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Bot, ArrowRight, Loader2 } from "lucide-react";
+import { RequestQuotePill, CardLeadTimeNote, isPriceAvailable } from "@/components/pricing/PriceElements";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { formatPrice as formatCurrencyPrice, Currency } from "@/utils/currency";
@@ -20,6 +21,7 @@ interface Robot {
   currency: Currency;
   images: string[];
   brand?: string;
+  condition?: string;
 }
 
 const robotTypeConfig: Record<string, { label: string }> = {
@@ -76,7 +78,7 @@ const HomeRobotListings = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("robots")
-          .select("id, name, robot_type, price, currency, images, brand")
+          .select("id, name, robot_type, price, currency, images, brand, condition")
           .eq("availability", "available")
           .order("created_at", { ascending: false })
           .range(offset, offset + batchSize - 1);
@@ -150,7 +152,6 @@ const HomeRobotListings = () => {
   };
 
   const formatPrice = (price: number, currency: Currency) => {
-    if (!price) return "Price on request";
     return formatCurrencyPrice(price, currency);
   };
 
@@ -340,9 +341,21 @@ const HomeRobotListings = () => {
                                 {robot.brand}
                               </p>
                             )}
-                            <p className="text-base font-bold text-primary tabular">
-                              {formatPrice(robot.price, robot.currency)}
-                            </p>
+                            {isPriceAvailable(robot.price) ? (
+                              <div className="space-y-0.5">
+                                <p className="text-base font-bold text-primary tabular">
+                                  {formatPrice(robot.price, robot.currency)}
+                                </p>
+                                <CardLeadTimeNote condition={robot.condition} />
+                              </div>
+                            ) : (
+                              <RequestQuotePill
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/robots/${robot.id}`);
+                                }}
+                              />
+                            )}
                           </CardContent>
 
                         </Card>

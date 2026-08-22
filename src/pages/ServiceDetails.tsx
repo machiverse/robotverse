@@ -7,6 +7,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import Footer from "@/components/Footer";
 import ServiceRequestModal from "@/components/ServiceRequestModal";
+import { RequestQuoteButton } from "@/components/pricing/PriceElements";
 import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useAuth } from "@/hooks/useAuth";
@@ -122,13 +123,11 @@ const ServiceDetails = () => {
     fetchService();
   }, [id, trackItemView]);
 
+  const hasPublishedPrice = !!service?.priceRange && !/contact/i.test(service.priceRange);
+
   const handleRequestQuote = () => {
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please sign in to request a quote from service providers.",
-      });
+      navigate("/auth");
       return;
     }
 
@@ -277,12 +276,18 @@ const ServiceDetails = () => {
                 {/* Price Card */}
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
                         <p className="text-sm text-muted-foreground mb-1">Service Price Range</p>
-                        <p className="text-3xl font-bold text-primary">{service.priceRange}</p>
+                        {hasPublishedPrice ? (
+                          <p className="text-3xl font-bold text-primary">{service.priceRange}</p>
+                        ) : (
+                          <div className="max-w-xs mt-2">
+                            <RequestQuoteButton onClick={handleRequestQuote} />
+                          </div>
+                        )}
                       </div>
-                      <Wrench className="w-12 h-12 text-primary/20" />
+                      <Wrench className="w-12 h-12 text-primary/20 shrink-0" />
                     </div>
                   </CardContent>
                 </Card>

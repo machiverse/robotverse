@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
+import { RequestQuotePill, isPriceAvailable } from "@/components/pricing/PriceElements";
 import { useUrlParam, useDebouncedUrlParam } from "@/hooks/useUrlState";
 import CopySearchLinkButton from "@/components/CopySearchLinkButton";
 import { supabase } from "@/integrations/supabase/client";
@@ -451,7 +452,6 @@ const Parts = () => {
   };
 
   const formatPrice = (price?: number) => {
-    if (!price) return "Price on request";
     return `₹${price.toLocaleString("en-IN")}`;
   };
 
@@ -856,9 +856,18 @@ const Parts = () => {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-primary tabular">
-                        {formatPrice(part.price)}
-                      </span>
+                      {isPriceAvailable(part.price) ? (
+                        <span className="font-bold text-primary tabular">
+                          {formatPrice(part.price)}
+                        </span>
+                      ) : (
+                        <RequestQuotePill
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/parts/${part.id}`);
+                          }}
+                        />
+                      )}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span>{part.rating}</span>
@@ -962,9 +971,18 @@ const Parts = () => {
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-3">
-                          <span className="font-bold text-xl text-primary">
-                            {formatPrice(part.price)}
-                          </span>
+                          {isPriceAvailable(part.price) ? (
+                            <span className="font-bold text-xl text-primary">
+                              {formatPrice(part.price)}
+                            </span>
+                          ) : (
+                            <RequestQuotePill
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/parts/${part.id}`);
+                              }}
+                            />
+                          )}
                           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                             <ChatButton
                               otherUserId={part.sellerId || ""}

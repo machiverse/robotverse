@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useButtonTracking } from "@/hooks/useButtonTracking";
 import { useUniversalViewTracking } from "@/hooks/useUniversalViewTracking";
 import { formatPrice as formatCurrencyPrice, Currency, convertToINR } from "@/utils/currency";
+import { RequestQuotePill, CardLeadTimeNote, isPriceAvailable } from "@/components/pricing/PriceElements";
 import {
   Dialog,
   DialogContent,
@@ -385,7 +386,6 @@ const RobotListings = () => {
 
   // Format price helper
   const formatPrice = (price: number, currency: Currency) => {
-    if (!price) return "Price on request";
     return formatCurrencyPrice(price, currency);
   };
 
@@ -912,9 +912,21 @@ const RobotListings = () => {
                       </div>
                       {robot.state && <div className="text-xs text-muted-foreground">State: {robot.state}</div>}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center text-lg font-bold text-primary tabular">
-                          {formatPrice(robot.price, robot.currency)}
-                        </div>
+                        {isPriceAvailable(robot.price) ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center text-lg font-bold text-primary tabular">
+                              {formatPrice(robot.price, robot.currency)}
+                            </div>
+                            <CardLeadTimeNote condition={robot.condition} />
+                          </div>
+                        ) : (
+                          <RequestQuotePill
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/robots/${robot.id}`);
+                            }}
+                          />
+                        )}
                         {robot.payload_capacity && (
                           <span className="text-xs text-muted-foreground"><span className="tabular">{robot.payload_capacity}</span>kg payload</span>
                         )}
