@@ -7,6 +7,7 @@ import EnhancedHeader from "@/components/EnhancedHeader";
 import { UniversalSEOHead } from "@/components/SEO/UniversalSEOHead";
 import Footer from "@/components/Footer";
 import ServiceRequestModal from "@/components/ServiceRequestModal";
+import { RequestQuoteButton } from "@/components/pricing/PriceElements";
 import { ListingRatingSummary } from "@/components/reviews/ListingRatingSummary";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useAuth } from "@/hooks/useAuth";
@@ -127,11 +128,6 @@ const ServiceDetails = () => {
   const handleRequestQuote = () => {
     if (!user) {
       navigate("/auth");
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please sign in to request a quote from service providers.",
-      });
       return;
     }
 
