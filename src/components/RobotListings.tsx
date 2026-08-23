@@ -917,15 +917,19 @@ const RobotListings = () => {
                             <div className="flex items-center text-lg font-bold text-primary tabular">
                               {formatPrice(robot.price, robot.currency)}
                             </div>
-                            <CardLeadTimeNote condition={robot.condition} />
+                            <CardLeadTimeNote condition={robot.condition} leadTime={(robot as any).lead_time} />
                           </div>
                         ) : (
-                          <RequestQuotePill
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/robots/${robot.id}`);
-                            }}
-                          />
+                          <div className="space-y-1">
+                            <RequestQuotePill
+                              label="Ask for Price"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/robots/${robot.id}`);
+                              }}
+                            />
+                            <CardLeadTimeNote condition={robot.condition} leadTime={(robot as any).lead_time} />
+                          </div>
                         )}
                         {robot.payload_capacity && (
                           <span className="text-xs text-muted-foreground"><span className="tabular">{robot.payload_capacity}</span>kg payload</span>
