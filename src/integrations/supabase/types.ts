@@ -3650,6 +3650,7 @@ export type Database = {
           images: string[] | null
           included_accessories: string[] | null
           installation_service: boolean
+          lead_time: string | null
           location: string | null
           maintenance_contract: boolean
           model: string | null
@@ -3690,6 +3691,7 @@ export type Database = {
           images?: string[] | null
           included_accessories?: string[] | null
           installation_service?: boolean
+          lead_time?: string | null
           location?: string | null
           maintenance_contract?: boolean
           model?: string | null
@@ -3730,6 +3732,7 @@ export type Database = {
           images?: string[] | null
           included_accessories?: string[] | null
           installation_service?: boolean
+          lead_time?: string | null
           location?: string | null
           maintenance_contract?: boolean
           model?: string | null

@@ -55,6 +55,7 @@ interface RobotFormData {
   pincode: string;
   price: number | null;
   currency: Currency;
+  lead_time: string;
   description: string;
   technical_specifications: Record<string, any>;
   category_tags: string[];
@@ -124,6 +125,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         pincode: robotData.pincode || '',
         price: robotData.price || null,
         currency: robotData.currency || 'INR',
+        lead_time: robotData.lead_time || '',
         description: robotData.description || '',
         technical_specifications: robotData.technical_specifications || {},
         category_tags: robotData.category_tags || [],
@@ -159,6 +161,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
       pincode: '',
       price: null,
       currency: 'INR',
+      lead_time: '',
       description: '',
       technical_specifications: {},
       category_tags: [],
@@ -360,10 +363,10 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
   }, [formData, images, imageUrls]);
 
   const calculateFormCompletion = () => {
-    const requiredFields = ['name', 'robot_type', 'description', 'price'];
+    const requiredFields = ['name', 'robot_type', 'description'];
     const optionalFields = [
       'brand', 'model', 'location', 'condition', 'warranty_info', 
-      'category_tags', 'applications', 'payload_capacity'
+      'category_tags', 'applications', 'payload_capacity', 'price', 'lead_time'
     ];
 
     const requiredCompleted = requiredFields.filter(field => {
@@ -403,9 +406,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
       newErrors.description = 'Description must be at least 50 characters';
     }
     
-    if (!formData.price) {
-      newErrors.price = 'Price is required';
-    }
+    // Price is optional — buyers see a "Request for Quote" option when it is blank.
 
     if (!editMode && images.length === 0 && !imageUrls.some(url => url.trim())) {
       newErrors.images = 'At least one image is required';
@@ -707,6 +708,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           pincode: formData.pincode,
           price: formData.price,
           currency: formData.currency,
+          lead_time: formData.lead_time?.trim() || null,
           description: formData.description,
           technical_specifications: formData.technical_specifications,
           category_tags: formData.category_tags,
@@ -797,6 +799,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
             pincode: formData.pincode,
             price: formData.price,
             currency: formData.currency,
+            lead_time: formData.lead_time?.trim() || null,
             description: formData.description,
             technical_specifications: formData.technical_specifications,
             category_tags: formData.category_tags,
@@ -891,6 +894,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         pincode: '',
         price: null,
         currency: 'INR',
+        lead_time: '',
         description: '',
         technical_specifications: {},
         category_tags: [],
@@ -1503,7 +1507,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="price">Price *</Label>
+                <Label htmlFor="price">Price (optional)</Label>
                 <div className="flex gap-2">
                   <Select 
                     value={formData.currency} 
@@ -1525,18 +1529,28 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
                     value={formData.price || ''}
                     onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || null)}
                     placeholder="500000"
-                    className={`flex-1 ${errors.price ? 'border-red-500' : ''}`}
-                    required
+                    className="flex-1"
                   />
                 </div>
-                 {errors.price && (
-                   <p className="text-red-500 text-sm">{errors.price}</p>
-                 )}
+                 <p className="text-sm text-muted-foreground">
+                   Leave blank if price is not available — buyers will see a Request for Quote option.
+                 </p>
                  {formData.price && formData.currency !== 'INR' && (
                    <p className="text-sm text-muted-foreground">
                      ≈ ₹{convertToINR(formData.price, formData.currency).toLocaleString()} INR
                    </p>
                  )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lead_time">Lead Time (e.g. 2-4 weeks, Immediate, Ready to ship)</Label>
+                <Input
+                  id="lead_time"
+                  value={formData.lead_time}
+                  onChange={(e) => handleInputChange('lead_time', e.target.value)}
+                  placeholder="2-4 weeks"
+                />
+                <p className="text-sm text-muted-foreground">Optional — helps buyers plan delivery timelines.</p>
               </div>
 
               <div className="space-y-2">

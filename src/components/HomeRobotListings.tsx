@@ -22,6 +22,7 @@ interface Robot {
   images: string[];
   brand?: string;
   condition?: string;
+  lead_time?: string | null;
 }
 
 const robotTypeConfig: Record<string, { label: string }> = {
@@ -78,7 +79,7 @@ const HomeRobotListings = () => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("robots")
-          .select("id, name, robot_type, price, currency, images, brand, condition")
+          .select("id, name, robot_type, price, currency, images, brand, condition, lead_time")
           .eq("availability", "available")
           .order("created_at", { ascending: false })
           .range(offset, offset + batchSize - 1);
@@ -346,15 +347,19 @@ const HomeRobotListings = () => {
                                 <p className="text-base font-bold text-primary tabular">
                                   {formatPrice(robot.price, robot.currency)}
                                 </p>
-                                <CardLeadTimeNote condition={robot.condition} />
+                                <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
                               </div>
                             ) : (
-                              <RequestQuotePill
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/robots/${robot.id}`);
-                                }}
-                              />
+                              <div className="space-y-1">
+                                <RequestQuotePill
+                                  label="Ask for Price"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/robots/${robot.id}`);
+                                  }}
+                                />
+                                <CardLeadTimeNote condition={robot.condition} leadTime={robot.lead_time} />
+                              </div>
                             )}
                           </CardContent>
 

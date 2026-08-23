@@ -33,29 +33,48 @@ export const RequestQuotePill = ({
   </button>
 );
 
-/** Small muted lead-time hint shown under a published price on listing cards. */
-export const CardLeadTimeNote = ({ condition }: { condition?: string | null }) => {
-  if (!isNewCondition(condition)) return null;
-  return <p className="text-[11px] text-muted-foreground">Lead time: Contact seller</p>;
+/** Small muted lead-time hint shown under a price / quote pill on listing cards. */
+export const CardLeadTimeNote = ({ condition, leadTime }: { condition?: string | null; leadTime?: string | null }) => {
+  const text = leadTime?.trim() ? leadTime.trim() : isNewCondition(condition) ? "Contact seller" : null;
+  if (!text) return null;
+  return (
+    <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+      <Clock className="w-3 h-3 shrink-0" />
+      Lead time: {text}
+    </p>
+  );
 };
 
 /** Detail-page lead time info row. */
-export const LeadTimeInfoBox = ({ condition, className }: { condition?: string | null; className?: string }) => {
+export const LeadTimeInfoBox = ({
+  condition,
+  leadTime,
+  className,
+}: {
+  condition?: string | null;
+  leadTime?: string | null;
+  className?: string;
+}) => {
+  const explicit = leadTime?.trim();
   const isNew = isNewCondition(condition);
+  const neutral = !!explicit || isNew;
+  const text = explicit
+    ? `Lead Time: ${explicit}`
+    : isNew
+      ? "Lead time: Contact seller"
+      : "Available for immediate dispatch";
   return (
     <div
       className={cn(
         "flex items-start gap-2 rounded-lg border px-3 py-2 text-sm",
-        isNew
+        neutral
           ? "border-border bg-muted/40 text-muted-foreground"
           : "border-success/30 bg-success/10 text-success",
         className
       )}
     >
       <Clock className="w-4 h-4 mt-0.5 shrink-0" />
-      <span className="font-medium">
-        {isNew ? "Lead Time: Contact seller for delivery timeline" : "Ready to ship — available for immediate dispatch"}
-      </span>
+      <span className="font-medium">{text}</span>
     </div>
   );
 };

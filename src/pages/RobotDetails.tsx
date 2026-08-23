@@ -743,7 +743,7 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                         + Est. Import Duty: {formatPrice(importDuty, robot.currency)}
                       </p>
                     )}
-                    <LeadTimeInfoBox condition={robot.condition} />
+                    <LeadTimeInfoBox condition={robot.condition} leadTime={(robot as any).lead_time} />
                     {isNewCondition(robot.condition) && (
                       <RequestQuoteButton
                         variant="outline"
@@ -754,7 +754,10 @@ const [showQuoteForm, setShowQuoteForm] = useState(false);
                     )}
                   </>
                 ) : (
-                  <RequestQuoteButton onClick={handleRequestQuoteClick} />
+                  <>
+                    <RequestQuoteButton onClick={handleRequestQuoteClick} />
+                    <LeadTimeInfoBox condition={robot.condition} leadTime={(robot as any).lead_time} />
+                  </>
                 )}
                 <div className="pt-1">
                   <CouponBadge sellerId={robot.seller_id} robotId={robot.id} />
