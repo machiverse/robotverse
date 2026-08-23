@@ -33,10 +33,16 @@ export const RequestQuotePill = ({
   </button>
 );
 
-/** Small muted lead-time hint shown under a published price on listing cards. */
-export const CardLeadTimeNote = ({ condition }: { condition?: string | null }) => {
-  if (!isNewCondition(condition)) return null;
-  return <p className="text-[11px] text-muted-foreground">Lead time: Contact seller</p>;
+/** Small muted lead-time hint shown under a price / quote pill on listing cards. */
+export const CardLeadTimeNote = ({ condition, leadTime }: { condition?: string | null; leadTime?: string | null }) => {
+  const text = leadTime?.trim() ? leadTime.trim() : isNewCondition(condition) ? "Contact seller" : null;
+  if (!text) return null;
+  return (
+    <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+      <Clock className="w-3 h-3 shrink-0" />
+      Lead time: {text}
+    </p>
+  );
 };
 
 /** Detail-page lead time info row. */
