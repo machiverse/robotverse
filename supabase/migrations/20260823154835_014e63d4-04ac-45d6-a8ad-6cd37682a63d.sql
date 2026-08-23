@@ -1,0 +1,2 @@
+ALTER TABLE public.robots ALTER COLUMN price DROP NOT NULL;
+ALTER TABLE public.robots ADD COLUMN IF NOT EXISTS lead_time TEXT;
