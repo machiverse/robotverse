@@ -1507,7 +1507,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="price">Price *</Label>
+                <Label htmlFor="price">Price (optional)</Label>
                 <div className="flex gap-2">
                   <Select 
                     value={formData.currency} 
@@ -1529,18 +1529,28 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
                     value={formData.price || ''}
                     onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || null)}
                     placeholder="500000"
-                    className={`flex-1 ${errors.price ? 'border-red-500' : ''}`}
-                    required
+                    className="flex-1"
                   />
                 </div>
-                 {errors.price && (
-                   <p className="text-red-500 text-sm">{errors.price}</p>
-                 )}
+                 <p className="text-sm text-muted-foreground">
+                   Leave blank if price is not available — buyers will see a Request for Quote option.
+                 </p>
                  {formData.price && formData.currency !== 'INR' && (
                    <p className="text-sm text-muted-foreground">
                      ≈ ₹{convertToINR(formData.price, formData.currency).toLocaleString()} INR
                    </p>
                  )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lead_time">Lead Time (e.g. 2-4 weeks, Immediate, Ready to ship)</Label>
+                <Input
+                  id="lead_time"
+                  value={formData.lead_time}
+                  onChange={(e) => handleInputChange('lead_time', e.target.value)}
+                  placeholder="2-4 weeks"
+                />
+                <p className="text-sm text-muted-foreground">Optional — helps buyers plan delivery timelines.</p>
               </div>
 
               <div className="space-y-2">
