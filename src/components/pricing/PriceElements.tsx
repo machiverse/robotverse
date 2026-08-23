@@ -46,22 +46,35 @@ export const CardLeadTimeNote = ({ condition, leadTime }: { condition?: string |
 };
 
 /** Detail-page lead time info row. */
-export const LeadTimeInfoBox = ({ condition, className }: { condition?: string | null; className?: string }) => {
+export const LeadTimeInfoBox = ({
+  condition,
+  leadTime,
+  className,
+}: {
+  condition?: string | null;
+  leadTime?: string | null;
+  className?: string;
+}) => {
+  const explicit = leadTime?.trim();
   const isNew = isNewCondition(condition);
+  const neutral = !!explicit || isNew;
+  const text = explicit
+    ? `Lead Time: ${explicit}`
+    : isNew
+      ? "Lead time: Contact seller"
+      : "Available for immediate dispatch";
   return (
     <div
       className={cn(
         "flex items-start gap-2 rounded-lg border px-3 py-2 text-sm",
-        isNew
+        neutral
           ? "border-border bg-muted/40 text-muted-foreground"
           : "border-success/30 bg-success/10 text-success",
         className
       )}
     >
       <Clock className="w-4 h-4 mt-0.5 shrink-0" />
-      <span className="font-medium">
-        {isNew ? "Lead Time: Contact seller for delivery timeline" : "Ready to ship — available for immediate dispatch"}
-      </span>
+      <span className="font-medium">{text}</span>
     </div>
   );
 };
