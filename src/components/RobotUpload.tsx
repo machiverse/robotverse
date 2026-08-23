@@ -55,6 +55,7 @@ interface RobotFormData {
   pincode: string;
   price: number | null;
   currency: Currency;
+  lead_time: string;
   description: string;
   technical_specifications: Record<string, any>;
   category_tags: string[];
@@ -124,6 +125,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         pincode: robotData.pincode || '',
         price: robotData.price || null,
         currency: robotData.currency || 'INR',
+        lead_time: robotData.lead_time || '',
         description: robotData.description || '',
         technical_specifications: robotData.technical_specifications || {},
         category_tags: robotData.category_tags || [],
@@ -159,6 +161,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
       pincode: '',
       price: null,
       currency: 'INR',
+      lead_time: '',
       description: '',
       technical_specifications: {},
       category_tags: [],
@@ -360,10 +363,10 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
   }, [formData, images, imageUrls]);
 
   const calculateFormCompletion = () => {
-    const requiredFields = ['name', 'robot_type', 'description', 'price'];
+    const requiredFields = ['name', 'robot_type', 'description'];
     const optionalFields = [
       'brand', 'model', 'location', 'condition', 'warranty_info', 
-      'category_tags', 'applications', 'payload_capacity'
+      'category_tags', 'applications', 'payload_capacity', 'price', 'lead_time'
     ];
 
     const requiredCompleted = requiredFields.filter(field => {
@@ -403,9 +406,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
       newErrors.description = 'Description must be at least 50 characters';
     }
     
-    if (!formData.price) {
-      newErrors.price = 'Price is required';
-    }
+    // Price is optional — buyers see a "Request for Quote" option when it is blank.
 
     if (!editMode && images.length === 0 && !imageUrls.some(url => url.trim())) {
       newErrors.images = 'At least one image is required';
@@ -707,6 +708,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
           pincode: formData.pincode,
           price: formData.price,
           currency: formData.currency,
+          lead_time: formData.lead_time?.trim() || null,
           description: formData.description,
           technical_specifications: formData.technical_specifications,
           category_tags: formData.category_tags,
@@ -797,6 +799,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
             pincode: formData.pincode,
             price: formData.price,
             currency: formData.currency,
+            lead_time: formData.lead_time?.trim() || null,
             description: formData.description,
             technical_specifications: formData.technical_specifications,
             category_tags: formData.category_tags,
@@ -891,6 +894,7 @@ const RobotUpload = ({ onSuccess, editMode = false, robotData }: RobotUploadProp
         pincode: '',
         price: null,
         currency: 'INR',
+        lead_time: '',
         description: '',
         technical_specifications: {},
         category_tags: [],
